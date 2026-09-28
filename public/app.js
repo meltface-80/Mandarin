@@ -10679,7 +10679,36 @@
 })();
 
 /* ------------------------------------------------------------------ */
+/*  Android app only: the app's own update, looked for by the app on   */
+/*  GitHub, so one Update button can do the server and the app. Null   */
+/*  anywhere else (browsers, the iPhone home-screen app, older apps).  */
+/* ------------------------------------------------------------------ */
+window.__musicdAppUpd = (function () {
+  const app = window.MusicdApp;
+  if (!app || typeof app.appUpdateStatus !== "function") return null;
+  try { app.pageHandlesUpdates(); } catch (e) {}
+  const waiters = [];
+  const status = () => { try { return JSON.parse(app.appUpdateStatus()); } catch (e) { return null; } };
+  window.__musicdAppUpdateChanged = () => { const s = status(); waiters.splice(0).forEach(w => w(s)); };
+  return {
+    status,
+    // Resolves with {current, latest, available} once the app has looked
+    // (at most hourly unless forced); never waits more than 12 s.
+    look(force) {
+      return new Promise(resolve => {
+        waiters.push(resolve);
+        setTimeout(() => resolve(status()), 12000);
+        try { app.lookForAppUpdate(!!force); } catch (e) { resolve(status()); }
+      });
+    },
+    install() { try { app.installAppUpdate(); } catch (e) {} }
+  };
+})();
+
+/* ------------------------------------------------------------------ */
 /*  Self-update: poll status, show a toast, install on tap            */
+/*  (in the Android app, the app's update rides along: one offer, one  */
+/*  Update, the server's and the app's started together)              */
 /* ------------------------------------------------------------------ */
 (function initUpdater() {
   const toast    = document.getElementById("update-toast");
@@ -10697,8 +10726,11 @@
     restarting: "Restarting\u2026"
   };
   const DISMISS_KEY = "rra-update-dismissed";
+  const appUpd = window.__musicdAppUpd;
   let applying = false;
   let pollTimer = null;
+  // What the banner is offering right now.
+  let offer = { server: false, app: false, sig: "" };
 
   const dismissedVer = () => { try { return sessionStorage.getItem(DISMISS_KEY) || ""; } catch (e) { return ""; } };
   const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) {} };
@@ -10720,27 +10752,45 @@
     show(PHASE[phase] || "Updating\u2026");
   }
 
+  // The banner's line for what's on offer: the server, this app, or both.
+  function offerText(s, a, server, app) {
+    if (server && app) {
+      return s.latest === a.latest
+        ? "v" + s.latest + " available for the server and this app (you have v" + s.current + ")"
+        : "Server v" + s.latest + " and app v" + a.latest + " available";
+    }
+    if (app) return "App v" + a.latest + " available (you have v" + a.current + ")";
+    return (s.isDowngrade ? "Rollback to v" : "v") + s.latest + " available (you have v" + s.current + ")";
+  }
+
   async function check() {
     if (applying) return;
+    let s = null;
     try {
       const r = await fetch("/api/update/status", { cache: "no-store" });
-      if (!r.ok) return;
-      const s = await r.json();
+      if (r.ok) s = await r.json();
+    } catch (e) { /* offline; try again next tick */ }
+    if (s) {
       const ph = s.apply && s.apply.phase;
       if (ph === "downloading" || ph === "extracting" || ph === "restarting") {
         showProgress(ph); startPoll(s.latest); return;
       }
-      if (s.available && s.latest && s.latest !== dismissedVer()) {
-        actions.classList.remove("busy"); btnNow.disabled = false;
-        toast.classList.remove("is-error");
-        const label = s.isDowngrade ? "Rollback to v" : "v";
-        show((label) + s.latest + " available (you have v" + s.current + ")");
-        showNotes(s.notes);
-        btnNow.querySelector("span").textContent = s.isDowngrade ? "Roll back" : "Update";
-      } else if (!applying) {
-        hide();
-      }
-    } catch (e) { /* offline; try again next tick */ }
+    }
+    const a = appUpd ? await appUpd.look(false) : null;
+    if (applying) return;
+    const server = !!(s && s.available && s.latest);
+    const app = !!(a && a.available && a.latest && !a.installing);
+    const sig = (server ? "s" + s.latest : "") + (app ? "a" + a.latest : "");
+    if ((server || app) && sig !== dismissedVer()) {
+      offer = { server, app, sig };
+      actions.classList.remove("busy"); btnNow.disabled = false;
+      toast.classList.remove("is-error");
+      show(offerText(s, a, server, app));
+      showNotes(server ? s.notes : null);
+      btnNow.querySelector("span").textContent = server && s.isDowngrade && !app ? "Roll back" : "Update";
+    } else {
+      hide();
+    }
   }
 
   function startPoll(targetVer) {
@@ -10778,6 +10828,11 @@
 
   btnNow.addEventListener("click", async () => {
     if (applying) return;
+    // The app's update starts alongside: it downloads with its own progress
+    // and then Android's installer asks (an app not from a store always
+    // does). The server's update carries on by itself meanwhile.
+    if (offer.app && appUpd) appUpd.install();
+    if (!offer.server) { hide(); return; }
     btnNow.disabled = true;
     showProgress("checking");
     try {
@@ -10795,12 +10850,8 @@
     }
   });
 
-  btnLater.addEventListener("click", async () => {
-    try {
-      const r = await fetch("/api/update/status", { cache: "no-store" });
-      const s = await r.json();
-      if (s && s.latest) setDismissed(s.latest);
-    } catch (e) {} // network error dismissing update — banner stays hidden, safe to ignore
+  btnLater.addEventListener("click", () => {
+    if (offer.sig) setDismissed(offer.sig);
     hide();
   });
 
@@ -10809,7 +10860,13 @@
   // download/unpack/restart progress UI (the banner sits behind the Settings
   // sheet, so the caller closes Settings first). Clearing the "Later"
   // dismissal lets the banner's error/retry states show normally afterwards.
-  window.__applyUpdateNow = () => { setDismissed(""); btnNow.click(); };
+  // In the Android app it says which: { server, app } (both by default).
+  window.__applyUpdateNow = (what) => {
+    setDismissed("");
+    if (what) offer = { server: !!what.server, app: !!what.app, sig: "" };
+    else if (!offer.server && !offer.app) offer = { server: true, app: false, sig: "" };
+    btnNow.click();
+  };
 
   check();
   setInterval(check, 15 * 60 * 1000);
@@ -13426,6 +13483,8 @@ initServiceBrowser({
   // action (the old copy said "tap Update below", but the update banner sits
   // BEHIND the Settings sheet — there was no visible button to tap).
   let pendingUpdate = false;
+  const appUpd = window.__musicdAppUpd;
+  let pendingWhat = null;          // { server, app } in the Android app
 
   btn.addEventListener("click", async () => {
     if (btn.disabled) return;
@@ -13437,7 +13496,7 @@ initServiceBrowser({
       btn.classList.remove("is-update-ready");
       const closer = document.querySelector("#settings-overlay [data-settings-close]");
       if (closer) closer.click();
-      if (window.__applyUpdateNow) window.__applyUpdateNow();
+      if (window.__applyUpdateNow) window.__applyUpdateNow(pendingWhat);
       // The banner owns all progress/error/retry state from here — reset this
       // button so a reopened Settings offers a fresh check (on success the
       // page reloads anyway; on failure the banner shows the retry, and a
@@ -13450,22 +13509,32 @@ initServiceBrowser({
     btn.textContent = "Checking…";
     if (notesDiv) notesDiv.classList.add("hidden");
     try {
+      // In the Android app, the app looks for its own update at the same time.
+      const appLook = appUpd ? appUpd.look(true) : Promise.resolve(null);
       await fetch("/api/update/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
       const r = await fetch("/api/update/status", { cache: "no-store" });
       const s = await r.json();
-      if (s && s.available && s.latest) {
+      const a = await appLook;
+      const server = !!(s && s.available && s.latest);
+      const app = !!(a && a.available && a.latest);
+      if (server || app) {
         pendingUpdate = true;
+        pendingWhat = { server, app };
         btn.disabled = false;
         btn.classList.add("is-update-ready");
-        btn.textContent = s.isDowngrade
-          ? "Roll back to v" + s.latest
+        btn.textContent = server && app
+          ? (s.latest === a.latest ? "Update server and app to v" + s.latest : "Update server and app")
+          : app ? "Update app to v" + a.latest
+          : s.isDowngrade ? "Roll back to v" + s.latest
           : "Update to v" + s.latest;
-        if (notesDiv && s.notes) {
+        if (notesDiv && server && s.notes) {
           notesDiv.textContent = s.notes;
           notesDiv.classList.remove("hidden");
         }
       } else {
-        btn.textContent = "Up to date (v" + (s && s.current || "?") + ")";
+        btn.textContent = a
+          ? "Up to date (server v" + (s && s.current || "?") + ", app v" + (a.current || "?") + ")"
+          : "Up to date (v" + (s && s.current || "?") + ")";
         setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 4000);
       }
     } catch (e) {
@@ -14308,6 +14377,16 @@ initServiceBrowser({
   let v = "";
   try { v = app.version(); } catch (e) {}
   label.textContent = "Android app" + (v ? " v" + v : "");
+  if (window.__musicdAppUpd) {
+    // "Check for updates" above does the server and this app, so this row
+    // only says which app this is.
+    row.appendChild(label);
+    const note = document.createElement("span");
+    note.className = "settings-note";
+    note.textContent = "Updated with the server";
+    row.appendChild(note);
+    pane.appendChild(row);
+  } else {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "settings-update-btn";
@@ -14315,6 +14394,7 @@ initServiceBrowser({
   btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) {} });
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
+  }
   // MusicD's own Tailscale connection (the library away from home): sign in, test.
   if (typeof app.tailscaleTest === "function") {
     const t = document.createElement("div");

@@ -161,7 +161,9 @@ class MainActivity : Activity() {
         // couldn't be reached last time (back from the offline screen): try again.
         if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
         Away.recheck(this)
-        AppUpdate.check(this)
+        // A page that offers the app's updates with the server's does it; an older
+        // one doesn't, and the app offers itself. (Given the page a moment to say.)
+        web.postDelayed({ if (!AppBridge.pageOffersUpdates && !isFinishing) AppUpdate.check(this) }, 8000)
         web.removeCallbacks(liveWatch)
         web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
@@ -199,6 +201,7 @@ class MainActivity : Activity() {
     }
 
     private fun load() {
+        AppBridge.pageOffersUpdates = false    // the page being loaded says so again if it does
         if (Store.server(this) == null) return openConnect()
         val base = Store.active(this)?.baseUrl ?: return openConnect()
         val token = Store.token(this) ?: return signedOut()
@@ -367,6 +370,13 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         back()
+    }
+
+    /** Run [js] in the page (from any thread). */
+    fun tellPage(js: String) {
+        runOnUiThread {
+            if (::web.isInitialized && web.visibility == View.VISIBLE) web.evaluateJavascript(js, null)
+        }
     }
 
     private fun tellPageDownloadsChanged() {

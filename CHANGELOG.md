@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.15
+- **One Update button for the server and the app** (Android app). The update banner and
+  *Settings → System → Check for updates* now look for both — the server's update and a newer
+  app — and offer them together ("v0.3.16 available for the server and this app"); one tap on
+  Update starts both. The server updates and restarts by itself while the app downloads its new
+  version; then Android's installer asks you to confirm, as it always must for an app that doesn't
+  come from a store. Either one alone is offered the same way. The separate "Check for app update"
+  button is gone; the app's version still shows in *System*.
+- Browsers and the iPhone home-screen app are unchanged (server updates only). An older server
+  page doesn't know about the app's updates, so the app still offers its own there.
+
 ## v0.3.14
 - **What's playing, and how, on Now playing.** A badge under the album name:
   - **Lossless** for a lossless file — in the browser and the iPhone home-screen app as well as the
