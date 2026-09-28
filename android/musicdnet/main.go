@@ -1,4 +1,6 @@
-// musicdnet is MusicD's own Tailscale connection on the phone.
+// musicdnet is MusicD's own Tailscale connection — on the phone, and (with
+// -server) inside MusicD Server's image, where it makes the server a node of
+// your tailnet by itself: no Tailscale on the machine it runs on.
 //
 // The Android app runs it as a separate program (shipped in the APK as
 // libmusicdnet.so, the way Syncthing for Android runs its engine): it joins
@@ -17,6 +19,9 @@
 //	GET  /probe                is the server answering, directly? → {"ok","ms"}
 //	POST /down?on=1|0          the app's verdict: drop and refuse, or let through
 //	GET  /log                  recent log lines, for the diagnostics screen
+//	POST /serve?port=n&upstream=http://127.0.0.1:n   (the server) take the tailnet's
+//	                           port n and pass each request to MusicD, with the
+//	                           caller's tailnet address in X-Forwarded-For
 package main
 
 import (
@@ -29,6 +34,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -41,10 +48,11 @@ import (
 type engine struct {
 	dir string
 
-	mu  sync.Mutex
-	ts  *tsnet.Server
-	fw  *Forwarder
-	err string
+	mu    sync.Mutex
+	ts    *tsnet.Server
+	fw    *Forwarder
+	serve net.Listener // the server's tailnet port, when serving
+	err   string
 
 	logMu sync.Mutex
 	lines []string
@@ -61,14 +69,15 @@ func (e *engine) logf(format string, a ...any) {
 }
 
 type statusJSON struct {
-	State    string   `json:"state"`
-	AuthURL  string   `json:"auth_url"`
-	IPs      []string `json:"ips"`
-	DNSName  string   `json:"dns_name"`
-	Forward  string   `json:"forward"`
-	Target   string   `json:"target"`
-	Error    string   `json:"error"`
-	Version  string   `json:"version"`
+	State   string   `json:"state"`
+	AuthURL string   `json:"auth_url"`
+	IPs     []string `json:"ips"`
+	DNSName string   `json:"dns_name"`
+	Forward string   `json:"forward"`
+	Target  string   `json:"target"`
+	Serving string   `json:"serving"`
+	Error   string   `json:"error"`
+	Version string   `json:"version"`
 }
 
 func (e *engine) status(ctx context.Context) statusJSON {
@@ -80,6 +89,11 @@ func (e *engine) status(ctx context.Context) statusJSON {
 		out.Forward = fw.ln.Addr().String()
 		out.Target = fw.Target
 	}
+	e.mu.Lock()
+	if e.serve != nil {
+		out.Serving = e.serve.Addr().String()
+	}
+	e.mu.Unlock()
 	if ts == nil {
 		return out
 	}
@@ -151,10 +165,46 @@ func (e *engine) forward(target string, port int) (string, error) {
 	return addr, nil
 }
 
+// serve takes the tailnet's port and passes every request on to upstream (MusicD
+// on 127.0.0.1): streamed as it comes (audio, held requests), with the caller's
+// tailnet address added to X-Forwarded-For — the server believes that header
+// only from 127.0.0.1, and treats any tailnet address as away from home.
+func (e *engine) serveOn(port int, upstream string) (string, error) {
+	u, err := url.Parse(upstream)
+	if err != nil || u.Host == "" {
+		return "", fmt.Errorf("upstream must be http://host:port")
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.ts == nil {
+		return "", fmt.Errorf("not started")
+	}
+	if e.serve != nil {
+		return e.serve.Addr().String(), nil
+	}
+	ln, err := e.ts.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return "", err
+	}
+	rp := &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(u)
+			r.Out.Host = r.In.Host
+			r.SetXForwarded()
+		},
+		FlushInterval: -1,
+		ErrorLog:      log.New(io.Discard, "", 0),
+	}
+	e.serve = ln
+	go (&http.Server{Handler: rp, ReadHeaderTimeout: 30 * time.Second}).Serve(ln)
+	return ln.Addr().String(), nil
+}
+
 var version = "dev"
 
 func main() {
 	dir := flag.String("dir", "", "state directory")
+	server := flag.Bool("server", false, "run as MusicD Server's own node (not a phone)")
 	flag.Parse()
 	secret := os.Getenv("MUSICDNET_SECRET")
 	if *dir == "" || secret == "" {
@@ -163,7 +213,9 @@ func main() {
 	}
 	os.MkdirAll(*dir, 0o700)
 	log.SetOutput(io.Discard) // Tailscale's own logging goes to the ring buffer
-	InstallInterfaceGetter()
+	if !*server {
+		InstallInterfaceGetter() // Android 11+ won't let native code list interfaces
+	}
 	e := &engine{dir: *dir}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -268,6 +320,19 @@ func (e *engine) handler(secret string) http.Handler {
 		}
 		port, _ := strconv.Atoi(r.URL.Query().Get("port"))
 		addr, err := e.forward(target, port)
+		if err != nil {
+			fail(w, 409, err)
+			return
+		}
+		reply(w, map[string]string{"addr": addr})
+	})
+	mux.HandleFunc("POST /serve", func(w http.ResponseWriter, r *http.Request) {
+		port, _ := strconv.Atoi(r.URL.Query().Get("port"))
+		if port <= 0 || port > 65535 {
+			fail(w, 400, fmt.Errorf("port must be 1-65535"))
+			return
+		}
+		addr, err := e.serveOn(port, r.URL.Query().Get("upstream"))
 		if err != nil {
 			fail(w, 409, err)
 			return

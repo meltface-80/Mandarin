@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -67,36 +66,39 @@ func musicd(t *testing.T) string {
 	return srv.URL
 }
 
-// The server's node, passing :3500 through to MusicD with the caller's
-// tailnet address in X-Forwarded-For (as the server add-on will).
+// The server's node: a second engine as MusicD Server runs it (-server), joined
+// through its control API and serving :3500 — each request passed to MusicD
+// with the caller's tailnet address in X-Forwarded-For.
 func serverNode(t *testing.T, ctx context.Context, control *testcontrol.Server, controlURL, dir, upstream string) (*tsnet.Server, string) {
-	s := &tsnet.Server{Dir: dir, ControlURL: controlURL, Hostname: "musicd", Logf: logger.Discard}
-	if err := s.Start(); err != nil {
-		t.Fatal(err)
+	se := &engine{dir: dir}
+	ctl := httptest.NewServer(se.handler("srv"))
+	t.Cleanup(ctl.Close)
+	a := api{t, ctl.URL, "srv"}
+	if code, m := a.call("POST", "/start", `{"ControlURL":"`+controlURL+`","Hostname":"musicd"}`); code != 200 {
+		t.Fatalf("server start: %d %v", code, m)
 	}
-	lc, _ := s.LocalClient()
 	var ip string
 	for i := 0; i < 600 && ip == ""; i++ {
-		st, err := lc.Status(ctx)
-		if err == nil && st.BackendState == "NeedsLogin" && st.AuthURL != "" {
-			control.CompleteAuth(st.AuthURL)
+		_, st := a.call("GET", "/status", "")
+		if u, _ := st["auth_url"].(string); u != "" && st["state"] == "NeedsLogin" {
+			control.CompleteAuth(u)
 		}
-		if err == nil && st.BackendState == "Running" && len(st.TailscaleIPs) > 0 {
-			ip = st.TailscaleIPs[0].String()
+		if ips, _ := st["ips"].([]any); st["state"] == "Running" && len(ips) > 0 {
+			ip = ips[0].(string)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	if ip == "" {
 		t.Fatal("server node never came up")
 	}
-	ln, err := s.Listen("tcp", ":3500")
-	if err != nil {
-		t.Fatal(err)
+	code, m := a.call("POST", "/serve?port=3500&upstream="+url.QueryEscape(upstream), "")
+	if code != 200 || !strings.HasSuffix(m["addr"].(string), ":3500") {
+		t.Fatalf("serve: %d %v", code, m)
 	}
-	u, _ := url.Parse(upstream)
-	rp := &httputil.ReverseProxy{Rewrite: func(r *httputil.ProxyRequest) { r.SetURL(u); r.SetXForwarded() }, FlushInterval: -1}
-	go http.Serve(ln, rp)
-	return s, ip
+	if _, st := a.call("GET", "/status", ""); !strings.HasSuffix(st["serving"].(string), ":3500") {
+		t.Fatalf("status doesn't say it's serving: %v", st)
+	}
+	return se.ts, ip
 }
 
 type api struct {
@@ -210,6 +212,17 @@ func TestEngine(t *testing.T) {
 		if _, m := a.call("GET", "/probe", ""); m["ok"] != true {
 			t.Fatalf("probe: %v", m)
 		}
+		// The app's page relay speaks to it as to a web proxy: the whole address in the request line.
+		c, err := net.Dial("tcp", m2addr(base))
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Fprintf(c, "GET http://192.168.1.10:3500/api/whoami HTTP/1.1\r\nHost: 192.168.1.10:3500\r\nConnection: close\r\n\r\n")
+		raw, _ := io.ReadAll(c)
+		c.Close()
+		if !strings.Contains(string(raw), "200 OK") || !strings.Contains(string(raw), "\r\n\r\n100.") {
+			t.Fatalf("relayed request: %q", raw)
+		}
 	})
 
 	t.Run("audio with ranges, and a held request", func(t *testing.T) {
@@ -288,3 +301,5 @@ func TestEngine(t *testing.T) {
 		}
 	})
 }
+
+func m2addr(base string) string { return strings.TrimPrefix(base, "http://") }

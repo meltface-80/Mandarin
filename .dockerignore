@@ -3,7 +3,8 @@
 node_modules
 data
 docs
-android
+android/*
+!android/musicdnet
 test
 *.md
 *.tar.gz

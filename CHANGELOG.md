@@ -5,6 +5,24 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.19
+- **Tailscale built into the server.** One download: the Docker image now carries MusicD's own
+  Tailscale engine (the same one as the Android app's). Sign in once from the new
+  *Settings → Away from home* — "Sign in to Tailscale" opens Tailscale's page — and the server
+  joins your tailnet by itself as **musicd**: no Tailscale on the machine it runs on, no VPN, no
+  ports opened. For a headless server, `TS_AUTHKEY` signs it in instead. The pane shows its state,
+  its tailnet name and address, and signs it out or switches it off.
+- It serves the server's own port on the tailnet and hands each request to MusicD with the
+  caller's tailnet address, so everything reached this way is *away from home* as before (only
+  the phone asking plays; Opus 256; no Sonos). Phones are given this address (it comes before a
+  Tailscale on the host), learned the next time the app is used at home.
+- Its identity lives in the data volume (a new container is the same machine). `TAILSCALE=off`
+  leaves it out; `TS_HOSTNAME` renames it. Tailscale on the host still works. The engine comes with
+  the image, so it's updated with the image (Settings → Check for updates updates the server's
+  files, not the engine).
+- Tested with the real engine and the real server on a private tailnet: signed in, joined, and a
+  second machine reached MusicD through it and was treated as away from home.
+
 ## v0.3.18
 - **Cached ahead, like Plexamp** (Android app, playing on the phone). The next tracks in the queue
   — in play order, shuffle and repeat included — are kept on the phone ahead of time, so they play
