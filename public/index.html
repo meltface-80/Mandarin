@@ -539,6 +539,10 @@
             <div class="np-track" id="np-track">—</div>
             <div class="np-artist" id="np-artist">—</div>
             <button class="np-album" id="np-album" type="button" aria-label="Open album detail"></button>
+            <!-- What the zone is hearing: Lossless, a lossy file's codec, or
+                 (the Android app playing the server's Opus) the Opus logo and
+                 256kbps. Filled by paintNpFormat() in app.js. -->
+            <div class="np-format hidden" id="np-format"></div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what

@@ -103,6 +103,11 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(st.zone.now_playing.line1, "Song 2");
       assert.equal(st.zone.now_playing.line3, "Album One");
       assert.equal(st.zone.outputs[0].volume.value, 40);
+      // The format badge: the file as it is (lossless) until the phone says Opus.
+      assert.deepEqual(st.zone.now_playing.format, { kind: "lossless", text: "Lossless" });
+      await phone("POST", "/api/phone/state", { index: 1, position: 32, duration: 60, state: "playing", volume: 40, format: "opus" });
+      const opus = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.deepEqual(opus.zone.now_playing.format, { kind: "opus", text: "256kbps" });
       const played = ctx.db.raw.prepare("SELECT * FROM plays WHERE zone = ? OR title = 'Song 2'").all("Pixel 8");
       assert.ok(played.length >= 1, "the play was recorded");
       const q = await phone("GET", "/api/queue?zone=" + zoneId);

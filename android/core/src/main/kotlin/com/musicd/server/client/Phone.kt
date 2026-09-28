@@ -49,12 +49,14 @@ object Phone {
         val shuffle: Boolean,
         val loop: String,
         val volume: Int,
-        val muted: Boolean
+        val muted: Boolean,
+        /** How the track is being played: "opus" (the server's Opus 256, or an Opus download) or "original". */
+        val format: String = "original"
     ) {
         fun toJson(): JSONObject = JSONObject()
             .put("index", index).put("position", positionSeconds).put("duration", durationSeconds)
             .put("state", state).put("shuffle", shuffle).put("loop", loop)
-            .put("volume", volume).put("muted", muted)
+            .put("volume", volume).put("muted", muted).put("format", format)
     }
 
     fun parseItems(a: JSONArray?): List<Item> {

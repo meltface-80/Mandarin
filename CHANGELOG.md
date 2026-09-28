@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.14
+- **What's playing, and how, on Now playing.** A badge under the album name:
+  - **Lossless** for a lossless file — in the browser and the iPhone home-screen app as well as the
+    Android app, and on Sonos too (hi-res goes to Sonos as 24-bit/48 kHz, still lossless).
+  - **The Opus logo and 256kbps** when the Android app is playing the server's Opus 256 (away from
+    home with *Stream as: Opus 256*, or an album downloaded as Opus). The phone tells the server
+    which it's playing, so the badge follows a switch between home and away.
+  - A lossy file names its codec ("MP3", "AAC").
+  The logo is the official Opus logo (Xiph.Org's, from the Opus source tree), drawn in the badge's
+  colour: the original's dark grey would disappear on this screen. Also offline, from downloads.
+
 ## v0.3.13
 Two fixes from MusicD Remote (v1.8.60–v1.8.62), in the browser, the iPhone home-screen app and the
 Android app alike.

@@ -33,5 +33,7 @@ class PhoneTest {
         assertEquals(2, j.getInt("index"))
         assertEquals("playing", j.getString("state"))
         assertEquals(40, j.getInt("volume"))
+        assertEquals("original", j.getString("format"))
+        assertEquals("opus", Phone.Report(0, 0.0, 0.0, "playing", false, "disabled", 40, false, format = "opus").toJson().getString("format"))
     }
 }
