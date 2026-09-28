@@ -13949,7 +13949,10 @@ initServiceBrowser({
     // so every row fills, rather than leaving "No albums" on screen.
     if (albums && el.dataset.wasEmpty === "1") { location.reload(); return; }
     let msg = null, err = false;
-    if (j.data_persistent === false) {
+    if (j.offline) {
+      // The Android app answering for the server (no connection): say so, once, quietly.
+      msg = "Offline — MusicD Server can’t be reached. Showing what’s on this phone.";
+    } else if (j.data_persistent === false) {
       msg = "Your library, album edits and play history are stored inside the container and will be lost " +
             "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.";
       err = true;

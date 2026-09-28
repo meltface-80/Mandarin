@@ -105,6 +105,14 @@ object Store {
         return com.musicd.server.client.Route.rewrite(url, home, awayAddress(context)?.baseUrl, isAway(context))
     }
 
+    /** This phone's zone id on the server ("PHONE_…"), as its last hello said. */
+    fun phoneZone(context: Context): String =
+        prefs(context).getString("phone_zone", null) ?: "PHONE_offline"
+
+    fun setPhoneZone(context: Context, zoneId: String) {
+        if (prefs(context).getString("phone_zone", null) != zoneId) prefs(context).edit().putString("phone_zone", zoneId).apply()
+    }
+
     /** A client for the server, signed in — null until both are known. */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null

@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.8
+- **MusicD's full interface offline** (Android app). With no connection to the server the app no
+  longer drops to a minimal screen: it shows MusicD itself — Home, the album pages, the Now
+  playing screen, the queue, search, artist pages, Settings — answered by the app from what's on
+  the phone. The library is your downloaded albums; the one room is *This phone*; Play, Queue,
+  Play next, Shuffle, the transport, seek, volume, shuffle/repeat and *play from here* all work on
+  the phone's player. A line at the top says it's offline. When the server can be reached again
+  (checked every 10 seconds) the page reloads from it.
+- How: whenever the page loads from the server, the app keeps a copy of it (the page, its script
+  and stylesheet, icons, the settings it reads) and of each downloaded album's page; offline it
+  keeps the page on the server's address and answers its requests itself. So it's always the same
+  interface — the same version — as the server's. Needs one visit to the server with v0.3.8 to
+  make that copy; until then the app's own offline screen is used, as before.
+- Things that need the server say so offline (editing albums, Sonos rooms, Smart Picks and other
+  server features).
+
 ## v0.3.7
 - **Settings → Downloads on this phone is a settings page like the others** (Android app): the
   same header with a back chevron to the Settings tiles, the same rows, drop-downs and switches,
