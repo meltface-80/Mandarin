@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.content.Context
 import android.os.Environment
+import com.musicd.server.client.CachePlan
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -37,7 +38,11 @@ object DownloadStore {
         /** Automatic downloads: today's Smart Picks, the Album of the day, the newest [autoRecent] albums. */
         val autoPicks: Boolean, val autoAotd: Boolean, val autoRecent: Int,
         /** Streaming away from home: Opus 256 made by the server, or the original files. */
-        val awayQuality: String = QUALITY_OPUS
+        val awayQuality: String = QUALITY_OPUS,
+        /** Playing on the phone: tracks kept on the phone ahead, on Wi-Fi and on mobile data; the cache's limit. */
+        val cacheWifi: Int = CachePlan.WIFI_DEFAULT,
+        val cacheMobile: Int = CachePlan.MOBILE_DEFAULT,
+        val cacheGb: Int = CachePlan.SIZE_DEFAULT_GB
     ) {
         val autoOn get() = autoPicks || autoAotd || autoRecent > 0
     }
@@ -52,7 +57,10 @@ object DownloadStore {
             autoPicks = p.getBoolean("auto_picks", false),
             autoAotd = p.getBoolean("auto_aotd", false),
             autoRecent = p.getInt("auto_recent", 0),
-            awayQuality = p.getString("away_quality", QUALITY_OPUS) ?: QUALITY_OPUS
+            awayQuality = p.getString("away_quality", QUALITY_OPUS) ?: QUALITY_OPUS,
+            cacheWifi = CachePlan.pick(p.getInt("cache_wifi", CachePlan.WIFI_DEFAULT), CachePlan.WIFI_CHOICES, CachePlan.WIFI_DEFAULT),
+            cacheMobile = CachePlan.pick(p.getInt("cache_mobile", CachePlan.MOBILE_DEFAULT), CachePlan.MOBILE_CHOICES, CachePlan.MOBILE_DEFAULT),
+            cacheGb = CachePlan.pick(p.getInt("cache_gb", CachePlan.SIZE_DEFAULT_GB), CachePlan.SIZE_CHOICES_GB, CachePlan.SIZE_DEFAULT_GB)
         )
     }
 
@@ -64,6 +72,9 @@ object DownloadStore {
     fun setAutoAotd(c: Context, on: Boolean) = edit(c) { putBoolean("auto_aotd", on) }
     fun setAutoRecent(c: Context, n: Int) = edit(c) { putInt("auto_recent", n) }
     fun setAwayQuality(c: Context, q: String) = edit(c) { putString("away_quality", q) }
+    fun setCacheWifi(c: Context, n: Int) = edit(c) { putInt("cache_wifi", n) }
+    fun setCacheMobile(c: Context, n: Int) = edit(c) { putInt("cache_mobile", n) }
+    fun setCacheGb(c: Context, gb: Int) = edit(c) { putInt("cache_gb", gb) }
 
     private fun edit(c: Context, f: android.content.SharedPreferences.Editor.() -> Unit) {
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply(f).apply()

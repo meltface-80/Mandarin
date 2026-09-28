@@ -18,9 +18,14 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.CacheDataSink
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheKeyFactory
+import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -36,6 +41,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.musicd.server.client.CachePlan
 import com.musicd.server.client.Phone
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.phoneCommands
@@ -83,8 +89,13 @@ class PhonePlayerService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "PhonePlayer"
-        private const val AHEAD_MS = 15 * 60 * 1000
-        private const val AHEAD_BYTES = 96 * 1024 * 1024
+        private const val AHEAD_MS = 5 * 60 * 1000
+        private const val AHEAD_BYTES = 48 * 1024 * 1024
+
+        /** Tracks cached ahead: how many are on the phone of how many wanted, and on which kind of network. */
+        class Ahead(val cached: Int, val wanted: Int, val metered: Boolean)
+        @Volatile var ahead = Ahead(0, 0, false)
+            private set
         private const val RETRIES = 40
         const val FORMAT_OPUS = "opus"
         const val FORMAT_LOSSLESS = "lossless"
@@ -157,13 +168,22 @@ class PhonePlayerService : MediaLibraryService() {
             val opus = pinned.getOrPut(key) { Store.wantsOpus(this) }
             spec.withUri(Uri.parse(Store.localize(this, key, opus)))
         }
-        val sources = DefaultDataSource.Factory(this, routed)
+        // Through the phone's cache of tracks (StreamCache): what's there plays
+        // from the phone, what isn't is fetched and kept as it plays. The tracks
+        // after the playing one are fetched ahead into it (fetchAhead below).
+        val cache = StreamCache.get(this)
+        cacheSource = CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(routed)
+            .setCacheWriteDataSinkFactory(CacheDataSink.Factory().setCache(cache))
+            .setCacheKeyFactory(CacheKeyFactory { spec -> keyFor(spec.uri.toString()) ?: spec.key ?: spec.uri.toString() })
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val sources = DefaultDataSource.Factory(this, cacheSource)
 
-        // Held ahead, like Roon Arc: the player fetches the whole of the playing
-        // track as fast as the network allows, then carries on into the next
-        // one — up to 15 minutes or 96 MB — so leaving the house (Wi-Fi to
-        // mobile data, a few seconds with no connection) is heard from what's
-        // already on the phone, not from the network.
+        // Held ahead in memory too: the playing track is fetched whole as fast
+        // as the network allows (up to 5 minutes or 48 MB ahead), so leaving the
+        // house is heard from what's on the phone — the tracks after it are in
+        // the cache.
         val ahead = DefaultLoadControl.Builder()
             .setBufferDurationsMs(AHEAD_MS, AHEAD_MS, 1_500, 3_000)
             .setTargetBufferBytes(AHEAD_BYTES)
@@ -198,10 +218,15 @@ class PhonePlayerService : MediaLibraryService() {
                 bumpRevision()
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = keepPins()
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = fetchAheadSoon()
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = fetchAheadSoon()
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = fetchAheadSoon()
+            override fun onRepeatModeChanged(repeatMode: Int) = fetchAheadSoon()
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
         })
         Away.watch(this)
+        // A new network (Wi-Fi or mobile data): a different number of tracks ahead.
+        Away.listen(onNetwork)
 
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
@@ -272,6 +297,10 @@ class PhonePlayerService : MediaLibraryService() {
     override fun onDestroy() {
         if (current === this) current = null
         running = false
+        Away.unlisten(onNetwork)
+        fetchGen++
+        writer?.cancel()
+        fetcher.shutdownNow()
         worker?.interrupt()
         main.removeCallbacksAndMessages(null)
         session?.run {
@@ -363,23 +392,105 @@ class PhonePlayerService : MediaLibraryService() {
         return if (opus) FORMAT_OPUS else FORMAT_ORIGINAL
     }
 
+    // ------------------------------------------------------------ cached ahead
+
+    private lateinit var cacheSource: CacheDataSource.Factory
+    private val fetcher = Executors.newSingleThreadExecutor()
+    @Volatile private var fetchGen = 0L
+    @Volatile private var writer: CacheWriter? = null
+    private val onNetwork: (Boolean) -> Unit = { fetchAheadSoon() }
+
     /**
-     * Only the tracks from the playing one on (as far as the player may have
-     * fetched ahead) keep their formats; a track played again later starts afresh.
+     * A server stream's name in the cache: the track and its format —
+     * whichever format is already wholly on the phone (played from there
+     * wherever the phone is), else the one it's held to (see [pinned]), else
+     * as a track starting now would be played. Null for anything else.
      */
-    private fun keepPins() {
-        val t = player.currentTimeline
-        val order = ArrayList<Int>()
-        var i = player.currentMediaItemIndex
-        // In play order (shuffle and repeat included).
-        while (i != C.INDEX_UNSET && order.size < 4 && i !in order) {
-            order += i
-            i = if (t.isEmpty) C.INDEX_UNSET else t.getNextWindowIndex(i, player.repeatMode, player.shuffleModeEnabled)
+    private fun keyFor(url: String): String? {
+        val id = CachePlan.trackIdOf(url) ?: return null
+        pinned[url]?.let { return CachePlan.key(id, it) }
+        val opus = when {
+            StreamCache.complete(this, CachePlan.key(id, false)) -> false
+            StreamCache.complete(this, CachePlan.key(id, true)) -> true
+            else -> Store.wantsOpus(this)
         }
-        val keep = order.filter { it in 0 until player.mediaItemCount }
-            .mapNotNull { player.getMediaItemAt(it).localConfiguration?.uri?.toString() }
-            .toSet()
+        pinned[url] = opus
+        return CachePlan.key(id, opus)
+    }
+
+    /** The queue changed, a track began, the network or the settings changed: look again in a moment. */
+    fun fetchAheadSoon() {
+        main.removeCallbacks(fetchAhead)
+        main.postDelayed(fetchAhead, 800)
+    }
+
+    private fun metered(): Boolean = runCatching {
+        getSystemService(android.net.ConnectivityManager::class.java).isActiveNetworkMetered
+    }.getOrDefault(true)
+
+    /** The server addresses of the next [count] tracks in play order (shuffle and repeat included); null for downloads. */
+    private fun upcoming(count: Int): List<String?> {
+        val t = player.currentTimeline
+        if (t.isEmpty || player.mediaItemCount == 0) return emptyList()
+        val out = ArrayList<String?>()
+        var i = player.currentMediaItemIndex
+        val seen = HashSet<Int>()
+        while (out.size < count) {
+            i = t.getNextWindowIndex(i, player.repeatMode, player.shuffleModeEnabled)
+            if (i == C.INDEX_UNSET || !seen.add(i) || i !in 0 until player.mediaItemCount) break
+            val uri = player.getMediaItemAt(i).localConfiguration?.uri
+            out += if (uri == null || uri.scheme == "file") null else uri.toString()
+        }
+        return out
+    }
+
+    /**
+     * Like Plexamp: the next tracks — as many as Settings → Downloads says for
+     * Wi-Fi or for mobile data — fetched into the cache one after another,
+     * nearest first, while there's a queue to play. What's already there is
+     * left alone; a change of plan stops the fetch under way and starts again.
+     */
+    private val fetchAhead = Runnable {
+        if (!running) return@Runnable
+        val isMetered = metered()
+        val s = DownloadStore.settings(this)
+        val count = if (isMetered) s.cacheMobile else s.cacheWifi
+        val live = !localMode && player.mediaItemCount > 0
+        val next = if (live) upcoming(count) else emptyList()
+        // The playing track and the ones ahead keep their formats; the rest start afresh.
+        val keep = HashSet<String>()
+        player.currentMediaItem?.localConfiguration?.uri?.toString()?.let { keep += it }
+        next.filterNotNull().forEach { keep += it }
         pinned.keys.retainAll(keep)
+
+        val gen = ++fetchGen
+        writer?.cancel()
+        val wanted = next.filterNotNull().distinct()
+        fetcher.execute {
+            if (gen != fetchGen) return@execute
+            val todo = CachePlan.toFetch(next, count) { url -> keyFor(url)?.let { StreamCache.complete(this, it) } ?: true }
+            var failed = false
+            for (url in todo) {
+                if (gen != fetchGen || !running) return@execute
+                val key = keyFor(url) ?: continue
+                val w = CacheWriter(cacheSource.createDataSource(),
+                    DataSpec.Builder().setUri(url).setKey(key).build(), null, null)
+                writer = w
+                try { w.cache() } catch (e: Exception) {
+                    if (gen == fetchGen) { failed = true; Log.i(TAG, "couldn't fetch ahead: ${e.message}") }
+                    break
+                } finally { if (writer === w) writer = null }
+                publishAhead(wanted, isMetered)
+            }
+            publishAhead(wanted, isMetered)
+            // No network for the moment: try again shortly.
+            if (failed && gen == fetchGen) main.postDelayed({ if (gen == fetchGen) fetchAheadSoon() }, 30_000)
+        }
+    }
+
+    private fun publishAhead(wanted: List<String>, isMetered: Boolean) {
+        val cached = wanted.count { url -> keyFor(url)?.let { StreamCache.complete(this, it) } == true }
+        ahead = Ahead(cached, wanted.size, isMetered)
     }
 
     private fun mediaItem(it: Phone.Item): MediaItem {

@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 28
-        versionName = "0.3.17"
+        versionCode = 29
+        versionName = "0.3.18"
     }
 
     buildFeatures {
@@ -112,6 +112,8 @@ dependencies {
     // and lock-screen controls that come with it.
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-session:1.8.0")
+    // The cache of tracks played on the phone keeps its index in a database.
+    implementation("androidx.media3:media3-database:1.8.0")
     // Downloads: queued, retried and resumed, waiting for Wi-Fi if asked to.
     implementation("androidx.work:work-runtime:2.10.3")
     // The page stays on one address at home and away (PageRelay): the WebView's

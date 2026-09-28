@@ -110,3 +110,7 @@
 
 /* The offline note (and any other notice) above Home: room below it. */
 main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }
+
+/* Settings → Downloads → Cached ahead: how many of the next tracks are on the phone. */
+.settings-row .settings-label.dl-cache-status { font-size: 13px; color: var(--text-dim); line-height: 1.35; padding-right: 10px; }
+[data-dl-clear-cache] { white-space: nowrap; flex: 0 0 auto; }
