@@ -206,7 +206,39 @@ class MainActivity : Activity() {
         }
         errorPanel.visibility = View.GONE
         web.visibility = View.VISIBLE
+        pageLoaded = false
         web.loadUrl("$base/")
+        if (!offline) checkReachable(base)
+    }
+
+    /** Which load a reachability check belongs to (a newer load makes older checks moot). */
+    private var loadSeq = 0
+    /** The current load finished from the server: a slow check mustn't undo it. */
+    private var pageLoaded = false
+
+    /**
+     * Alongside the page load: does the server answer at all? An address that
+     * can't be reached (away, with no route to the server) can leave the
+     * WebView waiting a long time on a black screen before it gives up. If the
+     * server hasn't answered within 3 seconds, the app's own copy of MusicD
+     * takes over now — the server watch brings the page back when it answers.
+     */
+    private fun checkReachable(base: String) {
+        val seq = ++loadSeq
+        checks.execute {
+            val ok = runCatching {
+                val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 3000; c.readTimeout = 3000; c.useCaches = false
+                c.setRequestProperty("Connection", "close")
+                try { c.responseCode == 200 } finally { c.disconnect() }
+            }.getOrDefault(false)
+            if (ok) return@execute
+            runOnUiThread {
+                if (seq != loadSeq || offline || pageLoaded || isFinishing || loadedBase != base) return@runOnUiThread
+                Away.recheck(this)
+                if (OfflineSite.has(this)) goOffline()
+            }
+        }
     }
 
     /** This phone was signed out (from Settings, or the account was reset): sign in again. */
@@ -323,6 +355,7 @@ class MainActivity : Activity() {
 
         override fun onPageFinished(view: WebView, url: String) {
             if (!loadFailed) offlineShown = false
+            if (!loadFailed && !offline) pageLoaded = true
             // From the server: keep the app's copy of the page up to date.
             if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
             ShareBridge.install(view)
