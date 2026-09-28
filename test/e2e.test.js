@@ -74,6 +74,7 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal(s.zone.now_playing.line1, "Song 1");
       assert.equal(s.zone.now_playing.line3, "Album One");
       assert.match(s.zone.now_playing.image_key, /^al-/);
+      assert.deepEqual(s.zone.now_playing.format, { kind: "lossless", text: "Lossless" });
     });
 
     await t.test("a 24/96 album reaches the speaker as 24/48 FLAC", async () => {

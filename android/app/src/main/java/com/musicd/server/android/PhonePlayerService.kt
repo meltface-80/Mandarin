@@ -79,6 +79,9 @@ class PhonePlayerService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "PhonePlayer"
+        const val FORMAT_OPUS = "opus"
+        const val FORMAT_LOSSLESS = "lossless"
+        const val FORMAT_ORIGINAL = "original"
         private const val WAIT_MS = 25_000
         const val ACTION_PLAY_LOCAL = "com.musicd.server.android.action.PLAY_LOCAL"
         const val EXTRA_ALBUM = "album"
@@ -297,6 +300,25 @@ class PhonePlayerService : MediaLibraryService() {
         try { Thread.sleep(ms) } catch (e: InterruptedException) { running = false }
     }
 
+    /**
+     * How [item] is being played, for the format badge on Now playing:
+     * [FORMAT_OPUS] (the server's Opus 256 away, or an Opus download), else the
+     * file as it is — [FORMAT_LOSSLESS] or its codec ("MP3") where the phone can
+     * tell from a downloaded file, [FORMAT_ORIGINAL] for a stream (the server knows).
+     */
+    private fun formatOf(item: MediaItem?): String? {
+        val uri = item?.localConfiguration?.uri ?: return null
+        if (uri.scheme == "file") {
+            return when (uri.path.orEmpty().substringAfterLast('.').lowercase()) {
+                "opus", "ogg" -> FORMAT_OPUS
+                "flac", "wav", "aif", "aiff" -> FORMAT_LOSSLESS
+                "mp3" -> "MP3"
+                else -> null
+            }
+        }
+        return if (Store.localize(this, uri.toString()).contains("q=opus")) FORMAT_OPUS else FORMAT_ORIGINAL
+    }
+
     private fun mediaItem(it: Phone.Item): MediaItem {
         val meta = MediaMetadata.Builder()
             .setTitle(it.title)
@@ -463,7 +485,8 @@ class PhonePlayerService : MediaLibraryService() {
                 else -> "disabled"
             },
             volume = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
-            muted = muted
+            muted = muted,
+            format = if (formatOf(player.currentMediaItem) == FORMAT_OPUS) "opus" else "original"
         )
         val client = Store.client(this) ?: return
         runCatching { reports.execute { runCatching { client.phoneReport(r) } } }
@@ -656,7 +679,9 @@ class PhonePlayerService : MediaLibraryService() {
 
     class OfflineState(val state: String, val index: Int, val position: Double, val duration: Double,
                        val shuffle: Boolean, val loop: String, val volume: Int, val muted: Boolean,
-                       val items: List<OfflineItem>, val revision: Long)
+                       val items: List<OfflineItem>, val revision: Long,
+                       /** The current track's format ([formatOf]), for the badge. */
+                       val format: String? = null)
 
     /** What's playing, as the offline page shows it. */
     fun offlineState(): OfflineState? = onPlayer { p ->
@@ -685,7 +710,7 @@ class PhonePlayerService : MediaLibraryService() {
             when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
             (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
-            items, revision
+            items, revision, formatOf(p.currentMediaItem)
         )
     }
 

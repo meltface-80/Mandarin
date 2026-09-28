@@ -8498,6 +8498,7 @@
   const npTrack     = document.getElementById("np-track");
   const npArtist    = document.getElementById("np-artist");
   const npAlbum     = document.getElementById("np-album");
+  const npFormat    = document.getElementById("np-format");
   const npSeek      = document.getElementById("np-seek");
   const npCur       = document.getElementById("np-cur");
   const npTot       = document.getElementById("np-tot");
@@ -8872,6 +8873,35 @@
   // Track title with any trailing "(…)" detail broken onto its own line
   // (e.g. "Hangover Sex (with Viktoria Tolstoy)" → main line + sub-line).
   let lastNpTitle = null;
+  // The format badge under the album name (now_playing.format from the
+  // server: { kind: "opus" | "lossless" | "lossy", text }). Opus wears its
+  // logo, drawn by the stylesheet, beside the bit rate.
+  let lastNpFormatSig = null;
+  function paintNpFormat(np) {
+    if (!npFormat) return;
+    const f = np && np.format;
+    const sig = f ? f.kind + "|" + (f.text || "") : "";
+    if (sig === lastNpFormatSig) return;
+    lastNpFormatSig = sig;
+    npFormat.textContent = "";
+    npFormat.className = "np-format" + (f ? " is-" + f.kind : " hidden");
+    if (!f) { npFormat.removeAttribute("aria-label"); return; }
+    if (f.kind === "opus") {
+      const logo = document.createElement("span");
+      logo.className = "np-format-opus";
+      logo.setAttribute("aria-hidden", "true");
+      npFormat.appendChild(logo);
+    }
+    if (f.text) {
+      const t = document.createElement("span");
+      t.className = "np-format-text";
+      t.textContent = f.text;
+      npFormat.appendChild(t);
+    }
+    npFormat.setAttribute("aria-label", f.kind === "opus" ? ("Opus " + (f.text || "")).trim() : f.text);
+    npFormat.setAttribute("role", "img");
+  }
+
   function setNpTrack(title) {
     title = title || "—";
     if (title === lastNpTitle) return;   // poll runs every 1.5s — skip rebuilds
@@ -8942,6 +8972,7 @@
     // Playback modes belong to the ZONE, not to the track — a stopped zone can
     // still have shuffle on, and Roon lets you set it before pressing play.
     paintModeButtons();
+    paintNpFormat(np);
     if (!np) { setNpTrack(null); setNpArtists(null); npAlbum.textContent = ""; return; }
 
     setNpTrack(np.line1);
