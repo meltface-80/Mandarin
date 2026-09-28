@@ -14238,7 +14238,7 @@ initServiceBrowser({
 })();
 
 /* ------------------------------------------------------------------ */
-/*  Android app only: Settings → Downloads on this phone.              */
+/*  Android app only: Settings → Downloads.                            */
 /*  A settings pane like the others — same header, back chevron, rows, */
 /*  switches and theme — with the app supplying the data and applying  */
 /*  the settings (MusicdDownloads). Browsers never get the tile.       */
@@ -14259,7 +14259,7 @@ initServiceBrowser({
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
-    '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads on this phone</span></span>';
+    '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
   nav.insertBefore(tile, nav.children[1] || null);
 
   // An app from before this pane existed: its own screen, as it was.
@@ -14327,7 +14327,7 @@ initServiceBrowser({
       '<div class="settings-pane-head">' +
         '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings">' +
           '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>' +
-        "</button><h2>Downloads on this phone</h2></div>" +
+        "</button><h2>Downloads</h2></div>" +
       '<p class="settings-pane-desc">' + done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + " used</p>" +
 
       '<div class="settings-block"><div class="settings-subhead">On this phone</div>' + albums + "</div>" +
@@ -14441,4 +14441,38 @@ initServiceBrowser({
     t.appendChild(l); t.appendChild(b);
     pane.appendChild(t);
   }
+})();
+
+/* ------------------------------------------------------------------ */
+/*  Android app only: Settings' buttons are one column (android.css),  */
+/*  every title one size — the largest at which the longest title      */
+/*  still fits on one line.                                            */
+/* ------------------------------------------------------------------ */
+(function androidSettingsTitleSize() {
+  if (!/MusicDAndroid/.test(navigator.userAgent)) return;
+  const nav = document.querySelector("#settings-overlay .settings-nav");
+  if (!nav || typeof ResizeObserver !== "function") return;
+  const MAX = 20, MIN = 13, PROBE = 20;
+  let busy = false;
+  function fit() {
+    if (busy) return;
+    const items = [...nav.querySelectorAll(".settings-nav-item:not(.hidden)")];
+    if (!items.length || !nav.offsetWidth) return;      // not on screen yet
+    busy = true;
+    nav.style.setProperty("--settings-nav-fs", PROBE + "px");
+    let scale = Infinity;
+    for (const it of items) {
+      const title = it.querySelector(".settings-nav-title");
+      const box = it.querySelector(".settings-nav-txt");
+      if (!title || !box) continue;
+      const room = box.clientWidth, need = title.scrollWidth;
+      if (room > 0 && need > 0) scale = Math.min(scale, room / need);
+    }
+    const fs = scale === Infinity ? 16 : Math.max(MIN, Math.min(MAX, Math.floor(PROBE * scale * 10) / 10));
+    nav.style.setProperty("--settings-nav-fs", fs + "px");
+    busy = false;
+  }
+  // Measured whenever the list is laid out: opened, rotated, or a button shown or hidden.
+  new ResizeObserver(fit).observe(nav);
+  new MutationObserver(fit).observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
 })();
