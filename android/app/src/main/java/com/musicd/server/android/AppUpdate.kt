@@ -28,9 +28,11 @@ import java.util.concurrent.Executors
  * it offers to fetch it and install it over the top — the same signing key
  * every time, so nothing is uninstalled and downloads stay on the phone.
  *
- * Updating the server (its own in-app updater) doesn't touch the app, so the
- * app looks for itself: when it opens, at most once an hour, and on demand
- * from Settings → System.
+ * One Update button does both: the page asks the app ([lookup], [statusJson])
+ * alongside the server's own updater, shows one offer for whichever is newer,
+ * and its Update starts the server's update and this one ([installNow]) together.
+ * A page too old to know that leaves the app to offer itself, as before
+ * ([check], when the app opens, at most once an hour).
  */
 object AppUpdate {
     private const val TAG = "AppUpdate"
@@ -41,6 +43,40 @@ object AppUpdate {
     private val work = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var busy = false
+
+    /** The newest app GitHub has, as last looked up (null: not looked, or couldn't). */
+    @Volatile private var known: Release? = null
+    @Volatile private var lookedAt = 0L
+    @Volatile private var looking = false
+
+    /** For the page: {"current", "latest", "available", "installing"}. */
+    fun statusJson(): String {
+        val r = known
+        return JSONObject().put("current", BuildConfig.VERSION_NAME)
+            .put("latest", r?.version ?: JSONObject.NULL)
+            .put("available", r != null && r.newerThan(BuildConfig.VERSION_NAME))
+            .put("installing", busy)
+            .toString()
+    }
+
+    /** Look for a newer app (at most once an hour unless [force]), then [done] on the main thread. */
+    fun lookup(force: Boolean, done: () -> Unit) {
+        val now = System.currentTimeMillis()
+        if (looking || (!force && known != null && now - lookedAt < CHECK_EVERY_MS)) { main.post(done); return }
+        looking = true
+        work.execute {
+            val r = runCatching { latest() }.onFailure { Log.i(TAG, "couldn't look for an update: ${it.message}") }.getOrNull()
+            if (r != null) { known = r; lookedAt = System.currentTimeMillis() }
+            looking = false
+            main.post(done)
+        }
+    }
+
+    /** The page's Update: fetch the newer app and hand it to Android's installer, no second question. */
+    fun installNow(activity: Activity) {
+        val r = known
+        if (r != null && r.newerThan(BuildConfig.VERSION_NAME)) download(activity, r) else check(activity, asked = true)
+    }
 
     /** Look, and offer an update if there is one. [asked]: from the button — always look, always answer. */
     fun check(activity: Activity, asked: Boolean = false) {
