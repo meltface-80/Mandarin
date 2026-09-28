@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.13
+Two fixes from MusicD Remote (v1.8.60–v1.8.62), in the browser, the iPhone home-screen app and the
+Android app alike.
+- **Release date sort by the day, not the year.** The Library's date sort (now labelled *Release
+  date*) ordered albums by year alone, so an album out yesterday sat among this year's by title.
+  The scan now keeps each album's date as precisely as its tags state it (`DATE`/`ORIGINALDATE`:
+  "2024-03-15", "2024-03" or "2024"), beside the year, which is unchanged for everything else.
+  A 2011 remaster's day never lands on a 1977 original: only a tag of the album's own year refines
+  it. Albums whose tags stop at the year are looked up on MusicBrainz in the background after each
+  scan, newest first, twenty albums a request (MusicBrainz allows one request a second); a day is
+  used only when title, artist and year all match. Within a year, an album known only to the year
+  sorts after the dated ones newest-first and before them oldest-first; undated albums stay last.
+  Existing libraries: the next scan (within six hours, or *Rescan library*) reads the dates of files
+  it had already read, once, without a full rescan.
+- **The album view shows the full release date** ("25 September 2026", written the way the device
+  writes dates), the same date the sort uses; an album known only to the year is looked up as it
+  opens (a second and a half at most, else it's there next time).
+- **The ⋯ button is the height of Play now and Queue.** It was a 40px transparent box round a ring
+  drawn inside its icon, so the ring looked about half the pills' height. The ring is now the
+  button's own border at the row's height, with the pills' outline, fill, hover and press — on the
+  album view and all three playlist screens.
+
 ## v0.3.12
 - **Your whole library away from home** (Android app), over MusicD's own Tailscale connection — no
   Tailscale app, no VPN. Off the home Wi-Fi (5G, someone else's Wi-Fi) the app joins your tailnet
