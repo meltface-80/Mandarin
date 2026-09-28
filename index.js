@@ -224,7 +224,16 @@ function createServer(overrides = {}) {
     }
     log(ff.ok ? `[musicd] ${ff.version}${ff.soxr ? " (soxr resampler)" : ""}` : "[musicd] WARNING: ffmpeg not found — hi-res files cannot be converted for Sonos");
     await new Promise((resolve, reject) => {
-      const srv = app.listen(config.port, "0.0.0.0", resolve);
+      // The Android app's page reaches the server through the app's relay, which
+      // it treats as a web proxy: the request line carries the whole address
+      // ("GET http://host:3500/api/…"). Made the usual path before Express sees
+      // it, so every route, redirect and log sees what a direct request would.
+      const srv = require("http").createServer((req, res) => {
+        if (/^https?:\/\//i.test(req.url)) {
+          try { const u = new URL(req.url); req.url = u.pathname + u.search; } catch (e) { /* left as it is */ }
+        }
+        app(req, res);
+      }).listen(config.port, "0.0.0.0", resolve);
       srv.on("error", reject);
       ctx.httpServer = srv;
     });

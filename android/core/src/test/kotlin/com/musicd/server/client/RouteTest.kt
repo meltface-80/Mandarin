@@ -30,6 +30,14 @@ class RouteTest {
         assertEquals(a, Route.rewrite(a, home, away, true))
     }
 
+    @Test fun aTrackKeepsTheFormatItStartedIn() {
+        val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
+        // Started away as Opus, home again mid-track: the rest is still Opus (from home).
+        assertEquals("$u&q=opus", Route.rewrite(u, home, away, false, keepOpus = true))
+        // Started at home as the original, away mid-track: the rest is the original (from away).
+        assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv", Route.rewrite(u, home, away, true, opus = false))
+    }
+
     @Test fun artMovesButStaysArt() {
         val u = "$home/api/image/al-3-0?size=600&s=abcdefghijklmnopqrstuv"
         assertEquals("$away/api/image/al-3-0?size=600&s=abcdefghijklmnopqrstuv", Route.rewrite(u, home, away, true))

@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.16
+**Wi-Fi to mobile data and back, without a gap** (Android app) — what Roon Arc does, and a little more.
+- **Held ahead.** The phone fetches the whole of the playing track as fast as the network allows,
+  then carries on into the next one (up to 15 minutes or 96 MB), so the few seconds with no
+  connection as you leave the house are played from what's already on the phone. Skipping to
+  the next track is instant too.
+- **Tailscale kept ready.** MusicD's own Tailscale connection now stays joined at home (idle —
+  it's not used there), so when the Wi-Fi goes the way to the server is already open instead of
+  starting from nothing. It ends with the app.
+- **The page never moves.** MusicD's page stays on the server's home address at home and away:
+  the app passes its traffic to wherever the server can be reached right now (home, its own
+  Tailscale connection, or the Tailscale app). No reload when you leave or come home — nothing you
+  were looking at goes, and the page keeps its settings. (The server accepts requests relayed this
+  way; the WebView needs to be recent enough, otherwise the page moves as before.)
+- **Quick to notice, quiet to recover.** The app reacts as soon as Android says the Wi-Fi has
+  gone; a connection that has gone silent is given up on after 8 seconds instead of 20, and a
+  failed fetch is tried again at once — for a minute and a half — from where it stopped, while the
+  music plays on from what's held, instead of stopping and starting over.
+- **Changes at the next track.** A track finishes in the format it started in: leaving the house
+  mid-song keeps the original to its end (the rest fetched over Tailscale if it isn't held yet),
+  and coming home mid-song keeps Opus to its end; the next track follows the new place.
+
 ## v0.3.15
 - **One Update button for the server and the app** (Android app). The update banner and
   *Settings → System → Check for updates* now look for both — the server's update and a newer

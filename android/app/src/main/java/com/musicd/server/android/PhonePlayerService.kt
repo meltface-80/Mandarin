@@ -21,8 +21,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
+import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
@@ -40,6 +43,7 @@ import com.musicd.server.client.phoneHello
 import com.musicd.server.client.phoneReport
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
@@ -79,6 +83,9 @@ class PhonePlayerService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "PhonePlayer"
+        private const val AHEAD_MS = 15 * 60 * 1000
+        private const val AHEAD_BYTES = 96 * 1024 * 1024
+        private const val RETRIES = 40
         const val FORMAT_OPUS = "opus"
         const val FORMAT_LOSSLESS = "lossless"
         const val FORMAT_ORIGINAL = "original"
@@ -124,25 +131,60 @@ class PhonePlayerService : MediaLibraryService() {
     private var localMode = false
     private var loggedKey: String? = null
     private var retries = 0
+    /**
+     * The format each track started in (true: the server's Opus), by its
+     * address: the rest of a track fetched after a change of network must be
+     * the same file as its start. Kept for the playing track and the next.
+     */
+    private val pinned = ConcurrentHashMap<String, Boolean>()
 
     override fun onCreate() {
         super.onCreate()
         audio = getSystemService(AudioManager::class.java)
+        // A connection that has gone quiet (the Wi-Fi gone as you leave) is
+        // given up on in seconds, not twenty — and fetched again at once.
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("MusicDAndroid/${BuildConfig.VERSION_NAME}")
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(8_000)
-            .setReadTimeoutMs(20_000)
+            .setConnectTimeoutMs(5_000)
+            .setReadTimeoutMs(8_000)
         Store.token(this)?.let { http.setDefaultRequestProperties(mapOf("Authorization" to "Bearer $it")) }
         // Each address is sent where the server is now — home or away — as
-        // it's opened; downloaded tracks are files and go straight through.
+        // it's opened; downloaded tracks are files and go straight through. A
+        // track keeps the format it started in (see [pinned]).
         val routed = ResolvingDataSource.Factory(http) { spec ->
-            spec.withUri(Uri.parse(Store.localize(this, spec.uri.toString())))
+            val key = spec.uri.toString()
+            val opus = pinned.getOrPut(key) { Store.wantsOpus(this) }
+            spec.withUri(Uri.parse(Store.localize(this, key, opus)))
         }
         val sources = DefaultDataSource.Factory(this, routed)
 
+        // Held ahead, like Roon Arc: the player fetches the whole of the playing
+        // track as fast as the network allows, then carries on into the next
+        // one — up to 15 minutes or 96 MB — so leaving the house (Wi-Fi to
+        // mobile data, a few seconds with no connection) is heard from what's
+        // already on the phone, not from the network.
+        val ahead = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(AHEAD_MS, AHEAD_MS, 1_500, 3_000)
+            .setTargetBufferBytes(AHEAD_BYTES)
+            .setPrioritizeTimeOverSizeThresholds(false)
+            .build()
+        // A fetch that fails (no network for a moment) is tried again quickly and
+        // for a good while, from where it stopped, while the music plays on from
+        // what's held — it only becomes an error after about a minute and a half.
+        val retrying = object : DefaultLoadErrorHandlingPolicy(RETRIES) {
+            override fun getRetryDelayMsFor(info: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
+                val d = super.getRetryDelayMsFor(info)
+                if (d == C.TIME_UNSET) return d
+                if (info.errorCount == 1) Away.recheck(this@PhonePlayerService)
+                return minOf(500L * info.errorCount, 2_000L)
+            }
+        }
+
         player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(sources))
+            .setLoadControl(ahead)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(sources)
+                .setLoadErrorHandlingPolicy(retrying))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(),
                 /* handleAudioFocus = */ true
@@ -156,6 +198,7 @@ class PhonePlayerService : MediaLibraryService() {
                 bumpRevision()
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = keepPins()
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
         })
         Away.watch(this)
@@ -316,7 +359,27 @@ class PhonePlayerService : MediaLibraryService() {
                 else -> null
             }
         }
-        return if (Store.localize(this, uri.toString()).contains("q=opus")) FORMAT_OPUS else FORMAT_ORIGINAL
+        val opus = pinned[uri.toString()] ?: Store.wantsOpus(this)
+        return if (opus) FORMAT_OPUS else FORMAT_ORIGINAL
+    }
+
+    /**
+     * Only the tracks from the playing one on (as far as the player may have
+     * fetched ahead) keep their formats; a track played again later starts afresh.
+     */
+    private fun keepPins() {
+        val t = player.currentTimeline
+        val order = ArrayList<Int>()
+        var i = player.currentMediaItemIndex
+        // In play order (shuffle and repeat included).
+        while (i != C.INDEX_UNSET && order.size < 4 && i !in order) {
+            order += i
+            i = if (t.isEmpty) C.INDEX_UNSET else t.getNextWindowIndex(i, player.repeatMode, player.shuffleModeEnabled)
+        }
+        val keep = order.filter { it in 0 until player.mediaItemCount }
+            .mapNotNull { player.getMediaItemAt(it).localConfiguration?.uri?.toString() }
+            .toSet()
+        pinned.keys.retainAll(keep)
     }
 
     private fun mediaItem(it: Phone.Item): MediaItem {

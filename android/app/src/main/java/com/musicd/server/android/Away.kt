@@ -55,7 +55,8 @@ object Away {
             runCatching {
                 cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: Network) = recheck(app)
-                    override fun onLost(network: Network) = recheck(app)
+                    // The Wi-Fi gone (walking out of the door): act now, not after the usual pause.
+                    override fun onLost(network: Network) = recheck(app, soon = true)
                     override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = recheck(app)
                 })
             }.onFailure { Log.w(TAG, "can't follow the network", it) }
@@ -63,15 +64,25 @@ object Away {
         recheck(app)
     }
 
-    /** Look again soon — changes come in bursts, so they're gathered for a moment. */
-    fun recheck(context: Context) {
-        if (pending) return
+    /**
+     * Look again soon — changes come in bursts, so they're gathered for a
+     * moment ([soon]: a lost network, gathered for less).
+     */
+    fun recheck(context: Context, soon: Boolean = false) {
+        val app = context.applicationContext
+        if (pending) {
+            if (!soon) return
+            main.removeCallbacks(pendingCheck ?: return)
+        }
         pending = true
-        main.postDelayed({
+        val r = Runnable {
             pending = false
-            work.execute { check(context.applicationContext) }
-        }, 1500)
+            work.execute { check(app) }
+        }
+        pendingCheck = r
+        main.postDelayed(r, if (soon) 300L else 1500L)
     }
+    @Volatile private var pendingCheck: Runnable? = null
 
     /** Where we are now, decided and stored. Blocking; not on the main thread. */
     @Synchronized
@@ -88,8 +99,9 @@ object Away {
         // streamed as Opus by the server, no Tailscale app needed.
         var engine = false
         val wasRunning = TailscaleEngine.alive()
+        // The phone's addresses changed: the engine finds its way on the new network.
+        if (wasRunning) TailscaleEngine.sendInterfaces()
         if (away && awayAt != null) {
-            TailscaleEngine.sendInterfaces()
             engine = TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")
             if (!engine) Log.i(TAG, "own Tailscale connection not up; trying the Tailscale app")
         }
@@ -107,8 +119,8 @@ object Away {
             if (!ok) Log.i(TAG, "the server isn't answering on $awayAt either")
         }
         if (!away) {
-            // Home: the engine isn't needed (it starts again the next time the phone is away).
-            if (wasEngine) TailscaleEngine.stop()
+            // Home: the engine stays joined, idle, so leaving the house needn't
+            // wait for it to start (see [keepReady] below).
             if (homeAnswers && weConnected) {
                 // Tailscale goes off if this app turned it on.
                 tailscale(c, connect = false)
@@ -123,8 +135,25 @@ object Away {
             Store.setAway(c, away)
             main.post { for (l in listeners) runCatching { l(away) } }
         }
+        if (!away && awayAt != null) keepReady(c, "${awayAt.host}:${awayAt.port}")
         return away
     }
+
+    /**
+     * At home: MusicD's own Tailscale connection joined and its way to the
+     * server open, but unused — so the moment the Wi-Fi goes, the way away is
+     * already there. Idle, it costs little; it ends with the app's process.
+     * Only for a phone signed in to it.
+     */
+    private fun keepReady(c: Context, target: String) {
+        if (!TailscaleEngine.installed(c) || !TailscaleEngine.signedInBefore(c)) return
+        if (TailscaleEngine.ready(target)) return
+        // On its own thread: joining can take a few seconds, and the next check mustn't wait for it.
+        warming.execute {
+            runCatching { TailscaleEngine.prepare(c, target) }.onFailure { Log.i(TAG, "couldn't keep Tailscale ready: ${it.message}") }
+        }
+    }
+    private val warming = Executors.newSingleThreadExecutor()
 
     /**
      * Before a download or a stream away: the way to the server is up. After the

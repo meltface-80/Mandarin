@@ -111,11 +111,20 @@ object Store {
     fun active(context: Context): ServerAddress? =
         if (isAway(context)) awayBase(context) else server(context)
 
-    /** A server address (stream, cover) moved to the address in use now. */
-    fun localize(context: Context, url: String): String {
+    /** Would a track starting now be played as the server's Opus (away, with Opus chosen)? */
+    fun wantsOpus(context: Context): Boolean =
+        isAway(context) && DownloadStore.settings(context).awayQuality == DownloadStore.QUALITY_OPUS
+
+    /**
+     * A server address (stream, cover) moved to the address in use now.
+     * [opus]: the format a track is held to (it started that way); null — as a
+     * track starting now would be.
+     */
+    fun localize(context: Context, url: String, opus: Boolean? = null): String {
         val home = server(context)?.baseUrl ?: return url
         return com.musicd.server.client.Route.rewrite(url, home, awayBase(context)?.baseUrl, isAway(context),
-            opus = DownloadStore.settings(context).awayQuality == DownloadStore.QUALITY_OPUS)
+            opus = opus ?: (DownloadStore.settings(context).awayQuality == DownloadStore.QUALITY_OPUS),
+            keepOpus = opus == true)
     }
 
     /** This phone's zone id on the server ("PHONE_…"), as its last hello said. */
