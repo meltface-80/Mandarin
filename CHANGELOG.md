@@ -9,8 +9,9 @@ Versioning: each set of changes is a development build and takes the next third 
 - **Your whole library away from home** (Android app), over MusicD's own Tailscale connection — no
   Tailscale app, no VPN. Off the home Wi-Fi (5G, someone else's Wi-Fi) the app joins your tailnet
   by itself and the full MusicD page, every album and playlist, comes from the server through it;
-  the server streams to the phone as Opus 256 kbps (transcoded there), and only this phone plays
-  (no Sonos away, as before). Back on the home Wi-Fi it switches back and the connection stops.
+  the server streams to the phone as Opus 256 kbps (transcoded there) or the original files — your
+  choice under *Download settings → Playing away from home* (Opus 256 by default) — and only this
+  phone plays (no Sonos away, as before). Back on the home Wi-Fi it switches back and the connection stops.
   Sign in once on *Settings → System → Tailscale* (formerly "Tailscale test"); a passing
   "Test connection" keeps the server address it used. If the phone isn't signed in, the old way
   (asking the Tailscale app) is still tried, and with no way through at all the offline MusicD

@@ -114,7 +114,8 @@ object Store {
     /** A server address (stream, cover) moved to the address in use now. */
     fun localize(context: Context, url: String): String {
         val home = server(context)?.baseUrl ?: return url
-        return com.musicd.server.client.Route.rewrite(url, home, awayBase(context)?.baseUrl, isAway(context))
+        return com.musicd.server.client.Route.rewrite(url, home, awayBase(context)?.baseUrl, isAway(context),
+            opus = DownloadStore.settings(context).awayQuality == DownloadStore.QUALITY_OPUS)
     }
 
     /** This phone's zone id on the server ("PHONE_…"), as its last hello said. */

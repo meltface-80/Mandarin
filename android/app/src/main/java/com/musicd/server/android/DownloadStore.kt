@@ -35,7 +35,9 @@ object DownloadStore {
     class Settings(
         val quality: String, val location: String, val wifiOnly: Boolean, val limitGb: Int,
         /** Automatic downloads: today's Smart Picks, the Album of the day, the newest [autoRecent] albums. */
-        val autoPicks: Boolean, val autoAotd: Boolean, val autoRecent: Int
+        val autoPicks: Boolean, val autoAotd: Boolean, val autoRecent: Int,
+        /** Streaming away from home: Opus 256 made by the server, or the original files. */
+        val awayQuality: String = QUALITY_OPUS
     ) {
         val autoOn get() = autoPicks || autoAotd || autoRecent > 0
     }
@@ -49,7 +51,8 @@ object DownloadStore {
             limitGb = p.getInt("limit_gb", 0),
             autoPicks = p.getBoolean("auto_picks", false),
             autoAotd = p.getBoolean("auto_aotd", false),
-            autoRecent = p.getInt("auto_recent", 0)
+            autoRecent = p.getInt("auto_recent", 0),
+            awayQuality = p.getString("away_quality", QUALITY_OPUS) ?: QUALITY_OPUS
         )
     }
 
@@ -60,6 +63,7 @@ object DownloadStore {
     fun setAutoPicks(c: Context, on: Boolean) = edit(c) { putBoolean("auto_picks", on) }
     fun setAutoAotd(c: Context, on: Boolean) = edit(c) { putBoolean("auto_aotd", on) }
     fun setAutoRecent(c: Context, n: Int) = edit(c) { putInt("auto_recent", n) }
+    fun setAwayQuality(c: Context, q: String) = edit(c) { putString("away_quality", q) }
 
     private fun edit(c: Context, f: android.content.SharedPreferences.Editor.() -> Unit) {
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply(f).apply()

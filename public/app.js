@@ -14184,6 +14184,13 @@ initServiceBrowser({
       "</div>" +
       '<div class="settings-divider"></div>' +
 
+      ("awayQuality" in s ?
+        '<div class="settings-block"><div class="settings-subhead">Playing away from home</div>' +
+          row("Stream as", select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
+          '<div class="settings-note">Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a tenth of the data; Original sends the files as they are. At home it’s always the original.</div>' +
+        "</div>" +
+        '<div class="settings-divider"></div>' : "") +
+
       '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
