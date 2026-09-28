@@ -27,6 +27,13 @@ Versioning: each set of changes is a development build and takes the next third 
   mid-song keeps the original to its end (the rest fetched over Tailscale if it isn't held yet),
   and coming home mid-song keeps Opus to its end; the next track follows the new place.
 
+**Rescan library no longer says it failed when it didn't.** The page reads MusicD Remote's words
+for how a rescan went ("rebuilt", "fresh", "scanning"); this server answered in its scanner's own
+("updated", "unchanged", "running"), and every one the page didn't know was shown as "Rescan
+failed". The server now answers in the page's words, and the page knows both. A rescan that
+finds nothing new says "Library already up to date"; one that takes longer than a few seconds
+says it's scanning, then — when it's done — how many albums there are and how many new tracks.
+
 ## v0.3.15
 - **One Update button for the server and the app** (Android app). The update banner and
   *Settings → System → Check for updates* now look for both — the server's update and a newer

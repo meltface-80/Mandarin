@@ -13872,21 +13872,52 @@ initServiceBrowser({
   // Manual library rescan: rebuilds the album snapshot, but the server refuses
   // (status "importing") while Roon is still adding albums, so a deliberate
   // press never fights an active import.
+  // What a finished scan found, as the toast says it. The server's own
+  // words ("updated"/"unchanged") are read the same as the page's.
+  function scanDoneText(j) {
+    const albums = j.count != null ? j.count : j.albums;
+    const added = Number(j.added) || 0;
+    if (j.status === "fresh" || j.status === "unchanged") return "Library already up to date" + (albums ? " — " + albums + " albums" : "");
+    return "Library rescanned — " + (albums || 0) + " albums" + (added ? " (" + added + " new " + (added === 1 ? "track" : "tracks") + ")" : "");
+  }
+
+  // A scan still going when the server answered: wait for it here, then say
+  // how it ended — rather than leave "scanning in the background" as the last word.
+  async function waitForScan() {
+    const toast = window.__showToast || (() => {});
+    const until = Date.now() + 60 * 60 * 1000;
+    while (Date.now() < until) {
+      await new Promise(r => setTimeout(r, 2500));
+      let s = null;
+      try { s = await (await fetch("/api/status", { cache: "no-store" })).json(); } catch (e) { continue; }
+      const scan = s && s.scan;
+      if (!scan || scan.running) continue;
+      const last = scan.last || {};
+      if (last.status === "no-music") toast("The music folder isn't there — check the /music mount", "error");
+      else toast(scanDoneText(Object.assign({ count: s.index_count }, last)));
+      refreshRescanSub();
+      return;
+    }
+  }
+
   async function rescanLibrary() {
     const toast = window.__showToast || (() => {});
     toast("Scanning your music folder…");
     try {
       const r = await fetch("/api/library/rescan", { method: "POST" });
       const j = await r.json().catch(() => ({}));
+      const st = j.status;
+      const done = ["rebuilt", "updated", "fresh", "unchanged"].includes(st);
+      const going = ["scanning", "running", "busy"].includes(st);
       const msg =
-        j.status === "rebuilt"   ? "Library rescanned — " + (j.count || 0) + " albums" :
-        j.status === "scanning"  ? "Scanning in the background — new albums appear as it finishes" :
-        j.status === "fresh"     ? "Library already up to date" :
-        j.status === "busy"      ? "A scan is already running" :
-        j.status === "no-music"  ? "The music folder isn't there — check the /music mount" :
+        done                     ? scanDoneText(j) :
+        st === "scanning"        ? "Scanning in the background — new albums appear as it goes" :
+        st === "running" || st === "busy" ? "A scan is already running — you'll hear when it's done" :
+        st === "no-music"        ? "The music folder isn't there — check the /music mount" :
                                    (j.error || "Rescan failed");
-      toast(msg, ["rebuilt", "fresh", "scanning", "busy"].includes(j.status) ? undefined : "error");
+      toast(msg, done || going ? undefined : "error");
       refreshRescanSub();   // the row's sub-line is now stale whatever happened
+      if (going) waitForScan();
     } catch (e) {
       toast("Rescan failed", "error");
     }
