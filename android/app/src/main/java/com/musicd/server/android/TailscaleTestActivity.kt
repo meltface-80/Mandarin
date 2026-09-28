@@ -24,14 +24,13 @@ import java.net.URL
 import java.util.concurrent.Executors
 
 /**
- * Test build: MusicD's own Tailscale connection, tried out on the phone
- * before anything else uses it. Sign the phone in to your tailnet, point it
- * at the server's Tailscale address, and "Test connection" checks each step
- * of the way — joined, server answering, seen as away, a track's first
- * half-megabyte — with timings, and a log to copy and send back.
+ * MusicD's own Tailscale connection: sign the phone in to your tailnet once,
+ * and away from home the app reaches the server through it (see [Away]).
+ * "Test connection" checks each step of the way — joined, server answering,
+ * seen as away, a track's first half-megabyte — with timings, and a log to
+ * copy and send back. A passing test keeps the address it used.
  *
- * Reached from Settings → System → Tailscale test (app only). Nothing else in
- * the app uses the engine yet.
+ * Reached from Settings → System → Tailscale (app only).
  */
 class TailscaleTestActivity : Activity() {
 
@@ -60,12 +59,12 @@ class TailscaleTestActivity : Activity() {
             setOnClickListener { finish() }
         })
         head.addView(TextView(this).apply {
-            text = "Tailscale test"; setTextColor(WHITE); textSize = 24f; typeface = Typeface.DEFAULT_BOLD
+            text = "Tailscale"; setTextColor(WHITE); textSize = 24f; typeface = Typeface.DEFAULT_BOLD
         })
         col.addView(head)
-        col.addView(note("MusicD's own Tailscale connection — no Tailscale app, no VPN. For the test, turn off the " +
-            "Tailscale app on this phone, sign in below with the same account as your server, then try " +
-            "\"Test connection\" at home and again on mobile data."))
+        col.addView(note("MusicD's own Tailscale connection — no Tailscale app, no VPN. Sign in below with the " +
+            "same account as your server, once. Away from home (mobile data, other Wi-Fi) the app then reaches " +
+            "your whole library through it, streamed as Opus 256 by the server."))
 
         state = TextView(this).apply { setTextColor(WHITE); textSize = 15f; setPadding(0, px(16), 0, px(8)) }
         col.addView(state)
@@ -170,7 +169,7 @@ class TailscaleTestActivity : Activity() {
         val token = Store.token(this)
         work.execute {
             say("—— Test connection to $t ——")
-            val fw = step("Open the loopback port") { TailscaleEngine.json("POST", "/forward?target=$t") } ?: return@execute
+            val fw = step("Open the loopback port") { TailscaleEngine.json("POST", "/forward?target=$t&port=${TailscaleEngine.PORT}") } ?: return@execute
             val addr = fw.optString("addr").takeIf { it.isNotEmpty() } ?: return@execute say("FAIL: no port (${fw})")
             val base = "http://$addr"
             val probe = step("Probe the server directly") { TailscaleEngine.json("GET", "/probe", timeoutMs = 10_000) }
@@ -196,6 +195,10 @@ class TailscaleTestActivity : Activity() {
                 JSONObject().put("http", code).put("bytes", n).put("kB_per_s", (n / 1024.0 / secs).toInt())
             }
             say("PASS — everything answered over MusicD's own Tailscale connection.")
+            // Keep the address that worked, for away from home.
+            val known = Store.awayAddress(this)
+            if (known == null || "${known.host}:${known.port}" != t) Store.setAwayTyped(this, "http://$t")
+            Away.recheck(this)
         }
     }
 

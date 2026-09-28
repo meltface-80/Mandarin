@@ -23,7 +23,7 @@ import org.json.JSONObject
  *                                       "quality", "bytes", "auto", "error"}, …]
  *   MusicdDownloads.settings()        the download settings, the places to save to, space used
  *   MusicdDownloads.set(key, value)   change one setting (quality, location, wifiOnly, limitGb,
- *                                     autoPicks, autoAotd, autoRecent)
+ *                                     autoPicks, autoAotd, autoRecent, awayQuality)
  *   MusicdDownloads.play(albumId)     play a downloaded album on this phone
  *
  * And the other way: whenever a download starts, moves on, finishes or is
@@ -66,7 +66,7 @@ class DownloadsBridge(private val activity: Activity) {
         return JSONObject()
             .put("quality", s.quality).put("location", s.location).put("wifiOnly", s.wifiOnly)
             .put("limitGb", s.limitGb).put("autoPicks", s.autoPicks).put("autoAotd", s.autoAotd)
-            .put("autoRecent", s.autoRecent).put("places", places)
+            .put("autoRecent", s.autoRecent).put("awayQuality", s.awayQuality).put("places", places)
             .put("used", DownloadStore.usedBytes(activity))
             .toString()
     }
@@ -77,7 +77,14 @@ class DownloadsBridge(private val activity: Activity) {
         when (key) {
             "quality" -> DownloadStore.setQuality(c, if (value == DownloadStore.QUALITY_OPUS) value else DownloadStore.QUALITY_ORIGINAL)
             "location" -> DownloadStore.setLocation(c, value)
-            "wifiOnly" -> DownloadStore.setWifiOnly(c, value == "true")
+            "wifiOnly" -> {
+                DownloadStore.setWifiOnly(c, value == "true")
+                // Downloads already waiting take the new rule now (mobile data, or Wi-Fi only).
+                for ((a, _) in DownloadStore.albums(c)) if (a.state != "done")
+                    DownloadWorker.enqueue(c, a.id, a.quality, a.title, a.artist, a.auto)
+                AutoDownloads.reschedule(c)
+            }
+            "awayQuality" -> DownloadStore.setAwayQuality(c, if (value == DownloadStore.QUALITY_ORIGINAL) value else DownloadStore.QUALITY_OPUS)
             "limitGb" -> DownloadStore.setLimitGb(c, value.toIntOrNull() ?: 0)
             "autoPicks" -> { DownloadStore.setAutoPicks(c, value == "true"); AutoDownloads.runNow(c) }
             "autoAotd" -> { DownloadStore.setAutoAotd(c, value == "true"); AutoDownloads.runNow(c) }

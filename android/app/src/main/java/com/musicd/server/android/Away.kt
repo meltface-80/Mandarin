@@ -19,15 +19,15 @@ import java.util.concurrent.Executors
  * Home or away, followed as the phone's network changes.
  *
  * On the home Wi-Fi the app talks to the server on its home address. Off it —
- * mobile data, or someone else's Wi-Fi — it switches to the server's
- * Tailscale address, asking the Tailscale app to connect if it isn't already,
- * and back again when the phone is home. Away, the server offers only this
- * phone to play on (no Sonos rooms), and streams Opus 256 kbps.
+ * mobile data, or someone else's Wi-Fi — it reaches the server over
+ * MusicD's own Tailscale connection ([TailscaleEngine], signed in once on
+ * Settings → System → Tailscale), and back again when the phone is home.
+ * Away, the server offers only this phone to play on (no Sonos rooms), and
+ * streams Opus 256 kbps; the whole library is there, not just downloads.
  *
- * The Tailscale app is asked with its own broadcast (the one Tasker uses); it
- * doesn't answer, so the only proof is the server answering on its Tailscale
- * address. If the app hasn't got it on its own, "Always-on VPN" for Tailscale
- * in Android's settings does the same job.
+ * If the phone hasn't signed in to MusicD's own connection, the Tailscale app
+ * is asked instead with its own broadcast (the one Tasker uses); it doesn't
+ * answer, so the only proof is the server answering on its Tailscale address.
  */
 object Away {
     private const val TAG = "Away"
@@ -74,14 +74,28 @@ object Away {
     }
 
     /** Where we are now, decided and stored. Blocking; not on the main thread. */
+    @Synchronized
     fun check(c: Context): Boolean {
         val home = Store.server(c) ?: return false
         val awayAt = Store.awayAddress(c)
         val wasAway = Store.isAway(c)
-        val homeAnswers = onWifi(c) && answers(home, 1500)
-        val away = awayAt != null && Route.away(onWifi(c), homeAnswers)
+        val wasEngine = Store.viaEngine(c)
+        val wifi = onWifi(c)
+        val homeAnswers = wifi && answers(home, 1500)
+        var away = Route.away(wifi, homeAnswers)
 
-        if (away && awayAt != null && !answers(awayAt, 3000)) {
+        // Away: MusicD's own Tailscale connection first — the whole library,
+        // streamed as Opus by the server, no Tailscale app needed.
+        var engine = false
+        val wasRunning = TailscaleEngine.alive()
+        if (away && awayAt != null) {
+            TailscaleEngine.sendInterfaces()
+            engine = TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")
+            if (!engine) Log.i(TAG, "own Tailscale connection not up; trying the Tailscale app")
+        }
+        Store.setViaEngine(c, engine)
+
+        if (away && !engine && awayAt != null && !answers(awayAt, 3000)) {
             // Not through yet: ask the Tailscale app, then give it a little while.
             if (tailscale(c, connect = true)) weConnected = true
             val until = System.currentTimeMillis() + 15_000
@@ -92,17 +106,36 @@ object Away {
             }
             if (!ok) Log.i(TAG, "the server isn't answering on $awayAt either")
         }
-        if (!away && homeAnswers && weConnected) {
-            // Home again: Tailscale goes off if this app turned it on.
-            tailscale(c, connect = false)
-            weConnected = false
+        if (!away) {
+            // Home: the engine isn't needed (it starts again the next time the phone is away).
+            if (wasEngine) TailscaleEngine.stop()
+            if (homeAnswers && weConnected) {
+                // Tailscale goes off if this app turned it on.
+                tailscale(c, connect = false)
+                weConnected = false
+            }
         }
-        if (away != wasAway) {
-            Log.i(TAG, if (away) "away: using $awayAt" else "home: using $home")
+        // Away needs a way to the server; without one it's the phone's downloads (offline).
+        away = away && (engine || awayAt != null)
+        // (Also when the engine has just come up again after the app was restarted: the page reloads onto it.)
+        if (away != wasAway || engine != wasEngine || (engine && !wasRunning)) {
+            Log.i(TAG, if (away) "away: using ${Store.awayBase(c)}" else "home: using $home")
             Store.setAway(c, away)
             main.post { for (l in listeners) runCatching { l(away) } }
         }
         return away
+    }
+
+    /**
+     * Before a download or a stream away: the way to the server is up. After the
+     * app's process has been restarted the engine isn't running yet, so this
+     * brings it back. Blocking; not on the main thread.
+     */
+    fun ensureRoute(c: Context) {
+        if (!Store.isAway(c) || !Store.viaEngine(c)) return
+        val awayAt = Store.awayAddress(c) ?: return
+        if (TailscaleEngine.alive() && answers(Store.awayBase(c) ?: return, 4000)) return
+        if (!TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")) check(c)
     }
 
     /** On Wi-Fi or Ethernet (a VPN on top of it counts; mobile data doesn't). */

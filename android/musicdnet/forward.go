@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -40,8 +41,20 @@ func (f *Forwarder) SetDown(down bool) int {
 }
 
 // Start listens on 127.0.0.1 (a free port) and returns the address.
-func (f *Forwarder) Start() (string, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+func (f *Forwarder) Start() (string, error) { return f.StartOn(0) }
+
+// StartOn listens on 127.0.0.1:port — the same port every time, so the page
+// keeps one address (its saved settings belong to it) — or on a free port
+// if that one is taken, or if port is 0.
+func (f *Forwarder) StartOn(port int) (string, error) {
+	var ln net.Listener
+	var err error
+	if port > 0 {
+		ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	}
+	if port == 0 || err != nil {
+		ln, err = net.Listen("tcp", "127.0.0.1:0")
+	}
 	if err != nil {
 		return "", err
 	}

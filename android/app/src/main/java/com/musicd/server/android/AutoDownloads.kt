@@ -36,11 +36,16 @@ class AutoDownloads(context: Context, params: WorkerParameters) : Worker(context
             .build()
 
         /** Keep it running every few hours while it's switched on (called when the app opens). */
-        fun schedule(c: Context) {
+        fun schedule(c: Context) = schedule(c, ExistingPeriodicWorkPolicy.KEEP)
+
+        /** The same, with the network rule changed (Wi-Fi only switched). */
+        fun reschedule(c: Context) = schedule(c, ExistingPeriodicWorkPolicy.UPDATE)
+
+        private fun schedule(c: Context, policy: ExistingPeriodicWorkPolicy) {
             val wm = WorkManager.getInstance(c)
             if (!DownloadStore.settings(c).autoOn) { wm.cancelUniqueWork(PERIODIC); return }
             wm.enqueueUniquePeriodicWork(
-                PERIODIC, ExistingPeriodicWorkPolicy.KEEP,
+                PERIODIC, policy,
                 PeriodicWorkRequest.Builder(AutoDownloads::class.java, 6, TimeUnit.HOURS)
                     .setConstraints(constraints(c)).build()
             )
@@ -61,6 +66,7 @@ class AutoDownloads(context: Context, params: WorkerParameters) : Worker(context
         val s = DownloadStore.settings(c)
         val keep = HashMap<Int, Pair<String, String>>()
         if (s.autoOn) {
+            Away.ensureRoute(c)
             val client = Store.client(c) ?: return Result.retry()
             try {
                 val j = client.getJson("/api/download/auto?picks=${if (s.autoPicks) 1 else 0}" +

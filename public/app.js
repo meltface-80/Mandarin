@@ -14184,6 +14184,13 @@ initServiceBrowser({
       "</div>" +
       '<div class="settings-divider"></div>' +
 
+      ("awayQuality" in s ?
+        '<div class="settings-block"><div class="settings-subhead">Playing away from home</div>' +
+          row("Stream as", select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
+          '<div class="settings-note">Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a tenth of the data; Original sends the files as they are. At home it’s always the original.</div>' +
+        "</div>" +
+        '<div class="settings-divider"></div>' : "") +
+
       '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
@@ -14248,17 +14255,17 @@ initServiceBrowser({
   btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) {} });
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
-  // Test build: MusicD's own Tailscale connection, tried out on the phone.
+  // MusicD's own Tailscale connection (the library away from home): sign in, test.
   if (typeof app.tailscaleTest === "function") {
     const t = document.createElement("div");
     t.className = "settings-row";
     const l = document.createElement("span");
     l.className = "settings-label";
-    l.textContent = "Tailscale (test)";
+    l.textContent = "Away from home (Tailscale)";
     const b = document.createElement("button");
     b.type = "button";
     b.className = "settings-update-btn";
-    b.textContent = "Tailscale test";
+    b.textContent = "Tailscale";
     b.addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
     t.appendChild(l); t.appendChild(b);
     pane.appendChild(t);

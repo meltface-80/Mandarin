@@ -21,6 +21,8 @@ class RouteTest {
         val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
         assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(u, home, away, true))
         assertEquals(u, Route.rewrite(u, home, away, false))
+        // Original chosen for away: moved, but no Opus.
+        assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv", Route.rewrite(u, home, away, true, opus = false))
         // Back home: lossless again.
         assertEquals(u, Route.rewrite("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", home, away, false))
         // Already away: not asked twice.

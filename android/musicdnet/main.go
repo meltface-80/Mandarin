@@ -13,7 +13,7 @@
 //	POST /start                join (body: {"control_url","auth_key","hostname"})
 //	POST /login                ask for a sign-in link (after an expiry, say)
 //	POST /logout               sign this phone out of the tailnet
-//	POST /forward?target=ip:port   open the loopback port → {"addr"}
+//	POST /forward?target=ip:port[&port=n]   open the loopback port (n if free) → {"addr"}
 //	GET  /probe                is the server answering, directly? → {"ok","ms"}
 //	POST /down?on=1|0          the app's verdict: drop and refuse, or let through
 //	GET  /log                  recent log lines, for the diagnostics screen
@@ -30,6 +30,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -129,20 +130,20 @@ func (e *engine) start(controlURL, authKey, hostname string) error {
 	return nil
 }
 
-func (e *engine) forward(target string) (string, error) {
+func (e *engine) forward(target string, port int) (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.ts == nil {
 		return "", fmt.Errorf("not started")
 	}
-	if e.fw != nil && e.fw.Target == target {
+	if e.fw != nil && e.fw.Target == target && (port == 0 || e.fw.ln.Addr().(*net.TCPAddr).Port == port) {
 		return e.fw.ln.Addr().String(), nil
 	}
 	if e.fw != nil {
 		e.fw.Close()
 	}
 	fw := &Forwarder{TS: e.ts, Target: target}
-	addr, err := fw.Start()
+	addr, err := fw.StartOn(port)
 	if err != nil {
 		return "", err
 	}
@@ -265,7 +266,8 @@ func (e *engine) handler(secret string) http.Handler {
 			fail(w, 400, fmt.Errorf("target must be ip:port"))
 			return
 		}
-		addr, err := e.forward(target)
+		port, _ := strconv.Atoi(r.URL.Query().Get("port"))
+		addr, err := e.forward(target, port)
 		if err != nil {
 			fail(w, 409, err)
 			return

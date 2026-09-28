@@ -21,16 +21,16 @@ object Route {
 
     /**
      * [url] on the address in use: [home] or [away] (base URLs). A track's
-     * stream away asks for Opus (`q=opus`); at home it doesn't. Addresses on
-     * anything else are left alone.
+     * stream away asks for Opus (`q=opus`) when [opus] (your choice; else the
+     * original file); at home it doesn't. Addresses on anything else are left alone.
      */
-    fun rewrite(url: String, home: String, away: String?, isAway: Boolean): String {
+    fun rewrite(url: String, home: String, away: String?, isAway: Boolean, opus: Boolean = true): String {
         val from = listOfNotNull(home, away).map { it.trimEnd('/') }
             .firstOrNull { url.startsWith("$it/") } ?: return url
         val to = (if (isAway && away != null) away else home).trimEnd('/')
         var rest = url.substring(from.length)
         rest = rest.replace(Regex("([?&])q=opus(&|$)")) { m -> if (m.groupValues[2] == "&") m.groupValues[1] else "" }
-        if (isAway && away != null && rest.startsWith("/stream/")) {
+        if (isAway && opus && away != null && rest.startsWith("/stream/")) {
             rest += (if (rest.contains('?')) "&" else "?") + "q=opus"
         }
         return to + rest
