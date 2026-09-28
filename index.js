@@ -23,6 +23,7 @@ const DB = require("./lib/library/db");
 const { Scanner } = require("./lib/library/scanner");
 const { Library } = require("./lib/library/index");
 const { ReleaseDays } = require("./lib/library/dates");
+const { TailscaleNode } = require("./lib/server/tsnode");
 const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
 const { localIp } = require("./lib/sonos/topology");
@@ -44,6 +45,8 @@ const config = {
   exclude: list(process.env.EXCLUDE_ZONES),
   scanHours: Number(process.env.SCAN_INTERVAL_HOURS) || 6,
   transcodeCacheGb: Number(process.env.TRANSCODE_CACHE_GB) || 4,
+  // Tailscale built into the server (lib/server/tsnode.js): the engine in the image.
+  tailscaleBin: process.env.MUSICDNET_BIN || "/usr/local/bin/musicdnet",
   debug: !!process.env.DEBUG
 };
 
@@ -93,6 +96,7 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
     cacheDir: path.join(config.dataDir, "download-cache"),
@@ -164,6 +168,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-playback")(app, ctx);
   require("./lib/server/api-playlists")(app, ctx);
   require("./lib/server/api-phone")(app, ctx);
+  require("./lib/server/api-tailscale")(app, ctx);
   require("./lib/server/downloads").mount(app, ctx);
 
   app.get("/api/health", (req, res) => res.json({
@@ -240,6 +245,8 @@ function createServer(overrides = {}) {
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
     features.wire();
+    // On your tailnet by itself, once signed in (Settings → Away from home).
+    ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
     const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })
@@ -252,6 +259,7 @@ function createServer(overrides = {}) {
   async function stop() {
     zones.stop();
     ctx.releaseDays.stop();
+    ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);
     scanner.onProgress = null;
     if (ctx.httpServer) {

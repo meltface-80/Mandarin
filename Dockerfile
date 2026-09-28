@@ -1,8 +1,20 @@
 # MusicD Server — your own music files, played to Sonos.
 #
-# Two stages: native modules (better-sqlite3, sharp) are installed where a
-# compiler is available in case a platform has no prebuilt binary, and the
-# image that runs carries only Node, ffmpeg and the app.
+# Three stages: MusicD's own Tailscale engine (Go, the same program as the
+# Android app's) is built for the image's platform; native modules
+# (better-sqlite3, sharp) are installed where a compiler is available in case
+# a platform has no prebuilt binary; and the image that runs carries only
+# Node, ffmpeg, the engine and the app.
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS tsnet
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /src
+COPY android/musicdnet/go.mod android/musicdnet/go.sum ./
+RUN go mod download
+COPY android/musicdnet/*.go ./
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags "-s -w -X main.version=server" -o /out/musicdnet .
+
 FROM node:22-bookworm-slim AS deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
@@ -24,6 +36,10 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Tailscale built in: signed in once from Settings → Away from home (or with
+# TS_AUTHKEY), the server is on your tailnet by itself (lib/server/tsnode.js).
+COPY --from=tsnet /out/musicdnet /usr/local/bin/musicdnet
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules

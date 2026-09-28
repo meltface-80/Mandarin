@@ -14503,3 +14503,90 @@ initServiceBrowser({
   new ResizeObserver(fit).observe(nav);
   new MutationObserver(fit).observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
 })();
+
+/* ------------------------------------------------------------------ */
+/*  Settings → Away from home: Tailscale built into the server.        */
+/*  Sign in once and the server is on your tailnet by itself.          */
+/* ------------------------------------------------------------------ */
+(function initAwayPane() {
+  const body = document.getElementById("away-pane-body");
+  const pane = document.querySelector('.settings-pane[data-pane="away"]');
+  const navItem = document.querySelector('.settings-nav-item[data-pane="away"]');
+  if (!body || !pane || !navItem) return;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  let st = null, busy = false, err = "";
+
+  async function load() {
+    try {
+      const r = await fetch("/api/tailscale", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      st = await r.json();
+    } catch (e) { st = null; }
+    render();
+  }
+
+  async function act(what, payload) {
+    if (busy) return;
+    busy = true; err = ""; render();
+    try {
+      const r = await fetch("/api/tailscale/" + what, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+      st = j;
+      if (what === "login" && j.auth_url) window.open(j.auth_url, "_blank", "noopener");
+    } catch (e) { err = e.message; }
+    busy = false; render();
+  }
+
+  function line(label, value) {
+    return '<div class="settings-row"><span class="settings-label">' + label + '</span><span class="away-value">' + value + "</span></div>";
+  }
+
+  function render() {
+    if (!st) { body.innerHTML = '<div class="settings-note">Couldn’t ask the server.</div>'; return; }
+    if (!st.available) {
+      body.innerHTML = '<div class="settings-note">Tailscale isn’t built into this install — it comes with the Docker image. Tailscale on the machine the server runs on works as before.</div>';
+      return;
+    }
+    const toggle = '<label class="switch"><input type="checkbox" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +
+      '<span class="switch-track"><span class="switch-thumb"></span></span></label>';
+    let html = '<div class="settings-row"><span class="settings-label">Built-in Tailscale</span>' + toggle + "</div>";
+    const state = !st.enabled ? "off" : st.state;
+    const words = {
+      off: "Off",
+      Stopped: "Starting…",
+      Starting: "Starting…",
+      NoState: "Starting…",
+      NeedsLogin: "Not signed in yet",
+      NeedsMachineAuth: "Waiting for approval in the Tailscale admin console",
+      Running: st.serving ? "Connected" : "Connecting…"
+    };
+    html += line("Status", esc(words[state] || state));
+    if (state === "Running") {
+      if (st.dns_name) html += line("Name", esc(st.dns_name));
+      if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
+      html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
+      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale under Settings → System → Tailscale. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+    } else if (st.enabled) {
+      const link = st.auth_url
+        ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'
+        : '<button type="button" class="settings-update-btn" data-away-act="login"' + (busy ? " disabled" : "") + ">Sign in to Tailscale</button>";
+      html += '<div class="settings-row"><span class="settings-label"></span>' + link + "</div>";
+      html += '<div class="settings-note">Opens Tailscale’s sign-in page. Sign in with the same account as your phone; the server then joins your tailnet as “' + esc(st.hostname) + '” — nothing else to install. Free for personal use.</div>';
+    }
+    if (err || st.error) html += '<div class="settings-note away-error">' + esc(err || st.error) + "</div>";
+    body.innerHTML = html;
+  }
+
+  body.addEventListener("change", (e) => {
+    const t = e.target.closest("[data-away-enable]");
+    if (t) act("enable", { on: t.checked });
+  });
+  body.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-away-act]");
+    if (b) act(b.getAttribute("data-away-act"));
+  });
+  navItem.addEventListener("click", load);
+  // While it's open: signing in happens in another tab, so look now and then.
+  setInterval(() => { if (!pane.classList.contains("hidden") && !busy) load(); }, 3000);
+})();

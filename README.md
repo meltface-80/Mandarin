@@ -4,7 +4,7 @@
 
 </div>
 
-# MusicD Server — v0.3.18
+# MusicD Server — v0.3.19
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -153,6 +153,9 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted hi-res tracks. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
+| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Away from home*. |
+| `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
+| `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `DEBUG` | — | Log every API call. |
 
@@ -254,21 +257,25 @@ an iPhone or a laptop on Tailscale can browse the library but has nothing to pla
 everything is as before. Away, tracks stream as **Opus 256 kbps** (a tenth of the data); albums
 you've downloaded play from the phone.
 
-**Set up once:**
+**Set up once — Tailscale is built in:**
 
-1. Install Tailscale on the machine running the server (on DietPi: `dietpi-software` → Tailscale,
-   or `curl -fsSL https://tailscale.com/install.sh | sh`), then `sudo tailscale up` and sign in.
-   The container shares the host's network, so the server finds its Tailscale address itself.
-2. Install the Tailscale app on the phone and sign in to the same account.
-3. Open MusicD once at home: the app learns the server's Tailscale address. (Or type it on the
-   connect screen under *Away from home*.)
+1. On the server, open *Settings → Away from home* and tap **Sign in to Tailscale**. Sign in on
+   Tailscale's page (a free account is enough). The server joins your tailnet by itself as
+   **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
+   server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
+2. On the phone, sign MusicD's app in to the same account: *Settings → System → Tailscale*. The
+   app carries its own Tailscale too — no Tailscale app needed.
+3. Open MusicD once at home: the app learns the server's tailnet address.
 
 From then on the app follows the phone's network: on your Wi-Fi it uses the server's home
-address; on mobile data (or anyone else's Wi-Fi) it asks the Tailscale app to connect and
-switches to the Tailscale address, and a track cut off by the switch carries on from where it
-stopped. Back home it switches back, and turns Tailscale off again if it was the one that turned
-it on. If Tailscale doesn't connect by itself, set it as the phone's *Always-on VPN* (Android
-Settings → Network → VPN) — the app works the same with it on at home.
+address; on mobile data (or anyone else's Wi-Fi) it goes over its own Tailscale connection, and
+the page, the queue and the music carry on without a reload. Anything else signed in to your
+tailnet — an iPhone with the Tailscale app, a laptop — opens the address *Away from home* shows.
+
+The server's Tailscale keeps its identity in the data volume, so a new container is the same
+machine. `TAILSCALE=off` leaves it out; `TS_HOSTNAME` names it something other than *musicd*.
+Tailscale installed on the host still works as before (the server uses its own first when both
+are there, or `TAILSCALE_ADDRESS` to say which).
 
 Don't advertise your home subnet from the server's Tailscale (`--advertise-routes`): requests
 through a subnet router arrive from a home address, and the server can't tell they're away.
