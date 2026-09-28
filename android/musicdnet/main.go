@@ -1,0 +1,311 @@
+// musicdnet is MusicD's own Tailscale connection on the phone.
+//
+// The Android app runs it as a separate program (shipped in the APK as
+// libmusicdnet.so, the way Syncthing for Android runs its engine): it joins
+// your tailnet as the phone, with no VPN, and gives the app a loopback port
+// that leads to the server. The app drives it over a small HTTP API on
+// 127.0.0.1, guarded by a secret the app passes in the environment. It exits
+// when the app does (its stdin, held open by the app, closes).
+//
+//	GET  /status               state, sign-in link, tailnet addresses
+//	POST /interfaces           the phone's interfaces, as text (Android 11+
+//	                           doesn't let native code list them)
+//	POST /start                join (body: {"control_url","auth_key","hostname"})
+//	POST /login                ask for a sign-in link (after an expiry, say)
+//	POST /logout               sign this phone out of the tailnet
+//	POST /forward?target=ip:port   open the loopback port → {"addr"}
+//	GET  /probe                is the server answering, directly? → {"ok","ms"}
+//	POST /down?on=1|0          the app's verdict: drop and refuse, or let through
+//	GET  /log                  recent log lines, for the diagnostics screen
+package main
+
+import (
+	"context"
+	"crypto/subtle"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"tailscale.com/tsnet"
+)
+
+type engine struct {
+	dir string
+
+	mu  sync.Mutex
+	ts  *tsnet.Server
+	fw  *Forwarder
+	err string
+
+	logMu sync.Mutex
+	lines []string
+}
+
+func (e *engine) logf(format string, a ...any) {
+	line := time.Now().Format("15:04:05 ") + fmt.Sprintf(format, a...)
+	e.logMu.Lock()
+	e.lines = append(e.lines, line)
+	if len(e.lines) > 400 {
+		e.lines = e.lines[len(e.lines)-400:]
+	}
+	e.logMu.Unlock()
+}
+
+type statusJSON struct {
+	State    string   `json:"state"`
+	AuthURL  string   `json:"auth_url"`
+	IPs      []string `json:"ips"`
+	DNSName  string   `json:"dns_name"`
+	Forward  string   `json:"forward"`
+	Target   string   `json:"target"`
+	Error    string   `json:"error"`
+	Version  string   `json:"version"`
+}
+
+func (e *engine) status(ctx context.Context) statusJSON {
+	e.mu.Lock()
+	ts, fw, errText := e.ts, e.fw, e.err
+	e.mu.Unlock()
+	out := statusJSON{State: "Stopped", Error: errText, Version: version}
+	if fw != nil && fw.ln != nil {
+		out.Forward = fw.ln.Addr().String()
+		out.Target = fw.Target
+	}
+	if ts == nil {
+		return out
+	}
+	lc, err := ts.LocalClient()
+	if err != nil {
+		out.State = "Starting"
+		return out
+	}
+	st, err := lc.Status(ctx)
+	if err != nil {
+		out.State = "Starting"
+		return out
+	}
+	out.State = st.BackendState
+	out.AuthURL = st.AuthURL
+	for _, ip := range st.TailscaleIPs {
+		out.IPs = append(out.IPs, ip.String())
+	}
+	if st.Self != nil {
+		out.DNSName = st.Self.DNSName
+	}
+	return out
+}
+
+func (e *engine) start(controlURL, authKey, hostname string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.ts != nil {
+		return nil
+	}
+	if hostname == "" {
+		hostname = "musicd-phone"
+	}
+	s := &tsnet.Server{
+		Dir:        e.dir,
+		Hostname:   hostname,
+		ControlURL: controlURL,
+		AuthKey:    authKey,
+		Logf:       func(f string, a ...any) { e.logf(f, a...) },
+		UserLogf:   func(f string, a ...any) { e.logf(f, a...) },
+	}
+	if err := s.Start(); err != nil {
+		e.err = err.Error()
+		return err
+	}
+	e.ts = s
+	e.err = ""
+	return nil
+}
+
+func (e *engine) forward(target string) (string, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.ts == nil {
+		return "", fmt.Errorf("not started")
+	}
+	if e.fw != nil && e.fw.Target == target {
+		return e.fw.ln.Addr().String(), nil
+	}
+	if e.fw != nil {
+		e.fw.Close()
+	}
+	fw := &Forwarder{TS: e.ts, Target: target}
+	addr, err := fw.Start()
+	if err != nil {
+		return "", err
+	}
+	e.fw = fw
+	return addr, nil
+}
+
+var version = "dev"
+
+func main() {
+	dir := flag.String("dir", "", "state directory")
+	flag.Parse()
+	secret := os.Getenv("MUSICDNET_SECRET")
+	if *dir == "" || secret == "" {
+		fmt.Fprintln(os.Stderr, "usage: MUSICDNET_SECRET=… musicdnet -dir <state dir>")
+		os.Exit(2)
+	}
+	os.MkdirAll(*dir, 0o700)
+	log.SetOutput(io.Discard) // Tailscale's own logging goes to the ring buffer
+	InstallInterfaceGetter()
+	e := &engine{dir: *dir}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// The app reads this first line to find the control port.
+	fmt.Printf("CONTROL %d\n", ln.Addr().(*net.TCPAddr).Port)
+
+	// The app holds stdin open; when it goes, so do we.
+	go func() {
+		io.Copy(io.Discard, os.Stdin)
+		os.Exit(0)
+	}()
+
+	http.Serve(ln, e.handler(secret))
+}
+
+func (e *engine) handler(secret string) http.Handler {
+	mux := http.NewServeMux()
+	reply := func(w http.ResponseWriter, v any) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(v)
+	}
+	fail := func(w http.ResponseWriter, code int, err error) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(code)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	}
+	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		defer cancel()
+		reply(w, e.status(ctx))
+	})
+	mux.HandleFunc("POST /interfaces", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(io.LimitReader(r.Body, 64<<10))
+		if err := SetInterfaces(string(b)); err != nil {
+			fail(w, 400, err)
+			return
+		}
+		reply(w, map[string]bool{"ok": true})
+	})
+	mux.HandleFunc("POST /start", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ ControlURL, AuthKey, Hostname string }
+		json.NewDecoder(r.Body).Decode(&in)
+		if err := e.start(in.ControlURL, in.AuthKey, in.Hostname); err != nil {
+			fail(w, 500, err)
+			return
+		}
+		reply(w, e.status(r.Context()))
+	})
+	mux.HandleFunc("POST /login", func(w http.ResponseWriter, r *http.Request) {
+		e.mu.Lock()
+		ts := e.ts
+		e.mu.Unlock()
+		if ts == nil {
+			fail(w, 409, fmt.Errorf("not started"))
+			return
+		}
+		lc, err := ts.LocalClient()
+		if err == nil {
+			err = lc.StartLoginInteractive(r.Context())
+		}
+		if err != nil {
+			fail(w, 500, err)
+			return
+		}
+		// The link arrives shortly after.
+		for i := 0; i < 50; i++ {
+			if st := e.status(r.Context()); st.AuthURL != "" || st.State == "Running" {
+				reply(w, st)
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		reply(w, e.status(r.Context()))
+	})
+	mux.HandleFunc("POST /logout", func(w http.ResponseWriter, r *http.Request) {
+		e.mu.Lock()
+		ts := e.ts
+		e.mu.Unlock()
+		if ts == nil {
+			reply(w, e.status(r.Context()))
+			return
+		}
+		lc, err := ts.LocalClient()
+		if err == nil {
+			err = lc.Logout(r.Context())
+		}
+		if err != nil {
+			fail(w, 500, err)
+			return
+		}
+		reply(w, e.status(r.Context()))
+	})
+	mux.HandleFunc("POST /forward", func(w http.ResponseWriter, r *http.Request) {
+		target := r.URL.Query().Get("target")
+		if _, _, err := net.SplitHostPort(target); err != nil {
+			fail(w, 400, fmt.Errorf("target must be ip:port"))
+			return
+		}
+		addr, err := e.forward(target)
+		if err != nil {
+			fail(w, 409, err)
+			return
+		}
+		reply(w, map[string]string{"addr": addr})
+	})
+	mux.HandleFunc("GET /probe", func(w http.ResponseWriter, r *http.Request) {
+		e.mu.Lock()
+		fw := e.fw
+		e.mu.Unlock()
+		if fw == nil {
+			fail(w, 409, fmt.Errorf("no forward yet"))
+			return
+		}
+		t0 := time.Now()
+		ok := fw.Probe(4 * time.Second)
+		reply(w, map[string]any{"ok": ok, "ms": time.Since(t0).Milliseconds()})
+	})
+	mux.HandleFunc("POST /down", func(w http.ResponseWriter, r *http.Request) {
+		e.mu.Lock()
+		fw := e.fw
+		e.mu.Unlock()
+		if fw == nil {
+			reply(w, map[string]int{"dropped": 0})
+			return
+		}
+		reply(w, map[string]int{"dropped": fw.SetDown(r.URL.Query().Get("on") == "1")})
+	})
+	mux.HandleFunc("GET /log", func(w http.ResponseWriter, r *http.Request) {
+		e.logMu.Lock()
+		text := strings.Join(e.lines, "\n")
+		e.logMu.Unlock()
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		io.WriteString(w, text)
+	})
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Secret")), []byte(secret)) != 1 {
+			http.Error(w, "forbidden", 403)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
+}

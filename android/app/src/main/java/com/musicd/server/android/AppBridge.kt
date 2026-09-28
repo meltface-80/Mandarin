@@ -9,12 +9,18 @@ import android.webkit.JavascriptInterface
  *
  *   MusicdApp.version()       this app's version, e.g. "0.3.4"
  *   MusicdApp.checkUpdate()   look for a newer app now, and offer it
+ *   MusicdApp.tailscaleTest() the Tailscale test screen (test build)
  */
 class AppBridge(private val activity: Activity) {
     companion object { const val NAME = "MusicdApp" }
 
     @JavascriptInterface
     fun version(): String = BuildConfig.VERSION_NAME
+
+    @JavascriptInterface
+    fun tailscaleTest() {
+        activity.runOnUiThread { activity.startActivity(android.content.Intent(activity, TailscaleTestActivity::class.java)) }
+    }
 
     @JavascriptInterface
     fun checkUpdate() {

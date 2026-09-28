@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.9
+- **Test build: MusicD's own Tailscale connection on the phone** (the first step of built-in
+  Tailscale). The app now carries a Tailscale engine (`android/musicdnet`, Go, built into the APK
+  as `libmusicdnet.so` and run as its own process, like Syncthing for Android): it joins your
+  tailnet as the phone with no VPN and no Tailscale app, and opens a port on the phone that leads
+  to the server. *Settings → System → Tailscale test* signs the phone in by link and tests each
+  step to the server (joined, answering, seen as away, the start of a track) with timings and a
+  log to copy. Nothing else uses it yet: home/away switching is unchanged. Needs the server on
+  your tailnet (Tailscale on the server machine, for now). 64-bit phones only in this build.
+- The engine is tested on every Android build, driven the way the app drives it, over a private
+  tailnet made on the build machine (sign-in by link, forwarding, audio with ranges, held
+  requests, the server going away and coming back).
+
 ## v0.3.8
 - **MusicD's full interface offline** (Android app). With no connection to the server the app no
   longer drops to a minimal screen: it shows MusicD itself — Home, the album pages, the Now
