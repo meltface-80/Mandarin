@@ -14351,6 +14351,17 @@ initServiceBrowser({
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
+      ("cacheWifi" in s && s.cacheChoices ?
+        '<div class="settings-block"><div class="settings-subhead">Cached ahead</div>' +
+          row("On Wi-Fi", select("cacheWifi", s.cacheChoices.wifi.map(n => [n, n + " tracks"]), s.cacheWifi)) +
+          row("On mobile data", select("cacheMobile", s.cacheChoices.mobile.map(n => [n, n + " tracks"]), s.cacheMobile)) +
+          row("Cache size", select("cacheGb", s.cacheChoices.gb.map(g => [g, g + " GB"]), s.cacheGb)) +
+          '<div class="settings-note">Playing on this phone: the next tracks in the queue are kept on the phone ahead of time, so they play without the network — through a dead spot, or on mobile data without using any. On mobile data ' + s.cacheMobile + ' tracks is about ' + Math.round(s.cacheMobile * 9) + ' MB as Opus 256. Tracks stay until the space is needed, so one played again is already here.</div>' +
+          '<div class="settings-row"><span class="settings-label dl-cache-status" id="dl-cache-status">…</span>' +
+            '<button type="button" class="settings-update-btn" data-dl-clear-cache>Clear cache</button></div>' +
+        "</div>" +
+        '<div class="settings-divider"></div>' : "") +
+
       '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
@@ -14359,7 +14370,18 @@ initServiceBrowser({
       "</div>";
 
     fetchCovers(list.map(d => d.id));
+    paintCacheStatus();
   }
+
+  // "12 of 20 ahead on the phone · 1.2 GB used", kept current while the pane is open.
+  function paintCacheStatus() {
+    const el = pane.querySelector("#dl-cache-status");
+    if (!el || !has("cacheStatus")) return;
+    const c = json(() => dl.cacheStatus(), {});
+    const ahead = c.wanted ? c.ahead + " of " + c.wanted + " ahead on the phone" + (c.metered ? " (mobile data)" : "") : "Nothing queued";
+    el.textContent = ahead + " · " + size(c.used || 0) + " used";
+  }
+  setInterval(() => { if (!pane.classList.contains("hidden")) paintCacheStatus(); }, 3000);
 
   pane.addEventListener("change", (e) => {
     const el = e.target.closest("[data-dl-set]");
@@ -14373,6 +14395,11 @@ initServiceBrowser({
     if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) {} return; }
     const rm = e.target.closest("[data-dl-remove]");
     if (rm) { dl.remove(Number(rm.getAttribute("data-dl-remove"))); return; }   // the app asks first
+    if (e.target.closest("[data-dl-clear-cache]")) {
+      try { dl.clearCache(); } catch (err) {}
+      paintCacheStatus();
+      return;
+    }
     const open = e.target.closest("[data-dl-open]");
     if (open) {
       const al = covers.get(Number(open.getAttribute("data-dl-open")));

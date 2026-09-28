@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.18
+- **Cached ahead, like Plexamp** (Android app, playing on the phone). The next tracks in the queue
+  — in play order, shuffle and repeat included — are kept on the phone ahead of time, so they play
+  without the network: through a dead spot, or on mobile data without using any.
+  *Settings → Downloads → Cached ahead*: how many on **Wi-Fi** (5 to 45, 20 unless chosen) and on
+  **mobile data** (5, 10 or 15; 10 unless chosen), and the **cache size** (2, 4, 6, 8 or 10 GB;
+  2 GB unless chosen). Moving from Wi-Fi to mobile data keeps what's there and fetches no further
+  than the mobile number. Tracks stay until the space is needed (the ones played longest ago go
+  first), so one played again is already on the phone. A line there says how many of the next
+  tracks are on the phone and how much space the cache uses, with *Clear cache*.
+- A track on the phone plays from there wherever you are, in the format it was kept in — one kept
+  as the original at home plays as the original (Lossless on Now playing) on mobile data, using
+  none. A change of queue, a skip, a new network or a new setting starts the fetching again from
+  the next track.
+- The player itself now holds 5 minutes / 48 MB ahead in memory (the rest is in the cache), and the
+  app no longer asks Android for extra memory.
+
 ## v0.3.17
 - **Settings, one column** (Android app). The first Settings screen is now a single column of
   full-width buttons — the icon first, then the name — sharing the screen's height, with no

@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import com.musicd.server.client.CachePlan
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -68,7 +69,26 @@ class DownloadsBridge(private val activity: Activity) {
             .put("limitGb", s.limitGb).put("autoPicks", s.autoPicks).put("autoAotd", s.autoAotd)
             .put("autoRecent", s.autoRecent).put("awayQuality", s.awayQuality).put("places", places)
             .put("used", DownloadStore.usedBytes(activity))
+            .put("cacheWifi", s.cacheWifi).put("cacheMobile", s.cacheMobile).put("cacheGb", s.cacheGb)
+            .put("cacheChoices", JSONObject()
+                .put("wifi", JSONArray(CachePlan.WIFI_CHOICES)).put("mobile", JSONArray(CachePlan.MOBILE_CHOICES))
+                .put("gb", JSONArray(CachePlan.SIZE_CHOICES_GB)))
             .toString()
+    }
+
+    /** The cache of tracks played on the phone: {"used", "ahead", "wanted", "metered"}. */
+    @JavascriptInterface
+    fun cacheStatus(): String {
+        val a = PhonePlayerService.ahead
+        return JSONObject().put("used", StreamCache.usedBytes(activity))
+            .put("ahead", a.cached).put("wanted", a.wanted).put("metered", a.metered)
+            .toString()
+    }
+
+    @JavascriptInterface
+    fun clearCache() {
+        StreamCache.clear(activity)
+        PhonePlayerService.current?.fetchAheadSoon()
     }
 
     @JavascriptInterface
@@ -86,6 +106,13 @@ class DownloadsBridge(private val activity: Activity) {
             }
             "awayQuality" -> DownloadStore.setAwayQuality(c, if (value == DownloadStore.QUALITY_ORIGINAL) value else DownloadStore.QUALITY_OPUS)
             "limitGb" -> DownloadStore.setLimitGb(c, value.toIntOrNull() ?: 0)
+            "cacheWifi" -> { DownloadStore.setCacheWifi(c, value.toIntOrNull() ?: CachePlan.WIFI_DEFAULT); PhonePlayerService.current?.fetchAheadSoon() }
+            "cacheMobile" -> { DownloadStore.setCacheMobile(c, value.toIntOrNull() ?: CachePlan.MOBILE_DEFAULT); PhonePlayerService.current?.fetchAheadSoon() }
+            "cacheGb" -> {
+                val gb = CachePlan.pick(value.toIntOrNull() ?: 0, CachePlan.SIZE_CHOICES_GB, CachePlan.SIZE_DEFAULT_GB)
+                DownloadStore.setCacheGb(c, gb)
+                StreamCache.setLimit(c, gb)
+            }
             "autoPicks" -> { DownloadStore.setAutoPicks(c, value == "true"); AutoDownloads.runNow(c) }
             "autoAotd" -> { DownloadStore.setAutoAotd(c, value == "true"); AutoDownloads.runNow(c) }
             "autoRecent" -> { DownloadStore.setAutoRecent(c, value.toIntOrNull() ?: 0); AutoDownloads.runNow(c) }
