@@ -22,6 +22,7 @@ const { createAuth } = require("./lib/server/auth");
 const DB = require("./lib/library/db");
 const { Scanner } = require("./lib/library/scanner");
 const { Library } = require("./lib/library/index");
+const { ReleaseDays } = require("./lib/library/dates");
 const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
 const { localIp } = require("./lib/sonos/topology");
@@ -85,10 +86,13 @@ function createServer(overrides = {}) {
     },
     afterScan: () => {
       library.reload();
+      // Days for albums whose tags stop at the year (the Release date sort).
+      ctx.releaseDays.run().catch(() => {});
       artwork.prewarm(400).catch(() => {});
       features.kickSmartPicks();
     }
   };
+  ctx.releaseDays = new ReleaseDays({ db, library, log });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
     cacheDir: path.join(config.dataDir, "download-cache"),
@@ -238,6 +242,7 @@ function createServer(overrides = {}) {
 
   async function stop() {
     zones.stop();
+    ctx.releaseDays.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);
     scanner.onProgress = null;
     if (ctx.httpServer) {

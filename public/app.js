@@ -1567,13 +1567,14 @@
       "its own. If it hasn't, open the side menu and tap Rescan library.";
   }
 
+  // The three dots only. The circle round them is the BUTTON's border
+  // (.overflow-btn in style.css, as in MusicD Remote v1.8.60): drawn here, it
+  // was a ring about half the height of the Play now / Queue pills beside it.
   const OVERFLOW_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
-    'aria-hidden="true">' +
-    '<circle cx="12" cy="12" r="9"/>' +
-    '<circle cx="7.6" cy="12" r="1.15" fill="currentColor" stroke="none"/>' +
-    '<circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/>' +
-    '<circle cx="16.4" cy="12" r="1.15" fill="currentColor" stroke="none"/>' +
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<circle cx="6" cy="12" r="1.9"/>' +
+    '<circle cx="12" cy="12" r="1.9"/>' +
+    '<circle cx="18" cy="12" r="1.9"/>' +
     "</svg>";
 
   // Bumped every time iOS backgrounds the app.
@@ -1752,9 +1753,13 @@
       asc: "A → Z", desc: "Z → A" },
     { id: "artist",     label: "Artist",       dir: "asc",
       asc: "A → Z", desc: "Z → A" },
-    { id: "year",       label: "Release year", dir: "desc",
+    // "Release date": the server orders by the day wherever the tags (or
+    // MusicBrainz) state one (the id stays "year" — saved views and smart
+    // playlists store it). An album known only by its year sorts after that
+    // year's dated albums newest-first, and before them oldest-first.
+    { id: "year",       label: "Release date", dir: "desc",
       asc: "Oldest first", desc: "Newest first",
-      note: "from years collected during scanning" },
+      note: "from dates collected during scanning" },
     { id: "added",      label: "Recently added", dir: "desc",
       asc: "Oldest first", desc: "Newest first",
       // Deliberately not "when you added it": Roon publishes no import date,
@@ -6938,7 +6943,10 @@
     if (!album) return;
     const params = new URLSearchParams({
       title:  album.title    || "",
-      artist: album.subtitle || ""
+      artist: album.subtitle || "",
+      // This screen shows the full release date, so it asks the server to look
+      // the day up if it has only the year (the other callers do not wait).
+      day:    "1"
     });
     const askedAs = (album.title || "") + "\u0001" + (album.subtitle || "");
     const r = await fetch(`/api/album/extras?${params}`);
@@ -6952,13 +6960,34 @@
     renderExtras(j, album);
   }
 
+  // "2026-09-25" as the device writes a date ("25 September 2026" or
+  // "September 25, 2026"), "2026-09" as a month, "2026" as it is. Read as UTC,
+  // because a bare date parsed in a timezone west of Greenwich is the evening
+  // before. "" for anything else.
+  function formatReleaseDate(s) {
+    const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(String(s || ""));
+    if (!m) return "";
+    if (!m[2]) return m[1];
+    const opts = { year: "numeric", month: "long", timeZone: "UTC" };
+    if (m[3]) opts.day = "numeric";
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, m[3] ? Number(m[3]) : 1));
+    // "2026-13-40" would roll over into another month rather than fail.
+    if (isNaN(d.getTime()) || d.getUTCMonth() !== Number(m[2]) - 1 ||
+        (m[3] && d.getUTCDate() !== Number(m[3]))) return m[1];
+    try { return d.toLocaleDateString(undefined, opts); }
+    catch (e) { return m[1]; /* no Intl on this device: the year is still right */ }
+  }
+
   function renderExtras(extras, album) {
     // Asked again after an edit: the previous answer's year/score go first,
     // so the line never reads "Artist · 1997 · 1999". The artist links are
     // modalSub's first child and stay.
     while (modalSub.childNodes.length > 1) modalSub.removeChild(modalSub.lastChild);
-    // 1. Append year + label to subtitle line (artist button already present)
-    const yearToShow = extras.year || (extras.album && extras.album.year ? String(extras.album.year) : "");
+    // 1. Append the release date + label to subtitle line (artist button
+    // already present). The date is the one the Release date sort orders this
+    // album by, to the day wherever one is known; the year is the fallback.
+    const yearToShow = formatReleaseDate(extras.release_date) || extras.year ||
+      (extras.album && extras.album.year ? String(extras.album.year) : "");
     if (yearToShow) {
       const yearSpan = document.createElement("span");
       yearSpan.className = "modal-subtitle-year";
