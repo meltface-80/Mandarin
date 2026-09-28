@@ -101,6 +101,7 @@ object TailscaleEngine {
         if (!running) return false
         val fw = json("POST", "/forward?target=$target&port=$PORT")
         if (fw.optInt("_status") >= 400) return false
+        readyFor = target
         json("POST", "/down?on=0")
         // The server answering, directly over the tailnet.
         for (i in 0 until 3) {
@@ -111,6 +112,28 @@ object TailscaleEngine {
         false
     }.getOrElse { Log.i(TAG, "away connection: ${it.message}"); false }
 
+    @Volatile private var readyFor: String? = null
+
+    /** Already joined and forwarding to [target] (as far as this process knows). */
+    fun ready(target: String) = alive() && readyFor == target
+
+    /**
+     * Joined and forwarding to [target], without checking the server answers
+     * (at home it's reached another way). Blocking; not on the main thread.
+     */
+    fun prepare(c: Context, target: String) {
+        if (!installed(c) || !signedInBefore(c)) return
+        ensureRunning(c)
+        json("POST", "/start", JSONObject().put("Hostname", "musicd-phone").toString(), 30_000)
+        for (i in 0 until 40) {
+            val s = json("GET", "/status", timeoutMs = 4000).optString("state")
+            if (s == "Running") break
+            if (s == "NeedsLogin" || s == "NeedsMachineAuth") return
+            Thread.sleep(250)
+        }
+        if (json("POST", "/forward?target=$target&port=$PORT").optInt("_status") < 400) readyFor = target
+    }
+
     /** The address the app uses away when the engine carries it. */
     fun forwardAddress(): String = "127.0.0.1:$PORT"
 
@@ -120,6 +143,7 @@ object TailscaleEngine {
     fun stop() {
         process?.let { runCatching { it.outputStream.close() }; it.destroy() }
         process = null
+        readyFor = null
     }
 
     /** The phone's network interfaces, for the engine (Android 11+ won't let it list them itself). */

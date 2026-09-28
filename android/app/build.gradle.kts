@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 26
-        versionName = "0.3.15"
+        versionCode = 27
+        versionName = "0.3.16"
     }
 
     buildFeatures {
@@ -114,4 +114,7 @@ dependencies {
     implementation("androidx.media3:media3-session:1.8.0")
     // Downloads: queued, retried and resumed, waiting for Wi-Fi if asked to.
     implementation("androidx.work:work-runtime:2.10.3")
+    // The page stays on one address at home and away (PageRelay): the WebView's
+    // traffic for the server goes through the app's relay.
+    implementation("androidx.webkit:webkit:1.12.1")
 }

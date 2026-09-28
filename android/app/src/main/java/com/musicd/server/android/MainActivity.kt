@@ -23,6 +23,9 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.webkit.ProxyConfig
+import androidx.webkit.ProxyController
+import androidx.webkit.WebViewFeature
 
 /**
  * The app: MusicD Server's own page, full screen.
@@ -64,6 +67,9 @@ class MainActivity : Activity() {
     private lateinit var errorText: TextView
     private var loadedBase: String? = null
     private val onAway: (Boolean) -> Unit = { reloadIfMoved() }
+    /** The page's traffic goes through [PageRelay], for this home address (so the page never moves). */
+    private var relayedFor: String? = null
+    private var relayTriedFor: String? = null
     /** The last load failed (set by the WebView client, cleared by each load). */
     private var loadFailed = false
     /** The offline screen has been opened for this outage — once, so Back returns here. */
@@ -189,9 +195,46 @@ class MainActivity : Activity() {
 
     private fun reloadIfMoved() {
         if (!::web.isInitialized) return
+        if (relayedFor != null && relayedFor == Store.server(this)?.baseUrl) {
+            // The page stays where it is; only the relay's way to the server changes.
+            PageRelay.retarget(this)
+            if (offline) load()
+            return
+        }
         val base = Store.active(this)?.baseUrl
         // A new address, or the way back to the server while the page is offline.
         if (base != null && (base != loadedBase || offline)) load()
+    }
+
+    /**
+     * The WebView sends the home address's traffic (and nothing else) through
+     * [PageRelay], so the page can stay on it at home and away. Then [then].
+     * Where the WebView can't do that (an old one), or the server is on https,
+     * the page moves between addresses as before.
+     */
+    private fun relayPage(then: () -> Unit) {
+        val home = Store.server(this)
+        if (home == null || home.secure || relayedFor == home.baseUrl || !PageRelay.start(this)) { then(); return }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE) &&
+            WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS)) {
+            val config = ProxyConfig.Builder()
+                .addProxyRule("127.0.0.1:${PageRelay.PORT}", ProxyConfig.MATCH_HTTP)
+                // Reversed: the only address that goes through the relay is the server's.
+                .addBypassRule("${home.urlHost}:${home.port}")
+                .setReverseBypassEnabled(true)
+                .build()
+            try {
+                ProxyController.getInstance().setProxyOverride(config, { r -> runOnUiThread(r) }) {
+                    relayedFor = home.baseUrl
+                    then()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "the page can't go through the relay: ${e.message}")
+                then()
+            }
+        } else {
+            then()
+        }
     }
 
     override fun onPause() {
@@ -202,8 +245,15 @@ class MainActivity : Activity() {
 
     private fun load() {
         AppBridge.pageOffersUpdates = false    // the page being loaded says so again if it does
-        if (Store.server(this) == null) return openConnect()
-        val base = Store.active(this)?.baseUrl ?: return openConnect()
+        val home = Store.server(this) ?: return openConnect()
+        if (relayTriedFor != home.baseUrl) {
+            // Once per home address (a changed server is set up again).
+            relayTriedFor = home.baseUrl
+            if (relayedFor != home.baseUrl) relayedFor = null
+            return relayPage { load() }
+        }
+        // Through the relay the page stays on the home address, wherever the server is reached.
+        val base = (if (relayedFor == home.baseUrl) home.baseUrl else Store.active(this)?.baseUrl) ?: return openConnect()
         val token = Store.token(this) ?: return signedOut()
         loadedBase = base
         loadFailed = false
@@ -220,7 +270,7 @@ class MainActivity : Activity() {
         web.visibility = View.VISIBLE
         pageLoaded = false
         web.loadUrl("$base/")
-        if (!offline) checkReachable(base)
+        if (!offline) checkReachable(Store.active(this)?.baseUrl ?: base)
     }
 
     /**
@@ -233,7 +283,9 @@ class MainActivity : Activity() {
     private val liveWatch = object : Runnable {
         override fun run() {
             if (isFinishing) return
-            val base = loadedBase
+            // Asked of the server where it's reached now (the page's address may be the relayed home one).
+            val base = Store.active(this@MainActivity)?.baseUrl
+            val page = loadedBase
             if (offline || !pageLoaded || base == null) { web.postDelayed(this, 15_000); return }
             checks.execute {
                 val ok = runCatching {
@@ -245,7 +297,7 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     if (isFinishing) return@runOnUiThread
                     liveFailures = if (ok) 0 else liveFailures + 1
-                    if (liveFailures >= 2 && !offline && loadedBase == base) {
+                    if (liveFailures >= 2 && !offline && loadedBase == page) {
                         liveFailures = 0
                         Away.recheck(this@MainActivity)
                         goOffline()
@@ -279,7 +331,7 @@ class MainActivity : Activity() {
             }.getOrDefault(false)
             if (ok) return@execute
             runOnUiThread {
-                if (seq != loadSeq || offline || pageLoaded || isFinishing || loadedBase != base) return@runOnUiThread
+                if (seq != loadSeq || offline || pageLoaded || isFinishing) return@runOnUiThread
                 Away.recheck(this)
                 if (OfflineSite.has(this)) goOffline()
             }

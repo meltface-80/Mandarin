@@ -219,7 +219,9 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal((await api("album/edit", { offset: cd.offset, art_url: "not a url" })).status, 400);
       assert.equal((await api("album/edit", { offset: cd.offset, art_url: "http://127.0.0.1:3591/api/health" })).status, 422);
 
-      await api("library/rescan", {});
+      // Nothing new on disk: "fresh", in the page's words — not something it reads as a failure.
+      const rescan = await api("library/rescan", {});
+      assert.ok(["fresh", "rebuilt", "scanning"].includes(rescan.status), "rescan answered " + rescan.status);
       await until(async () => !(await api("status")).scan?.running);
       const after = await api("album/edit?offset=" + cd.offset);
       assert.equal(after.title, "Album One (Fixed)");
