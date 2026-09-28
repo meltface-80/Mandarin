@@ -190,11 +190,14 @@ func TestEngine(t *testing.T) {
 
 	var base string
 	t.Run("forward, and MusicD sees the phone's tailnet address", func(t *testing.T) {
-		code, m := a.call("POST", "/forward?target="+target, "")
+		code, m := a.call("POST", "/forward?target="+target+"&port=34599", "")
 		if code != 200 {
 			t.Fatalf("forward: %d %v", code, m)
 		}
 		base = "http://" + m["addr"].(string)
+		if m["addr"] != "127.0.0.1:34599" {
+			t.Fatalf("asked for port 34599, got %v", m["addr"])
+		}
 		res, err := http.Get(base + "/api/whoami")
 		if err != nil {
 			t.Fatal(err)

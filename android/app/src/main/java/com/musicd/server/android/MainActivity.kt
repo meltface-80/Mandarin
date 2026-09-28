@@ -188,7 +188,8 @@ class MainActivity : Activity() {
     private fun reloadIfMoved() {
         if (!::web.isInitialized) return
         val base = Store.active(this)?.baseUrl
-        if (base != null && base != loadedBase) load()
+        // A new address, or the way back to the server while the page is offline.
+        if (base != null && (base != loadedBase || offline)) load()
     }
 
     override fun onPause() {

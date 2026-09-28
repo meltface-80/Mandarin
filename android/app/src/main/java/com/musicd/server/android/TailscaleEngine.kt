@@ -21,7 +21,9 @@ import java.security.SecureRandom
  * The app talks to it over HTTP on 127.0.0.1 with a secret only the two of
  * them know. It stops when the app's process does (it watches its stdin).
  *
- * Test build: used only by the Tailscale test screen for now.
+ * Away from home it's the app's way to the server ([connectAway], used by
+ * [Away]): the page, the player and downloads use http://127.0.0.1:34500.
+ * Signing in (once) is on the Tailscale screen, Settings → System.
  */
 object TailscaleEngine {
     private const val TAG = "TailscaleEngine"
@@ -68,6 +70,51 @@ object TailscaleEngine {
         Log.i(TAG, "engine running, control port $port")
         sendInterfaces()
     }
+
+    /** The phone-side port: fixed, so the page keeps one address (its saved settings go with it). */
+    const val PORT = 34500
+
+    /** This phone has signed in to Tailscale here before (so the engine can join without asking). */
+    fun signedInBefore(c: Context) = File(File(c.filesDir, "tailscale"), "tailscaled.state").exists()
+
+    /**
+     * Away: the engine running, joined, forwarding 127.0.0.1:[PORT] to the
+     * server's Tailscale address, and the server answering through it.
+     * Blocking (a few seconds at most when all is well); not on the main thread.
+     */
+    fun connectAway(c: Context, target: String): Boolean = runCatching {
+        if (!installed(c) || !signedInBefore(c)) return false
+        ensureRunning(c)
+        sendInterfaces()
+        json("POST", "/start", JSONObject().put("Hostname", "musicd-phone").toString(), 30_000)
+        // Joined?
+        var running = false
+        for (i in 0 until 40) {
+            val st = json("GET", "/status", timeoutMs = 4000)
+            when (st.optString("state")) {
+                "Running" -> { running = true }
+                "NeedsLogin", "NeedsMachineAuth" -> return false   // sign in again on the Tailscale screen
+            }
+            if (running) break
+            Thread.sleep(250)
+        }
+        if (!running) return false
+        val fw = json("POST", "/forward?target=$target&port=$PORT")
+        if (fw.optInt("_status") >= 400) return false
+        json("POST", "/down?on=0")
+        // The server answering, directly over the tailnet.
+        for (i in 0 until 3) {
+            if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
+            // Connections from before a network change hang until they time out: drop them.
+            json("POST", "/down?on=1"); json("POST", "/down?on=0")
+        }
+        false
+    }.getOrElse { Log.i(TAG, "away connection: ${it.message}"); false }
+
+    /** The address the app uses away when the engine carries it. */
+    fun forwardAddress(): String = "127.0.0.1:$PORT"
+
+    fun alive() = process?.isAlive == true
 
     @Synchronized
     fun stop() {

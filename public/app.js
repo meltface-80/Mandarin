@@ -14248,17 +14248,17 @@ initServiceBrowser({
   btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) {} });
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
-  // Test build: MusicD's own Tailscale connection, tried out on the phone.
+  // MusicD's own Tailscale connection (the library away from home): sign in, test.
   if (typeof app.tailscaleTest === "function") {
     const t = document.createElement("div");
     t.className = "settings-row";
     const l = document.createElement("span");
     l.className = "settings-label";
-    l.textContent = "Tailscale (test)";
+    l.textContent = "Away from home (Tailscale)";
     const b = document.createElement("button");
     b.type = "button";
     b.className = "settings-update-btn";
-    b.textContent = "Tailscale test";
+    b.textContent = "Tailscale";
     b.addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
     t.appendChild(l); t.appendChild(b);
     pane.appendChild(t);

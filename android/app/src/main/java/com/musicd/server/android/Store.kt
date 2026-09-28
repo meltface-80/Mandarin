@@ -89,7 +89,19 @@ object Store {
     }
 
     /** Away from home right now (and there's an away address to use). */
-    fun isAway(context: Context): Boolean = prefs(context).getBoolean(KEY_AWAY_NOW, false) && awayAddress(context) != null
+    fun isAway(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_AWAY_NOW, false) && (awayAddress(context) != null || viaEngine(context))
+
+    /** Away through the app's own Tailscale connection (127.0.0.1:34500), not the Tailscale app. */
+    fun viaEngine(context: Context): Boolean = prefs(context).getBoolean("away_engine", false)
+
+    fun setViaEngine(context: Context, on: Boolean) {
+        if (viaEngine(context) != on) prefs(context).edit().putBoolean("away_engine", on).apply()
+    }
+
+    /** Where the server is away from home: the app's own connection, or its Tailscale address. */
+    fun awayBase(context: Context): ServerAddress? =
+        if (viaEngine(context)) ServerAddress("127.0.0.1", TailscaleEngine.PORT) else awayAddress(context)
 
     fun setAway(context: Context, away: Boolean) {
         prefs(context).edit().putBoolean(KEY_AWAY_NOW, away).apply()
@@ -97,12 +109,12 @@ object Store {
 
     /** The address to use now: home, or the Tailscale one away. */
     fun active(context: Context): ServerAddress? =
-        if (isAway(context)) awayAddress(context) else server(context)
+        if (isAway(context)) awayBase(context) else server(context)
 
     /** A server address (stream, cover) moved to the address in use now. */
     fun localize(context: Context, url: String): String {
         val home = server(context)?.baseUrl ?: return url
-        return com.musicd.server.client.Route.rewrite(url, home, awayAddress(context)?.baseUrl, isAway(context))
+        return com.musicd.server.client.Route.rewrite(url, home, awayBase(context)?.baseUrl, isAway(context))
     }
 
     /** This phone's zone id on the server ("PHONE_…"), as its last hello said. */
