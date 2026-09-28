@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.17
+- **Settings, one column** (Android app). The first Settings screen is now a single column of
+  full-width buttons — the icon first, then the name — sharing the screen's height, with no
+  scrolling. Every name is the same size: the longest one decides it, as large as fits on one
+  line (up to 20px), so it adjusts to the phone. Browsers and the iPhone home-screen app keep
+  their two-column cards.
+- "Downloads on this phone" is now just **Downloads**.
+
 ## v0.3.16
 **Wi-Fi to mobile data and back, without a gap** (Android app) — what Roon Arc does, and a little more.
 - **Held ahead.** The phone fetches the whole of the playing track as fast as the network allows,
