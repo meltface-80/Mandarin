@@ -88,3 +88,6 @@
 .dl-btn:active { transform: scale(.94); }
 .settings-pane[data-pane="downloads"] .settings-row { margin-top: 14px; }
 .settings-pane[data-pane="downloads"] .settings-subhead + .settings-row { margin-top: 0; }
+
+/* The offline note (and any other notice) above Home: room below it. */
+main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }
