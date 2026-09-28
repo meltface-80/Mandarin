@@ -8,3 +8,5 @@ android/*/build/
 android/local.properties
 *.apk
 !dist/*.apk
+# Built by CI from android/musicdnet
+android/app/src/main/jniLibs/

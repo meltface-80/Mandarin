@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 19
-        versionName = "0.3.8"
+        versionCode = 20
+        versionName = "0.3.9"
     }
 
     buildFeatures {
@@ -68,6 +68,10 @@ android {
     }
 
     packaging {
+        // The Tailscale engine (android/musicdnet, built by CI into
+        // src/main/jniLibs) is a program the app runs, so it must be unpacked
+        // onto the phone — Android only lets apps run files from there.
+        jniLibs.useLegacyPackaging = true
         resources.excludes += setOf(
             "META-INF/*.kotlin_module",
             "META-INF/DEPENDENCIES",

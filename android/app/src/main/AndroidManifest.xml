@@ -35,6 +35,11 @@
         android:theme="@style/AppTheme">
 
         <activity
+            android:name=".TailscaleTestActivity"
+            android:exported="false"
+            android:label="Tailscale test" />
+
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density|uiMode"
             android:exported="true"
