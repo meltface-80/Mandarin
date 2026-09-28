@@ -15,6 +15,7 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -34,6 +35,11 @@ import android.widget.TextView
  *
  * Away from home the page comes from the server's Tailscale address instead
  * (see [Away]), and it is reloaded from the right one whenever that changes.
+ *
+ * With no server at all, it's still MusicD's own interface: the app answers
+ * the page itself — the copy of it kept in [OfflineSite], and [OfflineApi]
+ * for the albums on the phone and the phone's player — until the server is
+ * back, when the page reloads from it.
  */
 class MainActivity : Activity() {
 
@@ -41,6 +47,15 @@ class MainActivity : Activity() {
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
+
+        /**
+         * Offline only, added to the page the app serves: tells the page it's
+         * offline, and sends each request's body in a header the app can read.
+         */
+        private const val OFFLINE_SHIM = "<script>window.__musicdOffline=true;(function(){var f=window.fetch;" +
+            "window.fetch=function(u,o){try{if(o&&o.body&&typeof o.body==='string'){o=Object.assign({},o);" +
+            "var h=new Headers(o.headers||{});h.set('X-Offline-Body',encodeURIComponent(o.body));o.headers=h;}}catch(e){}" +
+            "return f.call(this,u,o);};})();</script>"
     }
 
     private lateinit var root: FrameLayout
@@ -53,6 +68,27 @@ class MainActivity : Activity() {
     private var loadFailed = false
     /** The offline screen has been opened for this outage — once, so Back returns here. */
     private var offlineShown = false
+    /** The app is answering the page itself (the server can't be reached). */
+    @Volatile private var offline = false
+    private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
+    /** Offline: look for the server now and then, and go back to it when it answers. */
+    private val serverWatch = object : Runnable {
+        override fun run() {
+            if (!offline || isFinishing) return
+            val base = Store.active(this@MainActivity)?.baseUrl
+            checks.execute {
+                val back = base != null && runCatching {
+                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 2500; c.readTimeout = 2500
+                    try { c.responseCode == 200 } finally { c.disconnect() }
+                }.getOrDefault(false)
+                runOnUiThread {
+                    if (!offline || isFinishing) return@runOnUiThread
+                    if (back) { offline = false; load() } else web.postDelayed(this, 10_000)
+                }
+            }
+        }
+    }
     /** Downloads changed: tell the page (gathered, so a burst of progress is one call). */
     private var downloadsPending = false
     private val onDownloads: () -> Unit = {
@@ -132,6 +168,21 @@ class MainActivity : Activity() {
         PhonePlayerService.start(this)
     }
 
+    private fun hasNetwork(): Boolean = runCatching {
+        getSystemService(android.net.ConnectivityManager::class.java).activeNetwork != null
+    }.getOrDefault(true)
+
+    /** The server can't be reached: the app answers the page from what's on the phone. */
+    private fun goOffline() {
+        offline = true
+        loadFailed = false
+        errorPanel.visibility = View.GONE
+        web.visibility = View.VISIBLE
+        web.loadUrl("${loadedBase ?: return}/")
+        web.removeCallbacks(serverWatch)
+        web.postDelayed(serverWatch, 10_000)
+    }
+
     private fun reloadIfMoved() {
         if (!::web.isInitialized) return
         val base = Store.active(this)?.baseUrl
@@ -144,6 +195,9 @@ class MainActivity : Activity() {
         val token = Store.token(this) ?: return signedOut()
         loadedBase = base
         loadFailed = false
+        // No network at all: straight to the app's own copy, rather than an error first.
+        offline = !hasNetwork() && OfflineSite.has(this)
+        if (offline) web.postDelayed(serverWatch, 10_000)
         // The page signs in with the same token the rest of the app uses.
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
@@ -247,6 +301,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        checks.shutdownNow()
         DownloadStore.unlisten(onDownloads)
         Away.unlisten(onAway)
         if (::web.isInitialized) {
@@ -268,6 +323,8 @@ class MainActivity : Activity() {
 
         override fun onPageFinished(view: WebView, url: String) {
             if (!loadFailed) offlineShown = false
+            // From the server: keep the app's copy of the page up to date.
+            if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
             ShareBridge.install(view)
         }
 
@@ -275,6 +332,8 @@ class MainActivity : Activity() {
             if (!request.isForMainFrame) return
             // Perhaps the phone has just left home (or come back): look again.
             Away.recheck(this@MainActivity)
+            // MusicD itself, from the app, rather than an error.
+            if (!offline && OfflineSite.has(this@MainActivity)) { goOffline(); return }
             val where = Store.active(this@MainActivity)?.toString() ?: "the server"
             loadFailed = true
             showError("Can't reach MusicD Server at $where.\n\n${error.description}\n")
@@ -285,6 +344,36 @@ class MainActivity : Activity() {
                     .putExtra(DownloadsActivity.EXTRA_OFFLINE, true))
             }
         }
+
+        /** Offline, every request to the server is answered by the app. */
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (!offline) return null
+            val base = loadedBase ?: return null
+            val url = request.url
+            if (!url.toString().startsWith(base)) return null
+            val c = this@MainActivity
+            val path = url.path ?: "/"
+            if (path.startsWith("/api/")) {
+                val q = url.queryParameterNames.associateWith { url.getQueryParameter(it) ?: "" }
+                // The page passes a request's body in a header when offline (the WebView doesn't hand it over).
+                val body = request.requestHeaders.entries.firstOrNull { it.key.equals("X-Offline-Body", true) }
+                    ?.value?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                val r = OfflineApi.handle(c, request.method, path, q, body)
+                return respond(r.status, r.mime, r.body)
+            }
+            val f = OfflineSite.file(c, path)
+                ?: if (!path.substringAfterLast('/').contains('.')) OfflineSite.file(c, "/") else null
+            if (f == null) return respond(404, "text/plain", ByteArray(0))
+            var bytes = f.first.readBytes()
+            if (f.second == "text/html") bytes = String(bytes).replaceFirst("<head>", "<head>$OFFLINE_SHIM").toByteArray()
+            return respond(200, f.second, bytes)
+        }
+
+        private fun respond(status: Int, mime: String, body: ByteArray) = WebResourceResponse(
+            mime, "utf-8", status, if (status == 200) "OK" else "Error",
+            mapOf("Cache-Control" to "no-store", "Access-Control-Allow-Origin" to "*"),
+            java.io.ByteArrayInputStream(body)
+        )
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url ?: return false

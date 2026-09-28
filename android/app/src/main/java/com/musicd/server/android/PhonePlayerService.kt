@@ -6,6 +6,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -91,6 +92,10 @@ class PhonePlayerService : MediaLibraryService() {
         private const val LOCAL = "dl:"     // a downloaded album: dl:<album id>
         private const val SERVER = "sv:"    // a library album: sv:<album id>
 
+        /** The running player, for the offline page (OfflineApi) to drive and read. */
+        @Volatile var current: PhonePlayerService? = null
+            private set
+
         fun start(context: Context) {
             if (Store.token(context) == null) return
             runCatching { context.startService(Intent(context, PhonePlayerService::class.java)) }
@@ -143,7 +148,10 @@ class PhonePlayerService : MediaLibraryService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         player.addListener(object : Player.Listener {
-            override fun onEvents(p: Player, events: Player.Events) = reportSoon()
+            override fun onEvents(p: Player, events: Player.Events) {
+                reportSoon()
+                bumpRevision()
+            }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
         })
@@ -161,6 +169,7 @@ class PhonePlayerService : MediaLibraryService() {
         // this it played with no controls at all.
         addSession(session!!)
 
+        current = this
         running = true
         worker = Thread({ loop() }, "phone-commands").apply { isDaemon = true; start() }
         main.postDelayed(heartbeat, 10_000)
@@ -198,6 +207,12 @@ class PhonePlayerService : MediaLibraryService() {
                 .setMediaMetadata(MediaMetadata.Builder()
                     .setTitle(t.title).setArtist(t.artist).setAlbumTitle(a.title)
                     .apply { cover?.let { setArtworkUri(it) } }
+                    // Which album and how long: the offline page shows both.
+                    .setExtras(Bundle().apply {
+                        putInt(EXTRA_ALBUM, albumId)
+                        putDouble("duration", t.duration)
+                        a.imageKey?.let { putString("image_key", it) }
+                    })
                     .build())
                 .build()
         }
@@ -209,6 +224,7 @@ class PhonePlayerService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        if (current === this) current = null
         running = false
         worker?.interrupt()
         main.removeCallbacksAndMessages(null)
@@ -235,6 +251,7 @@ class PhonePlayerService : MediaLibraryService() {
                     val h = client.phoneHello(deviceName())
                     seq = h.seq
                     zoneId = h.zoneId
+                    Store.setPhoneZone(this, h.zoneId)
                     Store.setAwayLearned(this, h.awayAddress)
                     hello = true
                     reportSoon()
@@ -318,11 +335,11 @@ class PhonePlayerService : MediaLibraryService() {
     }
 
     /** One command from the server, on the main thread. */
-    private fun apply(c: Phone.Command) {
+    private fun apply(c: Phone.Command, fromPage: Boolean = false) {
         if (c.op == "load" || c.op == "sync") localMode = false
         // Playing downloads: the server's queue isn't the one playing, so its
         // queue edits don't apply (transport, volume and modes still do).
-        if (localMode && c.op in setOf("insert", "remove", "clear", "jump")) return
+        if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear", "jump")) return
         when (c.op) {
             "load", "sync" -> {
                 val items = c.items.map(::mediaItem)
@@ -579,4 +596,102 @@ class PhonePlayerService : MediaLibraryService() {
         bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
         out.toByteArray()
     }.getOrNull()
+
+    // ------------------------------------------------------------ offline page
+
+    private val revisionLock = Object()
+    @Volatile var revision = 1L
+        private set
+
+    private fun bumpRevision() {
+        synchronized(revisionLock) { revision++; revisionLock.notifyAll() }
+    }
+
+    /** Wait (off the main thread) until something changes, or [ms] pass. */
+    fun waitForChange(since: Long, ms: Long) {
+        val until = System.currentTimeMillis() + ms
+        synchronized(revisionLock) {
+            while (revision == since) {
+                val left = until - System.currentTimeMillis()
+                if (left <= 0) break
+                revisionLock.wait(left)
+            }
+        }
+    }
+
+    /** Run [f] with the player on the main thread and return its result (from any thread). */
+    fun <T> onPlayer(f: (ExoPlayer) -> T): T? {
+        if (Looper.myLooper() == Looper.getMainLooper()) return f(player)
+        var out: T? = null
+        val done = CountDownLatch(1)
+        main.post { try { out = f(player) } finally { done.countDown() } }
+        done.await(3, java.util.concurrent.TimeUnit.SECONDS)
+        return out
+    }
+
+    /** Downloaded albums onto the player: now (from [startTrack] of the first), next, or at the end. */
+    fun offlinePlay(albumIds: List<Int>, startTrack: Int, kind: String, onlyTrack: Int? = null): Boolean = onPlayer { p ->
+        var items = albumIds.flatMap { localItems(it) }
+        if (onlyTrack != null) items = listOfNotNull(items.getOrNull(onlyTrack))
+        if (items.isEmpty()) return@onPlayer false
+        localMode = true
+        loggedKey = null
+        val wasEmpty = p.mediaItemCount == 0
+        when (kind) {
+            "queue" -> p.addMediaItems(items)
+            "add_next" -> p.addMediaItems((p.currentMediaItemIndex + 1).coerceAtMost(p.mediaItemCount), items)
+            else -> {
+                p.setMediaItems(items, startTrack.coerceIn(0, items.size - 1), 0L)
+                p.prepare()
+                p.play()
+            }
+        }
+        if (wasEmpty && kind != "play_now") { p.prepare(); p.play() }
+        bumpRevision()
+        true
+    } ?: false
+
+    class OfflineItem(val trackId: Long?, val albumId: Int, val title: String, val artist: String,
+                      val album: String, val imageKey: String?, val duration: Double)
+
+    class OfflineState(val state: String, val index: Int, val position: Double, val duration: Double,
+                       val shuffle: Boolean, val loop: String, val volume: Int, val muted: Boolean,
+                       val items: List<OfflineItem>, val revision: Long)
+
+    /** What's playing, as the offline page shows it. */
+    fun offlineState(): OfflineState? = onPlayer { p ->
+        val items = (0 until p.mediaItemCount).map { i ->
+            val m = p.getMediaItemAt(i)
+            val md = m.mediaMetadata
+            val x = md.extras
+            OfflineItem(
+                m.mediaId.toLongOrNull(), x?.getInt(EXTRA_ALBUM, -1) ?: -1,
+                md.title?.toString() ?: "", md.artist?.toString() ?: "", md.albumTitle?.toString() ?: "",
+                x?.getString("image_key"), x?.getDouble("duration", 0.0) ?: 0.0
+            )
+        }
+        val state = when {
+            items.isEmpty() -> "stopped"
+            p.isPlaying -> "playing"
+            p.playbackState == Player.STATE_BUFFERING && p.playWhenReady -> "loading"
+            p.playbackState == Player.STATE_ENDED -> "stopped"
+            else -> "paused"
+        }
+        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        OfflineState(
+            state, if (items.isEmpty()) -1 else p.currentMediaItemIndex,
+            p.currentPosition / 1000.0, if (p.duration > 0) p.duration / 1000.0 else 0.0,
+            p.shuffleModeEnabled,
+            when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
+            (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
+            items, revision
+        )
+    }
+
+    /** The page's transport, volume and mode controls, offline — the same commands the server sends. */
+    fun offlineCommand(c: Phone.Command) {
+        onPlayer { apply(c, fromPage = true) }
+        bumpRevision()
+    }
 }

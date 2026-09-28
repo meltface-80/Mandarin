@@ -105,6 +105,8 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                 t.done = true
                 DownloadStore.save(dir, album)
             }
+            // Its page, for the app's offline copy of MusicD.
+            OfflineSite.savePage(c, id, dir)
             album.state = "done"
             DownloadStore.save(dir, album)
             Result.success()
