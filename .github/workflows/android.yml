@@ -7,9 +7,9 @@ name: Android
 on:
   push:
     branches: ["**"]
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "public/**", ".github/workflows/android.yml"]
   pull_request:
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "public/**", ".github/workflows/android.yml"]
   workflow_dispatch:
 
 permissions:

@@ -162,6 +162,8 @@ class MainActivity : Activity() {
         if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
         Away.recheck(this)
         AppUpdate.check(this)
+        web.removeCallbacks(liveWatch)
+        web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
         tellPageDownloadsChanged()
         NowPlayingService.start(this)
@@ -189,6 +191,12 @@ class MainActivity : Activity() {
         if (base != null && base != loadedBase) load()
     }
 
+    override fun onPause() {
+        // Only while it's on screen.
+        if (::web.isInitialized) web.removeCallbacks(liveWatch)
+        super.onPause()
+    }
+
     private fun load() {
         if (Store.server(this) == null) return openConnect()
         val base = Store.active(this)?.baseUrl ?: return openConnect()
@@ -209,6 +217,39 @@ class MainActivity : Activity() {
         pageLoaded = false
         web.loadUrl("$base/")
         if (!offline) checkReachable(base)
+    }
+
+    /**
+     * While the page is open from the server: is it still there? The page
+     * alone can't tell a lost server from a slow one — covers go blank and
+     * then it fails — so every 15 s the app asks, and if two checks in a row
+     * get no answer, the app's own copy of MusicD takes over.
+     */
+    private var liveFailures = 0
+    private val liveWatch = object : Runnable {
+        override fun run() {
+            if (isFinishing) return
+            val base = loadedBase
+            if (offline || !pageLoaded || base == null) { web.postDelayed(this, 15_000); return }
+            checks.execute {
+                val ok = runCatching {
+                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 4000; c.readTimeout = 4000; c.useCaches = false
+                    c.setRequestProperty("Connection", "close")
+                    try { c.responseCode == 200 } finally { c.disconnect() }
+                }.getOrDefault(false)
+                runOnUiThread {
+                    if (isFinishing) return@runOnUiThread
+                    liveFailures = if (ok) 0 else liveFailures + 1
+                    if (liveFailures >= 2 && !offline && loadedBase == base) {
+                        liveFailures = 0
+                        Away.recheck(this@MainActivity)
+                        goOffline()
+                    }
+                    web.postDelayed(this, 15_000)
+                }
+            }
+        }
     }
 
     /** Which load a reachability check belongs to (a newer load makes older checks moot). */
@@ -397,7 +438,7 @@ class MainActivity : Activity() {
             val f = OfflineSite.file(c, path)
                 ?: if (!path.substringAfterLast('/').contains('.')) OfflineSite.file(c, "/") else null
             if (f == null) return respond(404, "text/plain", ByteArray(0))
-            var bytes = f.first.readBytes()
+            var bytes = f.first
             if (f.second == "text/html") bytes = String(bytes).replaceFirst("<head>", "<head>$OFFLINE_SHIM").toByteArray()
             return respond(200, f.second, bytes)
         }
