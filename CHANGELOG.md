@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.11
+- **Always MusicD's own interface** (Android app), online, offline, no data — never a different
+  screen. The app now carries a copy of the interface built from this same version, used offline
+  until it has saved one from the server (then the server's own version is used), so even the
+  first start with no connection is the MusicD interface rather than the old Downloads screen.
+- **Losing the server while the page is open** (Wi-Fi off, walking out of range): every 15 s the
+  app checks the server is still there; after two checks with no answer the offline MusicD takes
+  over by itself, instead of covers going blank and the page failing.
+
+## v0.3.10
+- **No more black screen when the server can't be reached** (Android app). Away from home with no
+  route to the server (the Tailscale app off, say), the page could wait a long time on a black
+  screen before giving up, and a page already open lost its covers and then failed. Every load now
+  checks alongside whether the server answers; if it hasn't within 3 seconds, the app's own copy of
+  MusicD takes over at once (your downloads, This phone), and the page comes back from the server
+  when it answers again.
+
 ## v0.3.9
 - **Test build: MusicD's own Tailscale connection on the phone** (the first step of built-in
   Tailscale). The app now carries a Tailscale engine (`android/musicdnet`, Go, built into the APK

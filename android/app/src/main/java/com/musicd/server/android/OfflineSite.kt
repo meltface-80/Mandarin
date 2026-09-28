@@ -46,14 +46,38 @@ object OfflineSite {
     private fun dir(c: Context) = File(c.filesDir, "site").apply { mkdirs() }
 
     /** A copy good enough to open offline. */
-    fun has(c: Context) = File(dir(c), "index.html").exists() && File(dir(c), "app.js").exists()
+    private fun saved(c: Context) = File(dir(c), "index.html").exists() && File(dir(c), "app.js").exists()
+
+    /**
+     * Always true: when nothing has been saved from the server yet, the copy
+     * of the interface built into the app (assets/site, from this same
+     * version's public/) stands in — so offline is MusicD's own interface
+     * from the very first start, never a different screen.
+     */
+    fun has(c: Context) = saved(c) || bundled(c, "index.html") != null
 
     /** A file of the page, by the address it's asked for, with its type — or null. */
-    fun file(c: Context, path: String): Pair<File, String>? {
-        val name = STATIC.firstOrNull { it.first == path || (path == "/index.html" && it.first == "/") }?.second ?: return null
-        val f = File(dir(c), name)
-        return if (f.exists()) f to mimeOf(name) else null
+    fun file(c: Context, path: String): Pair<ByteArray, String>? {
+        val entry = STATIC.firstOrNull { it.first == path || (path == "/index.html" && it.first == "/") } ?: return null
+        val name = entry.second
+        // The copy saved from the server, when there is one (the server's own version)…
+        if (saved(c)) {
+            val f = File(dir(c), name)
+            if (f.exists()) return f.readBytes() to mimeOf(name)
+        }
+        // …else the one built into the app, made the app's way as the server would.
+        val assetPath = if (entry.first.startsWith("/icons/")) "icons/$name" else name
+        var bytes = bundled(c, assetPath) ?: return null
+        when (name) {
+            "index.html" -> bytes = String(bytes).replace(Regex(",\\s*viewport-fit=cover"), "").toByteArray()
+            "style.css" -> bytes = (String(bytes).replace(Regex("env\\(safe-area-inset-(top|bottom|left|right)\\)"), "0px") +
+                "\n" + String(bundled(c, "android.css") ?: ByteArray(0))).toByteArray()
+        }
+        return bytes to mimeOf(name)
     }
+
+    private fun bundled(c: Context, name: String): ByteArray? =
+        runCatching { c.assets.open("site/$name").use { it.readBytes() } }.getOrNull()
 
     /** A settings answer as last seen, or null. */
     fun api(c: Context, path: String): String? {

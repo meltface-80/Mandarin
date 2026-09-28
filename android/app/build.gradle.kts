@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 20
-        versionName = "0.3.9"
+        versionCode = 22
+        versionName = "0.3.11"
     }
 
     buildFeatures {
@@ -80,6 +80,21 @@ android {
         )
     }
 }
+
+/*
+ * MusicD's interface, built into the app: this version's public/ files, for
+ * the offline page until the app has saved a copy from the server (see
+ * OfflineSite). So offline is always the same MusicD interface.
+ */
+val bundleSite = tasks.register<Copy>("bundleSite") {
+    from(rootProject.file("../public")) {
+        include("index.html", "app.js", "style.css", "android.css", "sharecard.js", "srp.js", "manifest.json",
+            "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico")
+    }
+    into(layout.buildDirectory.dir("generated/site/site"))
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/site"))
+tasks.named("preBuild") { dependsOn(bundleSite) }
 
 kotlin {
     compilerOptions {

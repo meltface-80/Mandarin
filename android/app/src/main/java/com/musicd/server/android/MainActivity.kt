@@ -162,6 +162,8 @@ class MainActivity : Activity() {
         if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
         Away.recheck(this)
         AppUpdate.check(this)
+        web.removeCallbacks(liveWatch)
+        web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
         tellPageDownloadsChanged()
         NowPlayingService.start(this)
@@ -189,6 +191,12 @@ class MainActivity : Activity() {
         if (base != null && base != loadedBase) load()
     }
 
+    override fun onPause() {
+        // Only while it's on screen.
+        if (::web.isInitialized) web.removeCallbacks(liveWatch)
+        super.onPause()
+    }
+
     private fun load() {
         if (Store.server(this) == null) return openConnect()
         val base = Store.active(this)?.baseUrl ?: return openConnect()
@@ -206,7 +214,72 @@ class MainActivity : Activity() {
         }
         errorPanel.visibility = View.GONE
         web.visibility = View.VISIBLE
+        pageLoaded = false
         web.loadUrl("$base/")
+        if (!offline) checkReachable(base)
+    }
+
+    /**
+     * While the page is open from the server: is it still there? The page
+     * alone can't tell a lost server from a slow one — covers go blank and
+     * then it fails — so every 15 s the app asks, and if two checks in a row
+     * get no answer, the app's own copy of MusicD takes over.
+     */
+    private var liveFailures = 0
+    private val liveWatch = object : Runnable {
+        override fun run() {
+            if (isFinishing) return
+            val base = loadedBase
+            if (offline || !pageLoaded || base == null) { web.postDelayed(this, 15_000); return }
+            checks.execute {
+                val ok = runCatching {
+                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 4000; c.readTimeout = 4000; c.useCaches = false
+                    c.setRequestProperty("Connection", "close")
+                    try { c.responseCode == 200 } finally { c.disconnect() }
+                }.getOrDefault(false)
+                runOnUiThread {
+                    if (isFinishing) return@runOnUiThread
+                    liveFailures = if (ok) 0 else liveFailures + 1
+                    if (liveFailures >= 2 && !offline && loadedBase == base) {
+                        liveFailures = 0
+                        Away.recheck(this@MainActivity)
+                        goOffline()
+                    }
+                    web.postDelayed(this, 15_000)
+                }
+            }
+        }
+    }
+
+    /** Which load a reachability check belongs to (a newer load makes older checks moot). */
+    private var loadSeq = 0
+    /** The current load finished from the server: a slow check mustn't undo it. */
+    private var pageLoaded = false
+
+    /**
+     * Alongside the page load: does the server answer at all? An address that
+     * can't be reached (away, with no route to the server) can leave the
+     * WebView waiting a long time on a black screen before it gives up. If the
+     * server hasn't answered within 3 seconds, the app's own copy of MusicD
+     * takes over now — the server watch brings the page back when it answers.
+     */
+    private fun checkReachable(base: String) {
+        val seq = ++loadSeq
+        checks.execute {
+            val ok = runCatching {
+                val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 3000; c.readTimeout = 3000; c.useCaches = false
+                c.setRequestProperty("Connection", "close")
+                try { c.responseCode == 200 } finally { c.disconnect() }
+            }.getOrDefault(false)
+            if (ok) return@execute
+            runOnUiThread {
+                if (seq != loadSeq || offline || pageLoaded || isFinishing || loadedBase != base) return@runOnUiThread
+                Away.recheck(this)
+                if (OfflineSite.has(this)) goOffline()
+            }
+        }
     }
 
     /** This phone was signed out (from Settings, or the account was reset): sign in again. */
@@ -323,6 +396,7 @@ class MainActivity : Activity() {
 
         override fun onPageFinished(view: WebView, url: String) {
             if (!loadFailed) offlineShown = false
+            if (!loadFailed && !offline) pageLoaded = true
             // From the server: keep the app's copy of the page up to date.
             if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
             ShareBridge.install(view)
@@ -364,7 +438,7 @@ class MainActivity : Activity() {
             val f = OfflineSite.file(c, path)
                 ?: if (!path.substringAfterLast('/').contains('.')) OfflineSite.file(c, "/") else null
             if (f == null) return respond(404, "text/plain", ByteArray(0))
-            var bytes = f.first.readBytes()
+            var bytes = f.first
             if (f.second == "text/html") bytes = String(bytes).replaceFirst("<head>", "<head>$OFFLINE_SHIM").toByteArray()
             return respond(200, f.second, bytes)
         }
