@@ -15087,6 +15087,8 @@ initServiceBrowser({
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">About</div><div class="dev-about">' +
       rows.map(r => '<div class="dev-kv"><span class="dev-k">' + esc(r[0]) + '</span><span class="dev-v">' + esc(r[1]) + "</span></div>").join("") + "</div>";
     if (d.kind === "upnp" && !d.playable) html += '<div class="settings-note away-error">This device offers no AVTransport service, so it cannot be played to.</div>';
+    else if (d.kind === "upnp" && d.takes_flac === false) html += '<div class="settings-note away-error">This device doesn’t take FLAC, which is how Mandarin sends audio for now, so it isn’t offered as a zone yet.</div>';
+    if (d.last_error && d.last_error.message) html += '<div class="settings-note away-error">Last trouble (' + esc(when(d.last_error.at)) + '): ' + esc(d.last_error.message) + "</div>";
     html += "</div>";
 
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Capabilities</div>';
@@ -15107,7 +15109,8 @@ initServiceBrowser({
 
     if (d.kind === "upnp") {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Output</div>' +
-        '<div class="settings-note">Original, Upsample ×2, ×4 and Max arrive with playback to this device in a later version.</div></div>';
+        '<div class="dev-kv"><span class="dev-k">Mode</span><span class="dev-v">Original</span></div>' +
+        '<div class="settings-note">The file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsample ×2, ×4 and Max come in the next version.</div></div>';
     }
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +

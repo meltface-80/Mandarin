@@ -1,13 +1,19 @@
 "use strict";
 /*
  * fake-renderer.js — a UPnP/DLNA media renderer on loopback: its description,
- * ConnectionManager.GetProtocolInfo, and — when asked for — the LinkPlay HTTP
- * API a WiiM answers beside UPnP. Transport (playing to it) comes with the
- * version that plays to renderers; here it faults, as a device with no such
- * action would.
+ * ConnectionManager.GetProtocolInfo, a plain AVTransport and RenderingControl,
+ * and — when asked for — the LinkPlay HTTP API a WiiM answers beside UPnP.
+ *
+ * Like the fake Sonos rooms, on Play it FETCHES the track it was given, the
+ * way a device does, and records what came back: that is what proves a file
+ * reaches a renderer bit-perfect, or converted to what the device takes. A
+ * track "plays" in real time for as long as its DIDL says it lasts, then the
+ * next URI (SetNextAVTransportURI) starts by itself — or, told not to honour
+ * one, the renderer simply stops, as a device without that action would.
  */
 const http = require("http");
 const XML = require("../lib/xml");
+const DIDL = require("../lib/sonos/didl");
 
 function envelope(action, service, args) {
   const body = Object.entries(args || {}).map(([k, v]) => `<${k}>${XML.escape(v)}</${k}>`).join("");
@@ -25,16 +31,31 @@ const SINK_WIIM = "http-get:*:audio/flac:*,http-get:*:audio/x-flac:*,http-get:*:
   "http-get:*:audio/mp4:*,http-get:*:audio/mpeg:*,http-get:*:audio/aac:*,http-get:*:audio/ogg:*," +
   "http-get:*:audio/L16;rate=44100;channels=2:DLNA.ORG_PN=LPCM,http-get:*:audio/L16;rate=48000;channels=2:DLNA.ORG_PN=LPCM";
 
+const AVT = "urn:schemas-upnp-org:service:AVTransport:1";
+const RC = "urn:schemas-upnp-org:service:RenderingControl:1";
+const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
+
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
-                linkplay = null, nested = false, urlBase = false, noAvTransport = false } = {}) {
-    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, nested, urlBase, noAvTransport });
+                linkplay = null, nested = false, urlBase = false, noAvTransport = false, setNext = true } = {}) {
+    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, nested, urlBase, noAvTransport, setNext });
     this.udn = udn || ("uuid:" + require("crypto").randomUUID());
     this.requests = [];
+    this.log = [];              // AVTransport / RenderingControl actions, in order
+    this.fetches = [];          // what the device pulled when told to play
     this.port = 0;
+    // transport
+    this.state = "NO_MEDIA_PRESENT";
+    this.uri = ""; this.meta = "";
+    this.nextUri = ""; this.nextMeta = "";
+    this.position = 0; this.at = Date.now();
+    this.volume = 25; this.muted = false;
+    this.endTimer = null;
   }
 
   get location() { return `http://127.0.0.1:${this.port}/description.xml`; }
+
+  // ------------------------------------------------------------ description
 
   service(name) {
     return `<service><serviceType>urn:schemas-upnp-org:service:${name}:1</serviceType><serviceId>urn:upnp-org:serviceId:${name}</serviceId>` +
@@ -56,6 +77,100 @@ class FakeRenderer {
       (this.urlBase ? `<URLBase>http://127.0.0.1:${this.port}/</URLBase>` : "") + device + `</root>`;
   }
 
+  // ------------------------------------------------------------ transport
+
+  pos() { return this.state === "PLAYING" ? this.position + (Date.now() - this.at) / 1000 : this.position; }
+  setPos(s) { this.position = s; this.at = Date.now(); }
+  duration() {
+    const it = DIDL.parseItems(this.meta || "")[0] || {};
+    return it.duration || 3;
+  }
+
+  fetchCurrent() {
+    if (!this.uri) return;
+    const entry = { uri: this.uri, status: 0, type: "", bytes: 0, chunks: [], done: false };
+    this.fetches.push(entry);
+    const req = http.get(this.uri, (res) => {
+      entry.status = res.statusCode;
+      entry.type = res.headers["content-type"] || "";
+      entry.length = res.headers["content-length"] || null;
+      res.on("data", c => { entry.bytes += c.length; if (entry.bytes < 4 * 1024 * 1024) entry.chunks.push(c); });
+      res.on("end", () => { entry.done = true; entry.body = Buffer.concat(entry.chunks); delete entry.chunks; });
+    });
+    req.on("error", (e) => { entry.error = e.message; entry.done = true; });
+  }
+
+  // Playing in real time: when the track's length is up, the next URI (if
+  // one was set) starts by itself, else the device stops.
+  armEnd() {
+    if (this.endTimer) clearTimeout(this.endTimer);
+    const left = Math.max(0, this.duration() - this.pos());
+    this.endTimer = setTimeout(() => {
+      this.endTimer = null;
+      if (this.state !== "PLAYING") return;
+      if (this.nextUri) {
+        this.log.push("auto-next");
+        this.uri = this.nextUri; this.meta = this.nextMeta;
+        this.nextUri = ""; this.nextMeta = "";
+        this.setPos(0);
+        this.fetchCurrent();
+        this.armEnd();
+      } else {
+        this.log.push("ended");
+        this.state = "STOPPED";
+        this.setPos(0);
+      }
+    }, left * 1000 + 20);
+    this.endTimer.unref();
+  }
+
+  handle(action, a) {
+    this.log.push(action);
+    switch (action) {
+      case "GetProtocolInfo": return { Source: "", Sink: this.sink };
+      case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
+      case "GetPositionInfo": return {
+        Track: this.uri ? "1" : "0", TrackDuration: DIDL.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.uri,
+        RelTime: DIDL.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
+      };
+      case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: DIDL.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
+      case "SetAVTransportURI":
+        if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
+        this.uri = a.CurrentURI; this.meta = a.CurrentURIMetaData || "";
+        this.nextUri = ""; this.nextMeta = "";
+        this.state = this.uri ? "STOPPED" : "NO_MEDIA_PRESENT";
+        this.setPos(0);
+        return {};
+      case "SetNextAVTransportURI":
+        if (!this.setNext) throw 401;
+        this.nextUri = a.NextURI || ""; this.nextMeta = a.NextURIMetaData || "";
+        return {};
+      case "Play":
+        if (!this.uri) throw 701;
+        if (this.state !== "PLAYING") { this.setPos(this.state === "PAUSED_PLAYBACK" ? this.position : 0); this.state = "PLAYING"; this.fetchCurrent(); this.armEnd(); }
+        return {};
+      case "Pause":
+        if (this.state === "PLAYING") { this.position = this.pos(); this.at = Date.now(); this.state = "PAUSED_PLAYBACK"; if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; } }
+        return {};
+      case "Stop":
+        this.state = this.uri ? "STOPPED" : "NO_MEDIA_PRESENT"; this.setPos(0);
+        if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
+        return {};
+      case "Seek":
+        if (a.Unit !== "REL_TIME") throw 710;
+        this.setPos(DIDL.toSeconds(a.Target));
+        if (this.state === "PLAYING") this.armEnd();
+        return {};
+      case "GetVolume": return { CurrentVolume: String(this.volume) };
+      case "SetVolume": this.volume = Number(a.DesiredVolume); return {};
+      case "GetMute": return { CurrentMute: this.muted ? "1" : "0" };
+      case "SetMute": this.muted = a.DesiredMute === "1" || a.DesiredMute === "true"; return {};
+      default: throw 401;
+    }
+  }
+
+  // ------------------------------------------------------------ http
+
   start() {
     this.server = http.createServer((req, res) => {
       const u = new URL(req.url, "http://x");
@@ -67,27 +182,35 @@ class FakeRenderer {
       if (req.method === "GET" && u.pathname === "/httpapi.asp") {
         if (!this.linkplay) { res.writeHead(404); return res.end(); }
         const cmd = u.searchParams.get("command");
+        res.writeHead(200, { "Content-Type": "text/html" });
         if (cmd === "getStatusEx") {
-          res.writeHead(200, { "Content-Type": "text/html" });
           return res.end(JSON.stringify(Object.assign({
             uuid: "FF31F09E" + this.udn.slice(-8), DeviceName: this.name, project: "WiiM_Pro_Plus",
             firmware: "4.8.612345", hardware: "Allwinner-R329", MAC: "00:11:22:33:44:55"
           }, this.linkplay)));
         }
-        res.writeHead(200, { "Content-Type": "text/html" });
         return res.end("unknown command");
       }
       if (req.method === "POST") {
         const chunks = [];
         req.on("data", c => chunks.push(c));
         req.on("end", () => {
-          const action = (/#(\w+)"?$/.exec(req.headers.soapaction || "") || [])[1] || "";
+          const body = Buffer.concat(chunks).toString("utf8");
+          const doc = XML.parse(body);
+          const b = doc && doc.Envelope && doc.Envelope.Body;
+          const [actionTag, node] = Object.entries(b || {}).find(([k]) => !k.startsWith("@")) || [];
+          const args = {};
+          for (const [k, v] of Object.entries(node || {})) if (!k.startsWith("@")) args[k] = XML.text(v);
+          const service = u.pathname.endsWith("ConnectionManager1") ? CM : u.pathname.endsWith("RenderingControl1") ? RC : AVT;
           res.setHeader("Content-Type", 'text/xml; charset="utf-8"');
-          if (u.pathname.endsWith("/ConnectionManager1") && action === "GetProtocolInfo") {
-            return res.end(envelope("GetProtocolInfo", "urn:schemas-upnp-org:service:ConnectionManager:1", { Source: "", Sink: this.sink }));
+          if ((service === AVT && this.noAvTransport) || !actionTag) { res.statusCode = 404; return res.end(); }
+          try {
+            const out = this.handle(actionTag, args);
+            res.end(envelope(actionTag, service, out));
+          } catch (code) {
+            res.statusCode = 500;
+            res.end(fault(typeof code === "number" ? code : 501));
           }
-          res.statusCode = 500;
-          res.end(fault(401));
         });
         return;
       }
@@ -100,6 +223,7 @@ class FakeRenderer {
   }
 
   stop() {
+    if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
     return new Promise((resolve) => {
       if (!this.server) return resolve();
       if (this.server.closeAllConnections) this.server.closeAllConnections();

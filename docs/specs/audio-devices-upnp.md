@@ -42,7 +42,8 @@ These came from the owner and are not open:
   `topology.js` and the Sonos queue logic in `zones.js` keep their behaviour; the only edits
   to `zones.js` are the same three-line "if this is one of the new zones, hand it over"
   branches that phones already have. The end-to-end Sonos test proves nothing moved.
-* Chromecast, AirPlay, Roon Ready, Bluetooth: different protocols, their own spec if ever.
+* Roon Ready (RAAT), Bluetooth and AirPlay: never — the owner's decision. Chromecast: not
+  planned; its own spec if ever.
 * LinkPlay multiroom (grouping WiiMs): later, once single-device playback is solid.
 * DSD output: later (section 11 says how).
 * Playing to these devices from away: the away rule stays. Renderers are on the home
@@ -427,7 +428,7 @@ times are logged and written into the README; the cache advice is in the README.
 transport if a device needs it), GENA events, alive/byebye, *Test this rate*, quirk flags
 (wait-for-complete-file, fixed volume, no-SetNext), hide/forget polish, `UPNP_HOSTS`.
 
-**Later.** DSD (section 11); LinkPlay multiroom; Chromecast / AirPlay as their own spec.
+**Later.** DSD (section 11); LinkPlay multiroom. Never: Roon Ready, Bluetooth, AirPlay.
 
 ## 13. Tests
 
