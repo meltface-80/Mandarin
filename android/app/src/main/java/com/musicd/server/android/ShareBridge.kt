@@ -154,7 +154,7 @@ class ShareBridge(private val activity: Activity) {
     @JavascriptInterface
     fun copyText(text: String): Boolean = try {
         val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("MusicD", text))
+        clipboard.setPrimaryClip(ClipData.newPlainText("Mandarin", text))
         true
     } catch (e: Exception) {
         Log.w(TAG, "copy text failed", e)

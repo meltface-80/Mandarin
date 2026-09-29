@@ -62,7 +62,7 @@ class TailscaleTestActivity : Activity() {
             text = "Tailscale"; setTextColor(WHITE); textSize = 24f; typeface = Typeface.DEFAULT_BOLD
         })
         col.addView(head)
-        col.addView(note("MusicD's own Tailscale connection — no Tailscale app, no VPN. Sign in below with the " +
+        col.addView(note("Mandarin's own Tailscale connection — no Tailscale app, no VPN. Sign in below with the " +
             "same account as your server, once. Away from home (mobile data, other Wi-Fi) the app then reaches " +
             "your whole library through it, streamed as Opus 256 by the server."))
 
@@ -176,7 +176,7 @@ class TailscaleTestActivity : Activity() {
             if (probe?.optBoolean("ok") != true) return@execute say("FAIL: the server didn't answer over Tailscale")
             step("Health through the port") { JSONObject(get("$base/api/health", null)) }
             val auth = step("Signed in, and seen as away?") { JSONObject(get("$base/api/auth/status", token)) }
-            if (auth?.optBoolean("signed_in") != true) say("NOTE: not signed in to MusicD through Tailscale")
+            if (auth?.optBoolean("signed_in") != true) say("NOTE: not signed in to Mandarin through Tailscale")
             if (auth?.optBoolean("away") != true) say("NOTE: the server doesn't see this phone as away")
             val lib = step("Library") { JSONObject(get("$base/api/library/albums?sort=album&count=1", token)) }
             val album = lib?.optJSONArray("albums")?.optJSONObject(0)?.optInt("offset") ?: return@execute say("FAIL: no albums")
@@ -194,7 +194,7 @@ class TailscaleTestActivity : Activity() {
                 val secs = (System.nanoTime() - t0) / 1e9
                 JSONObject().put("http", code).put("bytes", n).put("kB_per_s", (n / 1024.0 / secs).toInt())
             }
-            say("PASS — everything answered over MusicD's own Tailscale connection.")
+            say("PASS — everything answered over Mandarin's own Tailscale connection.")
             // Keep the address that worked, for away from home.
             val known = Store.awayAddress(this)
             if (known == null || "${known.host}:${known.port}" != t) Store.setAwayTyped(this, "http://$t")
@@ -243,11 +243,11 @@ class TailscaleTestActivity : Activity() {
     private fun copyLog() {
         work.execute {
             val engineLog = runCatching { TailscaleEngine.call("GET", "/log", timeoutMs = 4000).second }.getOrDefault("(no engine log)")
-            val text = "MusicD ${BuildConfig.VERSION_NAME} Tailscale test\n\n" + synchronized(lines) { lines.toString() } +
+            val text = "Mandarin ${BuildConfig.VERSION_NAME} Tailscale test\n\n" + synchronized(lines) { lines.toString() } +
                 "\n—— engine errors ——\n" + TailscaleEngine.stderrTail.joinToString("\n") +
                 "\n—— engine log ——\n" + engineLog.takeLast(20_000)
             main.post {
-                getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("MusicD Tailscale test", text))
+                getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Mandarin Tailscale test", text))
                 toast("Log copied")
             }
         }

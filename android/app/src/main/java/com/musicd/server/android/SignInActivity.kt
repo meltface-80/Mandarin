@@ -139,7 +139,7 @@ class SignInActivity : Activity() {
     private fun account() = Account(ServerClient(Store.server(this)!!, 8000))
 
     private fun check() {
-        title.text = "MusicD Server"
+        title.text = "Mandarin"
         intro.text = "Checking ${Store.server(this)}…"
         work.execute {
             val st = runCatching { account().status() }
@@ -150,7 +150,7 @@ class SignInActivity : Activity() {
                         s.setupRequired && s.canSetup -> showForm(create = true)
                         s.setupRequired -> {
                             title.text = "Create the account at home"
-                            intro.text = "This MusicD Server has no account yet. For safety it can only be created " +
+                            intro.text = "This Mandarin server has no account yet. For safety it can only be created " +
                                 "from the home network — join the Wi-Fi the server is on and try again."
                             status.text = ""
                         }
@@ -169,7 +169,7 @@ class SignInActivity : Activity() {
         creating = create
         title.text = if (create) "Create your account" else "Sign in"
         intro.text = if (create)
-            "MusicD Server needs an account before it can be used. Choose a username and password — you'll use " +
+            "Mandarin needs an account before it can be used. Choose a username and password — you'll use " +
                 "them on every device. The password never leaves this phone."
         else "Sign in to ${Store.server(this)}. The password never leaves this phone."
         pass2Label.visibility = if (create) View.VISIBLE else View.GONE

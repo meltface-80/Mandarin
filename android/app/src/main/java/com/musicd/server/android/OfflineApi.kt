@@ -23,7 +23,7 @@ object OfflineApi {
 
     private fun json(o: Any, status: Int = 200) = Response(status, "application/json", o.toString().toByteArray())
     private fun error(msg: String, status: Int = 503) = json(JSONObject().put("error", msg), status)
-    private val OFFLINE = "Not available offline — MusicD Server can't be reached"
+    private val OFFLINE = "Not available offline — Mandarin can't be reached"
 
     fun handle(c: Context, method: String, path: String, query: Map<String, String>, body: String?): Response {
         val b = runCatching { if (body.isNullOrBlank()) JSONObject() else JSONObject(body) }.getOrDefault(JSONObject())
@@ -158,7 +158,7 @@ object OfflineApi {
             "/api/status" -> {
                 val n = library(c).size
                 return json(JSONObject().put("offline", true).put("away", true).put("paired", true)
-                    .put("core_id", "musicd-server").put("core_name", "MusicD Server").put("zone_count", 1)
+                    .put("core_id", "musicd-server").put("core_name", "Mandarin").put("zone_count", 1)
                     .put("library_importing", false).put("index_count", n)
                     .put("sonos", JSONObject().put("rooms", 0).put("discovered", 0).put("searching", false))
                     .put("music_dir_exists", true).put("data_persistent", true)

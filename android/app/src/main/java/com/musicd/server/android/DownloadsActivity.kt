@@ -106,7 +106,7 @@ class DownloadsActivity : Activity() {
         setBackgroundColor(CARD)
         setPadding(px(14), px(12), px(14), px(12))
         addView(TextView(this@DownloadsActivity).apply {
-            text = "MusicD Server can't be reached — here's what's on this phone."
+            text = "Mandarin can't be reached — here's what's on this phone."
             setTextColor(WHITE); textSize = 14f
         })
         addView(Button(this@DownloadsActivity).apply {

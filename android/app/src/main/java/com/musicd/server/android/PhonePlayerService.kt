@@ -714,7 +714,7 @@ class PhonePlayerService : MediaLibraryService() {
         override fun onGetLibraryRoot(
             session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: LibraryParams?
         ): ListenableFuture<LibraryResult<MediaItem>> =
-            Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "MusicD"), params))
+            Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "Mandarin"), params))
 
         override fun onGetChildren(
             session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String,

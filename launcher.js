@@ -67,5 +67,5 @@ function start() {
   process.on("SIGTERM", () => forward("SIGTERM"));
 }
 
-console.log("[launcher] starting MusicD Server (in-app updates enabled)");
+console.log("[launcher] starting Mandarin (in-app updates enabled)");
 start();

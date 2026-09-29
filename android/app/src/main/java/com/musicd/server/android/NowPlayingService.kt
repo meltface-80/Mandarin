@@ -348,10 +348,10 @@ class NowPlayingService : Service() {
         )
         val playing = zone?.isPlaying == true
         val title = when {
-            !reachable -> "Can't reach MusicD Server"
+            !reachable -> "Can't reach Mandarin"
             np != null -> np.title
             zone != null -> zone.name
-            else -> "MusicD Server"
+            else -> "Mandarin"
         }
         val text = when {
             !reachable -> Store.server(this)?.toString() ?: ""

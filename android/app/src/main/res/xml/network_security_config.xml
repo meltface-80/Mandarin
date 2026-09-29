@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  MusicD Server is plain HTTP on your own network — there is no certificate a
+  Mandarin is plain HTTP on your own network — there is no certificate a
   home server could present — so cleartext has to be allowed. Nothing it
   carries leaves the local network.
 -->
