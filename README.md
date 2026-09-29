@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.4.2
+# Mandarin — v0.4.3
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -334,6 +334,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
+* UPnP/DLNA renderers (WiiM, Chord Poly…) with per-device sample rates and upsampling —
+  planned, not built: the spec is [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md)
 
 ## Development
 
