@@ -1,4 +1,35 @@
 "use strict";
+const { test: utest } = require("node:test");
+utest("a renderer's plan: Original within its ceiling, upsampling in the file's family", () => {
+  const assert = require("node:assert");
+  const S = require("../lib/stream");
+  const wiim = { name: "WiiM", rates: [44100, 48000, 88200, 96000, 176400, 192000], maxBits: 24, containers: ["flac", "wav"] };
+  const cd = { path: "/m/a.flac", codec: "FLAC", sampleRate: 44100, bitsPerSample: 16, channels: 2 };
+  const hi = Object.assign({}, cd, { sampleRate: 96000, bitsPerSample: 24 });
+  assert.equal(S.plan(cd, wiim).transcode, false);
+  assert.equal(S.plan(hi, wiim).transcode, false);
+  assert.deepEqual(pick(S.plan(Object.assign({}, cd, { sampleRate: 352800 }), wiim)), [176400, 24, undefined]);
+  assert.deepEqual(pick(S.plan(hi, { rates: [44100, 48000], containers: ["flac"] })), [48000, 24, undefined]);
+  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "x2" }, wiim))), [88200, 24, 2]);
+  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "x4" }, wiim))), [176400, 24, 4]);
+  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max" }, wiim))), [176400, 24, 4]);
+  assert.deepEqual(pick(S.plan(hi, Object.assign({ mode: "x4" }, wiim))), [192000, 24, 2], "capped at the top of the 48 k family");
+  assert.equal(S.plan(Object.assign({}, hi, { sampleRate: 192000 }), Object.assign({ mode: "max" }, wiim)).transcode, false, "already at the top: as it is");
+  const poly = { name: "Poly", rates: [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000], maxBits: 32, containers: ["flac"] };
+  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max", bits: "auto" }, poly))), [705600, 32, 16]);
+  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max", bits: 24 }, poly))), [705600, 24, 16]);
+  assert.deepEqual(pick(S.plan(Object.assign({}, cd, { sampleRate: 48000 }), Object.assign({ mode: "max" }, poly))), [768000, 32, 16]);
+  // A lossy file follows the same rules; DSD is PCM at the top of the 44.1 ladder ≤ 176.4.
+  assert.deepEqual(pick(S.plan({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3", sampleRate: 44100 }, Object.assign({ mode: "x2" }, wiim))), [88200, 24, 2]);
+  assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, Object.assign({ mode: "max" }, wiim))), [176400, 24, undefined]);
+  // The 64-bit float pipeline, and its own cache key.
+  const args = S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
+  assert.match(args, /precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular/);
+  assert.match(S.ffmpegArgs("/m/a.flac", S.plan(hi), "/out.flac").join(" "), /precision=28:osr=48000/, "the Sonos conversion is as it was");
+  const tr = new S.Transcoder({ cacheDir: require("os").tmpdir() + "/musicd-keys-" + process.pid, log: () => {} });
+  assert.notEqual(tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi)), tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi, { rates: [44100, 48000], containers: ["flac"] })));
+  function pick(p) { return [p.rate, p.bits, p.upsampled]; }
+});
 const test = require("node:test");
 const assert = require("node:assert");
 const { plan } = require("../lib/stream");

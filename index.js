@@ -150,8 +150,8 @@ function createServer(overrides = {}) {
     if (seg === "orig") p = { transcode: false, mime: STREAM.mimeForExt(req.params[2]) };
     else if (seg) {
       const [rate, bits] = seg.split("-").map(Number);
-      if (!(rate >= 8000 && rate <= 768000) || ![16, 24].includes(bits)) return res.status(400).end();
-      p = { transcode: true, mime: "audio/flac", ext: "flac", rate, bits, reason: "what the renderer was promised" };
+      if (!(rate >= 8000 && rate <= 768000) || ![16, 24, 32].includes(bits) || (bits === 32 && !FF.info().flac32)) return res.status(400).end();
+      p = { transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate, bits, reason: "what the renderer was promised" };
     } else p = planFor(t);
     if (!p.transcode) {
       res.set("Content-Type", p.mime);

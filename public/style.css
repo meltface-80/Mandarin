@@ -4957,6 +4957,16 @@ button.cap-chip { cursor: pointer; transition: background .15s ease, border-colo
 button.cap-chip:active { transform: scale(.96); }
 .cap-group .dev-v { margin-top: 6px; text-align: left; font-size: 13.5px; }
 .cap-legend { margin-top: 10px; font-size: 11.5px; line-height: 1.45; color: var(--text-faint); }
+/* A segmented choice (Original / ×2 / ×4 / Max). */
+.seg { display: flex; margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-elev-2); }
+.seg-btn {
+  flex: 1 1 0; min-width: 0; padding: 9px 6px; border: 0; border-right: 1px solid var(--border);
+  background: none; color: var(--text-dim); font: inherit; font-size: 13.5px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seg-btn:last-child { border-right: 0; }
+.seg-btn.is-on { background: var(--accent); color: var(--card-ink, #fff); font-weight: 600; }
+.seg-btn:disabled { opacity: .4; cursor: default; }
 
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }

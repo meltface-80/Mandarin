@@ -189,6 +189,14 @@ class FakeRenderer {
             firmware: "4.8.612345", hardware: "Allwinner-R329", MAC: "00:11:22:33:44:55"
           }, this.linkplay)));
         }
+        if (cmd === "getMetaInfo") {
+          // What the decoder is really running: read from the FLAC it fetched.
+          const last = [...this.fetches].reverse().find(f => f.body && f.body.length > 42);
+          const info = last ? require("./fixtures").probe(last.body) : null;
+          return res.end(JSON.stringify({ metaData: info
+            ? { title: "", artist: "", album: "", sampleRate: String(info.rate), bitDepth: String(info.bits), bitRate: "" }
+            : {} }));
+        }
         return res.end("unknown command");
       }
       if (req.method === "POST") {

@@ -191,6 +191,29 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(q.items.length + q.history.length, 3);
     });
 
+    await t.test("Upsample ×2: a CD rip goes out as 24/88.2 in 64-bit float, and the WiiM confirms it", async () => {
+      let r = await api("audio-devices/" + WIIM, { output: { mode: "x2" } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.output.mode, "x2");
+      assert.equal((await api("audio-devices/" + WIIM, { output: { mode: "x9" } }, "PATCH")).status, 400);
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const f = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /88200-24/.test(last.uri) && last; }, 15000);
+      assert.match(f.uri, /\/stream\/t\d+\.88200-24\.flac\?s=/);
+      assert.deepEqual(probe(f.body), { rate: 88200, channels: 2, bits: 24 });
+      // The badge says what went, and — once the WiiM's own API agrees — its tick.
+      const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && /↑×2/.test(z.now_playing.format.text) && /✓/.test(z.now_playing.format.text) && z; }, 15000);
+      assert.equal(s.now_playing.format.text, "FLAC 24/88.2 ↑×2 ✓");
+      const d = await api("audio-devices/" + WIIM);
+      assert.equal(d.rates.find(x => x.hz === 88200).source, "verified");
+      assert.ok(d.caps.verified.rates["88200"]);
+      // Max on this device is 176.4 for a 44.1 file.
+      await api("audio-devices/" + WIIM, { output: { mode: "max" } }, "PATCH");
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const f2 = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /176400-24/.test(last.uri) && last; }, 15000);
+      assert.deepEqual(probe(f2.body), { rate: 176400, channels: 2, bits: 24 });
+      await api("audio-devices/" + WIIM, { output: { mode: "original" } }, "PATCH");
+    });
+
     await t.test("the device page follows playback", async () => {
       const d = (await api("audio-devices/" + WIIM)).state;
       assert.ok(["playing", "loading"].includes(d), d);
