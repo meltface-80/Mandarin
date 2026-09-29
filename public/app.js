@@ -14777,7 +14777,8 @@ initServiceBrowser({
       html += '<div class="mf-row">' +
         '<span class="mf-ico">' + folderSvg + "</span>" +
         '<span class="mf-txt"><span class="mf-name">' + esc(f.name) + '</span><span class="mf-path">' + esc(f.path) + '</span>' +
-        '<span class="mf-state' + (f.exists && f.readable ? "" : " is-bad") + '">' + esc(state) + "</span></span>" +
+        '<span class="mf-state' + (f.exists && f.readable ? "" : " is-bad") + '">' + esc(state) + "</span>" +
+        (f.hint ? '<span class="mf-state is-bad">' + esc(f.hint) + "</span>" : "") + "</span>" +
         (st.folders.length > 1 ? '<button type="button" class="settings-update-btn mf-remove" data-mf-remove="' + esc(f.path) + '"' + (busy ? " disabled" : "") + ">Remove</button>" : "") +
         "</div>";
     }
@@ -14785,7 +14786,7 @@ initServiceBrowser({
     html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-mf-add' + (busy ? " disabled" : "") + ">Add a folder</button></div>";
     if (st.scanning) html += '<div class="settings-note">Reading your music… new albums appear as they’re found.</div>';
     html += '<div class="settings-note">' + (st.docker
-      ? "The server sees what its container has mounted. Mount your drives or shares once — e.g. <b>-v /mnt:/mnt:ro</b> — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
+      ? "The server sees only what its container has mounted. Mount your drives and shares once — e.g. <b>-v /mnt:/mnt:ro,rslave</b> (on DietPi, everything in Drive Manager is under /mnt; <b>rslave</b> lets shares the machine mounts later show up) — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
       : "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums.") + "</div>";
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     body.innerHTML = html;
@@ -14797,6 +14798,14 @@ initServiceBrowser({
     const inside = [...watched].find(w => b.path === w || b.path.startsWith(w + "/"));
     let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-mf-cancel>Cancel</button>' +
       '<span class="mf-browse-path">' + esc(b.path) + "</span></div>";
+    // The drives and shares the server can see, one tap away.
+    const places = (st && st.mounts) || [];
+    if (places.length) {
+      html += '<div class="mf-places"><span class="mf-places-label">Mounted drives and shares</span>' +
+        places.map(m => '<button type="button" class="mf-place' + (m.waiting ? " is-bad" : "") + (m.path === b.path ? " is-on" : "") +
+          '" data-mf-go="' + esc(m.path) + '">' + esc(m.path) + "</button>").join("") + "</div>";
+    }
+    if (b.hint) html += '<div class="settings-note away-error mf-hint">' + esc(b.hint) + "</div>";
     html += '<div class="mf-browse-list">';
     if (b.parent) html += '<button type="button" class="mf-dir mf-up" data-mf-go="' + esc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
     for (const d of b.dirs) {
@@ -14815,7 +14824,7 @@ initServiceBrowser({
   body.addEventListener("click", async (e) => {
     const t = e.target.closest("button");
     if (!t || busy) return;
-    if (t.hasAttribute("data-mf-add")) { err = ""; return browse((st && st.folders[0] && st.folders[0].path.split("/").slice(0, -1).join("/")) || "/"); }
+    if (t.hasAttribute("data-mf-add")) { err = ""; return browse("/"); }
     if (t.hasAttribute("data-mf-cancel")) { browsing = null; err = ""; return render(); }
     if (t.hasAttribute("data-mf-go")) { err = ""; return browse(t.getAttribute("data-mf-go")); }
     if (t.hasAttribute("data-mf-choose")) {
