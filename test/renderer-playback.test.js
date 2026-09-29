@@ -60,6 +60,15 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
 
   try {
     await until(async () => (await api("status")).index_count === 3);
+    // A renderer found on the network is off until switched on: two rooms only…
+    await until(async () => { const z = await api("zones"); return z.zones.length === 2; }, 20000);
+    await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === WIIM) && l.some(d => d.id === POLY); }, 20000);
+    for (const id of [WIIM, POLY]) {
+      const r = await api("audio-devices/" + id, { enabled: true }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.enabled, true);
+    }
+    // …then four.
     const zones = await until(async () => { const z = await api("zones"); return z.zones.length === 4 && z.zones; }, 20000);
     const kitchen = zones.find(z => z.display_name === "Kitchen");
     const wz = zones.find(z => z.zone_id === WIIM);

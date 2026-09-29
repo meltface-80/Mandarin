@@ -4906,8 +4906,15 @@ body.show-quality .album-quality { display: block; }
   transition: background .15s ease, border-color .15s ease;
 }
 .dev-row:hover { background: var(--bg-elev); border-color: var(--text-faint); }
-.dev-row:active { transform: scale(.99); }
 .dev-row.is-off .dev-ico, .dev-row.is-off .dev-name { opacity: .55; }
+/* The row is a button (opens the device) beside its on/off switch. */
+.dev-open {
+  display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0;
+  padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit;
+}
+.dev-open:active { transform: scale(.99); }
+.dev-row.is-disabled .dev-ico, .dev-row.is-disabled .dev-name, .dev-row.is-disabled .dev-sub { opacity: .5; }
+.dev-switch { margin-left: 4px; }
 .dev-ico {
   flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center;

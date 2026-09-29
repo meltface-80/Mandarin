@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.1
+# Mandarin — v0.5.2
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -274,7 +274,11 @@ to play. Sonos rooms are read-only here (44.1/48 kHz, 16/24-bit — the 24/48 ru
 is searched every minute; **Look again** searches now, and `UPNP_HOSTS` names renderers that
 multicast misses.
 
-**A renderer is a zone.** Pick it in the zone picker and everything a Sonos room has works
+**Each device has a switch.** A renderer found on the network is **off until you turn it on** —
+nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The
+switch is on the device's row and on its page, and its state is kept in Mandarin's database.
+
+**A renderer is a zone.** Turn it on, pick it in the zone picker and everything a Sonos room has works
 on it: the queue, play next, the transport, seek, volume and mute (unless the device's volume
 is fixed, as a Chord Poly's is — then there is no slider), history, Random album radio, and
 moving what is playing between it and a room. The server keeps its queue and hands each track

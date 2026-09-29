@@ -216,6 +216,24 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
     assert.ok(p.containers.includes("dsd"));
     assert.equal(p.family, "generic");
 
+    // The switch: a renderer is off until you turn it on; a room is on until you turn it off.
+    assert.equal(w.enabled, false); assert.equal(w.can_toggle, true);
+    assert.equal(byId.RINCON_KITCHEN01400.enabled, true);
+    assert.ok(!(await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === w.id), "off: not a zone");
+    let sw = await call("PATCH", "/api/audio-devices/" + w.id, { enabled: true });
+    assert.equal(sw.status, 200); assert.equal(sw.j.enabled, true);
+    await until(async () => (await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === w.id));
+    sw = await call("PATCH", "/api/audio-devices/" + w.id, { enabled: false });
+    assert.equal(sw.j.enabled, false);
+    assert.ok(!(await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === w.id), "off again");
+    sw = await call("PATCH", "/api/audio-devices/RINCON_KITCHEN01400", { enabled: false });
+    assert.equal(sw.j.enabled, false);
+    assert.ok(!(await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === "RINCON_KITCHEN01400"), "a room switched off leaves the picker");
+    assert.ok(!(await call("GET", "/api/outputs")).j.outputs.some(o => o.output_id === "RINCON_KITCHEN01400"));
+    assert.ok((await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === "RINCON_STUDY001400"), "the other room stays");
+    await call("PATCH", "/api/audio-devices/RINCON_KITCHEN01400", { enabled: true });
+    await until(async () => (await call("GET", "/api/zones")).j.zones.some(z => z.zone_id === "RINCON_KITCHEN01400"));
+
     // The TV: found inside its root device, but nothing to play to.
     assert.equal(tv.model, "UE55");
     assert.equal(tv.playable, false);
