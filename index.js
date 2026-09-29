@@ -96,7 +96,7 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
-  ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log });
+  ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
     cacheDir: path.join(config.dataDir, "download-cache"),

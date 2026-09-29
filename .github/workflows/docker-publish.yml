@@ -57,3 +57,46 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Tailscale built into the server, for installs updated in place (Settings →
+  # Check for updates brings the server's files, not a new image): the engine
+  # for each platform, attached to the rolling "engine" pre-release, which the
+  # server downloads by itself when its image doesn't carry one
+  # (lib/server/tsnode.js). A pre-release, and never "latest", so the server's
+  # own updater (releases/latest) never mistakes it for a MusicD release.
+  engine:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: android/musicdnet/go.mod
+          cache-dependency-path: android/musicdnet/go.sum
+      - name: Build the engine for each platform
+        working-directory: android/musicdnet
+        run: |
+          set -e
+          V=$(node -p "require('../../package.json').version")
+          mkdir -p ../../engine-out
+          for A in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$A go build -trimpath -ldflags "-s -w -X main.version=$V" -o ../../engine-out/musicdnet-linux-$A .
+            gzip -9 -f ../../engine-out/musicdnet-linux-$A
+          done
+          cd ../../engine-out
+          sha256sum musicdnet-linux-*.gz > SHA256SUMS
+          echo "$V" > VERSION
+          cat SHA256SUMS VERSION
+      - name: Publish to the "engine" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view engine >/dev/null 2>&1; then
+            gh release create engine --prerelease --latest=false --title "Tailscale engine (for in-place updates)" \
+              --notes "The built-in Tailscale engine for MusicD Server installs updated from Settings. Updated on every change to main; not a MusicD release." \
+              --target "${GITHUB_SHA}"
+          fi
+          gh release upload engine engine-out/* --clobber

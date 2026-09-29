@@ -17,6 +17,7 @@ import org.json.JSONObject
  *   MusicdDownloads.status(albumId)   → {"state": none|queued|downloading|waiting|done|failed, …}
  *   MusicdDownloads.download(albumId, title, artist)   asks Original / Opus 256, then queues it
  *   MusicdDownloads.remove(albumId)   asks, then deletes it from the phone
+ *   MusicdDownloads.removeMany(ids)   deletes these (a JSON array) — the page has asked
  *   MusicdDownloads.open()            the Downloads screen
  *   MusicdDownloads.ids()             albums fully on the phone, as a JSON array
  *   MusicdDownloads.all()             every album on the phone or on its way, newest first:
@@ -145,6 +146,24 @@ class DownloadsBridge(private val activity: Activity) {
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
+        }
+    }
+
+    /**
+     * Several albums off the phone at once, without asking again: the page's
+     * Downloads list has just asked (one, the ones selected, or all). [idsJson]:
+     * a JSON array of album ids. Downloads under way are stopped first.
+     */
+    @JavascriptInterface
+    fun removeMany(idsJson: String) {
+        val ids = runCatching { JSONArray(idsJson) }.getOrNull() ?: return
+        val list = (0 until ids.length()).map { ids.optInt(it) }.filter { it > 0 }
+        if (list.isEmpty()) return
+        activity.runOnUiThread {
+            for (id in list) runCatching { DownloadStore.remove(activity, id) }   // stops its download too
+            Toast.makeText(activity,
+                if (list.size == 1) "Removed from this phone" else "${list.size} albums removed from this phone",
+                Toast.LENGTH_SHORT).show()
         }
     }
 

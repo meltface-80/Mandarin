@@ -5443,6 +5443,10 @@
       ov.classList.remove("hidden");
     });
   }
+  // For the other parts of the page. The Android app's WebView answers the
+  // browser's own confirm() with "no" (it has no dialog for it), so a
+  // yes/no anywhere in the page is asked with this one.
+  window.__confirmDialog = confirmDialog;
 
   zoneSel.addEventListener("change", async () => {
     const newZoneId  = zoneSel.value;
@@ -13486,6 +13490,12 @@ initServiceBrowser({
   // BEHIND the Settings sheet — there was no visible button to tap).
   let pendingUpdate = false;
   const appUpd = window.__musicdAppUpd;
+  // "0.3.20" newer than "0.3.19", part by part.
+  const verNewer = (x, y) => {
+    const a = String(x).split(".").map(Number), b = String(y).split(".").map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); }
+    return false;
+  };
   let pendingWhat = null;          // { server, app } in the Android app
 
   btn.addEventListener("click", async () => {
@@ -13533,6 +13543,11 @@ initServiceBrowser({
           notesDiv.textContent = s.notes;
           notesDiv.classList.remove("hidden");
         }
+      } else if (a && s && s.current && a.current && verNewer(s.current, a.current)) {
+        // The server is ahead of the app, and GitHub doesn't have the app yet:
+        // it's built after the server's release, a few minutes later.
+        btn.textContent = "App v" + s.current + " is on its way — try again in a few minutes";
+        setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 6000);
       } else {
         btn.textContent = a
           ? "Up to date (server v" + (s && s.current || "?") + ", app v" + (a.current || "?") + ")"
@@ -14104,7 +14119,8 @@ initServiceBrowser({
       b.className = "settings-update-btn server-notice-btn";
       b.textContent = "Forget “" + d.name + "”";
       b.addEventListener("click", async () => {
-        if (!confirm("Forget “" + d.name + "”? Its " + (d.tracks || 0).toLocaleString() + " tracks and their albums leave the library (they come back with a rescan if the folder does).")) return;
+        const ask = "Forget “" + d.name + "”? Its " + (d.tracks || 0).toLocaleString() + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
+        if (!(await (window.__confirmDialog ? window.__confirmDialog(ask) : Promise.resolve(confirm(ask))))) return;
         b.disabled = true;
         try {
           const r = await fetch("/api/library/forget-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: d.dir }) });
@@ -14346,33 +14362,98 @@ initServiceBrowser({
     return "Waiting to start · " + q;
   }
 
+  // Two screens in this pane: the settings, with the albums behind one
+  // "Downloads" folder row — so ten albums or a hundred never push the
+  // settings out of view — and the albums themselves ("albums"), where they
+  // can be removed one at a time, several at once (Select), or all.
+  let view = "settings";
+  let selecting = false;
+  const chosen = new Set();
+  const backSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  const binSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+  const ask = (text) => window.__confirmDialog ? window.__confirmDialog(text) : Promise.resolve(window.confirm(text));
+
+  // Removed without the app asking again: the page has just asked (Yes/No).
+  // An app from before removeMany asks for each album itself.
+  function removeAlbums(ids) {
+    if (!ids.length) return;
+    if (has("removeMany")) { try { dl.removeMany(JSON.stringify(ids)); } catch (e) {} }
+    else for (const id of ids) { try { dl.remove(id); } catch (e) {} }
+    for (const id of ids) chosen.delete(id);
+  }
+
+  function albumRows(list) {
+    return list.map(d => {
+      const al = covers.get(d.id);
+      const art = al && al.image_key ? '<img src="/api/image/' + encodeURIComponent(al.image_key) + '?size=160" alt="" loading="lazy">' : "";
+      const on = chosen.has(d.id);
+      return '<div class="dl-row' + (selecting ? " is-selecting" : "") + (on ? " is-chosen" : "") + '" data-id="' + d.id + '">' +
+        (selecting
+          ? '<button type="button" class="dl-check" data-dl-choose="' + d.id + '" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(d.title) + '"><span class="dl-checkbox">' +
+            (on ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12 10 17 19 7"/></svg>' : "") + "</span></button>"
+          : "") +
+        '<button type="button" class="dl-open" ' + (selecting ? 'data-dl-choose="' + d.id + '"' : 'data-dl-open="' + d.id + '"') + '><span class="dl-art">' + art + "</span>" +
+        '<span class="dl-text"><span class="dl-title">' + esc(d.title) + '</span><span class="dl-artist">' + esc(d.artist) + "</span>" +
+        '<span class="dl-state">' + esc(stateLine(d)) + "</span></span></button>" +
+        (selecting ? "" :
+          (d.state === "done" ? '<button type="button" class="dl-btn" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>' : "") +
+          '<button type="button" class="dl-btn" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' + binSvg + "</button>") +
+        "</div>";
+    }).join("");
+  }
+
+  function renderAlbums(s, list) {
+    const done = list.filter(d => d.state === "done").length;
+    for (const id of [...chosen]) if (!list.some(d => d.id === id)) chosen.delete(id);
+    if (!list.length) selecting = false;
+    const n = chosen.size;
+    pane.innerHTML =
+      '<div class="settings-pane-head">' +
+        '<button class="settings-back" type="button" data-dl-back aria-label="Back to Downloads">' + backSvg + "</button>" +
+        "<h2>Downloads</h2></div>" +
+      '<p class="settings-pane-desc">' + done + (done === 1 ? " album" : " albums") + " on this phone · " + size(s.used || 0) + "</p>" +
+      (list.length
+        ? '<div class="dl-toolbar">' +
+            (selecting
+              ? '<button type="button" class="settings-update-btn" data-dl-select-all>' + (n === list.length ? "Select none" : "Select all") + "</button>" +
+                '<button type="button" class="settings-update-btn" data-dl-select-done>Done</button>'
+              : '<button type="button" class="settings-update-btn" data-dl-select>Select</button>' +
+                '<button type="button" class="settings-update-btn dl-danger" data-dl-clear-all>Clear all</button>') +
+          "</div>" +
+          '<div class="settings-block dl-list">' + albumRows(list) + "</div>" +
+          (selecting
+            ? '<div class="dl-selbar"><span>' + (n ? n + " selected" : "Tap albums to select them") + "</span>" +
+              '<button type="button" class="settings-update-btn dl-danger" data-dl-delete-chosen' + (n ? "" : " disabled") + ">Remove" + (n ? " " + n : "") + "</button></div>"
+            : "")
+        : '<div class="settings-note">Nothing here yet. On an album’s page, choose ⋯ → Download to this phone.</div>');
+    fetchCovers(list.map(d => d.id));
+  }
+
   function render() {
     const s = json(() => dl.settings(), {});
     const list = json(() => dl.all(), []);
+    if (view === "albums") return renderAlbums(s, list);
     const done = list.filter(d => d.state === "done").length;
+    const going = list.length - done;
     const places = s.places || [];
-    const albums = list.length ? list.map(d => {
-      const al = covers.get(d.id);
-      const art = al && al.image_key ? '<img src="/api/image/' + encodeURIComponent(al.image_key) + '?size=160" alt="" loading="lazy">' : "";
-      return '<div class="dl-row" data-id="' + d.id + '">' +
-        '<button type="button" class="dl-open" data-dl-open="' + d.id + '"><span class="dl-art">' + art + "</span>" +
-        '<span class="dl-text"><span class="dl-title">' + esc(d.title) + '</span><span class="dl-artist">' + esc(d.artist) + "</span>" +
-        '<span class="dl-state">' + esc(stateLine(d)) + "</span></span></button>" +
-        (d.state === "done" ? '<button type="button" class="dl-btn" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>' : "") +
-        '<button type="button" class="dl-btn" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' +
-        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>' +
-        "</div>";
-    }).join("") : '<div class="settings-note">Nothing here yet. On an album’s page, choose ⋯ → Download to this phone.</div>';
+    const folderSub = list.length
+      ? done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + (going ? " · " + going + " on the way" : "")
+      : "Nothing downloaded yet";
 
     pane.innerHTML =
       '<div class="settings-pane-head">' +
-        '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings">' +
-          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>' +
+        '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings">' + backSvg +
         "</button><h2>Downloads</h2></div>" +
       '<p class="settings-pane-desc">' + done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + " used</p>" +
 
-      '<div class="settings-block"><div class="settings-subhead">On this phone</div>' + albums + "</div>" +
+      '<div class="settings-block">' +
+        '<button type="button" class="dl-folder" data-dl-folder>' +
+          '<span class="dl-folder-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>' +
+          '<span class="dl-folder-txt"><span class="dl-folder-title">Downloads</span><span class="dl-folder-sub">' + esc(folderSub) + "</span></span>" +
+          '<svg class="dl-folder-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>' +
+        "</button>" +
+      "</div>" +
       '<div class="settings-divider"></div>' +
 
       '<div class="settings-block"><div class="settings-subhead">Downloading</div>' +
@@ -14411,7 +14492,6 @@ initServiceBrowser({
         '<div class="settings-note">Kept on the phone by themselves, in the quality above, and removed again when they drop off the list. Albums you download yourself are never removed.</div>' +
       "</div>";
 
-    fetchCovers(list.map(d => d.id));
     paintCacheStatus();
   }
 
@@ -14432,11 +14512,52 @@ initServiceBrowser({
     try { dl.set(el.getAttribute("data-dl-set"), value); } catch (err) { /* old app */ }
     render();
   });
-  pane.addEventListener("click", (e) => {
+  pane.addEventListener("click", async (e) => {
+    const list = () => json(() => dl.all(), []);
+    const titleOf = id => (list().find(d => d.id === id) || {}).title || "this album";
+    if (e.target.closest("[data-dl-folder]")) { view = "albums"; selecting = false; chosen.clear(); render(); pane.scrollTop = 0; return; }
+    if (e.target.closest("[data-dl-back]")) { view = "settings"; selecting = false; chosen.clear(); render(); return; }
+    if (e.target.closest("[data-dl-select]")) { selecting = true; chosen.clear(); render(); return; }
+    if (e.target.closest("[data-dl-select-done]")) { selecting = false; chosen.clear(); render(); return; }
+    if (e.target.closest("[data-dl-select-all]")) {
+      const all = list().map(d => d.id);
+      if (chosen.size === all.length) chosen.clear(); else all.forEach(id => chosen.add(id));
+      render(); return;
+    }
+    const pick = e.target.closest("[data-dl-choose]");
+    if (pick) {
+      const id = Number(pick.getAttribute("data-dl-choose"));
+      if (chosen.has(id)) chosen.delete(id); else chosen.add(id);
+      render(); return;
+    }
+    if (e.target.closest("[data-dl-delete-chosen]")) {
+      const ids = [...chosen];
+      if (!ids.length) return;
+      const one = ids.length === 1;
+      if (!(await ask("Remove " + (one ? "“" + titleOf(ids[0]) + "”" : ids.length + " albums") + " from this phone?\n\n" +
+                      (one ? "It stays" : "They stay") + " in your library on the server."))) return;
+      removeAlbums(ids);
+      selecting = false;
+      render(); return;
+    }
+    if (e.target.closest("[data-dl-clear-all]")) {
+      const ids = list().map(d => d.id);
+      if (!ids.length) return;
+      if (!(await ask("Remove all " + ids.length + (ids.length === 1 ? " album" : " albums") + " from this phone?\n\n" +
+                      "Everything downloaded goes (downloads under way are stopped). They stay in your library on the server."))) return;
+      removeAlbums(ids);
+      render(); return;
+    }
     const play = e.target.closest("[data-dl-play]");
     if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) {} return; }
     const rm = e.target.closest("[data-dl-remove]");
-    if (rm) { dl.remove(Number(rm.getAttribute("data-dl-remove"))); return; }   // the app asks first
+    if (rm) {
+      const id = Number(rm.getAttribute("data-dl-remove"));
+      if (has("removeMany")) {
+        if (await ask("Remove “" + titleOf(id) + "” from this phone?\n\nIt stays in your library on the server.")) { removeAlbums([id]); render(); }
+      } else dl.remove(id);   // an older app asks itself
+      return;
+    }
     if (e.target.closest("[data-dl-clear-cache]")) {
       try { dl.clearCache(); } catch (err) {}
       paintCacheStatus();
@@ -14452,7 +14573,18 @@ initServiceBrowser({
       }
     }
   });
-  tile.addEventListener("click", render);   // before the sheet shows the pane
+  tile.addEventListener("click", () => { view = "settings"; selecting = false; chosen.clear(); render(); });   // before the sheet shows the pane
+
+  // The phone's Back: out of selecting, then from the albums to the settings.
+  const settingsBack = window.__musicdBack;
+  window.__musicdBack = () => {
+    if (!pane.classList.contains("hidden") && view === "albums") {
+      if (selecting) { selecting = false; chosen.clear(); } else view = "settings";
+      render();
+      return true;
+    }
+    return settingsBack ? settingsBack() : false;
+  };
 
   // Downloads moving on (the app calls this) redraw the pane while it's open.
   const previous = window.__musicdDownloadsChanged;
@@ -14495,20 +14627,18 @@ initServiceBrowser({
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
   }
-  // MusicD's own Tailscale connection (the library away from home): sign in, test.
-  if (typeof app.tailscaleTest === "function") {
-    const t = document.createElement("div");
-    t.className = "settings-row";
-    const l = document.createElement("span");
-    l.className = "settings-label";
-    l.textContent = "Away from home (Tailscale)";
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "settings-update-btn";
-    b.textContent = "Tailscale";
-    b.addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
-    t.appendChild(l); t.appendChild(b);
-    pane.appendChild(t);
+  // This phone's own Tailscale (the app's): in Settings → Away from home,
+  // beside the server's — one place for getting at the library away.
+  const awayPane = document.querySelector('.settings-pane[data-pane="away"]');
+  if (typeof app.tailscaleTest === "function" && awayPane) {
+    const blk = document.createElement("div");
+    blk.className = "settings-block away-phone";
+    blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead">This phone</div>' +
+      '<div class="settings-row"><span class="settings-label">Tailscale on this phone</span>' +
+      '<button type="button" class="settings-update-btn">Tailscale</button></div>' +
+      '<div class="settings-note">The app has its own Tailscale too — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.</div>';
+    blk.querySelector("button").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
+    awayPane.appendChild(blk);
   }
 })();
 
@@ -14587,7 +14717,7 @@ initServiceBrowser({
   function render() {
     if (!st) { body.innerHTML = '<div class="settings-note">Couldn’t ask the server.</div>'; return; }
     if (!st.available) {
-      body.innerHTML = '<div class="settings-note">Tailscale isn’t in this install yet — it comes with the Docker image, not with <i>Check for updates</i>. Pull the new image and re-create the container: <code>docker pull ghcr.io/meltface-80/musicd-server:latest</code>. Tailscale on the machine the server runs on works as before.</div>';
+      body.innerHTML = '<div class="settings-note">Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before.</div>';
       return;
     }
     const toggle = '<label class="switch"><input type="checkbox" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +
@@ -14597,6 +14727,7 @@ initServiceBrowser({
     const words = {
       off: "Off",
       Stopped: "Starting…",
+      Downloading: "Getting Tailscale…",
       Starting: "Starting…",
       NoState: "Starting…",
       NeedsLogin: "Not signed in yet",
@@ -14608,7 +14739,7 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale under Settings → System → Tailscale. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'

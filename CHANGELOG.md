@@ -5,6 +5,32 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.21
+- **Built-in Tailscale without pulling a new image.** Updating from *Settings → Check for updates*
+  brings the server's files but not a new Docker image, so an install updated that way had no
+  Tailscale engine ("Tailscale isn't in this install"). Now the server fetches the engine by itself
+  when its image doesn't carry one — from the "engine" pre-release on GitHub, built for x64 and
+  ARM64 on every change to main, checked against its SHA256SUMS — into the data volume, and again
+  after each server update. One download (the image, once) and in-app updates are all it takes.
+  The engine release is a pre-release, never "latest", so the server's updater doesn't mistake it
+  for a MusicD release.
+- **Downloads as a folder** (Android app). *Settings → Downloads* listed every downloaded album
+  above the settings, so with ten or more the settings were out of view. The albums are now behind
+  one **Downloads** folder row (how many, and the space they take). Inside: each album plays or is
+  removed on its own; **Select** ticks the ones to remove (Select all / none) and removes them
+  together; **Clear all** removes everything. Each asks first, Yes or No. The phone's Back steps
+  out of selecting, then back to the settings.
+- **A yes/no that works in the app.** The Android app answered the browser's own confirm box
+  with "no" without showing it, so *Forget* on a missing music folder (v0.3.20) did nothing
+  there. It, and the new Downloads questions, now use MusicD's own Yes/No dialog.
+- **One place for Tailscale** (Android app): the phone's own Tailscale moves from *System* to
+  *Settings → Away from home*, under *This phone*, beside the server's.
+- **The app update no longer looks a version behind just after an update.** The app looks for its
+  update in a file GitHub serves from a copy kept for up to five minutes — and it's asked most just
+  after the server's update, when the app has only just been built. It now asks GitHub's API
+  (which answers from the repository) first, and when the server is still ahead of the newest app,
+  *Check for updates* says the app update is on its way rather than "Up to date".
+
 ## v0.3.20
 - **Home Screen order: drag a row as far as you like, and it stays.** Holding a row's grip and
   dragging moved it one place and then stopped, and the move wasn't saved — so a row seen moved
