@@ -5,6 +5,31 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.0
+- **Audio Devices sees every player.** Settings → Audio Devices lists the Sonos rooms, the
+  phones running the app and — new — the UPnP/DLNA renderers on the network (a WiiM, a Chord
+  Poly, any streamer, receiver or TV that offers AVTransport), found by SSDP every minute or
+  by **Look again**, or named in `UPNP_HOSTS`. Each is read: its description, what it
+  advertises it can play (ConnectionManager), and — for LinkPlay/WiiM firmware — its own
+  HTTP API, for the name the WiiM app uses and the firmware.
+- **A device's page:** a name of your own (stored on the server, shown in the zone picker,
+  Now playing and everywhere else; the Sonos app keeps its own), what it is, and its
+  capabilities as chips — sample rates, bit depths, DSD (later), formats — each marked with
+  where it came from: known for the model (WiiM range, Chord Poly), advertised, ticked by
+  you, or confirmed by the device. On a renderer, tapping a chip changes what Mandarin may
+  send it; Sonos rooms and phones are read-only. A device that has gone can be forgotten.
+- **The register** (`audio_devices`) survives a library rebuild, like your edits and history.
+- Playing to the renderers — Original, Upsample ×2, ×4, Max — follows in the next versions,
+  per the spec. Nothing about Sonos playback changed.
+
+## v0.4.3
+- **A written plan for UPnP/DLNA renderers** — `docs/specs/audio-devices-upnp.md`: discovery
+  of WiiM, Chord Poly and other renderers, a device register with editable names, the
+  capability layers (advertised, known model, you set, verified), the Audio Devices page,
+  Original / ×2 / ×4 / Max upsampling in 64-bit float out to 24 or 32 bits, gapless via
+  `SetNextAVTransportURI`, verification through the WiiM's own API, the phased builds
+  (v0.5.0–v0.5.3) and the tests. Nothing is built yet; Sonos stays as it is throughout.
+
 ## v0.4.2
 - **The album view:** each track's length sits on the right of its row, as far from the right
   edge as the track number is from the left; the album's text is white rather than cream,

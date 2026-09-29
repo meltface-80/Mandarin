@@ -1080,7 +1080,7 @@
           </button>
           <h2>Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc">Output zone &amp; random album radio</p>
+        <p class="settings-pane-desc">Output zone, your devices &amp; random album radio</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1093,6 +1093,18 @@
               </svg>
             </div>
           </div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <!-- Every player Mandarin can see. Filled by initAudioDevicesPane()
+             in app.js from /api/audio-devices; a row opens the "device" pane. -->
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now." aria-label="Info">ⓘ</button></span>
+            <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+          </div>
+          <div id="devices-list" class="dev-list"></div>
         </div>
 
         <div class="settings-divider"></div>
@@ -1637,6 +1649,19 @@
         <p class="settings-pane-desc">Where your library is read from</p>
         <!-- Filled by initFoldersPane() in app.js from /api/library/folders. -->
         <div class="settings-block" id="folders-pane-body"></div>
+      </div>
+
+      <!-- One audio device: opened from the list in Audio Devices; Back
+           returns there (data-parent), not to the Settings home. -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="device" data-parent="playback">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 id="device-pane-title">Device</h2>
+        </div>
+        <p class="settings-pane-desc" id="device-pane-desc"></p>
+        <div id="device-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="away">

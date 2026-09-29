@@ -41,6 +41,10 @@ const config = {
   dataDir: process.env.DATA_DIR || path.join(__dirname, "data"),
   serverIp: process.env.SERVER_IP || process.env.BRIDGE_IP || "",
   sonosHosts: list(process.env.SONOS_HOSTS),
+  // UPnP/DLNA renderers (WiiM, Chord Poly…): IPs or description URLs to ask
+  // when multicast discovery misses them; multicast can be turned off for tests.
+  upnpHosts: list(process.env.UPNP_HOSTS),
+  upnpMulticast: process.env.UPNP_DISCOVERY !== "0",
   include: list(process.env.INCLUDE_ZONES),
   exclude: list(process.env.EXCLUDE_ZONES),
   scanHours: Number(process.env.SCAN_INTERVAL_HOURS) || 6,
@@ -102,6 +106,12 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
+  // names you give them (Settings → Audio Devices).
+  ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({
+    db, zones, bindIp: config.serverIp || localIp(), seedHosts: config.upnpHosts,
+    multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log
+  });
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
@@ -174,6 +184,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-playback")(app, ctx);
   require("./lib/server/api-playlists")(app, ctx);
   require("./lib/server/api-phone")(app, ctx);
+  require("./lib/server/api-devices")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   require("./lib/server/downloads").mount(app, ctx);
 
@@ -250,6 +261,7 @@ function createServer(overrides = {}) {
     });
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
+    ctx.devices.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
     ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
@@ -264,6 +276,7 @@ function createServer(overrides = {}) {
 
   async function stop() {
     zones.stop();
+    ctx.devices.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);

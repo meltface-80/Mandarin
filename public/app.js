@@ -11869,14 +11869,18 @@ window.__musicdAppUpd = (function () {
     const home = sheet && sheet.querySelector('.settings-view[data-view="home"]');
     return !home || !home.classList.contains("hidden");
   };
-  // One level up: a pane opened from Setup goes back to Setup, anything else home.
+  // One level up: a pane that names its parent (data-parent) goes there, a
+  // pane opened from Setup goes back to Setup, anything else home.
   const stepBack = () => {
     const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
     const name = open && open.getAttribute("data-pane");
+    const parent = open && open.getAttribute("data-parent");
     const inSetup = name && name !== "setup" &&
       sheet.querySelector('.settings-pane[data-pane="setup"] .settings-nav-item[data-pane="' + name + '"]');
-    showView(inSetup ? "setup" : "home");
+    showView(parent || (inSetup ? "setup" : "home"));
   };
+  // For panes filled elsewhere (a device's page, opened from a list row).
+  window.__settingsShowView = showView;
 
   if (sheet) {
     sheet.addEventListener("click", (e) => {
@@ -14974,6 +14978,211 @@ initServiceBrowser({
   pane.addEventListener("click", (e) => {
     if (browsing && e.target.closest("[data-settings-back]")) { e.stopImmediatePropagation(); e.preventDefault(); browsing = null; render(); }
   }, true);
+})();
+
+/* ------------------------------------------------------------------ */
+/*  Settings → Audio Devices: every player Mandarin can see — Sonos     */
+/*  rooms, phones, UPnP renderers — its name (yours, stored on the      */
+/*  server) and what it can take. From home only. Playing to the UPnP   */
+/*  renderers comes in a later version.                                 */
+/* ------------------------------------------------------------------ */
+(function initAudioDevicesPane() {
+  const list = document.getElementById("devices-list");
+  const pane = document.querySelector('.settings-pane[data-pane="playback"]');
+  const navItem = document.querySelector('.settings-nav-item[data-pane="playback"]');
+  const detail = document.querySelector('.settings-pane[data-pane="device"]');
+  const body = document.getElementById("device-pane-body");
+  const title = document.getElementById("device-pane-title");
+  const desc = document.getElementById("device-pane-desc");
+  const rescan = document.getElementById("devices-rescan");
+  if (!list || !pane || !navItem || !detail || !body) return;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
+  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
+  const svg = (paths) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
+  const ICONS = {
+    sonos: svg('<rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/>'),
+    phone: svg('<rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/>'),
+    upnp: svg('<rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="17" cy="12" r="2"/><path d="M5 12h7"/>')
+  };
+  const MARK = { verified: "✓", user: "✎", profile: "◆", advertised: "◆" };
+  const SOURCE = {
+    verified: "Confirmed by the device", user: "You set it", profile: "Known for this model",
+    advertised: "The device advertises it", floor: "Every renderer takes this", sonos: "Sonos plays this",
+    phone: "The phone plays this", later: "DSD comes in a later version", off: "Not offered"
+  };
+  let devices = [], away = false, err = "", current = null, busy = false;
+
+  async function api(url, method, payload) {
+    const r = await fetch(url, method ? { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}) } : { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+    return j;
+  }
+  const fmtRate = hz => String(hz / 1000);
+  const stateWord = d => d.state === "playing" ? "Playing" : d.state === "paused" ? "Paused" : d.online ? "Idle" : "Offline";
+  const when = ts => ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+  async function load() {
+    try { const j = await api("/api/audio-devices"); devices = j.devices || []; away = !!j.away; err = ""; }
+    catch (e) { err = e.message; }
+    renderList();
+    if (current) refreshCurrent();
+  }
+  async function refreshCurrent() {
+    const id = current.id;
+    try {
+      const d = await api("/api/audio-devices/" + encodeURIComponent(id));
+      if (current && current.id === id) { current = d; renderDetail(true); }
+    } catch (e) { /* the list carries the error */ }
+  }
+
+  function renderList() {
+    if (away) { list.innerHTML = '<div class="settings-note">Audio devices are shown at home. Away, this phone is the only player.</div>'; return; }
+    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; return; }
+    let html = "";
+    for (const d of devices) {
+      const sub = [d.model || (d.profile && d.profile.label) || "", d.renamed ? d.network_name : ""].filter(Boolean).join(" · ");
+      html += '<button type="button" class="dev-row' + (d.online ? "" : " is-off") + '" data-dev="' + esc(d.id) + '">' +
+        '<span class="dev-ico">' + (ICONS[d.kind] || ICONS.upnp) + "</span>" +
+        '<span class="dev-txt"><span class="dev-name">' + esc(d.name) + "</span>" + (sub ? '<span class="dev-sub">' + esc(sub) + "</span>" : "") + "</span>" +
+        '<span class="dev-state' + (d.state === "playing" ? " is-playing" : "") + '">' + stateWord(d) + "</span>" +
+        '<span class="dev-chev" aria-hidden="true">›</span></button>';
+    }
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    list.innerHTML = html;
+  }
+
+  function chip(kind, v, label, on, source, editable) {
+    const tag = editable ? "button" : "span";
+    return "<" + tag + (editable ? ' type="button"' : "") + ' class="cap-chip' + (on ? " is-on" : "") + (source === "later" ? " is-later" : "") +
+      '" data-cap="' + kind + '" data-v="' + v + '" title="' + esc(SOURCE[source] || "") + '">' + esc(label) +
+      (on && MARK[source] ? '<span class="cap-mark">' + MARK[source] + "</span>" : "") + "</" + tag + ">";
+  }
+
+  function renderDetail(keepInput) {
+    const d = current;
+    if (!d) return;
+    title.textContent = d.name;
+    desc.textContent = [d.model || (d.profile && d.profile.label) || "", d.manufacturer].filter(Boolean).join(" · ") ||
+      (d.kind === "phone" ? "A phone running the Mandarin app" : "");
+    const inp = keepInput && body.querySelector(".dev-name-input");
+    const draft = inp && document.activeElement === inp ? inp.value : null;
+    const ed = !!d.editable;
+    let html = "";
+
+    html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
+    if (d.kind === "phone") {
+      html += '<div class="dev-kv"><span class="dev-v">' + esc(d.network_name) + '</span></div><div class="settings-note">Named in the app on the phone.</div>';
+    } else {
+      html += '<input class="dev-name-input" type="text" maxlength="60" value="' + esc(draft != null ? draft : d.name) + '" aria-label="Name" autocomplete="off" autocapitalize="words">' +
+        '<div class="settings-note">On the network: ' + esc(d.network_name) +
+        (d.renamed ? ' · <button type="button" class="dev-link" data-dev-reset>Use the network name</button>' : "") +
+        (d.kind === "sonos" ? " · A name for Mandarin only; the Sonos app keeps its own." : "") + "</div>";
+    }
+    html += "</div>";
+
+    const rows = [["Model", d.model], ["Made by", d.manufacturer], ["Firmware", d.firmware], ["Address", d.ip],
+      ["Found by", d.found_by], ["Last seen", d.online ? "Now" : when(d.last_seen)], ["First seen", when(d.first_seen)]].filter(r => r[1]);
+    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">About</div><div class="dev-about">' +
+      rows.map(r => '<div class="dev-kv"><span class="dev-k">' + esc(r[0]) + '</span><span class="dev-v">' + esc(r[1]) + "</span></div>").join("") + "</div>";
+    if (d.kind === "upnp" && !d.playable) html += '<div class="settings-note away-error">This device offers no AVTransport service, so it cannot be played to.</div>';
+    html += "</div>";
+
+    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Capabilities</div>';
+    html += '<div class="cap-group"><span class="cap-label">Sample rates (kHz)</span><div class="cap-chips">' +
+      d.rates.map(r => chip("rate", r.hz, fmtRate(r.hz), r.on, r.source, ed)).join("") + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">Bit depth</span><div class="cap-chips">' +
+      d.bits.map(b => chip("bits", b.n, b.n + "-bit", b.on, b.source, ed)).join("") + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">DSD</span><div class="cap-chips">' +
+      d.dsd.map(x => chip("dsd", x.n, "DSD" + x.n, false, x.source, false)).join("") + "</div></div>";
+    if (d.containers && d.containers.length) {
+      html += '<div class="cap-group"><span class="cap-label">Formats</span><div class="dev-v">' + esc(d.containers.map(c => c.toUpperCase()).join(", ")) + "</div></div>";
+    }
+    html += '<div class="cap-legend">' + (ed ? "Tap a rate or depth to change what Mandarin may send it. " : "") + "✓ confirmed by the device · ◆ known for this model · ✎ you set it · DSD comes in a later version.</div>";
+    if (d.kind === "sonos") html += '<div class="settings-note">Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
+    if (d.kind === "phone") html += '<div class="settings-note">At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
+    if (d.profile && d.profile.notes) html += '<div class="settings-note">' + esc(d.profile.notes) + "</div>";
+    html += "</div>";
+
+    if (d.kind === "upnp") {
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Output</div>' +
+        '<div class="settings-note">Original, Upsample ×2, ×4 and Max arrive with playback to this device in a later version.</div></div>';
+    }
+    if (!d.online) {
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
+        '<button type="button" class="settings-update-btn" data-dev-forget' + (busy ? " disabled" : "") + ">Forget this device</button></div>" +
+        '<div class="settings-note">Its name and settings go. If it turns up again it starts afresh.</div></div>';
+    }
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    body.innerHTML = html;
+  }
+
+  async function open(id) {
+    try { current = await api("/api/audio-devices/" + encodeURIComponent(id)); err = ""; }
+    catch (e) { err = e.message; return renderList(); }
+    renderDetail();
+    if (window.__settingsShowView) window.__settingsShowView("device");
+  }
+  async function patch(payload) {
+    if (!current) return;
+    busy = true;
+    try { current = await api("/api/audio-devices/" + encodeURIComponent(current.id), "PATCH", payload); err = ""; }
+    catch (e) { err = e.message; }
+    busy = false;
+    renderDetail();
+    load();
+  }
+  function toggleChip(el) {
+    const kind = el.getAttribute("data-cap"), v = Number(el.getAttribute("data-v"));
+    if (kind !== "rate" && kind !== "bits") return;
+    const all = kind === "rate" ? current.rates.map(r => ({ v: r.hz, on: r.on })) : current.bits.map(b => ({ v: b.n, on: b.on }));
+    const on = all.filter(x => x.v === v ? !x.on : x.on).map(x => x.v);
+    if (!on.length) { toast("Leave at least one on", "error"); return; }
+    patch({ caps: { user: { [kind === "rate" ? "rates" : "bits"]: on } } });
+  }
+
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-dev]");
+    if (b) open(b.getAttribute("data-dev"));
+  });
+  if (rescan) {
+    rescan.addEventListener("click", async () => {
+      rescan.disabled = true; rescan.textContent = "Looking…";
+      try { const j = await api("/api/audio-devices/rescan", "POST", {}); devices = j.devices || []; err = ""; }
+      catch (e) { err = e.message; }
+      rescan.disabled = false; rescan.textContent = "Look again";
+      renderList();
+    });
+  }
+  body.addEventListener("click", async (e) => {
+    if (!current || busy) return;
+    const c = e.target.closest("button.cap-chip");
+    if (c) return toggleChip(c);
+    if (e.target.closest("[data-dev-reset]")) { await patch({ name: "" }); return toast("Back to its network name"); }
+    if (e.target.closest("[data-dev-forget]")) {
+      if (!(await ask("Forget “" + current.name + "”?\n\nIts name and settings go. If it turns up again it starts afresh."))) return;
+      busy = true;
+      try { await api("/api/audio-devices/" + encodeURIComponent(current.id) + "/forget", "POST", {}); current = null; err = ""; toast("Forgotten"); }
+      catch (x) { err = x.message; }
+      busy = false;
+      if (!current) { await load(); if (window.__settingsShowView) window.__settingsShowView("playback"); }
+      else renderDetail();
+    }
+  });
+  body.addEventListener("change", (e) => {
+    const inp = e.target.closest(".dev-name-input");
+    if (inp && current && inp.value.trim() !== current.name) patch({ name: inp.value.trim() });
+  });
+  body.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.closest(".dev-name-input")) e.target.blur();
+  });
+  navItem.addEventListener("click", () => { current = null; load(); });
+  // Rows and states follow the network while either pane is open.
+  setInterval(() => {
+    if (busy) return;
+    if (!pane.classList.contains("hidden") || !detail.classList.contains("hidden")) load();
+  }, 10000);
 })();
 
 (function initAwayPane() {

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.4.2
+# Mandarin — v0.5.0
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -162,6 +162,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `PORT` | `3500` | The web interface, the API, and where speakers fetch audio. |
 | `TZ` | UTC | Your time zone — Album of the day and Smart Picks change over at local midnight. |
 | `SONOS_HOSTS` | — | A speaker's IP (comma-separated for several), for when multicast discovery is unreliable. One is enough. |
+| `UPNP_HOSTS` | — | UPnP/DLNA renderers to ask by address (an IP, or a description URL like `http://192.168.1.50:49152/description.xml`), for when multicast discovery misses them. |
 | `SERVER_IP` | auto | The address speakers should fetch audio from, for hosts with several network interfaces. |
 | `INCLUDE_ZONES` | — | Offer only these rooms, e.g. `Kitchen,Study`. |
 | `EXCLUDE_ZONES` | — | Offer every room except these. |
@@ -259,6 +260,23 @@ working. For a key nobody else holds, add the `MUSICD_KEYSTORE_BASE64` and
 `MUSICD_KEYSTORE_PASSWORD` secrets (the same ones as Android Random Remote); switching to it
 also needs one uninstall.
 
+## Audio Devices
+
+Settings → **Audio Devices** lists every player Mandarin can see: your Sonos rooms, phones
+running the app, and UPnP/DLNA renderers found on the network — a WiiM, a Chord Poly, a
+streamer, a receiver, a TV. Tap one for what it is and what it can take (sample rates, bit
+depths, formats) and to give it a name of your own, which is what the zone picker and Now
+playing then show. The name lives in Mandarin's database; the Sonos app keeps its own.
+
+A renderer's rates come in layers, and each chip says which: what the device advertises, what
+is known for its model (the WiiM range, the Chord Poly), what you tick, and what it was seen
+to play. Sonos rooms are read-only here (44.1/48 kHz, 16/24-bit — the 24/48 rule). The network
+is searched every minute; **Look again** searches now, and `UPNP_HOSTS` names renderers that
+multicast misses.
+
+Playing to the UPnP renderers — Original, Upsample ×2, ×4 and Max, processed in 64-bit float —
+comes in the next versions, per [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
+
 ## Away from home (Tailscale)
 
 Leave the house and the Android app keeps working over mobile data, like Roon ARC: the phone is
@@ -334,6 +352,9 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
+* Playing to UPnP/DLNA renderers (WiiM, Chord Poly…) with per-device rates and upsampling —
+  they are found and shown in Audio Devices; playback follows, per
+  [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md)
 
 ## Development
 
