@@ -4890,3 +4890,6 @@ body.show-quality .album-quality { display: block; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }
 #away-pane-body .settings-row:first-child { margin-top: 0; }
 #away-pane-body .settings-note { margin-top: 14px; }
+
+/* The notice's own buttons (Forget a missing music folder). */
+.server-notice .server-notice-btn { margin: 10px 8px 0 0; }
