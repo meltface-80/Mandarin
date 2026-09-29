@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.26
+- **MusicD Server is now Mandarin.** The name everywhere you see it: the page, the menu, Settings,
+  sign-in, the home-screen icon's name, messages, the Android app's name, its notifications,
+  widget and Android Auto, the README and the website. Nothing to do: the Docker image
+  (`ghcr.io/meltface-80/musicd-server`), the container and volume names, the app's package and
+  the GitHub repository keep their names, so updates, installs and your data carry on as they are.
+
 ## v0.3.25
 - **A new look: Late-Night Hi-Fi**, now the default (the others stay in Settings → Setup →
   Appearance). Deep green felt with a fine texture, warm cream text and muted gold; titles in

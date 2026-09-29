@@ -94,7 +94,7 @@ object AppUpdate {
                 when {
                     r == null -> if (asked) toast(activity, "Couldn't reach GitHub to look for an update")
                     !r.newerThan(BuildConfig.VERSION_NAME) ->
-                        if (asked) toast(activity, "MusicD is up to date (v${BuildConfig.VERSION_NAME})")
+                        if (asked) toast(activity, "Mandarin is up to date (v${BuildConfig.VERSION_NAME})")
                     !asked && p.getString("snoozed", null) == r.version && now - p.getLong("snoozed_at", 0) < SNOOZE_MS -> {}
                     else -> offer(activity, r)
                 }
@@ -104,7 +104,7 @@ object AppUpdate {
 
     private fun offer(activity: Activity, r: Release) {
         AlertDialog.Builder(activity)
-            .setTitle("Update MusicD")
+            .setTitle("Update Mandarin")
             .setMessage("Version ${r.version} of the app is available (this is ${BuildConfig.VERSION_NAME}). " +
                 "It installs over this one — your sign-in and downloads stay.")
             .setPositiveButton("Update") { _, _ -> download(activity, r) }
@@ -121,7 +121,7 @@ object AppUpdate {
         val dest = apkFile(activity, r)
         if (dest.exists() && (r.sha256.isEmpty() || sha256(dest) == r.sha256)) { install(activity, dest); return }
         val progress = AlertDialog.Builder(activity)
-            .setTitle("Updating MusicD")
+            .setTitle("Updating Mandarin")
             .setMessage("Downloading version ${r.version}…")
             .setCancelable(false)
             .show()
@@ -150,8 +150,8 @@ object AppUpdate {
     private fun install(activity: Activity, apk: File) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
             AlertDialog.Builder(activity)
-                .setTitle("Allow MusicD to install updates")
-                .setMessage("Android asks once: turn on \"Allow from this source\" for MusicD, come back, and tap Update again.")
+                .setTitle("Allow Mandarin to install updates")
+                .setMessage("Android asks once: turn on \"Allow from this source\" for Mandarin, come back, and tap Update again.")
                 .setPositiveButton("Open settings") { _, _ ->
                     runCatching {
                         activity.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${activity.packageName}")))

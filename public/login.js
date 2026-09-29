@@ -34,7 +34,7 @@
       show("signin");
       $("si-user").focus();
     } catch (e) {
-      $("loading").querySelector("p").textContent = "Can't reach MusicD Server. Is the container running?";
+      $("loading").querySelector("p").textContent = "Can't reach Mandarin. Is the container running?";
       setTimeout(status, 5000);
     }
   }

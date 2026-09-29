@@ -1826,13 +1826,13 @@
       // Deliberately not "when you added it": Roon publishes no import date,
       // so this is the extension's own evidence — file timestamps, and albums
       // turning up between library scans.
-      note: "from dates MusicD Remote could work out" },
+      note: "from dates Mandarin could work out" },
     { id: "plays",      label: "Most played",  dir: "desc",
       asc: "Least played first", desc: "Most played first",
-      note: "from plays MusicD Remote has seen" },
+      note: "from plays Mandarin has seen" },
     { id: "lastplayed", label: "Last played",  dir: "desc",
       asc: "Longest ago first", desc: "Most recent first",
-      note: "from plays MusicD Remote has seen" },
+      note: "from plays Mandarin has seen" },
     { id: "random",     label: "Random",       dir: "asc" }   // no direction
   ];
   const LIB_PLAYED_OPTIONS = [
@@ -3579,7 +3579,7 @@
                 "and fills in over time.",
         format: "Read from your own files, and — for albums you have no file for — from " +
                 "the Qobuz or TIDAL account you've connected. Anything from neither has none.",
-        added:  "Date added is when the files arrived in your music folder, as MusicD Server could work " +
+        added:  "Date added is when the files arrived in your music folder, as Mandarin could work " +
                 "out for itself — file timestamps, and albums appearing between scans."
       };
       // Format, Sample rate, Bit depth and Channels all come from the same file
@@ -3634,7 +3634,7 @@
                  () => { libView.played = p.id; });
           }
           if (!f.hasPlays) {
-            note(ls.section, "MusicD Remote hasn't seen anything play yet, so these use an " +
+            note(ls.section, "Mandarin hasn't seen anything play yet, so these use an " +
                              "empty history — everything counts as never played.");
           }
         }
@@ -8457,7 +8457,7 @@
     await loadHomeLayout();
     applyFeatureMenuFromServer();
     const painted = !activeFilter && hydrateHomeFromCache();
-    if (!painted) setBanner("Connecting to MusicD Server…");
+    if (!painted) setBanner("Connecting to Mandarin…");
     for (let i = 0; i < 30; i++) {
       try {
         const r = await fetch("/api/status");
@@ -8491,10 +8491,10 @@
           return;
         }
       } catch (e) {} // /api/status fetch failed — server not ready yet, fall through to "Waiting" banner
-      setBanner("Waiting for MusicD Server to start…");
+      setBanner("Waiting for Mandarin to start…");
       await new Promise(r => setTimeout(r, 2000));
     }
-    setBanner("MusicD Server isn't answering. Check the container is running.", true);
+    setBanner("Mandarin isn't answering. Check the container is running.", true);
   }
   bootstrap();
 })();
@@ -11157,8 +11157,8 @@ window.__musicdAppUpd = (function () {
         if (s && s.current) {
           const parts = (s.current || "").split(".");
           versionEl.textContent = parts.length >= 3
-            ? "MusicD Server v" + parts[0] + "." + parts[1] + " (Build " + parts[2] + ")"
-            : "MusicD Server v" + s.current;
+            ? "Mandarin v" + parts[0] + "." + parts[1] + " (Build " + parts[2] + ")"
+            : "Mandarin v" + s.current;
           versionLoaded = true;
         }
       }
@@ -14248,7 +14248,7 @@ initServiceBrowser({
       // Only a server that stays away for ~15 seconds outside an update is news.
       unreachable++;
       if (!window.__musicdUpdating && unreachable >= 3) {
-        say("Can't reach MusicD Server — check the container is running.", true);
+        say("Can't reach Mandarin — check the container is running.", true);
       } else {
         el.classList.add("hidden");
       }
@@ -14267,7 +14267,7 @@ initServiceBrowser({
     let msg = null, err = false;
     if (j.offline) {
       // The Android app answering for the server (no connection): say so, once, quietly.
-      msg = "Offline — MusicD Server can’t be reached. Showing what’s on this phone.";
+      msg = "Offline — Mandarin can’t be reached. Showing what’s on this phone.";
     } else if (j.data_persistent === false) {
       msg = "Your library, album edits and play history are stored inside the container and will be lost " +
             "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.";
@@ -14901,7 +14901,7 @@ initServiceBrowser({
     const rm = t.getAttribute("data-mf-remove");
     if (rm) {
       const f = st.folders.find(x => x.path === rm) || { name: rm, tracks: 0 };
-      if (!(await ask("Remove “" + f.name + "” from the library?\n\nIts " + (f.tracks || 0).toLocaleString() + " tracks and their albums leave MusicD. The files themselves aren’t touched."))) return;
+      if (!(await ask("Remove “" + f.name + "” from the library?\n\nIts " + (f.tracks || 0).toLocaleString() + " tracks and their albums leave Mandarin. The files themselves aren’t touched."))) return;
       busy = true; render();
       try {
         const j = await api("/api/library/folders", { remove: rm });
@@ -14979,7 +14979,7 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Setup → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Setup → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'

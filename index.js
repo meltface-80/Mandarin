@@ -226,7 +226,7 @@ function createServer(overrides = {}) {
   async function start() {
     library.reload();
     const ff = FF.info();
-    log(`[musicd] MusicD Server ${pkg.version} — music in ${config.musicDir}, data in ${config.dataDir}`);
+    log(`[musicd] Mandarin ${pkg.version} — music in ${config.musicDir}, data in ${config.dataDir}`);
     const parent = path.dirname(config.musicDir), base = path.basename(config.musicDir);
     let strays = [];
     try { strays = fs.readdirSync(parent).filter(n => n !== base && n.startsWith(base) && fs.statSync(path.join(parent, n)).isDirectory()); } catch (e) {}

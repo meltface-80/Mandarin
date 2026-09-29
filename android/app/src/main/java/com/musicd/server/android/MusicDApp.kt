@@ -33,7 +33,7 @@ object CrashLog {
                 val sw = StringWriter()
                 e.printStackTrace(PrintWriter(sw))
                 file(app).writeText(
-                    "MusicD ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
+                    "Mandarin ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
                         "${Build.MANUFACTURER} ${Build.MODEL}\nThread: ${thread.name}\n\n$sw"
                 )
             }
@@ -49,13 +49,13 @@ object CrashLog {
         f.delete()
         if (text.isBlank()) return
         AlertDialog.Builder(activity)
-            .setTitle("MusicD stopped last time")
+            .setTitle("Mandarin stopped last time")
             .setMessage("Sharing the details helps get it fixed.\n\n" + text.take(1200))
             .setPositiveButton("Share details") { _, _ ->
                 runCatching {
                     activity.startActivity(Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_SUBJECT, "MusicD crash")
+                            .putExtra(Intent.EXTRA_SUBJECT, "Mandarin crash")
                             .putExtra(Intent.EXTRA_TEXT, text),
                         "Share crash details"))
                 }

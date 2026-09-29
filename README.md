@@ -4,7 +4,7 @@
 
 </div>
 
-# MusicD Server — v0.3.25
+# Mandarin — v0.3.26
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -13,7 +13,7 @@ scans your music folder, and every Sonos room in the house plays from it —
 controlled from a browser, an iPhone home-screen app, or the native Android app.
 
 ```
- browser / iPhone PWA / Android app ──HTTP──▶  MusicD Server  ──Sonos UPnP──▶  Sonos rooms
+ browser / iPhone PWA / Android app ──HTTP──▶  Mandarin  ──Sonos UPnP──▶  Sonos rooms
                                                    │                               │
                                                    └──── audio: /stream/… ◀────────┘
 ```
@@ -51,7 +51,7 @@ Everything MusicD Remote does that makes sense for a library of files:
 
 ## Formats — the 24/48 rule
 
-Sonos S2 plays up to **24-bit / 48 kHz**. MusicD Server sends each track the best way the
+Sonos S2 plays up to **24-bit / 48 kHz**. Mandarin sends each track the best way the
 speaker can take it:
 
 | Your file | What the speaker gets |
@@ -177,7 +177,7 @@ the wall display and the Home rows are in the app's Settings and are saved in th
 
 ## Your account
 
-MusicD Server has **one account**, kept on the server itself — nothing online. Until it
+Mandarin has **one account**, kept on the server itself — nothing online. Until it
 exists the server does nothing but ask for it:
 
 1. Open `http://<server-ip>:3500` on a device **on your home network** (a browser, the iPhone
@@ -276,9 +276,9 @@ you've downloaded play from the phone.
    Tailscale's page (a free account is enough). The server joins your tailnet by itself as
    **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
    server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
-2. On the phone, sign MusicD's app in to the same account: *Settings → Setup → Away from home → This phone*. The
+2. On the phone, sign Mandarin's app in to the same account: *Settings → Setup → Away from home → This phone*. The
    app carries its own Tailscale too — no Tailscale app needed.
-3. Open MusicD once at home: the app learns the server's tailnet address.
+3. Open Mandarin once at home: the app learns the server's tailnet address.
 
 From then on the app follows the phone's network: on your Wi-Fi it uses the server's home
 address; on mobile data (or anyone else's Wi-Fi) it goes over its own Tailscale connection, and

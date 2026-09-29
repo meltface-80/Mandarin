@@ -1,6 +1,6 @@
 {
-  "name": "MusicD Server",
-  "short_name": "MusicD",
+  "name": "Mandarin",
+  "short_name": "Mandarin",
   "description": "Your own music files on Sonos — random albums, search, playlists and Smart Picks.",
   "start_url": "/",
   "scope": "/",

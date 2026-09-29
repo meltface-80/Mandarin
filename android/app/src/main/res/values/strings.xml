@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MusicD</string>
-    <string name="connect_title">Connect to MusicD Server</string>
+    <string name="app_name">Mandarin</string>
+    <string name="connect_title">Connect to Mandarin</string>
     <string name="tile_random_album">Random album</string>
     <string name="widget_bar_description">Now playing on Sonos, with transport. Tap the cover for a random album.</string>
     <string name="shortcut_change_server">Change server</string>

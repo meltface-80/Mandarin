@@ -473,7 +473,7 @@ class MainActivity : Activity() {
             if (!offline && OfflineSite.has(this@MainActivity)) { goOffline(); return }
             val where = Store.active(this@MainActivity)?.toString() ?: "the server"
             loadFailed = true
-            showError("Can't reach MusicD Server at $where.\n\n${error.description}\n")
+            showError("Can't reach Mandarin at $where.\n\n${error.description}\n")
             // The app's own screen instead of an error: what's on the phone, and its player.
             if (!offlineShown && DownloadStore.albums(this@MainActivity).any { it.first.state == "done" }) {
                 offlineShown = true
