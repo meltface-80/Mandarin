@@ -48,7 +48,7 @@ object PageRelay {
         Thread({
             while (!s.isClosed) {
                 val client = runCatching { s.accept() }.getOrNull() ?: continue
-                Thread({ relay(app, client) }, "page-relay").apply { isDaemon = true; start() }
+                Thread({ safely(client) { relay(app, client) } }, "page-relay").apply { isDaemon = true; start() }
             }
         }, "page-relay-accept").apply { isDaemon = true; start() }
         // A new route: connections on the old one are dropped (they'd only hang).
@@ -82,10 +82,17 @@ object PageRelay {
             runCatching { client.close() }; runCatching { upstream.close() }
             open -= client; open -= upstream
         }
-        Thread({ pipe(upstream.getInputStream(), client.getOutputStream()); done() }, "page-relay-down")
+        // A change of route can close both sockets at any moment, even before
+        // their streams are asked for — that's a dropped connection, never a crash.
+        Thread({ safely(client) { pipe(upstream.getInputStream(), client.getOutputStream()) }; done() }, "page-relay-down")
             .apply { isDaemon = true; start() }
-        pipe(client.getInputStream(), upstream.getOutputStream())
+        safely(client) { pipe(client.getInputStream(), upstream.getOutputStream()) }
         done()
+    }
+
+    /** Runs [work]; anything it throws closes [client] instead of stopping the app. */
+    private inline fun safely(client: Socket, work: () -> Unit) {
+        try { work() } catch (e: Exception) { runCatching { client.close() } }
     }
 
     private fun pipe(from: InputStream, to: OutputStream) {

@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.22
+- **Android: no more "MusicD stopped" when switching between Wi-Fi and mobile data.** On a change
+  of network the app drops the page's connections on the old route; if that landed just as a new
+  connection was opening, the relay tripped over the closed connection and the app stopped. It now
+  just drops that connection, and the page's next request goes the new way.
+
 ## v0.3.21
 - **Built-in Tailscale without pulling a new image.** Updating from *Settings → Check for updates*
   brings the server's files but not a new Docker image, so an install updated that way had no
