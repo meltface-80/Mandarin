@@ -290,6 +290,8 @@
   // light background. Keying palettes on their own attribute means the
   // existing themes are untouched and the new ones inherit all thirteen.
   const THEMES = [
+    { id: "hifi",         label: "Late-Night Hi-Fi", note: "Deep green felt, warm gold, covers that glow",
+      theme: "dark",  palette: "hifi" },
     { id: "dark",         label: "Dark",         note: "The original — cool grey and cyan",
       theme: "dark",  palette: "classic" },
     { id: "light",        label: "Light",        note: "The original — bright and neutral",
@@ -300,7 +302,11 @@
       theme: "light", palette: "copper" },
   ];
   const THEME_KEY = "rra-theme-v2";
-  const DEFAULT_THEME = "dark";
+  const DEFAULT_THEME = "hifi";
+  // v0.3.25 made Late-Night Hi-Fi the look. Once, anyone still on the old
+  // default ("dark", or never chosen) moves to it; a theme picked afterwards
+  // in Settings → Appearance is kept as it always was.
+  const HIFI_MOVE_KEY = "rra-theme-hifi-moved";
   const themeById = (id) => THEMES.find(t => t.id === id) || null;
 
   function applyTheme(id) {
@@ -336,6 +342,12 @@
   function savedThemeId() {
     let id = null;
     try { id = localStorage.getItem(THEME_KEY); } catch (e) { /* private browsing */ }
+    try {
+      if (!localStorage.getItem(HIFI_MOVE_KEY)) {
+        localStorage.setItem(HIFI_MOVE_KEY, "1");
+        if (!id || id === "dark") { localStorage.setItem(THEME_KEY, DEFAULT_THEME); return DEFAULT_THEME; }
+      }
+    } catch (e) { /* private browsing: the default below */ }
     if (themeById(id)) return id;
     // Migrate the v1 key, which only ever held "light" or "dark" — those are
     // still valid theme ids, so the user's choice carries over untouched.
@@ -348,7 +360,6 @@
     } catch (e) { /* private browsing */ }
     // No stored choice: follow the OS, as before. Read once at boot, with no
     // change listener — same behaviour the single toggle had.
-    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
     return DEFAULT_THEME;
   }
 
@@ -661,6 +672,21 @@
         !showable || (showable && rowHidesWhenEmpty(row.id) && !rowHasAnyContent(el)));
     }
   }
+  // The greeting above Home: the part of the day, and the date.
+  function paintGreeting() {
+    const d = new Date(), h = d.getHours();
+    const t = document.getElementById("home-greeting-text");
+    const dt = document.getElementById("home-greeting-date");
+    if (t) t.textContent = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    if (dt) {
+      try { dt.textContent = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }); }
+      catch (e) { dt.textContent = ""; }
+    }
+  }
+  paintGreeting();
+  setInterval(paintGreeting, 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) paintGreeting(); });
+
   async function loadHomeLayout() {
     try {
       const r = await fetch("/api/settings/home-rows");
@@ -1196,9 +1222,10 @@
     album.className = "pick-album";
     album.textContent = pick.album || "";
     meta.appendChild(album);
-    if (full && pick.reason) {
+    if (pick.reason) {
       const why = document.createElement("div");
-      why.className = "pick-reason";
+      // On Home only the Late-Night Hi-Fi theme shows it (one line, under the tile).
+      why.className = full ? "pick-reason" : "pick-reason pick-reason-home";
       why.textContent = pick.reason;
       meta.appendChild(why);
     }
@@ -1521,7 +1548,19 @@
       if (sec) sec.classList.add("hidden");
       return false;
     }
-    if (titleEl) titleEl.textContent = "Label of the week: " + label;
+    if (titleEl) {
+      // "Label of the week: Island" — the name in its own span, which the
+      // Late-Night Hi-Fi theme sets large on its own line under the heading.
+      titleEl.textContent = "Label of the week";
+      const name = document.createElement("span");
+      name.className = "home-lotw-name";
+      const sep = document.createElement("span");
+      sep.className = "home-lotw-sep";
+      sep.textContent = ": ";
+      name.appendChild(sep);
+      name.appendChild(document.createTextNode(label));
+      titleEl.appendChild(name);
+    }
     homeLotw.dataset.label = label;
     if (sec) sec.classList.toggle("hidden", !homeRowOn("lotw"));   // never un-hide a row the layout switched off   // un-hide if a prior attempt hid it
     homeLotw.innerHTML = "";
@@ -5154,6 +5193,23 @@
         if (img.isConnected) img.src = url + "&r=" + tries;
       }, wait);
     };
+    // The cover's own colour, for the glow under it (Late-Night Hi-Fi):
+    // averaged from a few pixels once it has loaded.
+    img.addEventListener("load", () => {
+      try {
+        // Kept on the function, not a module-level let: loadArt runs before
+        // its own position in the file is reached (hoisting; see RETRY_MS).
+        const c = loadArt.glowCanvas || (loadArt.glowCanvas = document.createElement("canvas"));
+        c.width = c.height = 6;
+        const g = c.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, 0, 0, 6, 6);
+        const d = g.getImageData(0, 0, 6, 6).data;
+        let r = 0, gr = 0, b = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
+        const n = d.length / 4;
+        container.style.setProperty("--glow", Math.round(r / n) + "," + Math.round(gr / n) + "," + Math.round(b / n));
+      } catch (e) { /* a cover from elsewhere: the theme's own glow */ }
+    }, { once: true });
     img.src = url;
     container.appendChild(img);
     return img;
@@ -8449,6 +8505,7 @@
 (() => {
   const bar       = document.getElementById("mini-transport");
   const titleEl   = document.getElementById("mt-title");
+  const kickerEl  = document.getElementById("mt-kicker");
   const artistEl  = document.getElementById("mt-artist");
   const artEl     = document.getElementById("mt-art");
   const btnPP     = document.getElementById("mt-playpause");
@@ -8776,9 +8833,13 @@
     const volOutput = (zone.outputs || []).find(o => o.volume);
     const muted = (zone.outputs || []).some(o => o.is_muted);
     const playing = zone.state === "playing" || zone.state === "loading";
-    const barSig = [np.line1, np.line2, np.line3, np.image_key, zone.state, muted].join("|");
+    const fmt = np.format || null;
+    const fmtWord = !fmt ? "" : fmt.kind === "opus" ? ("Opus " + (fmt.text || "").replace(/\s*kbps$/i, "")).trim() : (fmt.text || "");
+    const kicker = [zone.display_name, fmtWord].filter(Boolean).join(" · ");
+    const barSig = [np.line1, np.line2, np.line3, np.image_key, zone.state, muted, kicker].join("|");
     if (barSig !== lastBarSig) {
       lastBarSig = barSig;
+      if (kickerEl) kickerEl.textContent = kicker;
 
       // Title = track, subtitle = artist · album
       titleEl.textContent  = np.line1 || "—";

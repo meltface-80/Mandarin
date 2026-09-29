@@ -3,7 +3,7 @@
   MusicD Server (interface from MusicD Remote) — Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
   Released under the MIT License. See the LICENSE file for details.
 -->
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-palette="hifi">
 <head>
   <meta charset="utf-8">
   <!-- Zoom is off on purpose (v0.1.5): maximum-scale/user-scalable here, touch-action
@@ -395,6 +395,11 @@
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
+      <!-- Good morning / afternoon / evening (Late-Night Hi-Fi only; app.js keeps it current). -->
+      <div class="home-greeting" id="home-greeting" aria-live="off">
+        <div class="home-greeting-date" id="home-greeting-date"></div>
+        <h1 class="home-greeting-text" id="home-greeting-text"></h1>
+      </div>
       <div id="home-sections">
         <!-- data-row is the row's identity. The Home Screen settings page and
              the loader both read it from the HOME_ROWS table in app.js, so the
@@ -721,6 +726,8 @@
            the cover of the thing you are listening to should get you to it. -->
       <img id="mt-art" class="mt-art" alt="" aria-hidden="true">
       <div class="mt-text">
+        <!-- The room and the format, above the track (Late-Night Hi-Fi only). -->
+        <div id="mt-kicker" class="mt-kicker"></div>
         <div id="mt-title"  class="mt-title">—</div>
         <div id="mt-artist" class="mt-artist">—</div>
       </div>
@@ -1555,15 +1562,6 @@
             </span>
           </button>
 
-          <button class="settings-nav-item" type="button" data-pane="system">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Updates</span>
-            </span>
-          </button>
-
           <button class="settings-nav-item" type="button" data-pane="metadata">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/></svg>
@@ -1597,6 +1595,15 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Appearance</span>
+            </span>
+          </button>
+
+          <button class="settings-nav-item" type="button" data-pane="system">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Updates</span>
             </span>
           </button>
 
