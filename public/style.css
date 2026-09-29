@@ -1159,6 +1159,14 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   overflow-wrap: anywhere;   /* long multi-artist credits wrap, never clip */
 }
 .track-list .t-sub:empty { display: none; }
+/* The track's length, on the right, level with the title. The row's own
+   side padding (4px) puts it exactly as far from the right edge as the
+   track number is from the left. */
+.track-list .t-len {
+  flex: 0 0 auto; margin-left: auto;
+  color: var(--text-dim); font-size: 13px; line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Toast                                                              */
@@ -5103,6 +5111,17 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 }
 @media (hover: hover) and (pointer: fine) {
   [data-palette="hifi"] .mt-playpause:hover { background: var(--text); filter: brightness(1.12); }
+}
+
+/* ---- The album view (Mandarin Dark) ------------------------------- */
+/* Its text in white rather than the cream, which read as washed out over
+   the album's colours. */
+[data-theme="dark"][data-palette="hifi"] .modal { --text: #ffffff; }
+[data-theme="dark"][data-palette="hifi"] .modal .track-list li,
+[data-theme="dark"][data-palette="hifi"] .modal .t-title { color: #ffffff; }
+/* Play now and Queue alike in the gold; the rest of the row stays outlined. */
+[data-palette="hifi"] .modal-actions .action-btn {
+  background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700;
 }
 
 /* The theme picker's swatch for this theme: the felt and the gold. */

@@ -6,6 +6,9 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.4.2
+- **The album view:** each track's length sits on the right of its row, as far from the right
+  edge as the track number is from the left; the album's text is white rather than cream,
+  which read as washed out; **Queue** is gold like **Play now**.
 - **Two themes: Mandarin Dark and Mandarin Light.** The four originals (Dark, Light, Copper dark,
   Brass light) are gone. Mandarin Light is the same look on warm cream paper — felt-green ink
   and fills, an old gold for the small capitals, the covers still glowing in their own colour.

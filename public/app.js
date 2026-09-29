@@ -891,6 +891,16 @@
 
   // Build a Home tile that always opens full-library (filter: null) so its
   // offset resolves even when a genre filter was last active.
+  // "Artist · Disc 2 · 4:39" → ["Artist · Disc 2", "4:39"]: the server ends a
+  // track's second line with its length, which the album view shows on the
+  // right of the row instead.
+  function splitTrackLength(sub) {
+    const parts = String(sub || "").split(" · ");
+    const last = parts[parts.length - 1];
+    if (/^\d+:\d{2}(:\d{2})?$/.test(last)) { parts.pop(); return [parts.join(" · "), last]; }
+    return [String(sub || ""), ""];
+  }
+
   function homeTile(a, extraClass) {
     const tile = buildAlbumTile(a, () => openAlbum(a, { source: "home", filter: null }));
     if (extraClass) tile.classList.add(extraClass);
@@ -5942,9 +5952,11 @@
         const ti = document.createElement("span"); ti.className = "t-title";
         ti.textContent = t.title || "";
         const su = document.createElement("span"); su.className = "t-sub";
-        su.textContent = t.subtitle || "";
+        const [subText, len] = splitTrackLength(t.subtitle);
+        su.textContent = subText;
         tx.appendChild(ti); tx.appendChild(su);
         li.appendChild(tx);
+        if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
         modalTracks.appendChild(li);
       }
     } else {
@@ -6846,9 +6858,12 @@
         const ti = document.createElement("span"); ti.className = "t-title";
         ti.textContent = t.title || "";
         const su = document.createElement("span"); su.className = "t-sub";
-        su.textContent = t.subtitle || "";
+        const [subText, len] = splitTrackLength(t.subtitle);
+        su.textContent = subText;
         tx.appendChild(ti); tx.appendChild(su);
         li.appendChild(tx);
+        // The track's length on the right, level with the title.
+        if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
 
         // The select target, on the right. Present from the start but hidden
         // until select mode is armed, so arming it doesn't reflow every row.
