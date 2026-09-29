@@ -15043,11 +15043,17 @@ initServiceBrowser({
     let html = "";
     for (const d of devices) {
       const sub = [d.model || (d.profile && d.profile.label) || "", d.renamed ? d.network_name : ""].filter(Boolean).join(" · ");
-      html += '<button type="button" class="dev-row' + (d.online ? "" : " is-off") + '" data-dev="' + esc(d.id) + '">' +
+      const off = d.can_toggle && !d.enabled;
+      html += '<div class="dev-row' + (d.online ? "" : " is-off") + (off ? " is-disabled" : "") + '">' +
+        '<button type="button" class="dev-open" data-dev="' + esc(d.id) + '">' +
         '<span class="dev-ico">' + (ICONS[d.kind] || ICONS.upnp) + "</span>" +
         '<span class="dev-txt"><span class="dev-name">' + esc(d.name) + "</span>" + (sub ? '<span class="dev-sub">' + esc(sub) + "</span>" : "") + "</span>" +
-        '<span class="dev-state' + (d.state === "playing" ? " is-playing" : "") + '">' + stateWord(d) + "</span>" +
-        '<span class="dev-chev" aria-hidden="true">›</span></button>';
+        '<span class="dev-state' + (d.state === "playing" ? " is-playing" : "") + '">' + (off ? "Off" : stateWord(d)) + "</span>" +
+        '<span class="dev-chev" aria-hidden="true">›</span></button>' +
+        (d.can_toggle ? '<label class="switch dev-switch" title="' + (d.enabled ? "On: offered as a zone" : "Off: not offered as a zone") + '">' +
+          '<input type="checkbox" data-dev-enable="' + esc(d.id) + '"' + (d.enabled ? " checked" : "") + ' aria-label="' + esc(d.name) + ' on">' +
+          '<span class="switch-track"><span class="switch-thumb"></span></span></label>' : "") +
+        "</div>";
     }
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     list.innerHTML = html;
@@ -15071,6 +15077,14 @@ initServiceBrowser({
     const ed = !!d.editable;
     let html = "";
 
+    if (d.can_toggle) {
+      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">' + (d.enabled ? "On" : "Off") + "</span>" +
+        '<label class="switch"><input type="checkbox" data-dev-enable="' + esc(d.id) + '"' + (d.enabled ? " checked" : "") + ' aria-label="On">' +
+        '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+        '<div class="settings-note">' + (d.enabled ? "Offered as a zone: in the zone picker and everywhere you play."
+          : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on." : "Not offered as a zone.")) +
+        "</div></div><div class=\"settings-divider\"></div>";
+    }
     html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
     if (d.kind === "phone") {
       html += '<div class="dev-kv"><span class="dev-v">' + esc(d.network_name) + '</span></div><div class="settings-note">Named in the app on the phone.</div>';
@@ -15149,6 +15163,24 @@ initServiceBrowser({
     const b = e.target.closest("[data-dev]");
     if (b) open(b.getAttribute("data-dev"));
   });
+  // The switch on a row, or on the device's page: on or off, kept on the server.
+  async function setEnabled(id, on, input) {
+    if (busy) { input.checked = !on; return; }
+    busy = true;
+    try {
+      const d = await api("/api/audio-devices/" + encodeURIComponent(id), "PATCH", { enabled: on });
+      if (current && current.id === id) current = d;
+      err = "";
+      toast(on ? d.name + " is on — it’s in the zone picker now" : d.name + " is off");
+    } catch (x) { err = x.message; input.checked = !on; }
+    busy = false;
+    if (current) renderDetail();
+    load();
+  }
+  list.addEventListener("change", (e) => {
+    const inp = e.target.closest("[data-dev-enable]");
+    if (inp) setEnabled(inp.getAttribute("data-dev-enable"), inp.checked, inp);
+  });
   if (rescan) {
     rescan.addEventListener("click", async () => {
       rescan.disabled = true; rescan.textContent = "Looking…";
@@ -15174,6 +15206,8 @@ initServiceBrowser({
     }
   });
   body.addEventListener("change", (e) => {
+    const sw = e.target.closest("[data-dev-enable]");
+    if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
     const inp = e.target.closest(".dev-name-input");
     if (inp && current && inp.value.trim() !== current.name) patch({ name: inp.value.trim() });
   });

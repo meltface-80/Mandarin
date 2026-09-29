@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.2
+- **A switch on every device.** A renderer found on the network is **off until you turn it
+  on**: it is listed in Audio Devices with its details, but not offered as a zone. A Sonos room
+  is on until you turn it off, which takes it out of the zone picker and the room list (a group
+  stays while any of its rooms is on). The switch is on the device's row and at the top of its
+  page; its state is kept in the register, so it survives restarts. Switching a playing renderer
+  off stops it and lets its queue go. Phones have no switch — a phone is always its own player.
+- Upsample ×2, ×4 and Max move to v0.5.3.
+
 ## v0.5.1
 - **UPnP/DLNA renderers play.** A WiiM, a Chord Poly, any renderer with AVTransport that
   takes FLAC is a zone: pick it in the zone picker and the queue, play next, the transport,
