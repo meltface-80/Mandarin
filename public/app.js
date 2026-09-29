@@ -613,7 +613,7 @@
     { id: "picks",    title: "Smart Picks",
       load: () => { loadHomeSmartPicks(); }, isFresh: () => homePicksDay === localDayKey() },
     { id: "random",   title: "Random albums",
-      load: () => { loadHomeRandom(); }, isFresh: () => rowsTtlFresh() },
+      load: () => { loadHomeRandom(); }, isFresh: () => false },
     { id: "library",  title: "Library",
       load: () => { loadHomeLibrary(); }, isFresh: () => homeLibraryKey === libSortKey() },
     { id: "genres",   title: "Browse by genre",
@@ -854,8 +854,9 @@
   if (topbarBack)    topbarBack.addEventListener("click", showHome);
   if (topbarRefresh) topbarRefresh.addEventListener("click", () => loadRandom());
 
-  // Home unplayed/random rows are reused within this TTL instead of being
-  // rebuilt (and re-randomised) on every visit — see showHome.
+  // Home's "Not played" row is reused within this TTL instead of being rebuilt
+  // on every visit — see showHome. Random albums turns over on every visit
+  // (its isFresh is always false): a new handful each time you come back.
   const HOME_ROWS_TTL_MS = 5 * 60 * 1000;
   let homeRowsLoadedAt = 0;
 
@@ -5794,6 +5795,8 @@
     exitTrackSelectMode();
     currentAlbum = album;
     window.__currentAlbum = album;
+    // Its big cover fetched now, so the share card is ready the moment it's asked for.
+    if (album && album.image_key && window.__prewarmShareCard) window.__prewarmShareCard(album.image_key);
     currentSource = opts.source || "random";
     currentSourceZoneId = opts.zoneId || null;
     // An explicit opts.filter (incl. null) wins over the active filter — Home
@@ -6380,6 +6383,31 @@
   modal.addEventListener("click", (e) => {
     if (e.target.closest && e.target.closest("[data-close]")) closeModal();
   });
+
+  // THE PHONE'S BACK BUTTON (Android app): one step back, the way the page's
+  // own buttons go — a dialog, a pop-up, the menu, the share sheet, the album
+  // or Now playing, then from any wall to Home (which is how the Random row
+  // turns over, as the PWA's Back does). Only on Home does the app leave.
+  // Overlays that keep their own history (Qobuz, Tidal, Pitchfork…) are
+  // stepped back through it. Returns true when it did something.
+  const visibleEl = (sel) => { const el = document.querySelector(sel); return el && !el.classList.contains("hidden") ? el : null; };
+  window.__pageBack = () => {
+    const confirmOv = visibleEl("#confirm-overlay");
+    if (confirmOv) { const no = document.getElementById("confirm-no"); if (no) no.click(); return true; }
+    const st = history.state;
+    if (st && typeof st === "object" && Object.keys(st).length) { history.back(); return true; }
+    for (const sel of ["#mt-zone-popover", "#mt-vol-popover"]) {
+      const pop = visibleEl(sel);
+      if (pop) { pop.classList.add("hidden"); return true; }
+    }
+    const menu = visibleEl("#menu-overlay");
+    if (menu) { const c = menu.querySelector("[data-menu-close]"); if (c) c.click(); else menu.classList.add("hidden"); return true; }
+    const share = visibleEl("#share-overlay");
+    if (share) { const c = share.querySelector("[data-share-close]"); if (c) c.click(); return true; }
+    if (!modal.classList.contains("hidden")) { closeModal(); return true; }
+    if ((homeView && homeView.classList.contains("hidden")) || !grid.classList.contains("hidden")) { showHome(); return true; }
+    return false;
+  };
   // np-mode's top-left Home button (the × is hidden there): close the modal
   // and land on the Home screen, leaving any labels/artist view behind.
   const modalHomeBtn = document.getElementById("modal-home-btn");
@@ -10066,6 +10094,60 @@
     if (e.key === "Escape" && !overlay.classList.contains("hidden")) close();
   });
 
+  // What the card shows, from an /api/album/extras answer (or none).
+  function cardFields(j) {
+    const f = { releaseRaw: "", labelText: "", reviewText: "", reviewSource: "", links: null, score: null, bestNew: false };
+    if (j) {
+      if (j.links) f.links = j.links;
+      if (j.year) f.releaseRaw = j.year;
+      if (j.album && j.album.year && !f.releaseRaw) f.releaseRaw = String(j.album.year);
+      if (j.album && j.album.label) f.labelText = String(j.album.label);
+      // Pitchfork's number and their Best New Music flag — never their
+      // prose, which the server nulls before it leaves fetchAlbumBios.
+      if (j.album && j.album.score != null) f.score = j.album.score;
+      if (j.album && j.album.isBestNewMusic) f.bestNew = true;
+      const desc = j.album && j.album.description;
+      // Settings → Share Card → Review switched off: a card without it.
+      const wantReview = !(j.card && j.card.review === false);
+      if (desc && wantReview) {
+        // Card height grows to fit, so show most of the review — capped
+        // (~10 sentences / 1400 chars) against a very long article.
+        let t = String(desc).trim();
+        const sentences = t.match(/[^.!?]+[.!?]+/g);
+        if (sentences && sentences.length > 10) t = sentences.slice(0, 10).join(" ").trim();
+        if (t.length > 1400) t = t.slice(0, 1398).replace(/\s+\S*$/, "") + "…";
+        f.reviewText = t;
+        // Whose prose it is — not where the link goes (kept apart on purpose).
+        if (j.album.description_source) f.reviewSource = String(j.album.description_source);
+      }
+    }
+    f.signature = [f.releaseRaw, f.labelText, f.reviewText, f.reviewSource, f.score, f.bestNew].join("|");
+    return f;
+  }
+  // Draw the card and put it on screen (an object URL: no base64 copy of a
+  // large PNG to make first). Only while this open is still the current one.
+  let cardUrl = null;
+  async function paintCard(f, coverUrl, title, artist, seq) {
+    const blob = await ShareCard.render({
+      coverUrl, wordmarkUrl: null, title, artist,
+      releaseRaw: f.releaseRaw, label: f.labelText, review: f.reviewText,
+      reviewSource: f.reviewSource, score: f.score, bestNewMusic: f.bestNew
+    });
+    if (seq !== shareSeq) return;
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+    cardUrl = URL.createObjectURL(blob);
+    frame.innerHTML = "";
+    const img = document.createElement("img");
+    img.src = cardUrl; img.alt = "Share card";
+    frame.appendChild(img);
+    buildActions(blob, title, artist);
+  }
+  // Called when an album opens: fetch its big cover now, so a share is instant.
+  window.__prewarmShareCard = (imageKey) => {
+    if (!imageKey) return;
+    try { const im = new Image(); im.src = `/api/image/${encodeURIComponent(imageKey)}?size=1000`; } catch (e) { /* only a head start */ }
+  };
+
   // Public entry point — called from album modal share button + mini transport
   async function open(input) {
     const title  = input.title  || "";
@@ -10102,77 +10184,28 @@
     overlay.classList.remove("hidden");
 
     try {
-      await ensureFont();
+      // NEAR-INSTANT: the card is drawn from what the server already knows
+      // (fast=1: its cache, no lookups) — the album is the one on screen, so
+      // title, artist, cover and, almost always, year and review are known.
+      // The full lookup runs alongside; only if it brings something the card
+      // lacked (a review found for the first time) is the card drawn again.
+      const params = new URLSearchParams({ title, artist });
+      const getExtras = (fast) => fetch("/api/album/extras?" + params + (fast ? "&fast=1" : ""), { cache: "no-store" })
+        .then(r => r.ok ? r.json() : null).catch(() => null);
+      const full = getExtras(false);
+      const [, quick] = await Promise.all([ensureFont(), getExtras(true)]);
+      if (mySeq !== shareSeq) return;
 
-      // Best-effort release year + label + review via extras endpoint
-      let releaseRaw = "";
-      let labelText  = "";
-      let reviewText = "";
-      // Whose prose the card ends up showing. NOT `source`, which says where
-      // the link goes — index.js keeps them apart on purpose, or Wikipedia's
-      // writing under a "read it at Pitchfork" link would be a misattribution
-      // pointing the other way.
-      let reviewSource = "";
-      let links      = null;
-      let score      = null;
-      let bestNew    = false;
-      try {
-        const params = new URLSearchParams({ title, artist });
-        const r = await fetch("/api/album/extras?" + params, { cache: "no-store" });
-        if (r.ok) {
-          const j = await r.json();
-          if (j.links) links = j.links;
-          if (j.year) releaseRaw = j.year;
-          if (j.album && j.album.year && !releaseRaw) releaseRaw = String(j.album.year);
-          if (j.album && j.album.label) labelText = String(j.album.label);
-          // Pitchfork's number and their Best New Music flag — never their
-          // prose, which the server nulls before it leaves fetchAlbumBios.
-          // The chip under the card is the link to read it at theirs.
-          if (j.album && j.album.score != null) score = j.album.score;
-          if (j.album && j.album.isBestNewMusic) bestNew = true;
-          const desc = j.album && j.album.description;
-          // Settings → Share Card → Review switched off: a card without it.
-          const wantReview = !(j.card && j.card.review === false);
-          if (desc && wantReview) {
-            // Card height grows to fit, so show most of the review.
-            // Cap generously (~10 sentences / 1400 chars) to avoid an
-            // absurdly tall card from a very long Wikipedia article.
-            let t = String(desc).trim();
-            const sentences = t.match(/[^.!?]+[.!?]+/g);
-            if (sentences && sentences.length > 10) {
-              t = sentences.slice(0, 10).join(" ").trim();
-            }
-            if (t.length > 1400) t = t.slice(0, 1398).replace(/\s+\S*$/, "") + "…";
-            reviewText = t;
-            if (j.album.description_source) reviewSource = String(j.album.description_source);
-          }
-        }
-      } catch { /* keep blank */ }
-
+      // The cover as the page already has it (the server sends covers
+      // immutable, so it's the browser's cached copy, not a new download).
       const coverUrl = input.image_key
-        ? `/api/image/${encodeURIComponent(input.image_key)}?size=1000&t=${Date.now()}`
+        ? `/api/image/${encodeURIComponent(input.image_key)}?size=1000`
         : "";
 
-      const blob = await ShareCard.render({
-        coverUrl,
-        wordmarkUrl: null,
-        title,
-        artist,
-        releaseRaw,
-        label: labelText,
-        review: reviewText,
-        reviewSource,
-        score,
-        bestNewMusic: bestNew
-      });
-
-      const dataUrl = await blobToDataUrl(blob);
-      // Superseded while we were rendering: another record's card is on screen
-      // (or the sheet is closed), and this one must not paint over it.
+      const first = cardFields(quick);
+      await paintCard(first, coverUrl, title, artist, mySeq);
       if (mySeq !== shareSeq) return;
-      frame.innerHTML = `<img src="${dataUrl}" alt="Share card">`;
-      buildActions(blob, title, artist);
-      renderLinks(links);
+      renderLinks(first.links);
       // The card's own Qobuz chip lands on the download store for exactly the
       // same reason the suggestions did, so it gets the same upgrade.
       upgradeQobuzChip(title, artist, mySeq);
@@ -10182,6 +10215,13 @@
       // record while this is still out — and three acts for the previous album
       // under the new one's card is worse than none at all.
       loadSimilar(artist, mySeq);
+
+      const later = cardFields(await full);
+      if (mySeq !== shareSeq) return;
+      if (later.signature !== first.signature) {
+        await paintCard(later, coverUrl, title, artist, mySeq).catch(() => {});
+        if (mySeq === shareSeq && later.links) renderLinks(later.links);
+      }
     } catch (e) {
       if (mySeq !== shareSeq) return;   // a superseded open's failure is not news
       frame.innerHTML = `<div class="share-placeholder">Could not generate the card.</div>`;
@@ -12419,7 +12459,7 @@ window.__musicdAppUpd = (function () {
       head.appendChild(x);
     }
     window.__musicdBack = () => {
-      if (overlay.classList.contains("hidden")) return false;
+      if (overlay.classList.contains("hidden")) return window.__pageBack ? window.__pageBack() : false;
       if (atHome()) close(); else stepBack();
       return true;
     };

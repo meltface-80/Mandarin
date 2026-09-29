@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.4.1
+- **Android: the phone's Back button steps back one level**, the way the page's own buttons do:
+  a dialog, the zone or volume pop-up, the menu, the share sheet, the album or Now playing,
+  then from any album wall to Home. Only on Home does it leave the app. Before, Back from an
+  album or a wall either left the app or went back a whole page load (a reload), which is much
+  of why the app felt less smooth than the PWA. The app also draws a little beyond the screen
+  now, so carousels and walls have their tiles ready as you move.
+- **Random albums turns over every time you come back to Home** — in the app and the PWA alike
+  (it used to keep the same albums for five minutes).
+- **The share card is near-instant.** It's drawn at once from what the server already knows
+  about the album (no online lookups first), with the cover the page already has; if a
+  fuller lookup then finds more (a review for the first time), the card is redrawn with it.
+  The suggested albums follow a moment later, as before. The card's font is now the bundled
+  one — the page no longer waits on Google Fonts, which could stall in the app and away.
+
 ## v0.4.0
 Mandarin, in its new look (Late-Night Hi-Fi, v0.3.25; the name, v0.3.26), with its own icon and
 one last fix:
