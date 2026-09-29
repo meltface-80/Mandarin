@@ -4886,6 +4886,42 @@ body.show-quality .album-quality { display: block; }
 /* Settings → Away from home: values beside their labels, and a problem in red. */
 .away-value { color: var(--text-dim); font-size: 14px; text-align: right; overflow-wrap: anywhere; }
 .away-error { color: var(--danger); }
+
+/* Settings → Music folders: the folders, and choosing one to add. */
+.mf-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+.mf-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--bg-elev-2);
+}
+.mf-ico {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-elev); color: var(--accent-text); font-size: 18px;
+}
+.mf-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mf-name { font-size: 15px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-path { font-size: 12px; color: var(--text-faint); overflow-wrap: anywhere; }
+.mf-state { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.mf-state.is-bad { color: var(--danger); }
+.mf-remove { flex: 0 0 auto; white-space: nowrap; }
+.mf-browse-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.mf-browse-path { flex: 1 1 auto; min-width: 0; font-size: 13px; color: var(--text-dim); overflow-wrap: anywhere; }
+.mf-browse-list {
+  display: flex; flex-direction: column; max-height: 55vh; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--bg-elev-2);
+}
+.mf-dir {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 14px; border: 0; border-bottom: 1px solid var(--border);
+  background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit;
+}
+.mf-dir:last-child { border-bottom: 0; }
+.mf-dir:active { background: var(--bg-elev); }
+.mf-dir .mf-name { flex: 1 1 auto; font-weight: 500; }
+.mf-tag { flex: 0 0 auto; font-size: 12px; color: var(--accent-text); }
+.mf-browse-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+.mf-choose { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }
 #away-pane-body .settings-row:first-child { margin-top: 0; }

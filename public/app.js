@@ -484,8 +484,8 @@
     sec.dataset.row = "downloads";
     sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">Downloaded albums</h2>' +
       '<div class="home-carousel"></div>';
-    // The header opens the phone's own Downloads screen.
-    sec.querySelector("h2").addEventListener("click", () => { try { DL.open(); } catch (e) {} });
+    // The header opens every downloaded album as a wall, like the other rows.
+    sec.querySelector("h2").addEventListener("click", () => showDownloadsWall());
     homeSections.prepend(sec);
     homeDownloads = sec.querySelector(".home-carousel");
   }
@@ -512,32 +512,7 @@
         return;
       }
       if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
-      // Only albums not seen yet are asked for; progress is the phone's own.
-      const missing = list.map(d => d.id).filter(id => !downloadAlbums.has(id));
-      if (missing.length) {
-        const r = await fetch("/api/download/albums", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids: missing })
-        });
-        const j = await r.json();
-        for (const a of (j && j.albums) || []) if (a.exists && a.album) downloadAlbums.set(a.id, a.album);
-      }
-      const frag = document.createDocumentFragment();
-      for (const d of list) {
-        const al = downloadAlbums.get(d.id);
-        if (!al) continue;
-        const tile = homeTile(al);
-        const text = downloadBadge(d);
-        const wrap = tile.querySelector(".album-art-wrap");
-        if (text && wrap) {
-          tile.classList.add("is-downloading");
-          const b = document.createElement("span");
-          b.className = "dl-badge";
-          b.textContent = text;
-          wrap.appendChild(b);
-        }
-        frag.appendChild(tile);
-      }
+      const frag = await downloadTiles(list);
       homeDownloads.innerHTML = "";
       homeDownloads.appendChild(frag);
       homeDownloadsKey = key;
@@ -550,6 +525,53 @@
       if (again) loadHomeDownloads();
     }
   }
+  // Tiles for albums on the phone. The server's own album where it has it;
+  // one it doesn't know right now (its folder missing for a while) still shows,
+  // from what the phone kept, and plays from the phone.
+  async function downloadTiles(list) {
+    const missing = list.map(d => d.id).filter(id => !downloadAlbums.has(id));
+    if (missing.length) {
+      try {
+        const r = await fetch("/api/download/albums", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: missing })
+        });
+        const j = await r.json();
+        for (const a of (j && j.albums) || []) if (a.exists && a.album) downloadAlbums.set(a.id, a.album);
+      } catch (e) { /* the phone's own details below */ }
+    }
+    const frag = document.createDocumentFragment();
+    for (const d of list) {
+      const al = downloadAlbums.get(d.id);
+      const tile = al ? homeTile(al) : buildAlbumTile(
+        { title: d.title || "Album", subtitle: d.artist || "", image_key: d.image_key || null },
+        () => { try { DL.play(d.id); } catch (e) {} if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
+      const text = downloadBadge(d);
+      const wrap = tile.querySelector(".album-art-wrap");
+      if (text && wrap) {
+        tile.classList.add("is-downloading");
+        const b = document.createElement("span");
+        b.className = "dl-badge";
+        b.textContent = text;
+        wrap.appendChild(b);
+      }
+      frag.appendChild(tile);
+    }
+    return frag;
+  }
+  // Every downloaded album, as a wall (the row's header), in the page like any other.
+  async function showDownloadsWall() {
+    enterFullWall("Downloaded albums", true);
+    unplayedWallActive = true;   // a fixed wall: no paging, no refresh
+    const list = downloadList();
+    if (!list.length) { grid.innerHTML = ""; setBanner("Nothing downloaded yet — on an album, ⋯ → Download to this phone.", false); return; }
+    const frag = await downloadTiles(list);
+    if (!unplayedWallActive) return;
+    setBanner(null);
+    grid.innerHTML = "";
+    grid.appendChild(frag);
+  }
+
   // An album downloaded (or started) while the row was off switches it on for
   // good — until the downloads are removed and it's switched off again.
   function downloadsRowOnIfNeeded() {
@@ -14102,31 +14124,43 @@ initServiceBrowser({
   // mounted): its albums are kept, and this says which, with the way to put it
   // back — or to forget it, if it's gone for good.
   function sayMissing(dirs) {
-    const names = dirs.map(d => "“" + d.name + "”").join(", ");
-    const tracks = dirs.reduce((a, d) => a + (d.tracks || 0), 0);
     el.innerHTML = "";
     el.classList.add("error");
     el.classList.remove("hidden");
-    const p = document.createElement("div");
-    p.textContent = (dirs.length === 1 ? "The music folder " : "The music folders ") + names +
-      (dirs.length === 1 ? " isn't" : " aren't") + " there — its " + tracks.toLocaleString() +
-      " tracks are kept, not removed. Add its  -v /path/to/it:" + dirs[0].dir + ":ro  back to the container " +
-      "(or mount the drive) and they're back as they were. Gone for good? Forget " + (dirs.length === 1 ? "it" : "them") + ":";
-    el.appendChild(p);
+    const n = d => (d.tracks || 0).toLocaleString();
     for (const d of dirs) {
+      const p = document.createElement("div");
+      const name = "“" + d.name + "”";
+      let button = "Forget " + name;
+      if (d.reason === "unreadable") {
+        p.textContent = "Part of the music folder " + name + " couldn't be read (a share that dropped, a disk that stalled?) — its " + n(d) +
+          " tracks are kept as they were, and it's read again next scan.";
+        button = null;
+      } else if (d.reason === "vanished") {
+        p.textContent = "Most of " + name + " was gone at once — " + n(d) + " tracks. They're kept, in case it's a drive or share only half there. " +
+          "Deleted them yourself? Then remove them from the library:";
+        button = "Remove the missing ones";
+      } else {
+        p.textContent = "The music folder " + name + (d.missing ? " isn't there" : " is empty") + " — its " + n(d) +
+          " tracks are kept, not removed. Mount the drive or share again (or add its -v line back to the container) and they're back as they were. Gone for good? Forget it:";
+      }
+      el.appendChild(p);
+      if (!button) continue;
       const b = document.createElement("button");
       b.type = "button";
       b.className = "settings-update-btn server-notice-btn";
-      b.textContent = "Forget “" + d.name + "”";
+      b.textContent = button;
       b.addEventListener("click", async () => {
-        const ask = "Forget “" + d.name + "”? Its " + (d.tracks || 0).toLocaleString() + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
-        if (!(await (window.__confirmDialog ? window.__confirmDialog(ask) : Promise.resolve(confirm(ask))))) return;
+        const q = d.reason === "vanished"
+          ? "Remove the tracks in " + name + " whose files are gone? Only those leave the library; anything still there stays."
+          : "Forget " + name + "? Its " + n(d) + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
+        if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
         b.disabled = true;
         try {
           const r = await fetch("/api/library/forget-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: d.dir }) });
           const j = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-          if (window.__showToast) window.__showToast("Forgot “" + d.name + "” — " + (j.removed || 0).toLocaleString() + " tracks");
+          if (window.__showToast) window.__showToast("Removed " + (j.removed || 0).toLocaleString() + " tracks from " + name);
           check();
         } catch (e) { b.disabled = false; if (window.__showToast) window.__showToast(e.message, "error"); }
       });
@@ -14157,7 +14191,7 @@ initServiceBrowser({
     const last = scan.last || {};
     const albums = j.index_count || 0;
     const rooms = (j.sonos && j.sonos.rooms) || 0;
-    const dir = j.music_dir || "/music";
+    const dir = (j.music_dirs && j.music_dirs.join(", ")) || j.music_dir || "/music";
     // The first scan finished after the page drew an empty Home: reload once
     // so every row fills, rather than leaving "No albums" on screen.
     if (albums && el.dataset.wasEmpty === "1") { location.reload(); return; }
@@ -14171,8 +14205,8 @@ initServiceBrowser({
       err = true;
     } else if (!albums) {
       if (j.music_dir_exists === false || last.status === "no-music") {
-        msg = "No music folder at " + dir + " inside the container. Add your library to the docker run command " +
-              "with  -v /path/to/your/Music:" + dir + ":ro  and start it again.";
+        msg = "No music folder at " + dir + ". Add your library in Settings → Music folders — or to the docker run command " +
+              "with  -v /path/to/your/Music:" + (j.music_dir || "/music") + ":ro  and start it again.";
         err = true;
       } else if (scan.running) {
         msg = "Scanning your music folder… " + (scan.files_seen || 0).toLocaleString() +
@@ -14680,6 +14714,123 @@ initServiceBrowser({
 /*  Settings → Away from home: Tailscale built into the server.        */
 /*  Sign in once and the server is on your tailnet by itself.          */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/*  Settings → Music folders: where the library is read from, chosen    */
+/*  here (as in Roon) — any number of folders, anywhere the server can  */
+/*  see. From home only.                                                */
+/* ------------------------------------------------------------------ */
+(function initFoldersPane() {
+  const body = document.getElementById("folders-pane-body");
+  const pane = document.querySelector('.settings-pane[data-pane="folders"]');
+  const navItem = document.querySelector('.settings-nav-item[data-pane="folders"]');
+  if (!body || !pane || !navItem) return;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
+  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
+  const folderSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  let st = null, err = "", busy = false;
+  let browsing = null;   // { path, parent, dirs } while choosing a folder
+
+  async function api(url, payload) {
+    const r = await fetch(url, payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+    return j;
+  }
+  async function load() {
+    try { st = await api("/api/library/folders"); err = ""; } catch (e) { st = null; err = e.message; }
+    render();
+  }
+  async function browse(p) {
+    try { browsing = await api("/api/library/browse?path=" + encodeURIComponent(p || "/")); err = ""; }
+    catch (e) { err = e.message; if (!browsing) browsing = { path: "/", parent: null, dirs: [] }; }
+    render();
+    const list = body.querySelector(".mf-browse-list");
+    if (list) list.scrollTop = 0;
+  }
+
+  function render() {
+    if (browsing) return renderBrowser();
+    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
+    let html = '<div class="mf-list">';
+    for (const f of st.folders) {
+      const state = !f.exists ? "Not there — its albums are kept" : !f.readable ? "Can’t be read — its albums are kept" : (f.tracks || 0).toLocaleString() + " tracks";
+      html += '<div class="mf-row">' +
+        '<span class="mf-ico">' + folderSvg + "</span>" +
+        '<span class="mf-txt"><span class="mf-name">' + esc(f.name) + '</span><span class="mf-path">' + esc(f.path) + '</span>' +
+        '<span class="mf-state' + (f.exists && f.readable ? "" : " is-bad") + '">' + esc(state) + "</span></span>" +
+        (st.folders.length > 1 ? '<button type="button" class="settings-update-btn mf-remove" data-mf-remove="' + esc(f.path) + '"' + (busy ? " disabled" : "") + ">Remove</button>" : "") +
+        "</div>";
+    }
+    html += "</div>";
+    html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-mf-add' + (busy ? " disabled" : "") + ">Add a folder</button></div>";
+    if (st.scanning) html += '<div class="settings-note">Reading your music… new albums appear as they’re found.</div>';
+    html += '<div class="settings-note">' + (st.docker
+      ? "The server sees what its container has mounted. Mount your drives or shares once — e.g. <b>-v /mnt:/mnt:ro</b> — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
+      : "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums.") + "</div>";
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    body.innerHTML = html;
+  }
+
+  function renderBrowser() {
+    const b = browsing;
+    const watched = new Set((st && st.folders || []).map(f => f.path));
+    const inside = [...watched].find(w => b.path === w || b.path.startsWith(w + "/"));
+    let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-mf-cancel>Cancel</button>' +
+      '<span class="mf-browse-path">' + esc(b.path) + "</span></div>";
+    html += '<div class="mf-browse-list">';
+    if (b.parent) html += '<button type="button" class="mf-dir mf-up" data-mf-go="' + esc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
+    for (const d of b.dirs) {
+      html += '<button type="button" class="mf-dir" data-mf-go="' + esc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + esc(d.name) + "</span>" +
+        (watched.has(d.path) ? '<span class="mf-tag">In the library</span>' : "") + "</button>";
+    }
+    if (!b.dirs.length) html += '<div class="settings-note">No folders in here.</div>';
+    html += "</div>";
+    html += '<div class="mf-browse-foot">' + (inside
+      ? '<span class="settings-note">Already in the library (' + esc(inside) + ")</span>"
+      : '<button type="button" class="settings-update-btn mf-choose" data-mf-choose' + (busy || b.path === "/" ? " disabled" : "") + ">Add “" + esc(b.path.split("/").pop() || b.path) + "”</button>") + "</div>";
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    body.innerHTML = html;
+  }
+
+  body.addEventListener("click", async (e) => {
+    const t = e.target.closest("button");
+    if (!t || busy) return;
+    if (t.hasAttribute("data-mf-add")) { err = ""; return browse((st && st.folders[0] && st.folders[0].path.split("/").slice(0, -1).join("/")) || "/"); }
+    if (t.hasAttribute("data-mf-cancel")) { browsing = null; err = ""; return render(); }
+    if (t.hasAttribute("data-mf-go")) { err = ""; return browse(t.getAttribute("data-mf-go")); }
+    if (t.hasAttribute("data-mf-choose")) {
+      busy = true; render();
+      try {
+        st = Object.assign({}, st, await api("/api/library/folders", { add: browsing.path }));
+        browsing = null; err = "";
+        toast("Added — reading its music now");
+      } catch (x) { err = x.message; }
+      busy = false; render();
+      return;
+    }
+    const rm = t.getAttribute("data-mf-remove");
+    if (rm) {
+      const f = st.folders.find(x => x.path === rm) || { name: rm, tracks: 0 };
+      if (!(await ask("Remove “" + f.name + "” from the library?\n\nIts " + (f.tracks || 0).toLocaleString() + " tracks and their albums leave MusicD. The files themselves aren’t touched."))) return;
+      busy = true; render();
+      try {
+        const j = await api("/api/library/folders", { remove: rm });
+        st = Object.assign({}, st, j); err = "";
+        toast("Removed “" + f.name + "” — " + (j.removed || 0).toLocaleString() + " tracks");
+      } catch (x) { err = x.message; }
+      busy = false; render();
+    }
+  });
+  navItem.addEventListener("click", () => { browsing = null; load(); });
+  // While open and a scan is going: the counts follow.
+  setInterval(() => { if (!pane.classList.contains("hidden") && !busy && !browsing && st && st.scanning) load(); }, 4000);
+  // Back (the phone's, or the pane's) while choosing: back to the list first.
+  pane.addEventListener("click", (e) => {
+    if (browsing && e.target.closest("[data-settings-back]")) { e.stopImmediatePropagation(); e.preventDefault(); browsing = null; render(); }
+  }, true);
+})();
+
 (function initAwayPane() {
   const body = document.getElementById("away-pane-body");
   const pane = document.querySelector('.settings-pane[data-pane="away"]');

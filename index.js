@@ -56,7 +56,13 @@ function createServer(overrides = {}) {
   Object.assign(config, overrides);
   const db = DB.open(config.dataDir, { log });
   const library = new Library(db, { musicRoot: config.musicDir, log });
-  const scanner = new Scanner({ db, root: config.musicDir, log });
+  // Where the music is: the folders chosen in Settings → Music folders, or —
+  // until any are — the one the server was started with (MUSIC_DIR).
+  const musicFolders = () => {
+    const v = db.setting("music_folders", null);
+    return Array.isArray(v) && v.length ? v : [config.musicDir];
+  };
+  const scanner = new Scanner({ db, root: config.musicDir, roots: musicFolders, log });
   const artwork = new Artwork({ library, cacheDir: path.join(config.dataDir, "art"), log });
   const transcoder = new STREAM.Transcoder({
     cacheDir: path.join(config.dataDir, "transcode"),

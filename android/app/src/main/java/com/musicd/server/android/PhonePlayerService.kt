@@ -130,6 +130,10 @@ class PhonePlayerService : MediaLibraryService() {
     private val browse = Executors.newFixedThreadPool(2)
     /** This phone's zone, from the server's hello. */
     @Volatile private var zoneId: String? = null
+    /** The server answered the last time it was asked (its long poll is running). */
+    @Volatile private var connected = false
+    /** For the Downloads screen: a downloaded album played now goes through the server. */
+    val serverInReach: Boolean get() = connected && zoneId != null
     /** Android Auto asked for a server album: the server's "load" answers it. */
     private var pendingLoad: SettableFuture<MediaSession.MediaItemsWithStartPosition>? = null
     private lateinit var player: ExoPlayer
@@ -250,12 +254,39 @@ class PhonePlayerService : MediaLibraryService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_PLAY_LOCAL) {
-            playLocal(intent.getIntExtra(EXTRA_ALBUM, 0), intent.getIntExtra(EXTRA_INDEX, 0))
+            playDownloaded(intent.getIntExtra(EXTRA_ALBUM, 0), intent.getIntExtra(EXTRA_INDEX, 0))
         }
         return super.onStartCommand(intent, flags, startId)
     }
 
-    /** A downloaded album, from the phone's own storage. */
+    /**
+     * A downloaded album. With the server in reach it's played through the
+     * server on this phone, like any album — so the whole MusicD page follows
+     * it (Now playing, the bar at the bottom, the queue, history) — and the
+     * tracks still come from the phone's own files ([mediaItem]). With no
+     * server, or if it doesn't know the album, from the phone alone.
+     */
+    private fun playDownloaded(albumId: Int, index: Int) {
+        val zone = zoneId
+        val client = Store.client(this)
+        if (!connected || zone == null || client == null) { playLocal(albumId, index); return }
+        val a = DownloadStore.dirOf(this, albumId)?.let { DownloadStore.load(it) }
+        // [index] counts the tracks on the phone; the server counts the album's.
+        val trackId = localItems(albumId).getOrNull(index)?.mediaId?.toLongOrNull()
+        val serverIndex = a?.tracks?.indexOfFirst { it.id == trackId }?.takeIf { it >= 0 } ?: 0
+        browse.execute {
+            runCatching {
+                val body = JSONObject().put("offset", albumId).put("zone_or_output_id", zone).put("kind", "play_now")
+                if (serverIndex > 0) client.post("/api/play-track", body.put("track", serverIndex), 10_000)
+                else client.post("/api/play", body, 10_000)
+            }.onFailure { e ->
+                Log.i(TAG, "downloaded album $albumId from the phone alone: ${e.message}")
+                main.post { playLocal(albumId, index) }
+            }
+        }
+    }
+
+    /** A downloaded album, from the phone's own storage, with no server. */
     private fun playLocal(albumId: Int, index: Int) {
         val items = localItems(albumId)
         if (items.isEmpty()) return
@@ -332,6 +363,7 @@ class PhonePlayerService : MediaLibraryService() {
                     reportSoon()
                 }
                 sendOfflinePlays(client)
+                connected = true
                 val batch = client.phoneCommands(seq, WAIT_MS)
                 seq = batch.seq
                 failures = 0
@@ -346,11 +378,13 @@ class PhonePlayerService : MediaLibraryService() {
             } catch (e: InterruptedException) {
                 return
             } catch (e: ServerClient.ServerException) {
+                connected = false
                 if (e.signedOut) { main.post { stopSelf() }; return }
                 if (e.status == 409) hello = false            // the server forgot us (restarted): start again
                 failures++
                 pause(minOf(15_000L, 1_000L * failures))
             } catch (e: Exception) {
+                connected = false
                 failures++
                 if (failures == 1) Log.i(TAG, "server unreachable: ${e.message}")
                 pause(minOf(15_000L, 1_000L * failures))
@@ -701,8 +735,14 @@ class PhonePlayerService : MediaLibraryService() {
             val id = mediaItems.firstOrNull()?.mediaId ?: ""
             return when {
                 id.startsWith(LOCAL) -> {
-                    val items = localItems(id.removePrefix(LOCAL).toIntOrNull() ?: -1)
+                    val album = id.removePrefix(LOCAL).toIntOrNull() ?: -1
+                    val items = localItems(album)
                     if (items.isEmpty()) return Futures.immediateFailedFuture(IllegalStateException("not downloaded"))
+                    // With the server in reach, through it (the phone's files still play):
+                    // the car and the MusicD page show the same queue.
+                    val zone = zoneId
+                    val client = Store.client(this@PhonePlayerService)
+                    if (connected && zone != null && client != null) return serverLoad(album, zone, client, items)
                     localMode = true
                     loggedKey = null
                     return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(items, 0, 0L))
@@ -714,23 +754,40 @@ class PhonePlayerService : MediaLibraryService() {
                     if (album == null || zone == null || client == null) {
                         return Futures.immediateFailedFuture(IllegalStateException("server not reachable"))
                     }
-                    val f = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
-                    pendingLoad?.cancel(false)
-                    pendingLoad = f
-                    browse.execute {
-                        runCatching {
-                            client.post("/api/play", JSONObject().put("offset", album)
-                                .put("zone_or_output_id", zone).put("kind", "play_now"), 20_000)
-                        }.onFailure { e -> main.post { if (pendingLoad === f) pendingLoad = null; f.setException(e) } }
-                    }
-                    // The server's answer comes as a "load" command; don't wait for ever.
-                    main.postDelayed({
-                        if (pendingLoad === f) { pendingLoad = null; f.setException(IllegalStateException("no answer")) }
-                    }, 15_000)
-                    return f
+                    return serverLoad(album, zone, client, null)
                 }
                 else -> return super.onSetMediaItems(mediaSession, controller, mediaItems, startIndex, startPositionMs)
             }
+        }
+
+        /**
+         * An album played on this phone through the server; its "load" command
+         * answers. [fallback]: what to play if the server can't (a downloaded album).
+         */
+        private fun serverLoad(
+            album: Int, zone: String, client: ServerClient, fallback: List<MediaItem>?
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val fail = { f: SettableFuture<MediaSession.MediaItemsWithStartPosition>, e: Throwable ->
+                if (fallback != null) {
+                    localMode = true
+                    loggedKey = null
+                    f.set(MediaSession.MediaItemsWithStartPosition(fallback, 0, 0L))
+                } else f.setException(e)
+            }
+            val f = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+            pendingLoad?.cancel(false)
+            pendingLoad = f
+            browse.execute {
+                runCatching {
+                    client.post("/api/play", JSONObject().put("offset", album)
+                        .put("zone_or_output_id", zone).put("kind", "play_now"), 20_000)
+                }.onFailure { e -> main.post { if (pendingLoad === f) { pendingLoad = null; fail(f, e) } } }
+            }
+            // The server's answer comes as a "load" command; don't wait for ever.
+            main.postDelayed({
+                if (pendingLoad === f) { pendingLoad = null; fail(f, IllegalStateException("no answer")) }
+            }, 15_000)
+            return f
         }
     }
 

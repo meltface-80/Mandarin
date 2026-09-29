@@ -305,6 +305,9 @@ class DownloadsActivity : Activity() {
             .setAction(PhonePlayerService.ACTION_PLAY_LOCAL)
             .putExtra(PhonePlayerService.EXTRA_ALBUM, a.id)
             .putExtra(PhonePlayerService.EXTRA_INDEX, index))
+        // With the server there it plays through the server, and the MusicD
+        // page behind this screen shows it in full: back to it.
+        if (intent?.getBooleanExtra(EXTRA_OFFLINE, false) != true && PhonePlayerService.current?.serverInReach == true) finish()
     }
 
     private fun confirmRemove(a: DownloadStore.Album) {

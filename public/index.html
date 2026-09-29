@@ -1087,6 +1087,15 @@
             </span>
           </button>
 
+          <button class="settings-nav-item" type="button" data-pane="folders">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Music folders</span>
+            </span>
+          </button>
+
           <button class="settings-nav-item" type="button" data-pane="away">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg>
@@ -1590,6 +1599,18 @@
       </div>
 
       <!-- System -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="folders">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>Music folders</h2>
+        </div>
+        <p class="settings-pane-desc">Where your library is read from</p>
+        <!-- Filled by initFoldersPane() in app.js from /api/library/folders. -->
+        <div class="settings-block" id="folders-pane-body"></div>
+      </div>
+
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="away">
         <div class="settings-pane-head">
           <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
