@@ -221,6 +221,25 @@ input, textarea, [contenteditable] {
 }
 button { font-family: inherit; }
 
+/* NO TAP FLASH. Android's WebView (and mobile Chrome) paints a translucent
+   blue box over anything tapped unless told otherwise — a rectangle on pill
+   buttons and over whole album tiles. Off everywhere; buttons show that
+   they're pressed below, in their own colour. */
+html, * { -webkit-tap-highlight-color: transparent; }
+
+/* PRESSED = A SHADE OF THE BUTTON'S OWN COLOUR. Lighter on the dark themes,
+   a touch darker on the light ones; the shape stays the button's own (pill,
+   circle, card), never a box. Album tiles are buttons too, but tapping one
+   just opens the album: no press effect (see .album below). */
+button:not(:disabled):not(.album):active,
+a.settings-update-btn:active,
+a.action-btn:active,
+[role="button"]:not(.album):active { filter: brightness(1.22); }
+[data-theme="light"] button:not(:disabled):not(.album):active,
+[data-theme="light"] a.settings-update-btn:active,
+[data-theme="light"] a.action-btn:active,
+[data-theme="light"] [role="button"]:not(.album):active { filter: brightness(.9); }
+
 /* Fixed full-screen shell: header pinned top, <main> scrolls, transport pinned
    bottom (as a fixed sibling). Because the page body never scrolls, the bars
    can't drift when the iOS keyboard opens — the keyboard just overlays the
@@ -653,8 +672,12 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   min-width: 0;   /* prevent overflow from forcing the grid track wider */
   transition: transform .18s ease;
 }
-.album:hover .album-art-wrap { box-shadow: var(--shadow-card); transform: translateY(-2px); }
-.album:active { transform: scale(.985); }
+/* The lift is for a mouse only: on a touch screen :hover sticks to whatever
+   was last tapped, so a tapped album stayed raised as if highlighted. And no
+   press effect on a tile at all — tapping one opens the album. */
+@media (hover: hover) and (pointer: fine) {
+  .album:hover .album-art-wrap { box-shadow: var(--shadow-card); transform: translateY(-2px); }
+}
 
 .album-art-wrap {
   position: relative; width: 100%; aspect-ratio: 1 / 1;
@@ -3855,7 +3878,9 @@ input.vol-range::-moz-range-thumb {
 }
 @keyframes menuSlideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 .menu-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 10px; }
-.menu-brand { font-size: 17px; font-weight: 700; color: var(--text); }
+.menu-brand { font-size: 17px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 10px; }
+.menu-brand-mark { width: 30px; height: 30px; flex: 0 0 auto; }
+[data-palette="hifi"] .menu-brand { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .menu-list { display: flex; flex-direction: column; padding: 4px 8px 16px; gap: 2px; }
 .menu-sep { height: 1px; background: var(--border); margin: 8px; }
 .menu-item {
@@ -4548,8 +4573,10 @@ body.show-quality .album-quality { display: block; }
 }
 .unheard-glyph { font-size: 2.4rem; line-height: 1; color: var(--accent-text); }
 .home-unheard-tile .album-title { color: var(--accent-text); }
-.home-unheard-tile:hover .unheard-art { background: var(--accent); }
-.home-unheard-tile:hover .unheard-glyph { color: var(--on-accent); }
+@media (hover: hover) and (pointer: fine) {
+  .home-unheard-tile:hover .unheard-art { background: var(--accent); }
+  .home-unheard-tile:hover .unheard-glyph { color: var(--on-accent); }
+}
 .home-unheard-tile.spinning .unheard-glyph { animation: unheard-spin 1s linear infinite; }
 @keyframes unheard-spin { to { transform: rotate(360deg); } }
 /* Share sheet — the blob is the payload, so it gets the room and the monospace
@@ -5032,8 +5059,10 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   border-radius: 12px;
   box-shadow: 0 16px 30px -14px rgba(var(--glow, 201,164,92), .7), inset 0 0 0 1px rgba(255,255,255,.05);
 }
-[data-palette="hifi"] .album:hover .album-art-wrap {
-  box-shadow: 0 20px 36px -12px rgba(var(--glow, 201,164,92), .85), inset 0 0 0 1px rgba(255,255,255,.07);
+@media (hover: hover) and (pointer: fine) {
+  [data-palette="hifi"] .album:hover .album-art-wrap {
+    box-shadow: 0 20px 36px -12px rgba(var(--glow, 201,164,92), .85), inset 0 0 0 1px rgba(255,255,255,.07);
+  }
 }
 [data-palette="hifi"] .album-meta { margin-top: 11px; }
 [data-palette="hifi"] .album-title { font-weight: 600; }
@@ -5043,8 +5072,10 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   background: var(--bg-elev); border: 1px dashed rgba(201,164,92,.6); box-shadow: none;
 }
 [data-palette="hifi"] .unheard-glyph { color: var(--accent-text); }
-[data-palette="hifi"] .home-unheard-tile:hover .unheard-art { background: var(--accent-soft); }
-[data-palette="hifi"] .home-unheard-tile:hover .unheard-glyph { color: var(--accent-text); }
+@media (hover: hover) and (pointer: fine) {
+  [data-palette="hifi"] .home-unheard-tile:hover .unheard-art { background: var(--accent-soft); }
+  [data-palette="hifi"] .home-unheard-tile:hover .unheard-glyph { color: var(--accent-text); }
+}
 
 /* Smart Picks on Home: the same glow, and the reason under each. */
 [data-palette="hifi"] .home-carousel .pick-card { width: 156px; }

@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.4.0
+Mandarin, in its new look (Late-Night Hi-Fi, v0.3.25; the name, v0.3.26), with its own icon and
+one last fix:
+- **Mandarin's icon: the MusicD duck as a receiver badge.** The duck in cream on the felt,
+  inside a gold hairline, over a gold level meter — the Android app's launcher icon (adaptive,
+  round and square), the home-screen and browser icons of the web app, the sign-in page and
+  the side menu. The MusicD logo itself is unchanged, and still heads the README and the site.
+- **No blue box on tap.** Tapping an album or a button in the Android app (and mobile browsers)
+  flashed a translucent blue rectangle over it — square even on pill buttons. It's gone.
+  Buttons now show they're pressed in their own shape and colour: a lighter shade on the
+  dark themes, a touch darker on the light ones. Albums show nothing: a tap just opens the
+  album. The raised "hover" look on album tiles is kept for a mouse only, so it no longer
+  sticks to the last album tapped.
+
 ## v0.3.26
 - **MusicD Server is now Mandarin.** The name everywhere you see it: the page, the menu, Settings,
   sign-in, the home-screen icon's name, messages, the Android app's name, its notifications,
