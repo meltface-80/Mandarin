@@ -5,26 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mandarin &mdash; install &amp; docs</title>
 <meta name="description" content="Mandarin &mdash; your own music files played to Sonos devices, with MusicD Remote's interface. Docker install, Android app and docs.">
+<link rel="icon" href="mandarin-icon.png">
 <style>
+  /* Mandarin's own look (the app's Late-Night Hi-Fi): green felt, cream,
+     muted gold; Young Serif titles over Manrope. Mandarin Light for a
+     device in light mode. The --copper names are kept; they're the accent. */
+  @font-face { font-family: "Manrope"; src: url("fonts/manrope.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+  @font-face { font-family: "Young Serif"; src: url("fonts/young-serif.woff2") format("woff2"); font-display: swap; }
   :root {
-    --bg:        #1b1d1f;   /* charcoal */
-    --bg-deep:   #141618;
-    --panel:     #232628;
-    --panel-2:   #2a2d30;
-    --line:      #35393d;
-    --text:      #e8e6e3;
-    --muted:     #a8a49e;
-    --copper:    #3aa0d8;   /* MusicD blue */
-    --copper-hi: #7ac8ff;
-    --copper-dim:#1f5f86;
-    --good:      #7fb47f;
+    --bg:        #132019;   /* felt */
+    --bg-deep:   #0f1a14;
+    --panel:     #1a2a22;
+    --panel-2:   #20322a;
+    --line:      #2d4337;
+    --text:      #efe6d4;
+    --muted:     #a9b3a4;
+    --copper:    #c9a45c;   /* gold */
+    --copper-hi: #d4b06a;
+    --copper-dim:#6e5a32;
+    --accent-wash: rgba(201,164,92,.08);
+    --code:      #e3dccb;
+    --code-dim:  #8d998a;
+    --good:      #8fc19a;
+    --nav-bg:    rgba(15,26,20,.92);
+    --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --serif: "Young Serif", Georgia, serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f2ebdd; --bg-deep: #ebe2d0; --panel: #fbf7ee; --panel-2: #f3ecde; --line: #d9ccb4;
+      --text: #1c2a23; --muted: #4a584f; --copper: #1f4a3a; --copper-hi: #7a5a1f; --copper-dim: #b9a57a;
+      --accent-wash: rgba(31,74,58,.07); --code: #1c2a23; --code-dim: #59645a; --good: #2f6b45;
+      --nav-bg: rgba(242,235,221,.92);
+      --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .18 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
     background: var(--bg);
+    background-image: var(--felt);
     color: var(--text);
     font-family: var(--sans);
     line-height: 1.6;
@@ -38,7 +60,7 @@
   /* ---------- top nav ---------- */
   nav.topnav {
     position: sticky; top: 0; z-index: 50;
-    background: rgba(20,22,24,.92);
+    background: var(--nav-bg);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--line);
   }
@@ -50,45 +72,42 @@
     color: var(--muted); font-size: 14px; font-weight: 500;
   }
   nav.topnav a:hover { color: var(--copper-hi); text-decoration: none; }
-  nav.topnav .brand { color: var(--text); font-weight: 700; letter-spacing: .02em; }
-  nav.topnav .brand span { color: var(--copper); }
+  nav.topnav .brand { color: var(--text); font-family: var(--serif); font-size: 18px; font-weight: 400; display: inline-flex; align-items: center; gap: 8px; }
+  nav.topnav .brand img { width: 26px; height: 26px; }
   nav.topnav .gh { margin-left: auto; }
 
   /* ---------- hero ---------- */
   header.hero {
     text-align: center;
     padding: 48px 20px 40px;
-    background:
-      radial-gradient(ellipse 70% 55% at 50% -10%, rgba(58,160,216,.14), transparent 65%),
-      var(--bg-deep);
+    background: transparent;
     border-bottom: 1px solid var(--line);
   }
   header.hero img.logo {
     max-width: min(560px, 88vw);
     width: 100%; height: auto;
-    border-radius: 14px;
-    box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px -12px rgba(0,0,0,.45);
   }
-  header.hero .wordmark { display: none; font-size: 44px; font-weight: 800; letter-spacing: .03em; }
+  header.hero .wordmark { display: none; font-family: var(--serif); font-size: 52px; font-weight: 400; }
   header.hero .wordmark span { color: var(--copper); }
   header.hero.noimg img.logo { display: none; }
   header.hero.noimg .wordmark { display: block; }
-  header.hero h1 { font-size: 30px; margin-top: 26px; font-weight: 700; }
+  header.hero h1 { font-family: var(--serif); font-size: 34px; margin-top: 26px; font-weight: 400; }
   header.hero p.tag { color: var(--muted); max-width: 640px; margin: 10px auto 0; font-size: 16px; }
   .badges { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .badge {
     display: inline-block; font-size: 12.5px; font-weight: 600;
     padding: 4px 12px; border-radius: 999px;
     border: 1px solid var(--copper-dim); color: var(--copper-hi);
-    background: rgba(58,160,216,.08);
+    background: var(--accent-wash);
   }
   .badge.plain { border-color: var(--line); color: var(--muted); background: transparent; }
 
   /* ---------- sections ---------- */
   section { padding: 52px 0 8px; scroll-margin-top: 56px; }
   section > .wrap > h2 {
-    font-size: 24px; font-weight: 700; margin-bottom: 6px;
-    padding-left: 14px; border-left: 3px solid var(--copper);
+    font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 6px;
   }
   section > .wrap > p.lead { color: var(--muted); margin-bottom: 26px; max-width: 720px; }
 
@@ -104,7 +123,7 @@
   }
   .flow .node b { display: block; font-size: 14.5px; font-weight: 650; }
   .flow .node span { font-size: 12.5px; color: var(--muted); }
-  .flow .node.mid { border-color: var(--copper); background: rgba(58,160,216,.07); }
+  .flow .node.mid { border-color: var(--copper); background: var(--accent-wash); }
   .flow .arrow { color: var(--copper); font-size: 18px; text-align: center; }
   .flow-note { font-size: 13.5px; color: var(--muted); margin-bottom: 26px; }
   @media (max-width: 700px) {
@@ -123,7 +142,7 @@
     border-radius: 12px;
     padding: 18px 18px 16px;
   }
-  .card h3 { font-size: 15.5px; font-weight: 650; margin-bottom: 6px; }
+  .card h3 { font-family: var(--serif); font-size: 17px; font-weight: 400; margin-bottom: 6px; }
   .card h3 .em { margin-right: 8px; }
   .card p { font-size: 13.5px; color: var(--muted); }
 
@@ -138,11 +157,11 @@
     padding: 18px; padding-top: 40px;
     overflow-x: auto;
     font: 13px/1.55 var(--mono);
-    color: #d8d4cf;
+    color: var(--code);
     white-space: pre;
   }
   .codebox pre .k { color: var(--copper-hi); }     /* flags / keys */
-  .codebox pre .c { color: #77726c; }              /* comments */
+  .codebox pre .c { color: var(--code-dim); }       /* comments */
   .copy-btn {
     position: absolute; top: 10px; right: 10px;
     font: 600 12px var(--sans); cursor: pointer;
@@ -162,7 +181,7 @@
   }
   .note {
     font-size: 13px; color: var(--muted);
-    background: rgba(58,160,216,.06);
+    background: var(--accent-wash);
     border: 1px solid var(--copper-dim);
     border-radius: 10px; padding: 12px 14px;
   }
@@ -174,7 +193,7 @@
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 12px; padding: 20px;
   }
-  .info-card h3 { font-size: 17px; margin-bottom: 4px; }
+  .info-card h3 { font-family: var(--serif); font-size: 19px; font-weight: 400; margin-bottom: 4px; }
   .info-card .sym { font-size: 12px; font-weight: 700; color: var(--copper-hi); letter-spacing: .06em; text-transform: uppercase; }
   .info-card p { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
   .info-card .fine { font-size: 12.5px; color: var(--muted); margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
@@ -258,7 +277,7 @@
 
 <nav class="topnav">
   <div class="wrap">
-    <a class="brand" href="#top">Mandarin</a>
+    <a class="brand" href="#top"><img src="mandarin-icon.png" alt="">Mandarin</a>
     <a href="#how">How it works</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
@@ -270,14 +289,17 @@
 </nav>
 
 <header class="hero" id="top">
-  <img class="logo" src="IMG_8974.jpeg" alt="MusicD" onerror="this.closest('header').classList.add('noimg')">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="mandarin-logo-light.png">
+    <img class="logo" src="mandarin-logo-dark.png" alt="Mandarin by MusicD" onerror="this.closest('header').classList.add('noimg')">
+  </picture>
   <div class="wordmark">Mandarin</div>
   <h1>Your own music files played to Sonos devices</h1>
   <p class="tag">A small server on a machine you own scans your music folder, and every Sonos
      room in the house plays from it &mdash; with MusicD Remote's interface in a browser, on an
      iPhone home screen, or in the Android app. No Roon, no Plex, no accounts. Definitely no nonsense about better sound quality.</p>
   <div class="badges">
-    <span class="badge">v0.4.1</span>
+    <span class="badge">v0.4.2</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos only</span>

@@ -1,10 +1,13 @@
 <div align="center">
 
-<img width="800" alt="MusicD" src="docs/IMG_8974.jpeg" />
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/mandarin-logo-light.png">
+  <img width="800" alt="Mandarin by MusicD" src="docs/mandarin-logo-dark.png">
+</picture>
 
 </div>
 
-# Mandarin — v0.4.1
+# Mandarin — v0.4.2
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 

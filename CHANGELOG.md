@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.4.2
+- **Two themes: Mandarin Dark and Mandarin Light.** The four originals (Dark, Light, Copper dark,
+  Brass light) are gone. Mandarin Light is the same look on warm cream paper — felt-green ink
+  and fills, an old gold for the small capitals, the covers still glowing in their own colour.
+  Anyone on an old light theme moves to Mandarin Light, everyone else to Mandarin Dark.
+- **The side menu, sign-in page and home-screen icons show Mandarin's badge everywhere.** A
+  phone could keep showing the old black duck from its cache; the icons now have new
+  addresses, so every device fetches the badge.
+- **The README and the website are in Mandarin's look:** the "Mandarin by MusicD" logo (a dark
+  and a light version, following the reader's setting), green felt and gold (cream in light
+  mode), and the app's own typefaces.
+
 ## v0.4.1
 - **Android: the phone's Back button steps back one level**, the way the page's own buttons do:
   a dialog, the zone or volume pop-up, the menu, the share sheet, the album or Now playing,
