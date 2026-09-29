@@ -51,6 +51,22 @@ class FakeRenderer {
     this.position = 0; this.at = Date.now();
     this.volume = 25; this.muted = false;
     this.endTimer = null;
+    this.subscribers = [];      // GENA: [{ sid, callback }]
+    this.notified = 0;
+  }
+
+  /* NOTIFY every subscriber that the transport changed (LastChange). */
+  notify() {
+    const lc = XML.escape(`<Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/"><InstanceID val="0"><TransportState val="${this.state}"/><CurrentTrackURI val="${XML.escape(this.uri)}"/></InstanceID></Event>`);
+    const body = `<?xml version="1.0"?><e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0"><e:property><LastChange>${lc}</LastChange></e:property></e:propertyset>`;
+    for (const s of this.subscribers) {
+      const u = new URL(s.callback);
+      const req = http.request({ hostname: u.hostname, port: u.port || 80, path: u.pathname, method: "NOTIFY",
+        headers: { "Content-Type": 'text/xml; charset="utf-8"', NT: "upnp:event", NTS: "upnp:propchange", SID: s.sid, SEQ: String(this.notified) } }, (res) => { res.resume(); });
+      req.on("error", () => {});
+      req.end(body);
+      this.notified++;
+    }
   }
 
   get location() { return `http://127.0.0.1:${this.port}/description.xml`; }
@@ -115,10 +131,12 @@ class FakeRenderer {
         this.setPos(0);
         this.fetchCurrent();
         this.armEnd();
+        this.notify();
       } else {
         this.log.push("ended");
         this.state = "STOPPED";
         this.setPos(0);
+        this.notify();
       }
     }, left * 1000 + 20);
     this.endTimer.unref();
@@ -199,6 +217,23 @@ class FakeRenderer {
         }
         return res.end("unknown command");
       }
+      if (req.method === "SUBSCRIBE") {
+        if (req.headers.sid) {
+          const s = this.subscribers.find(x => x.sid === req.headers.sid);
+          res.writeHead(s ? 200 : 412, s ? { SID: s.sid, TIMEOUT: "Second-1800" } : {}); return res.end();
+        }
+        const cb = (/<([^>]+)>/.exec(req.headers.callback || "") || [])[1];
+        if (!cb) { res.writeHead(412); return res.end(); }
+        const sid = "uuid:sub-" + (this.subscribers.length + 1) + "-" + Date.now();
+        this.subscribers.push({ sid, callback: cb });
+        res.writeHead(200, { SID: sid, TIMEOUT: "Second-1800" }); res.end();
+        setTimeout(() => this.notify(), 50);   // the initial event, as the spec asks
+        return;
+      }
+      if (req.method === "UNSUBSCRIBE") {
+        this.subscribers = this.subscribers.filter(x => x.sid !== req.headers.sid);
+        res.writeHead(200); return res.end();
+      }
       if (req.method === "POST") {
         const chunks = [];
         req.on("data", c => chunks.push(c));
@@ -213,8 +248,10 @@ class FakeRenderer {
           res.setHeader("Content-Type", 'text/xml; charset="utf-8"');
           if ((service === AVT && this.noAvTransport) || !actionTag) { res.statusCode = 404; return res.end(); }
           try {
+            const before = this.state + "|" + this.uri;
             const out = this.handle(actionTag, args);
             res.end(envelope(actionTag, service, out));
+            if (this.state + "|" + this.uri !== before) this.notify();
           } catch (code) {
             res.statusCode = 500;
             res.end(fault(typeof code === "number" ? code : 501));

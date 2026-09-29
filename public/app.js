@@ -15139,7 +15139,9 @@ initServiceBrowser({
     html += "</div>";
 
     const rows = [["Model", d.model], ["Made by", d.manufacturer], ["Firmware", d.firmware], ["Address", d.ip],
-      ["Found by", d.found_by], ["Last seen", d.online ? "Now" : when(d.last_seen)], ["First seen", when(d.first_seen)]].filter(r => r[1]);
+      ["Found by", d.found_by], ["Standard", d.kind === "upnp" ? (d.openhome ? "UPnP AV + OpenHome" : "UPnP AV / DLNA") : ""],
+      ["Updates", d.kind === "upnp" && d.playable ? (d.events === "live" ? "Sent by the device (events)" : "Read every few seconds") : ""],
+      ["Last seen", d.online ? "Now" : when(d.last_seen)], ["First seen", when(d.first_seen)]].filter(r => r[1]);
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">About</div><div class="dev-about">' +
       rows.map(r => '<div class="dev-kv"><span class="dev-k">' + esc(r[0]) + '</span><span class="dev-v">' + esc(r[1]) + "</span></div>").join("") + "</div>";
     if (d.kind === "upnp" && !d.playable) html += '<div class="settings-note away-error">This device offers no AVTransport service, so it cannot be played to.</div>';
@@ -15182,9 +15184,17 @@ initServiceBrowser({
         seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
         (has32 ? '<div class="cap-group"><span class="cap-label">Bit depth</span>' +
           seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
+          "" +
           (!o.flac32 ? '<div class="settings-note">32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
         '<div class="settings-note">' + esc(example) + " Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
-        (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ". Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes.</div></div>";
+        (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ". Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes.</div>" +
+        (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label">Fixed volume</span>' +
+          '<label class="switch"><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
+          '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+          '<div class="settings-note">' + (d.volume_fixed
+            ? "The volume is set on the device itself (its knob, or its line out on fixed), so Mandarin shows no slider for it."
+            : "Mandarin’s slider and mute drive the device. Turn on if the device’s volume is fixed — a WiiM on fixed line out, a Poly feeding a Mojo.") + "</div>" : "") +
+        "</div>";
     }
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
@@ -15275,6 +15285,8 @@ initServiceBrowser({
   body.addEventListener("change", async (e) => {
     const sw = e.target.closest("[data-dev-enable]");
     if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
+    const fv = e.target.closest("[data-dev-fixvol]");
+    if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
     const rd = e.target.closest("[data-dev-radio]");
     if (rd) {
       const on = rd.checked;

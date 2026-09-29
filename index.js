@@ -114,6 +114,7 @@ function createServer(overrides = {}) {
   });
   // The renderers as zones, beside the Sonos rooms and the phones.
   zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
+  zones.upnp.callbackBase = () => ctx.baseUrl();
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
@@ -129,6 +130,19 @@ function createServer(overrides = {}) {
 
   const app = express();
   app.disable("x-powered-by");
+  // A renderer's NOTIFY (UPnP eventing, lib/renderers/gena.js): the device
+  // saying its transport changed. Before the gate — a device can't sign in —
+  // and before the JSON parser: it is XML, and only ever wakes a read.
+  app.use("/upnp/event", (req, res, next) => {
+    if (req.method !== "NOTIFY") return next();
+    const chunks = [];
+    req.on("data", c => { if (chunks.length < 64) chunks.push(c); });
+    req.on("end", () => {
+      const id = decodeURIComponent(req.path.replace(/^\//, "").split("/")[0] || "");
+      try { zones.upnp.onNotify(id, require("./lib/renderers/gena").parseNotify(Buffer.concat(chunks).toString("utf8"))); } catch (e) { /* a malformed event is ignored */ }
+      res.statusCode = 200; res.end();
+    });
+  });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);
   auth.mount(app);

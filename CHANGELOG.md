@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.6
+- **Renderers send their changes (UPnP events).** Mandarin subscribes to each renderer's
+  AVTransport events (GENA) with a callback on its own port, renews in time, and reads the
+  device the moment it says something changed — a pause from the device's own app, a track
+  ending — instead of asking every second. Position isn't evented, so a playing device is
+  still read every few seconds for it, and every second while its page is open. A device that
+  refuses subscriptions is polled as before. The device's page says which: *Updates: sent by
+  the device (events)* or *read every few seconds*. Docker users need host networking for the
+  callback, as they do for streams.
+- **Fixed volume is a switch** on a renderer's page (never a Sonos room, never a TV): on, the
+  device's own knob or fixed line out is the volume and Mandarin shows no slider; off,
+  Mandarin's slider and mute drive it. The Chord Poly's profile starts it on.
+- **OpenHome is recognised.** A renderer that also offers OpenHome's services (Linn,
+  upmpdcli, some Naim/Auralic) says *UPnP AV + OpenHome* on its page; it is still driven
+  through AVTransport.
+- Not planned any more: WiiM multiroom grouping. DSD comes when the owner says.
+
 ## v0.5.5
 - **The mini transport bar is always there** — on Home, on every album wall, whether or not
   anything is playing — so a zone can be picked from it (the speaker button) without a trip to
