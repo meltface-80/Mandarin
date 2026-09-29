@@ -34,12 +34,12 @@
        confirmed correct. Cost meanwhile: Android and desktop lose the
        install prompt. iOS is unaffected — it takes the icon from
        rel="apple-touch-icon" below, which is why the duck still appears. -->
-  <link rel="icon" href="/icons/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" href="/icons/favicon.ico?v=mandarin" sizes="any">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png?v=mandarin">
   <!-- iOS reads only this one, ignores the manifest's icons, and composites
        any transparency onto white — so it is pre-flattened onto the logo's
        own black. -->
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=mandarin">
   <meta name="apple-mobile-web-app-title" content="Mandarin">
 
   <!-- DELIBERATELY ABSENT: apple-mobile-web-app-capable,
@@ -263,7 +263,7 @@
     <div class="menu-backdrop" data-menu-close></div>
     <nav class="menu-drawer">
       <div class="menu-head">
-        <span class="menu-brand"><img class="menu-brand-mark" src="/icons/icon-192.png" alt="" width="30" height="30">Mandarin</span>
+        <span class="menu-brand"><img class="menu-brand-mark" src="/icons/icon-192.png?v=mandarin" alt="" width="30" height="30">Mandarin</span>
         <button class="icon-btn" type="button" aria-label="Close menu" data-menu-close>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

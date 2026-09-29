@@ -118,7 +118,7 @@
 /*  data-theme  = dark | light    — the FAMILY. Drives the thirteen    */
 /*                                  component rules further down this  */
 /*                                  file ([data-theme="light"] .foo).  */
-/*  data-palette = classic | copper — the COLOURS. Tokens only.        */
+/*  data-palette = hifi — Mandarin's colours (at the end of this file) */
 /*                                                                     */
 /*  Both palette blocks are qualified by family, because --on-accent   */
 /*  is family-dependent: a dark palette prints near-black on its fill, */
@@ -126,77 +126,6 @@
 /*  the brass theme the copper theme's dark on-accent.                 */
 /*  Specificity (0,2,0) beats the family blocks above (0,1,0).         */
 /* ------------------------------------------------------------------ */
-
-/* Copper dark — the MusicD site's palette. Eight of these are that site's
-   values verbatim; the rest are derived to fit tokens it has no concept of. */
-[data-theme="dark"][data-palette="copper"] {
-  /* Same move as the classic dark palette, delta (+18,+20,+21). #2d3134 is
-     the colour the copper top bar was already showing and the one the app is
-     now built around. */
-  --bg:           #2d3134;
-  --bg-elev:      #353a3d;
-  --bg-elev-2:    #3c4145;
-  --border:       #474d52;
-  --text:         #e8e6e3;
-  /* Lifted with the ground (v1.7.87), and past its own minimum: this theme
-     holds --text-faint to the full 4.5 too, so solving each in isolation
-     closed the gap between the two tiers to a single level. */
-  --text-dim:     #bdb9b3;
-  /* The site has only two text tiers; this third one is derived from --text-dim
-     and darkened until it clears 4.5:1 on the DEEPEST surface (4.61 on
-     --bg-elev-2). The current dark theme's equivalent fails at 2.64. */
-  --text-faint:   #b2aca4;
-  /* Copper for fills, a lighter copper for text. This is not a preference:
-     #c47f4a as text on --bg-elev-2 measures 4.27:1, a real failure, while
-     #d99a66 gives 5.78. The site itself splits them the same way. */
-  --accent:       #c47f4a;
-  --accent-text:  #dfa06c;
-  --accent-soft:  rgba(196,127,74,.15);
-  /* Warm near-black rather than the cool #0b1418, so a copper fill doesn't
-     read blue-shadowed. 5.74:1. */
-  --on-accent:    #17120d;
-  --bg-veil:    rgba(45,49,52,.84);
-  --glass-edge: rgba(255,255,255,.10);
-  /* Hue 3 degrees against copper's 26, and light enough to clear 4.5:1 on
-     every surface including the deepest (4.81). */
-  --danger:       #e8776f;
-  /* Warm white rather than pure white — a neutral hairline reads faintly blue
-     against charcoal. */
-  --panel-hairline: rgba(235,228,220,.08);
-  /* --bg here is 2.4x lighter than the classic dark background, so identical
-     shadows read weaker. Alphas lifted to compensate. */
-  --shadow-card:  0 2px 6px rgba(0,0,0,.50), 0 10px 24px rgba(0,0,0,.40);
-  --shadow-modal: 0 24px 64px rgba(0,0,0,.62);
-}
-
-/* Brass light — designed, because the site has no light mode. The restraint
-   is in the CHROMA, not the hue: the neutrals sit a few points of yellow above
-   grey, which reads as paper rather than as a yellow wash, and all the colour
-   weight lives in the accent. Elevation runs the same direction as the classic
-   light theme (elev lighter than bg), so existing depth cues still work. */
-[data-theme="light"][data-palette="copper"] {
-  --bg:           #f7f4ed;
-  --bg-elev:      #fffdf8;
-  --bg-elev-2:    #fbf8f1;
-  --border:       #e4ded1;
-  --text:         #1e1b16;
-  --text-dim:     #5c554a;
-  --text-faint:   #756c5e;
-  /* The site's own --copper-dim. One value serves both roles here: 5.32:1 as
-     text and 5.75:1 under --on-accent, so this palette needs no split. */
-  --accent:       #8a5a35;
-  --accent-text:  #8a5a35;
-  --accent-soft:  rgba(138,90,53,.12);
-  --on-accent:    #fffdf8;
-  --bg-veil:    rgba(247,244,237,.84);
-  --glass-edge: rgba(60,45,30,.14);
-  --danger:       #b3271d;
-  /* Warm brown rather than the classic light theme's cool blue-grey, which
-     would grey the parchment. */
-  --panel-hairline: rgba(58,44,26,.13);
-  --shadow-card:  0 1px 2px rgba(58,44,26,.07), 0 6px 16px rgba(58,44,26,.10);
-  --shadow-modal: 0 24px 64px rgba(58,44,26,.20);
-}
 
 * { box-sizing: border-box; }
 html, body {
@@ -1230,6 +1159,14 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   overflow-wrap: anywhere;   /* long multi-artist credits wrap, never clip */
 }
 .track-list .t-sub:empty { display: none; }
+/* The track's length, on the right, level with the title. The row's own
+   side padding (4px) puts it exactly as far from the right edge as the
+   track number is from the left. */
+.track-list .t-len {
+  flex: 0 0 auto; margin-left: auto;
+  color: var(--text-dim); font-size: 13px; line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Toast                                                              */
@@ -5003,11 +4940,47 @@ body.show-quality .album-quality { display: block; }
   --panel-hairline: rgba(239,230,212,.08);
   --shadow-card:  0 2px 6px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.4);
   --shadow-modal: 0 24px 64px rgba(0,0,0,.65);
+  /* The mini player's body, the level meter's unlit segments, the genre
+     cards' text (they stay felt-toned in both themes). */
+  --mt-bg:        rgba(29,46,38,.94);
+  --meter-off:    rgba(239,230,212,.12);
+  --card-ink:     #efe6d4;
   /* The felt: a fine warm grain and a faint larger mottle, drawn once and
      tiled on the ground (never an overlay over content — nothing composites
      over the scroller). */
   --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .1 0 0 0 0 .07 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+/* Mandarin Light (v0.4.2): warm cream paper, felt-green ink and fills, an
+   old-gold that reads on cream. Contrast: text 11.6–14:1, --text-dim
+   5.8–7, --text-faint 4.6–5.5, gold text 4.9–5.9 on every surface; cream
+   on the green fill 9.4. */
+[data-theme="light"][data-palette="hifi"] {
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --bg:           #f2ebdd;
+  --bg-elev:      #fbf7ee;
+  --bg-elev-2:    #ebe2d0;
+  --border:       #d9ccb4;
+  --text:         #1c2a23;
+  --text-dim:     #4a584f;
+  --text-faint:   #59645a;
+  --accent:       #1f4a3a;
+  --accent-text:  #7a5a1f;
+  --accent-soft:  rgba(31,74,58,.10);
+  --on-accent:    #fbf7ee;
+  --bg-veil:      rgba(242,235,221,.88);
+  --glass-edge:   rgba(122,90,31,.22);
+  --danger:       #b23a2a;
+  --panel-hairline: rgba(28,42,35,.10);
+  --shadow-card:  0 1px 2px rgba(60,45,20,.08), 0 8px 20px rgba(60,45,20,.12);
+  --shadow-modal: 0 24px 64px rgba(60,45,20,.22);
+  --mt-bg:        rgba(251,247,238,.95);
+  --meter-off:    rgba(28,42,35,.14);
+  --card-ink:     #efe6d4;
+  /* Paper: a fine warm grain, darker than the felt's, and a faint mottle. */
+  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .18 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .45 0 0 0 0 .3 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
 }
 html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .modal-panel,
@@ -5093,7 +5066,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .home-genre-card {
   position: relative; overflow: hidden; min-height: 88px; align-items: flex-end;
   font-family: var(--font-display); font-weight: 400; font-size: 18px;
-  border-radius: 14px; border-color: rgba(239,230,212,.10); background: #3b2a22;
+  border-radius: 14px; border-color: rgba(239,230,212,.10); background: #3b2a22; color: var(--card-ink);
 }
 [data-palette="hifi"] .home-genre-card::after {
   content: ""; position: absolute; right: -18px; top: -18px; width: 64px; height: 64px;
@@ -5115,7 +5088,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 .mt-kicker { display: none; }
 [data-palette="hifi"] .mini-transport {
   border-radius: 22px; padding: 10px 12px 16px;
-  background: rgba(29,46,38,.94); border-color: rgba(201,164,92,.24);
+  background: var(--mt-bg); border-color: rgba(201,164,92,.24);
   box-shadow: 0 20px 44px -14px rgba(0,0,0,.75);
 }
 [data-palette="hifi"] .mt-kicker:not(:empty) {
@@ -5126,7 +5099,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 /* Progress as a level meter along the bottom: gold segments over faint ones. */
 [data-palette="hifi"] .mt-progress {
   inset: auto 16px 7px 16px; height: 4px; border-radius: 0; overflow: hidden;
-  background: rgba(239,230,212,.12);
+  background: var(--meter-off);
   -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
           mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
 }
@@ -5136,7 +5109,20 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .mt-playpause {
   background: var(--text); color: var(--bg); border: 1px solid rgba(239,230,212,.25);
 }
-[data-palette="hifi"] .mt-playpause:hover { background: #fff7e6; }
+@media (hover: hover) and (pointer: fine) {
+  [data-palette="hifi"] .mt-playpause:hover { background: var(--text); filter: brightness(1.12); }
+}
+
+/* ---- The album view (Mandarin Dark) ------------------------------- */
+/* Its text in white rather than the cream, which read as washed out over
+   the album's colours. */
+[data-theme="dark"][data-palette="hifi"] .modal { --text: #ffffff; }
+[data-theme="dark"][data-palette="hifi"] .modal .track-list li,
+[data-theme="dark"][data-palette="hifi"] .modal .t-title { color: #ffffff; }
+/* Play now and Queue alike in the gold; the rest of the row stays outlined. */
+[data-palette="hifi"] .modal-actions .action-btn {
+  background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700;
+}
 
 /* The theme picker's swatch for this theme: the felt and the gold. */
-.theme-swatch[data-palette="hifi"] { background: #132019; }
+.theme-swatch[data-palette="hifi"] { background: var(--bg); }

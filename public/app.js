@@ -279,7 +279,7 @@
   // Four themes, expressed as TWO attributes rather than four values of one:
   //
   //   data-theme   = dark | light   — the FAMILY
-  //   data-palette = classic | copper — the COLOURS
+  //   data-palette = hifi — Mandarin's colours (dark and light)
   //
   // The split exists because thirteen rules in style.css are keyed on
   // `[data-theme="light"] .something` — white text on an accent fill, the
@@ -289,17 +289,14 @@
   // fall back to near-black, and the queue would use dark-theme washes on a
   // light background. Keying palettes on their own attribute means the
   // existing themes are untouched and the new ones inherit all thirteen.
+  // Two themes since v0.4.2: Mandarin, dark and light. The four before them
+  // (Dark, Light, Copper dark, Brass light) are gone; a choice of one of them
+  // is carried over to Mandarin in the same family (see savedThemeId).
   const THEMES = [
-    { id: "hifi",         label: "Late-Night Hi-Fi", note: "Deep green felt, warm gold, covers that glow",
+    { id: "hifi",       label: "Mandarin Dark",  note: "Deep green felt, warm gold, covers that glow",
       theme: "dark",  palette: "hifi" },
-    { id: "dark",         label: "Dark",         note: "The original — cool grey and cyan",
-      theme: "dark",  palette: "classic" },
-    { id: "light",        label: "Light",        note: "The original — bright and neutral",
-      theme: "light", palette: "classic" },
-    { id: "copper-dark",  label: "Copper dark",  note: "Charcoal and copper, from the MusicD site",
-      theme: "dark",  palette: "copper" },
-    { id: "brass-light",  label: "Brass light",  note: "Warm parchment with a brass accent",
-      theme: "light", palette: "copper" },
+    { id: "hifi-light", label: "Mandarin Light", note: "Warm cream paper, felt-green ink, old gold",
+      theme: "light", palette: "hifi" },
   ];
   const THEME_KEY = "rra-theme-v2";
   const DEFAULT_THEME = "hifi";
@@ -339,9 +336,16 @@
     return t.id;
   }
 
+  // The themes that were: light ones become Mandarin Light, the rest Mandarin Dark.
+  const RETIRED = { dark: "hifi", "copper-dark": "hifi", light: "hifi-light", "brass-light": "hifi-light" };
   function savedThemeId() {
     let id = null;
     try { id = localStorage.getItem(THEME_KEY); } catch (e) { /* private browsing */ }
+    if (RETIRED[id]) {
+      id = RETIRED[id];
+      try { localStorage.setItem(THEME_KEY, id); localStorage.setItem(HIFI_MOVE_KEY, "1"); } catch (e) { /* the theme still applies */ }
+      return id;
+    }
     try {
       if (!localStorage.getItem(HIFI_MOVE_KEY)) {
         localStorage.setItem(HIFI_MOVE_KEY, "1");
@@ -349,17 +353,14 @@
       }
     } catch (e) { /* private browsing: the default below */ }
     if (themeById(id)) return id;
-    // Migrate the v1 key, which only ever held "light" or "dark" — those are
-    // still valid theme ids, so the user's choice carries over untouched.
+    // The v1 key only ever held "light" or "dark": the same family in Mandarin.
     try {
       const old = localStorage.getItem("rra-theme");
       if (old === "light" || old === "dark") {
-        localStorage.setItem(THEME_KEY, old);
-        return old;
+        localStorage.setItem(THEME_KEY, RETIRED[old]);
+        return RETIRED[old];
       }
     } catch (e) { /* private browsing */ }
-    // No stored choice: follow the OS, as before. Read once at boot, with no
-    // change listener — same behaviour the single toggle had.
     return DEFAULT_THEME;
   }
 
@@ -890,6 +891,16 @@
 
   // Build a Home tile that always opens full-library (filter: null) so its
   // offset resolves even when a genre filter was last active.
+  // "Artist · Disc 2 · 4:39" → ["Artist · Disc 2", "4:39"]: the server ends a
+  // track's second line with its length, which the album view shows on the
+  // right of the row instead.
+  function splitTrackLength(sub) {
+    const parts = String(sub || "").split(" · ");
+    const last = parts[parts.length - 1];
+    if (/^\d+:\d{2}(:\d{2})?$/.test(last)) { parts.pop(); return [parts.join(" · "), last]; }
+    return [String(sub || ""), ""];
+  }
+
   function homeTile(a, extraClass) {
     const tile = buildAlbumTile(a, () => openAlbum(a, { source: "home", filter: null }));
     if (extraClass) tile.classList.add(extraClass);
@@ -5941,9 +5952,11 @@
         const ti = document.createElement("span"); ti.className = "t-title";
         ti.textContent = t.title || "";
         const su = document.createElement("span"); su.className = "t-sub";
-        su.textContent = t.subtitle || "";
+        const [subText, len] = splitTrackLength(t.subtitle);
+        su.textContent = subText;
         tx.appendChild(ti); tx.appendChild(su);
         li.appendChild(tx);
+        if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
         modalTracks.appendChild(li);
       }
     } else {
@@ -6845,9 +6858,12 @@
         const ti = document.createElement("span"); ti.className = "t-title";
         ti.textContent = t.title || "";
         const su = document.createElement("span"); su.className = "t-sub";
-        su.textContent = t.subtitle || "";
+        const [subText, len] = splitTrackLength(t.subtitle);
+        su.textContent = subText;
         tx.appendChild(ti); tx.appendChild(su);
         li.appendChild(tx);
+        // The track's length on the right, level with the title.
+        if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
 
         // The select target, on the right. Present from the start but hidden
         // until select mode is armed, so arming it doesn't reflow every row.
