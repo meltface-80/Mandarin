@@ -3878,7 +3878,9 @@ input.vol-range::-moz-range-thumb {
 }
 @keyframes menuSlideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 .menu-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 10px; }
-.menu-brand { font-size: 17px; font-weight: 700; color: var(--text); }
+.menu-brand { font-size: 17px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 10px; }
+.menu-brand-mark { width: 30px; height: 30px; flex: 0 0 auto; }
+[data-palette="hifi"] .menu-brand { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .menu-list { display: flex; flex-direction: column; padding: 4px 8px 16px; gap: 2px; }
 .menu-sep { height: 1px; background: var(--border); margin: 8px; }
 .menu-item {
