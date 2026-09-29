@@ -9,14 +9,16 @@
 
 # Mandarin — v0.5.7
 
-**Your own music files, played to Sonos, with MusicD Remote's interface.**
+**Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
 No Roon, no Plex, no streaming accounts. A small server on a machine you own
-scans your music folder, and every Sonos room in the house plays from it —
-controlled from a browser, an iPhone home-screen app, or the native Android app.
+scans your music folders, and every Sonos room in the house — and any UPnP/DLNA renderer you
+switch on, up to its own rate, upsampled if you like — plays from it, controlled from a
+browser, an iPhone home-screen app, or the native Android app.
 
 ```
  browser / iPhone PWA / Android app ──HTTP──▶  Mandarin  ──Sonos UPnP──▶  Sonos rooms
+                                                   │      ──UPnP AV / DLNA──▶  WiiM, Chord Poly, any renderer
                                                    │                               │
                                                    └──── audio: /stream/… ◀────────┘
 ```
@@ -51,11 +53,15 @@ Everything MusicD Remote does that makes sense for a library of files:
   in MusicD Remote's own format
 * **Sonos rooms and groups** — play, queue, play next, shuffle, repeat, volume per speaker,
   group and ungroup rooms, move what's playing to another room
+* **UPnP/DLNA renderers** — a WiiM, a Chord Poly, any streamer with AVTransport: gapless, with
+  volume, radio and everything a room has; the file as stored up to the device's own rate, or
+  upsampled ×2, ×4 or to its maximum in 64-bit float (see *Audio Devices* below)
 
-## Formats — the 24/48 rule
+## Formats — the 24/48 rule for Sonos, each renderer's own ceiling otherwise
 
 Sonos S2 plays up to **24-bit / 48 kHz**. Mandarin sends each track the best way the
-speaker can take it:
+speaker can take it (a UPnP renderer gets the same idea applied to *its* rates — 192 kHz on
+a WiiM, 768 kHz on a Poly — and can upsample; see *Audio Devices*):
 
 | Your file | What the speaker gets |
 | --- | --- |
@@ -349,6 +355,13 @@ through a subnet router arrive from a home address, and the server can't tell th
   different artists with no album-artist tag becomes one compilation, and `CD1`/`CD2` folders
   become one album. Covers come from `cover.jpg`/`folder.jpg`/… or the first track's embedded
   picture, resized once per size and cached. Rescans only re-read files whose size or date changed.
+* **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
+  description and what it advertises it can play (plus a WiiM's own API), keeps a register
+  of every device with your names and settings, and plays to them through AVTransport —
+  the queue kept on the server, the next track handed over ahead of time for gapless
+  playback, changes arriving by UPnP events. `plan(track, target)` in `lib/stream.js` decides
+  what each device gets: the file itself within its ceiling, FLAC at its best rate or
+  upsampled in 64-bit float otherwise.
 * **Sonos.** Ported from [Caldera Sonos Bridge](https://github.com/meltface-80/Caldera-Sonos-Bridge)
   and the [UPnP to Sonos bridge](https://github.com/meltface-80/UPnP-to-Sonos-UPnP-bridge): one
   speaker is found over SSDP and the whole household is read from `ZoneGroupTopology`. A Sonos
@@ -390,7 +403,7 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 ```bash
 npm install
-npm test            # unit tests + an end-to-end run against a fake Sonos household
+npm test            # unit tests + end-to-end runs against a fake Sonos household and fake UPnP renderers
 MUSIC_DIR=~/Music PORT=3500 node index.js
 ```
 
