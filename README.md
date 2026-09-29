@@ -4,7 +4,7 @@
 
 </div>
 
-# MusicD Server — v0.3.23
+# MusicD Server — v0.3.24
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -128,7 +128,7 @@ docker build -t musicd-server:local .
 
 ### Updating
 
-**In the app:** Settings → **Check for updates** → **Update to vX.Y.Z**. The server
+**In the app:** Settings → Setup → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
 downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
 the page reloads on its own. It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
@@ -157,7 +157,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted hi-res tracks. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
-| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Away from home*. |
+| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
@@ -218,7 +218,7 @@ interface, and adds what a web page can't:
 * **Downloads** — on an album's page, *⋯ → Download to this phone*, as **Original** (the files
   as they are; formats a phone can't play become lossless FLAC) or **Opus 256** (about a tenth
   of the size). Saved to phone storage or an SD card, Wi-Fi only by default, with an optional
-  size limit — all under *Settings → Downloads on this phone*. Downloaded albums play with no
+  size limit — all under *Settings → Downloads*. Downloaded albums play with no
   server at all (the same screen, or *Play downloads* when the server can't be reached), a
   downloaded track is used instead of streaming it, and plays made offline join your history
   when the phone is back. Downloads live in the app's own storage, so uninstalling the app
@@ -232,7 +232,7 @@ interface, and adds what a web page can't:
 * **Android Auto** — Downloaded albums, Smart Picks and Random albums in the car. Android Auto
   lists a sideloaded app only with *Unknown sources* on in its developer settings (tap the
   version number in Android Auto's settings ten times to reach them).
-* **Updates itself** — the app offers each new version when it opens (or *Settings → System →
+* **Updates itself** — the app offers each new version when it opens (or *Settings → Setup → Updates →
   Check for app update*) and installs it over the top; Android asks once to allow it.
 
 **Download: [dist/](dist/)** — the newest APK is committed there by GitHub Actions on every
@@ -263,11 +263,11 @@ you've downloaded play from the phone.
 
 **Set up once — Tailscale is built in:**
 
-1. On the server, open *Settings → Away from home* and tap **Sign in to Tailscale**. Sign in on
+1. On the server, open *Settings → Setup → Away from home* and tap **Sign in to Tailscale**. Sign in on
    Tailscale's page (a free account is enough). The server joins your tailnet by itself as
    **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
    server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
-2. On the phone, sign MusicD's app in to the same account: *Settings → System → Tailscale*. The
+2. On the phone, sign MusicD's app in to the same account: *Settings → Setup → Away from home → This phone*. The
    app carries its own Tailscale too — no Tailscale app needed.
 3. Open MusicD once at home: the app learns the server's tailnet address.
 

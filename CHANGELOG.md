@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.24
+- **Settings, reordered.** Account, Music Folders, Audio Devices (was Playback), Home Screen,
+  Share Card, Wall Display, Downloads (in the Android app), and **Setup** — a list of its own
+  for the settings set once: Away from home, Updates (was System), API Keys (was Artwork &
+  metadata), Smart Picks, Discover, Appearance. Back from one of those returns to Setup.
+  New icons for Audio Devices, Updates and API Keys.
+
 ## v0.3.23
 - **A music folder can't vanish from the library any more.** A scan used to remove every track
   it couldn't find — so a network share that dropped for a moment, or a disk slow to answer,
