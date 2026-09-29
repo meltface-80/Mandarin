@@ -112,6 +112,8 @@ function createServer(overrides = {}) {
     db, zones, bindIp: config.serverIp || localIp(), seedHosts: config.upnpHosts,
     multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log
   });
+  // The renderers as zones, beside the Sonos rooms and the phones.
+  zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
@@ -121,6 +123,8 @@ function createServer(overrides = {}) {
   // One account and its signed-in devices; everything below sits behind it.
   const auth = ctx.auth = createAuth(ctx);
   ctx.playback = new Playback(ctx);
+  // A queue moving between players is rebuilt for the player it goes to.
+  zones.rebuildItems = (ids, zoneId) => ids.map(id => library.track(id)).filter(Boolean).map(t => ctx.playback.item(t, zones.targetFor(zoneId)));
   const features = ctx.features = new Features(ctx);
 
   const app = express();
@@ -131,14 +135,24 @@ function createServer(overrides = {}) {
 
   // ---------------------------------------------------------------- stream
   // Before compression: audio must go out byte for byte, with ranges.
-  app.get(/^\/stream\/t(\d+)\.([a-z0-9]+)$/i, (req, res) => {
+  app.get(/^\/stream\/t(\d+)(?:\.(orig|\d+-\d+))?\.([a-z0-9]+)$/i, (req, res) => {
     const t = library.track(Number(req.params[0]));
     if (!t) return res.status(404).end();
     // ?q=opus: the phone away from home, on mobile data — Opus 256 kbps, the
     // same files the Downloads screen makes, with the album's next tracks
     // made ready behind it so each one starts promptly.
     if (req.query.q === "opus") return streamOpus(t, req, res);
-    const p = planFor(t);
+    // A renderer's URL says what it wants (lib/server/playback.js): the file
+    // as stored, or a conversion to exactly this rate and depth. A Sonos URL
+    // says nothing and gets the 24/48 rule, as ever.
+    const seg = req.params[1] || "";
+    let p;
+    if (seg === "orig") p = { transcode: false, mime: STREAM.mimeForExt(req.params[2]) };
+    else if (seg) {
+      const [rate, bits] = seg.split("-").map(Number);
+      if (!(rate >= 8000 && rate <= 768000) || ![16, 24].includes(bits)) return res.status(400).end();
+      p = { transcode: true, mime: "audio/flac", ext: "flac", rate, bits, reason: "what the renderer was promised" };
+    } else p = planFor(t);
     if (!p.transcode) {
       res.set("Content-Type", p.mime);
       res.set("Cache-Control", "no-store");

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.0
+# Mandarin — v0.5.1
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -274,8 +274,17 @@ to play. Sonos rooms are read-only here (44.1/48 kHz, 16/24-bit — the 24/48 ru
 is searched every minute; **Look again** searches now, and `UPNP_HOSTS` names renderers that
 multicast misses.
 
-Playing to the UPnP renderers — Original, Upsample ×2, ×4 and Max, processed in 64-bit float —
-comes in the next versions, per [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
+**A renderer is a zone.** Pick it in the zone picker and everything a Sonos room has works
+on it: the queue, play next, the transport, seek, volume and mute (unless the device's volume
+is fixed, as a Chord Poly's is — then there is no slider), history, Random album radio, and
+moving what is playing between it and a room. The server keeps its queue and hands each track
+over ahead of time (`SetNextAVTransportURI`), so tracks join gaplessly on a device that
+honours it; one that does not is started on the next track by hand. In **Original** mode a
+file goes as stored wherever the device takes its rate, depth and format — the chips on its
+page — and above that ceiling as FLAC at the highest rate the device takes in the file's
+family (a 352.8 kHz file plays at 176.4 on a WiiM). The Now playing badge says exactly what
+was sent: *FLAC 24/96*. Upsample ×2, ×4 and Max — processed in 64-bit float — come next, per
+[docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
 
 ## Away from home (Tailscale)
 
@@ -352,9 +361,10 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
-* Playing to UPnP/DLNA renderers (WiiM, Chord Poly…) with per-device rates and upsampling —
-  they are found and shown in Audio Devices; playback follows, per
-  [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md)
+* Upsampling (×2, ×4, Max) to UPnP/DLNA renderers, DSD to them, and grouping WiiMs — they
+  play in Original mode today; the rest follows, per
+  [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md). Roon Ready, Bluetooth
+  and AirPlay: never.
 
 ## Development
 

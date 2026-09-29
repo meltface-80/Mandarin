@@ -5,6 +5,27 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.1
+- **UPnP/DLNA renderers play.** A WiiM, a Chord Poly, any renderer with AVTransport that
+  takes FLAC is a zone: pick it in the zone picker and the queue, play next, the transport,
+  seek, volume and mute, history, Random album radio and moving what is playing all work on
+  it as on a Sonos room. The server keeps the renderer's queue (it has none of its own) and
+  hands each following track over with `SetNextAVTransportURI` once its file is complete, so
+  tracks join gaplessly on a device that honours it; a device that does not is started on the
+  next track by hand. A device whose volume is fixed (a Poly feeding a Mojo) has no slider.
+- **Original mode.** A file goes to a renderer as stored wherever the device takes its rate,
+  depth and format — the chips on its page decide — and above that as FLAC at the highest
+  rate the device takes in the file's family. Renderer stream URLs say what they carry
+  (`…orig.flac`, `…48000-24.flac`); Sonos URLs and the 24/48 rule are untouched. The Now
+  playing badge on a renderer says exactly what was sent: *FLAC 24/96*.
+- **Between players:** a queue moved to or from a renderer is rebuilt from the library for
+  the player it goes to, so each gets its own best stream.
+- The spec's non-goals are now firm: no Roon Ready (RAAT), Bluetooth or AirPlay, ever.
+- Tests: the fake renderer gained a transport that fetches what it is given, plays in real
+  time and moves to the next URI by itself (or stops, when told to fault on it); the new
+  end-to-end run covers bit-perfect and converted playback, gapless, the fallback, transport,
+  volume, modes and transfers, beside the Sonos run, which is unchanged.
+
 ## v0.5.0
 - **Audio Devices sees every player.** Settings → Audio Devices lists the Sonos rooms, the
   phones running the app and — new — the UPnP/DLNA renderers on the network (a WiiM, a Chord
