@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.2
+# Mandarin — v0.5.3
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -277,6 +277,9 @@ multicast misses.
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The
 switch is on the device's row and on its page, and its state is kept in Mandarin's database.
+
+**Random album radio is per device.** Its switch is on each device's page: when that
+device's queue ends, whole random albums keep coming (ones you haven't played in two months).
 
 **A renderer is a zone.** Turn it on, pick it in the zone picker and everything a Sonos room has works
 on it: the queue, play next, the transport, seek, volume and mute (unless the device's volume

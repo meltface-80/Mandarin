@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.3
+- **Random album radio is per device.** The one switch at the top of Audio Devices — which
+  applied to whichever zone the picker showed — is gone; each device's page has its own,
+  under its on/off switch. It is the same per-zone setting the server always kept, now shown
+  where it belongs, and a Sonos room in a group shows its group's.
+
 ## v0.5.2
 - **A switch on every device.** A renderer found on the network is **off until you turn it
   on**: it is listed in Audio Devices with its details, but not offered as a zone. A Sonos room

@@ -11085,6 +11085,9 @@ window.__musicdAppUpd = (function () {
   // one (a write falling back to a re-read); anyone else is the newest intent
   // and takes a fresh one.
   async function loadRadio(zoneId, gen) {
+    // The switches now live on each device's page (initAudioDevicesPane);
+    // with neither here there is nothing to read for.
+    if (!radioToggle && !roonRadioToggle) return;
     if (!zoneSelect || !zoneSelect.value) return;
     const zone = zoneId || zoneSelect.value;
     const g = (gen === undefined) ? ++radioGen : gen;
@@ -15085,6 +15088,15 @@ initServiceBrowser({
           : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on." : "Not offered as a zone.")) +
         "</div></div><div class=\"settings-divider\"></div>";
     }
+    // Random album radio, per zone: what plays when this device's queue runs out.
+    if (d.radio !== undefined && d.enabled && d.playable !== false) {
+      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">Random album radio</span>' +
+        '<label class="switch"><input type="checkbox" data-dev-radio="' + esc(d.id) + '"' + (d.radio ? " checked" : "") + ' aria-label="Random album radio">' +
+        '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+        '<div class="settings-note">' + (d.radio
+          ? "On. When this device’s queue ends, whole random albums keep coming — ones you haven’t played in the last two months."
+          : "Off. When this device’s queue ends, it stops.") + "</div></div><div class=\"settings-divider\"></div>";
+    }
     html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
     if (d.kind === "phone") {
       html += '<div class="dev-kv"><span class="dev-v">' + esc(d.network_name) + '</span></div><div class="settings-note">Named in the app on the phone.</div>';
@@ -15205,9 +15217,16 @@ initServiceBrowser({
       else renderDetail();
     }
   });
-  body.addEventListener("change", (e) => {
+  body.addEventListener("change", async (e) => {
     const sw = e.target.closest("[data-dev-enable]");
     if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
+    const rd = e.target.closest("[data-dev-radio]");
+    if (rd) {
+      const on = rd.checked;
+      await patch({ radio: on });
+      if (!err) toast(on ? "Random album radio is on for " + current.name : "Random album radio is off for " + current.name);
+      return;
+    }
     const inp = e.target.closest(".dev-name-input");
     if (inp && current && inp.value.trim() !== current.name) patch({ name: inp.value.trim() });
   });
