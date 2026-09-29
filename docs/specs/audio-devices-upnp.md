@@ -428,7 +428,7 @@ times are logged and written into the README; the cache advice is in the README.
 transport if a device needs it), GENA events, alive/byebye, *Test this rate*, quirk flags
 (wait-for-complete-file, fixed volume, no-SetNext), hide/forget polish, `UPNP_HOSTS`.
 
-**Later.** DSD (section 11); LinkPlay multiroom. Never: Roon Ready, Bluetooth, AirPlay.
+**Later.** DSD (section 11), when the owner says. Not planned: LinkPlay multiroom. Never: Roon Ready, Bluetooth, AirPlay.
 
 ## 13. Tests
 

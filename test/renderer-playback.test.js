@@ -214,6 +214,41 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("audio-devices/" + WIIM, { output: { mode: "original" } }, "PATCH");
     });
 
+    await t.test("events: the device says when it changed, and the page knows", async () => {
+      // Subscribed (the server's callback is on its own port) and told at once.
+      await until(() => wiim.subscribers.length >= 1, 10000);
+      assert.match(wiim.subscribers[0].callback, /\/upnp\/event\/UPNP_/);
+      const d = await until(async () => { const x = await api("audio-devices/" + WIIM); return x.events === "live" && x; }, 10000);
+      assert.equal(d.openhome, false);
+      // A change on the device reaches the server's state through the event,
+      // sooner than a lazy poll would: pause it behind Mandarin's back.
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      await until(() => wiim.state === "PLAYING");
+      await until(async () => (await state(WIIM)).state === "playing");
+      const notifiedBefore = wiim.notified;
+      wiim.handle("Pause", {}); wiim.notify();
+      await until(() => wiim.notified > notifiedBefore);
+      const t0 = Date.now();
+      await until(async () => (await state(WIIM)).state === "paused", 3000);
+      assert.ok(Date.now() - t0 < 2500, "the pause showed within a moment of the event");
+      await api("control", { zone_or_output_id: WIIM, command: "play" });
+      await until(async () => (await state(WIIM)).state === "playing");
+    });
+
+    await t.test("fixed volume is a switch on a renderer's page", async () => {
+      let r = await api("audio-devices/" + WIIM, { output: { volume: "fixed" } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.volume_fixed, true);
+      const z = (await api("zones")).zones.find(x => x.zone_id === WIIM);
+      assert.equal(z.outputs[0].volume, null, "no slider while fixed");
+      assert.ok((await api("volume", { output_id: WIIM, how: "absolute", value: 20 })).status >= 400);
+      r = await api("audio-devices/" + WIIM, { output: { volume: "upnp" } }, "PATCH");
+      assert.equal(r.volume_fixed, false);
+      assert.equal((await api("zones")).zones.find(x => x.zone_id === WIIM).outputs[0].volume.type, "number");
+      assert.equal((await api("audio-devices/" + WIIM, { output: { volume: "off" } }, "PATCH")).status, 400);
+      assert.equal((await api("audio-devices/RINCON_KITCHEN01400")).can_fix_volume, false, "never on a Sonos room");
+    });
+
     await t.test("the device page follows playback", async () => {
       const d = (await api("audio-devices/" + WIIM)).state;
       assert.ok(["playing", "loading"].includes(d), d);
