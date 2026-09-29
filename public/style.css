@@ -4896,6 +4896,61 @@ body.show-quality .album-quality { display: block; }
 .mf-hint { margin: 0 0 10px; }
 .mf-browse-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
 .mf-choose { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Settings → Audio Devices: the players, and one player's page. */
+.dev-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.dev-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--bg-elev-2);
+  color: var(--text); text-align: left; cursor: pointer; font: inherit;
+  transition: background .15s ease, border-color .15s ease;
+}
+.dev-row:hover { background: var(--bg-elev); border-color: var(--text-faint); }
+.dev-row:active { transform: scale(.99); }
+.dev-row.is-off .dev-ico, .dev-row.is-off .dev-name { opacity: .55; }
+.dev-ico {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-elev); color: var(--accent-text);
+}
+.dev-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dev-name { font-size: 15px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev-sub { font-size: 12px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev-state { flex: 0 0 auto; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); }
+.dev-state.is-playing { color: var(--accent-text); }
+.dev-chev { flex: 0 0 auto; font-size: 20px; line-height: 1; color: var(--text-faint); }
+.dev-name-input {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-elev-2); color: var(--text);
+  font: inherit; font-size: 16px;
+}
+.dev-name-input:focus { outline: none; border-color: var(--accent); }
+.dev-link {
+  padding: 0; border: 0; background: none; color: var(--accent-text);
+  font: inherit; font-size: inherit; cursor: pointer; text-decoration: underline;
+}
+.dev-about { display: flex; flex-direction: column; gap: 6px; }
+.dev-kv { display: flex; justify-content: space-between; gap: 16px; font-size: 13.5px; line-height: 1.4; }
+.dev-k { flex: 0 0 auto; color: var(--text-faint); }
+.dev-v { min-width: 0; color: var(--text); text-align: right; overflow-wrap: anywhere; }
+.cap-group { margin-top: 12px; }
+.cap-group:first-of-type { margin-top: 4px; }
+.cap-label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+.cap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cap-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border);
+  background: none; color: var(--text-faint); font: inherit; font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.cap-chip.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+.cap-chip.is-later { border-style: dashed; }
+.cap-mark { font-size: 10px; color: var(--accent-text); }
+button.cap-chip { cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+button.cap-chip:active { transform: scale(.96); }
+.cap-group .dev-v { margin-top: 6px; text-align: left; font-size: 13.5px; }
+.cap-legend { margin-top: 10px; font-size: 11.5px; line-height: 1.45; color: var(--text-faint); }
+
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }
 #away-pane-body .settings-row:first-child { margin-top: 0; }

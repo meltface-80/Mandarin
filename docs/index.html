@@ -299,7 +299,7 @@
      room in the house plays from it &mdash; with MusicD Remote's interface in a browser, on an
      iPhone home screen, or in the Android app. No Roon, no Plex, no accounts. Definitely no nonsense about better sound quality.</p>
   <div class="badges">
-    <span class="badge">v0.4.3</span>
+    <span class="badge">v0.5.0</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos only</span>
@@ -480,6 +480,7 @@
         <tr><td>PORT</td><td>3500</td><td>The interface, the API, and where speakers fetch audio.</td></tr>
         <tr><td>TZ</td><td>UTC</td><td>Album of the day and Smart Picks change over at local midnight.</td></tr>
         <tr><td>SONOS_HOSTS</td><td>&mdash;</td><td>A speaker's IP, for when multicast discovery is unreliable. One is enough.</td></tr>
+        <tr><td>UPNP_HOSTS</td><td>&mdash;</td><td>UPnP/DLNA renderers to ask by address (an IP or a description URL), for when multicast discovery misses them.</td></tr>
         <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from, on hosts with several interfaces.</td></tr>
         <tr><td>INCLUDE_ZONES</td><td>&mdash;</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
         <tr><td>EXCLUDE_ZONES</td><td>&mdash;</td><td>Offer every room except these.</td></tr>
