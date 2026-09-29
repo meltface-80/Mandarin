@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.6
+# Mandarin — v0.5.7
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -260,6 +260,12 @@ working. For a key nobody else holds, add the `MUSICD_KEYSTORE_BASE64` and
 `MUSICD_KEYSTORE_PASSWORD` secrets (the same ones as Android Random Remote); switching to it
 also needs one uninstall.
 
+## Favourites
+
+Every album's page has a heart, first in its row of buttons: hollow, red once tapped. Hearted
+albums are a **Favourites** carousel on Home (newest first; tap its title for the full wall),
+kept on the server by the album's identity, so they survive a rescan.
+
 ## Audio Devices
 
 Settings → **Audio Devices** lists every player Mandarin can see: your Sonos rooms, phones
@@ -374,6 +380,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
+* Identifying albums with wrong tags from their track lengths and names — planned, see
+  [docs/specs/album-identification.md](docs/specs/album-identification.md)
 * DSD to UPnP/DLNA renderers — later, per
   [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md). Roon Ready, Bluetooth
   and AirPlay: never.

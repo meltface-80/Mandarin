@@ -457,6 +457,8 @@
   // can take a minute), then left alone — the set does not change again today.
   let homePicksDay = "";
   let homeHistoryLoaded = false;  // set once the recently-played row populates
+  let homeFavouritesLoaded = false;
+  const homeFavourites = document.getElementById("home-favourites");
 
   // ---------------------------------------------------------------------------
   // The Home rows, as one table.
@@ -609,6 +611,8 @@
   const HOME_ROWS = [
     { id: "unplayed", title: "Not played in 6 months",
       load: () => { loadHomeUnplayed(); }, isFresh: () => rowsTtlFresh() },
+    { id: "favourites", title: "Favourites",
+      load: () => { loadHomeFavourites(); }, isFresh: () => homeFavouritesLoaded },
     { id: "history",  title: "Recently played",
       load: () => { loadHomeHistory(); }, isFresh: () => homeHistoryLoaded },
     { id: "picks",    title: "Smart Picks",
@@ -638,7 +642,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw";
+    return id === "history" || id === "picks" || id === "lotw" || id === "favourites";
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -1102,6 +1106,26 @@
     const sec = homeHistory.closest(".home-section");
     if (sec) sec.classList.toggle("hidden", !albums.length || !homeRowOn("history"));
   }
+  // ----- Favourites: the hearted albums, newest first -----
+  function renderHomeFavourites(albums) {
+    if (!homeFavourites) return;
+    renderAlbumRow(homeFavourites, albums);
+    const sec = homeFavourites.closest(".home-section");
+    if (sec) sec.classList.toggle("hidden", !albums.length || !homeRowOn("favourites"));
+  }
+  async function loadHomeFavourites() {
+    if (!homeFavourites) return;
+    try {
+      const r = await fetch("/api/favourites", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json();
+      renderHomeFavourites((j && j.albums) || []);
+      homeFavouritesLoaded = true;
+    } catch (e) { /* next visit tries again */ }
+  }
+  // A heart tapped anywhere: the row shows it at once.
+  window.__favouritesChanged = () => { homeFavouritesLoaded = false; loadHomeFavourites(); };
+
   async function loadHomeHistory() {
     if (!homeHistory) return;
     try {
@@ -1677,6 +1701,39 @@
   });
 
   // items: [{ label, onClick, danger, title }]. Returns the wrapper to append.
+  const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
+  // The heart on an album's page: hollow, red once tapped, kept on the server.
+  function buildFavButton(album, fresh) {
+    const on0 = !!((fresh && fresh.favourite) || album.favourite);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "overflow-btn fav-btn" + (on0 ? " is-on" : "");
+    b.innerHTML = HEART_SVG;
+    const paint = (on) => {
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", String(on));
+      b.setAttribute("aria-label", on ? "Remove from favourites" : "Add to favourites");
+      album.favourite = on;
+    };
+    paint(on0);
+    b.addEventListener("click", async () => {
+      const want = !b.classList.contains("is-on");
+      paint(want);
+      try {
+        const r = await fetch("/api/favourites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offset: album.offset, on: want }) });
+        const jr = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(jr.error || "HTTP " + r.status);
+        paint(!!jr.favourite);
+        if (window.__favouritesChanged) window.__favouritesChanged();
+      } catch (e) {
+        paint(!want);
+        showToast(e.message, "error");
+      }
+    });
+    return b;
+  }
+
   function buildOverflowMenu(items, opts) {
     opts = opts || {};
     const wrap = document.createElement("div");
@@ -1743,6 +1800,7 @@
   function enterFullWall(title, albumWall) {
     unplayedWallActive = false;
     libraryWallActive = false;
+    favouritesWallActive = false;
     // Cleared here as well as by the caller: every other wall's entry point must
     // orphan an in-flight playlist fetch, or its response paints into this one.
     leavePlaylistScreens();
@@ -1768,6 +1826,29 @@
   // Full-screen "Not played in 6 months" grid — reached by tapping the section
   // header. Fills the main grid with a larger unplayed list (tiles open
   // unfiltered, like the Home row) and shows a Back button to Home.
+  async function showFavouritesWall() {
+    enterFullWall("Favourites", true);
+    favouritesWallActive = true;
+    try {
+      const r = await fetch("/api/favourites", { cache: "no-store" });
+      if (!favouritesWallActive) return;
+      const j = await r.json();
+      if (!favouritesWallActive) return;
+      const albums = (j && j.albums) || [];
+      grid.innerHTML = "";
+      if (!albums.length) { setBanner("No favourites yet — tap the heart on an album.", false); return; }
+      setBanner(null);
+      const frag = document.createDocumentFragment();
+      for (const a of albums) frag.appendChild(homeTile(a));
+      grid.appendChild(frag);
+    } catch (e) {
+      if (!favouritesWallActive) return;
+      grid.innerHTML = "";
+      setBanner("Couldn’t load: " + e.message, true);
+    }
+  }
+  let favouritesWallActive = false;
+
   async function showUnplayedWall() {
     enterFullWall("Not played in 6 months", true);
     unplayedWallActive = true;
@@ -4829,6 +4910,7 @@
   // wall; Library → full A-Z wall; Label of the week → label view.
   {
     wireSectionHeader("home-unplayed-title", showUnplayedWall);
+    wireSectionHeader("home-favourites-title", showFavouritesWall);
     wireSectionHeader("home-random-title", () => { if (window.__applyFilter) window.__applyFilter(null); });
     wireSectionHeader("home-library-title", showLibraryWall);
     wireSectionHeader("home-lotw-title", () => {
@@ -6796,6 +6878,8 @@
     // wrapping, and on a phone the labels start clipping.
     const ROW_ACTIONS = 2;
     modalActs.innerHTML = "";
+    // The heart, first: the same size as the ⋯ button at the other end.
+    modalActs.appendChild(buildFavButton(album, j.album));
     const available = order.filter(k => map.has(k));
     let first = true;
     for (const k of available.slice(0, ROW_ACTIONS)) {
