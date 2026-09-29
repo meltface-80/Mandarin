@@ -98,6 +98,50 @@ test("a drive that isn't mounted keeps its albums until it's back", { skip }, as
   s.db.close();
 });
 
+test("a music folder left off a new container keeps its albums, says so, and can be forgotten", { skip }, async () => {
+  const lib = makeLibrary();
+  const root = path.join(lib.root, "mroot");
+  fs.mkdirSync(path.join(root, "HiRes"), { recursive: true });
+  fs.renameSync(lib.music, path.join(root, "Main"));
+  fs.renameSync(path.join(root, "Main", "Artist B"), path.join(root, "HiRes", "Artist B"));
+  let s = open(lib.data, root);
+  await s.scanner.scan();
+  s.library.reload();
+  const hiResId = byTitle(s.library, "Hi Res").id;
+
+  // Re-created without its -v line: the folder isn't there at all (not even empty).
+  const stash = path.join(lib.root, "stash");
+  fs.renameSync(path.join(root, "HiRes"), stash);
+  let r = await s.scanner.scan();
+  s.library.reload();
+  assert.equal(r.removed, 0, "nothing removed");
+  assert.equal(r.kept_offline, 2);
+  assert.deepEqual(r.offline_dirs.map(d => [d.name, d.tracks, d.missing]), [["HiRes", 2, true]]);
+  assert.equal(byTitle(s.library, "Hi Res").id, hiResId, "the same album, id and all");
+
+  // Forgetting only works on a folder that's gone, and only one of the music folder's own.
+  assert.throws(() => s.scanner.forget(path.join(root, "Main")), /is there/);
+  assert.throws(() => s.scanner.forget("/etc"), /music folder's folders/);
+
+  // Back: the same album, nothing read again.
+  fs.renameSync(stash, path.join(root, "HiRes"));
+  r = await s.scanner.scan();
+  s.library.reload();
+  assert.equal(r.status, "unchanged");
+  assert.deepEqual(r.offline_dirs, []);
+  assert.equal(byTitle(s.library, "Hi Res").id, hiResId);
+
+  // Gone for good, and forgotten: its tracks and albums leave.
+  fs.rmSync(path.join(root, "HiRes"), { recursive: true });
+  r = await s.scanner.scan();
+  assert.equal(r.removed, 0);
+  assert.equal(s.scanner.forget(path.join(root, "HiRes")), 2);
+  s.library.reload();
+  assert.equal(byTitle(s.library, "Hi Res"), undefined);
+  assert.deepEqual(s.scanner.state.lastResult.offline_dirs, []);
+  s.db.close();
+});
+
 test("album edits come back when the database has to start over", { skip }, async () => {
   const lib = makeLibrary();
   let s = open(lib.data, lib.music);

@@ -12212,32 +12212,32 @@ window.__musicdAppUpd = (function () {
   // Hold the grip, then drag. Pointer events so one code path covers touch and
   // mouse; the list reorders live under the finger and the draft array is
   // rewritten from the DOM on drop, so the two can never disagree.
+  //
+  // The dragged row itself is never moved in the DOM — its NEIGHBOURS are,
+  // past it. Moving the row that holds the pointer capture (insertBefore is a
+  // remove and an insert) makes the browser drop the capture: the drag
+  // stopped after one place, and the drop that saves the order never came, so
+  // a row seen moved went back on the next visit. Swapping neighbours one at a
+  // time also lets a fast drag pass several rows in one move.
   function attachRowDrag(li, grip) {
     let dragging = false;
     grip.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       dragging = true;
       li.classList.add("is-dragging");
-      grip.setPointerCapture(e.pointerId);
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* moves still arrive while over the grip */ }
     });
+    const mid = el => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
     grip.addEventListener("pointermove", (e) => {
       if (!dragging || !homeRowsList) return;
-      // Which sibling is under the pointer? Compare against each row's middle
-      // so the swap happens when the dragged row has genuinely passed it,
-      // rather than flickering on every pixel.
-      const items = [...homeRowsList.querySelectorAll(".home-row-item")];
-      for (const other of items) {
-        if (other === li) continue;
-        const r = other.getBoundingClientRect();
-        const mid = r.top + r.height / 2;
-        if (e.clientY < mid && other.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          homeRowsList.insertBefore(li, other);
-          break;
-        }
-        if (e.clientY > mid && other.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_PRECEDING) {
-          homeRowsList.insertBefore(li, other.nextSibling);
-          break;
-        }
+      let prev = li.previousElementSibling, next = li.nextElementSibling;
+      while (prev && prev.classList.contains("home-row-item") && e.clientY < mid(prev)) {
+        homeRowsList.insertBefore(prev, li.nextSibling);   // the row above drops below
+        prev = li.previousElementSibling;
+      }
+      while (next && next.classList.contains("home-row-item") && e.clientY > mid(next)) {
+        homeRowsList.insertBefore(next, li);               // the row below rises above
+        next = li.nextElementSibling;
       }
     });
     const end = () => {
@@ -12254,6 +12254,8 @@ window.__musicdAppUpd = (function () {
     };
     grip.addEventListener("pointerup", end);
     grip.addEventListener("pointercancel", end);
+    // However the drag ends, the order it left is saved.
+    grip.addEventListener("lostpointercapture", end);
   }
 
   window.__renderHomeRowsList = () => { if (homeRowsList && homeRowsList.offsetParent) renderHomeRowsList(); };
@@ -14081,6 +14083,41 @@ initServiceBrowser({
     el.classList.remove("hidden");
   }
 
+  // A music folder that has gone (a -v left off a new container, a drive not
+  // mounted): its albums are kept, and this says which, with the way to put it
+  // back — or to forget it, if it's gone for good.
+  function sayMissing(dirs) {
+    const names = dirs.map(d => "“" + d.name + "”").join(", ");
+    const tracks = dirs.reduce((a, d) => a + (d.tracks || 0), 0);
+    el.innerHTML = "";
+    el.classList.add("error");
+    el.classList.remove("hidden");
+    const p = document.createElement("div");
+    p.textContent = (dirs.length === 1 ? "The music folder " : "The music folders ") + names +
+      (dirs.length === 1 ? " isn't" : " aren't") + " there — its " + tracks.toLocaleString() +
+      " tracks are kept, not removed. Add its  -v /path/to/it:" + dirs[0].dir + ":ro  back to the container " +
+      "(or mount the drive) and they're back as they were. Gone for good? Forget " + (dirs.length === 1 ? "it" : "them") + ":";
+    el.appendChild(p);
+    for (const d of dirs) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "settings-update-btn server-notice-btn";
+      b.textContent = "Forget “" + d.name + "”";
+      b.addEventListener("click", async () => {
+        if (!confirm("Forget “" + d.name + "”? Its " + (d.tracks || 0).toLocaleString() + " tracks and their albums leave the library (they come back with a rescan if the folder does).")) return;
+        b.disabled = true;
+        try {
+          const r = await fetch("/api/library/forget-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: d.dir }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+          if (window.__showToast) window.__showToast("Forgot “" + d.name + "” — " + (j.removed || 0).toLocaleString() + " tracks");
+          check();
+        } catch (e) { b.disabled = false; if (window.__showToast) window.__showToast(e.message, "error"); }
+      });
+      el.appendChild(b);
+    }
+  }
+
   let unreachable = 0;
   async function check() {
     let j = null;
@@ -14132,6 +14169,11 @@ initServiceBrowser({
       } else {
         msg = "Starting up — reading your music folder…";
       }
+    } else if (Array.isArray(last.offline_dirs) && last.offline_dirs.length && !j.away) {
+      sayMissing(last.offline_dirs);
+      setTimeout(check, 30000);
+      if (!albums) el.dataset.wasEmpty = "1";
+      return;
     } else if (!rooms && !(j.sonos && j.sonos.searching) && !j.away) {
       // Not while the server is still looking (the first minute after a start
       // or an update): the rooms are usually back within seconds.
@@ -14545,7 +14587,7 @@ initServiceBrowser({
   function render() {
     if (!st) { body.innerHTML = '<div class="settings-note">Couldn’t ask the server.</div>'; return; }
     if (!st.available) {
-      body.innerHTML = '<div class="settings-note">Tailscale isn’t built into this install — it comes with the Docker image. Tailscale on the machine the server runs on works as before.</div>';
+      body.innerHTML = '<div class="settings-note">Tailscale isn’t in this install yet — it comes with the Docker image, not with <i>Check for updates</i>. Pull the new image and re-create the container: <code>docker pull ghcr.io/meltface-80/musicd-server:latest</code>. Tailscale on the machine the server runs on works as before.</div>';
       return;
     }
     const toggle = '<label class="switch"><input type="checkbox" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +

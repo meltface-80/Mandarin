@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.20
+- **Home Screen order: drag a row as far as you like, and it stays.** Holding a row's grip and
+  dragging moved it one place and then stopped, and the move wasn't saved — so a row seen moved
+  (Downloaded albums, say) was back where it was the next time. The row being dragged was itself
+  moved about the page, and the browser gives up the drag when that happens, so the drop that
+  saves never came. Now the rows around it move instead: one drag passes as many rows as you like,
+  and the order is saved however the drag ends.
+- **A music folder left off a new container is kept, not removed.** Re-creating the container
+  without one of its `-v` lines made that folder simply not there, and the server took its albums
+  out of the library (they'd come back as new albums, without their play history). A folder that's
+  missing is now treated like a drive that isn't mounted: its albums stay, and Home says which
+  folder is missing and how to put it back — or *Forget* it, if it's gone for good.
+- *Away from home* says how to get the built-in Tailscale when the image is older than the server
+  (it comes with the Docker image: `docker pull`, then re-create the container).
+
 ## v0.3.19
 - **Tailscale built into the server.** One download: the Docker image now carries MusicD's own
   Tailscale engine (the same one as the Android app's). Sign in once from the new
