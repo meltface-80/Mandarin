@@ -93,6 +93,7 @@ docker run -d \
   -e TZ=Europe/London \
   -v musicd-server-data:/app/data \
   -v /your/path/to/Music:/music:ro \
+  -v /mnt:/mnt:ro,rslave \
   ghcr.io/meltface-80/musicd-server:latest
 ```
 
@@ -109,8 +110,16 @@ few minutes and albums appear as it goes.
 > at the same name.
 
 **Music folders, chosen in the app.** Like Roon: mount your drives or shares into the
-container once — e.g. `-v /mnt:/mnt:ro` — then add any folders inside them in
-**Settings → Music folders**, as many as you like, and remove them there too. `/music` is
+container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
+**Settings → Music Folders**, as many as you like, and remove them there too. The folder
+picker lists every drive and share the server can see.
+
+> **DietPi (and any network share mounted on demand):** DietPi-Drive_Manager mounts USB
+> drives and network shares under `/mnt`, and mounts shares only when they're first opened.
+> A container started with a plain `-v /mnt:/mnt:ro` never sees those later mounts — the
+> folder looks empty. End the line with **`,rslave`** (`-v /mnt:/mnt:ro,rslave`) so mounts the
+> machine makes afterwards reach the server too, then re-create the container. Music Folders
+> says so when it spots a share it can't see. `/music` is
 the first folder until you change the list. A folder that goes missing for a while (a drive
 asleep, a share that dropped, part of it unreadable, most of it gone at once) keeps its
 albums; the page says so and offers to forget it.

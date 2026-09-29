@@ -22,9 +22,12 @@ services:
     volumes:
       # KEEP THIS VOLUME — library database, play history, settings and caches.
       - musicd-server-data:/app/data
-      # Your music, read-only. More than one folder? Mount each under /music:
-      #   - /mnt/nas/Albums:/music/Albums:ro
+      # Your music, read-only.
       - /your/path/to/Music:/music:ro
+      # Your drives and shares, to choose more folders from in Settings → Music
+      # Folders. rslave: shares the machine mounts later (DietPi's Drive Manager,
+      # x-systemd.automount) show up here too.
+      - /mnt:/mnt:ro,rslave
 
 volumes:
   musicd-server-data:

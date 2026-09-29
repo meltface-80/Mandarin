@@ -11,6 +11,11 @@ Versioning: each set of changes is a development build and takes the next third 
   for the settings set once: Away from home, Updates (was System), API Keys (was Artwork &
   metadata), Smart Picks, Discover, Appearance. Back from one of those returns to Setup.
   New icons for Audio Devices, Updates and API Keys.
+- **Music Folders finds DietPi's drives and shares.** The folder picker lists every drive and
+  share mounted into the server, one tap to open, and says when one can't be seen: a network
+  share the machine mounts only when opened (DietPi-Drive_Manager, `x-systemd.automount`)
+  never reaches a container mounted with a plain `-v /mnt:/mnt:ro`. The fix, in the README and
+  docker-compose.yml: `-v /mnt:/mnt:ro,rslave`.
 
 ## v0.3.23
 - **A music folder can't vanish from the library any more.** A scan used to remove every track
