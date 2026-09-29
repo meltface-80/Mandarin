@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.5
+- **The mini transport bar is always there** — on Home, on every album wall, whether or not
+  anything is playing — so a zone can be picked from it (the speaker button) without a trip to
+  Audio Devices. With no zone chosen it reads **No Zone Selected**; with a silent zone, the
+  zone's name and *Nothing playing*. Nothing is picked for you any more: the zone picker in
+  Audio Devices starts on *Choose a zone…* until you choose, and the zone you chose is
+  remembered. The volume button with no zone opens the zone picker instead.
+
 ## v0.5.4
 - **Android: Settings looks like the side menu.** The Settings list and Setup's are rows the
   way the menu draws them — the icon in the menu's grey, then the title, flat on the sheet —

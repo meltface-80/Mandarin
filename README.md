@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.4
+# Mandarin — v0.5.5
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 

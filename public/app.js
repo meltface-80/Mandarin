@@ -5497,13 +5497,22 @@
         selectedZoneId = null;
         return;
       }
+      // Nothing is picked for you: until you choose a zone (the mini
+      // transport's speaker button, or here) there is no zone selected, and
+      // the bar says so. A zone chosen before is remembered.
+      const known = prev && zones.some(z => z.zone_id === prev);
+      if (!known) {
+        const opt = document.createElement("option");
+        opt.value = ""; opt.textContent = "Choose a zone…";
+        zoneSel.appendChild(opt);
+      }
       for (const z of zones) {
         const opt = document.createElement("option");
         opt.value = z.zone_id; opt.textContent = z.display_name;
         zoneSel.appendChild(opt);
       }
-      selectedZoneId = (prev && zones.some(z => z.zone_id === prev)) ? prev : zones[0].zone_id;
-      zoneSel.value = selectedZoneId;
+      selectedZoneId = known ? prev : null;
+      zoneSel.value = selectedZoneId || "";
     } catch (e) { /* status banner handles */ }
   }
   // Styled yes/no confirm. Resolves true/false. Falls back to native confirm.
@@ -5545,8 +5554,12 @@
     // Switch the active zone right away — this is what play actions and the
     // mini-transport target. Changing zones no longer moves the queue on its
     // own; we ask first (and only when the old zone is actually playing).
-    selectedZoneId = newZoneId;
-    localStorage.setItem("rra-zone", selectedZoneId);
+    selectedZoneId = newZoneId || null;
+    if (selectedZoneId) {
+      localStorage.setItem("rra-zone", selectedZoneId);
+      const blank = zoneSel.querySelector('option[value=""]');
+      if (blank) blank.remove();
+    }
 
     if (!prevZoneId || !newZoneId || prevZoneId === newZoneId) return;
 
@@ -8847,7 +8860,7 @@
 
   async function fetchState() {
     const zid = selectedZoneId();
-    if (!zid) return;  // zone not selected yet — leave bar as-is
+    if (!zid) { renderZone(null); return; }   // no zone yet: the bar says so
     try {
       const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid), { cache: "no-store" });
       if (!r.ok) return;  // server/network error — keep current state
@@ -8865,6 +8878,20 @@
     if (!np) {
       npLen = 0; npSetBase(0); npPrevSrv = null;
       paintBarProgress();
+      // The bar is always there, so it can be where a zone is picked: with no
+      // zone it says so; with a silent one, whose it is and that it is quiet.
+      const idleSig = "idle|" + (zone ? zone.zone_id + "|" + zone.display_name + "|" + (zone.outputs || []).some(o => o.is_muted) : "");
+      if (idleSig !== lastBarSig) {
+        lastBarSig = idleSig;
+        if (kickerEl) kickerEl.textContent = zone ? zone.display_name : "";
+        titleEl.textContent  = zone ? "Nothing playing" : "No Zone Selected";
+        artistEl.textContent = zone ? "Pick an album to play here" : "Tap the speaker to choose where to play";
+        paintTransportArt("");
+        iconPlay.classList.remove("hidden"); iconPause.classList.add("hidden");
+        btnPP.setAttribute("aria-label", "Play");
+        const muted = !!(zone && (zone.outputs || []).some(o => o.is_muted));
+        iconVol.classList.toggle("hidden", muted); iconMute.classList.toggle("hidden", !muted);
+      }
       refreshVisibility();
       updateNpScreen();
       return;
@@ -8992,9 +9019,10 @@
 
   // Mini bar shows whenever something is playing, EXCEPT on the now-playing
   // screen (which has its own transport). It returns on the Queue tab.
+  // The bar shows everywhere but on the Now playing screen — with nothing
+  // playing, and with no zone chosen, too: it is where a zone is picked.
   function refreshVisibility() {
-    const hasNP = !!(currentZone && currentZone.now_playing);
-    bar.classList.toggle("hidden", !hasNP || onNowPlayingScreen());
+    bar.classList.toggle("hidden", onNowPlayingScreen());
   }
 
   // Last-rendered signature of the mini transport bar's static content —
@@ -9744,6 +9772,8 @@
 
   btnVol.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (!currentZone) { btnZone.click(); return; }
+    if (!currentVolOutput()) { if (window.__showToast) window.__showToast("This zone's volume is set on the device itself"); return; }
     volPop.classList.toggle("hidden");
     btnVol.setAttribute("aria-expanded", !volPop.classList.contains("hidden"));
   });
