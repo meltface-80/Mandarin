@@ -89,7 +89,8 @@ android {
 val bundleSite = tasks.register<Copy>("bundleSite") {
     from(rootProject.file("../public")) {
         include("index.html", "app.js", "style.css", "android.css", "sharecard.js", "srp.js", "manifest.json",
-            "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico")
+            "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico",
+            "fonts/manrope.woff2", "fonts/young-serif.woff2")
     }
     into(layout.buildDirectory.dir("generated/site/site"))
 }

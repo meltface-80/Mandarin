@@ -4939,3 +4939,173 @@ body.show-quality .album-quality { display: block; }
 
 /* The notice's own buttons (Forget a missing music folder). */
 .server-notice .server-notice-btn { margin: 10px 8px 0 0; }
+
+/* ================================================================== */
+/*  Late-Night Hi-Fi (v0.3.25) — the default look.                     */
+/*  Deep green felt, warm cream text, muted gold; every cover glows    */
+/*  in its own colour. data-theme="dark" (so every dark-family rule    */
+/*  still applies) + data-palette="hifi". Contrast: text 12–13.6:1,   */
+/*  --text-dim 6.2–7.8, --text-faint 5.1–6.3, gold text 6.6–8.2 on    */
+/*  every surface; --on-accent on the gold fill 7.2.                   */
+/* ================================================================== */
+@font-face {
+  font-family: "Manrope"; src: url("/fonts/manrope.woff2") format("woff2");
+  font-weight: 200 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Young Serif"; src: url("/fonts/young-serif.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+[data-theme="dark"][data-palette="hifi"] {
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --bg:           #132019;
+  --bg-elev:      #1a2a22;
+  --bg-elev-2:    #20322a;
+  --border:       #2d4337;
+  --text:         #efe6d4;
+  --text-dim:     #a9b3a4;
+  --text-faint:   #95a291;
+  --accent:       #c9a45c;
+  --accent-text:  #d4b06a;
+  --accent-soft:  rgba(201,164,92,.15);
+  --on-accent:    #132019;
+  --bg-veil:      rgba(19,32,25,.86);
+  --glass-edge:   rgba(201,164,92,.22);
+  --danger:       #e8836b;
+  --panel-hairline: rgba(239,230,212,.08);
+  --shadow-card:  0 2px 6px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.4);
+  --shadow-modal: 0 24px 64px rgba(0,0,0,.65);
+  /* The felt: a fine warm grain and a faint larger mottle, drawn once and
+     tiled on the ground (never an overlay over content — nothing composites
+     over the scroller). */
+  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .1 0 0 0 0 .07 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+html[data-palette="hifi"] { background-image: var(--felt); }
+[data-palette="hifi"] .modal-panel,
+[data-palette="hifi"] .settings-sheet { background-image: var(--felt); }
+
+/* Titles in the serif; the rest in Manrope. */
+[data-palette="hifi"] .album-count,
+[data-palette="hifi"] .home-greeting-text,
+[data-palette="hifi"] .settings-view h2,
+[data-palette="hifi"] .settings-head h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
+
+/* The top bar's rule, faint and warm. */
+[data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
+/* Top bar buttons: round, with a gold hairline. */
+[data-palette="hifi"] .topbar .icon-btn {
+  border-radius: 50%; border-color: rgba(201,164,92,.28); background: var(--bg-elev); color: var(--text);
+}
+
+/* ---- Home ---------------------------------------------------------- */
+.home-greeting { display: none; }
+[data-palette="hifi"] .home-greeting { display: block; margin: 6px 0 26px; }
+[data-palette="hifi"] .home-greeting-date {
+  font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text);
+}
+[data-palette="hifi"] .home-greeting-text { margin: 6px 0 0; font-size: 34px; line-height: 1.1; color: var(--text); }
+
+/* Section titles: small gold capitals, no rule under them. */
+[data-palette="hifi"] .home-section { margin-bottom: 32px; }
+[data-palette="hifi"] .home-section-title {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent-text);
+  border-bottom: 0; padding-bottom: 0; margin-bottom: 14px;
+}
+[data-palette="hifi"] .home-section-link::after { color: var(--text); font-size: 20px; }
+[data-palette="hifi"] .home-section-link:hover { color: var(--accent-text); }
+/* Label of the week: the label's own name, large, under the heading. */
+[data-palette="hifi"] .home-lotw-name {
+  display: block; margin-top: 5px; font-family: var(--font-display); font-size: 24px; font-weight: 400;
+  letter-spacing: 0; text-transform: none; color: var(--text); line-height: 1.15;
+}
+[data-palette="hifi"] .home-lotw-sep { display: none; }
+[data-palette="hifi"] .home-section-lotw .home-section-link { align-items: flex-end; }
+
+[data-palette="hifi"] .home-carousel { grid-auto-columns: 144px; gap: 16px; padding-bottom: 18px; }
+
+/* Covers: rounder, and glowing in their own colour (--glow, set by app.js
+   from the picture; gold until it has loaded). */
+[data-palette="hifi"] .album-art-wrap {
+  border-radius: 12px;
+  box-shadow: 0 16px 30px -14px rgba(var(--glow, 201,164,92), .7), inset 0 0 0 1px rgba(255,255,255,.05);
+}
+[data-palette="hifi"] .album:hover .album-art-wrap {
+  box-shadow: 0 20px 36px -12px rgba(var(--glow, 201,164,92), .85), inset 0 0 0 1px rgba(255,255,255,.07);
+}
+[data-palette="hifi"] .album-meta { margin-top: 11px; }
+[data-palette="hifi"] .album-title { font-weight: 600; }
+
+/* "Something you haven't heard": a dashed gold sleeve. */
+[data-palette="hifi"] .unheard-art {
+  background: var(--bg-elev); border: 1px dashed rgba(201,164,92,.6); box-shadow: none;
+}
+[data-palette="hifi"] .unheard-glyph { color: var(--accent-text); }
+[data-palette="hifi"] .home-unheard-tile:hover .unheard-art { background: var(--accent-soft); }
+[data-palette="hifi"] .home-unheard-tile:hover .unheard-glyph { color: var(--accent-text); }
+
+/* Smart Picks on Home: the same glow, and the reason under each. */
+[data-palette="hifi"] .home-carousel .pick-card { width: 156px; }
+[data-palette="hifi"] .pick-art {
+  border-radius: 12px; border: 0;
+  box-shadow: 0 16px 30px -14px rgba(201,164,92,.55), inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.pick-reason-home { display: none; }
+[data-palette="hifi"] .pick-reason-home {
+  display: block; margin-top: 4px; font-size: 12px; color: var(--accent-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Browse by genre: felt cards in six earthy tones, each with a soft disc. */
+[data-palette="hifi"] .home-genre-card {
+  position: relative; overflow: hidden; min-height: 88px; align-items: flex-end;
+  font-family: var(--font-display); font-weight: 400; font-size: 18px;
+  border-radius: 14px; border-color: rgba(239,230,212,.10); background: #3b2a22;
+}
+[data-palette="hifi"] .home-genre-card::after {
+  content: ""; position: absolute; right: -18px; top: -18px; width: 64px; height: 64px;
+  border-radius: 50%; background: #c97b5a; opacity: .5;
+}
+[data-palette="hifi"] .home-genre-card:nth-child(6n+2) { background: #26382f; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+2)::after { background: #7fa38a; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+3) { background: #3a3324; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+3)::after { background: #c9a45c; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+4) { background: #2a3140; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+4)::after { background: #7d8fb3; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+5) { background: #402a2c; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n+5)::after { background: #b87a86; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n) { background: #2f3a27; }
+[data-palette="hifi"] .home-genre-card:nth-child(6n)::after { background: #9fae6b; }
+[data-palette="hifi"] .home-genre-card:hover { border-color: rgba(201,164,92,.5); filter: brightness(1.08); }
+
+/* ---- The mini player: a small receiver ----------------------------- */
+.mt-kicker { display: none; }
+[data-palette="hifi"] .mini-transport {
+  border-radius: 22px; padding: 10px 12px 16px;
+  background: rgba(29,46,38,.94); border-color: rgba(201,164,92,.24);
+  box-shadow: 0 20px 44px -14px rgba(0,0,0,.75);
+}
+[data-palette="hifi"] .mt-kicker:not(:empty) {
+  display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px;
+}
+[data-palette="hifi"] .mt-art { border-radius: 10px; box-shadow: 0 10px 22px -10px rgba(201,164,92,.6); }
+/* Progress as a level meter along the bottom: gold segments over faint ones. */
+[data-palette="hifi"] .mt-progress {
+  inset: auto 16px 7px 16px; height: 4px; border-radius: 0; overflow: hidden;
+  background: rgba(239,230,212,.12);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+          mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+}
+[data-palette="hifi"] .mt-progress-fill {
+  height: 100%; border-top: 0; border-radius: 0; background: var(--accent);
+}
+[data-palette="hifi"] .mt-playpause {
+  background: var(--text); color: var(--bg); border: 1px solid rgba(239,230,212,.25);
+}
+[data-palette="hifi"] .mt-playpause:hover { background: #fff7e6; }
+
+/* The theme picker's swatch for this theme: the felt and the gold. */
+.theme-swatch[data-palette="hifi"] { background: #132019; }

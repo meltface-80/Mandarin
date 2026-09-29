@@ -27,7 +27,8 @@ object OfflineSite {
         "/" to "index.html", "/style.css" to "style.css", "/app.js" to "app.js",
         "/sharecard.js" to "sharecard.js", "/srp.js" to "srp.js", "/manifest.json" to "manifest.json",
         "/icons/icon-192.png" to "icon-192.png", "/icons/apple-touch-icon.png" to "apple-touch-icon.png",
-        "/icons/favicon.ico" to "favicon.ico"
+        "/icons/favicon.ico" to "favicon.ico",
+        "/fonts/manrope.woff2" to "manrope.woff2", "/fonts/young-serif.woff2" to "young-serif.woff2"
     )
 
     /** Settings and lists the page asks for at start; kept as the server last answered. */
@@ -66,7 +67,11 @@ object OfflineSite {
             if (f.exists()) return f.readBytes() to mimeOf(name)
         }
         // …else the one built into the app, made the app's way as the server would.
-        val assetPath = if (entry.first.startsWith("/icons/")) "icons/$name" else name
+        val assetPath = when {
+            entry.first.startsWith("/icons/") -> "icons/$name"
+            entry.first.startsWith("/fonts/") -> "fonts/$name"
+            else -> name
+        }
         var bytes = bundled(c, assetPath) ?: return null
         when (name) {
             "index.html" -> bytes = String(bytes).replace(Regex(",\\s*viewport-fit=cover"), "").toByteArray()
@@ -92,6 +97,7 @@ object OfflineSite {
         name.endsWith(".json") -> "application/json"
         name.endsWith(".png") -> "image/png"
         name.endsWith(".ico") -> "image/x-icon"
+        name.endsWith(".woff2") -> "font/woff2"
         else -> "application/octet-stream"
     }
 

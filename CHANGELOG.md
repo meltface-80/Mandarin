@@ -6,6 +6,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.3.25
+- **A new look: Late-Night Hi-Fi**, now the default (the others stay in Settings → Setup →
+  Appearance). Deep green felt with a fine texture, warm cream text and muted gold; titles in
+  Young Serif, the rest in Manrope (both bundled, so the look is the same offline).
+  - Home opens with **Good morning / Good afternoon / Good evening** and the date.
+  - Section titles in small gold capitals; **every cover glows softly in its own colour**, on
+    Home and in every album grid.
+  - *Not played in 6 months* starts with a dashed gold "something unheard" tile; *Smart Picks*
+    shows the reason under each pick; *Label of the week* shows the label's name large.
+  - *Browse by genre*: felt cards in six earthy tones.
+  - The mini player is a small receiver: the room and the format above the track
+    ("This phone · Opus 256"), and the progress as a gold level meter.
+  - Anyone on the old default moves to it once; a theme picked afterwards is kept.
 - **Settings → Setup:** Updates moved to the bottom of the list.
 
 ## v0.3.24
