@@ -296,7 +296,7 @@
       theme: "dark",  palette: "classic" },
     { id: "light",        label: "Light",        note: "The original — bright and neutral",
       theme: "light", palette: "classic" },
-    { id: "copper-dark",  label: "Copper dark",  note: "Charcoal and copper, with a copper accent",
+    { id: "copper-dark",  label: "Copper dark",  note: "Charcoal and copper, from the MusicD site",
       theme: "dark",  palette: "copper" },
     { id: "brass-light",  label: "Brass light",  note: "Warm parchment with a brass accent",
       theme: "light", palette: "copper" },
