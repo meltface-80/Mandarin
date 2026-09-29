@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.23
+- **A music folder can't vanish from the library any more.** A scan used to remove every track
+  it couldn't find — so a network share that dropped for a moment, or a disk slow to answer,
+  could take thousands of albums with it. Now a track is removed only when the folder it was in
+  was read in full and it wasn't there. A folder that couldn't be read, or most of a folder gone
+  at once (over a quarter of it, and over 500 tracks), is kept as it was, and the page says so,
+  with a button to remove the missing ones if you did delete them.
+- **An album that comes back gets its old id back**, so play history, playlists and the phone's
+  downloads find it again.
+- **Settings → Music folders**, as in Roon: add any number of folders from the app — browse to
+  one, tap Add — and remove them (with a Yes/No first). In Docker, mount your drives once
+  (e.g. `-v /mnt:/mnt:ro`) and choose the folders inside in the app. `/music` stays the first
+  folder until you change the list.
+- **Android: downloaded albums play in the full MusicD page.** With the server in reach, playing
+  a downloaded album (from the Downloads screen, the Home row or Android Auto) goes through the
+  server to this phone like any other album — Now playing, the bar at the bottom, the queue and
+  history all follow it — and the tracks still come from the phone's own files. With no server,
+  it plays from the phone as before.
+- **Android: the Downloaded albums row shows every download**, including one whose album the
+  server doesn't have right now (it plays from the phone), and its header opens them all as a
+  wall in the page rather than a separate screen.
+
 ## v0.3.22
 - **Android: no more "MusicD stopped" when switching between Wi-Fi and mobile data.** On a change
   of network the app drops the page's connections on the old route; if that landed just as a new

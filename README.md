@@ -4,7 +4,7 @@
 
 </div>
 
-# MusicD Server — v0.3.22
+# MusicD Server — v0.3.23
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -108,8 +108,12 @@ few minutes and albums appear as it goes.
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
 > at the same name.
 
-**More than one music folder?** Mount each under `/music`:
-`-v /mnt/nas/Albums:/music/Albums:ro -v /mnt/usb/Vinyl:/music/Vinyl:ro`.
+**Music folders, chosen in the app.** Like Roon: mount your drives or shares into the
+container once — e.g. `-v /mnt:/mnt:ro` — then add any folders inside them in
+**Settings → Music folders**, as many as you like, and remove them there too. `/music` is
+the first folder until you change the list. A folder that goes missing for a while (a drive
+asleep, a share that dropped, part of it unreadable, most of it gone at once) keeps its
+albums; the page says so and offers to forget it.
 
 A `docker-compose.yml` is in the repository: set your music path and `docker compose up -d`.
 

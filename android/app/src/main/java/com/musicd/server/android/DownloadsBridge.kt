@@ -22,11 +22,12 @@ import org.json.JSONObject
  *   MusicdDownloads.ids()             albums fully on the phone, as a JSON array
  *   MusicdDownloads.all()             every album on the phone or on its way, newest first:
  *                                     [{"id", "state", "done", "total", "title", "artist",
- *                                       "quality", "bytes", "auto", "error"}, …]
+ *                                       "quality", "bytes", "auto", "error", "image_key"}, …]
  *   MusicdDownloads.settings()        the download settings, the places to save to, space used
  *   MusicdDownloads.set(key, value)   change one setting (quality, location, wifiOnly, limitGb,
  *                                     autoPicks, autoAotd, autoRecent, awayQuality)
- *   MusicdDownloads.play(albumId)     play a downloaded album on this phone
+ *   MusicdDownloads.play(albumId)     play a downloaded album on this phone (through the
+ *                                     server when it's in reach, so the page shows it)
  *
  * And the other way: whenever a download starts, moves on, finishes or is
  * removed, the app calls window.__musicdDownloadsChanged() on the page
@@ -53,7 +54,8 @@ class DownloadsBridge(private val activity: Activity) {
             a.put(JSONObject().put("id", album.id).put("state", album.state)
                 .put("done", album.doneCount).put("total", album.tracks.size)
                 .put("title", album.title).put("artist", album.artist).put("quality", album.quality)
-                .put("bytes", album.totalBytes).put("auto", album.auto).put("error", album.error ?: ""))
+                .put("bytes", album.totalBytes).put("auto", album.auto).put("error", album.error ?: "")
+                .put("image_key", album.imageKey ?: ""))
         }
         return a.toString()
     }
