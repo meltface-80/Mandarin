@@ -5,6 +5,9 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.3.25
+- **Settings → Setup:** Updates moved to the bottom of the list.
+
 ## v0.3.24
 - **Settings, reordered.** Account, Music Folders, Audio Devices (was Playback), Home Screen,
   Share Card, Wall Display, Downloads (in the Android app), and **Setup** — a list of its own
