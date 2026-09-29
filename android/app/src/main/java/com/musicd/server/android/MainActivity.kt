@@ -129,6 +129,9 @@ class MainActivity : Activity() {
                 domStorageEnabled = true
                 mediaPlaybackRequiresUserGesture = false
                 cacheMode = WebSettings.LOAD_DEFAULT
+                // Draws a little beyond what's on screen, so moving around
+                // (carousels, walls, the album sheet) has its tiles ready.
+                offscreenPreRaster = true
                 builtInZoomControls = false
                 displayZoomControls = false
                 // Tells the page it's inside this app (see index.html: the app
@@ -403,10 +406,17 @@ class MainActivity : Activity() {
      */
     private fun back() {
         if (!::web.isInitialized || web.visibility != View.VISIBLE) { moveTaskToBack(true); return }
-        // The page first: full-screen Settings closes (or steps back a pane).
-        web.evaluateJavascript("(window.__musicdBack && window.__musicdBack()) ? 1 : 0") { handled ->
-            if (handled == "1") return@evaluateJavascript
-            if (web.canGoBack()) web.goBack() else moveTaskToBack(true)
+        // The page first: one step back its own way (Settings, a pop-up, the
+        // album, a wall → Home). "2": the page is on Home with nothing open —
+        // leave, never web.goBack(), which could land on an earlier page load
+        // (the sign-in page) and reload everything. "0": an older page with no
+        // Back of its own — as before.
+        web.evaluateJavascript("(window.__musicdBack && window.__musicdBack()) ? 1 : (window.__pageBack ? 2 : 0)") { handled ->
+            when (handled) {
+                "1" -> return@evaluateJavascript
+                "2" -> moveTaskToBack(true)
+                else -> if (web.canGoBack()) web.goBack() else moveTaskToBack(true)
+            }
         }
     }
 
