@@ -108,6 +108,49 @@
 .settings-pane[data-pane="downloads"] .settings-row { margin-top: 14px; }
 .settings-pane[data-pane="downloads"] .settings-subhead + .settings-row { margin-top: 0; }
 
+/* The albums behind one "Downloads" folder row, so the settings stay in view. */
+.dl-folder {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--bg-elev-2);
+  color: var(--text); text-align: left; cursor: pointer;
+}
+.dl-folder:active { transform: scale(.99); }
+.dl-folder-ico {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-elev); color: var(--accent-text);
+}
+.dl-folder-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dl-folder-title { font-size: 16px; font-weight: 600; }
+.dl-folder-sub { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-folder-chev { flex: 0 0 auto; color: var(--text-faint); }
+
+/* The albums: Select / Clear all, a tick box per album while selecting, and
+   the bar that removes the ones ticked. */
+.dl-toolbar { display: flex; gap: 10px; justify-content: flex-end; margin: 0 0 8px; }
+.dl-toolbar .settings-update-btn { white-space: nowrap; }
+.settings-update-btn.dl-danger { color: var(--danger); }
+.settings-update-btn[disabled] { opacity: .5; }
+.dl-check {
+  flex: 0 0 auto; width: 36px; height: 44px; padding: 0; border: 0; background: none;
+  display: inline-flex; align-items: center; justify-content: flex-start; cursor: pointer;
+}
+.dl-checkbox {
+  width: 24px; height: 24px; border-radius: 7px;
+  border: 2px solid var(--text-faint); color: var(--on-accent, #fff);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.dl-row.is-chosen .dl-checkbox { background: var(--accent); border-color: var(--accent); }
+.dl-row.is-chosen { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.dl-selbar {
+  position: sticky; bottom: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 12px -4px 0; padding: 12px 4px;
+  background: var(--bg-elev); border-top: 1px solid var(--border);
+  font-size: 14px; color: var(--text-dim);
+}
+
 /* The offline note (and any other notice) above Home: room below it. */
 main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }
 

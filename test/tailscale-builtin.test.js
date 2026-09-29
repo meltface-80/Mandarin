@@ -143,3 +143,57 @@ test("without the engine (a source install) it says so and stays out of the way"
     await srv.stop();
   }
 });
+
+test("an install updated in place downloads the engine, checked, once per server version", async () => {
+  const eng = stubEngine();
+  const zlib = require("zlib"), crypto = require("crypto"), http = require("http");
+  const gz = zlib.gzipSync(fs.readFileSync(eng.bin));
+  const arch = { x64: "amd64", arm64: "arm64" }[process.arch];
+  let sums = crypto.createHash("sha256").update(gz).digest("hex") + "  musicdnet-linux-" + arch + ".gz\n";
+  let fetched = 0;
+  const site = http.createServer((req, res) => {
+    if (req.url === "/SHA256SUMS") return res.end(sums);
+    if (req.url === "/musicdnet-linux-" + arch + ".gz") { fetched++; return res.end(gz); }
+    res.writeHead(404); res.end();
+  });
+  await new Promise(r => site.listen(0, "127.0.0.1", r));
+  const url = "http://127.0.0.1:" + site.address().port;
+  const { TailscaleNode } = require("../lib/server/tsnode");
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-tsdl-"));
+  const settings = {};
+  const db = { setting: (k, d) => (k in settings ? settings[k] : d), setSetting: (k, v) => { settings[k] = v; } };
+  const node = (version, env = {}) => new TailscaleNode({ bin: "/nonexistent/musicdnet", dir: path.join(data, "tailscale"), port: PORT, db, version,
+    env: Object.assign({ PATH: process.env.PATH, TS_ENGINE_URL: url }, env) });
+  const running = [];
+  const node2 = (v, env) => { const n = node(v, env); running.push(n); return n; };
+  try {
+    // Not in the image, and nowhere to fetch it from: not offered (a source install).
+    assert.equal(node("0.3.21", { TS_ENGINE_URL: "" }).available, false);
+
+    const a = node2("0.3.21");
+    assert.equal(a.available, true);
+    await a.start();
+    await until(async () => a.status().state === "NeedsLogin");
+    assert.equal(fetched, 1);
+    assert.ok(fs.existsSync(path.join(data, "bin", "musicdnet")));
+    a.stop();
+
+    // The same version again: nothing fetched.
+    const b = node2("0.3.21");
+    await b.start();
+    await until(async () => b.status().state === "NeedsLogin");
+    assert.equal(fetched, 1);
+    b.stop();
+
+    // The server updated: fetched again. A damaged download is refused, and the old engine still runs.
+    sums = "0".repeat(64) + "  musicdnet-linux-" + arch + ".gz\n";
+    const c = node2("0.3.22");
+    await c.start();
+    await until(async () => c.status().state === "NeedsLogin");
+    assert.match(c.status().error || "", /checksum/);
+    c.stop();
+  } finally {
+    for (const n of running) n.stop();
+    site.close();
+  }
+});

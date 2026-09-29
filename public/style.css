@@ -3109,7 +3109,7 @@ input.vol-range::-moz-range-thumb {
   box-shadow: 0 20px 50px rgba(0,0,0,.45);
   animation: searchReveal .18s ease;
 }
-.confirm-msg { margin: 0 0 18px; font-size: 16px; line-height: 1.4; color: var(--text); text-align: center; }
+.confirm-msg { margin: 0 0 18px; font-size: 16px; line-height: 1.4; color: var(--text); text-align: center; white-space: pre-line; }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-btn {
   flex: 1 1 0; height: 44px; border-radius: 12px;

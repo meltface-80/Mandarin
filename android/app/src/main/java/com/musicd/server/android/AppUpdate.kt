@@ -171,8 +171,14 @@ object AppUpdate {
         }.onFailure { toast(activity, "Couldn't open the installer: ${it.message}") }
     }
 
-    private fun latest(): Release? {
-        val c = open(Release.LATEST)
+    private fun latest(): Release? =
+        runCatching { latestFrom(Release.LATEST_API, Release.API_ACCEPT) }.getOrNull()
+            ?: latestFrom(Release.LATEST, null)
+
+    private fun latestFrom(url: String, accept: String?): Release? {
+        val c = open(url)
+        if (accept != null) c.setRequestProperty("Accept", accept)
+        c.useCaches = false
         try {
             if (c.responseCode != 200) throw IOException("HTTP ${c.responseCode}")
             return Release.parse(JSONObject(c.inputStream.bufferedReader().readText()))
