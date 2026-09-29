@@ -1402,7 +1402,7 @@
       return;
     }
     if (!j.enabled) {
-      setBanner("Discover is switched off. Turn it on in Settings \u2192 Discover and " +
+      setBanner("Discover is switched off. Turn it on in Settings \u2192 Setup \u2192 Discover and " +
                 "it will look for new records by the artists you play.", false);
       return;
     }
@@ -11752,12 +11752,20 @@ window.__musicdAppUpd = (function () {
     const home = sheet && sheet.querySelector('.settings-view[data-view="home"]');
     return !home || !home.classList.contains("hidden");
   };
+  // One level up: a pane opened from Setup goes back to Setup, anything else home.
+  const stepBack = () => {
+    const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
+    const name = open && open.getAttribute("data-pane");
+    const inSetup = name && name !== "setup" &&
+      sheet.querySelector('.settings-pane[data-pane="setup"] .settings-nav-item[data-pane="' + name + '"]');
+    showView(inSetup ? "setup" : "home");
+  };
 
   if (sheet) {
     sheet.addEventListener("click", (e) => {
       const nav = e.target.closest(".settings-nav-item");
       if (nav) { showView(nav.getAttribute("data-pane")); return; }
-      if (e.target.closest("[data-settings-back]")) { showView("home"); return; }
+      if (e.target.closest("[data-settings-back]")) { stepBack(); return; }
     });
   }
 
@@ -12351,7 +12359,7 @@ window.__musicdAppUpd = (function () {
     }
     window.__musicdBack = () => {
       if (overlay.classList.contains("hidden")) return false;
-      if (atHome()) close(); else showView("home");
+      if (atHome()) close(); else stepBack();
       return true;
     };
   }
@@ -12359,7 +12367,7 @@ window.__musicdAppUpd = (function () {
     if (e.key !== "Escape" || overlay.classList.contains("hidden")) return;
     // Escape steps back one level: pane → home, home → closed.
     if (atHome()) close();
-    else showView("home");
+    else stepBack();
   });
 })();
 
@@ -14346,13 +14354,13 @@ initServiceBrowser({
   const json = (f, fallback) => { try { return JSON.parse(f()) || fallback; } catch (e) { return fallback; } };
   const has = (name) => typeof dl[name] === "function";
 
-  // The tile, second in the grid.
+  // The tile, after Wall display (just before Setup).
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
-  nav.insertBefore(tile, nav.children[1] || null);
+  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="setup"]'));
 
   // An app from before this pane existed: its own screen, as it was.
   if (!has("settings")) { tile.addEventListener("click", () => dl.open()); return; }
@@ -14683,15 +14691,14 @@ initServiceBrowser({
 /* ------------------------------------------------------------------ */
 (function androidSettingsTitleSize() {
   if (!/MusicDAndroid/.test(navigator.userAgent)) return;
-  const nav = document.querySelector("#settings-overlay .settings-nav");
-  if (!nav || typeof ResizeObserver !== "function") return;
+  // The main list and Setup's: each sized by its own longest title.
+  const navs = [...document.querySelectorAll("#settings-overlay .settings-nav")];
+  if (!navs.length || typeof ResizeObserver !== "function") return;
   const MAX = 20, MIN = 13, PROBE = 20;
   let busy = false;
-  function fit() {
-    if (busy) return;
+  function fitOne(nav) {
     const items = [...nav.querySelectorAll(".settings-nav-item:not(.hidden)")];
     if (!items.length || !nav.offsetWidth) return;      // not on screen yet
-    busy = true;
     nav.style.setProperty("--settings-nav-fs", PROBE + "px");
     let scale = Infinity;
     for (const it of items) {
@@ -14703,11 +14710,23 @@ initServiceBrowser({
     }
     const fs = scale === Infinity ? 16 : Math.max(MIN, Math.min(MAX, Math.floor(PROBE * scale * 10) / 10));
     nav.style.setProperty("--settings-nav-fs", fs + "px");
+    // Setup's buttons take the main list's height.
+    if (nav === navs[0] && items[0].offsetHeight) {
+      document.getElementById("settings-overlay").style.setProperty("--settings-row-h", items[0].offsetHeight + "px");
+    }
+  }
+  function fit() {
+    if (busy) return;
+    busy = true;
+    navs.forEach(fitOne);
     busy = false;
   }
-  // Measured whenever the list is laid out: opened, rotated, or a button shown or hidden.
-  new ResizeObserver(fit).observe(nav);
-  new MutationObserver(fit).observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  // Measured whenever a list is laid out: opened, rotated, or a button shown or hidden.
+  const ro = new ResizeObserver(fit), mo = new MutationObserver(fit);
+  for (const nav of navs) {
+    ro.observe(nav);
+    mo.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
 })();
 
 /* ------------------------------------------------------------------ */
@@ -14890,7 +14909,7 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The MusicD app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Setup → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'
