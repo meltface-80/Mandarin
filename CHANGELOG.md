@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.3
+- **Upsampling.** A renderer's page has an Output section: **Original**, **Upsample ×2**,
+  **×4** or **Max**. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192),
+  capped at the highest rate the device takes; a file already at the top plays as it is. The
+  conversion runs in 64-bit float — SoX at 33-bit precision, libswresample carrying doubles —
+  with triangular dither to **24 bits**, or **32** where the device takes it, the setting allows
+  (Auto / 24 / 32) and the server's ffmpeg writes 32-bit FLAC (6.1 stops at 24; the page says
+  so). A CD rip at ×4 converts at about fifty times real time on a small desktop CPU.
+- **Verified.** On a WiiM, a few seconds into each track its own API is asked what the decoder
+  is running; when it matches what was sent, the rate and depth get their ✓ on the device's
+  page and the Now playing badge reads, say, *FLAC 24/176.4 ↑×4 ✓*. A mismatch is shown as
+  the device's last trouble.
+- **Random album radio is per device.** The one switch at the top of Audio Devices — which
+  applied to whichever zone the picker showed — is gone; each device's page has its own,
+  under its on/off switch. It is the same per-zone setting the server always kept, now shown
+  where it belongs, and a Sonos room in a group shows its group's.
+
 ## v0.5.2
 - **A switch on every device.** A renderer found on the network is **off until you turn it
   on**: it is listed in Audio Devices with its details, but not offered as a zone. A Sonos room

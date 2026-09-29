@@ -1080,7 +1080,7 @@
           </button>
           <h2>Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc">Output zone, your devices &amp; random album radio</p>
+        <p class="settings-pane-desc">Output zone &amp; your devices</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1126,27 +1126,9 @@
           </div>
           <div id="qobuz-secret-status" class="settings-token-status hidden"></div>
         </div>
-
-        <div class="settings-divider"></div>
-
-        <!-- The two radios, together, because they answer the same question:
-             what plays when this zone's queue runs out. Only one can be on. -->
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Random album radio <button class="settings-info-btn" data-info="When this zone's queue ends, keep playing whole random albums — a never-ending random album radio. It picks albums you have not played in the last two months." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
-              <input type="checkbox" id="radio-toggle" aria-label="Random album radio">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-          <div class="settings-row hidden">
-            <span class="settings-label">Roon Radio <button class="settings-info-btn" data-info="Roon's own keep-playing-forever feature: when the queue ends it keeps going with similar tracks. Turning this on turns Random album radio off for the zone — both fill the same queue, so only one can run." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
-              <input type="checkbox" id="roon-radio-toggle" aria-label="Roon Radio">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-        </div>
+        <!-- Random album radio is a switch on each device's page (the list
+             above), one per zone, rather than one switch for whichever zone
+             the picker happens to show. -->
       </div>
 
       <!-- Labels -->

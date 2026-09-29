@@ -11085,6 +11085,9 @@ window.__musicdAppUpd = (function () {
   // one (a write falling back to a re-read); anyone else is the newest intent
   // and takes a fresh one.
   async function loadRadio(zoneId, gen) {
+    // The switches now live on each device's page (initAudioDevicesPane);
+    // with neither here there is nothing to read for.
+    if (!radioToggle && !roonRadioToggle) return;
     if (!zoneSelect || !zoneSelect.value) return;
     const zone = zoneId || zoneSelect.value;
     const g = (gen === undefined) ? ++radioGen : gen;
@@ -15085,6 +15088,15 @@ initServiceBrowser({
           : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on." : "Not offered as a zone.")) +
         "</div></div><div class=\"settings-divider\"></div>";
     }
+    // Random album radio, per zone: what plays when this device's queue runs out.
+    if (d.radio !== undefined && d.enabled && d.playable !== false) {
+      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">Random album radio</span>' +
+        '<label class="switch"><input type="checkbox" data-dev-radio="' + esc(d.id) + '"' + (d.radio ? " checked" : "") + ' aria-label="Random album radio">' +
+        '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+        '<div class="settings-note">' + (d.radio
+          ? "On. When this device’s queue ends, whole random albums keep coming — ones you haven’t played in the last two months."
+          : "Off. When this device’s queue ends, it stops.") + "</div></div><div class=\"settings-divider\"></div>";
+    }
     html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
     if (d.kind === "phone") {
       html += '<div class="dev-kv"><span class="dev-v">' + esc(d.network_name) + '</span></div><div class="settings-note">Named in the app on the phone.</div>';
@@ -15122,9 +15134,27 @@ initServiceBrowser({
     html += "</div>";
 
     if (d.kind === "upnp") {
+      const o = d.output || { mode: "original", bits: "auto", flac32: false };
+      const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
+        '<button type="button" class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
+      const has32 = d.bits.some(b => b.n === 32 && b.on);
+      const topOf = fam => { const on = d.rates.filter(r => r.on && (fam === 44100 ? r.hz % 44100 === 0 : r.hz % 44100 !== 0)).map(r => r.hz); return on.length ? Math.max(...on) : 0; };
+      const outBits = (has32 && o.flac32 && o.bits !== 24) ? 32 : 24;
+      const example = (() => {
+        const top = topOf(44100);
+        let rate = 44100;
+        if (o.mode === "x2") rate = Math.min(88200, top || 44100); else if (o.mode === "x4") rate = Math.min(176400, top || 44100); else if (o.mode === "max") rate = top || 44100;
+        if (o.mode === "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is.";
+        return "A 16-bit/44.1 kHz file plays as " + outBits + "-bit/" + (rate / 1000) + " kHz FLAC" + (rate === 176400 ? " (×4)" : rate === 88200 ? " (×2)" : "") + ".";
+      })();
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Output</div>' +
-        '<div class="dev-kv"><span class="dev-k">Mode</span><span class="dev-v">Original</span></div>' +
-        '<div class="settings-note">The file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsample ×2, ×4 and Max come in the next version.</div></div>';
+        '<div class="cap-group"><span class="cap-label">Mode</span>' +
+        seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
+        (has32 ? '<div class="cap-group"><span class="cap-label">Bit depth</span>' +
+          seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
+          (!o.flac32 ? '<div class="settings-note">32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
+        '<div class="settings-note">' + esc(example) + " Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
+        (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ". Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes.</div></div>";
     }
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
@@ -15194,6 +15224,13 @@ initServiceBrowser({
     if (!current || busy) return;
     const c = e.target.closest("button.cap-chip");
     if (c) return toggleChip(c);
+    const sb = e.target.closest(".seg-btn");
+    if (sb && !sb.disabled) {
+      const name = sb.closest(".seg").getAttribute("data-seg");
+      const raw = sb.getAttribute("data-seg-v");
+      const v = name === "bits" && raw !== "auto" ? Number(raw) : raw;
+      return patch({ output: { [name]: v } });
+    }
     if (e.target.closest("[data-dev-reset]")) { await patch({ name: "" }); return toast("Back to its network name"); }
     if (e.target.closest("[data-dev-forget]")) {
       if (!(await ask("Forget “" + current.name + "”?\n\nIts name and settings go. If it turns up again it starts afresh."))) return;
@@ -15205,9 +15242,16 @@ initServiceBrowser({
       else renderDetail();
     }
   });
-  body.addEventListener("change", (e) => {
+  body.addEventListener("change", async (e) => {
     const sw = e.target.closest("[data-dev-enable]");
     if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
+    const rd = e.target.closest("[data-dev-radio]");
+    if (rd) {
+      const on = rd.checked;
+      await patch({ radio: on });
+      if (!err) toast(on ? "Random album radio is on for " + current.name : "Random album radio is off for " + current.name);
+      return;
+    }
     const inp = e.target.closest(".dev-name-input");
     if (inp && current && inp.value.trim() !== current.name) patch({ name: inp.value.trim() });
   });

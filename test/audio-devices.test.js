@@ -282,6 +282,18 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
     r = await call("PATCH", "/api/audio-devices/" + w.id, { caps: { user: null } });
     assert.equal(r.j.rates.find(x => x.hz === 192000).source, "profile");
 
+    // Random album radio: one switch per zone, on the device's page.
+    const full2 = (await call("GET", "/api/audio-devices/RINCON_KITCHEN01400")).j;
+    assert.equal(full2.zone_id, "RINCON_KITCHEN01400");
+    assert.equal(full2.radio, false);
+    r = await call("PATCH", "/api/audio-devices/RINCON_KITCHEN01400", { radio: true });
+    assert.equal(r.j.radio, true);
+    assert.equal((await call("GET", "/api/radio?zone=RINCON_KITCHEN01400")).j.enabled, true);
+    assert.equal((await call("GET", "/api/audio-devices/RINCON_STUDY001400")).j.radio, false, "the other room's radio is its own");
+    r = await call("PATCH", "/api/audio-devices/RINCON_KITCHEN01400", { radio: false });
+    assert.equal(r.j.radio, false);
+    assert.equal((await call("GET", "/api/radio?zone=RINCON_KITCHEN01400")).j.enabled, false);
+
     // Forget is for a device that has gone.
     await call("POST", "/api/audio-devices/rescan");
     assert.equal((await call("POST", "/api/audio-devices/" + w.id + "/forget")).status, 409);

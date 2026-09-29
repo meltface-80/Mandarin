@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.2
+# Mandarin — v0.5.3
 
 **Your own music files, played to Sonos, with MusicD Remote's interface.**
 
@@ -167,7 +167,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `INCLUDE_ZONES` | — | Offer only these rooms, e.g. `Kitchen,Study`. |
 | `EXCLUDE_ZONES` | — | Offer every room except these. |
 | `SCAN_INTERVAL_HOURS` | `6` | How often the music folder is re-checked (only changed files are re-read). Rescan any time from the menu. |
-| `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted hi-res tracks. |
+| `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
@@ -278,6 +278,9 @@ multicast misses.
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The
 switch is on the device's row and on its page, and its state is kept in Mandarin's database.
 
+**Random album radio is per device.** Its switch is on each device's page: when that
+device's queue ends, whole random albums keep coming (ones you haven't played in two months).
+
 **A renderer is a zone.** Turn it on, pick it in the zone picker and everything a Sonos room has works
 on it: the queue, play next, the transport, seek, volume and mute (unless the device's volume
 is fixed, as a Chord Poly's is — then there is no slider), history, Random album radio, and
@@ -287,8 +290,14 @@ honours it; one that does not is started on the next track by hand. In **Origina
 file goes as stored wherever the device takes its rate, depth and format — the chips on its
 page — and above that ceiling as FLAC at the highest rate the device takes in the file's
 family (a 352.8 kHz file plays at 176.4 on a WiiM). The Now playing badge says exactly what
-was sent: *FLAC 24/96*. Upsample ×2, ×4 and Max — processed in 64-bit float — come next, per
-[docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
+was sent: *FLAC 24/96*.
+
+**Upsampling.** A renderer's page has an Output section: Original, Upsample ×2, ×4 or Max —
+in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), capped at the device's ceiling,
+processed in 64-bit float and sent at 24 bits, or 32 where the device takes it and the
+server's ffmpeg writes 32-bit FLAC. On a WiiM, what the decoder is really running is read back
+through its own API; when it matches, the rate gets its ✓ and the badge reads *FLAC 24/176.4 ↑×4 ✓*.
+The plan for the rest is [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
 
 ## Away from home (Tailscale)
 
@@ -365,8 +374,7 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
-* Upsampling (×2, ×4, Max) to UPnP/DLNA renderers, DSD to them, and grouping WiiMs — they
-  play in Original mode today; the rest follows, per
+* DSD to UPnP/DLNA renderers, and grouping WiiMs — the rest follows, per
   [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md). Roon Ready, Bluetooth
   and AirPlay: never.
 
