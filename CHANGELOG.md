@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.4
+- **Android: Settings looks like the side menu.** The Settings list and Setup's are rows the
+  way the menu draws them — the icon in the menu's grey, then the title, flat on the sheet —
+  instead of boxed tiles stretched to fill the screen. Same icons, same order. The browser and
+  the iPhone app keep their two-column tiles.
+
 ## v0.5.3
 - **Upsampling.** A renderer's page has an Output section: **Original**, **Upsample ×2**,
   **×4** or **Max**. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192),

@@ -22,49 +22,48 @@
 #settings-overlay .settings-view[data-view="home"] .settings-head {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
 }
-/* One column of full-width buttons, icon first then the title, sharing the
-   screen's height between them. Every title is the same size: the longest
-   one decides it, as large as fits on one line (set by app.js as
-   --settings-nav-fs; 16px until it has measured). */
+/* The lists as the side menu draws its rows: icon, then the title, flat on
+   the sheet — no tile boxes, nothing stretched to fill the screen. */
 #settings-overlay .settings-view[data-view="home"] .settings-nav,
 #settings-overlay .settings-pane[data-pane="setup"] .settings-nav {
-  flex: 1 1 auto; min-height: 0;
+  flex: 0 0 auto; min-height: 0;
   grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 8px;
+  grid-auto-rows: auto; align-content: start;
+  gap: 2px; padding: 0 4px;
 }
 #settings-overlay .settings-view[data-view="home"] .settings-nav-item,
 #settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item {
   flex-direction: row; justify-content: flex-start;
-  min-height: 0; padding: 0 16px; gap: 14px;
-  text-align: left;
+  min-height: 0; padding: 13px 12px; gap: 14px; border-radius: 10px;
+  border: 0; background: transparent; text-align: left;
 }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-item:hover,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:hover { background: var(--bg-elev-2); border-color: transparent; }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-item:active,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:active { transform: scale(.99); }
 #settings-overlay .settings-view[data-view="home"] .settings-nav-ico,
 #settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico {
-  width: 40px; height: 40px; border-radius: 11px;
+  width: 22px; height: 22px; border-radius: 0; background: none; color: var(--text-dim);
 }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-ico svg,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico svg { width: 22px; height: 22px; }
 #settings-overlay .settings-view[data-view="home"] .settings-nav-txt,
 #settings-overlay .settings-pane[data-pane="setup"] .settings-nav-txt {
   flex: 1 1 auto; align-items: flex-start; overflow: hidden;
 }
 #settings-overlay .settings-view[data-view="home"] .settings-nav-title,
 #settings-overlay .settings-pane[data-pane="setup"] .settings-nav-title {
-  font-size: var(--settings-nav-fs, 16px);
+  font-size: 15px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-wrap: nowrap;
 }
-/* Setup's list the same way, filling the screen below its title. */
+/* Setup's list the same way, from the top. */
 #settings-overlay .settings-pane[data-pane="setup"] {
   flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column;
 }
-#settings-overlay .settings-pane[data-pane="setup"] .settings-pane-head { margin-bottom: 14px; }
-/* Its buttons as tall as the main list's (app.js measures them), from the top. */
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav {
-  flex: 0 0 auto; align-content: start;
-  grid-auto-rows: var(--settings-row-h, 72px);
-}
-#settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: 14px; }
+#settings-overlay .settings-pane[data-pane="setup"] .settings-pane-head { margin-bottom: 6px; }
+#settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: auto; padding-top: 14px; }
 #settings-overlay .settings-app-close {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; margin-right: -6px;
