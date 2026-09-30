@@ -99,6 +99,28 @@ test("away, only this phone plays", { skip, timeout: 90000 }, async (t) => {
       assert.equal(st.zone_count, 0);
     });
 
+    await t.test("away, Audio Devices shows this phone and nothing else", async () => {
+      const j = await phoneAway("GET", "/api/audio-devices");
+      assert.equal(j.away, true);
+      assert.deepEqual(j.devices.map(d => d.id), [mine]);
+      assert.equal(j.devices[0].kind, "phone");
+      const d = await phoneAway("GET", "/api/audio-devices/" + mine);
+      assert.equal(d.id, mine);
+      assert.equal(d.found_by, "The Mandarin app");
+      // Its own settings can be changed; a room's can't, nor can it be seen.
+      assert.equal((await phoneAway("PATCH", "/api/audio-devices/" + mine, { radio: false })).status, 200);
+      assert.equal((await phoneAway("GET", "/api/audio-devices/RINCON_KITCHEN01400")).status, 403);
+      assert.equal((await phoneAway("PATCH", "/api/audio-devices/RINCON_KITCHEN01400", { name: "x" })).status, 403);
+      assert.equal((await phoneAway("POST", "/api/audio-devices/rescan", {})).status, 403);
+      // A browser away has no phone to show.
+      const b = await browserAway("GET", "/api/audio-devices");
+      assert.equal(b.away, true);
+      assert.deepEqual(b.devices, []);
+      assert.equal((await browserAway("GET", "/api/audio-devices/" + mine)).status, 403);
+      // At home, the list is the whole household as before.
+      assert.ok((await phoneHome("GET", "/api/audio-devices")).devices.length >= 3);
+    });
+
     await t.test("nothing away reaches a Sonos room", async () => {
       const deny = [
         ["GET", "/api/zone-state?zone=" + sonos],

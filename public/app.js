@@ -15113,7 +15113,10 @@ initServiceBrowser({
   }
 
   function renderList() {
-    if (away) { list.innerHTML = '<div class="settings-note">Audio devices are shown at home. Away, this phone is the only player.</div>'; return; }
+    // Away, the app sees the phone it is on and nothing else; the network
+    // can't be searched from there, so Look again goes.
+    if (rescan) rescan.classList.toggle("hidden", away);
+    if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
     if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; return; }
     let html = "";
     for (const d of devices) {
@@ -15130,6 +15133,7 @@ initServiceBrowser({
           '<span class="switch-track"><span class="switch-thumb"></span></span></label>' : "") +
         "</div>";
     }
+    if (away) html += '<div class="settings-note">Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.</div>';
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     list.innerHTML = html;
   }
