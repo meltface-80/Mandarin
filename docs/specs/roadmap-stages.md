@@ -126,6 +126,8 @@ One patch version.
 
 ## Stage 3: DSP — AutoEQ for headphones, AutoEQ and PEQ for zones
 
+**3.2 and 3.3 (the server chain, the PEQ page for renderers) built in v0.5.23.**
+
 ### The chain, everywhere
 
 ```

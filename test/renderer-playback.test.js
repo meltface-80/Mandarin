@@ -215,6 +215,32 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("audio-devices/" + WIIM, { output: { mode: "original" } }, "PATCH");
     });
 
+    await t.test("DSP: on, a CD rip is decoded, filtered and sent as 24/44.1 FLAC; off, as it is", async () => {
+      // A −6 dB band and the switch, saved together. The zone's queue is
+      // planned again, so the next address carries the output's id.
+      let r = await api("audio-devices/" + WIIM, { dsp: { enabled: true, peq: { bands: [{ type: "peak", freq: 1000, gain: -6, q: 1.41 }] } } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.dsp.enabled, true);
+      assert.equal(r.dsp.peq.bands.length, 1);
+      assert.equal(r.dsp_info.active, true);
+      assert.equal(r.dsp_info.headroom, -0.5);
+      assert.equal((await api("audio-devices/" + WIIM, { dsp: { peq: { bands: [{ type: "wah", freq: 100 }] } } }, "PATCH")).status, 400);
+      assert.equal((await api("audio-devices/RINCON_KITCHEN01400", { dsp: { enabled: true } }, "PATCH")).status, 400, "never a Sonos room");
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const f = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /44100-24\.flac\?o=/.test(last.uri) && last; }, 15000);
+      assert.match(f.uri, /\/stream\/t\d+\.44100-24\.flac\?o=UPNP_[^&]+&s=/);
+      assert.deepEqual(probe(f.body), { rate: 44100, channels: 2, bits: 24 });
+      const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && /DSP/.test(z.now_playing.format.text) && z; }, 15000);
+      assert.match(s.now_playing.format.text, /^FLAC 24\/44\.1 · DSP/);
+      // Off again: the file as it is from the next track on.
+      r = await api("audio-devices/" + WIIM, { dsp: { enabled: false } }, "PATCH");
+      assert.equal(r.dsp.enabled, false);
+      assert.equal(r.dsp.peq.bands.length, 1, "the bands are kept for next time");
+      assert.equal(r.dsp_info.active, false);
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      await until(() => wiim.state === "PLAYING" && /\.orig\.flac/.test(wiim.uri), 15000);
+    });
+
     await t.test("events: the device says when it changed, and the page knows", async () => {
       // Subscribed (the server's callback is on its own port) and told at once.
       await until(() => wiim.subscribers.length >= 1, 10000);

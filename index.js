@@ -28,6 +28,7 @@ const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
 const { localIp } = require("./lib/sonos/topology");
 const STREAM = require("./lib/stream");
+const DSP = require("./lib/dsp");
 const FF = require("./lib/ffmpeg");
 const shareLinks = require("./lib/share-links");
 const { Playback, trackIdFromUri, planFor } = require("./lib/server/playback");
@@ -179,6 +180,11 @@ function createServer(overrides = {}) {
       const [rate, bits] = seg.split("-").map(Number);
       if (!(rate >= 8000 && rate <= 768000) || ![16, 24, 32].includes(bits) || (bits === 32 && !FF.info().flac32)) return res.status(400).end();
       p = { transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate, bits, reason: "what the renderer was promised" };
+      // ?o=<output>: with that zone's DSP, as it is set now (lib/dsp.js).
+      if (req.query.o && ctx.devices) {
+        const part = DSP.planPart(ctx.devices.dspFor(String(req.query.o)), rate);
+        if (part) { p.dsp = part; p.inRate = Number(t.sample_rate) || 0; }
+      }
     } else p = planFor(t);
     if (!p.transcode) {
       res.set("Content-Type", p.mime);

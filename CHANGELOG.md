@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.23
+- **DSP for UPnP/DLNA renderers: a parametric EQ per zone.** On a device's page in Audio
+  Devices, a DSP switch and up to ten bands — peak, low shelf, high shelf, low-pass,
+  high-pass — with the response drawn as they are edited, and Save. With DSP on, every track
+  is decoded to 64-bit float, the headroom taken, upsampled if the Output settings say so,
+  the bands run (double precision), then dithered once to 24 bits (32 where the device takes
+  it); off, the device gets the file as stored, as before. Headroom is automatic — half a dB
+  under the bands' combined peak, not the largest band — or set by hand. A change is heard
+  from the next track. Sonos rooms have Trueplay and no DSP. The phone's own engine and
+  AutoEQ headphone profiles follow in the next two versions. (Stage 3, first part.)
+
 ## v0.5.22
 - **Opus 256 is 24/48 end to end.** Opus is a 48 kHz codec; a 44.1 kHz file now reaches the
   encoder through the same 64-bit float SoX resample as the FLAC conversions (it was ffmpeg's
