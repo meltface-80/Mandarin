@@ -1258,10 +1258,11 @@
     album.className = "pick-album";
     album.textContent = pick.album || "";
     meta.appendChild(album);
-    if (pick.reason) {
+    // The reason is on the Smart Picks page only; the Home tile stays a
+    // plain tile like the rows around it.
+    if (pick.reason && full) {
       const why = document.createElement("div");
-      // On Home only the Late-Night Hi-Fi theme shows it (one line, under the tile).
-      why.className = full ? "pick-reason" : "pick-reason pick-reason-home";
+      why.className = "pick-reason";
       why.textContent = pick.reason;
       meta.appendChild(why);
     }
@@ -1274,9 +1275,10 @@
       // Three states, and which one a pick is in is entirely about whether Roon
       // has it yet:
       //
-      //   PLAY     — Roon has imported it, so it has an offset and every
-      //              ordinary play route works. This is where the picks should
-      //              be by morning when adding automatically is on.
+      //   OPEN     — the library has it, so it has an offset and opens as any
+      //              album does (Play Now and the rest are on its page). This
+      //              is where the picks should be by morning when adding
+      //              automatically is on.
       //   WAITING  — favourited on the service but not imported yet. Roon
       //              decides when, so there is nothing to press.
       //   ADD      — not in the streaming library. Where every pick sits when
@@ -1285,7 +1287,7 @@
         const play = document.createElement("button");
         play.type = "button";
         play.className = "pick-add pick-play";
-        play.textContent = "▶ Play";
+        play.textContent = "Open";
         play.addEventListener("click", () => openAlbum({
           offset:    pick.offset,
           // Roon's OWN strings for the album, not Qobuz's — the play routes

@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.13
+- **Smart Picks, tidied.** The Home carousel no longer shows the "Because you have been
+  playing…" line under each tile (it is on the Smart Picks page). On that page every card
+  lays out the same: a long reason used to push the text under the cover on that one card.
+  The button that opens a pick's album page now says **Open**, which is what it does.
+
 ## v0.5.12
 - **A paused track survives the phone's sleep.** Android stops the app's idle player after a
   while; when it came back, its hello to the server started the phone zone afresh and what was
