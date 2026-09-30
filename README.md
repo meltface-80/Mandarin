@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.7
+# Mandarin — v0.5.8
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -56,6 +56,9 @@ Everything MusicD Remote does that makes sense for a library of files:
 * **UPnP/DLNA renderers** — a WiiM, a Chord Poly, any streamer with AVTransport: gapless, with
   volume, radio and everything a room has; the file as stored up to the device's own rate, or
   upsampled ×2, ×4 or to its maximum in 64-bit float (see *Audio Devices* below)
+* **Identify albums** — a nightly scan that finds an album's right artist, title, year and
+  track names on MusicBrainz from its tracks and their lengths, applied only at 96 % alike or
+  better; the rest proposed or left for you (see *Identify albums* below)
 
 ## Formats — the 24/48 rule for Sonos, each renderer's own ceiling otherwise
 
@@ -180,6 +183,8 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
+| `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
+| `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
 | `DEBUG` | — | Log every API call. |
 
 Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks, Discover,
@@ -271,6 +276,29 @@ also needs one uninstall.
 Every album's page has a heart, first in its row of buttons: hollow, red once tapped. Hearted
 albums are a **Favourites** carousel on Home (newest first; tap its title for the full wall),
 kept on the server by the album's identity, so they survive a rescan.
+
+## Identify albums
+
+Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
+isn't one, a blank, a typo — or with track titles like `Track 01`. Settings → Setup →
+**Identify albums** is a scan that finds each album's right names on
+[MusicBrainz](https://musicbrainz.org) (no key: the app names itself and asks at most once a
+second) from what the files already say: the title, the track count, the artist where the tag
+can be trusted, and each track's title and **length** — twelve tracks that match a release to
+the second are that release, whatever the artist tag claims.
+
+Each candidate release is scored the way [beets](https://beets.io) does it. At **96 % alike or
+better** the match is applied — artist, title, year and track titles — to the same database
+overlay the album editor writes, so the files are never touched and a rescan changes nothing.
+A near miss is **proposed** on the page (Accept or Reject); anything further off, or two
+different releases that fit equally, is left **unidentified** for you: tap it, then
+⋯ → Edit album. Applied names have **Undo**. Albums you edited by hand are never touched.
+
+**Scheduling** is on by default: the scan runs between the start and end times you set each
+night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library
+isn't being scanned, about twelve albums a minute, until every album has been looked at; new
+albums are checked as they arrive. The design is in
+[docs/specs/album-identification.md](docs/specs/album-identification.md).
 
 ## Audio Devices
 
@@ -393,8 +421,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   for album write-ups and the share card's "open in Qobuz" link, with no login)
 * Record labels — no label pages, Label of the week, label focus or label search
 * The Android dial and voice commands from Android Random Remote
-* Identifying albums with wrong tags from their track lengths and names — planned, see
-  [docs/specs/album-identification.md](docs/specs/album-identification.md)
+* Audio fingerprinting (AcoustID) for albums the identification scan can't place — not
+  planned; those are yours to name by hand
 * DSD to UPnP/DLNA renderers — later, per
   [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md). Roon Ready, Bluetooth
   and AirPlay: never.

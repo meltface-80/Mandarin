@@ -1598,6 +1598,15 @@
             </span>
           </button>
 
+          <button class="settings-nav-item" type="button" data-pane="identify">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Identify albums</span>
+            </span>
+          </button>
+
           <button class="settings-nav-item" type="button" data-pane="system">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
@@ -1662,6 +1671,18 @@
         <p class="settings-pane-desc">Tailscale, built into the server</p>
         <!-- Filled by initAwayPane() in app.js from /api/tailscale. -->
         <div class="settings-block" id="away-pane-body"></div>
+      </div>
+
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="identify">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>Identify albums</h2>
+        </div>
+        <p class="settings-pane-desc">The right names, from the tracks and their lengths</p>
+        <!-- Filled by initIdentifyPane() in app.js from /api/identify. -->
+        <div id="identify-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="system">

@@ -1,9 +1,13 @@
 # Album identification: fixing wrong artists, titles and track names from the library itself
 
-**Status: proposed — nothing is built.** A plan for a scan that finds an album's right names
-from what the files already say — the artist where it is right, the album title, the track
-names and, above all, the track lengths — and writes the corrections into the server's
-database, without you editing albums one by one. Building starts when the owner approves it.
+**Status: built in v0.5.8** (`lib/identify/`, Settings → Setup → Identify albums), with the
+owner's changes to this plan: MusicBrainz only, **no AcoustID** (§7 is not built and not
+planned), and scheduling as one switch — on, a night window between the start and end times
+you set; off, the scan runs continuously — rather than the bursts in §6. Wikipedia tie-breaks
+(§5) are not built. The rest is as written below: a plan for a scan that finds an album's
+right names from what the files already say — the artist where it is right, the album title,
+the track names and, above all, the track lengths — and writes the corrections into the
+server's database, without you editing albums one by one.
 
 ## 1. What the owner asked for
 
