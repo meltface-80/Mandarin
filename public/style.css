@@ -4466,6 +4466,9 @@ body.show-quality .album-quality { display: block; }
 /* The menu is anchored to the button, and on a narrow screen the button is at
    the right-hand end of its row — so it opens leftwards to stay on screen. */
 .overflow-menu { top: calc(100% + 6px); right: 0; }
+/* On an album's page the row sits just above the track list, so the menu
+   opens UPWARDS over the cover: every item on screen without scrolling. */
+.modal-actions .overflow-menu { top: auto; bottom: calc(100% + 6px); }
 
 /* Parked inside the album view. The modal paints over the top bar, so the menu
    moves into the modal's own header band, to the LEFT of Share. z-index clears
@@ -4973,6 +4976,41 @@ button.cap-chip:active { transform: scale(.96); }
 .seg-btn:last-child { border-right: 0; }
 .seg-btn.is-on { background: var(--accent); color: var(--card-ink, #fff); font-weight: 600; }
 .seg-btn:disabled { opacity: .4; cursor: default; }
+
+/* Settings → Setup → Identify albums. */
+#identify-pane-body .settings-row { min-height: 40px; }
+#identify-pane-body .settings-row + .settings-row { margin-top: 8px; }
+.id-time {
+  padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg-elev-2); color: var(--text); font: inherit; font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.id-time:focus { outline: none; border-color: var(--accent); }
+.id-progress { font-size: 14px; line-height: 1.45; color: var(--text); font-variant-numeric: tabular-nums; }
+.id-list { display: flex; flex-direction: column; gap: 6px; }
+.id-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-elev-2);
+}
+.id-open {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit;
+}
+.id-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.id-sub {
+  font-size: 12px; line-height: 1.35; color: var(--text-faint);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.id-actions { flex: 0 0 auto; display: flex; gap: 6px; }
+.id-btn {
+  padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border);
+  background: none; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  white-space: nowrap;
+}
+.id-btn.is-primary { background: var(--accent); border-color: var(--accent); color: var(--card-ink, #fff); }
+.id-btn:disabled { opacity: .5; cursor: default; }
+.id-btn:active { transform: scale(.97); }
+.id-more { margin-top: 10px; font-size: 13px; }
 
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }

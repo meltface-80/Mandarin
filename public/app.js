@@ -15392,6 +15392,139 @@ initServiceBrowser({
   }, 10000);
 })();
 
+/* Settings → Setup → Identify albums: the scan's switch and its night window,
+ * how far it has got, what it proposes, what it applied (undo), what it
+ * couldn't place (edit by hand). */
+(function initIdentifyPane() {
+  const body = document.getElementById("identify-pane-body");
+  const pane = document.querySelector('.settings-pane[data-pane="identify"]');
+  const navItem = document.querySelector('.settings-nav-item[data-pane="identify"]');
+  if (!body || !pane || !navItem) return;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
+  const num = n => Number(n || 0).toLocaleString();
+  const SHOW = 60;
+  let st = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+
+  async function api(url, payload) {
+    const r = await fetch(url, payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+    return j;
+  }
+  async function load() {
+    if (busy) return;
+    try { st = await api("/api/identify"); err = ""; } catch (e) { err = e.message; }
+    render();
+  }
+  async function act(url, payload, done) {
+    if (busy) return;
+    busy = true;
+    try { st = await api(url, payload || {}); err = ""; if (done) toast(done); }
+    catch (e) { err = e.message; }
+    busy = false;
+    render();
+  }
+
+  const sw = (attr, on, label) => '<label class="switch"><input type="checkbox" ' + attr + (on ? " checked" : "") + (busy ? " disabled" : "") +
+    ' aria-label="' + esc(label) + '"><span class="switch-track"><span class="switch-thumb"></span></span></label>';
+  const row = (label, right) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + right + "</div>";
+  const names = a => (a.artist ? esc(a.artist) + " — " : "") + esc(a.title);
+  const btn = (act, off, label, primary) => '<button type="button" class="id-btn' + (primary ? " is-primary" : "") + '" data-id-act="' + act + '" data-id-off="' + off + '"' + (busy ? " disabled" : "") + ">" + label + "</button>";
+
+  function status() {
+    const s = st.settings;
+    switch (st.reason) {
+      case "off": return "Off.";
+      case "waiting": return "Waits for " + esc(s.start) + " (the server's clock).";
+      case "scanning": return "Paused while the library is being scanned.";
+      case "unreachable": return "MusicBrainz isn't answering; trying again in a few minutes.";
+      case "checking": return "Checking: " + (st.current ? names(st.current) : "…");
+      case "starting": return "Starting…";
+      default: return "Every album has been looked at. New ones are checked as they arrive.";
+    }
+  }
+
+  function albumRow(it, kind) {
+    const a = it.album, c = it.candidate;
+    let line2 = "";
+    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "");
+    else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "");
+    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" : "nothing with this title on MusicBrainz";
+    else line2 = c ? "declined: " + names(c) : "";
+    const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
+      : kind === "applied" ? btn("undo", a.offset, "Undo")
+      : btn("recheck", a.offset, "Check again");
+    return '<div class="id-row"><button type="button" class="id-open" data-id-open="' + a.offset + '">' +
+      '<span class="id-name">' + names(a) + "</span>" + (line2 ? '<span class="id-sub">' + line2 + "</span>" : "") + "</button>" +
+      '<span class="id-actions">' + actions + "</span></div>";
+  }
+
+  function section(kind, title, note) {
+    const list = st[kind] || [];
+    if (!list.length) return "";
+    const shown = more[kind] ? list : list.slice(0, SHOW);
+    return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">' + title + " (" + num(list.length) + ")</div>" +
+      (note ? '<div class="settings-note" style="margin:0 0 10px">' + note + "</div>" : "") +
+      '<div class="id-list">' + shown.map(it => albumRow(it, kind)).join("") + "</div>" +
+      (shown.length < list.length ? '<button type="button" class="dev-link id-more" data-id-more="' + kind + '">Show all ' + num(list.length) + "</button>" : "") + "</div>";
+  }
+
+  function render() {
+    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
+    const s = st.settings, p = st.progress;
+    let html = '<div class="settings-block">' + row("Identify albums", sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
+      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div></div>';
+    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling", sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
+    if (s.schedule) {
+      html += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
+        row("End", '<input type="time" class="id-time" data-id-time="end" value="' + esc(s.end) + '"' + (busy ? " disabled" : "") + ' aria-label="End">') +
+        '<div class="settings-note">Runs between these times each night, on the server’s clock. About twelve albums a minute, one MusicBrainz request a second.</div>';
+    } else {
+      html += '<div class="settings-note">Off: it runs whenever the library isn’t being scanned, about twelve albums a minute, until every album has been looked at.</div>';
+    }
+    html += "</div>";
+    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
+      '<div class="id-progress">' + num(p.checked) + " of " + num(p.eligible) + " albums checked · " + num(p.applied) + " applied · " + num(p.proposed) + " proposed · " + num(p.unidentified) + " unidentified</div>" +
+      '<div class="settings-note">' + status() + "</div></div>";
+    html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
+    html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
+    html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
+    html += section("rejected", "Declined");
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    body.innerHTML = html;
+  }
+
+  body.addEventListener("change", (e) => {
+    const s = e.target.closest("[data-id-set]");
+    if (s) return act("/api/identify/settings", { [s.getAttribute("data-id-set")]: s.checked });
+    const t = e.target.closest("[data-id-time]");
+    if (t && /^\d{1,2}:\d{2}$/.test(t.value)) return act("/api/identify/settings", { [t.getAttribute("data-id-time")]: t.value });
+  });
+  body.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-id-act]");
+    if (b) {
+      const what = b.getAttribute("data-id-act");
+      const said = { accept: "Applied", reject: "Declined", undo: "Put back", recheck: "It will be looked at again" }[what];
+      return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
+    }
+    const m = e.target.closest("[data-id-more]");
+    if (m) { more[m.getAttribute("data-id-more")] = true; return render(); }
+    const o = e.target.closest("[data-id-open]");
+    if (o && window.__openAlbum) {
+      const off = Number(o.getAttribute("data-id-open"));
+      const it = ["proposed", "unidentified", "applied", "rejected"].flatMap(k => st[k] || []).find(x => x.album.offset === off);
+      if (!it) return;
+      const closer = document.querySelector("#settings-overlay [data-settings-close]");
+      if (closer) closer.click();
+      window.__openAlbum(it.album, { source: "home", filter: null });
+    }
+  });
+  navItem.addEventListener("click", () => { more = { proposed: false, unidentified: false, applied: false, rejected: false }; load(); });
+  // Progress moves while the pane is open.
+  setInterval(() => { if (!pane.classList.contains("hidden") && !busy && document.activeElement && !document.activeElement.closest(".id-time")) load(); }, 5000);
+})();
+
 (function initAwayPane() {
   const body = document.getElementById("away-pane-body");
   const pane = document.querySelector('.settings-pane[data-pane="away"]');

@@ -51,6 +51,11 @@ const config = {
   transcodeCacheGb: Number(process.env.TRANSCODE_CACHE_GB) || 4,
   // Tailscale built into the server (lib/server/tsnode.js): the engine in the image.
   tailscaleBin: process.env.MUSICDNET_BIN || "/usr/local/bin/musicdnet",
+  // Album identification (lib/identify): where MusicBrainz is (a fake in the
+  // tests) and how often the scan looks for the next album.
+  mbBaseUrl: process.env.MUSICBRAINZ_URL || "",
+  identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
+  identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
 
@@ -106,6 +111,12 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // The scan that finds each album's right names on MusicBrainz (Settings →
+  // Setup → Identify albums).
+  ctx.identifier = new (require("./lib/identify/identifier").Identifier)({
+    db, library, scanner, log, tickMs: config.identifyTickMs,
+    mb: new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log })
+  });
   // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({
@@ -213,6 +224,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-playlists")(app, ctx);
   require("./lib/server/api-phone")(app, ctx);
   require("./lib/server/api-devices")(app, ctx);
+  require("./lib/server/api-identify")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   require("./lib/server/downloads").mount(app, ctx);
 
@@ -290,6 +302,7 @@ function createServer(overrides = {}) {
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
     ctx.devices.start();
+    if (config.identify) ctx.identifier.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
     ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
@@ -305,6 +318,7 @@ function createServer(overrides = {}) {
   async function stop() {
     zones.stop();
     ctx.devices.stop();
+    ctx.identifier.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);

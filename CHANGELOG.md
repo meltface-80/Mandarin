@@ -5,6 +5,29 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.8
+- **Identify albums** (Settings → Setup → Identify albums). A scan that finds each album's
+  right names on MusicBrainz — no key, one request a second, the app named in its User-Agent —
+  from what the files already say: the title, the track count, the artist where the tag can be
+  trusted (never "Various Artists", "Unknown", blank or the album's own title), and above all
+  each track's title and length. The likeliest releases are scored beets-style (distance 0 to
+  1: album 3, artist 3, year 1, track count 3, per track title 3 and length 2, lengths free
+  within 15 s). At most 0.04 apart — 96 % alike, the 95 % asked for — the match is **applied**:
+  artist, title, year and the track titles are written to the database, the album edit overlay
+  and a new `track_edits` overlay, and the files are never touched. Up to 0.15 it is
+  **proposed** on the page with Accept and Reject; beyond that, or when two different releases
+  fit equally, the album is **unidentified** for you to name by hand (tap the row, then ⋯ → Edit
+  album). Applied names have **Undo**; every verdict is kept (`album_matches`), so an album is
+  looked at once, an unidentified one again after a month, and none you edited by hand at all.
+  Verdicts and overlays survive rescans and a rebuilt database.
+- **Scheduling** on the same page, on by default: the scan runs between a start and an end time
+  each night (01:00–06:00 to begin with, the server's clock; a window over midnight works). Off,
+  it runs whenever the library isn't being scanned — about twelve albums a minute — until every
+  album has been looked at. Progress and what it is doing right now are shown on the page.
+- The ⋯ menu on an album's page opens **above** its button, so every item is on screen
+  without scrolling.
+- `MUSICBRAINZ_URL` and `IDENTIFY=0` for tests and odd setups (a mirror, or no scan at all).
+
 ## v0.5.7
 - **Favourites.** Every album's page has a heart, first in its row of buttons (the size of the
   ⋯ button at the other end): hollow, red once tapped, kept on the server by the album's
