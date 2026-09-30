@@ -25,32 +25,26 @@ browser gets.
 * A phone is in the register (kind `phone`) while it has spoken in the last
   45 seconds; it has no on/off switch, and is named in the app.
 
+### Decisions (owner)
+
+* Away, the page shows **only the phone the app is on**. No other zone is
+  listed or reachable away: Tailscale is for the phone, and the phone's DSP
+  (Stage 3) runs in the app.
+* Home is unchanged: every device, every setting, the network search.
+
 ### Plan
 
-1. **Away, the list still comes from the register.** The route stops emptying
-   the list for an away request and answers it from the register like any
-   other, with `away: true` beside it so the page can say what is and isn't
-   possible.
-2. **What the network needs stays home only.** Searching the network for new
-   renderers stays refused away (it's an SSDP scan on the LAN). Everything held
-   in the database — a device's name, its on/off switch, its output choice, and
-   the DSP settings Stage 3 adds — is a settings write, which the server does
-   itself; those are allowed away.
-3. **The page.** Away, the search button is replaced by a line ("At home,
-   Mandarin can search the network for new devices"), and the rest works as at
-   home. The phone that is asking shows as it does at home ("This phone", found
-   by the Mandarin app), so Stage 3's headphone profile has a place to live.
-4. **Tests.** The device API tests gain an away case: the list is served, the
-   scan is refused, a rename is accepted.
-
-### Open questions (put to the owner first)
-
-1. Away, show **every** device the register knows (Sonos rooms, renderers, other
-   phones) or **only phones**? The recommendation is every device, so a
-   renderer's DSP can be adjusted from the sofa as well as from the train.
-2. Away, are device **settings writes** (rename, switch, output, DSP) allowed,
-   or should away stay read-only with only the phone editable? The
-   recommendation is to allow them: they change the database, not the network.
+1. **Away, the route answers with the asking phone.** The phone is identified
+   by its device token (the one the app signs in with), matched to the phone
+   the register knows by that device; the list is that one entry, `away: true`
+   beside it. Any other id asked for away is refused as it is now.
+2. **The page** hides the search button and shows the single row, "This
+   phone", opening to the phone's detail as at home; Stage 3 puts the
+   headphone profile there.
+3. **Writes away** are limited to that phone's own settings (Stage 3's DSP);
+   everything else stays refused.
+4. **Tests.** An away request from a signed-in phone lists that phone alone;
+   from a browser, nothing; a scan away is refused.
 
 ### Versions
 
@@ -76,26 +70,25 @@ One patch version.
   Tailscale) decodes at the file's rate and Android resamples 44.1 → 48 itself.
 * The app's away quality is a setting (Opus or original).
 
+### Decision (owner)
+
+**Opus 256, for the stream and for downloads, is 24/48 end to end.** AAC is
+not considered. Opus is a 48 kHz codec, so the rate is a given; "24" means no
+16-bit step anywhere: the encoder is fed 64-bit float and the phone decodes to
+float (24 bits and more) straight into the DSP engine and a float sink. Today
+the phone's decoder is the 16-bit one, so this is the change.
+
 ### Assessment
 
 * **Sample rate:** Opus already lands on Android's 48 kHz, which is the best
   case. Nothing to change there.
-* **Bit depth:** the loss is in the depth, not the rate: the decoder gives
-  16-bit and the track is opened 16-bit. Opus itself is not 16-bit (it decodes
-  to float); the 16-bit is the platform decoder's default output. Stage 3's
-  phone engine (below) opens the sink in **float** and decodes to float where
-  the decoder allows, so this is fixed as part of Stage 3 rather than as its
-  own work.
-* **AAC 256 instead?** No. At 256 kbps both are transparent to nearly all
-  listeners; Opus is the better codec per bit and the one with the lower
-  encode cost. AAC keeps the source rate (44.1 stays 44.1), which then has
-  Android resample it, so AAC would add a resample that Opus avoids. The AAC
-  encoder in a stock ffmpeg is also the weaker native one (libfdk_aac is not in
-  the Debian build). Opus stays.
-* **The encoder's own resample** (44.1 → 48 before Opus) can be made the SoX
-  one at 64-bit float, the same as the FLAC path, at no cost worth noticing.
-  A small, real gain, and it means every path through the server resamples the
-  same way.
+* **Bit depth:** the loss is in the depth: Android's own Opus decoder hands
+  Media3 16-bit PCM. Opus itself decodes to float. Media3's **libopus decoder
+  extension** decodes to float when the sink is float; it is not published
+  as a ready-made library and has to be built with the NDK in CI (as the FLAC
+  extension may be for Stage 3). That build is the one sure route to 24/48.
+* **The encoder's own resample** (44.1 → 48 before Opus) becomes the SoX one
+  at 64-bit float, the same as the FLAC path.
 * **The rate under DSP (Stage 3).** With the sink in float and DSP in the app,
   the phone plays 48 kHz float into Android's 48 kHz float mixer: no resample,
   no requantise until the output device. A USB DAC is opened by Android at the
@@ -106,19 +99,24 @@ One patch version.
 ### Plan
 
 1. The Opus conversion resamples with SoX at 64-bit float (`aresample=soxr…`,
-   `internal_sample_fmt=dblp`) before `libopus`. The cache name changes so old
-   files are remade.
-2. The phone's float sink and float decoding go in with Stage 3.
-3. The app's Now playing badge says what it plays ("Opus 256 · 48 kHz") so the
-   path is visible.
+   `internal_sample_fmt=dblp`) before `libopus`. The cache name changes so the
+   server remakes its files; the phone's Opus downloads are remade too (see
+   the questions).
+2. The app decodes Opus with Media3's libopus extension (float) and opens the
+   sink in float. CI builds the extension with the NDK.
+3. The app's Now playing badge reads "Opus 256 · 24/48".
 
 ### Open questions
 
-None beyond agreeing the assessment. (Asked after Stage 1 is settled.)
+1. Existing Opus downloads on the phone were encoded from the old resample:
+   remake them (re-download, in the background, while the old ones still
+   play) or leave them and only make new ones the new way?
+2. The libopus extension adds an NDK build to CI (longer builds, a few MB in
+   the APK). Agreed?
 
 ### Versions
 
-One patch version, or folded into Stage 3's first version.
+One patch version.
 
 ---
 
