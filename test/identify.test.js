@@ -158,6 +158,10 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["Bonus Thing", 9], ["C2 (Live)", 3]] },
     { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 44]] },
     { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] },
+    // The real Album One, filed under another name: only a barcode or a link reaches it.
+    { id: "12345678-1234-1234-1234-123456789abc", title: "The First Album", artist: "Artist A", date: "1997-04-01", barcode: "5012345678900",
+      group: { id: "aaaaaaaa-1234-1234-1234-123456789abc" },
+      tracks: [["Song 1", 3], ["Song 2", 3], ["Song 3", 3]] },
     { id: "old-record-2015", title: "Old Record", artist: "Artist C", date: "2015-06-01", disambiguation: "2015 remaster", group: { title: "Old Record", date: "1988-03-01" },
       tracks: [["Tune 1 (2015 Remaster)", 5], ["Tune 2 - 2015 Remaster", 5]] }
   ]).start();
@@ -246,6 +250,28 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     ctx.library.reload();
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     assert.equal((await api("identify")).progress.applied, 2);
+
+    // A match you name: Album One by its barcode → applied, however it scored.
+    r = await api("identify/match", { offset: un.album.offset, query: "5012345678900" });
+    assert.equal(r.status, 200, JSON.stringify(r));
+    let m = r.applied.find(x => x.album.offset === un.album.offset);
+    assert.ok(m, "matched by barcode");
+    assert.equal(m.candidate.manual, "barcode");
+    assert.equal(m.candidate.title, "The First Album");
+    assert.equal((await api("album?offset=" + un.album.offset)).album.title, "The First Album");
+    // Or by a pasted MusicBrainz link, release or release group; undo first so it's a fresh match.
+    await api("identify/undo", { offset: un.album.offset });
+    r = await api("identify/match", { offset: un.album.offset, query: "https://musicbrainz.org/release-group/aaaaaaaa-1234-1234-1234-123456789abc" });
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.equal(r.applied.find(x => x.album.offset === un.album.offset).candidate.manual, "link");
+    r = await api("identify/match", { offset: un.album.offset, query: "https://musicbrainz.org/release/12345678-1234-1234-1234-123456789abc" });
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.equal((await api("identify/match", { offset: un.album.offset, query: "0000000000000" })).status, 404);
+    assert.equal((await api("identify/match", { offset: un.album.offset, query: "hello" })).status, 400);
+    // Back to unidentified for the rest of the test.
+    await api("identify/undo", { offset: un.album.offset });
+    await api("identify/recheck", { offset: un.album.offset });
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j.progress.unidentified === 1 && j; });
 
     // "Check everything again" forgets the unidentified verdict (not the declined one, not the applied).
     r = await api("identify/recheck-all", {});

@@ -15405,6 +15405,7 @@ initServiceBrowser({
   const num = n => Number(n || 0).toLocaleString();
   const SHOW = 60;
   let st = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+  let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
 
   async function api(url, payload) {
     const r = await fetch(url, payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
@@ -15464,12 +15465,21 @@ initServiceBrowser({
     else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c);
     else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" : "nothing with this title on MusicBrainz";
     else line2 = c ? "declined: " + names(c) : "";
+    if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : "link");
     const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
       : kind === "applied" ? btn("undo", a.offset, "Undo")
       : btn("recheck", a.offset, "Check again");
-    return '<div class="id-row"><button type="button" class="id-open" data-id-open="' + a.offset + '">' +
+    // Everything but an applied album can be matched by hand: a barcode, or a link.
+    const manual = kind === "applied" ? "" : '<button type="button" class="id-btn" data-id-match="' + a.offset + '" title="Match by barcode or MusicBrainz link"' + (busy ? " disabled" : "") + ">Barcode…</button>";
+    const open = matching === a.offset;
+    return '<div class="id-row' + (open ? " is-matching" : "") + '"><button type="button" class="id-open" data-id-open="' + a.offset + '">' +
       '<span class="id-name">' + names(a) + "</span>" + (line2 ? '<span class="id-sub">' + line2 + "</span>" : "") + "</button>" +
-      '<span class="id-actions">' + actions + "</span></div>";
+      '<span class="id-actions">' + actions + manual + "</span>" +
+      (open ? '<form class="id-match" data-id-match-form="' + a.offset + '">' +
+        '<input class="id-match-input" type="text" inputmode="numeric" autocomplete="off" placeholder="Barcode, or a MusicBrainz release link" aria-label="Barcode or MusicBrainz link" value="' + esc(matchDraft) + '">' +
+        '<button type="submit" class="id-btn is-primary"' + (busy ? " disabled" : "") + ">Match</button></form>" +
+        '<div class="settings-note id-match-note">The digits under the bars on the sleeve, or the address of the release (or album) on musicbrainz.org. That release is written to the album whatever the scan thought.</div>' : "") +
+      "</div>";
   }
 
   function section(kind, title, note) {
@@ -15523,6 +15533,15 @@ initServiceBrowser({
       return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
     }
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
+    const mb = e.target.closest("[data-id-match]");
+    if (mb) {
+      const off = Number(mb.getAttribute("data-id-match"));
+      matching = matching === off ? null : off; matchDraft = "";
+      render();
+      const inp = body.querySelector(".id-match-input");
+      if (inp) inp.focus();
+      return;
+    }
     const m = e.target.closest("[data-id-more]");
     if (m) { more[m.getAttribute("data-id-more")] = true; return render(); }
     const o = e.target.closest("[data-id-open]");
@@ -15535,9 +15554,24 @@ initServiceBrowser({
       window.__openAlbum(it.album, { source: "home", filter: null });
     }
   });
-  navItem.addEventListener("click", () => { more = { proposed: false, unidentified: false, applied: false, rejected: false }; load(); });
-  // Progress moves while the pane is open.
-  setInterval(() => { if (!pane.classList.contains("hidden") && !busy && document.activeElement && !document.activeElement.closest(".id-time")) load(); }, 5000);
+  body.addEventListener("input", (e) => { if (e.target.closest(".id-match-input")) matchDraft = e.target.value; });
+  body.addEventListener("submit", async (e) => {
+    const f = e.target.closest("[data-id-match-form]");
+    if (!f) return;
+    e.preventDefault();
+    const q = matchDraft.trim();
+    if (!q) return;
+    const off = Number(f.getAttribute("data-id-match-form"));
+    await act("/api/identify/match", { offset: off, query: q }, "Matched and applied");
+    if (!err) { matching = null; matchDraft = ""; render(); }
+  });
+  navItem.addEventListener("click", () => { more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
+  // Progress moves while the pane is open (not while you're typing in it).
+  setInterval(() => {
+    if (pane.classList.contains("hidden") || busy || matching !== null) return;
+    if (document.activeElement && document.activeElement.closest(".id-time")) return;
+    load();
+  }, 5000);
 })();
 
 (function initAwayPane() {

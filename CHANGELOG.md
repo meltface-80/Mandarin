@@ -6,6 +6,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.5.10
+- **Match by barcode or link.** Every proposed, unidentified or declined row on the Identify
+  albums page has a **Barcode…** button: type the digits under the bars on the sleeve, or paste
+  the address of the release (or the album's release group) on musicbrainz.org, and that
+  release is written to the album whatever the scan thought — the surest match there is, since
+  a barcode names one pressing. The row then says *matched by barcode* (or *link*), with Undo
+  as for any applied match.
 - **A copy missing a track is still the record.** The search no longer asks MusicBrainz for
   exactly the copy's track count (an eleven-track release never came back for a ten-track
   copy: "nothing with this title"), and tracks are paired by likeness of title and length,

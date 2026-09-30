@@ -5011,6 +5011,14 @@ button.cap-chip:active { transform: scale(.96); }
 .id-btn:disabled { opacity: .5; cursor: default; }
 .id-btn:active { transform: scale(.97); }
 .id-more { margin-top: 10px; font-size: 13px; }
+.id-row { flex-wrap: wrap; }
+.id-match { flex: 1 0 100%; display: flex; gap: 8px; margin-top: 10px; }
+.id-match-input {
+  flex: 1 1 auto; min-width: 0; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-elev); color: var(--text); font: inherit; font-size: 15px;
+}
+.id-match-input:focus { outline: none; border-color: var(--accent); }
+.id-match-note { flex: 1 0 100%; margin-top: 8px; }
 
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }
