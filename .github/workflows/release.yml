@@ -28,9 +28,16 @@ jobs:
           node-version: 22
           cache: npm
 
+      # A static ffmpeg build from a cache, not apt (apt-get update can hang
+      # on a slow mirror, with no timeout of its own).
+      - name: Install ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Test before releasing
+        timeout-minutes: 15
         run: |
-          sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
           npm ci --no-audit --no-fund
           npm test
 
