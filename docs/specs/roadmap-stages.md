@@ -3,7 +3,8 @@
 **Status: a plan, agreed stage by stage.** Nothing here is built. Each stage is
 planned in detail, its open questions put to the project owner, and coded only
 once the owner is happy with it. The stages run in the order below; later ones
-lean on earlier ones (3 on 1 and 2; 5 and 6 on 3's phone-side engine).
+lean on earlier ones (3 on 1 and 2; 5 and 6 on 3's phone-side engine). Stage 4
+(HQPlayer) was dropped.
 
 Debian bookworm's ffmpeg (6.0 in the image, 5.1 or later on any host that
 follows the README) has every filter named below. The Android app is Media3
@@ -243,48 +244,12 @@ page (3.2 and 3.3 together, testable with the WiiM), then the phone engine
 
 ---
 
-## Stage 4: HQPlayer
+## Stage 4: HQPlayer — dropped
 
-### What is and isn't possible
-
-* **NAA is Signalyst's own protocol** and is not documented; the only NAA
-  endpoints are Signalyst's `networkaudiod` binaries. Mandarin cannot be an NAA
-  endpoint, and cannot send to one, without reverse engineering that would not
-  hold across HQPlayer releases. **Not planned.**
-* **HQPlayer can be told what to play.** HQPlayer Desktop and Embedded listen
-  on port 4321 for a control connection (XML over TCP): load a URL, play,
-  pause, stop, seek, volume, and status. This is what the LMS bridge the owner
-  found (`SimonArnold002/LMS-HQPlayer-Bridge`) uses: LMS hands HQPlayer a stream
-  URL, HQPlayer decodes, upsamples, filters and outputs to its own DAC or NAA,
-  and the bridge relays transport and status. It is also how the official
-  HQPlayer Client and third-party remotes work.
-
-### Plan
-
-* **HQPlayer as a zone type** (`HQP_` ids), beside Sonos, phones and renderers:
-  Mandarin keeps the queue and gives HQPlayer one signed stream URL at a time
-  (the file as stored; HQPlayer does all processing itself, so Stage 3's DSP
-  is off for it and the page says so), watches HQPlayer's status for track end
-  and position, and relays play/pause/next/seek/volume.
-* Found by address: Settings → Audio Devices → "Add HQPlayer…" with host and
-  port (no discovery to rely on).
-* The friend's rig is the test bed. Before coding: which HQPlayer (Desktop or
-  Embedded), which version, whether it accepts an `http://` URL with a query
-  string (Mandarin signs stream URLs), and whether their HQPlayer has a
-  licence for the network control API (Embedded includes it; Desktop needs the
-  "HQPlayer Client" allowance). A short capture of the XML exchange from the
-  friend's setup (the bridge's log, or `tcpdump` on 4321) settles the protocol
-  details.
-* A fake HQPlayer for the tests, as there is a fake renderer and a fake Sonos.
-
-### Open questions
-
-Deferred to the stage; listed above.
-
-### Versions
-
-Two patch versions: the control client and zone with the fake, then whatever
-the friend's testing turns up.
+Dropped by the owner. For the record: NAA is Signalyst's own undocumented
+protocol, so Mandarin could not be or send to an NAA endpoint; what was
+possible was HQPlayer as a zone driven over its port-4321 control connection,
+as the LMS bridge does. Not planned.
 
 ---
 
@@ -383,7 +348,7 @@ One patch version.
 | 1 Phone in Audio Devices away | 1 | — |
 | 2 Mobile-data stream | 1 (or folded into 3) | — |
 | 3 DSP | 3 | 1, 2 |
-| 4 HQPlayer | 2 | the friend's rig |
+| 4 HQPlayer | dropped | — |
 | 5 Music on the phone | 2 | 3's engine |
 | 6 SD card downloads | 2 | 5's index |
 | 7 Listen later | 1 | — |
