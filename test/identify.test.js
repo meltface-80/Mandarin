@@ -105,6 +105,20 @@ test("score: the verdicts — applied, proposed, unidentified, ambiguous", () =>
   assert.equal(SCORE.decide(album(), []).status, "unidentified");
 });
 
+test("score: a ripper's 'null' is not part of a name", () => {
+  assert.equal(SCORE.tidy("null: Line Up (null)"), "Line Up");
+  assert.equal(SCORE.tidy("Line Up - undefined"), "Line Up");
+  assert.equal(SCORE.tidy("(Unknown) Line Up"), "Line Up");
+  assert.equal(SCORE.tidy("null"), "");
+  assert.equal(SCORE.tidy("Annulment"), "Annulment");
+  assert.equal(SCORE.titleDist("null: Line Up (null)", "Line Up"), 0);
+  assert.ok(SCORE.artistSuspect("null", "Elastica"));
+  const junk = album({ tracks: album().tracks.map(t => ({ title: "null: " + t.title + " (null)", length: t.length })) });
+  const d = SCORE.distance(junk, cand());
+  assert.equal(d.distance, 0);
+  assert.deepEqual(d.pairs, [0, 1, 2, 3]);
+});
+
 test("score: a copy missing a track is still the record — tracks pair by likeness, not by number", () => {
   // Ten of the release's eleven, the third gone: every remaining track pairs with its own.
   const full = album();

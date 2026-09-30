@@ -6,6 +6,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.5.10
+- **A ripper's "null" is not part of a name.** Tags like `null: Line Up (null)`, `Line Up -
+  undefined` or `(Unknown)` are tidied before anything is compared, searched for or paired,
+  so such an album scores as its titles deserve and every track takes its release name when
+  the album is matched. (Albums already applied with those tracks left unpaired: Undo, then
+  Check again.)
 - **Match by barcode or link.** Every proposed, unidentified or declined row on the Identify
   albums page has a **Barcode…** button: type the digits under the bars on the sleeve, or paste
   the address of the release (or the album's release group) on musicbrainz.org, and that
