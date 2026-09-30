@@ -360,6 +360,11 @@ class PhonePlayerService : MediaLibraryService() {
                     Store.setPhoneZone(this, h.zoneId)
                     Store.setAwayLearned(this, h.awayAddress)
                     hello = true
+                    // The queue from before this player was restarted (Android
+                    // stops an idle one after a while): back, paused where it
+                    // was — and nothing fetched until Play.
+                    val resume = h.resume
+                    if (resume != null) main.post { if (!localMode && player.mediaItemCount == 0) restore(resume) }
                     reportSoon()
                 }
                 sendOfflinePlays(client)
@@ -387,10 +392,33 @@ class PhonePlayerService : MediaLibraryService() {
                 connected = false
                 failures++
                 if (failures == 1) Log.i(TAG, "server unreachable: ${e.message}")
+                // Three in a row: the way to the server may have gone stale
+                // (the phone slept; a tunnel that no longer carries anything).
+                // Have it looked at and repaired, here on this thread, rather
+                // than knocking on a dead door every few seconds.
+                if (failures % 3 == 0) runCatching { Away.check(this) }
                 pause(minOf(15_000L, 1_000L * failures))
             }
         }
     }
+
+    /**
+     * The server's queue from before this player was restarted: loaded and
+     * left idle at its place, so it shows as paused and plays from there on
+     * Play — no audio is fetched for a track nobody has asked to hear.
+     */
+    private fun restore(c: Phone.Command) {
+        val items = c.items.map(::mediaItem)
+        if (items.isEmpty()) return
+        localMode = false
+        player.setMediaItems(items, c.index.coerceIn(0, items.size - 1), (c.seconds * 1000).toLong())
+        player.playWhenReady = false
+        restored = true
+        reportSoon()
+    }
+
+    /** The queue was put back but never prepared: idle with items is "paused", not "stopped". */
+    private var restored = false
 
     /** Plays made with no server, once there is one. */
     private fun sendOfflinePlays(client: ServerClient) {
@@ -567,6 +595,7 @@ class PhonePlayerService : MediaLibraryService() {
     /** One command from the server, on the main thread. */
     private fun apply(c: Phone.Command, fromPage: Boolean = false) {
         if (c.op == "load" || c.op == "sync") localMode = false
+        if (c.op in setOf("load", "sync", "stop", "clear")) restored = false
         // Playing downloads: the server's queue isn't the one playing, so its
         // queue edits don't apply (transport, volume and modes still do).
         if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear", "jump")) return
@@ -676,7 +705,7 @@ class PhonePlayerService : MediaLibraryService() {
             player.isPlaying -> "playing"
             player.playbackState == Player.STATE_BUFFERING && player.playWhenReady -> "loading"
             player.playbackState == Player.STATE_ENDED -> "stopped"
-            player.playbackState == Player.STATE_IDLE && !player.playWhenReady -> "stopped"
+            player.playbackState == Player.STATE_IDLE && !player.playWhenReady -> if (restored) "paused" else "stopped"
             else -> "paused"
         }
         val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)

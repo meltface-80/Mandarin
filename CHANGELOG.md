@@ -5,6 +5,25 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.12
+- **A paused track survives the phone's sleep.** Android stops the app's idle player after a
+  while; when it came back, its hello to the server started the phone zone afresh and what was
+  paused was gone ("nothing playing"). The server now keeps the phone's queue across a hello
+  and hands it back; the app puts it on its player at the same place, paused, without fetching
+  a byte until you press Play. The zone shows the paused track throughout.
+- **The way to the server is repaired without airplane mode.** Away, once the page had fallen
+  back to the app's own copy, it only asked the server whether it was back — it never had the
+  route looked at again, and the Tailscale engine's tunnel can go stale while the phone sleeps.
+  Only a change of network (airplane mode on and off) mended it. Now the offline watch checks
+  and repairs the route each time it looks, the phone player does the same after three
+  failures in a row, and an engine that still can't reach the server after its connections are
+  dropped is started afresh (its sign-in is on disk, so that takes seconds).
+- **The album page opens smoothly in the app.** On the WebView, three things cost frames while
+  the panel slid in: a blur over the whole page behind it (hidden by the panel anyway), the
+  panel's full-screen shadow, and a blurred ambient layer under a moving panel. The app's
+  stylesheet drops all three (the ambient wash stays, unblurred — a tiny cover scaled up is
+  soft enough), and the cover is decoded off the main thread.
+
 ## v0.5.11
 - **Find match in the album editor.** Album page → ⋯ → Edit album now has, under the cover, a
   **Find match** button like Find cover: the releases MusicBrainz has for the album, scored

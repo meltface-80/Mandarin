@@ -502,7 +502,7 @@
       <!-- Ambient glow: the album cover, heavily blurred and faded, washes the
            top of the panel so each album tints its own detail view (decorative
            only — hidden from AT, never intercepts taps). -->
-      <img id="modal-ambient" class="modal-ambient hidden" alt="" aria-hidden="true">
+      <img id="modal-ambient" class="modal-ambient hidden" alt="" aria-hidden="true" decoding="async">
       <!-- A back chevron rather than an ×: this panel is somewhere you came
            FROM the grid, so leaving it goes back rather than dismissing
            something. It still closes the modal — data-close is unchanged. -->
@@ -536,7 +536,9 @@
           <button class="modal-tab"           type="button" data-tab="queue">Queue</button>
         </div>
         <div class="modal-art">
-          <img id="modal-img" alt="">
+          <!-- decoding=async: the 800px cover is decoded off the main thread, so
+               the panel's slide-in isn't held up by it. -->
+          <img id="modal-img" alt="" decoding="async">
           <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
           <span id="modal-quality" class="album-quality hidden"></span>
         </div>

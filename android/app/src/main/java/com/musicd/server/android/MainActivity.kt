@@ -77,12 +77,19 @@ class MainActivity : Activity() {
     /** The app is answering the page itself (the server can't be reached). */
     @Volatile private var offline = false
     private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
-    /** Offline: look for the server now and then, and go back to it when it answers. */
+    /**
+     * Offline: look for the server now and then, and go back to it when it
+     * answers. Each look first has the way to the server checked and, if need
+     * be, repaired ([Away.check]: the Tailscale engine's tunnel can go stale
+     * while the phone sleeps, and only a check brings it back — before, only a
+     * change of network did, which is why airplane mode on and off "fixed" it).
+     */
     private val serverWatch = object : Runnable {
         override fun run() {
             if (!offline || isFinishing) return
-            val base = Store.active(this@MainActivity)?.baseUrl
             checks.execute {
+                runCatching { Away.check(this@MainActivity) }
+                val base = Store.active(this@MainActivity)?.baseUrl
                 val back = base != null && runCatching {
                     val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
                     c.connectTimeout = 2500; c.readTimeout = 2500
