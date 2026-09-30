@@ -100,19 +100,18 @@ the phone's decoder is the 16-bit one, so this is the change.
 
 1. The Opus conversion resamples with SoX at 64-bit float (`aresample=soxr…`,
    `internal_sample_fmt=dblp`) before `libopus`. The cache name changes so the
-   server remakes its files; the phone's Opus downloads are remade too (see
-   the questions).
+   server makes new files from here on; Opus downloads already on the phone
+   stay as they are.
 2. The app decodes Opus with Media3's libopus extension (float) and opens the
    sink in float. CI builds the extension with the NDK.
 3. The app's Now playing badge reads "Opus 256 · 24/48".
 
-### Open questions
+### Decisions (owner)
 
-1. Existing Opus downloads on the phone were encoded from the old resample:
-   remake them (re-download, in the background, while the old ones still
-   play) or leave them and only make new ones the new way?
-2. The libopus extension adds an NDK build to CI (longer builds, a few MB in
-   the APK). Agreed?
+* Existing Opus downloads on the phone stay as they are; only new ones are
+  made the new way.
+* The NDK build in CI for the libopus (and later FLAC) extension is agreed;
+  APK size is no concern.
 
 ### Versions
 
