@@ -1,6 +1,6 @@
 # Mandarin: the next seven stages
 
-**Status: a plan, agreed stage by stage.** Nothing here is built. Each stage is
+**Status: agreed, stage by stage, on 30 September 2026.** Nothing here is built. Each stage is
 planned in detail, its open questions put to the project owner, and coded only
 once the owner is happy with it. The stages run in the order below; later ones
 lean on earlier ones (3 on 1 and 2; 5 and 6 on 3's phone-side engine). Stage 4
@@ -331,13 +331,16 @@ Two patch versions: the location and the write path, then the import.
   ("Listen later"); **remove** the same way or from the list.
 * **Find** it: a Home row ("Listen later", newest first, in the Home Screen
   settings like the other rows), an entry in the side menu, and a wall.
-* Playing an album through to the end takes it off the list automatically
-  (Roon's behaviour), with an undo toast.
+* Playing every track of an album to its end takes it off the list, with an
+  undo toast; anything short of that leaves it on.
 
-### Open questions
+### Decisions (owner)
 
-1. Automatic removal on a full play-through, or only by hand?
-2. A limit or an age (albums fall off after N months) or keep forever?
+1. **Off the list when fully played.** Every track of the album played to its
+   end, in one sitting or over several; an album left at 99% or less stays.
+   The server counts it from the play history it already keeps per track, so
+   a Sonos room, a renderer and the phone all count.
+2. **No ageing.** An album stays until fully played or removed by hand.
 
 ### Versions
 
