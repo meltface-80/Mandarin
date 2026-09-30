@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.9
+# Mandarin — v0.5.10
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -295,7 +295,9 @@ is applied — artist, title, year and track titles — to the same database ove
 editor writes, so the files are never touched and a rescan changes nothing.
 A near miss is **proposed** on the page (Accept or Reject); anything further off, or two
 different releases that fit equally, is left **unidentified** for you: tap it, then
-⋯ → Edit album. Applied names have **Undo**. Albums you edited by hand are never touched.
+⋯ → Edit album — or tap **Barcode…** and type the digits off the sleeve, or paste the
+release's musicbrainz.org address, and that release is applied. Applied names have **Undo**.
+Albums you edited by hand are never touched.
 
 **Scheduling** is on by default: the scan runs between the start and end times you set each
 night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library

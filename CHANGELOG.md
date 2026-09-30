@@ -5,6 +5,27 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.10
+- **A ripper's "null" is not part of a name.** Tags like `null: Line Up (null)`, `Line Up -
+  undefined` or `(Unknown)` are tidied before anything is compared, searched for or paired,
+  so such an album scores as its titles deserve and every track takes its release name when
+  the album is matched. (Albums already applied with those tracks left unpaired: Undo, then
+  Check again.)
+- **Match by barcode or link.** Every proposed, unidentified or declined row on the Identify
+  albums page has a **Barcode…** button: type the digits under the bars on the sleeve, or paste
+  the address of the release (or the album's release group) on musicbrainz.org, and that
+  release is written to the album whatever the scan thought — the surest match there is, since
+  a barcode names one pressing. The row then says *matched by barcode* (or *link*), with Undo
+  as for any applied match.
+- **A copy missing a track is still the record.** The search no longer asks MusicBrainz for
+  exactly the copy's track count (an eleven-track release never came back for a ten-track
+  copy: "nothing with this title"), and tracks are paired by likeness of title and length,
+  not by number, so with track 3 gone tracks 4 to 11 still find their own. Each release track
+  missing from the copy costs a little (beets' 0.9), each track the release hasn't a little
+  less (0.6), instead of a flat penalty for the count; a ten-of-eleven copy with everything
+  else right is applied. A paired track takes its release track's name; one paired with
+  nothing keeps its tag. The page says "1 track of the release missing here".
+
 ## v0.5.9
 - **Identify albums names the album, not the pressing** — Roon's model, in MusicBrainz's terms.
   The record you have is one *release* of a *release group*; the group is the album. The scan
