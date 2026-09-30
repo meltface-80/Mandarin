@@ -177,6 +177,11 @@
 .modal-ambient { filter: none; opacity: .2; }
 [data-theme="light"] .modal-ambient { opacity: .14; }
 
+/* The keyboard is up (a text field has the focus, app.js marks <html>):
+   the WebView shrinks the page to fit above the keys, and the mini transport
+   bar rode up with it. Out of the way until typing is done. */
+html.is-typing .mini-transport { display: none !important; }
+
 /* The offline note (and any other notice) above Home: room below it. */
 main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }
 

@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.14
+- **The search bar's × closes it too.** With text in the field the × clears it, as before;
+  tapped again with nothing to clear, it closes the bar (what tapping away does). Browser,
+  PWA and the app alike.
+- **Android app: the mini transport bar keeps out of the keyboard.** The app's WebView
+  shrinks the page to fit above the keys, so the bar rode up and sat on them while you typed.
+  While a text field has the focus the app hides it; it is back the moment typing is done.
+  The PWA on an iPhone never had this, and is unchanged.
+
 ## v0.5.13
 - **Smart Picks, tidied.** The Home carousel no longer shows the "Because you have been
   playing…" line under each tile (it is on the Smart Picks page). On that page every card
