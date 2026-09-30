@@ -9,8 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 include(FetchContent)
 FetchContent_Declare(opus
   URL https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz
-  URL_HASH SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  URL_HASH SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1)
 # A decoder only: no docs, tests or programs, and no float-free build — the
 # whole point is opus_multistream_decode_float.
 set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
