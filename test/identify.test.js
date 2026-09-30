@@ -265,6 +265,20 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     assert.equal((await api("identify")).progress.applied, 2);
 
+    // The album editor's Find match: the releases to choose from, scored, best first; nothing written.
+    r = await api("identify/candidates?offset=" + un.album.offset);
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.equal(r.verdict, "unidentified");
+    assert.equal(r.candidates[0].artist, "Somebody Else");
+    assert.ok(r.candidates[0].similarity < 50);
+    assert.equal((await api("identify")).progress.unidentified, 1);
+    // Choosing one applies it, and says so on the page.
+    r = await api("identify/match", { offset: un.album.offset, query: r.candidates[0].mbid, how: "pick" });
+    assert.equal(r.status, 200);
+    assert.equal(r.applied.find(x => x.album.offset === un.album.offset).candidate.manual, "pick");
+    assert.equal((await api("album?offset=" + un.album.offset)).album.subtitle, "Somebody Else");
+    await api("identify/undo", { offset: un.album.offset });
+
     // A match you name: Album One by its barcode → applied, however it scored.
     r = await api("identify/match", { offset: un.album.offset, query: "5012345678900" });
     assert.equal(r.status, 200, JSON.stringify(r));

@@ -965,6 +965,28 @@
         <div id="ae-url-err" class="ae-err"></div>
       </div>
 
+      <!-- Names from MusicBrainz: the scan's suggestions to choose from, or an
+           exact match by the sleeve's barcode. Applied at once, like the scan does. -->
+      <div class="ae-cover-row ae-match-row">
+        <div class="ae-cover-side">
+          <div id="ae-match-status" class="ae-cover-status">Names from MusicBrainz — artist, title, year and every track.</div>
+          <div class="ae-cover-btns">
+            <button id="ae-match-find" class="action-btn" type="button">Find match</button>
+          </div>
+        </div>
+      </div>
+      <div id="ae-match" class="ae-search hidden">
+        <div id="ae-match-search-status" class="ae-search-status" aria-live="polite"></div>
+        <div id="ae-match-cands" class="ae-mcands"></div>
+        <label class="ae-label" for="ae-barcode">Or the barcode, or a MusicBrainz link</label>
+        <div class="ae-url-row">
+          <input id="ae-barcode" class="ae-input" type="text" inputmode="numeric" placeholder="Digits under the bars, or musicbrainz.org/release/…"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button id="ae-barcode-use" class="action-btn" type="button">Match</button>
+        </div>
+        <div id="ae-barcode-err" class="ae-err"></div>
+      </div>
+
       <div class="ae-fields">
         <label class="ae-label" for="ae-title">Title</label>
         <input id="ae-title" class="ae-input" type="text" autocomplete="off" spellcheck="false">
