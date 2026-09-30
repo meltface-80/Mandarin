@@ -7500,6 +7500,21 @@
     })[c]);
   }
 
+  // While a text field has the focus (the keyboard is up), the page says so
+  // on <html>. The Android app's stylesheet hides the mini transport bar
+  // then: its WebView shrinks the page to fit above the keyboard, so the bar
+  // rode up with it and sat on top of the keys. Browsers ignore the class.
+  (function watchTyping() {
+    const typing = el => !!el && (el.tagName === "TEXTAREA" ||
+      (el.tagName === "INPUT" && !/^(checkbox|radio|range|button|submit|file|color)$/i.test(el.type || "text")));
+    document.addEventListener("focusin", (e) => { if (typing(e.target)) document.documentElement.classList.add("is-typing"); });
+    document.addEventListener("focusout", (e) => {
+      if (!typing(e.target)) return;
+      // The focus may be moving to another field: decide once it has settled.
+      setTimeout(() => { if (!typing(document.activeElement)) document.documentElement.classList.remove("is-typing"); }, 50);
+    });
+  })();
+
   // ----- Library search (instant, prefix-aware; collapsible) -----
   (function initSearch() {
     const input    = document.getElementById("search-input");
@@ -7784,8 +7799,10 @@
     });
 
     // The X clears the text and keeps the field open, so a retype needs no
-    // second tap on the glass. Closing is the tap-away gesture.
+    // second tap on the glass. With nothing left to clear, a second tap
+    // closes the bar (as tapping away does) — the one button does both.
     clear.addEventListener("click", () => {
+      if (!input.value) { closeSearch(); return; }
       input.value = "";
       stopSearch();
       input.focus();
