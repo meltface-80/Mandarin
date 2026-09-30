@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.19
+- **The duck's purple.** Mandarin's buttons take a plum: the top bar's menu, search and
+  settings and the album view's back, home and share sit on a pale plum disc with a plum
+  ring and a plum glyph; the glyphs on their own — the mini player's zone and volume, Now
+  playing's device, volume, previous and next, and the icons down the Settings list — are the
+  same plum; play/pause, on Now playing and on the mini player, is a plum disc.
+- **One look.** Mandarin Light and the Settings → Appearance page are gone; the theme is
+  Mandarin, the dark one. The sample rate badge on artwork is always on, so its switch went
+  with the page.
+- **The PWA and the Android app are the same page.** Settings fills the screen and lists its
+  pages as the side menu does, with a close button, in the browser and on the phone alike;
+  the app's own stylesheet keeps only what the WebView needs.
+
 ## v0.5.18
 - **Now playing's seek bar is the same level meter as the mini player's** in the Mandarin
   themes: gold segments over faint ones, the thumb riding along them. A track with a waveform

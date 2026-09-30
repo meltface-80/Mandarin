@@ -275,105 +275,21 @@
   }
   function filterQS() { return filterQSOf(activeFilter); }
 
-  // ----- Themes -----
-  // Four themes, expressed as TWO attributes rather than four values of one:
-  //
-  //   data-theme   = dark | light   — the FAMILY
-  //   data-palette = hifi — Mandarin's colours (dark and light)
-  //
-  // The split exists because thirteen rules in style.css are keyed on
-  // `[data-theme="light"] .something` — white text on an accent fill, the
-  // light-side hover washes, the translucent top bar. Those describe the
-  // family, not the palette, and a new light theme under a third data-theme
-  // value would silently miss every one of them: white-on-accent labels would
-  // fall back to near-black, and the queue would use dark-theme washes on a
-  // light background. Keying palettes on their own attribute means the
-  // existing themes are untouched and the new ones inherit all thirteen.
-  // Two themes since v0.4.2: Mandarin, dark and light. The four before them
-  // (Dark, Light, Copper dark, Brass light) are gone; a choice of one of them
-  // is carried over to Mandarin in the same family (see savedThemeId).
-  const THEMES = [
-    { id: "hifi",       label: "Mandarin Dark",  note: "Deep green felt, warm gold, covers that glow",
-      theme: "dark",  palette: "hifi" },
-    { id: "hifi-light", label: "Mandarin Light", note: "Warm cream paper, felt-green ink, old gold",
-      theme: "light", palette: "hifi" },
-  ];
-  const THEME_KEY = "rra-theme-v2";
-  const DEFAULT_THEME = "hifi";
-  // v0.3.25 made Late-Night Hi-Fi the look. Once, anyone still on the old
-  // default ("dark", or never chosen) moves to it; a theme picked afterwards
-  // in Settings → Appearance is kept as it always was.
-  const HIFI_MOVE_KEY = "rra-theme-hifi-moved";
-  const themeById = (id) => THEMES.find(t => t.id === id) || null;
-
-  function applyTheme(id) {
-    const t = themeById(id) || themeById(DEFAULT_THEME);
-    document.documentElement.dataset.theme   = t.theme;
-    document.documentElement.dataset.palette = t.palette;
-    // The browser chrome colour was hard-coded to the dark background and
-    // never updated, so it was already wrong in light theme. Read it back off
-    // the applied palette instead of maintaining a second list of hexes.
-    //
-    // It is the TOP BAR's colour — which as of v1.7.87 is simply --bg, because
-    // the page, the top bar and every full-screen panel are one ground. iOS
-    // draws the status bar (clock, signal, battery) itself and fills it with
-    // theme-color; nothing this app renders can appear there. The one thing
-    // that WOULD let the page show through it is
-    // `apple-mobile-web-app-status-bar-style: black-translucent`, the exact
-    // meta that stopped the app filling the display in v1.7.60-65, banned by
-    // pre-flight step 6, and baked into the home screen shortcut at ADD time so
-    // a wrong one cannot be undone from the server. So the status bar cannot be
-    // translucent. What it can be is the colour of the bar beneath it, and one
-    // ground makes that a token read rather than a blend to keep in step.
-    // v1.7.86 composited --glass-bg over --bg here; that helper went with the
-    // two-tone bar it existed to describe.
+  // ----- The look -----
+  // One theme since v0.5.19: Mandarin (dark). <html> carries
+  // data-theme="dark" data-palette="hifi" from the markup; the earlier
+  // picker, its stored choice (rra-theme-v2) and Mandarin Light are gone.
+  // The browser chrome colour is the top bar's, which is --bg: read it back
+  // off the applied palette rather than keeping a second hex.
+  (function applyLook() {
+    document.documentElement.dataset.theme   = "dark";
+    document.documentElement.dataset.palette = "hifi";
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      const bg = getComputedStyle(document.documentElement)
-        .getPropertyValue("--bg").trim();
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
       if (bg) meta.setAttribute("content", bg);
     }
-    return t.id;
-  }
-
-  // The themes that were: light ones become Mandarin Light, the rest Mandarin Dark.
-  const RETIRED = { dark: "hifi", "copper-dark": "hifi", light: "hifi-light", "brass-light": "hifi-light" };
-  function savedThemeId() {
-    let id = null;
-    try { id = localStorage.getItem(THEME_KEY); } catch (e) { /* private browsing */ }
-    if (RETIRED[id]) {
-      id = RETIRED[id];
-      try { localStorage.setItem(THEME_KEY, id); localStorage.setItem(HIFI_MOVE_KEY, "1"); } catch (e) { /* the theme still applies */ }
-      return id;
-    }
-    try {
-      if (!localStorage.getItem(HIFI_MOVE_KEY)) {
-        localStorage.setItem(HIFI_MOVE_KEY, "1");
-        if (!id || id === "dark") { localStorage.setItem(THEME_KEY, DEFAULT_THEME); return DEFAULT_THEME; }
-      }
-    } catch (e) { /* private browsing: the default below */ }
-    if (themeById(id)) return id;
-    // The v1 key only ever held "light" or "dark": the same family in Mandarin.
-    try {
-      const old = localStorage.getItem("rra-theme");
-      if (old === "light" || old === "dark") {
-        localStorage.setItem(THEME_KEY, RETIRED[old]);
-        return RETIRED[old];
-      }
-    } catch (e) { /* private browsing */ }
-    return DEFAULT_THEME;
-  }
-
-  let currentThemeId = applyTheme(savedThemeId());
-  function setTheme(id) {
-    currentThemeId = applyTheme(id);
-    try { localStorage.setItem(THEME_KEY, currentThemeId); }
-    catch (e) { /* localStorage optional — the theme still applies for this session */ }
-  }
-  // The Appearance pane builds its picker from this.
-  window.__themes = THEMES;
-  window.__currentThemeId = () => currentThemeId;
-  window.__setTheme = setTheme;
+  })();
 
   // ----- Sizing -----
   // Returns a fixed album count that exactly fills the responsive grid:
@@ -5197,31 +5113,10 @@
   // tile built from an older cached payload keeps its badge.
   // ----- Quality badge -----------------------------------------------------
   //
-  // "24/96" on the artwork, off by default and switched on in Appearance. It is
-  // read from your own files, so a streamed album simply has none — the server
-  // sends the field only when it knows, and no badge is drawn otherwise. A
-  // question mark or a guess would be worse than silence.
-  //
-  // A device preference like the theme, so it lives in localStorage rather than
-  // settings.json: one person wanting rates on their phone shouldn't put them
-  // on the wall display too.
-  const QUALITY_KEY = "rra-show-quality";
-  let showQuality = false;
-  try { showQuality = localStorage.getItem(QUALITY_KEY) === "1"; }
-  catch (e) { /* private browsing — the default (off) stands */ }
-  function setShowQuality(on) {
-    showQuality = !!on;
-    try { localStorage.setItem(QUALITY_KEY, showQuality ? "1" : "0"); }
-    catch (e) { /* still applies for this session */ }
-    // Every tile already on screen, without a refetch: the payload always
-    // carries the value, so this is a class flip rather than a reload.
-    document.body.classList.toggle("show-quality", showQuality);
-  }
-  // Applied at boot, not only on change — the stored preference has to survive
-  // a reload, and the class is the only thing that makes the badges visible.
-  document.body.classList.toggle("show-quality", showQuality);
-  window.__showQuality    = () => showQuality;
-  window.__setShowQuality = setShowQuality;
+  // "24/96" on the artwork, always (the switch in Settings went in v0.5.19).
+  // It is read from your own files, so a streamed album simply has none — the
+  // server sends the field only when it knows, and no badge is drawn
+  // otherwise. A question mark or a guess would be worse than silence.
   function qualityBadge(a) {
     if (!a.quality) return null;
     const el = document.createElement("span");
@@ -12153,92 +12048,6 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  // ----- Theme picker -----
-  // A single-select list plus Apply, rather than the old instant toggle. The
-  // rows are built from app.js's THEMES table so the list can never offer a
-  // theme the palettes don't define, or miss one they do.
-  //
-  // "Pending" is the row the user has tapped; "current" is what is actually
-  // applied. Apply is disabled while they match, so the button always means
-  // something. Reopening Settings discards a pending choice — the sheet should
-  // never reopen mid-decision.
-  const themeList  = document.getElementById("theme-list");
-  const themeApply = document.getElementById("theme-apply");
-  const themeHint  = document.getElementById("theme-apply-hint");
-  let pendingThemeId = null;
-
-  function renderThemeList() {
-    if (!themeList || !window.__themes) return;
-    const current = window.__currentThemeId();
-    const chosen  = pendingThemeId || current;
-    themeList.innerHTML = "";
-    for (const t of window.__themes) {
-      const on = t.id === chosen;
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "theme-row" + (on ? " is-on" : "");
-      row.setAttribute("role", "radio");
-      row.setAttribute("aria-checked", on ? "true" : "false");
-
-      // A swatch pair — the theme's own background and accent — so the choice
-      // can be made by eye rather than by reading four colour names.
-      const sw = document.createElement("span");
-      sw.className = "theme-swatch";
-      sw.dataset.theme = t.theme;
-      sw.dataset.palette = t.palette;
-      sw.setAttribute("aria-hidden", "true");
-      row.appendChild(sw);
-
-      const txt = document.createElement("span");
-      txt.className = "theme-row-text";
-      const lab = document.createElement("span");
-      lab.className = "theme-row-label";
-      lab.textContent = t.label + (t.id === current ? " · in use" : "");
-      const note = document.createElement("span");
-      note.className = "theme-row-note";
-      note.textContent = t.note;
-      txt.appendChild(lab); txt.appendChild(note);
-      row.appendChild(txt);
-
-      const tick = document.createElement("span");
-      tick.className = "theme-row-check";
-      tick.setAttribute("aria-hidden", "true");
-      tick.textContent = on ? "✓" : "";
-      row.appendChild(tick);
-
-      row.addEventListener("click", () => {
-        pendingThemeId = t.id;
-        renderThemeList();
-      });
-      themeList.appendChild(row);
-    }
-    const dirty = !!pendingThemeId && pendingThemeId !== current;
-    if (themeApply) themeApply.disabled = !dirty;
-    if (themeHint) themeHint.textContent = dirty ? "Not applied yet" : "";
-  }
-
-  if (themeApply) {
-    themeApply.addEventListener("click", () => {
-      if (!pendingThemeId || !window.__setTheme) return;
-      window.__setTheme(pendingThemeId);
-      pendingThemeId = null;
-      renderThemeList();
-      showToast("Theme applied");
-    });
-  }
-
-  // Sample rate on the artwork. No Apply button and no reload: the value is
-  // already on every tile, so the switch is a class on <body> and takes effect
-  // on the screen behind the settings sheet.
-  const qualityToggle = document.getElementById("quality-toggle");
-  if (qualityToggle) {
-    qualityToggle.checked = window.__showQuality ? window.__showQuality() : false;
-    qualityToggle.addEventListener("change", () => {
-      if (window.__setShowQuality) window.__setShowQuality(qualityToggle.checked);
-    });
-  }
-
-
   // ----- Smart Picks -----------------------------------------------------
   // The build reaches three external services and then hands Roon a batch of
   // albums to import, so WHEN it runs is a real setting rather than a nicety:
@@ -12715,7 +12524,7 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); pendingThemeId = null; renderThemeList(); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
   const close = () => {
     overlay.classList.add("hidden");
     // Closing Settings ends the client side of any pending Tidal device flow
@@ -12727,10 +12536,9 @@ window.__musicdAppUpd = (function () {
   overlay.addEventListener("click", (e) => {
     if (e.target.hasAttribute("data-settings-close")) close();
   });
-  // In the Android app Settings fills the screen (android.css), so there's
-  // no backdrop to tap: it gets a close button, and the phone's Back steps
-  // out of it — a pane to the tiles, the tiles to Home.
-  if (window.MusicdDownloads) {
+  // Settings fills the screen (as the Android app has always had it), so
+  // there's no backdrop to tap: a close button in its head, everywhere.
+  {
     const head = overlay.querySelector('.settings-view[data-view="home"] .settings-head');
     if (head) {
       const x = document.createElement("button");
@@ -12741,6 +12549,10 @@ window.__musicdAppUpd = (function () {
       x.addEventListener("click", close);
       head.appendChild(x);
     }
+  }
+  // The Android app's Back steps out of Settings — a pane to the list, the
+  // list to Home.
+  if (window.MusicdDownloads) {
     window.__musicdBack = () => {
       if (overlay.classList.contains("hidden")) return window.__pageBack ? window.__pageBack() : false;
       if (atHome()) close(); else stepBack();

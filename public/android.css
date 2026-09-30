@@ -1,76 +1,10 @@
 /*
  * The Android app only: index.js adds this to the end of style.css for the
  * app's WebView (User-Agent MusicDAndroid). Browsers and the iPhone
- * home-screen app never receive it.
+ * home-screen app never receive it. Nothing here changes how the page
+ * looks — the look is style.css's, the same everywhere — only what the
+ * WebView needs: its downloads, its drawing speed, its keyboard.
  */
-
-/* Settings fills the screen, and its tiles share the height between them —
-   no scrolling on the first level. The panes behind the tiles scroll as before. */
-#settings-overlay { align-items: stretch; }
-#settings-overlay .settings-backdrop { display: none; }
-#settings-overlay > .settings-sheet {
-  max-width: none; max-height: none; height: 100%;
-  border-radius: 0; border-top: 0; box-shadow: none;
-  display: flex; flex-direction: column;
-  padding-top: 14px; padding-bottom: 16px;
-}
-#settings-overlay .settings-grip { display: none; }
-#settings-overlay .settings-view[data-view="home"] {
-  flex: 1 1 auto; min-height: 0;
-  display: flex; flex-direction: column;
-}
-#settings-overlay .settings-view[data-view="home"] .settings-head {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
-}
-/* The lists as the side menu draws its rows: icon, then the title, flat on
-   the sheet — no tile boxes, nothing stretched to fill the screen. */
-#settings-overlay .settings-view[data-view="home"] .settings-nav,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav {
-  flex: 0 0 auto; min-height: 0;
-  grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: auto; align-content: start;
-  gap: 2px; padding: 0 4px;
-}
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item {
-  flex-direction: row; justify-content: flex-start;
-  min-height: 0; padding: 13px 12px; gap: 14px; border-radius: 10px;
-  border: 0; background: transparent; text-align: left;
-}
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item:hover,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:hover { background: var(--bg-elev-2); border-color: transparent; }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item:active,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:active { transform: scale(.99); }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-ico,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico {
-  width: 22px; height: 22px; border-radius: 0; background: none; color: var(--text-dim);
-}
-#settings-overlay .settings-view[data-view="home"] .settings-nav-ico svg,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico svg { width: 22px; height: 22px; }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-txt,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-txt {
-  flex: 1 1 auto; align-items: flex-start; overflow: hidden;
-}
-#settings-overlay .settings-view[data-view="home"] .settings-nav-title,
-#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-title {
-  font-size: 15px; font-weight: 500;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-wrap: nowrap;
-}
-/* Setup's list the same way, from the top. */
-#settings-overlay .settings-pane[data-pane="setup"] {
-  flex: 1 1 auto; min-height: 0;
-  display: flex; flex-direction: column;
-}
-#settings-overlay .settings-pane[data-pane="setup"] .settings-pane-head { margin-bottom: 6px; }
-#settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: auto; padding-top: 14px; }
-#settings-overlay .settings-app-close {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; margin-right: -6px;
-  border: none; border-radius: 999px; background: none;
-  color: var(--text-dim); cursor: pointer;
-}
-#settings-overlay .settings-app-close:active { background: var(--bg-elev-2); }
 
 /* Home Screen settings: "Downloaded albums" held on while there are
    downloads, with the reason on a second line. */
@@ -175,7 +109,6 @@
 .modal-backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .modal-panel { box-shadow: none; }
 .modal-ambient { filter: none; opacity: .2; }
-[data-theme="light"] .modal-ambient { opacity: .14; }
 
 /* The keyboard is up (a text field has the focus, app.js marks <html>):
    the WebView shrinks the page to fit above the keys, and the mini transport
