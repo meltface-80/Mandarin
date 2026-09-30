@@ -84,47 +84,14 @@
   --topbar-h: calc(56px + env(safe-area-inset-top));
 }
 
-/* THE LIGHT PALETTES GO THE OTHER WAY, and it is a headroom problem, not an
-   inconsistency: the outcome is the same in all four themes — page, top bar
-   and every full-screen panel are one colour. The dark palettes raise the
-   ground to the bar. Here the bar is ALREADY #fffffe, four tenths of a level
-   off pure white, so raising the ground to meet it would leave --bg-elev (the
-   white cards sit on it) nowhere above to go, and every elevated surface in
-   the theme would flatten into the page. The bar comes down to the ground
-   instead — a step that was barely visible in this palette to begin with. */
-[data-theme="light"] {
-  --bg:           #f6f5f2;
-  --bg-elev:      #ffffff;
-  --bg-elev-2:    #fbfaf7;
-  --border:       #e3e0d9;
-  --text:         #1a1c1f;
-  --text-dim:     #5e636a;
-  --text-faint:   #8c919a;
-  --accent:       #1f8fc1;
-  --accent-text:  #1f8fc1;
-  --accent-soft:  rgba(31,143,193,.12);
-  --on-accent:    #ffffff;
-  --bg-veil:    rgba(246,245,242,.84);
-  --glass-edge: rgba(26,39,64,.12);
-  --panel-hairline: rgba(26,39,64,.12);     /* row separators on tinted panels */
-  --danger:       #c0392b;
-  --shadow-card:  0 1px 2px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.08);
-  --shadow-modal: 0 24px 64px rgba(0,0,0,.18);
-}
-
 /* ------------------------------------------------------------------ */
-/*  Palettes                                                           */
+/*  The look                                                           */
 /*                                                                     */
-/*  data-theme  = dark | light    — the FAMILY. Drives the thirteen    */
-/*                                  component rules further down this  */
-/*                                  file ([data-theme="light"] .foo).  */
-/*  data-palette = hifi — Mandarin's colours (at the end of this file) */
-/*                                                                     */
-/*  Both palette blocks are qualified by family, because --on-accent   */
-/*  is family-dependent: a dark palette prints near-black on its fill, */
-/*  a light one prints near-white. A palette-only selector would give  */
-/*  the brass theme the copper theme's dark on-accent.                 */
-/*  Specificity (0,2,0) beats the family blocks above (0,1,0).         */
+/*  One theme since v0.5.19: Mandarin (dark). <html> carries           */
+/*  data-theme="dark" data-palette="hifi", and the palette block at    */
+/*  the end of this file sets its tokens over the base ones above.     */
+/*  The [data-palette="hifi"] rules are its own components; the        */
+/*  attributes are kept so those rules read as the theme's.            */
 /* ------------------------------------------------------------------ */
 
 * { box-sizing: border-box; }
@@ -164,10 +131,6 @@ button:not(:disabled):not(.album):active,
 a.settings-update-btn:active,
 a.action-btn:active,
 [role="button"]:not(.album):active { filter: brightness(1.22); }
-[data-theme="light"] button:not(:disabled):not(.album):active,
-[data-theme="light"] a.settings-update-btn:active,
-[data-theme="light"] a.action-btn:active,
-[data-theme="light"] [role="button"]:not(.album):active { filter: brightness(.9); }
 
 /* Fixed full-screen shell: header pinned top, <main> scrolls, transport pinned
    bottom (as a fixed sibling). Because the page body never scrolls, the bars
@@ -258,7 +221,6 @@ a.action-btn:active,
   text-overflow: ellipsis;
   max-width: calc(50vw);
 }
-[data-theme="light"] .album-count { color: #000000; }
 .album-count.hidden { display: none; }
 
 .scan-progress-bar {
@@ -2973,6 +2935,74 @@ input.vol-range::-moz-range-thumb {
 
 /* Pane header: back chevron + title, mirroring a pushed page. */
 .settings-pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+/* Settings fills the screen (as the Android app has always drawn it; the
+   same everywhere since v0.5.19). The panes behind the list scroll as before. */
+#settings-overlay { align-items: stretch; }
+#settings-overlay .settings-backdrop { display: none; }
+#settings-overlay > .settings-sheet {
+  max-width: none; max-height: none; height: 100%;
+  border-radius: 0; border-top: 0; box-shadow: none;
+  display: flex; flex-direction: column;
+  padding-top: 14px; padding-bottom: 16px;
+}
+#settings-overlay .settings-grip { display: none; }
+#settings-overlay .settings-view[data-view="home"] {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+}
+#settings-overlay .settings-view[data-view="home"] .settings-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+/* The lists as the side menu draws its rows: icon, then the title, flat on
+   the sheet — no tile boxes, nothing stretched to fill the screen. */
+#settings-overlay .settings-view[data-view="home"] .settings-nav,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav {
+  flex: 0 0 auto; min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto; align-content: start;
+  gap: 2px; padding: 0 4px;
+}
+#settings-overlay .settings-view[data-view="home"] .settings-nav-item,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item {
+  flex-direction: row; justify-content: flex-start;
+  min-height: 0; padding: 13px 12px; gap: 14px; border-radius: 10px;
+  border: 0; background: transparent; text-align: left;
+}
+#settings-overlay .settings-view[data-view="home"] .settings-nav-item:hover,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:hover { background: var(--bg-elev-2); border-color: transparent; }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-item:active,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-item:active { transform: scale(.99); }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-ico,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico {
+  width: 22px; height: 22px; border-radius: 0; background: none;
+}
+#settings-overlay .settings-view[data-view="home"] .settings-nav-ico svg,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-ico svg { width: 22px; height: 22px; }
+#settings-overlay .settings-view[data-view="home"] .settings-nav-txt,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-txt {
+  flex: 1 1 auto; align-items: flex-start; overflow: hidden;
+}
+#settings-overlay .settings-view[data-view="home"] .settings-nav-title,
+#settings-overlay .settings-pane[data-pane="setup"] .settings-nav-title {
+  font-size: 15px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-wrap: nowrap;
+}
+/* Setup's list the same way, from the top. */
+#settings-overlay .settings-pane[data-pane="setup"] {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+}
+#settings-overlay .settings-pane[data-pane="setup"] .settings-pane-head { margin-bottom: 6px; }
+#settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: auto; padding-top: 14px; }
+#settings-overlay .settings-app-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin-right: -6px;
+  border: none; border-radius: 999px; background: none;
+  color: var(--text-dim); cursor: pointer;
+}
+#settings-overlay .settings-app-close:active { background: var(--bg-elev-2); }
 .settings-pane-head h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
 .settings-back {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
@@ -3378,9 +3408,6 @@ input.vol-range::-moz-range-thumb {
 .album.label-tile.is-first-selected .album-art-wrap::after {
   background-color: var(--accent-text);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b1418' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
-}
-[data-theme="light"] .album.label-tile.is-first-selected .album-art-wrap::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
 }
 
 /* "N merged" text under the label subtitle */
@@ -4093,7 +4120,7 @@ input.vol-range::-moz-range-thumb {
   letter-spacing: .02em; font-variant-numeric: tabular-nums;
   white-space: nowrap; pointer-events: none;
 }
-body.show-quality .album-quality { display: block; }
+.album-quality { display: block; }
 /* Better than CD. Roon marks hi-res; there is no room to say so in words, so
    the badge takes the accent instead. */
 .album-quality.is-hires { color: var(--accent-text); }
@@ -4156,9 +4183,6 @@ body.show-quality .album-quality { display: block; }
   pointer-events: none;
   z-index: 0;
 }
-/* Light theme: a blurred cover over a white panel reads stronger than the
-   same opacity over near-black, so pull it back further. */
-[data-theme="light"] .modal-ambient { opacity: .17; }
 /* Off on every screen now: Roon's album and queue screens are flat black, and
    a blurred cover wash behind flat rows is the last piece of the card-era look.
    The element, its JS (setModalAmbient / window.__setModalAmbient) and the
@@ -4200,8 +4224,6 @@ body.show-quality .album-quality { display: block; }
   flex-wrap: wrap;
   padding-left: 8px; padding-right: 8px;
 }
-[data-theme="light"] .track-list li.t-row:hover { background: rgba(26,39,64,.05); }
-[data-theme="light"] .track-list li.t-row.is-open { background: rgba(26,39,64,.06); }
 /* Track select target. Hidden until the list is armed, so entering select
    mode doesn't reflow every row. align-self:center because .track-list li is
    align-items:flex-start — a two-line row would otherwise top-align it. */
@@ -4277,8 +4299,6 @@ body.show-quality .album-quality { display: block; }
 /* :active must be restated after :hover — during a press both match, and the
    id-scoped hover rule would otherwise out-rank the base accent flash. */
 #tab-queue .queue-list li.is-tappable:active { background: var(--accent-soft); }
-[data-theme="light"] #tab-queue .queue-list li.is-tappable:hover { background: rgba(26,39,64,.06); }
-[data-theme="light"] #tab-queue .queue-list li.is-tappable:active { background: var(--accent-soft); }
 
 /* Roon's queue rows are taller, with a bold title over the artist and a
    larger square thumbnail. */
@@ -4626,54 +4646,6 @@ body.show-quality .album-quality { display: block; }
   margin-top: 8px; font-size: 11.5px; line-height: 1.5;
   color: var(--text-faint);
 }
-
-/* ------------------------------------------------------------------ */
-/*  Theme picker (Settings → Appearance)                               */
-/*  A single-select list confirmed with Apply, in the same visual      */
-/*  language as the Library Sort sheet and the filter list: the        */
-/*  selected row carries the accent wash and a tick.                   */
-/* ------------------------------------------------------------------ */
-.theme-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
-.theme-row {
-  display: flex; align-items: center; gap: 12px;
-  width: 100%; text-align: left;
-  padding: 11px 12px; border-radius: 12px;
-  background: var(--bg-elev-2); border: 1px solid var(--border);
-  color: var(--text); font-family: inherit; cursor: pointer;
-}
-.theme-row:hover { border-color: var(--text-faint); }
-.theme-row.is-on { border-color: var(--accent); background: var(--accent-soft); }
-.theme-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
-.theme-row-label { font-size: 15px; font-weight: 600; }
-.theme-row.is-on .theme-row-label { color: var(--accent-text); font-weight: 700; }
-.theme-row-note { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
-.theme-row-check {
-  flex: 0 0 16px; text-align: center;
-  color: var(--accent-text); font-weight: 700; font-size: 15px;
-}
-
-/* Each swatch previews its OWN theme, not the one currently applied — that is
-   the point of a picker. The nested [data-theme]/[data-palette] attributes on
-   the swatch re-declare that palette's tokens locally, so these two colours
-   come from the same source of truth as the real thing and can never drift
-   from it. */
-.theme-swatch {
-  flex: 0 0 auto;
-  width: 40px; height: 28px; border-radius: 7px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  position: relative; overflow: hidden;
-}
-.theme-swatch::after {
-  content: ""; position: absolute;
-  right: 5px; top: 50%; transform: translateY(-50%);
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--accent);
-}
-
-.theme-apply-row { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.theme-apply-hint { font-size: 12.5px; color: var(--text-faint); }
-.theme-apply-row .action-btn { flex: 0 0 auto; min-width: 110px; }
 
 /*  Home Screen settings — which rows show, and in what order.
     Grip on the left, name, switch on the right. The row is the drag target's
@@ -5095,42 +5067,15 @@ button.cap-chip:active { transform: scale(.96); }
   --mt-bg:        rgba(29,46,38,.94);
   --meter-off:    rgba(239,230,212,.12);
   --card-ink:     #efe6d4;
+  /* The duck's purple (v0.5.19): a darker plum for the glyphs, the rings
+     and the play discs, a pale plum for the disc behind a top-bar button. */
+  --plum:         #8b6fb0;
+  --plum-pale:    #cfc0e4;
   /* The felt: a fine warm grain and a faint larger mottle, drawn once and
      tiled on the ground (never an overlay over content — nothing composites
      over the scroller). */
   --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .1 0 0 0 0 .07 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
-}
-/* Mandarin Light (v0.4.2): warm cream paper, felt-green ink and fills, an
-   old-gold that reads on cream. Contrast: text 11.6–14:1, --text-dim
-   5.8–7, --text-faint 4.6–5.5, gold text 4.9–5.9 on every surface; cream
-   on the green fill 9.4. */
-[data-theme="light"][data-palette="hifi"] {
-  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
-  --bg:           #f2ebdd;
-  --bg-elev:      #fbf7ee;
-  --bg-elev-2:    #ebe2d0;
-  --border:       #d9ccb4;
-  --text:         #1c2a23;
-  --text-dim:     #4a584f;
-  --text-faint:   #59645a;
-  --accent:       #1f4a3a;
-  --accent-text:  #7a5a1f;
-  --accent-soft:  rgba(31,74,58,.10);
-  --on-accent:    #fbf7ee;
-  --bg-veil:      rgba(242,235,221,.88);
-  --glass-edge:   rgba(122,90,31,.22);
-  --danger:       #b23a2a;
-  --panel-hairline: rgba(28,42,35,.10);
-  --shadow-card:  0 1px 2px rgba(60,45,20,.08), 0 8px 20px rgba(60,45,20,.12);
-  --shadow-modal: 0 24px 64px rgba(60,45,20,.22);
-  --mt-bg:        rgba(251,247,238,.95);
-  --meter-off:    rgba(28,42,35,.14);
-  --card-ink:     #efe6d4;
-  /* Paper: a fine warm grain, darker than the felt's, and a faint mottle. */
-  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .18 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .45 0 0 0 0 .3 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
 }
 html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .modal-panel,
@@ -5144,10 +5089,31 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 
 /* The top bar's rule, faint and warm. */
 [data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
-/* Top bar buttons: round, with a gold hairline. */
-[data-palette="hifi"] .topbar .icon-btn {
-  border-radius: 50%; border-color: rgba(201,164,92,.28); background: var(--bg-elev); color: var(--text);
+/* Buttons with a disc — the top bar's menu, search and settings, the album
+   view's back, home and share: a pale plum disc, a plum ring, a plum glyph. */
+[data-palette="hifi"] .topbar .icon-btn,
+[data-palette="hifi"] .modal .modal-close,
+[data-palette="hifi"] .modal .modal-home,
+[data-palette="hifi"] .modal .modal-share {
+  border-radius: 50%; border-color: var(--plum); background: var(--plum-pale); color: var(--plum);
 }
+[data-palette="hifi"] .topbar .icon-btn:hover,
+[data-palette="hifi"] .modal .modal-close:hover,
+[data-palette="hifi"] .modal .modal-home:hover,
+[data-palette="hifi"] .modal .modal-share:hover { background: var(--plum-pale); color: var(--plum); filter: brightness(1.06); }
+/* Glyphs on their own — the mini player's zone and volume, Now playing's
+   device and volume, previous and next — in the plum. */
+[data-palette="hifi"] .mt-btn,
+[data-palette="hifi"] .np-mini-btn,
+[data-palette="hifi"] .np-btn { color: var(--plum); }
+[data-palette="hifi"] .np-mode-btn { color: var(--text-dim); }
+[data-palette="hifi"] .np-mode-btn.is-on,
+[data-palette="hifi"] .np-mini-btn.is-on { color: var(--accent-text); }
+[data-palette="hifi"] .mt-btn:disabled,
+[data-palette="hifi"] .np-btn:disabled,
+[data-palette="hifi"] .np-mini-btn:disabled { color: var(--text-faint); }
+/* Settings: the list's icons are plain glyphs, in the plum. */
+[data-palette="hifi"] .settings-nav-ico { color: var(--plum); }
 
 /* ---- Home ---------------------------------------------------------- */
 .home-greeting { display: none; }
@@ -5251,8 +5217,10 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .mt-progress-fill {
   height: 100%; border-top: 0; border-radius: 0; background: var(--accent);
 }
-[data-palette="hifi"] .mt-playpause {
-  background: var(--text); color: var(--bg); border: 1px solid rgba(239,230,212,.25);
+/* Play/pause, here and on Now playing: a plum disc, the glyph in the cream. */
+[data-palette="hifi"] .mt-playpause,
+[data-palette="hifi"] .np-playpause {
+  background: var(--plum); color: var(--text); border: 1px solid rgba(239,230,212,.18);
 }
 /* Now playing's seek bar: the same level meter as the mini player's — gold
    segments over faint ones, the thumb riding along them. The waveform, where
@@ -5268,7 +5236,8 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-palette="hifi"] .mt-playpause:hover { background: var(--text); filter: brightness(1.12); }
+  [data-palette="hifi"] .mt-playpause:hover,
+  [data-palette="hifi"] .np-playpause:hover { background: var(--plum); color: var(--text); filter: brightness(1.12); }
 }
 
 /* ---- The album view (Mandarin Dark) ------------------------------- */
@@ -5281,6 +5250,3 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .modal-actions .action-btn {
   background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700;
 }
-
-/* The theme picker's swatch for this theme: the felt and the gold. */
-.theme-swatch[data-palette="hifi"] { background: var(--bg); }
