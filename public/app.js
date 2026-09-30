@@ -9701,9 +9701,11 @@
       npSeek.style.removeProperty("--seek-fill");
       return;
     }
+    // The unplayed part in --seek-rest where a theme sets it (Mandarin's
+    // level meter uses its unlit-segment colour), the border colour otherwise.
     npSeek.style.setProperty("--seek-fill",
       "linear-gradient(to right, var(--accent) 0%, var(--accent) " + pct + "%, " +
-      "var(--border) " + pct + "%, var(--border) 100%)");
+      "var(--seek-rest, var(--border)) " + pct + "%, var(--seek-rest, var(--border)) 100%)");
   }
 
   async function seek(seconds) {
