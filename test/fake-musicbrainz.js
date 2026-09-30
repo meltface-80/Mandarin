@@ -9,12 +9,14 @@ const http = require("http");
 
 function credit(name) { return [{ name, artist: { name } }]; }
 
-/* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …] } */
+/* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …],
+ * group: { title, date } (the release group, when it differs), disambiguation } */
 function release(d) {
+  const g = d.group || {};
   return {
-    id: d.id, title: d.title, date: d.date || "", country: d.country || "XW",
+    id: d.id, title: d.title, date: d.date || "", country: d.country || "XW", disambiguation: d.disambiguation || "",
     "artist-credit": credit(d.artist),
-    "release-group": { "first-release-date": d.date || "", "primary-type": "Album" },
+    "release-group": { id: d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
     media: [{ position: 1, format: "CD", "track-count": d.tracks.length,
       tracks: d.tracks.map(([title, s], i) => ({ id: `${d.id}-t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
         "artist-credit": credit(d.artist), recording: { id: `${d.id}-r${i + 1}`, title, length: s == null ? null : Math.round(s * 1000) } }))

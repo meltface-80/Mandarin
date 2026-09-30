@@ -9,7 +9,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const SCORE = require("../lib/identify/score");
 const { minutes, Identifier } = require("../lib/identify/identifier");
-const { haveFfmpeg, makeLibrary } = require("./fixtures");
+const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 
@@ -43,6 +43,31 @@ test("score: an identical release is distance 0; names fold; noise is nearly fre
   assert.equal(SCORE.lengthDist(251, 260), 0);
   assert.equal(SCORE.lengthDist(251, 251 + 45), 1);
   assert.equal(SCORE.lengthDist(251, 251 + 30), 0.5);
+});
+
+test("score: editions are set aside — the album is the album whatever the pressing", () => {
+  assert.equal(SCORE.bare("Kid A (2015 Remaster)"), "Kid A");
+  assert.equal(SCORE.bare("Kid A [Remastered]"), "Kid A");
+  assert.equal(SCORE.bare("Kid A - 2009 Remastered Version"), "Kid A");
+  assert.equal(SCORE.bare("Kid A (Deluxe Edition) (2015 Remaster)"), "Kid A");
+  assert.equal(SCORE.bare("(What's the Story) Morning Glory?"), "(What's the Story) Morning Glory?");
+  assert.equal(SCORE.bare("Song (feat. Someone) (Live)"), "Song");
+  // Written back: only the remaster tail goes.
+  assert.equal(SCORE.clean("Kid A (2015 Remaster)"), "Kid A");
+  assert.equal(SCORE.clean("Everything in Its Right Place - 2015 Remaster"), "Everything in Its Right Place");
+  assert.equal(SCORE.clean("Kid A (Deluxe Edition)"), "Kid A (Deluxe Edition)");
+  assert.equal(SCORE.clean("Song (Live)"), "Song (Live)");
+  assert.equal(SCORE.clean("( )"), "( )");
+  assert.equal(SCORE.editionYear("Kid A (2015 Remaster)"), 2015);
+  assert.equal(SCORE.editionYear("1999"), null);
+  // A tag from a 2015 pressing of a 1988 record: the year is right either way.
+  const a = album({ title: "Kid A (2015 Remaster)", year: 2015 });
+  const c = cand({ title: "Kid A", year: 2000, release_title: "Kid A", release_year: 2015 });
+  const d = SCORE.distance(a, c);
+  assert.equal(d.parts.year, 0);
+  assert.ok(d.parts.album <= 0.05, String(d.parts.album));
+  assert.equal(SCORE.distance(album({ year: 2015 }), c).parts.year, 0);
+  assert.equal(SCORE.distance(album({ year: 1997 }), c).parts.year, 1);
 });
 
 test("score: a suspect artist tag is not counted, so lengths and titles decide", () => {
@@ -94,13 +119,22 @@ test("the night window, including one over midnight", () => {
 
 test("the scan end to end", { skip, timeout: 90000 }, async () => {
   const lib = makeLibrary();
+  // A fourth album: a 2015 pressing of a 1988 record, tagged as pressings are.
+  const path = require("path");
+  for (let i = 1; i <= 2; i++) {
+    gen(path.join(lib.music, "Artist C", "Old Record (2015 Remaster)", `0${i}.flac`), { freq: 300 * i, seconds: 5,
+      tags: { title: `Tune ${i} (2015 Remaster)`, artist: "Artist C", album: "Old Record (2015 Remaster)", track: i, date: "2015" } });
+  }
   // Best Of (Various Artists, two 3 s tracks C1/C2) → a release whose titles and lengths match: applied.
   // Hi Res (Artist B, two 4 s tracks) → the right names but one length 40 s off: proposed.
   // Album One (Artist A, three 3 s tracks, 1997) → a release that shares nothing: unidentified.
+  // Old Record → the 2015 remaster release of a 1988 release group: applied with the group's name and year.
   const mb = await new FakeMusicBrainz([
     { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["C2 (Live)", 3]] },
     { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 44]] },
-    { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] }
+    { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] },
+    { id: "old-record-2015", title: "Old Record", artist: "Artist C", date: "2015-06-01", disambiguation: "2015 remaster", group: { title: "Old Record", date: "1988-03-01" },
+      tracks: [["Tune 1 (2015 Remaster)", 5], ["Tune 2 - 2015 Remaster", 5]] }
   ]).start();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
@@ -112,16 +146,29 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   try {
-    await until(async () => (await api("status")).index_count === 3);
+    await until(async () => (await api("status")).index_count === 4);
     // Scheduling off: it scans now, whatever the clock says.
     let r = await api("identify/settings", { schedule: false });
     assert.equal(r.settings.schedule, false);
     assert.equal(r.settings.enabled, true);
-    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 3 && j; });
-    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [1, 1, 1]);
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j; });
+    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [2, 1, 1]);
+
+    // Old Record: the search went out without the edition, and what's written
+    // is the album's name and original year, with clean track names.
+    assert.ok(mb.requests.some(u => u.includes(encodeURIComponent('release:"Old Record"')) && !u.includes("Remaster")));
+    const old = r.applied.find(x => x.album.title === "Old Record");
+    assert.ok(old, JSON.stringify(r.applied.map(x => x.album.title)));
+    assert.equal(old.candidate.year, 1988);
+    assert.equal(old.candidate.release_year, 2015);
+    assert.equal(old.candidate.edition, "2015 remaster");
+    const oldPage = await api("album?offset=" + old.album.offset);
+    assert.equal(oldPage.album.title, "Old Record");
+    assert.equal(oldPage.album.year, 1988);
+    assert.deepEqual(oldPage.tracks.map(t => t.title), ["Tune 1", "Tune 2"]);
 
     // Best Of: applied — the artist stays Various Artists (correctly), the year and the track titles are the release's.
-    const applied = r.applied[0];
+    const applied = r.applied.find(x => x.album.title === "Best Of");
     assert.equal(applied.album.title, "Best Of");
     assert.equal(applied.candidate.mbid, "best-of-1");
     assert.ok(applied.similarity >= 96, String(applied.similarity));
@@ -142,7 +189,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     r = await api("identify/accept", { offset: prop.album.offset });
     assert.equal(r.status, 200);
-    assert.equal(r.progress.applied, 2);
+    assert.equal(r.progress.applied, 3);
     assert.equal(r.progress.proposed, 0);
 
     // Album One: unidentified, with the best guess named so you can judge it.
@@ -154,12 +201,12 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Undo puts Best Of back exactly: year from the files (none), tagged track titles.
     r = await api("identify/undo", { offset: applied.album.offset });
     assert.equal(r.status, 200);
-    assert.equal(r.progress.applied, 1);
+    assert.equal(r.progress.applied, 2);
     assert.equal(r.progress.rejected, 1);
     const back = await api("album?offset=" + applied.album.offset);
     assert.equal(back.album.year, undefined);
     assert.deepEqual(back.tracks.map(t => t.title), ["C1", "C2"]);
-    assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM track_edits").get().n, 0);
+    assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM track_edits WHERE key = ?").get(ctx.library.album(applied.album.offset).key).n, 0);
     assert.equal(ctx.library.album(applied.album.offset).edited, false);
 
     // A rejected album is not looked at again; the request count stays put.
@@ -170,7 +217,15 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Everything survives a library reload (rows keyed by album identity).
     ctx.library.reload();
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
-    assert.equal((await api("identify")).progress.applied, 1);
+    assert.equal((await api("identify")).progress.applied, 2);
+
+    // "Check everything again" forgets the unidentified verdict (not the declined one, not the applied).
+    r = await api("identify/recheck-all", {});
+    assert.equal(r.progress.unidentified, 0);
+    assert.equal(r.progress.rejected, 1);
+    assert.equal(r.progress.applied, 2);
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j; });
+    assert.equal(r.progress.unidentified, 1);
 
     // The switch off stops it: state says so.
     r = await api("identify/settings", { enabled: false });
