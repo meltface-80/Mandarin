@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.15
+- **CI no longer hangs on ffmpeg.** The test and release jobs installed ffmpeg with apt, and
+  a GitHub runner whose apt mirror stalled sat in that step for the whole hour. They now take
+  a static ffmpeg build from a cache (no apt), and the jobs are capped at fifteen minutes.
+
 ## v0.5.14
 - **The search bar's × closes it too.** With text in the field the × clears it, as before;
   tapped again with nothing to clear, it closes the bar (what tapping away does). Browser,

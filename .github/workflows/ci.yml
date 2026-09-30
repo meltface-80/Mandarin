@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
+    # whole hour; nothing here should take a quarter of that.
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -18,8 +21,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
+      # A static ffmpeg build from a cache, not apt: apt-get update on a
+      # runner hangs now and then on a slow mirror, with no timeout of its own.
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          github-token: ${{ github.token }}
       - run: npm ci --no-audit --no-fund
       - name: Syntax check
         run: |
