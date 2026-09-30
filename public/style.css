@@ -5067,8 +5067,8 @@ button.cap-chip:active { transform: scale(.96); }
   --mt-bg:        rgba(29,46,38,.94);
   --meter-off:    rgba(239,230,212,.12);
   --card-ink:     #efe6d4;
-  /* The duck's purple (v0.5.19): a darker plum for the glyphs, the rings
-     and the play discs, a pale plum for the disc behind a top-bar button. */
+  /* The duck's purple (v0.5.19): a darker plum for the glyphs, the rings,
+     the discs and the volume controls; a pale plum for the glyph on a disc. */
   --plum:         #8b6fb0;
   --plum-pale:    #cfc0e4;
   /* The felt: a fine warm grain and a faint larger mottle, drawn once and
@@ -5090,17 +5090,32 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 /* The top bar's rule, faint and warm. */
 [data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
 /* Buttons with a disc — the top bar's menu, search and settings, the album
-   view's back, home and share: a pale plum disc, a plum ring, a plum glyph. */
+   view's back, home and share: a plum disc, the glyph in the pale plum. */
 [data-palette="hifi"] .topbar .icon-btn,
 [data-palette="hifi"] .modal .modal-close,
 [data-palette="hifi"] .modal .modal-home,
 [data-palette="hifi"] .modal .modal-share {
-  border-radius: 50%; border-color: var(--plum); background: var(--plum-pale); color: var(--plum);
+  border-radius: 50%; border-color: var(--plum); background: var(--plum); color: var(--plum-pale);
 }
 [data-palette="hifi"] .topbar .icon-btn:hover,
 [data-palette="hifi"] .modal .modal-close:hover,
 [data-palette="hifi"] .modal .modal-home:hover,
-[data-palette="hifi"] .modal .modal-share:hover { background: var(--plum-pale); color: var(--plum); filter: brightness(1.06); }
+[data-palette="hifi"] .modal .modal-share:hover { background: var(--plum); color: var(--plum-pale); filter: brightness(1.08); }
+/* The search box, open: a plum pill, the glass in plum. */
+[data-palette="hifi"] .search-box:focus-within { border-color: var(--plum); box-shadow: 0 0 0 3px rgba(139,111,176,.22); }
+[data-palette="hifi"] .search-box:focus-within .search-ico,
+[data-palette="hifi"] .search-ico { color: var(--plum); }
+/* The side menu's icons. */
+[data-palette="hifi"] .menu-item svg { color: var(--plum); }
+/* Volume, on Now playing and above the mini player: the speaker, the number,
+   the 0 and 100, the − and + and the thumb all in the plum; the thumb a
+   little smaller than it was. */
+[data-palette="hifi"] .vol-readout .vol-icon,
+[data-palette="hifi"] .vol-readout .vol-value,
+[data-palette="hifi"] .vol-scale { color: var(--plum); }
+[data-palette="hifi"] .vol-step { color: var(--plum); border-color: var(--plum); }
+[data-palette="hifi"] input.vol-range::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8px; background: var(--plum); }
+[data-palette="hifi"] input.vol-range::-moz-range-thumb { width: 22px; height: 22px; background: var(--plum); }
 /* Glyphs on their own — the mini player's zone and volume, Now playing's
    device and volume, previous and next — in the plum. */
 [data-palette="hifi"] .mt-btn,

@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.20
+- **More of the plum.** The top bar's menu and search and the album view's back, home and
+  share are now a plum disc with the glyph in the pale plum; the side menu's icons are the
+  plum; the open search box is a plum pill with a plum glass; and the volume controls, on Now
+  playing and above the mini player, are plum through — speaker, number, 0 and 100, − and +,
+  and a slightly smaller thumb.
+
 ## v0.5.19
 - **The duck's purple.** Mandarin's buttons take a plum: the top bar's menu, search and
   settings and the album view's back, home and share sit on a pale plum disc with a plum
