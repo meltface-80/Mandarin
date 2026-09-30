@@ -5,6 +5,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.10
+- **A copy missing a track is still the record.** The search no longer asks MusicBrainz for
+  exactly the copy's track count (an eleven-track release never came back for a ten-track
+  copy: "nothing with this title"), and tracks are paired by likeness of title and length,
+  not by number, so with track 3 gone tracks 4 to 11 still find their own. Each release track
+  missing from the copy costs a little (beets' 0.9), each track the release hasn't a little
+  less (0.6), instead of a flat penalty for the count; a ten-of-eleven copy with everything
+  else right is applied. A paired track takes its release track's name; one paired with
+  nothing keeps its tag. The page says "1 track of the release missing here".
+
 ## v0.5.9
 - **Identify albums names the album, not the pressing** — Roon's model, in MusicBrainz's terms.
   The record you have is one *release* of a *release group*; the group is the album. The scan

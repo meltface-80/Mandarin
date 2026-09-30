@@ -105,6 +105,29 @@ test("score: the verdicts — applied, proposed, unidentified, ambiguous", () =>
   assert.equal(SCORE.decide(album(), []).status, "unidentified");
 });
 
+test("score: a copy missing a track is still the record — tracks pair by likeness, not by number", () => {
+  // Ten of the release's eleven, the third gone: every remaining track pairs with its own.
+  const full = album();
+  full.tracks = [["She Runs Away", 224], ["In the Absence of Sun", 305], ["Reasons for Living", 258], ["Barely Breathing", 255], ["Days Go By", 289],
+    ["Serena", 284], ["Out of Order", 271], ["November", 296], ["Home", 288], ["The End of Outside", 285], ["Little Hands", 364]].map(([title, length]) => ({ title, length }));
+  const copy = album({ title: "Duncan Sheik", artist: "Duncan Sheik", year: 1996, tracks: full.tracks.filter((t, i) => i !== 2) });
+  const rel = cand({ title: "Duncan Sheik", artist: "Duncan Sheik", year: 1996, tracks: full.tracks });
+  const d = SCORE.distance(copy, rel);
+  assert.deepEqual(d.pairs, [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.equal(d.parts.missing_tracks, 1);
+  assert.equal(d.parts.extra_tracks, 0);
+  assert.ok(d.distance <= SCORE.APPLY, String(d.distance));
+  assert.equal(SCORE.decide(copy, [rel]).status, "applied");
+  // A copy with a track the release hasn't: that one pairs with nothing and keeps its tag.
+  const extra = album({ tracks: album().tracks.concat([{ title: "Hidden Jam", length: 600 }]) });
+  const e = SCORE.distance(extra, cand());
+  assert.deepEqual(e.pairs, [0, 1, 2, 3, null]);
+  assert.equal(e.parts.extra_tracks, 1);
+  // Two "Untitled"s of the same length pair in order.
+  const twins = { tracks: [{ title: "Untitled", length: 100 }, { title: "Untitled", length: 100 }] };
+  assert.deepEqual(SCORE.pairTracks(twins.tracks, twins.tracks).pairs, [0, 1]);
+});
+
 test("the night window, including one over midnight", () => {
   const db = { setting: () => ({ start: "22:00", end: "04:00" }), raw: { prepare: () => ({}) } };
   const at = (h, m) => new Identifier({ db, library: {}, now: () => new Date(2026, 0, 1, h, m), mb: {} });
@@ -125,12 +148,14 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     gen(path.join(lib.music, "Artist C", "Old Record (2015 Remaster)", `0${i}.flac`), { freq: 300 * i, seconds: 5,
       tags: { title: `Tune ${i} (2015 Remaster)`, artist: "Artist C", album: "Old Record (2015 Remaster)", track: i, date: "2015" } });
   }
-  // Best Of (Various Artists, two 3 s tracks C1/C2) → a release whose titles and lengths match: applied.
+  // Best Of (Various Artists, two 3 s tracks C1/C2) → a release with those two and a bonus track
+  //   between them: too much missing on a two-track record to apply unasked → proposed; accepted,
+  //   each track takes the name of the one it paired with.
   // Hi Res (Artist B, two 4 s tracks) → the right names but one length 40 s off: proposed.
   // Album One (Artist A, three 3 s tracks, 1997) → a release that shares nothing: unidentified.
   // Old Record → the 2015 remaster release of a 1988 release group: applied with the group's name and year.
   const mb = await new FakeMusicBrainz([
-    { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["C2 (Live)", 3]] },
+    { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["Bonus Thing", 9], ["C2 (Live)", 3]] },
     { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 44]] },
     { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] },
     { id: "old-record-2015", title: "Old Record", artist: "Artist C", date: "2015-06-01", disambiguation: "2015 remaster", group: { title: "Old Record", date: "1988-03-01" },
@@ -152,11 +177,12 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal(r.settings.schedule, false);
     assert.equal(r.settings.enabled, true);
     r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j; });
-    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [2, 1, 1]);
+    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [1, 2, 1]);
 
-    // Old Record: the search went out without the edition, and what's written
-    // is the album's name and original year, with clean track names.
-    assert.ok(mb.requests.some(u => u.includes(encodeURIComponent('release:"Old Record"')) && !u.includes("Remaster")));
+    // Old Record: the search went out without the edition and without a track
+    // count, and what's written is the album's name and original year, with
+    // clean track names.
+    assert.ok(mb.requests.some(u => u.includes(encodeURIComponent('release:"Old Record"')) && !u.includes("Remaster") && !u.includes("tracks")));
     const old = r.applied.find(x => x.album.title === "Old Record");
     assert.ok(old, JSON.stringify(r.applied.map(x => x.album.title)));
     assert.equal(old.candidate.year, 1988);
@@ -167,11 +193,13 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal(oldPage.album.year, 1988);
     assert.deepEqual(oldPage.tracks.map(t => t.title), ["Tune 1", "Tune 2"]);
 
-    // Best Of: applied — the artist stays Various Artists (correctly), the year and the track titles are the release's.
-    const applied = r.applied.find(x => x.album.title === "Best Of");
-    assert.equal(applied.album.title, "Best Of");
+    // Best Of: proposed (a track of three missing) — accepted, the artist stays
+    // Various Artists (correctly), the year and the paired track titles are the release's.
+    const applied = r.proposed.find(x => x.album.title === "Best Of");
     assert.equal(applied.candidate.mbid, "best-of-1");
-    assert.ok(applied.similarity >= 96, String(applied.similarity));
+    assert.ok(applied.similarity < 96 && applied.similarity >= 85, String(applied.similarity));
+    r = await api("identify/accept", { offset: applied.album.offset });
+    assert.equal(r.status, 200);
     const bestOf = await api("album?offset=" + applied.album.offset);
     assert.equal(bestOf.album.year, 2001);
     assert.equal(bestOf.album.subtitle, "Various Artists");
@@ -183,8 +211,8 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal(ctx.library.track(bestOf.tracks[0].track_id).scanned_title, undefined);
 
     // Hi Res: proposed with the distance shown; the album is untouched until accepted.
-    const prop = r.proposed[0];
-    assert.equal(prop.album.title, "Hi Res");
+    const prop = r.proposed.find(x => x.album.title === "Hi Res");
+    assert.ok(prop);
     assert.ok(prop.similarity < 96 && prop.similarity >= 85, String(prop.similarity));
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     r = await api("identify/accept", { offset: prop.album.offset });
