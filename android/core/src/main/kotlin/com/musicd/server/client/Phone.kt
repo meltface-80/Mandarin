@@ -37,8 +37,14 @@ object Phone {
 
     class Batch(val seq: Long, val commands: List<Command>)
 
-    /** [awayAddress]: where the server is away from home (Tailscale), if it knows. */
-    class Hello(val zoneId: String, val seq: Long, val away: Boolean = false, val awayAddress: String? = null)
+    /**
+     * [awayAddress]: where the server is away from home (Tailscale), if it knows.
+     * [resume]: the queue the server still holds for this phone from before the
+     * player was restarted — a "load" with play false, to pick up paused where
+     * it stopped — or null when there was nothing.
+     */
+    class Hello(val zoneId: String, val seq: Long, val away: Boolean = false, val awayAddress: String? = null,
+                val resume: Command? = null)
 
     /** What the player is doing, as the server wants to hear it. */
     class Report(
@@ -100,7 +106,8 @@ fun ServerClient.phoneHello(name: String): Phone.Hello {
     val j = post("/api/phone/hello", JSONObject().put("name", name))
     return Phone.Hello(
         j.getString("zone_id"), j.optLong("seq"), j.optBoolean("away", false),
-        j.optString("away_address", "").takeIf { it.isNotEmpty() && it != "null" }
+        j.optString("away_address", "").takeIf { it.isNotEmpty() && it != "null" },
+        j.optJSONObject("resume")?.let { Phone.parseCommand(it) }?.takeIf { it.items.isNotEmpty() }
     )
 }
 

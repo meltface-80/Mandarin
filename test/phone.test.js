@@ -129,6 +129,26 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.state, "paused");
     });
 
+    await t.test("the app's player restarted: its queue comes back, paused where it was", async () => {
+      // Android stopped the idle player (deep sleep); the app says hello again.
+      await phone("POST", "/api/phone/state", { index: 1, position: 40, duration: 60, state: "paused", volume: 25 });
+      const h = await phone("POST", "/api/phone/hello", { name: "Pixel 8" });
+      assert.equal(h.zone_id, zoneId);
+      assert.ok(h.resume, "the queue is handed back");
+      assert.equal(h.resume.op, "load");
+      assert.equal(h.resume.play, false);
+      assert.equal(h.resume.index, 1);
+      assert.ok(Math.abs(h.resume.seconds - 40) < 2, String(h.resume.seconds));
+      assert.deepEqual(h.resume.items.map(i => i.title), ["Song 1", "Song 2", "Song 3", "Song 1", "Song 2", "Song 3"]);
+      seq = h.seq;
+      // Meanwhile the zone shows the paused track, not "nothing playing".
+      const st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.equal(st.zone.state, "paused");
+      assert.equal(st.zone.now_playing.line1, "Song 2");
+      assert.equal(st.zone.outputs[0].volume.value, 25);
+      assert.deepEqual((await phone("GET", "/api/queue?zone=" + zoneId)).items.map(i => i.title).slice(0, 2), ["Song 2", "Song 3"]);
+    });
+
     await t.test("what's playing moves from the phone to a Sonos room and back", async () => {
       const kitchen = (await phone("GET", "/api/zones")).zones.find(z => z.display_name === "Kitchen");
       await phone("POST", "/api/phone/state", { index: 1, position: 1, duration: 3, state: "playing" });

@@ -84,33 +84,53 @@ object TailscaleEngine {
      */
     fun connectAway(c: Context, target: String): Boolean = runCatching {
         if (!installed(c) || !signedInBefore(c)) return false
-        ensureRunning(c)
-        sendInterfaces()
-        json("POST", "/start", JSONObject().put("Hostname", "musicd-phone").toString(), 30_000)
-        // Joined?
-        var running = false
-        for (i in 0 until 40) {
-            val st = json("GET", "/status", timeoutMs = 4000)
-            when (st.optString("state")) {
-                "Running" -> { running = true }
-                "NeedsLogin", "NeedsMachineAuth" -> return false   // sign in again on the Tailscale screen
-            }
-            if (running) break
-            Thread.sleep(250)
-        }
-        if (!running) return false
-        val fw = json("POST", "/forward?target=$target&port=$PORT")
-        if (fw.optInt("_status") >= 400) return false
-        readyFor = target
-        json("POST", "/down?on=0")
+        val wasAlive = alive()
+        if (join(c, target) == null) return false
         // The server answering, directly over the tailnet.
         for (i in 0 until 3) {
             if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
             // Connections from before a network change hang until they time out: drop them.
             json("POST", "/down?on=1"); json("POST", "/down?on=0")
         }
+        // An engine that was already running and still can't reach the server
+        // has most likely gone stale — its tunnel outlived a sleep or a change
+        // of network without noticing. Start it afresh, once: the state on
+        // disk keeps it signed in, so joining again takes seconds.
+        if (wasAlive) {
+            Log.i(TAG, "the engine can't reach $target; starting it afresh")
+            stop()
+            if (join(c, target) == null) return false
+            if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
+        }
         false
     }.getOrElse { Log.i(TAG, "away connection: ${it.message}"); false }
+
+    /**
+     * The engine running, joined, forwarding 127.0.0.1:[PORT] to [target] and
+     * open for connections: its status, or null when it can't join (not
+     * signed in, or not in time). Blocking.
+     */
+    private fun join(c: Context, target: String): String? {
+        ensureRunning(c)
+        sendInterfaces()
+        json("POST", "/start", JSONObject().put("Hostname", "musicd-phone").toString(), 30_000)
+        var running = false
+        for (i in 0 until 40) {
+            val st = json("GET", "/status", timeoutMs = 4000)
+            when (st.optString("state")) {
+                "Running" -> { running = true }
+                "NeedsLogin", "NeedsMachineAuth" -> return null   // sign in again on the Tailscale screen
+            }
+            if (running) break
+            Thread.sleep(250)
+        }
+        if (!running) return null
+        val fw = json("POST", "/forward?target=$target&port=$PORT")
+        if (fw.optInt("_status") >= 400) return null
+        readyFor = target
+        json("POST", "/down?on=0")
+        return "Running"
+    }
 
     @Volatile private var readyFor: String? = null
 

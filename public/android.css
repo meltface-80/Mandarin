@@ -166,6 +166,17 @@
   font-size: 14px; color: var(--text-dim);
 }
 
+/* The album page and Now playing open as a full-screen panel that slides
+   in over the page. On the WebView every one of these cost a frame or more
+   while it did: the blur over the whole page behind the panel (which the
+   panel hides anyway), the panel's full-screen shadow, and a blurred ambient
+   layer re-drawn under a moving panel. None of it is missed. The ambient
+   wash stays — a 96px cover scaled up is soft enough without the filter. */
+.modal-backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.modal-panel { box-shadow: none; }
+.modal-ambient { filter: none; opacity: .2; }
+[data-theme="light"] .modal-ambient { opacity: .14; }
+
 /* The offline note (and any other notice) above Home: room below it. */
 main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }
 
