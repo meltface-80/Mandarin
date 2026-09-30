@@ -73,6 +73,14 @@ test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
       const body = Buffer.from(await r.arrayBuffer());
       assert.equal(body.toString("ascii", 0, 4), "OggS");
       assert.ok(body.includes(Buffer.from("OpusHead")));
+      // 24/48: the encoder is fed 64-bit float resampled to 48 kHz by SoX,
+      // and the Opus stream says 48 kHz (a 96 kHz source, here).
+      const args = require("../lib/server/downloads").Downloads.opusArgs("in.flac", "out.opus");
+      assert.ok(args.includes("-af") && /soxr:precision=33:internal_sample_fmt=dblp:osr=48000/.test(args[args.indexOf("-af") + 1]));
+      assert.equal(args[args.indexOf("-ar") + 1], "48000");
+      assert.equal(args[args.indexOf("-sample_fmt") + 1], "flt");
+      const head = body.indexOf(Buffer.from("OpusHead"));
+      assert.equal(body.readUInt32LE(head + 12), 48000, "OpusHead input sample rate");
       const first = Date.now() - t0;
       const t1 = Date.now();
       const again = Buffer.from(await (await get(a.tracks[0].path)).arrayBuffer());

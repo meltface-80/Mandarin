@@ -27,6 +27,8 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -98,6 +100,8 @@ class PhonePlayerService : MediaLibraryService() {
             private set
         private const val RETRIES = 40
         const val FORMAT_OPUS = "opus"
+        /** Opus decoded to float by the app's own libopus: 24/48 (v0.5.22). */
+        const val FORMAT_OPUS24 = "opus24"
         const val FORMAT_LOSSLESS = "lossless"
         const val FORMAT_ORIGINAL = "original"
         private const val WAIT_MS = 25_000
@@ -205,7 +209,15 @@ class PhonePlayerService : MediaLibraryService() {
             }
         }
 
-        player = ExoPlayer.Builder(this)
+        // Media3's Opus decoder (libopus, built into the app) ahead of
+        // Android's, and a float audio path: the server's Opus 256 decodes to
+        // float — 24/48 into Android's mixer — where Android's decoder gives
+        // 16-bit. Every other format decodes as before; a 24-bit file also
+        // travels as float.
+        val renderers = DefaultRenderersFactory(this)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .setEnableAudioFloatOutput(true)
+        player = ExoPlayer.Builder(this, renderers)
             .setLoadControl(ahead)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(sources)
                 .setLoadErrorHandlingPolicy(retrying))
@@ -227,6 +239,14 @@ class PhonePlayerService : MediaLibraryService() {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = fetchAheadSoon()
             override fun onRepeatModeChanged(repeatMode: Int) = fetchAheadSoon()
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
+        })
+        // Which decoder is at work: "libopus" is the app's own (float), a
+        // "c2.android…" name is Android's. Shown on the format badge.
+        player.addAnalyticsListener(object : AnalyticsListener {
+            override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
+                audioDecoder = decoderName
+                reportSoon()
+            }
         })
         Away.watch(this)
         // A new network (Wi-Fi or mobile data): a different number of tracks ahead.
@@ -450,6 +470,11 @@ class PhonePlayerService : MediaLibraryService() {
     private fun pause(ms: Long) {
         try { Thread.sleep(ms) } catch (e: InterruptedException) { running = false }
     }
+
+    /** The decoder at work on the current track (Media3's name for it), or null before the first. */
+    @Volatile private var audioDecoder: String? = null
+    /** Opus decoded by the app's libopus, to float — not Android's 16-bit decoder. */
+    private fun floatOpus() = audioDecoder?.startsWith("libopus") == true
 
     /**
      * How [item] is being played, for the format badge on Now playing:
@@ -746,7 +771,7 @@ class PhonePlayerService : MediaLibraryService() {
             },
             volume = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             muted = muted,
-            format = if (formatOf(player.currentMediaItem) == FORMAT_OPUS) "opus" else "original"
+            format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" }
         )
         val client = Store.client(this) ?: return
         runCatching { reports.execute { runCatching { client.phoneReport(r) } } }
@@ -993,7 +1018,7 @@ class PhonePlayerService : MediaLibraryService() {
             when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
             (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
-            items, revision, formatOf(p.currentMediaItem)
+            items, revision, formatOf(p.currentMediaItem).let { if (it == FORMAT_OPUS && floatOpus()) FORMAT_OPUS24 else it }
         )
     }
 

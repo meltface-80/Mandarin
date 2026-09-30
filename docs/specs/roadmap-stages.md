@@ -57,6 +57,8 @@ One patch version.
 
 ## Stage 2: what the phone plays on mobile data
 
+**Built in v0.5.22.**
+
 ### Today
 
 * Away, the phone asks for `?q=opus` and gets **Opus at 256 kbps** (Ogg), made
