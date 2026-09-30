@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mandarin &mdash; install &amp; docs</title>
-<meta name="description" content="Mandarin &mdash; your own music files played to Sonos devices, with MusicD Remote's interface. Docker install, Android app and docs.">
+<meta name="description" content="Mandarin &mdash; your own music files played to Sonos rooms and UPnP/DLNA streamers such as WiiM and Chord Poly, with MusicD Remote's interface. Docker install, Android app and docs.">
 <link rel="icon" href="mandarin-icon.png">
 <style>
   /* Mandarin's own look (the app's Late-Night Hi-Fi): green felt, cream,
@@ -294,16 +294,19 @@
     <img class="logo" src="mandarin-logo-dark.png" alt="Mandarin by MusicD" onerror="this.closest('header').classList.add('noimg')">
   </picture>
   <div class="wordmark">Mandarin</div>
-  <h1>Your own music files played to Sonos devices</h1>
-  <p class="tag">A small server on a machine you own scans your music folder, and every Sonos
-     room in the house plays from it &mdash; with MusicD Remote's interface in a browser, on an
-     iPhone home screen, or in the Android app. No Roon, no Plex, no accounts. Definitely no nonsense about better sound quality.</p>
+  <h1>Your own music files, played to Sonos rooms and UPnP streamers</h1>
+  <p class="tag">A small server on a machine you own scans your music folders, and every Sonos
+     room in the house &mdash; and any UPnP/DLNA renderer you switch on, a WiiM, a Chord Poly &mdash;
+     plays from it, with MusicD Remote's interface in a browser, on an iPhone home screen, or in
+     the Android app. Hi-res to each device's own ceiling, upsampled if you like. No Roon, no
+     Plex, no accounts. Definitely no nonsense about better sound quality.</p>
   <div class="badges">
-    <span class="badge">v0.5.6</span>
+    <span class="badge">v0.5.7</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
-    <span class="badge plain">Sonos only</span>
-    <span class="badge plain">Hi-res &rarr; 24/48</span>
+    <span class="badge plain">Sonos</span>
+    <span class="badge plain">UPnP / DLNA</span>
+    <span class="badge plain">Upsampling</span>
   </div>
 </header>
 
@@ -311,18 +314,22 @@
   <div class="wrap">
     <h2>How it works</h2>
     <p class="lead">The interface is the MusicD Remote that was made as a Roon extension. Underneath, instead of a Roon Core, there is
-      a simple server that scans your library and coupled with the Sonos control from the Caldera Sonos Bridge gives a simple, but effective music playback package for Sonos users. It plays music without rediculous claims.</p>
+      a simple server that scans your library, drives Sonos rooms with the control ported from the Caldera Sonos Bridge,
+      and drives UPnP/DLNA renderers &mdash; a WiiM, a Chord Poly, any streamer with AVTransport &mdash; through their own
+      transport, gapless, with each one's sample rates read from the device and upsampling in 64-bit float if you want it.
+      A simple but effective music playback package. It plays music without ridiculous claims.</p>
 
     <div class="flow">
       <div class="node"><b>Your phone or browser</b><span>MusicD Remote's interface</span></div>
       <div class="arrow">&rarr;</div>
       <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
       <div class="arrow">&rarr;</div>
-      <div class="node"><b>Sonos</b><span>every room and group</span></div>
+      <div class="node"><b>Sonos + renderers</b><span>rooms, groups, WiiM, Poly&hellip;</span></div>
     </div>
     <p class="flow-note">Tracks go into the speaker's own Sonos queue, so playback is gapless and a
-       skip is instant. Each speaker fetches the audio straight from the server &mdash; as the file
-       itself when it can play it, as FLAC 24/48 when it can't.</p>
+       skip is instant; a UPnP renderer is handed each next track ahead of time for the same reason.
+       Each device fetches the audio straight from the server &mdash; as the file itself when it can
+       play it, converted to what it takes when it can't.</p>
 
     <div class="grid">
       <div class="card"><h3><span class="em">&#127968;</span>Home, the way Mandarin does it</h3>
@@ -358,9 +365,13 @@
 
 <section id="formats">
   <div class="wrap">
-    <h2>The 24/48 rule</h2>
+    <h2>The 24/48 rule &mdash; and each renderer's own</h2>
     <p class="lead">Sonos S2 plays up to 24-bit / 48 kHz. Everything within that goes to the speaker
-       untouched; everything above it is brought down to 24/48 and stays lossless.</p>
+       untouched; everything above it is brought down to 24/48 and stays lossless. A UPnP/DLNA
+       renderer gets the same idea at <em>its</em> ceiling &mdash; 24/192 on a WiiM, 768 kHz on a
+       Chord Poly &mdash; and, from its page in Settings &rarr; Audio Devices, Upsample &times;2, &times;4 or Max,
+       processed in 64-bit float. A WiiM reports what its decoder is really playing, and the badge
+       gets its tick.</p>
     <div class="tablewrap formats">
       <table>
         <tr><th>Your file</th><th>What the speaker gets</th></tr>
@@ -532,7 +543,8 @@
 <footer>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/MusicD-Server">github.com/meltface-80/MusicD-Server</a><br>
-     Sonos is a trademark of Sonos, Inc. This is an independent project, not affiliated with Sonos.</p>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics.
+     This is an independent project, affiliated with none of them.</p>
 </footer>
 
 <script>

@@ -4457,6 +4457,12 @@ body.show-quality .album-quality { display: block; }
   padding: 0;
 }
 .overflow-btn svg { width: 22px; height: 22px; }
+/* The heart on an album's page: hollow until tapped, then red. */
+.fav-btn { color: var(--text-dim); }
+.fav-btn svg { width: 22px; height: 22px; }
+.fav-btn.is-on { color: #e0463f; }
+.fav-btn.is-on svg { fill: #e0463f; stroke: #e0463f; }
+.fav-btn:active { transform: scale(.92); }
 /* The menu is anchored to the button, and on a narrow screen the button is at
    the right-hand end of its row — so it opens leftwards to stay on screen. */
 .overflow-menu { top: calc(100% + 6px); right: 0; }

@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.7
+- **Favourites.** Every album's page has a heart, first in its row of buttons (the size of the
+  ⋯ button at the other end): hollow, red once tapped, kept on the server by the album's
+  identity so it survives a rescan. A **Favourites** carousel on Home shows them the moment one
+  is hearted, newest first; tapping its title opens the full wall. It is in Home Screen's list
+  of rows like the others.
+- A written plan for finding an album's right names from its tracks —
+  `docs/specs/album-identification.md` — for review before anything is built.
+
 ## v0.5.6
 - **Renderers send their changes (UPnP events).** Mandarin subscribes to each renderer's
   AVTransport events (GENA) with a callback on its own port, renews in time, and reads the
