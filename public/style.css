@@ -5254,6 +5254,19 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .mt-playpause {
   background: var(--text); color: var(--bg); border: 1px solid rgba(239,230,212,.25);
 }
+/* Now playing's seek bar: the same level meter as the mini player's — gold
+   segments over faint ones, the thumb riding along them. The waveform, where
+   a track has one, takes the bar's place as before. */
+[data-palette="hifi"] .np-progress:not(.has-wave) .np-seek { --seek-rest: var(--meter-off); }
+[data-palette="hifi"] .np-progress:not(.has-wave) .np-seek::-webkit-slider-runnable-track {
+  border-radius: 0;
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+          mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+}
+[data-palette="hifi"] .np-progress:not(.has-wave) .np-seek::-moz-range-track {
+  border-radius: 0;
+  mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+}
 @media (hover: hover) and (pointer: fine) {
   [data-palette="hifi"] .mt-playpause:hover { background: var(--text); filter: brightness(1.12); }
 }

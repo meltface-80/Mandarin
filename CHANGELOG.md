@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.18
+- **Now playing's seek bar is the same level meter as the mini player's** in the Mandarin
+  themes: gold segments over faint ones, the thumb riding along them. A track with a waveform
+  keeps its waveform, as before.
+
 ## v0.5.17
 - **An update no longer loses what was playing.** A Sonos room keeps its queue on the speaker,
   but a phone's and a UPnP renderer's lived only in the server's memory, and an update ends in a
