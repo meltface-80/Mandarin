@@ -31,8 +31,9 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"] });
-  const ctx = await srv.start();
+  const options = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"] };
+  let srv = createServer(options);
+  let ctx = await srv.start();
   const phoneToken = await signIn(B);                 // kind "android"
   const otherToken = await (async () => {           // a browser on another device
     const SRP = require("../public/srp");
@@ -171,6 +172,40 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(r.status, 500);
       assert.match(r.error, /can't be grouped/);
       assert.equal((await other("POST", "/api/transfer-zone", { from: kitchen.zone_id, to: zoneId })).status, 403, "another device can't move music to the phone");
+    });
+
+    await t.test("the server restarted (an update): the phone's queue and place are kept", async () => {
+      await phone("POST", "/api/phone/state", { index: 2, position: 12, duration: 60, state: "playing", volume: 40 });
+      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      await srv.stop();
+      srv = createServer(options);
+      ctx = await srv.start();
+      // (A kept-alive connection to the old server fails once; the app retries as any client does.)
+      await until(async () => (await phone("GET", "/api/status")).status === 200);
+      // The app is still running: it asks for commands as before, no hello.
+      const got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.equal(got.status, 200, JSON.stringify(got));
+      seq = got.seq;
+      const st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.equal(st.status, 200, JSON.stringify(st));
+      assert.equal(st.zone.now_playing.line1, "Song 3");
+      assert.equal(st.zone.state, "paused", "paused until the app says otherwise");
+      assert.ok(Math.abs(st.zone.now_playing.seek_position - 12) < 3, String(st.zone.now_playing.seek_position));
+      const q = await phone("GET", "/api/queue?zone=" + zoneId);
+      assert.equal(q.items.length + q.history.length, 6, "all six tracks are back");
+      assert.deepEqual(q.items.slice(0, 2).map(i => i.title), ["Song 3", "Song 1"]);
+      // The app reports playing on: so it shows.
+      await phone("POST", "/api/phone/state", { index: 2, position: 14, duration: 60, state: "playing", volume: 40 });
+      assert.equal((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.state, "playing");
+      // And a new command still reaches the app, whatever sequence it counted to before.
+      await phone("POST", "/api/control", { zone_or_output_id: zoneId, command: "pause" });
+      const got2 = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.ok(got2.commands.some(c => c.op === "pause"), JSON.stringify(got2));
+      seq = got2.seq;
+      // An app that was restarted too gets the queue back with its hello.
+      const h = await phone("POST", "/api/phone/hello", { name: "Pixel 8" });
+      assert.equal(h.resume.items.length, 6);
+      assert.equal(h.resume.index, 2);
     });
   } finally {
     await srv.stop();
