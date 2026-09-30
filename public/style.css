@@ -3968,7 +3968,11 @@ input.vol-range::-moz-range-thumb {
 /* The one pick a day chosen for being UNLIKE the library gets an accent edge,
    so it reads as deliberate rather than as the recommender misfiring. */
 .pick-card-full .pick-art { width: 96px; flex: 0 0 96px; }
-.pick-card-full .pick-meta { flex: 1 1 auto; }
+/* Basis 0, not auto: with auto the text block is as wide as its longest line
+   wants to be, so a long reason ("Because you have been playing Joshua
+   Redman") pushed the whole block onto the line below the art while a short
+   one sat beside it — the first card laid out unlike the rest. */
+.pick-card-full .pick-meta { flex: 1 1 0; min-width: 0; }
 .pick-card-full .pick-artist { font-size: 15px; white-space: normal; }
 .pick-card-full .pick-album  { font-size: 13px; white-space: normal; }
 .pick-actions { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
@@ -5192,16 +5196,11 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   [data-palette="hifi"] .home-unheard-tile:hover .unheard-glyph { color: var(--accent-text); }
 }
 
-/* Smart Picks on Home: the same glow, and the reason under each. */
+/* Smart Picks on Home: the same glow. (The reason is on the Smart Picks page.) */
 [data-palette="hifi"] .home-carousel .pick-card { width: 156px; }
 [data-palette="hifi"] .pick-art {
   border-radius: 12px; border: 0;
   box-shadow: 0 16px 30px -14px rgba(201,164,92,.55), inset 0 0 0 1px rgba(255,255,255,.05);
-}
-.pick-reason-home { display: none; }
-[data-palette="hifi"] .pick-reason-home {
-  display: block; margin-top: 4px; font-size: 12px; color: var(--accent-text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* Browse by genre: felt cards in six earthy tones, each with a soft disc. */
