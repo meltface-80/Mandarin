@@ -192,9 +192,9 @@ in practice a phone has a headphone profile and a room has a PEQ.
 * The renderer's conversion already runs through ffmpeg in 64-bit float; the
   DSP is more of the same filter graph:
   `aformat=dbl → volume=<preamp>dB → [aresample=soxr] → equalizer… → aresample=<dither> → flac`.
-* A renderer set to **Original** with DSP on is no longer bit-perfect: it is
-  decoded, filtered and re-encoded FLAC at the file's own rate and 24 bits.
-  The page says so where the output is chosen.
+* A renderer set to **Original** with DSP on is decoded, filtered and
+  re-encoded FLAC at the file's own rate and 24 bits (32 where supported);
+  with DSP off it is the file as stored, as today.
 * Conversions are cached files keyed by track, rate and depth today; the key
   gains a hash of the DSP so two zones with different settings never share a
   file, and a change remakes the files from the next track on.
@@ -202,8 +202,8 @@ in practice a phone has a headphone profile and a room has a PEQ.
 
 ### 3.3 PEQ for rooms
 
-* Up to 10 bands, each: type (peak, low shelf, high shelf), frequency, gain
-  (±20 dB), Q. A response curve drawn on the page (20 Hz–20 kHz, the combined
+* Up to 10 bands, each: type (peak, low shelf, high shelf, low-pass,
+  high-pass), frequency, gain (±20 dB; none for a pass filter), Q. A response curve drawn on the page (20 Hz–20 kHz, the combined
   curve and the headroom line), the bands as rows under it.
 * Applies to UPnP renderers and to the phone (a phone can carry both a
   headphone profile and a PEQ; they run in that order).
@@ -220,18 +220,20 @@ in practice a phone has a headphone profile and a room has a PEQ.
 * The Kotlin biquads reviewed against the JS ones by hand (no Android SDK
   here); the friend's and the owner's phones are the test rig.
 
-### Open questions (asked when Stage 3 comes up)
+### Decisions (owner)
 
-1. AutoEQ from GitHub on demand (needs the server to reach github.com) or a
-   bundled subset? Recommendation: on demand, cached, with paste/upload as the
-   offline route.
-2. PEQ band types: peak, low shelf, high shelf only, or also low-pass /
-   high-pass for a subwoofer crossover?
-3. Should the PEQ page have a **preview** (apply to what's playing now,
-   unsaved) or is Save-then-hear enough?
-4. Is a renderer set to Original with DSP on acceptable as "no longer
-   bit-perfect", or should DSP force at least ×1 processing explicitly on the
-   page?
+1. **AutoEQ profiles are pulled from the AutoEq repository and stored in the
+   server's database** (as an earlier project of the owner's did), with paste
+   or upload of a `ParametricEQ.txt` for headphones it lacks. The app does not
+   fetch AutoEQ itself: the phone's chosen profile is handed to it by the
+   server (hello, and a `dsp` command on change) and kept on the phone, so it
+   applies to downloads offline too.
+2. **PEQ band types: all of them** — peak, low shelf, high shelf, low-pass,
+   high-pass.
+3. **Save applies.** No live preview; a change takes effect when saved (the
+   renderer's next conversion, the phone at once).
+4. **DSP is a switch per zone.** On, the chain applies; off, the zone is
+   bit-perfect as today. No note about bit-perfectness on the page.
 
 ### Versions
 
