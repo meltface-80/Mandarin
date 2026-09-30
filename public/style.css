@@ -363,7 +363,11 @@ a.action-btn:active,
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 8px 8px 8px 14px;
+  /* The same height as the buttons beside it (--ctl-h), so opening the
+     search doesn't make the top bar taller — it was 48px against their 40,
+     and the whole page shifted down 8px each time it opened. */
+  box-sizing: border-box; height: var(--ctl-h);
+  padding: 0 6px 0 14px;
   transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 .search-box:focus-within {
@@ -385,7 +389,7 @@ a.action-btn:active,
 #search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 .search-clear {
   flex: 0 0 auto;
-  width: 30px; height: 30px; border-radius: 999px;
+  width: 28px; height: 28px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--bg-elev-2); color: var(--text-dim);
   border: 1px solid var(--border); cursor: pointer;

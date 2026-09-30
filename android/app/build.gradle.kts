@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 57
-        versionName = "0.5.15"
+        versionCode = 58
+        versionName = "0.5.16"
     }
 
     buildFeatures {

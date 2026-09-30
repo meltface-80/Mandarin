@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.16
+- **Opening the search no longer makes the top bar taller.** The search box was 48px against
+  the 40px buttons beside it, so the bar grew by 8px and the whole page shifted down each
+  time it opened, and back when it closed. The box is now the buttons' height.
+
 ## v0.5.15
 - **CI no longer hangs on ffmpeg.** The test and release jobs installed ffmpeg with apt, and
   a GitHub runner whose apt mirror stalled sat in that step for the whole hour. They now take
