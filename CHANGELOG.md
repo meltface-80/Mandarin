@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.22
+- **Opus 256 is 24/48 end to end.** Opus is a 48 kHz codec; a 44.1 kHz file now reaches the
+  encoder through the same 64-bit float SoX resample as the FLAC conversions (it was ffmpeg's
+  default resampler), and the encoder is fed float. On the phone the app carries Media3's own
+  Opus decoder over libopus, built into the app, which decodes to float where Android's decoder
+  gave 16-bit; the audio path to Android's mixer is float. The Now playing badge reads
+  "256 · 24/48" when that decoder is at work. New Opus files are made afresh on the server;
+  Opus downloads already on the phone stay as they were. (Stage 2 of the roadmap.)
+
 ## v0.5.21
 - **Away from home, Audio Devices shows this phone.** The page was empty on mobile data, since
   it is a home-only page and the app over Tailscale counts as away — yet the phone is the one

@@ -15,9 +15,22 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 63
-        versionName = "0.5.21"
+        versionCode = 64
+        versionName = "0.5.22"
+        // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
+        // is the native code below: one ABI, every phone the app runs on.
+        ndk { abiFilters += "arm64-v8a" }
+        externalNativeBuild { cmake { arguments += listOf("-DANDROID_STL=c++_static") } }
     }
+
+    /*
+     * Native code: Media3's Opus decoder over libopus (src/main/cpp), so the
+     * server's Opus 256 is decoded to float rather than Android's 16-bit —
+     * 24/48 into the phone's audio path. CMake fetches libopus itself; the
+     * NDK and CMake come from the SDK manager (the workflow installs them).
+     */
+    ndkVersion = "27.2.12479018"
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
 
     buildFeatures {
         buildConfig = true
@@ -112,6 +125,10 @@ dependencies {
     // "This phone": playback (ExoPlayer) and the media session, notification
     // and lock-screen controls that come with it.
     implementation("androidx.media3:media3-exoplayer:1.8.0")
+    // The Opus decoder module carried in src/main/java/androidx/media3/decoder/opus
+    // builds on Media3's decoder base classes.
+    implementation("androidx.media3:media3-decoder:1.8.0")
+    implementation("androidx.media3:media3-extractor:1.8.0")
     implementation("androidx.media3:media3-session:1.8.0")
     // The cache of tracks played on the phone keeps its index in a database.
     implementation("androidx.media3:media3-database:1.8.0")

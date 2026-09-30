@@ -71,9 +71,12 @@ jobs:
           java-version: '17'
       # Not `tools`: the legacy SDK Tools package is obsolete and fails to
       # download often enough to take a build down with it.
+      # The NDK and CMake build the app's native code (Media3's Opus decoder
+      # over libopus, android/app/src/main/cpp); the versions match
+      # android/app/build.gradle.kts.
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018 cmake;3.22.1'
       - uses: actions/setup-go@v5
         with:
           go-version-file: android/musicdnet/go.mod

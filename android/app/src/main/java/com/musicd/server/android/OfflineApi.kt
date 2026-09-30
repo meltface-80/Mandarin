@@ -103,6 +103,7 @@ object OfflineApi {
     private fun formatJson(f: String?): Any = when (f) {
         null, PhonePlayerService.FORMAT_ORIGINAL -> JSONObject.NULL
         PhonePlayerService.FORMAT_OPUS -> JSONObject().put("kind", "opus").put("text", "256kbps")
+        PhonePlayerService.FORMAT_OPUS24 -> JSONObject().put("kind", "opus").put("text", "256 · 24/48")
         PhonePlayerService.FORMAT_LOSSLESS -> JSONObject().put("kind", "lossless").put("text", "Lossless")
         else -> JSONObject().put("kind", "lossy").put("text", f)
     }

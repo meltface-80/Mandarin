@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.21
+# Mandarin — v0.5.22
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -362,8 +362,10 @@ Tailscale included — is offered one room: the phone asking, as *This phone*. T
 aren't listed, and nothing away can play to them, pause, group or mute them, or reach another
 phone. The server decides this by where each request comes from, so it holds for any device:
 an iPhone or a laptop on Tailscale can browse the library but has nothing to play to. At home
-everything is as before. Away, tracks stream as **Opus 256 kbps** (a tenth of the data); albums
-you've downloaded play from the phone.
+everything is as before. Away, tracks stream as **Opus 256 kbps** (a tenth of the data), made
+through a 64-bit float resample to Opus's 48 kHz and decoded on the phone to float by the app's
+own libopus — 24/48 into the phone's audio path, no 16-bit step; albums you've downloaded play
+from the phone.
 
 **Set up once — Tailscale is built in:**
 
