@@ -309,11 +309,12 @@ with the app.
   resumed.
 * Stage 5's index code is reused for the import.
 
-### Open questions
+### Decisions (owner)
 
-1. When the folder is on an SD card that is later removed, the albums show as
-   "on a card that isn't in" rather than disappearing — agreed?
-2. Should the private location remain the default for a new install?
+1. A folder on an SD card that is taken out leaves its albums on the page as
+   unavailable ("on a card that isn't in"); they come back with the card.
+2. The private store stays the default for a new install until a folder is
+   chosen.
 
 ### Versions
 
