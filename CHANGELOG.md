@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.9
+- **Identify albums names the album, not the pressing** — Roon's model, in MusicBrainz's terms.
+  The record you have is one *release* of a *release group*; the group is the album. The scan
+  now searches with the edition set aside ("Kid A", not "Kid A (2015 Remaster)"), scores a
+  tag title against both the group's and the release's, and treats a tag year as right when it
+  is the original's or the pressing's or the one the title names. What it writes is the
+  **group's title and its first release year** (1988, not 2015) and track titles with any
+  remaster tail removed ("Tune 1", not "Tune 1 - 2015 Remaster"); "(Live)", "(Deluxe
+  Edition)" and a featured artist are part of a name and stay. The page shows the pressing's
+  own facts beside the album — *2015 remaster · released 2015*.
+- **Check the proposed and unidentified again** on the Identify albums page: forgets those
+  verdicts (not declined, not applied) so the scan revisits them with the new scoring.
+
 ## v0.5.8
 - **Identify albums** (Settings → Setup → Identify albums). A scan that finds each album's
   right names on MusicBrainz — no key, one request a second, the app named in its User-Agent —

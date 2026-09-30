@@ -15445,11 +15445,20 @@ initServiceBrowser({
     }
   }
 
+  // The pressing you have, as MusicBrainz sets it apart from the album:
+  // "2015 remaster · released 2015" under a 1988 record.
+  const version = c => {
+    if (!c) return "";
+    const bits = [];
+    if (c.edition) bits.push(c.edition);
+    if (c.release_year && c.year && c.release_year !== c.year) bits.push("released " + c.release_year);
+    return bits.length ? " · " + esc(bits.join(", ")) : "";
+  };
   function albumRow(it, kind) {
     const a = it.album, c = it.candidate;
     let line2 = "";
-    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "");
-    else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "");
+    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "");
+    else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c);
     else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" : "nothing with this title on MusicBrainz";
     else line2 = c ? "declined: " + names(c) : "";
     const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
@@ -15486,7 +15495,9 @@ initServiceBrowser({
     html += "</div>";
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
       '<div class="id-progress">' + num(p.checked) + " of " + num(p.eligible) + " albums checked · " + num(p.applied) + " applied · " + num(p.proposed) + " proposed · " + num(p.unidentified) + " unidentified</div>" +
-      '<div class="settings-note">' + status() + "</div></div>";
+      '<div class="settings-note">' + status() + "</div>" +
+      ((p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +
+      "</div>";
     html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
     html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
     html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
@@ -15508,6 +15519,7 @@ initServiceBrowser({
       const said = { accept: "Applied", reject: "Declined", undo: "Put back", recheck: "It will be looked at again" }[what];
       return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
     }
+    if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
     const m = e.target.closest("[data-id-more]");
     if (m) { more[m.getAttribute("data-id-more")] = true; return render(); }
     const o = e.target.closest("[data-id-open]");

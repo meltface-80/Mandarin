@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.8
+# Mandarin — v0.5.9
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -287,9 +287,12 @@ second) from what the files already say: the title, the track count, the artist 
 can be trusted, and each track's title and **length** — twelve tracks that match a release to
 the second are that release, whatever the artist tag claims.
 
-Each candidate release is scored the way [beets](https://beets.io) does it. At **96 % alike or
-better** the match is applied — artist, title, year and track titles — to the same database
-overlay the album editor writes, so the files are never touched and a rescan changes nothing.
+Each candidate release is scored the way [beets](https://beets.io) does it, and named the way
+Roon does: the album is the MusicBrainz *release group*, the copy you have is one *release* of
+it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pressing noted
+beside it, and track titles lose their remaster tails. At **96 % alike or better** the match
+is applied — artist, title, year and track titles — to the same database overlay the album
+editor writes, so the files are never touched and a rescan changes nothing.
 A near miss is **proposed** on the page (Accept or Reject); anything further off, or two
 different releases that fit equally, is left **unidentified** for you: tap it, then
 ⋯ → Edit album. Applied names have **Undo**. Albums you edited by hand are never touched.

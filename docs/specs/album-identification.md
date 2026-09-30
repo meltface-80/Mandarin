@@ -4,7 +4,10 @@
 owner's changes to this plan: MusicBrainz only, **no AcoustID** (§7 is not built and not
 planned), and scheduling as one switch — on, a night window between the start and end times
 you set; off, the scan runs continuously — rather than the bursts in §6. Wikipedia tie-breaks
-(§5) are not built. The rest is as written below: a plan for a scan that finds an album's
+(§5) are not built. Since v0.5.9 the names follow Roon's model: the album is the MusicBrainz
+release group (its title, its first release year), the copy you have is one release of it
+(its own date and what sets it apart — "2015 remaster" — shown beside the album, never in
+its name), and editions are set aside both when searching and when scoring. The rest is as written below: a plan for a scan that finds an album's
 right names from what the files already say — the artist where it is right, the album title,
 the track names and, above all, the track lengths — and writes the corrections into the
 server's database, without you editing albums one by one.
