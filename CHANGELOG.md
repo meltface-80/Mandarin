@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.11
+- **Find match in the album editor.** Album page → ⋯ → Edit album now has, under the cover, a
+  **Find match** button like Find cover: the releases MusicBrainz has for the album, scored
+  and listed best first with the year, the pressing, the country and the track count, and a
+  *Match* or *Likely* mark on the top one. Tap one and it is applied at once — artist, title,
+  year and every track title — with the editor and the album page following; Undo is on the
+  Identify albums page. Under the list, a box for the **barcode** or a MusicBrainz link, for
+  an exact match.
+
 ## v0.5.10
 - **A ripper's "null" is not part of a name.** Tags like `null: Line Up (null)`, `Line Up -
   undefined` or `(Unknown)` are tidied before anything is compared, searched for or paired,
