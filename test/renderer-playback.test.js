@@ -41,10 +41,11 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*" });
   await wiim.start(); await poly.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({
+  const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"],
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false
-  });
+  };
+  let srv = createServer(options);
   await srv.start();
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };
@@ -256,6 +257,24 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // still playing, heads the list.
       const list = await until(async () => { const l = (await api("audio-devices")).devices; return l[0].id === WIIM && l[0].state === "playing" && l; }, 15000);
       assert.equal(list[0].name, "Living Room WiiM");
+    });
+
+    await t.test("the server restarted (an update): the renderer's queue is kept and the playing track recognised", async () => {
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1"; });
+      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      const sets = wiim.log.filter(a => a === "SetAVTransportURI").length;
+      await srv.stop();
+      srv = createServer(options);
+      await srv.start();
+      await until(async () => (await api("status")).status === 200);
+      // The device played on through the restart; the server finds it in the queue it kept.
+      const s = await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1" && z; }, 20000);
+      assert.equal(s.now_playing.line3, "Album One");
+      assert.deepEqual((await api("queue?zone=" + WIIM)).items.map(i => i.title), ["Song 1", "Song 2", "Song 3"]);
+      assert.equal(wiim.log.filter(a => a === "SetAVTransportURI").length, sets, "not started again: the same track carries on");
+      // And it still moves on to the next.
+      await until(() => wiim.nextUri, 10000);
     });
   } finally {
     await srv.stop();

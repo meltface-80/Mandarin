@@ -86,6 +86,8 @@ function createServer(overrides = {}) {
     seedHosts: config.sonosHosts.concat(knownHosts), bindIp: config.serverIp || localIp(),
     include: config.include, exclude: config.exclude, log, trackIdFromUri
   });
+  // The phones' and renderers' queues, kept across a restart (an update ends in one).
+  zones.store = new (require("./lib/sonos/queue-store").QueueStore)(db, { log });
   zones.topology.onHosts = (ips) => {
     const next = [...new Set(ips)].sort();
     if (JSON.stringify(next) !== JSON.stringify(db.setting("sonosKnownHosts", []))) db.setSetting("sonosKnownHosts", next);
@@ -276,6 +278,10 @@ function createServer(overrides = {}) {
 
   async function start() {
     library.reload();
+    // What was queued on the phones and the renderers when the server last
+    // ran: back before anything asks, so an update's restart loses nothing.
+    const kept = zones.restoreQueues();
+    if (kept) log(`[musicd] put back the queue of ${kept} player(s) from before the restart`);
     const ff = FF.info();
     log(`[musicd] Mandarin ${pkg.version} — music in ${config.musicDir}, data in ${config.dataDir}`);
     const parent = path.dirname(config.musicDir), base = path.basename(config.musicDir);

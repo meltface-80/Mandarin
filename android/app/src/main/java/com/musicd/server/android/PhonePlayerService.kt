@@ -369,6 +369,7 @@ class PhonePlayerService : MediaLibraryService() {
                 }
                 sendOfflinePlays(client)
                 connected = true
+                if (failures > 0 || resumeWanted) serverBack()
                 val batch = client.phoneCommands(seq, WAIT_MS)
                 seq = batch.seq
                 failures = 0
@@ -419,6 +420,22 @@ class PhonePlayerService : MediaLibraryService() {
 
     /** The queue was put back but never prepared: idle with items is "paused", not "stopped". */
     private var restored = false
+
+    /** Playback gave up while the server was away; start again once it is back. */
+    @Volatile private var resumeWanted = false
+
+    /** The server answers again after a spell away: pick up where the music stopped. */
+    private fun serverBack() {
+        if (!resumeWanted) return
+        main.post {
+            if (!resumeWanted || localMode || player.mediaItemCount == 0) return@post
+            resumeWanted = false
+            retries = 0
+            if (player.playbackState == Player.STATE_IDLE || player.playerError != null) player.prepare()
+            player.play()
+            Log.i(TAG, "server back: playing on")
+        }
+    }
 
     /** Plays made with no server, once there is one. */
     private fun sendOfflinePlays(client: ServerClient) {
@@ -577,7 +594,13 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private fun resumeAfterError(error: PlaybackException) {
         Log.i(TAG, "playback stopped: ${error.errorCodeName}")
-        if (localMode || retries >= 4 || player.mediaItemCount == 0) return
+        if (localMode || player.mediaItemCount == 0) return
+        if (retries >= 4) {
+            // Given up for now: the server is away longer than that (an update
+            // is being applied, say). When it answers again, carry on from here.
+            resumeWanted = resumeWanted || player.playWhenReady
+            return
+        }
         val wasPlaying = player.playWhenReady
         retries++
         Away.recheck(this)

@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.17
+- **An update no longer loses what was playing.** A Sonos room keeps its queue on the speaker,
+  but a phone's and a UPnP renderer's lived only in the server's memory, and an update ends in a
+  restart — so the queue was gone and the page said nothing was playing. Those queues are now
+  kept in the database as they change (the place in the track every ten seconds while it
+  plays) and put back when the server starts. A renderer still playing the track it was given
+  is recognised at once and carries on to the next; the phone zone shows its track, paused,
+  until the app reports in, and the app is handed the queue back if it was restarted too. The
+  app also starts playing again by itself once the server answers, where playback had given
+  up during the outage. Browser, PWA and app alike, since the page only shows what the
+  server holds.
+
 ## v0.5.16
 - **Opening the search no longer makes the top bar taller.** The search box was 48px against
   the 40px buttons beside it, so the bar grew by 8px and the whole page shifted down each
