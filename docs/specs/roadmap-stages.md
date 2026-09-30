@@ -15,6 +15,8 @@ browser gets.
 
 ## Stage 1: the phone in Audio Devices, away from home
 
+**Built in v0.5.21.**
+
 ### Today
 
 * Audio Devices is **home only** by design (v0.5.0): a request from an address

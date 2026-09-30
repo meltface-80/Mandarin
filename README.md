@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.20
+# Mandarin — v0.5.21
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -318,6 +318,10 @@ is known for its model (the WiiM range, the Chord Poly), what you tick, and what
 to play. Sonos rooms are read-only here (44.1/48 kHz, 16/24-bit — the 24/48 rule). The network
 is searched every minute; **Look again** searches now, and `UPNP_HOSTS` names renderers that
 multicast misses.
+
+Away from home, the Mandarin app sees the phone it is on here and nothing else: the one
+player there is away, with its own settings. The rooms, the streamers and the network search
+are for home.
 
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The

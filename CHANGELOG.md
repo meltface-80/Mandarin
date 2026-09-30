@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.21
+- **Away from home, Audio Devices shows this phone.** The page was empty on mobile data, since
+  it is a home-only page and the app over Tailscale counts as away — yet the phone is the one
+  player there is away, and its own settings live on that page. The app now sees the phone it
+  is on there, and nothing else; Sonos rooms and streamers, and the network search, stay at
+  home. A browser away still sees no devices. (Stage 1 of the roadmap.)
+
 ## v0.5.20
 - **More of the plum.** The top bar's menu and search and the album view's back, home and
   share are now a plum disc with the glyph in the pale plum; the side menu's icons are the
