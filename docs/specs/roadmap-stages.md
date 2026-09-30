@@ -257,10 +257,9 @@ as the LMS bridge does. Not planned.
 
 ### Plan
 
-* The app reads music **the user points it at**: a folder chosen with
-  Android's document picker (`ACTION_OPEN_DOCUMENT_TREE`, permission kept), or
-  the phone's music collection through `MediaStore` (the `READ_MEDIA_AUDIO`
-  permission). One or both; question below.
+* The app reads music in **the folder the user chooses** with Android's
+  document picker (`ACTION_OPEN_DOCUMENT_TREE`, permission kept). Nothing else
+  on the phone is read.
 * The app scans tags (Media3's metadata reader handles FLAC, MP3, AAC, Opus)
   and cover art, and keeps its own small index (Room, or the SQLite it has for
   downloads).
@@ -271,12 +270,15 @@ as the LMS bridge does. Not planned.
   format badge reads from the file.
 * Not scanned into the server's library (a phone's files are the phone's).
 
-### Open questions
+### Decisions (owner)
 
-1. Chosen folder, whole-phone music collection, or both?
-2. Should albums on the phone that are **also** in the server's library be
-   shown as one album (play from the phone when it's there, from the server
-   otherwise), or kept apart?
+1. **One folder, chosen with Android's document picker.** Music bought on the
+   phone (a Qobuz purchase, say) sits in that folder; the server's downloads
+   go in a `Mandarin` folder inside it (Stage 6). The scan reads the chosen
+   folder and skips `Mandarin/`, which the downloads code owns.
+2. **Kept apart.** What's on the phone is new purchases, not copies of the
+   library: they play through the app for the DSP, and the owner moves them
+   to the server's storage when home. No merging with the server's albums.
 
 ### Versions
 
@@ -294,10 +296,11 @@ with the app.
 
 ### Plan
 
-* Settings → Downloads → **Storage location**: "This phone (private)" or a
-  folder the user picks with the document picker on the SD card (or anywhere).
-  The picker's permission is persisted; the app writes with `DocumentFile`
-  and plays with `content://` URIs (Media3 does this directly).
+* Settings → Downloads → **Storage location**: "This phone (private)" or the
+  music folder of Stage 5 (on the SD card or anywhere), where downloads go
+  into a `Mandarin` folder of their own. The picker's permission is persisted;
+  the app writes with `DocumentFile` and plays with `content://` URIs (Media3
+  does this directly).
 * **Survives reinstall.** Beside the files the app keeps a `mandarin.json`
   index (album, tracks, format, server id) so a fresh install that is pointed
   at the same folder imports everything without re-downloading, and the
