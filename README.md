@@ -343,6 +343,9 @@ processed in 64-bit float and sent at 24 bits, or 32 where the device takes it a
 server's ffmpeg writes 32-bit FLAC. On a WiiM, what the decoder is really running is read back
 through its own API; when it matches, the rate gets its ✓ and the badge reads *FLAC 24/176.4 ↑×4 ✓*.
 The plan for the rest is [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
+The next seven stages (the phone in Audio Devices away from home, the mobile-data stream, DSP
+with AutoEQ and PEQ, HQPlayer, music on the phone, SD-card downloads, Listen later) are planned
+in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md).
 
 ## Away from home (Tailscale)
 
