@@ -20,6 +20,14 @@ Versioning: each set of changes is a development build and takes the next third 
   (default 80%) that the slider can't pass, so a DAC on headphones is never driven to full.
   The phone's volume buttons, the lock screen and Bluetooth controls move the USB level
   while the app plays through the DAC (the media session reports a remote device).
+- **USB direct: silence after a skip or a new album, fixed.** The stream was stopped and
+  restarted on every pause and seek, and the DAC could go quiet after that until its
+  interface was selected afresh; the track then ran on with no sound and moved on. The
+  engine now runs the packets continuously while the stream is open — PCM while playing,
+  silence when paused, between tracks or on an underrun — so a skip only empties the
+  buffer. The position counts only PCM the DAC has taken, and a stream that stops
+  completing packets for a second is reopened from where it is. The diagnostics carry
+  the engine's last events.
 
 ## v0.5.37
 - **Bit-perfect USB (Stage 9, part 2).** With USB direct on (this phone's page in Audio
