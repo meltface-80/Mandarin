@@ -1,10 +1,11 @@
-# Mandarin: the next seven stages
+# Mandarin: the next stages
 
 **Status: agreed, stage by stage, on 30 September 2026.** Nothing here is built. Each stage is
 planned in detail, its open questions put to the project owner, and coded only
 once the owner is happy with it. The stages run in the order below; later ones
 lean on earlier ones (3 on 1 and 2; 5 and 6 on 3's phone-side engine). Stage 4
-(HQPlayer) was dropped.
+(HQPlayer) was dropped. Stage 8 (record labels) was added once the seven were
+built.
 
 Debian bookworm's ffmpeg (6.0 in the image, 5.1 or later on any host that
 follows the README) has every filter named below. The Android app is Media3
@@ -360,6 +361,98 @@ One patch version.
 
 ---
 
+## Stage 8: record labels (added 1 October 2026)
+
+Labels were left out of Mandarin on purpose — they lived in the Roon
+extension, where they were hard work because Roon never says which label an
+album is on. Mandarin reads the files, so most of that work is already done.
+
+### Today
+
+* The scanner stores the LABEL (or PUBLISHER) tag of every track and gives
+  each album the most common one (`albums.label`). Nothing is read from it.
+* The page still carries the extension's whole label UI, dark: the Labels
+  wall and its tiles, the label page, merge with undo, logo pick with
+  candidates, the scan log, a Label of the week row on Home, and the Settings
+  block (on/off, album order, minimum albums per label, force rescan, label
+  from folder depth). The server answers the stubbed shapes (`/api/labels…`
+  → 410) and the album JSON carries `label: null`.
+* The server already has a MusicBrainz client, a FanArt.tv key setting with a
+  cache, a Discogs token setting (stubbed) and the generic `cache` table.
+* README lists labels under "Not in this version".
+
+### Plan
+
+**8.1 Labels from tags.** Real answers behind the existing routes.
+
+* `/api/filters/labels`: every label with its album count (the minimum-albums
+  setting applied on the page as before); `/api/label-albums`: a label's
+  releases, alphabetical or shuffled; labels in `/api/search`; the label on
+  the album page and the share card; the side menu's Labels item.
+* **Label of the week**: a label with at least three albums picked from a
+  seed of the ISO week, cached for the week, a Home row of its own (hidden
+  while labels are off, like the other rows that hide themselves).
+* **Label from folder depth**: when set, the folder at that depth under the
+  music root names the label and the tag is ignored — for libraries filed by
+  label, as in the extension.
+* Settings → Record labels on/off (off by default), with a line saying how
+  many albums carry a label tag and how many don't, so the owner can see
+  whether 8.3 matters for the library.
+* The not-a-label filter from the extension (artist names, "Unknown",
+  "Self-released", bare years) so a bad tag doesn't make a label.
+
+**8.2 Merges and logos.**
+
+* **Merged labels**: a `label_merges(source_key, target_key, merged_at)`
+  table; the wall's select-two-and-merge and undo as they are on the page;
+  keys are the normalised name (case, punctuation, "Records"/"Ltd" and the
+  like dropped), so "Blue Note" and "Blue Note Records" fold together on
+  their own and the owner merges the rest.
+* **Logos**, both sources, in this order: Discogs (label search → the label's
+  own image; needs the owner's Discogs token in Settings) then FanArt.tv (the
+  label's MusicBrainz id looked up by name, then the HD logo; the FanArt.tv
+  key is already a setting). Fetched in the background when labels are turned
+  on and after a rescan, rate-limited (Discogs sixty a minute, MusicBrainz
+  one a second) with the scan log the page already reads. Files kept under
+  the data directory and served through the image route as `label-<key>`, so
+  the app caches them offline with the album art. The page's logo picker
+  (candidates from Discogs, or a pasted URL) stays.
+
+**8.3 Labels for albums without the tag.** For albums the tag and the folder
+leave without a label: MusicBrainz release search (artist and title, with
+label info) then Discogs. A background pass with progress, the scan log,
+*rescan* (the missing ones) and *force rescan* (everything, keeping logos and
+MusicBrainz ids) as the page offers. Results in a `label_lookups(album_key,
+label, source, looked_up_at)` table by the album's identity, so a library
+rebuild keeps them. iTunes and TheAudioDB, the extension's first passes, are
+not needed: they existed because Roon gave nothing to start from.
+
+**Android**: nothing native. Labels come through the page; offline, the app
+serves the cached label pages and logos as it does artist pages and art.
+
+### Tests
+
+A fake Discogs and a fake FanArt.tv beside the existing fake MusicBrainz
+(label search and release lookup added to it); a labels test covering tags
+→ counts → label page → search → Label of the week, the folder-depth rule,
+merge and undo, logos from each source with the right precedence and caching,
+and the lookup pass for untagged albums with rate limiting and the log.
+
+### Decisions (owner)
+
+1. **All three parts** (tags, merges and logos, lookups for the untagged).
+   Most of the library is Qobuz purchases, which normally carry the LABEL
+   tag; 8.1 reports the count so 8.3's worth is known before it runs.
+2. **Label of the week stays**, as a Home row; **label from folder depth
+   stays**.
+3. **Logos from both** Discogs and FanArt.tv.
+
+### Versions
+
+Three patch versions, one per part.
+
+---
+
 ## Order and versions
 
 | Stage | Versions (patch each) | Depends on |
@@ -371,6 +464,7 @@ One patch version.
 | 5 Music on the phone | 2 | 3's engine |
 | 6 SD card downloads | 2 | 5's index |
 | 7 Listen later | 1 | — |
+| 8 Record labels | 3 | — |
 
-Stage 7 is independent and can slot in anywhere. Whether the second digit
+Stages 7 and 8 are independent and can slot in anywhere. Whether the second digit
 moves (0.6.0) at the start of Stage 3 is the owner's call.
