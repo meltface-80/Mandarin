@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.42
+- **Graphite and brass.** The theme is flat now: a warm charcoal ground in place of the green,
+  no felt grain or mottle on the ground, Now playing or the panels, no glow under the covers.
+  The brass is the one accent — the headings, the top bar's discs, play, the lit segments of
+  the progress meters (which stay, on the mini player and Now playing), the volume controls
+  and the glyphs — and the plum is gone. The app's window matches before the page loads.
+- **The icon to match.** The app's launcher icon and the home-screen icon of the web app are the
+  duck in brass on the same charcoal.
+
 ## v0.5.41
 - **The download folder is its own setting.** Settings → Downloads → Download folder: a folder
   of your own on the phone or an SD card, chosen on its own — nothing to do with the music on
