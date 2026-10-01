@@ -183,6 +183,7 @@ class MainActivity : Activity() {
             addJavascriptInterface(ShareBridge(this@MainActivity), ShareBridge.NAME)
             addJavascriptInterface(DownloadsBridge(this@MainActivity), DownloadsBridge.NAME)
             addJavascriptInterface(AppBridge(this@MainActivity), AppBridge.NAME)
+            addJavascriptInterface(UsbBridge(this@MainActivity), UsbBridge.NAME)
         }
         root.addView(web)
         root.addView(buildErrorPanel())
@@ -198,12 +199,18 @@ class MainActivity : Activity() {
         LocalMusic.listen(onLocal)
         Away.listen(onAway)
         Away.watch(this)
+        UsbDac.listen(onUsb)
+        UsbDac.start(this)
         load()
     }
+
+    /** The USB port changed (a DAC in or out, permission answered): the page's Audio Devices follow. */
+    private val onUsb: () -> Unit = { tellPage("window.__musicdUsbChanged && window.__musicdUsbChanged()") }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == ACTION_CHANGE_SERVER) openConnect()
+        if (intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED) UsbDac.refresh(this)
     }
 
     override fun onResume() {
@@ -490,6 +497,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        UsbDac.unlisten(onUsb)
         checks.shutdownNow()
         DownloadStore.unlisten(onDownloads)
         Away.unlisten(onAway)

@@ -481,6 +481,12 @@ the app talks to the DAC itself through Android's USB host access, with a USB
 Audio Class driver of its own. Any rate the DAC takes, 16/24/32-bit, native
 DSD, no mixer in the way.
 
+**9.1 built in v0.5.36.** UsbDac.kt (discovery, permission, the descriptors
+walked for UAC1 and UAC2, a UAC2 clock asked for its range and current rate),
+usb_jni.cc (usbdevfs capabilities and bus speed on the device node — the path
+the driver will stream through), the MusicdUsb bridge and the USB DAC block on
+this phone's Audio Devices page.
+
 ### Today
 
 * The app plays through Media3 into a normal Android track (DspSink over

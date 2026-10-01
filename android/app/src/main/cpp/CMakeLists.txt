@@ -19,8 +19,14 @@ set(OPUS_INSTALL_PKG_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
 set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opus)
 
-add_library(opusV2JNI SHARED opus_jni.cc)
 find_library(android_log_lib log)
+# The USB audio driver's native side (Stage 9): usbdevfs ioctls on the device
+# node Android hands the app.
+add_library(mandarinusb SHARED usb_jni.cc)
+target_link_libraries(mandarinusb PRIVATE android PRIVATE ${android_log_lib})
+target_link_options(mandarinusb PRIVATE "-Wl,-z,max-page-size=16384")
+
+add_library(opusV2JNI SHARED opus_jni.cc)
 target_link_libraries(opusV2JNI PRIVATE android PRIVATE opus PRIVATE ${android_log_lib})
 # 16 KB ELF alignment, as Android 15 asks of every native library.
 target_link_options(opusV2JNI PRIVATE "-Wl,-z,max-page-size=16384")

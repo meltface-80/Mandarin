@@ -65,6 +65,10 @@ object Store {
     }
 
     /** The folder of music files on the phone (a document tree URI), chosen in Settings → Downloads. */
+    /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */
+    fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
+    fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
+
     fun localFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LOCAL_FOLDER, null)
     fun setLocalFolder(context: Context, uri: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (uri == null) remove(KEY_LOCAL_FOLDER) else putString(KEY_LOCAL_FOLDER, uri) }.apply()
