@@ -11,6 +11,9 @@ Versioning: each set of changes is a development build and takes the next third 
   starts, not again when the sink is configured for the next track — Android's own sink
   restarts its track itself, and the USB sink now does the same, so a skip, a new album or a
   format change plays on. (v0.5.38's engine change stands: the packets run continuously.)
+- **Discogs token back on the API Keys page.** Its block was hidden from before record labels
+  existed, so the token could never be entered — and without a Discogs token or a FanArt.tv
+  key the logo pass had nothing to look with. Saving either now starts the pass at once.
 
 ## v0.5.38
 - **USB direct: the DAC's volume starts low.** A DAC with a USB volume control came up at
