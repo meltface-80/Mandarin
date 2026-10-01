@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.40
+# Mandarin — v0.5.41
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Android app, with MusicD Remote's interface.**
@@ -69,8 +69,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
   the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way.
 * **Downloads** — albums kept on the phone as the files themselves or as Opus 256, played with
   no server at all; today's picks kept automatically if you like.
-* **Music on this phone** — a folder of files already on the phone, shown and played like the
-  library.
+* **Music on this phone** — a folder of files already on the phone, watched for changes, shown
+  and played like the library.
 * **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
   Tracks come as Opus 256; only the phone plays.
 * **One account** — a username and password kept on the server, SRP sign-in, every device listed
@@ -194,7 +194,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `SERVER_IP` | auto | The address speakers should fetch audio from, for hosts with several network interfaces. |
 | `INCLUDE_ZONES` | — | Offer only these rooms, e.g. `Kitchen,Study`. |
 | `EXCLUDE_ZONES` | — | Offer every room except these. |
-| `SCAN_INTERVAL_HOURS` | `6` | How often the music folder is re-checked (only changed files are re-read). Rescan any time from the menu. |
+| `SCAN_INTERVAL_HOURS` | `6` | How often the music folders are re-checked in full (only changed files are re-read). Changes are also noticed as they happen through the file system's own notifications, where it gives them — a network share changed from another machine waits for this. Rescan any time from the menu. |
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
@@ -386,13 +386,14 @@ the phone plays, through Bluetooth, USB or the speaker. Either page also takes a
 is fetched once a day and the profile kept once chosen) or paste a ParametricEQ.txt, and its
 bands run before the PEQ's, under the profile's own preamp where that covers the peak.
 
-**Music on this phone** (the Android app): Settings → Downloads → Music on this phone takes a
+**Music on this phone** (the Android app): Settings → Music Folders → On this phone takes a
 folder of your choosing — purchases waiting to go to the server. The app reads its tags and
-covers, shows the albums on Home as *On this phone*, and plays them on the phone through its
-DSP. The server never sees these files; the folder's own `Mandarin` sub-folder is for downloads:
-choose it under *Save to* (Android asks for all-files access once) and downloads saved there
-outlive the app — a fresh install pointed at the same folder finds them again. *Move all here*
-carries existing downloads over.
+covers, shows the albums on Home as *Music on device*, and plays them on the phone through its
+DSP. The folder is watched: music added or taken away shows up or goes by itself. The server
+never sees these files. Downloads have a folder of their own: Settings → Downloads → Download
+folder (Android asks for all-files access once); downloads saved there outlive the app — a
+fresh install pointed at the same folder finds them again. *Move all here* carries existing
+downloads over.
 
 **Listen later**: on an album, *⋯ → Listen later* (or select several on a wall) puts it aside; a
 Home row and a wall list them, newest first, and an album comes off once every track has been

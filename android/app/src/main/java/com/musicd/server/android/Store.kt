@@ -91,6 +91,20 @@ object Store {
     fun usbLimit(context: Context): Int = prefs(context).getInt("usb_limit", 80).coerceIn(1, 100)
     fun setUsbLimit(context: Context, pct: Int) { prefs(context).edit().putInt("usb_limit", pct.coerceIn(1, 100)).apply() }
 
+    /**
+     * The folder downloads are saved into (a document tree URI), chosen on its
+     * own in Settings → Downloads (v0.5.41) — nothing to do with the music
+     * folder above. [downloadSub]: a sub-folder inside it ("Mandarin" for a
+     * location carried over from before, when downloads lived in the music
+     * folder's Mandarin folder; "" for one chosen since).
+     */
+    fun downloadFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("download_folder", null)
+    fun downloadSub(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("download_sub", "") ?: ""
+    fun setDownloadFolder(context: Context, uri: String?, sub: String = "") {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
+            if (uri == null) { remove("download_folder"); remove("download_sub") } else { putString("download_folder", uri); putString("download_sub", sub) }
+        }.apply()
+    }
     fun localFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LOCAL_FOLDER, null)
     fun setLocalFolder(context: Context, uri: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (uri == null) remove(KEY_LOCAL_FOLDER) else putString(KEY_LOCAL_FOLDER, uri) }.apply()

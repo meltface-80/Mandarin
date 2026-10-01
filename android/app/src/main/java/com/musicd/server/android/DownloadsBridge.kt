@@ -26,6 +26,8 @@ import org.json.JSONObject
  *   MusicdDownloads.settings()        the download settings, the places to save to, space used
  *   MusicdDownloads.set(key, value)   change one setting (quality, location, wifiOnly, limitGb,
  *                                     autoPicks, autoAotd, autoRecent, awayQuality)
+ *   MusicdDownloads.chooseDownloadFolder()  the download folder, picked on its own (v0.5.41)
+ *   MusicdDownloads.forgetDownloadFolder()
  *   MusicdDownloads.play(albumId)     play a downloaded album on this phone (through the
  *                                     server when it's in reach, so the page shows it)
  *
@@ -82,6 +84,13 @@ class DownloadsBridge(private val activity: Activity) {
     @JavascriptInterface
     fun allowAllFiles() { activity.runOnUiThread { (activity as? MainActivity)?.openAllFilesAccess() } }
 
+    /** The download folder (v0.5.41): Android's folder picker, on its own; and forgotten. */
+    @JavascriptInterface
+    fun chooseDownloadFolder() { activity.runOnUiThread { (activity as? MainActivity)?.pickDownloadFolder() } }
+
+    @JavascriptInterface
+    fun forgetDownloadFolder() { DownloadStore.forgetDownloadFolder(activity) }
+
     /** Every downloaded album moved to the place chosen under Save to. */
     @JavascriptInterface
     fun moveDownloads() { DownloadStore.moveAll(activity, DownloadStore.settings(activity).location) }
@@ -104,8 +113,8 @@ class DownloadsBridge(private val activity: Activity) {
             .put("quality", s.quality).put("location", s.location).put("wifiOnly", s.wifiOnly)
             .put("limitGb", s.limitGb).put("autoPicks", s.autoPicks).put("autoAotd", s.autoAotd)
             .put("autoRecent", s.autoRecent).put("awayQuality", s.awayQuality).put("places", places)
-            .put("folder", JSONObject().put("access", access).put("name", LocalMusic.folderName(activity) ?: "")
-                .put("path", DownloadStore.folderPath(activity)?.path ?: ""))
+            .put("folder", JSONObject().put("access", access).put("name", DownloadStore.folderName(activity) ?: "")
+                .put("path", DownloadStore.folderPath(activity)?.path ?: "").put("chosen", access != "none"))
             .put("elsewhere", elsewhere)
             .put("moving", if (mv == null) JSONObject.NULL else JSONObject().put("to", mv.to).put("done", mv.done).put("total", mv.total).put("error", mv.error ?: ""))
             .put("used", DownloadStore.usedBytes(activity))

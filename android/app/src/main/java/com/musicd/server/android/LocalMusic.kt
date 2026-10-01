@@ -14,6 +14,9 @@ import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.Executors
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 
 /**
  * Music files on the phone (Stage 5): the folder the user chose with
@@ -23,8 +26,15 @@ import java.util.concurrent.Executors
  * DSP engine. Nothing else on the phone is read, and the server never sees
  * these files.
  *
- * The folder's `Mandarin` sub-folder is the server's downloads (Stage 6)
- * and is left to the downloads code.
+ * The download folder (DownloadStore, chosen on its own since v0.5.41) is
+ * left to the downloads code wherever it is, as is a `Mandarin` sub-folder
+ * from before, when downloads lived inside this folder.
+ *
+ * The folder is read again whenever something in it may have changed: on
+ * the app's return to the front, when Android reports a change in it, and
+ * every few minutes while the app is open. A read is cheap when nothing
+ * changed — a listing, the tags of unchanged files kept from last time — so
+ * music added or taken away shows up or goes by itself.
  *
  * Albums are keyed by a hash of album artist and title, so a key is safe in
  * an address: the page knows an album as "phone:<key>" and its cover as
@@ -40,7 +50,9 @@ object LocalMusic {
     class Track(
         val uri: String, val name: String, val title: String, val artist: String,
         val disc: Int, val no: Int, val duration: Double, val ext: String,
-        val size: Long, val mtime: Long, val rate: Int, val bits: Int
+        val size: Long, val mtime: Long, val rate: Int, val bits: Int,
+        /** The album's tags from this file (kept in the index, so a re-read of an unchanged file costs nothing). */
+        val album: String = "", val albumArtist: String = "", val year: Int? = null, val tagged: Boolean = false
     )
 
     class Album(
@@ -78,12 +90,14 @@ object LocalMusic {
     /** A folder chosen: kept (the permission is the activity's to take), and read now. */
     fun setFolder(c: Context, uri: Uri) {
         Store.setLocalFolder(c, uri.toString())
+        if (watched != null) observe(c.applicationContext)
         rescan(c)
     }
 
     fun forget(c: Context) {
         folder(c)?.let { u -> runCatching { c.contentResolver.releasePersistableUriPermission(u, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         Store.setLocalFolder(c, null)
+        if (watched != null) observe(c.applicationContext)
         albums = emptyList(); scannedAt = 0L; lastError = null
         runCatching { indexFile(c).delete() }
         runCatching { artDir(c).listFiles()?.forEach { it.delete() } }
@@ -94,6 +108,56 @@ object LocalMusic {
     fun available(c: Context): Boolean {
         val u = folder(c) ?: return false
         return c.contentResolver.persistedUriPermissions.any { it.uri == u && it.isReadPermission }
+    }
+
+    // ------------------------------------------------------------ watching
+
+    private val main = Handler(Looper.getMainLooper())
+    private var observer: ContentObserver? = null
+    private var observedFor: String? = null
+    private const val PERIOD_MS = 3 * 60_000L
+    private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c) ; main.postDelayed(this, PERIOD_MS) } } }
+    @Volatile private var watched: Context? = null
+
+    /** From the activity's start to its end: Android's change notices for the folder, and a read every few minutes. */
+    fun watch(c: Context) {
+        watched = c.applicationContext
+        observe(c.applicationContext)
+        main.removeCallbacks(periodic)
+        main.postDelayed(periodic, PERIOD_MS)
+    }
+
+    fun unwatch(c: Context) {
+        main.removeCallbacks(periodic)
+        observer?.let { runCatching { c.applicationContext.contentResolver.unregisterContentObserver(it) } }
+        observer = null; observedFor = null
+        watched = null
+    }
+
+    private fun observe(c: Context) {
+        val u = folder(c)
+        val key = u?.toString()
+        if (key == observedFor) return
+        observer?.let { runCatching { c.contentResolver.unregisterContentObserver(it) } }
+        observer = null; observedFor = key
+        if (u == null) return
+        val o = object : ContentObserver(main) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) { checkSoon(c) }
+        }
+        runCatching {
+            c.contentResolver.registerContentObserver(DocumentsContract.buildChildDocumentsUriUsingTree(u, DocumentsContract.getTreeDocumentId(u)), true, o)
+            observer = o
+        }.onFailure { Log.w(TAG, "observe: ${it.message}") }
+    }
+
+    private val check = Runnable { watched?.let { rescan(it) } }
+
+    /** Read the folder again shortly (gathering a burst of notices into one read). */
+    fun checkSoon(c: Context) {
+        if (folder(c) == null) return
+        if (watched == null) watched = c.applicationContext
+        main.removeCallbacks(check)
+        main.postDelayed(check, 1500)
     }
 
     // ------------------------------------------------------------ the index
@@ -122,7 +186,8 @@ object LocalMusic {
             val ts = JSONArray()
             for (t in al.tracks) ts.put(JSONObject().put("uri", t.uri).put("name", t.name).put("title", t.title).put("artist", t.artist)
                 .put("disc", t.disc).put("no", t.no).put("duration", t.duration).put("ext", t.ext).put("size", t.size).put("mtime", t.mtime)
-                .put("rate", t.rate).put("bits", t.bits))
+                .put("rate", t.rate).put("bits", t.bits)
+                .put("album", t.album).put("album_artist", t.albumArtist).put("year", t.year ?: JSONObject.NULL).put("tagged", t.tagged))
             a.put(JSONObject().put("key", al.key).put("title", al.title).put("artist", al.artist).put("year", al.year ?: JSONObject.NULL)
                 .put("art", al.art ?: JSONObject.NULL).put("tracks", ts))
         }
@@ -137,25 +202,33 @@ object LocalMusic {
             (0 until ts.length()).map { k ->
                 val t = ts.getJSONObject(k)
                 Track(t.getString("uri"), t.optString("name"), t.optString("title"), t.optString("artist"), t.optInt("disc", 1), t.optInt("no", 0),
-                    t.optDouble("duration", 0.0), t.optString("ext"), t.optLong("size"), t.optLong("mtime"), t.optInt("rate"), t.optInt("bits"))
+                    t.optDouble("duration", 0.0), t.optString("ext"), t.optLong("size"), t.optLong("mtime"), t.optInt("rate"), t.optInt("bits"),
+                    t.optString("album"), t.optString("album_artist"), if (t.isNull("year")) null else t.optInt("year"), t.optBoolean("tagged", false))
             })
     }
 
     // ------------------------------------------------------------ the scan
 
-    /** Read the folder again, in the background; tracks unchanged since last time keep their tags. */
+    /**
+     * Read the folder again, in the background; files unchanged since last
+     * time keep their tags, so a read of an unchanged folder is a listing.
+     * A change is told to the page (the Home row, the settings); none isn't.
+     */
     fun rescan(c: Context) {
         if (scanning) return
         val tree = folder(c) ?: return
+        if (!available(c)) return   // its card out, say: what was read is kept until it is back
         scanning = true; lastError = null
-        changed()
+        val before = signature()
+        if (before == null) changed()   // the first read: the page shows "reading"
         pool.execute {
             try {
                 val known = HashMap<String, Track>()
                 for (al in albums) for (t in al.tracks) known[t.uri] = t
                 val found = ArrayList<Pair<Track, String>>()   // track, its folder's document id
                 val covers = HashMap<String, String>()          // folder document id → cover document uri
-                walk(c, tree, DocumentsContract.getTreeDocumentId(tree), 0, known, found, covers)
+                val skip = skipDocId(c)
+                walk(c, tree, DocumentsContract.getTreeDocumentId(tree), 0, known, found, covers, skip)
                 albums = group(c, found, covers)
                 scannedAt = System.currentTimeMillis()
                 save(c)
@@ -165,13 +238,24 @@ object LocalMusic {
                 Log.w(TAG, "scan: ${e.message}")
             } finally {
                 scanning = false
-                changed()
+                if (before == null || before != signature() || lastError != null) changed()
             }
         }
     }
 
+    /** What the page would show: the albums and their tracks, as one string; null before the first read. */
+    private fun signature(): String? = if (scannedAt == 0L) null else albums.joinToString("|") { a -> a.key + ":" + a.tracks.size + ":" + a.art }
+
+    /** The download folder's document id when it is inside this folder (its albums are the downloads', not this list's). */
+    private fun skipDocId(c: Context): String? {
+        val d = DownloadStore.downloadFolderUri(c) ?: return null
+        val id = runCatching { DocumentsContract.getTreeDocumentId(d) }.getOrNull() ?: return null
+        val sub = Store.downloadSub(c)
+        return if (sub.isEmpty()) id else "$id/$sub"
+    }
+
     private fun walk(c: Context, tree: Uri, docId: String, depth: Int, known: Map<String, Track>,
-                     out: MutableList<Pair<Track, String>>, covers: MutableMap<String, String>) {
+                     out: MutableList<Pair<Track, String>>, covers: MutableMap<String, String>, skip: String?) {
         if (depth > 8) return
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId)
         val cols = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
@@ -182,7 +266,8 @@ object LocalMusic {
                 val mime = cur.getString(2) ?: ""; val size = cur.getLong(3); val mtime = cur.getLong(4)
                 if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
                     if (depth == 0 && name.equals(SKIP_DIR, ignoreCase = true)) continue
-                    walk(c, tree, id, depth + 1, known, out, covers)
+                    if (skip != null && (id == skip || id.equals(skip, ignoreCase = true))) continue
+                    walk(c, tree, id, depth + 1, known, out, covers, skip)
                     continue
                 }
                 val ext = name.substringAfterLast('.', "").lowercase()
@@ -194,7 +279,7 @@ object LocalMusic {
                 if (ext !in AUDIO) continue
                 val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                 val old = known[uri.toString()]
-                val t = if (old != null && old.size == size && old.mtime == mtime) old else read(c, uri, name, ext, size, mtime)
+                val t = if (old != null && old.size == size && old.mtime == mtime && old.tagged) old else read(c, uri, name, ext, size, mtime)
                 out += t to docId
             }
         }
@@ -212,10 +297,13 @@ object LocalMusic {
             val duration = (get(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000.0
             val rate = if (Build.VERSION.SDK_INT >= 31) get(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull() ?: 0 else 0
             val bits = if (Build.VERSION.SDK_INT >= 31) get(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull() ?: 0 else 0
+            val year = (get(MediaMetadataRetriever.METADATA_KEY_YEAR) ?: get(MediaMetadataRetriever.METADATA_KEY_DATE))
+                ?.let { Regex("\\d{4}").find(it)?.value?.toIntOrNull() }
             return Track(uri.toString(), name, title, artist, num(get(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)).coerceAtLeast(1),
-                num(get(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)), duration, ext, size, mtime, rate, bits)
+                num(get(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)), duration, ext, size, mtime, rate, bits,
+                get(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: "", get(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: "", year, true)
         } catch (e: Exception) {
-            return Track(uri.toString(), name, name.substringBeforeLast('.'), "", 1, 0, 0.0, ext, size, mtime, 0, 0)
+            return Track(uri.toString(), name, name.substringBeforeLast('.'), "", 1, 0, 0.0, ext, size, mtime, 0, 0, "", "", null, true)
         } finally { runCatching { r.release() } }
     }
 
@@ -226,7 +314,8 @@ object LocalMusic {
         val byKey = LinkedHashMap<String, MutableList<Pair<Track, String>>>()
         val tagsOf = HashMap<String, TagsHolder>()
         for ((t, folderId) in found) {
-            val tags = tagsOf.getOrPut(t.uri) { albumTags(c, Uri.parse(t.uri), folderId) }
+            // The album's tags travel with the track (read once, kept in the index).
+            val tags = tagsOf.getOrPut(t.uri) { TagsHolder(t.album.ifEmpty { folderId.substringAfterLast('/').substringAfterLast(':') }, t.albumArtist, t.year) }
             val key = keyOf(tags.albumArtist.ifEmpty { t.artist }, tags.album)
             byKey.getOrPut(key) { ArrayList() } += t to folderId
         }
@@ -247,19 +336,6 @@ object LocalMusic {
         return out.sortedBy { it.title.lowercase() }
     }
 
-    private fun albumTags(c: Context, uri: Uri, folderId: String): TagsHolder {
-        val r = MediaMetadataRetriever()
-        return try {
-            r.setDataSource(c, uri)
-            val get = { k: Int -> r.extractMetadata(k)?.trim()?.takeIf { it.isNotEmpty() } }
-            val year = (get(MediaMetadataRetriever.METADATA_KEY_YEAR) ?: get(MediaMetadataRetriever.METADATA_KEY_DATE))
-                ?.let { Regex("\\d{4}").find(it)?.value?.toIntOrNull() }
-            TagsHolder(get(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: folderId.substringAfterLast('/').substringAfterLast(':'),
-                get(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: "", year)
-        } catch (e: Exception) {
-            TagsHolder(folderId.substringAfterLast('/').substringAfterLast(':'), "", null)
-        } finally { runCatching { r.release() } }
-    }
     private class TagsHolder(val album: String, val albumArtist: String, val year: Int?)
 
     private fun keyOf(artist: String, album: String): String {
