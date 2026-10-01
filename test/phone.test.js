@@ -58,6 +58,7 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
     await t.test("only the Android app can be a phone, and it says hello", async () => {
       assert.equal((await other("POST", "/api/phone/hello", { name: "iPad" })).status, 403);
       const h = await phone("POST", "/api/phone/hello", { name: "Pixel 8" });
+      assert.deepEqual(h.dsp, { enabled: false, headphone: null, peq: null, headroom: "auto" }, "the phone's DSP, off to begin with");
       zoneId = h.zone_id;
       assert.match(zoneId, /^PHONE_/);
       seq = h.seq;
@@ -128,6 +129,33 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(got.commands[3].items.length, 3);
       seq = got.seq;
       assert.equal((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.state, "paused");
+    });
+
+    await t.test("the phone's DSP: saved on its page, sent to the app, shown on the badge", async () => {
+      // The register learns of the phone within ten seconds of its hello;
+      // its page in Audio Devices takes the setting like a renderer's.
+      const dev = await until(async () => { const j = await phone("GET", "/api/audio-devices/" + zoneId); return j.status === 200 && j; }, 15000);
+      assert.equal(dev.kind, "phone");
+      assert.equal(dev.dsp.enabled, false);
+      const r = await phone("PATCH", "/api/audio-devices/" + zoneId, { dsp: { enabled: true, peq: { bands: [{ type: "low_shelf", freq: 100, gain: 3, q: 0.707 }] } } });
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.dsp_info.active, true);
+      // The app hears of it as a command carrying the whole setting.
+      const got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      const cmd = got.commands.find(c => c.op === "dsp");
+      assert.ok(cmd, JSON.stringify(got));
+      assert.equal(cmd.dsp.enabled, true);
+      assert.equal(cmd.dsp.peq.bands[0].freq, 100);
+      seq = got.seq;
+      // And a fresh hello carries it too.
+      assert.equal((await phone("POST", "/api/phone/hello", { name: "Pixel 8" })).dsp.peq.bands.length, 1);
+      // The app says its engine is on: the badge says so.
+      await phone("POST", "/api/phone/state", { index: 0, position: 5, duration: 60, state: "playing", volume: 40, format: "opus24", dsp: true });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "opus", text: "256 · 24/48 · DSP" });
+      await phone("POST", "/api/phone/state", { index: 0, position: 6, duration: 60, state: "playing", volume: 40, format: "original", dsp: true });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · DSP" });
+      await phone("PATCH", "/api/audio-devices/" + zoneId, { dsp: { enabled: false } });
+      seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
     });
 
     await t.test("the app's player restarted: its queue comes back, paused where it was", async () => {

@@ -100,12 +100,15 @@ object OfflineApi {
         .put("shuffle", st?.shuffle ?: false).put("loop", st?.loop ?: "disabled").put("auto_radio", false)
 
     /** The format badge, as the server shapes it (lib/server/api-playback.js formatOf). */
-    private fun formatJson(f: String?): Any = when (f) {
-        null, PhonePlayerService.FORMAT_ORIGINAL -> JSONObject.NULL
-        PhonePlayerService.FORMAT_OPUS -> JSONObject().put("kind", "opus").put("text", "256kbps")
-        PhonePlayerService.FORMAT_OPUS24 -> JSONObject().put("kind", "opus").put("text", "256 · 24/48")
-        PhonePlayerService.FORMAT_LOSSLESS -> JSONObject().put("kind", "lossless").put("text", "Lossless")
-        else -> JSONObject().put("kind", "lossy").put("text", f)
+    private fun formatJson(f: String?, dsp: Boolean = false): Any {
+        val tag = if (dsp) " · DSP" else ""
+        return when (f) {
+            null, PhonePlayerService.FORMAT_ORIGINAL -> if (dsp) JSONObject().put("kind", "lossless").put("text", "DSP") else JSONObject.NULL
+            PhonePlayerService.FORMAT_OPUS -> JSONObject().put("kind", "opus").put("text", "256kbps$tag")
+            PhonePlayerService.FORMAT_OPUS24 -> JSONObject().put("kind", "opus").put("text", "256 · 24/48$tag")
+            PhonePlayerService.FORMAT_LOSSLESS -> JSONObject().put("kind", "lossless").put("text", "Lossless$tag")
+            else -> JSONObject().put("kind", "lossy").put("text", f + tag)
+        }
     }
 
     private fun zoneJson(c: Context, st: PhonePlayerService.OfflineState?): JSONObject {
@@ -118,7 +121,7 @@ object OfflineApi {
             .put("seek_position", st.position.toInt())
             .put("track_id", cur.trackId ?: JSONObject.NULL)
             .put("album_offset", if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
-            .put("format", formatJson(st.format))
+            .put("format", formatJson(st.format, st.dsp))
         val count = st?.items?.size ?: 0
         val index = st?.index ?: -1
         val state = st?.state ?: "stopped"

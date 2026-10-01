@@ -29,6 +29,9 @@ import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import com.musicd.server.client.Dsp
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -214,7 +217,14 @@ class PhonePlayerService : MediaLibraryService() {
         // float — 24/48 into Android's mixer — where Android's decoder gives
         // 16-bit. Every other format decodes as before; a 24-bit file also
         // travels as float.
-        val renderers = DefaultRenderersFactory(this)
+        // The DSP engine (DspSink) wraps the sink: every decoded buffer
+        // becomes float, the phone's setting is run on it, then the mixer.
+        dsp.apply(Dsp.parse(Store.dsp(this)?.let { runCatching { JSONObject(it) }.getOrNull() }))
+        val engine = dsp
+        val renderers = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
+                DspSink(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build(), engine)
+        }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableAudioFloatOutput(true)
         player = ExoPlayer.Builder(this, renderers)
@@ -379,6 +389,7 @@ class PhonePlayerService : MediaLibraryService() {
                     zoneId = h.zoneId
                     Store.setPhoneZone(this, h.zoneId)
                     Store.setAwayLearned(this, h.awayAddress)
+                    h.dsp?.let { applyDsp(it) }
                     hello = true
                     // The queue from before this player was restarted (Android
                     // stops an idle one after a while): back, paused where it
@@ -469,6 +480,15 @@ class PhonePlayerService : MediaLibraryService() {
 
     private fun pause(ms: Long) {
         try { Thread.sleep(ms) } catch (e: InterruptedException) { running = false }
+    }
+
+    /** The phone's DSP engine: the setting from the server, run on what plays (DspSink). */
+    private val dsp = DspEngine()
+    /** A setting from the server (hello, or a "dsp" command): run from the next buffer, kept for offline. */
+    private fun applyDsp(json: JSONObject) {
+        dsp.apply(Dsp.parse(json))
+        Store.setDsp(this, json.toString())
+        reportSoon()
     }
 
     /** The decoder at work on the current track (Media3's name for it), or null before the first. */
@@ -700,6 +720,7 @@ class PhonePlayerService : MediaLibraryService() {
                 AudioManager.STREAM_MUSIC,
                 if (c.muted) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE, 0
             )
+            "dsp" -> c.dsp?.let { applyDsp(it) }
             "mode" -> {
                 player.shuffleModeEnabled = c.shuffle
                 player.repeatMode = when (c.loop) {
@@ -771,7 +792,8 @@ class PhonePlayerService : MediaLibraryService() {
             },
             volume = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             muted = muted,
-            format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" }
+            format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
+            dsp = dsp.active
         )
         val client = Store.client(this) ?: return
         runCatching { reports.execute { runCatching { client.phoneReport(r) } } }
@@ -989,7 +1011,9 @@ class PhonePlayerService : MediaLibraryService() {
                        val shuffle: Boolean, val loop: String, val volume: Int, val muted: Boolean,
                        val items: List<OfflineItem>, val revision: Long,
                        /** The current track's format ([formatOf]), for the badge. */
-                       val format: String? = null)
+                       val format: String? = null,
+                       /** The DSP engine is at work. */
+                       val dsp: Boolean = false)
 
     /** What's playing, as the offline page shows it. */
     fun offlineState(): OfflineState? = onPlayer { p ->
@@ -1018,7 +1042,8 @@ class PhonePlayerService : MediaLibraryService() {
             when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
             (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
-            items, revision, formatOf(p.currentMediaItem).let { if (it == FORMAT_OPUS && floatOpus()) FORMAT_OPUS24 else it }
+            items, revision, formatOf(p.currentMediaItem).let { if (it == FORMAT_OPUS && floatOpus()) FORMAT_OPUS24 else it },
+            dsp.active
         )
     }
 

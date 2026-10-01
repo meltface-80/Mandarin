@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.24
+- **DSP on the phone.** The Mandarin app has its own engine: the phone's setting (Audio
+  Devices → this phone, at home or away) runs on everything the phone plays — the server's
+  stream, Opus away from home, downloads — in 64-bit float, the headroom first, then the
+  bands, out to Bluetooth, USB or the speaker as float. The setting comes with the app's
+  hello and whenever it is saved, and is kept on the phone so it applies offline. The badge
+  reads "· DSP" while the engine is at work. (Stage 3, second part; AutoEQ profiles next.)
+
 ## v0.5.23
 - **DSP for UPnP/DLNA renderers: a parametric EQ per zone.** On a device's page in Audio
   Devices, a DSP switch and up to ten bands — peak, low shelf, high shelf, low-pass,
