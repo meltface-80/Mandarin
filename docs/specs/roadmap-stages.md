@@ -472,6 +472,86 @@ Three patch versions, one per part.
 
 ---
 
+## Stage 9: bit-perfect USB in the Android app — the app's own USB audio driver (added 2 October 2026)
+
+Android's audio system mixes every app's sound at one rate (usually 48 kHz)
+and has no DSD, so a USB DAC never hears the file as it is. The way round it,
+as USB Audio Player Pro and HiBy do, is to leave Android's audio system out:
+the app talks to the DAC itself through Android's USB host access, with a USB
+Audio Class driver of its own. Any rate the DAC takes, 16/24/32-bit, native
+DSD, no mixer in the way.
+
+### Today
+
+* The app plays through Media3 into a normal Android track (DspSink over
+  DefaultAudioSink): resampled by the system to its rate, dithered to the
+  device's depth. "Original" is bit-perfect only by luck of the rate.
+* The server sends the phone Opus 256 at 24/48 (mobile data) or the original
+  file; DSD files are converted to PCM for every player (lib/stream.js).
+* The app already builds native code (the Opus decoder: NDK 27, CMake), so a
+  native USB driver has a home.
+
+### Plan
+
+**9.1 Finding the DAC.** USB host access (`UsbManager`: attach and detach,
+the permission dialog, remembered per device), the DAC's descriptors read and
+understood — UAC1 and UAC2: the control interface, each streaming alternate
+setting with its format, channels, bit depth and the rates its clock offers —
+and a native bridge (libusb built in, handed the open device's file
+descriptor, the only way to isochronous transfers on Android). Audio Devices
+gains a **USB DAC** page listing what the DAC offers and a *USB direct*
+switch, off until 9.2. Nothing plays through it yet; this is the part that
+proves the phone and the DAC can be talked to at all.
+
+**9.2 PCM, bit-perfect.** Playback through the driver: the DAC's clock set to
+the track's rate, the right alternate setting chosen, samples packed to the
+DAC's depth (16/24/32), isochronous OUT with asynchronous feedback (adaptive
+and synchronous DACs handled too), gapless across tracks, rate changes
+between them. In the player, a Media3 audio sink that hands decoded PCM to
+the driver instead of an Android track whenever *USB direct* is on and the DAC
+is attached, and falls back to the Android track when it is unplugged. Volume
+fixed at full on this path (the DAC's own control where it has one, as an
+option later); DSP off on this path — bit-perfect means untouched — with the
+badge reading *USB · FLAC 24/96 ✓* when the DAC confirms the rate. The server
+sends such a phone the original file on Wi-Fi as it does now; on mobile data
+Opus stays Opus (decoded on the phone, sent at 48 kHz).
+
+**9.3 DSD.** Native DSD where the DAC offers it (UAC2's DSD alternate
+settings, DSD64/128/256, the bit order the DAC asks for), DoP where it only
+takes that, PCM conversion on the server as today where it takes neither. The
+server gains a stream plan for USB-direct phones that sends DSF and DFF files
+as they are; the app reads the DSD out of them itself.
+
+**9.4 Living with it.** Hot-plug while playing (pause, switch sink, resume),
+underrun handling and a buffer-size setting, the wake lock the transfers need,
+battery note, and a diagnostics pane: transfer counts, underruns, the DAC's
+descriptors as text to copy — what a report back needs when something is
+wrong on a DAC I have never seen.
+
+### What this costs
+
+Native C with isochronous USB is the hardest code in the project, and none of
+it can be run here: CI can compile it, only a phone with a DAC can hear it.
+Every part lands as a build to try, with the diagnostics pane carrying the
+answer back. Expect several rounds per part.
+
+### Questions (owner)
+
+1. The phone (model, Android version) and the DAC(s) to test with — model,
+   and whether their makers say UAC2, DoP, native DSD.
+2. DSD in the library: which rates (DSD64/128/256) and which files (DSF, DFF)?
+3. Volume on the USB path: fixed at full (bit-perfect, the amplifier does the
+   rest), or the DAC's own hardware volume where it has one?
+4. DSP on the USB path: off always (bit-perfect only), or allowed as a
+   choice (the DSP's float output packed to the DAC's depth — not bit-perfect,
+   but the DAC's own rate)?
+
+### Versions
+
+Four or more patch versions, one per part, each tried on the phone before the next.
+
+---
+
 ## Order and versions
 
 | Stage | Versions (patch each) | Depends on |
@@ -484,6 +564,7 @@ Three patch versions, one per part.
 | 6 SD card downloads | 2 | 5's index |
 | 7 Listen later | 1 | — |
 | 8 Record labels | 3 | — |
+| 9 USB audio driver | 4+ | 3's player |
 
 Stages 7 and 8 are independent and can slot in anywhere. Whether the second digit
 moves (0.6.0) at the start of Stage 3 is the owner's call.
