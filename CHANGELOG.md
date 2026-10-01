@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.36
+- **The USB DAC, found and read (Stage 9, part 1).** In the Android app, a DAC on the USB
+  port shows on this phone's page in Audio Devices: Android's permission for it (asked once),
+  then what its descriptors say — USB Audio Class 1 or 2, sample rates (a UAC2 DAC's clock is
+  asked for its range), bit depths, native DSD, a USB volume control, the bus speed — with a
+  Copy button for the full diagnostics. Plugging a DAC in offers Mandarin. Nothing plays
+  through it yet: that is part 2, and the USB direct switch waits for it.
+- **The duck, bolder and in orange.** A Mandarin duck's orange on the plum, the line art
+  thickened, centred on the duck itself and larger, and the level meter gone: the duck alone
+  is the icon, on the launcher and the web app alike.
+
 ## v0.5.35
 - **The icon in plum.** The duck is white now, on the plum of the transport controls, with the
   gold level meter kept: the Android launcher (square, round and adaptive), the web app's

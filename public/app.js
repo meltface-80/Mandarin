@@ -15609,6 +15609,7 @@ initServiceBrowser({
         "</div>";
     }
     if ((d.kind === "upnp" || d.kind === "phone") && d.dsp) html += renderDsp(d);
+    if (d.kind === "phone" && isThisPhone(d)) html += renderUsb();
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
         '<button type="button" class="settings-update-btn" data-dev-forget' + (busy ? " disabled" : "") + ">Forget this device</button></div>" +
@@ -15618,6 +15619,54 @@ initServiceBrowser({
     body.innerHTML = html;
     drawDsp();
   }
+
+  /*
+   * The USB DAC (Stage 9.1): only in the app, only on the page of the phone
+   * the app is on. What the port holds, the permission for it, and what the
+   * DAC's descriptors say it takes. Playing through it comes in 9.2, so the
+   * switch is shown but not yet offered.
+   */
+  const USB = window.MusicdUsb || null;
+  function isThisPhone(d) { try { return !!USB && USB.phoneZone() === d.id; } catch (e) { return false; } }
+  function usbInfo() { try { return JSON.parse(USB.info()); } catch (e) { return { attached: false, error: e.message }; } }
+  function renderUsb() {
+    const u = usbInfo();
+    let html = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">USB DAC</div>';
+    if (!u.attached) {
+      html += '<div class="settings-note">Nothing on the USB port. Plug a DAC in and it shows here.</div></div>';
+      return html;
+    }
+    const dev = u.device || {};
+    const name = [dev.manufacturer, dev.name].filter(Boolean).join(" ");
+    html += '<div class="settings-row"><span class="settings-label">' + esc(name || "USB audio device") + "</span>";
+    if (!u.permission) html += '<button type="button" class="settings-update-btn" data-usb-allow>Allow</button>';
+    html += "</div>";
+    if (!u.permission) {
+      html += '<div class="settings-note">Android asks once whether Mandarin may use this device; a yes is remembered for it.</div>';
+      if (u.error) html += '<div class="settings-note away-error">' + esc(u.error) + "</div>";
+      return html + "</div>";
+    }
+    const i = u.info;
+    if (!i) return html + '<div class="settings-note away-error">' + esc(u.error || "Reading the DAC…") + "</div></div>";
+    const rates = (i.rates || []).map(hz => chip("rate", hz, fmtRate(hz), true, "confirmed", false)).join("");
+    const bits = (i.bits || []).map(n => chip("bits", n, n + "-bit", true, "confirmed", false)).join("");
+    html += '<div class="cap-group"><span class="cap-label">Class</span><div class="dev-v">USB Audio Class ' + (i.uac === 2 ? "2" : "1") +
+      (i.speed && i.speed !== "unknown" ? " · " + esc(i.speed) + " speed" : "") + " · " + esc(i.sync || "") + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">Sample rates (kHz)</span><div class="cap-chips">' + (rates || '<span class="dev-v">not stated</span>') + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">Bit depth</span><div class="cap-chips">' + (bits || '<span class="dev-v">not stated</span>') + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">DSD</span><div class="dev-v">' + (i.dsd ? "Native DSD offered" : "No native DSD in its descriptors (DoP may still work)") + "</div></div>";
+    html += '<div class="cap-group"><span class="cap-label">Volume</span><div class="dev-v">' + (i.volume_control ? "The DAC has a USB volume control" : "No USB volume control (fixed at full)") + "</div></div>";
+    if (i.current_rate) html += '<div class="cap-group"><span class="cap-label">Clock now</span><div class="dev-v">' + esc(fmtRate(i.current_rate)) + " kHz</div></div>";
+    html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">USB direct</span>' +
+      '<label class="switch"><input type="checkbox" data-usb-direct' + (u.direct ? " checked" : "") + ' disabled aria-label="USB direct">' +
+      '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+      '<div class="settings-note">Playing through the app’s own USB driver — bit-perfect at the DAC’s own rate — comes in the next version. This one reads the DAC; the details above are what it will drive.</div>';
+    html += '<div class="settings-row" style="margin-top:10px"><span class="settings-label">Diagnostics</span><button type="button" class="settings-update-btn" data-usb-copy>Copy</button></div>' +
+      '<div class="settings-note">Everything the DAC said about itself, as text — what a report needs.</div>';
+    if (u.error) html += '<div class="settings-note away-error">' + esc(u.error) + "</div>";
+    return html + "</div>";
+  }
+  window.__musicdUsbChanged = () => { if (current && current.kind === "phone" && isThisPhone(current)) renderDetail(true); };
 
   /*
    * DSP (v0.5.23): the switch, the parametric bands with their curve, the
@@ -15896,6 +15945,12 @@ initServiceBrowser({
     if (pick) return hpPick(dspOf(current), pick.getAttribute("data-hp-pick"));
     if (e.target.closest("[data-hp-use]")) return hpUse(dspOf(current));
     if (e.target.closest("[data-dev-reset]")) { await patch({ name: "" }); return toast("Back to its network name"); }
+    if (e.target.closest("[data-usb-allow]")) { try { USB.request(); } catch (x) { toast(x.message, "error"); } return; }
+    if (e.target.closest("[data-usb-copy]")) {
+      try { await navigator.clipboard.writeText(USB.diagnostics()); toast("Copied — paste it into a report"); }
+      catch (x) { toast("Couldn't copy: " + x.message, "error"); }
+      return;
+    }
     if (e.target.closest("[data-dev-forget]")) {
       if (!(await ask("Forget “" + current.name + "”?\n\nIts name and settings go. If it turns up again it starts afresh."))) return;
       busy = true;
@@ -15911,6 +15966,8 @@ initServiceBrowser({
     if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
     const fv = e.target.closest("[data-dev-fixvol]");
     if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
+    const ud = e.target.closest("[data-usb-direct]");
+    if (ud) { try { USB.setDirect(ud.checked); } catch (x) { toast(x.message, "error"); } return; }
     const dspOn = e.target.closest("[data-dsp-on]");
     if (dspOn) return saveDsp(dspOn.checked);
     const bandType = e.target.closest("select[data-dsp-f='type']");

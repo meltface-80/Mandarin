@@ -28,12 +28,26 @@ jobs:
           node-version: 22
           cache: npm
 
-      # A static ffmpeg build from a cache, not apt (apt-get update can hang
-      # on a slow mirror, with no timeout of its own).
-      - name: Install ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
+      # A static ffmpeg build, fetched straight from its publisher with a
+      # timeout and kept in the Actions cache: not apt (apt-get update can
+      # hang on a slow mirror, with no timeout of its own), and not a
+      # third-party action (one broke when the build's readme changed shape).
+      - name: Restore ffmpeg
+        id: ffmpeg-cache
+        uses: actions/cache@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ~/ffmpeg-static
+          key: ffmpeg-static-amd64-release-v1
+      - name: Install ffmpeg
+        run: |
+          set -e
+          if [ ! -x ~/ffmpeg-static/ffmpeg ]; then
+            mkdir -p ~/ffmpeg-static
+            curl -sSL --retry 5 --retry-all-errors --retry-delay 5 --max-time 300 -o /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+            tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C ~/ffmpeg-static --wildcards '*/ffmpeg' '*/ffprobe'
+          fi
+          echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
+          ~/ffmpeg-static/ffmpeg -version | head -1
 
       - name: Test before releasing
         timeout-minutes: 15

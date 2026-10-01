@@ -25,6 +25,11 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
 
+    <!-- A DAC on the USB port, driven by the app itself (Settings → Audio
+         Devices → this phone → USB DAC). Not required: the app is the same
+         without one. -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
     <!-- Away from home the app asks the Tailscale app to connect. -->
     <queries>
         <package android:name="com.tailscale.ipn" />
@@ -57,6 +62,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- A USB audio device plugged in: Android offers the app, and the
+                 permission for the device comes with the choice. -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_device_filter" />
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
