@@ -32,7 +32,9 @@ object Phone {
         val value: Int = 0,
         val muted: Boolean = false,
         val shuffle: Boolean = false,
-        val loop: String = "disabled"
+        val loop: String = "disabled",
+        /** "dsp": the phone's DSP setting as saved on the server (Dsp.parse reads it). */
+        val dsp: JSONObject? = null
     )
 
     class Batch(val seq: Long, val commands: List<Command>)
@@ -44,7 +46,9 @@ object Phone {
      * it stopped — or null when there was nothing.
      */
     class Hello(val zoneId: String, val seq: Long, val away: Boolean = false, val awayAddress: String? = null,
-                val resume: Command? = null)
+                val resume: Command? = null,
+                /** The phone's DSP setting, as the server keeps it. */
+                val dsp: JSONObject? = null)
 
     /** What the player is doing, as the server wants to hear it. */
     class Report(
@@ -57,12 +61,14 @@ object Phone {
         val volume: Int,
         val muted: Boolean,
         /** How the track is being played: "opus" (the server's Opus 256, or an Opus download) or "original". */
-        val format: String = "original"
+        val format: String = "original",
+        /** The DSP engine is changing the sound. */
+        val dsp: Boolean = false
     ) {
         fun toJson(): JSONObject = JSONObject()
             .put("index", index).put("position", positionSeconds).put("duration", durationSeconds)
             .put("state", state).put("shuffle", shuffle).put("loop", loop)
-            .put("volume", volume).put("muted", muted).put("format", format)
+            .put("volume", volume).put("muted", muted).put("format", format).put("dsp", dsp)
     }
 
     fun parseItems(a: JSONArray?): List<Item> {
@@ -92,7 +98,8 @@ object Phone {
         value = o.optInt("value", 0),
         muted = o.optBoolean("muted", false),
         shuffle = o.optBoolean("shuffle", false),
-        loop = o.optString("loop", "disabled")
+        loop = o.optString("loop", "disabled"),
+        dsp = o.optJSONObject("dsp")
     )
 
     fun parseBatch(o: JSONObject): Batch {
@@ -107,7 +114,8 @@ fun ServerClient.phoneHello(name: String): Phone.Hello {
     return Phone.Hello(
         j.getString("zone_id"), j.optLong("seq"), j.optBoolean("away", false),
         j.optString("away_address", "").takeIf { it.isNotEmpty() && it != "null" },
-        j.optJSONObject("resume")?.let { Phone.parseCommand(it) }?.takeIf { it.items.isNotEmpty() }
+        j.optJSONObject("resume")?.let { Phone.parseCommand(it) }?.takeIf { it.items.isNotEmpty() },
+        j.optJSONObject("dsp")
     )
 }
 

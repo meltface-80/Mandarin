@@ -15262,7 +15262,7 @@ initServiceBrowser({
             : "Mandarin’s slider and mute drive the device. Turn on if the device’s volume is fixed — a WiiM on fixed line out, a Poly feeding a Mojo.") + "</div>" : "") +
         "</div>";
     }
-    if (d.kind === "upnp" && d.dsp) html += renderDsp(d);
+    if ((d.kind === "upnp" || d.kind === "phone") && d.dsp) html += renderDsp(d);
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
         '<button type="button" class="settings-update-btn" data-dev-forget' + (busy ? " disabled" : "") + ">Forget this device</button></div>" +
@@ -15287,7 +15287,10 @@ initServiceBrowser({
     let html = '<div class="settings-divider"></div><div class="settings-block" data-dsp-block>' +
       '<div class="settings-row"><span class="settings-label">DSP</span>' +
       '<label class="switch"><input type="checkbox" data-dsp-on' + (on ? " checked" : "") + ' aria-label="DSP"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
-      '<div class="settings-note">' + (on
+      '<div class="settings-note">' + (d.kind === "phone"
+        ? (on ? "On. The app runs the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
+             : "Off. The app plays what it is given as it is.")
+        : on
         ? "On. Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (d.output && d.output.flac32 && d.bits.some(b => b.n === 32 && b.on) && d.output.bits !== 24 ? "32" : "24") + " bits."
         : "Off. The device gets the file as stored (or the conversion the Output settings ask for).") + "</div>";
     html += '<div class="cap-group"><span class="cap-label">Parametric EQ · ' + dr.bands.length + ' of 10 bands</span>' +
@@ -15383,7 +15386,7 @@ initServiceBrowser({
     const dr = dspOf(current);
     const on = enabled === undefined ? !!current.dsp.enabled : enabled;
     await patch({ dsp: dspSetting(dr, on) });
-    if (!err) { dspDraft = null; toast(on ? "DSP saved — on from the next track" : "DSP is off"); }
+    if (!err) { dspDraft = null; toast(on ? (current.kind === "phone" ? "DSP saved — the phone has it" : "DSP saved — on from the next track") : "DSP is off"); }
     renderDetail();
   }
 

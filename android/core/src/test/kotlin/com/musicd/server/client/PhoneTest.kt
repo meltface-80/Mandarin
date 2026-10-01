@@ -35,5 +35,16 @@ class PhoneTest {
         assertEquals(40, j.getInt("volume"))
         assertEquals("original", j.getString("format"))
         assertEquals("opus", Phone.Report(0, 0.0, 0.0, "playing", false, "disabled", 40, false, format = "opus").toJson().getString("format"))
+        assertEquals(false, j.getBoolean("dsp"))
+        assertEquals(true, Phone.Report(0, 0.0, 0.0, "playing", false, "disabled", 40, false, dsp = true).toJson().getBoolean("dsp"))
+    }
+
+    @Test fun `a dsp command carries the setting`() {
+        val b = Phone.parseBatch(JSONObject("""{"seq": 9, "commands": [{"seq": 9, "op": "dsp", "dsp": {"enabled": true, "peq": {"bands": [{"type": "peak", "freq": 1000, "gain": -6, "q": 1.41}]}, "headroom": "auto"}}]}"""))
+        val c = b.commands[0]
+        assertEquals("dsp", c.op)
+        val s = Dsp.parse(c.dsp)
+        assertEquals(true, s.active)
+        assertEquals(1000.0, s.bands[0].freq, 0.0)
     }
 }

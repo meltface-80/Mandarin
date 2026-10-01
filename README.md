@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.23
+# Mandarin — v0.5.24
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -328,7 +328,8 @@ pass filters — with the response drawn as you edit. On, every track is decoded
 float, the headroom taken (automatic: half a dB under the bands' combined peak, or set by
 hand), upsampled if Output says so, the bands run in double precision, then dithered once to
 24 bits (32 where the device takes it). Off, the file goes as stored. Sonos rooms are tuned
-with Trueplay and have no DSP here.
+with Trueplay and have no DSP here. A phone running the Mandarin app has the same page: its bands run in the app, on everything
+the phone plays, through Bluetooth, USB or the speaker.
 
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The

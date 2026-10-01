@@ -23,6 +23,7 @@ object Store {
     private const val KEY_AWAY_LEARNED = "away_learned"
     private const val KEY_AWAY_TYPED = "away_typed"
     private const val KEY_AWAY_NOW = "away_now"
+    private const val KEY_DSP = "dsp"
 
     fun server(context: Context): ServerAddress? {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -54,6 +55,12 @@ object Store {
         else e.putString(KEY_TOKEN, token).putString(KEY_TOKEN_FOR, server(context)?.toString())
         if (username != null) e.putString(KEY_USER, username)
         e.apply()
+    }
+
+    /** The phone's DSP setting as the server last sent it (JSON), kept so it applies offline too. */
+    fun dsp(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DSP, null)
+    fun setDsp(context: Context, json: String?) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (json == null) remove(KEY_DSP) else putString(KEY_DSP, json) }.apply()
     }
 
     fun lastPort(context: Context): Int =
