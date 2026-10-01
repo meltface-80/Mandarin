@@ -15087,6 +15087,23 @@ initServiceBrowser({
     phone: "The phone plays this", later: "DSD comes in a later version", off: "Not offered"
   };
   let devices = [], away = false, err = "", current = null, busy = false;
+  // The DSP block's unsaved edits (bands, headroom) for the device open now.
+  // Save sends them; opening another device drops them.
+  let dspDraft = null;
+  const BAND_TYPES = [["peak", "Peak"], ["low_shelf", "Low shelf"], ["high_shelf", "High shelf"], ["low_pass", "Low-pass"], ["high_pass", "High-pass"]];
+  const isPass = t => t === "low_pass" || t === "high_pass";
+  function dspOf(d) {
+    if (dspDraft && dspDraft.id === d.id) return dspDraft;
+    const cur = d.dsp || { enabled: false, peq: null, headroom: "auto" };
+    dspDraft = { id: d.id, dirty: false, bands: ((cur.peq && cur.peq.bands) || []).map(b => Object.assign({}, b)), headroom: cur.headroom == null ? "auto" : cur.headroom,
+      headphone: cur.headphone || null };
+    return dspDraft;
+  }
+  function dspSetting(draft, enabled) {
+    return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom };
+  }
+  const fmtDb = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + " dB";
+  const fmtHz = v => v >= 1000 ? (Math.round(v / 100) / 10) + " kHz" : Math.round(v) + " Hz";
 
   async function api(url, method, payload) {
     const r = await fetch(url, method ? { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}) } : { cache: "no-store" });
@@ -15148,6 +15165,9 @@ initServiceBrowser({
   function renderDetail(keepInput) {
     const d = current;
     if (!d) return;
+    // A refresh while a band is being typed would take the field away
+    // mid-edit: the draft is kept and the block left as it is.
+    if (keepInput && body.querySelector("[data-dsp-block]:focus-within")) return;
     title.textContent = d.name;
     desc.textContent = [d.model || (d.profile && d.profile.label) || "", d.manufacturer].filter(Boolean).join(" · ") ||
       (d.kind === "phone" ? "A phone running the Mandarin app" : "");
@@ -15242,6 +15262,7 @@ initServiceBrowser({
             : "Mandarin’s slider and mute drive the device. Turn on if the device’s volume is fixed — a WiiM on fixed line out, a Poly feeding a Mojo.") + "</div>" : "") +
         "</div>";
     }
+    if (d.kind === "upnp" && d.dsp) html += renderDsp(d);
     if (!d.online) {
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
         '<button type="button" class="settings-update-btn" data-dev-forget' + (busy ? " disabled" : "") + ">Forget this device</button></div>" +
@@ -15249,9 +15270,125 @@ initServiceBrowser({
     }
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     body.innerHTML = html;
+    drawDsp();
+  }
+
+  /*
+   * DSP (v0.5.23): the switch, the parametric bands with their curve, the
+   * headroom. Edits live in dspDraft until Save; the switch saves at once,
+   * the draft with it. public/biquad.js draws the curve the server runs.
+   */
+  function renderDsp(d) {
+    const dr = dspOf(d);
+    const on = !!d.dsp.enabled;
+    const B = window.Biquad;
+    const peak = B ? B.peakDb(dr.bands, 48000) : 0;
+    const auto = B ? B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000) : 0;
+    let html = '<div class="settings-divider"></div><div class="settings-block" data-dsp-block>' +
+      '<div class="settings-row"><span class="settings-label">DSP</span>' +
+      '<label class="switch"><input type="checkbox" data-dsp-on' + (on ? " checked" : "") + ' aria-label="DSP"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+      '<div class="settings-note">' + (on
+        ? "On. Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (d.output && d.output.flac32 && d.bits.some(b => b.n === 32 && b.on) && d.output.bits !== 24 ? "32" : "24") + " bits."
+        : "Off. The device gets the file as stored (or the conversion the Output settings ask for).") + "</div>";
+    html += '<div class="cap-group"><span class="cap-label">Parametric EQ · ' + dr.bands.length + ' of 10 bands</span>' +
+      '<canvas class="dsp-curve" data-dsp-curve height="150" aria-label="The bands’ response"></canvas>';
+    if (!dr.bands.length) html += '<div class="settings-note">No bands yet. Add one for each correction: a peak at a frequency, a shelf below or above one, or a pass filter.</div>';
+    html += '<div class="dsp-bands">';
+    dr.bands.forEach((b, i) => {
+      html += '<div class="dsp-band" data-dsp-band="' + i + '">' +
+        '<select class="dsp-type" data-dsp-f="type" aria-label="Type">' + BAND_TYPES.map(t => '<option value="' + t[0] + '"' + (t[0] === b.type ? " selected" : "") + ">" + t[1] + "</option>").join("") + "</select>" +
+        '<label class="dsp-field"><span>Hz</span><input type="number" inputmode="decimal" min="10" max="24000" step="1" data-dsp-f="freq" value="' + esc(b.freq) + '"></label>' +
+        '<label class="dsp-field' + (isPass(b.type) ? " is-off" : "") + '"><span>dB</span><input type="number" inputmode="decimal" min="-20" max="20" step="0.1" data-dsp-f="gain" value="' + esc(isPass(b.type) ? 0 : b.gain) + '"' + (isPass(b.type) ? " disabled" : "") + "></label>" +
+        '<label class="dsp-field"><span>Q</span><input type="number" inputmode="decimal" min="0.1" max="20" step="0.01" data-dsp-f="q" value="' + esc(Math.round(b.q * 100) / 100) + '"></label>' +
+        '<button type="button" class="dsp-remove" data-dsp-remove="' + i + '" aria-label="Remove band">×</button></div>';
+    });
+    html += "</div>";
+    if (dr.bands.length < 10) html += '<button type="button" class="settings-update-btn dsp-add" data-dsp-add>Add band</button>';
+    html += "</div>";
+    const manual = typeof dr.headroom === "number";
+    html += '<div class="cap-group"><span class="cap-label">Headroom</span>' +
+      '<div class="seg" data-dsp-seg><button type="button" class="seg-btn' + (!manual ? " is-on" : "") + '" data-dsp-headroom="auto">Auto</button>' +
+      '<button type="button" class="seg-btn' + (manual ? " is-on" : "") + '" data-dsp-headroom="set">Set</button></div>' +
+      (manual ? '<label class="dsp-field dsp-headroom-set"><span>dB</span><input type="number" inputmode="decimal" min="-30" max="0" step="0.1" data-dsp-f="headroom" value="' + esc(dr.headroom) + '"></label>' : "") +
+      '<div class="settings-note" data-dsp-headroom-note>' + esc(headroomNote(dr, peak, auto)) + "</div></div>";
+    html += '<div class="dsp-actions"><span class="dsp-dirty" data-dsp-dirty>' + (dr.dirty ? "Not saved yet" : "") + '</span>' +
+      '<button type="button" class="action-btn primary" data-dsp-save' + (dr.dirty ? "" : " disabled") + ">Save</button></div>";
+    html += "</div>";
+    return html;
+  }
+  function headroomNote(dr, peak, auto) {
+    if (typeof dr.headroom === "number") return "Set by hand: " + fmtDb(dr.headroom) + " before the bands. Auto would take " + fmtDb(auto) + ".";
+    if (!dr.bands.length) return "Auto: nothing to take yet.";
+    return "Auto: " + fmtDb(auto) + " before the bands — their peak together is " + fmtDb(peak) + ", and half a dB is kept under it so nothing clips.";
+  }
+  function drawDsp() {
+    const c = body.querySelector("[data-dsp-curve]");
+    const B = window.Biquad;
+    if (!c || !B || !current) return;
+    const dr = dspOf(current);
+    const cssW = c.clientWidth || 320, cssH = 150, dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
+    const ctx = c.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const cs = getComputedStyle(document.documentElement);
+    const col = n => cs.getPropertyValue(n).trim();
+    const padL = 30, padR = 8, padT = 8, padB = 18;
+    const W = cssW - padL - padR, H = cssH - padT - padB;
+    const fx = f => padL + W * (Math.log10(f) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20));
+    const freqs = [];
+    for (let i = 0; i <= 240; i++) freqs.push(Math.pow(10, Math.log10(20) + (Math.log10(20000) - Math.log10(20)) * i / 240));
+    const r = B.response(dr.bands, 48000, freqs);
+    const pre = B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: dr.headroom }, 48000);
+    const top = Math.max(6, Math.ceil(Math.max(...r.map(Math.abs), Math.abs(pre)) / 3) * 3);
+    const fy = db => padT + H * (top - db) / (2 * top);
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.font = "10px " + (col("--font-sans") || "sans-serif");
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.strokeStyle = col("--border") || "#444"; ctx.fillStyle = col("--text-faint") || "#888"; ctx.lineWidth = 1;
+    for (const f of [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]) {
+      const x = Math.round(fx(f)) + 0.5;
+      ctx.globalAlpha = [100, 1000, 10000].includes(f) ? 1 : .45;
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + H); ctx.stroke();
+      ctx.globalAlpha = 1;
+      if ([20, 100, 1000, 10000, 20000].includes(f)) ctx.fillText(f >= 1000 ? (f / 1000) + "k" : String(f), x, padT + H + 4);
+    }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (const db of [top, top / 2, 0, -top / 2, -top]) {
+      const y = Math.round(fy(db)) + 0.5;
+      ctx.globalAlpha = db === 0 ? 1 : .45;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + W, y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillText((db > 0 ? "+" : "") + db, padL - 4, y);
+    }
+    // The bands' response, and — dashed — the same with the headroom taken.
+    const line = (dbs, colour, dash) => {
+      ctx.beginPath();
+      dbs.forEach((db, i) => { const x = fx(freqs[i]), y = fy(db); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+      ctx.setLineDash(dash || []); ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    };
+    if (pre < 0) line(r.map(db => db + pre), col("--plum") || "#8b6fb0", [4, 4]);
+    line(r, col("--accent") || "#c9a45c");
+  }
+  function bumpDsp() {
+    const dr = dspOf(current);
+    dr.dirty = true;
+    const note = body.querySelector("[data-dsp-headroom-note]");
+    const B = window.Biquad;
+    if (note && B) note.textContent = headroomNote(dr, B.peakDb(dr.bands, 48000), B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000));
+    const dirty = body.querySelector("[data-dsp-dirty]"); if (dirty) dirty.textContent = "Not saved yet";
+    const save = body.querySelector("[data-dsp-save]"); if (save) save.disabled = false;
+    drawDsp();
+  }
+  async function saveDsp(enabled) {
+    const dr = dspOf(current);
+    const on = enabled === undefined ? !!current.dsp.enabled : enabled;
+    await patch({ dsp: dspSetting(dr, on) });
+    if (!err) { dspDraft = null; toast(on ? "DSP saved — on from the next track" : "DSP is off"); }
+    renderDetail();
   }
 
   async function open(id) {
+    dspDraft = null;
     try { current = await api("/api/audio-devices/" + encodeURIComponent(id)); err = ""; }
     catch (e) { err = e.message; return renderList(); }
     renderDetail();
@@ -15317,6 +15454,18 @@ initServiceBrowser({
       const v = name === "bits" && raw !== "auto" ? Number(raw) : raw;
       return patch({ output: { [name]: v } });
     }
+    const add = e.target.closest("[data-dsp-add]");
+    if (add) { const dr = dspOf(current); if (dr.bands.length < 10) { dr.bands.push({ type: "peak", freq: 1000, gain: 0, q: 1.41 }); dr.dirty = true; renderDetail(); } return; }
+    const rm = e.target.closest("[data-dsp-remove]");
+    if (rm) { const dr = dspOf(current); dr.bands.splice(Number(rm.getAttribute("data-dsp-remove")), 1); dr.dirty = true; renderDetail(); return; }
+    const hr = e.target.closest("[data-dsp-headroom]");
+    if (hr) {
+      const dr = dspOf(current);
+      const B = window.Biquad;
+      dr.headroom = hr.getAttribute("data-dsp-headroom") === "auto" ? "auto" : (B ? B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000) : -0.5);
+      dr.dirty = true; renderDetail(); return;
+    }
+    if (e.target.closest("[data-dsp-save]")) return saveDsp();
     if (e.target.closest("[data-dev-reset]")) { await patch({ name: "" }); return toast("Back to its network name"); }
     if (e.target.closest("[data-dev-forget]")) {
       if (!(await ask("Forget “" + current.name + "”?\n\nIts name and settings go. If it turns up again it starts afresh."))) return;
@@ -15333,6 +15482,15 @@ initServiceBrowser({
     if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
     const fv = e.target.closest("[data-dev-fixvol]");
     if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
+    const dspOn = e.target.closest("[data-dsp-on]");
+    if (dspOn) return saveDsp(dspOn.checked);
+    const bandType = e.target.closest("select[data-dsp-f='type']");
+    if (bandType) {
+      const dr = dspOf(current);
+      const b = dr.bands[Number(bandType.closest("[data-dsp-band]").getAttribute("data-dsp-band"))];
+      if (b) { b.type = bandType.value; if (isPass(b.type)) b.gain = 0; dr.dirty = true; renderDetail(); }
+      return;
+    }
     const rd = e.target.closest("[data-dev-radio]");
     if (rd) {
       const on = rd.checked;
@@ -15346,6 +15504,24 @@ initServiceBrowser({
   body.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.target.closest(".dev-name-input")) e.target.blur();
   });
+  // A band's numbers as they are typed: the curve and the headroom follow.
+  body.addEventListener("input", (e) => {
+    const inp = e.target.closest("input[data-dsp-f]");
+    if (!inp || !current) return;
+    const dr = dspOf(current);
+    const v = Number(inp.value);
+    if (!Number.isFinite(v)) return;
+    const f = inp.getAttribute("data-dsp-f");
+    if (f === "headroom") { dr.headroom = Math.min(0, Math.max(-30, v)); return bumpDsp(); }
+    const row = inp.closest("[data-dsp-band]");
+    const b = row && dr.bands[Number(row.getAttribute("data-dsp-band"))];
+    if (!b) return;
+    if (f === "freq") b.freq = Math.min(24000, Math.max(10, v));
+    else if (f === "gain") b.gain = Math.min(20, Math.max(-20, v));
+    else if (f === "q") b.q = Math.min(20, Math.max(0.1, v));
+    bumpDsp();
+  });
+  window.addEventListener("resize", () => { if (current && body.querySelector("[data-dsp-curve]")) drawDsp(); });
   navItem.addEventListener("click", () => { current = null; load(); });
   // Rows and states follow the network while either pane is open.
   setInterval(() => {

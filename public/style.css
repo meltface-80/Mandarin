@@ -4975,6 +4975,34 @@ button.cap-chip:active { transform: scale(.96); }
 .seg-btn.is-on { background: var(--accent); color: var(--card-ink, #fff); font-weight: 600; }
 .seg-btn:disabled { opacity: .4; cursor: default; }
 
+/* DSP (Settings → Audio Devices → a device): the response curve, a row per
+   band, the headroom, Save. */
+.dsp-curve { display: block; width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; background: var(--bg-elev-2); border: 1px solid var(--border); }
+.dsp-bands { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.dsp-band { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, .95fr) minmax(0, .8fr) minmax(0, .9fr) 26px; gap: 5px; align-items: end; }
+.dsp-type, .dsp-field input {
+  width: 100%; min-width: 0; box-sizing: border-box; height: 40px; padding: 0 7px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--bg-elev-2); color: var(--text); font: inherit; font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.dsp-type { appearance: none; -webkit-appearance: none; padding-right: 20px; font-size: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9b3a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 6px center; background-size: 14px; }
+.dsp-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dsp-field > span { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+.dsp-field.is-off { opacity: .4; }
+.dsp-field input:focus, .dsp-type:focus { outline: none; border-color: var(--accent); }
+.dsp-remove {
+  width: 26px; height: 40px; border: 0; border-radius: 9px; background: transparent; color: var(--text-dim);
+  font-size: 20px; line-height: 1; cursor: pointer;
+}
+.dsp-remove:hover { background: var(--bg-elev-2); color: var(--danger); }
+.dsp-add { margin-top: 10px; }
+.dsp-headroom-set { max-width: 140px; margin-top: 8px; }
+.dsp-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.dsp-dirty { font-size: 12.5px; color: var(--text-faint); }
+.dsp-actions .action-btn { flex: 0 0 auto; min-width: 110px; }
+
 /* Settings → Setup → Identify albums. */
 #identify-pane-body .settings-row { min-height: 40px; }
 #identify-pane-body .settings-row + .settings-row { margin-top: 8px; }
