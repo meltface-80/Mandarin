@@ -5,6 +5,30 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.38
+- **USB direct: the DAC's volume starts low.** A DAC with a USB volume control came up at
+  its own level — the DragonFly at full. The driver now sets the volume before the stream
+  starts: at 10% whenever USB direct is switched on or a DAC is plugged in, and where the
+  slider was set since on the tracks that follow. The slider follows a
+  loudness curve (50% is -18 dB, 20% is -42 dB) rather than a straight line across the DAC's
+  stated range. The Audio Devices page shows the level and the DAC's range while streaming.
+- **Fixed volume, a volume limit, and the phone's buttons.** Under USB direct: a Fixed
+  volume switch — on, the DAC is driven at full and the amplifier sets the level (the
+  default for a DAC with no USB volume control); off, the slider and the phone's volume
+  buttons drive the DAC's own control, or scale the samples in software for a DAC without
+  one (the default for a DAC with its own control, like the DragonFly). A volume limit
+  (default 80%) that the slider can't pass, so a DAC on headphones is never driven to full.
+  The phone's volume buttons, the lock screen and Bluetooth controls move the USB level
+  while the app plays through the DAC (the media session reports a remote device).
+- **USB direct: silence after a skip or a new album, fixed.** The stream was stopped and
+  restarted on every pause and seek, and the DAC could go quiet after that until its
+  interface was selected afresh; the track then ran on with no sound and moved on. The
+  engine now runs the packets continuously while the stream is open — PCM while playing,
+  silence when paused, between tracks or on an underrun — so a skip only empties the
+  buffer. The position counts only PCM the DAC has taken, and a stream that stops
+  completing packets for a second is reopened from where it is. The diagnostics carry
+  the engine's last events.
+
 ## v0.5.37
 - **Bit-perfect USB (Stage 9, part 2).** With USB direct on (this phone's page in Audio
   Devices), the app plays through its own USB audio driver: the DAC is fed the track at its own

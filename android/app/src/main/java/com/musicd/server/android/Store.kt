@@ -68,6 +68,20 @@ object Store {
     /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
+    /** The DAC's USB volume as the slider set it since direct went on (0–100), or -1 (forgotten): the driver then starts low. */
+    fun usbVolume(context: Context): Int = prefs(context).getInt("usb_volume", -1)
+    fun setUsbVolume(context: Context, pct: Int) { prefs(context).edit().putInt("usb_volume", if (pct < 0) -1 else pct.coerceIn(0, 100)).apply() }
+    /**
+     * Fixed volume with USB direct: the DAC at full, the amplifier's knob for
+     * the level. Unset, it follows the DAC: fixed for one with no USB volume
+     * control, the slider for one with (the DragonFly).
+     */
+    fun usbFixed(context: Context, default: Boolean): Boolean =
+        prefs(context).let { if (it.contains("usb_fixed")) it.getBoolean("usb_fixed", default) else default }
+    fun setUsbFixed(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_fixed", on).apply() }
+    /** The most the USB volume may be set to (0–100), so a DAC on headphones can never be driven to full. */
+    fun usbLimit(context: Context): Int = prefs(context).getInt("usb_limit", 80).coerceIn(1, 100)
+    fun setUsbLimit(context: Context, pct: Int) { prefs(context).edit().putInt("usb_limit", pct.coerceIn(1, 100)).apply() }
 
     fun localFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LOCAL_FOLDER, null)
     fun setLocalFolder(context: Context, uri: String?) {

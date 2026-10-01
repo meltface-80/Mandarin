@@ -497,6 +497,24 @@ sink: float packed to the DAC's subslot, the position from frames taken,
 Android's track for anything the DAC doesn't take). The report carries
 `usb: "rate/bits"`; the badge adds "USB 24/44.1 ✓".
 
+v0.5.38: the DAC's volume is set before the stream starts, never at the DAC's
+own level — 10% whenever direct goes on or a DAC is attached (Store
+`usb_volume` forgotten), then the slider's position for the tracks after;
+the slider maps on a loudness curve (60·log10 dB).
+Fixed volume (Store `usb_fixed`; default on for a DAC with no volume
+control, off for one with) drives the DAC at full; otherwise the slider,
+no higher than the limit (`usb_limit`, default 80), drives the DAC's
+feature unit or, for a DAC without one, a software gain in UsbAudioSink
+((level/100)³). The session's player (UsbVolumePlayer in
+PhonePlayerService) reports a remote device while the USB level is the
+slider's, so the volume buttons and lock screen move the DAC;
+MainActivity.onKeyDown does the same in the foreground. The native engine
+streams continuously once started (silence when paused or the ring is
+empty; flush only clears the ring; `playing` gates the ring, `streaming`
+the URBs); `framesDone` counts PCM only; a second without completions
+while playing marks the stream dead and the sink's recoverable
+WriteException has ExoPlayer reopen it.
+
 ### Today
 
 * The app plays through Media3 into a normal Android track (DspSink over

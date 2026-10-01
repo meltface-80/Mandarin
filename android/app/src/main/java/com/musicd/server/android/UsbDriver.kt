@@ -35,12 +35,56 @@ object UsbDriver {
         private set
     @Volatile var lastError: String? = null
         private set
-    @Volatile private var volumePct = 100
+    /**
+     * The DAC's volume starts low. A DAC with a USB volume control comes up
+     * wherever it likes (the DragonFly at full), and headphones are on the
+     * other end: switching USB direct on, or plugging a DAC in, starts the
+     * level at [SAFE_START]; the opens after that (the next track) keep what
+     * the slider set in between.
+     */
+    const val SAFE_START = 10
+    @Volatile private var volumePct = SAFE_START
     @Volatile private var muted = false
     private var volumeRange: IntArray? = null   // min, max, res in 1/256 dB (UAC1 and UAC2 alike)
+    private var app: Context? = null
 
     val active: Boolean get() = current != null
     val hasVolume: Boolean get() = current?.info?.volumeControl == true
+    /**
+     * Fixed volume: the DAC at full, the amplifier for the level. The setting
+     * when the user has made one; otherwise fixed for a DAC with no USB
+     * volume control, the slider for one with.
+     */
+    fun fixed(c: Context? = app): Boolean {
+        val ctx = c ?: return current?.info?.volumeControl != true
+        return Store.usbFixed(ctx, (UsbDac.info()?.volumeControl) != true)
+    }
+    /** The slider's ceiling, 0–100 (Store `usb_limit`); 100 with fixed volume. */
+    fun limit(c: Context? = app): Int = if (fixed(c)) 100 else (c?.let { Store.usbLimit(it) } ?: 100)
+    /** The slider drives the level: a stream is open and the volume isn't fixed (the DAC's own control, or software gain). */
+    val controlsVolume: Boolean get() = current != null && !fixed()
+    /** The level the DAC is driven at, 0–100: full with fixed volume, else the slider within the limit. */
+    fun level(): Int = if (fixed()) 100 else minOf(volumePct, limit())
+    /**
+     * The gain the sink applies, for a DAC with no volume control of its own
+     * when the volume isn't fixed: the same loudness curve as [applyVolume],
+     * (level/100)³. 1 means bit-perfect: nothing touched.
+     */
+    fun softwareGain(): Float {
+        val o = current ?: return 1f
+        if (o.info.volumeControl) return 1f
+        if (fixed()) return 1f
+        if (muted) return 0f
+        val l = level() / 100.0
+        return (l * l * l).toFloat()
+    }
+    /** A settings change (fixed, limit): the DAC's level follows at once. */
+    fun settingsChanged() {
+        volumePct = volumePct.coerceAtMost(limit())
+        current?.let { applyVolume(it.conn, it.info) }
+    }
+    /** The DAC's volume range as it states it, in dB: [min, max, step]; null when it has none or hasn't said. */
+    fun volumeDb(): DoubleArray? = volumeRange?.let { r -> doubleArrayOf(r[0] / 256.0, r[1] / 256.0, r[2] / 256.0) }
 
     /** "44100/24": what the DAC is being fed, for the badge. */
     fun describe(): String? = current?.let { "${it.rate}/${it.bits}" }
@@ -73,6 +117,12 @@ object UsbDriver {
         val ac = (0 until device.interfaceCount).map { device.getInterface(it) }.firstOrNull { it.id == info.controlInterface }
         if (ac != null) conn.claimInterface(ac, true)
         try {
+            // The volume first, before the stream is up: never a note at the DAC's own level.
+            app = c.applicationContext
+            volumePct = startVolume(c)
+            muted = false
+            readVolumeRange(conn, info)
+            if (info.volumeControl) applyVolume(conn, info)
             if (!setRate(conn, info, stream, rate)) Log.w(TAG, "the DAC didn't confirm the rate")
             val fbMax = if (stream.feedback != null) (if (info.speed == "high" || info.speed == "super") 4 else 3) else 0
             val h = nativeOpen(conn.fileDescriptor, stream.iface, stream.alt, stream.endpoint, stream.feedback ?: 0,
@@ -80,10 +130,9 @@ object UsbDriver {
                 stream.channels * stream.subslot, rate)
             if (h == 0L) { conn.releaseInterface(iface); conn.close(); return fail("the stream couldn't be set up (see the log)") }
             current = Open(device, conn, iface, stream, rate, h, info)
-            readVolumeRange(conn, info)
-            if (info.volumeControl) applyVolume()
             lastError = null
-            Log.i(TAG, "open: ${info.name} at $rate Hz, ${stream.bits}-bit, alt ${stream.alt}")
+            Log.i(TAG, "open: ${info.name} at $rate Hz, ${stream.bits}-bit, alt ${stream.alt}" +
+                (if (fixed(c)) ", fixed volume" else ", volume ${level()}% (limit ${limit(c)})" + (if (info.volumeControl) "" else " in software")))
             return true
         } catch (e: Throwable) {
             runCatching { conn.releaseInterface(iface) }; conn.close()
@@ -139,26 +188,45 @@ object UsbDriver {
         } catch (e: Exception) { Log.w(TAG, "volume range", e) }
     }
 
-    /** The slider, 0–100, onto the DAC's own control: a straight line in dB across its range. */
-    fun setVolume(pct: Int) { volumePct = pct.coerceIn(0, 100); applyVolume() }
-    fun setMute(on: Boolean) { muted = on; applyVolume() }
-    fun volume(): Int = volumePct
+    /** Where the volume starts on an open: what the slider set since direct went on, else [SAFE_START]. */
+    private fun startVolume(c: Context): Int {
+        val kept = Store.usbVolume(c)
+        val lim = Store.usbLimit(c)
+        return (if (kept in 0..100) kept else SAFE_START).coerceAtMost(lim)
+    }
+
+    /** USB direct switched on, or a DAC plugged in: the next open starts at [SAFE_START] again. */
+    fun forgetVolume(c: Context) { Store.setUsbVolume(c, -1); volumePct = SAFE_START }
+
+    /** The slider, 0–100, onto the level (a loudness curve, see [applyVolume]), no higher than the limit. Remembered for the next open. */
+    fun setVolume(pct: Int) {
+        if (fixed()) return
+        volumePct = pct.coerceIn(0, limit())
+        app?.let { Store.setUsbVolume(it, volumePct) }
+        current?.let { applyVolume(it.conn, it.info) }
+    }
+    /** The phone's volume buttons: a step of 5. */
+    fun stepVolume(up: Boolean) = setVolume(volumePct + (if (up) 5 else -5))
+    fun setMute(on: Boolean) { muted = on; current?.let { applyVolume(it.conn, it.info) } }
+    fun volume(): Int = if (fixed()) 100 else volumePct
     fun isMuted(): Boolean = muted
 
-    private fun applyVolume() {
-        val o = current ?: return
-        val info = o.info
+    private fun applyVolume(conn: UsbDeviceConnection, info: UsbDac.Info) {
         if (!info.volumeControl || info.featureUnit < 0) return
         val idx = (info.featureUnit shl 8) or info.controlInterface
         val range = volumeRange ?: intArrayOf(-64 * 256, 0, 256)
-        val span = range[1] - range[0]
-        var v = range[0] + Math.round(span * volumePct / 100.0).toInt()
-        if (range[2] > 0) v = range[0] + ((v - range[0]) / range[2]) * range[2]
-        if (volumePct == 0) v = range[0]
+        val pct = level()
+        // A loudness curve, not a straight line across the DAC's range (often
+        // -127 dB to 0): 60·log10(pct/100) dB below the top, so 50% is -18 dB,
+        // 20% is -42 dB and 10% is -60 dB, whatever the DAC states. 0% is its floor.
+        var v = if (pct <= 0) range[0] else range[1] + Math.round(256.0 * 60.0 * Math.log10(pct / 100.0)).toInt()
+        if (v < range[0]) v = range[0]
+        if (range[2] > 0 && v > range[0]) v = range[0] + ((v - range[0]) / range[2]) * range[2]
         val b = byteArrayOf((v and 0xff).toByte(), ((v shr 8) and 0xff).toByte())
         try {
-            o.conn.controlTransfer(0x21, 0x01, 0x0200, idx, b, 2, 500)
-            if (info.muteControl) o.conn.controlTransfer(0x21, 0x01, 0x0100, idx, byteArrayOf(if (muted) 1 else 0), 1, 500)
+            val n = conn.controlTransfer(0x21, 0x01, 0x0200, idx, b, 2, 500)
+            if (n != 2) Log.w(TAG, "the DAC didn't take the volume ($pct% = ${v / 256.0} dB)")
+            if (info.muteControl) conn.controlTransfer(0x21, 0x01, 0x0100, idx, byteArrayOf(if (muted) 1 else 0), 1, 500)
         } catch (e: Exception) { Log.w(TAG, "volume", e) }
     }
 

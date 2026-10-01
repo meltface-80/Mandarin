@@ -79,7 +79,7 @@ object UsbDac {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             when (i.action) {
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> refresh(c)
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> { UsbDriver.forgetVolume(c); refresh(c) }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> { UsbDriver.close(); refresh(c) }
                 ACTION_PERMISSION -> {
                     val granted = i.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
@@ -165,6 +165,7 @@ object UsbDac {
         val d = device
         val o = JSONObject().put("attached", d != null).put("permission", permission)
             .put("direct", Store.usbDirect(c)).put("error", error ?: JSONObject.NULL)
+            .put("fixed", UsbDriver.fixed(c)).put("limit", Store.usbLimit(c))
         if (d != null) {
             val maker = d.manufacturerName ?: ""
             val name = d.productName ?: "USB audio device"
@@ -176,7 +177,9 @@ object UsbDac {
         info?.let { o.put("info", it.json()) }
         // The stream, when one is open (9.2): what the DAC is being fed, and how it is going.
         UsbDriver.current?.let { s -> o.put("stream", JSONObject().put("rate", s.rate).put("bits", s.bits).put("alt", s.stream.alt)
-            .put("volume", if (s.info.volumeControl) UsbDriver.volume() else JSONObject.NULL).put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }
+            .put("volume", UsbDriver.volume()).put("level", UsbDriver.level()).put("software_volume", UsbDriver.softwareGain() != 1f)
+            .put("volume_db", UsbDriver.volumeDb()?.let { r -> JSONObject().put("min", r[0]).put("max", r[1]).put("step", r[2]) } ?: JSONObject.NULL)
+            .put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }
         UsbDriver.lastError?.let { o.put("stream_error", it) }
         return o
     }
