@@ -5100,41 +5100,39 @@ button.cap-chip:active { transform: scale(.96); }
 [data-theme="dark"][data-palette="hifi"] {
   --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Young Serif", Georgia, "Times New Roman", serif;
-  --bg:           #132019;
-  --bg-elev:      #1a2a22;
-  --bg-elev-2:    #20322a;
-  --border:       #2d4337;
-  --text:         #efe6d4;
-  --text-dim:     #a9b3a4;
-  --text-faint:   #95a291;
+  /* Graphite and brass (v0.5.42): a warm charcoal ground, flat — no felt,
+     no mottle, no glow — one elevated tone for the cards, the mini player
+     and the panels, and the brass as the one accent: headings, the discs,
+     the play button, the lit segments. */
+  --bg:           #17191c;
+  --bg-elev:      #1f2226;
+  --bg-elev-2:    #262a2f;
+  --border:       #30353b;
+  --text:         #ecebe6;
+  --text-dim:     #9a9ca1;
+  --text-faint:   #7a7d83;
   --accent:       #c9a45c;
   --accent-text:  #d4b06a;
   --accent-soft:  rgba(201,164,92,.15);
-  --on-accent:    #132019;
-  --bg-veil:      rgba(19,32,25,.86);
+  --on-accent:    #17191c;
+  --bg-veil:      rgba(23,25,28,.88);
   --glass-edge:   rgba(201,164,92,.22);
   --danger:       #e8836b;
-  --panel-hairline: rgba(239,230,212,.08);
+  --panel-hairline: rgba(236,235,230,.08);
   --shadow-card:  0 2px 6px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.4);
   --shadow-modal: 0 24px 64px rgba(0,0,0,.65);
   /* The mini player's body, the level meter's unlit segments, the genre
-     cards' text (they stay felt-toned in both themes). */
-  --mt-bg:        rgba(29,46,38,.94);
-  --meter-off:    rgba(239,230,212,.12);
-  --card-ink:     #efe6d4;
-  /* The duck's purple (v0.5.19): a darker plum for the glyphs, the rings,
-     the discs and the volume controls; a pale plum for the glyph on a disc. */
-  --plum:         #8b6fb0;
-  --plum-pale:    #cfc0e4;
-  /* The felt: a fine warm grain and a faint larger mottle, drawn once and
-     tiled on the ground (never an overlay over content — nothing composites
-     over the scroller). */
-  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .1 0 0 0 0 .07 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+     cards' text. */
+  --mt-bg:        rgba(31,34,38,.97);
+  --meter-off:    rgba(236,235,230,.12);
+  --card-ink:     #ecebe6;
+  /* The discs (the top bar's menu and search, the album view's back, home
+     and share), the volume controls and the glyphs on their own: brass, the
+     glyph on a disc in the ground's charcoal. The names are kept from the
+     plum they replaced (app.js reads --plum for the DSP curve). */
+  --plum:         #c9a45c;
+  --plum-pale:    #17191c;
 }
-html[data-palette="hifi"] { background-image: var(--felt); }
-[data-palette="hifi"] .modal-panel,
-[data-palette="hifi"] .settings-sheet { background-image: var(--felt); }
 
 /* Titles in the serif; the rest in Manrope. */
 [data-palette="hifi"] .album-count,
@@ -5145,7 +5143,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 /* The top bar's rule, faint and warm. */
 [data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
 /* Buttons with a disc — the top bar's menu, search and settings, the album
-   view's back, home and share: a plum disc, the glyph in the pale plum. */
+   view's back, home and share: a brass disc, the glyph in the charcoal. */
 [data-palette="hifi"] .topbar .icon-btn,
 [data-palette="hifi"] .modal .modal-close,
 [data-palette="hifi"] .modal .modal-home,
@@ -5156,15 +5154,14 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .modal .modal-close:hover,
 [data-palette="hifi"] .modal .modal-home:hover,
 [data-palette="hifi"] .modal .modal-share:hover { background: var(--plum); color: var(--plum-pale); filter: brightness(1.08); }
-/* The search box, open: a plum pill, the glass in plum. */
+/* The search box, open: a brass pill, the glass in brass. */
 [data-palette="hifi"] .search-box:focus-within { border-color: var(--plum); box-shadow: 0 0 0 3px rgba(139,111,176,.22); }
 [data-palette="hifi"] .search-box:focus-within .search-ico,
 [data-palette="hifi"] .search-ico { color: var(--plum); }
 /* The side menu's icons. */
 [data-palette="hifi"] .menu-item svg { color: var(--plum); }
 /* Volume, on Now playing and above the mini player: the speaker, the number,
-   the 0 and 100, the − and + and the thumb all in the plum; the thumb a
-   little smaller than it was. */
+   the 0 and 100, the − and + and the thumb all in the brass. */
 [data-palette="hifi"] .vol-readout .vol-icon,
 [data-palette="hifi"] .vol-readout .vol-value,
 [data-palette="hifi"] .vol-scale { color: var(--plum); }
@@ -5172,7 +5169,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] input.vol-range::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8px; background: var(--plum); }
 [data-palette="hifi"] input.vol-range::-moz-range-thumb { width: 22px; height: 22px; background: var(--plum); }
 /* Glyphs on their own — the mini player's zone and volume, Now playing's
-   device and volume, previous and next — in the plum. */
+   device and volume, previous and next — in the brass. */
 [data-palette="hifi"] .mt-btn,
 [data-palette="hifi"] .np-mini-btn,
 [data-palette="hifi"] .np-btn { color: var(--plum); }
@@ -5182,7 +5179,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .mt-btn:disabled,
 [data-palette="hifi"] .np-btn:disabled,
 [data-palette="hifi"] .np-mini-btn:disabled { color: var(--text-faint); }
-/* Settings: the list's icons are plain glyphs, in the plum. */
+/* Settings: the list's icons are plain glyphs, in the brass. */
 [data-palette="hifi"] .settings-nav-ico { color: var(--plum); }
 
 /* ---- Home ---------------------------------------------------------- */
@@ -5212,15 +5209,14 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 
 [data-palette="hifi"] .home-carousel { grid-auto-columns: 144px; gap: 16px; padding-bottom: 18px; }
 
-/* Covers: rounder, and glowing in their own colour (--glow, set by app.js
-   from the picture; gold until it has loaded). */
+/* Covers: rounder, flat on the ground with a hairline edge. */
 [data-palette="hifi"] .album-art-wrap {
   border-radius: 12px;
-  box-shadow: 0 16px 30px -14px rgba(var(--glow, 201,164,92), .7), inset 0 0 0 1px rgba(255,255,255,.05);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
 }
 @media (hover: hover) and (pointer: fine) {
   [data-palette="hifi"] .album:hover .album-art-wrap {
-    box-shadow: 0 20px 36px -12px rgba(var(--glow, 201,164,92), .85), inset 0 0 0 1px rgba(255,255,255,.07);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
   }
 }
 [data-palette="hifi"] .album-meta { margin-top: 11px; }
@@ -5236,14 +5232,14 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   [data-palette="hifi"] .home-unheard-tile:hover .unheard-glyph { color: var(--accent-text); }
 }
 
-/* Smart Picks on Home: the same glow. (The reason is on the Smart Picks page.) */
+/* Smart Picks on Home: the same flat tile. */
 [data-palette="hifi"] .home-carousel .pick-card { width: 156px; }
 [data-palette="hifi"] .pick-art {
   border-radius: 12px; border: 0;
-  box-shadow: 0 16px 30px -14px rgba(201,164,92,.55), inset 0 0 0 1px rgba(255,255,255,.05);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
 }
 
-/* Browse by genre: felt cards in six earthy tones, each with a soft disc. */
+/* Browse by genre: cards in six earthy tones, each with a soft disc. */
 [data-palette="hifi"] .home-genre-card {
   position: relative; overflow: hidden; min-height: 88px; align-items: flex-end;
   font-family: var(--font-display); font-weight: 400; font-size: 18px;
@@ -5276,7 +5272,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
   display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
   color: var(--accent-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px;
 }
-[data-palette="hifi"] .mt-art { border-radius: 10px; box-shadow: 0 10px 22px -10px rgba(201,164,92,.6); }
+[data-palette="hifi"] .mt-art { border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
 /* Progress as a level meter along the bottom: gold segments over faint ones. */
 [data-palette="hifi"] .mt-progress {
   inset: auto 16px 7px 16px; height: 4px; border-radius: 0; overflow: hidden;
@@ -5287,10 +5283,10 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 [data-palette="hifi"] .mt-progress-fill {
   height: 100%; border-top: 0; border-radius: 0; background: var(--accent);
 }
-/* Play/pause, here and on Now playing: a plum disc, the glyph in the cream. */
+/* Play/pause, here and on Now playing: a brass disc, the glyph in the charcoal. */
 [data-palette="hifi"] .mt-playpause,
 [data-palette="hifi"] .np-playpause {
-  background: var(--plum); color: var(--text); border: 1px solid rgba(239,230,212,.18);
+  background: var(--accent); color: var(--on-accent); border: 1px solid transparent;
 }
 /* Now playing's seek bar: the same level meter as the mini player's — gold
    segments over faint ones, the thumb riding along them. The waveform, where
@@ -5307,7 +5303,7 @@ html[data-palette="hifi"] { background-image: var(--felt); }
 }
 @media (hover: hover) and (pointer: fine) {
   [data-palette="hifi"] .mt-playpause:hover,
-  [data-palette="hifi"] .np-playpause:hover { background: var(--plum); color: var(--text); filter: brightness(1.12); }
+  [data-palette="hifi"] .np-playpause:hover { background: var(--accent); color: var(--on-accent); filter: brightness(1.1); }
 }
 
 /* ---- The album view (Mandarin Dark) ------------------------------- */
