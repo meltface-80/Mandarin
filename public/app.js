@@ -2746,6 +2746,9 @@
   // settings sheets, built as live nodes (never restored from an HTML string).
   // `onClose` fires on EVERY dismissal path — X, backdrop, and the footer
   // buttons — so a caller that mutated shared state on open can undo it.
+  // A name for something: the page's own dialog (the WebView has no prompt box).
+  const askName = (message, initial) =>
+    window.__promptDialog ? window.__promptDialog(message, initial) : Promise.resolve(window.prompt(message, initial));
   function openLibSheet(title, buildBody, footer, onClose) {
     const back = document.createElement("div");
     back.className = "lib-sheet-backdrop";
@@ -2838,8 +2841,8 @@
           b.addEventListener("click", () => { close(); fn(); });
           body.appendChild(b);
         };
-        row("＋ New playlist…", () => {
-          const name = window.prompt("Name this playlist", "My playlist");
+        row("＋ New playlist…", async () => {
+          const name = await askName("Name this playlist", "My playlist");
           if (name === null) return;
           const trimmed = String(name).trim();
           if (!trimmed) { showToast("Give it a name", "error"); return; }
@@ -3275,7 +3278,7 @@
     save.type = "button"; save.className = "action-btn primary import-save";
     save.textContent = `Save ${n} track${n === 1 ? "" : "s"} as a playlist`;
     save.addEventListener("click", async () => {
-      const name = window.prompt("Name this playlist", j.name || "Shared playlist");
+      const name = await askName("Name this playlist", j.name || "Shared playlist");
       if (name === null) return;
       const trimmed = String(name).trim();
       if (!trimmed) { showToast("Give it a name", "error"); return; }
@@ -3934,11 +3937,11 @@
     // NOT describeLibView(): using the description as the default name printed
     // the same string as both the row's title and its subtitle.
     const suggested = (existing && existing.name) || "My Dynamic Playlist";
-    const name = window.prompt("Name this Dynamic Playlist", suggested);
-    if (name === null) return;                 // cancelled
-    const trimmed = String(name).trim();
-    if (!trimmed) { showToast("Give it a name", "error"); return; }
     (async () => {
+      const name = await askName("Name this Dynamic Playlist", suggested);
+      if (name === null) return;                 // cancelled
+      const trimmed = String(name).trim();
+      if (!trimmed) { showToast("Give it a name", "error"); return; }
       try {
         const r = await fetch("/api/smart-playlists", {
           method: "POST",
@@ -5663,6 +5666,45 @@
   // browser's own confirm() with "no" (it has no dialog for it), so a
   // yes/no anywhere in the page is asked with this one.
   window.__confirmDialog = confirmDialog;
+
+  // A name, asked the same way. Resolves the text, or null when cancelled —
+  // what prompt() would give, which the WebView answers with null every time
+  // (so "New playlist…" and "Save as…" used to close and do nothing in the app).
+  function promptDialog(message, initial, okLabel) {
+    return new Promise((resolve) => {
+      const ov = document.getElementById("prompt-overlay");
+      const form = document.getElementById("prompt-form");
+      const msg = document.getElementById("prompt-msg");
+      const input = document.getElementById("prompt-input");
+      const ok = document.getElementById("prompt-ok");
+      const cancel = document.getElementById("prompt-cancel");
+      if (!ov || !form || !msg || !input || !ok || !cancel) { resolve(window.prompt(message, initial || "")); return; }
+      msg.textContent = message;
+      input.value = initial || "";
+      ok.textContent = okLabel || "Save";
+      let done = false;
+      const close = (val) => {
+        if (done) return; done = true;
+        ov.classList.add("hidden");
+        form.removeEventListener("submit", onSubmit);
+        cancel.removeEventListener("click", onCancel);
+        ov.removeEventListener("click", onBackdrop);
+        document.removeEventListener("keydown", onKey);
+        resolve(val);
+      };
+      const onSubmit = (e) => { e.preventDefault(); close(input.value); };
+      const onCancel = () => close(null);
+      const onBackdrop = (e) => { if (e.target.classList.contains("confirm-backdrop")) close(null); };
+      const onKey = (e) => { if (e.key === "Escape") close(null); };
+      form.addEventListener("submit", onSubmit);
+      cancel.addEventListener("click", onCancel);
+      ov.addEventListener("click", onBackdrop);
+      document.addEventListener("keydown", onKey);
+      ov.classList.remove("hidden");
+      setTimeout(() => { input.focus(); input.select(); }, 30);
+    });
+  }
+  window.__promptDialog = promptDialog;
 
   zoneSel.addEventListener("change", async () => {
     const newZoneId  = zoneSel.value;
