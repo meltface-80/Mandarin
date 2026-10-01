@@ -15662,13 +15662,31 @@ initServiceBrowser({
       '<label class="switch"><input type="checkbox" data-usb-direct' + (u.direct ? " checked" : "") + ' aria-label="USB direct">' +
       '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
       '<div class="settings-note">' + (u.direct
-        ? "On. The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before." +
-          (i.volume_control ? " The volume slider drives the DAC’s own control: it starts low the first time (never at the DAC’s own level), then where you last left it." : " The volume is fixed at full; set it on the amplifier.")
+        ? "On. The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before."
         : "Off. The phone plays through Android’s mixer, at the mixer’s rate.") + "</div>";
+    if (u.direct) {
+      const fixed = !!u.fixed;
+      const limit = Number(u.limit) || 80;
+      html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">Fixed volume</span>' +
+        '<label class="switch"><input type="checkbox" data-usb-fixed' + (fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
+        '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+        '<div class="settings-note">' + (fixed
+          ? "On. The DAC is driven at full and the amplifier sets the level — for a DAC into a preamp. Not for headphones on a DAC with its own volume control."
+          : (i.volume_control
+            ? "Off. The volume slider and the phone’s volume buttons drive the DAC’s own control. It starts low the first time, never at the DAC’s own level, then where you last left it."
+            : "Off. This DAC has no USB volume control, so the slider and the phone’s volume buttons scale the samples before they go out — no longer bit-perfect. Switch on for bit-perfect at full.")) + "</div>";
+      if (!fixed) {
+        html += '<div class="settings-row" style="margin-top:10px"><span class="settings-label">Volume limit</span>' +
+          '<span class="dev-v" data-usb-limit-value>' + limit + '%</span></div>' +
+          '<input type="range" min="10" max="100" step="5" value="' + limit + '" data-usb-limit aria-label="Volume limit" style="width:100%">' +
+          '<div class="settings-note">The most the volume can be set to through USB — the slider stops here, so the DAC is never driven to full by mistake.</div>';
+      }
+    }
     if (st) {
       const s = st.stats || {};
       html += '<div class="cap-group"><span class="cap-label">Streaming now</span><div class="dev-v">' + esc(fmtRate(st.rate)) + " kHz · " + esc(st.bits) + "-bit" +
-        (typeof st.volume === "number" ? " · volume " + st.volume + "%" + (st.volume_db ? " (" + Number(st.volume_db.min).toFixed(1) + " to " + Number(st.volume_db.max).toFixed(1) + " dB)" : "") : "") +
+        (u.fixed ? " · fixed volume" : (typeof st.level === "number" ? " · volume " + st.level + "%" + (st.software_volume ? " in software" : "") +
+          (st.volume_db ? " (DAC range " + Number(st.volume_db.min).toFixed(1) + " to " + Number(st.volume_db.max).toFixed(1) + " dB)" : "") : "")) +
         (s.running === false ? " · paused" : "") +
         (s.feedback ? " · feedback " + Number(s.feedback).toFixed(3) + " frames/packet" : "") +
         (s.underruns ? " · " + s.underruns + " underrun" + (s.underruns === 1 ? "" : "s") : "") + (s.errors ? " · " + s.errors + " error" + (s.errors === 1 ? "" : "s") : "") + "</div></div>";
@@ -15981,6 +15999,10 @@ initServiceBrowser({
     if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
     const ud = e.target.closest("[data-usb-direct]");
     if (ud) { try { USB.setDirect(ud.checked); } catch (x) { toast(x.message, "error"); } return; }
+    const uf = e.target.closest("[data-usb-fixed]");
+    if (uf) { try { USB.setFixed(uf.checked); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
+    const ul = e.target.closest("[data-usb-limit]");
+    if (ul) { try { USB.setLimit(Number(ul.value)); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
     const dspOn = e.target.closest("[data-dsp-on]");
     if (dspOn) return saveDsp(dspOn.checked);
     const bandType = e.target.closest("select[data-dsp-f='type']");
@@ -16006,6 +16028,8 @@ initServiceBrowser({
   // A band's numbers as they are typed: the curve and the headroom follow.
   body.addEventListener("input", (e) => {
     if (!current) return;
+    const ul = e.target.closest("[data-usb-limit]");
+    if (ul) { const v = body.querySelector("[data-usb-limit-value]"); if (v) v.textContent = ul.value + "%"; return; }
     const hq = e.target.closest("[data-hp-q]");
     if (hq) { const dr = dspOf(current); if (dr.hp) { dr.hp.q = hq.value; clearTimeout(hpTimer); hpTimer = setTimeout(() => hpSearch(dr), 250); } return; }
     const hn = e.target.closest("[data-hp-name]"); if (hn) { const dr = dspOf(current); if (dr.hp) dr.hp.name = hn.value; return; }

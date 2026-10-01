@@ -11,7 +11,15 @@ Versioning: each set of changes is a development build and takes the next third 
   starts: the first time no higher than 20% (the phone's own volume when that is lower),
   after that where the slider last left it, remembered across runs. The slider follows a
   loudness curve (50% is -18 dB, 20% is -42 dB) rather than a straight line across the DAC's
-  stated range. The Audio Devices page shows the volume and the DAC's range while streaming.
+  stated range. The Audio Devices page shows the level and the DAC's range while streaming.
+- **Fixed volume, a volume limit, and the phone's buttons.** Under USB direct: a Fixed
+  volume switch — on, the DAC is driven at full and the amplifier sets the level (the
+  default for a DAC with no USB volume control); off, the slider and the phone's volume
+  buttons drive the DAC's own control, or scale the samples in software for a DAC without
+  one (the default for a DAC with its own control, like the DragonFly). A volume limit
+  (default 80%) that the slider can't pass, so a DAC on headphones is never driven to full.
+  The phone's volume buttons, the lock screen and Bluetooth controls move the USB level
+  while the app plays through the DAC (the media session reports a remote device).
 
 ## v0.5.37
 - **Bit-perfect USB (Stage 9, part 2).** With USB direct on (this phone's page in Audio

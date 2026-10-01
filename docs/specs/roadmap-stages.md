@@ -500,6 +500,14 @@ Android's track for anything the DAC doesn't take). The report carries
 v0.5.38: the DAC's volume is set before the stream starts, never at the DAC's
 own level — the first open at most 20%, then the slider's last position
 (Store `usb_volume`); the slider maps on a loudness curve (60·log10 dB).
+Fixed volume (Store `usb_fixed`; default on for a DAC with no volume
+control, off for one with) drives the DAC at full; otherwise the slider,
+no higher than the limit (`usb_limit`, default 80), drives the DAC's
+feature unit or, for a DAC without one, a software gain in UsbAudioSink
+((level/100)³). The session's player (UsbVolumePlayer in
+PhonePlayerService) reports a remote device while the USB level is the
+slider's, so the volume buttons and lock screen move the DAC;
+MainActivity.onKeyDown does the same in the foreground.
 
 ### Today
 

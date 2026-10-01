@@ -78,8 +78,10 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         if (out.capacity() < need) out = ByteBuffer.allocateDirect(need).order(ByteOrder.LITTLE_ENDIAN)
         out.clear()
         val src = buffer.duplicate().order(ByteOrder.nativeOrder())
+        // 1 (the usual: a DAC with its own volume control, or fixed volume) leaves the samples untouched.
+        val gain = UsbDriver.softwareGain()
         for (i in 0 until samples) {
-            var v = src.getFloat()
+            var v = src.getFloat() * gain
             if (v > 1f) v = 1f else if (v < -1f) v = -1f
             when (subslot) {
                 2 -> out.putShort(Math.round(v * 32767f).toShort())

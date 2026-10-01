@@ -274,7 +274,8 @@ class PhonePlayerService : MediaLibraryService() {
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        session = MediaLibrarySession.Builder(this, player, Library()).setSessionActivity(open).build()
+        val sp = UsbVolumePlayer(player).also { sessionPlayer = it }
+        session = MediaLibrarySession.Builder(this, sp, Library()).setSessionActivity(open).build()
         // Media3 shows the notification and lock-screen controls (and keeps the
         // service in the foreground while it plays) only for sessions it has
         // been given. It's given them when a controller connects — Bluetooth,
@@ -543,8 +544,56 @@ class PhonePlayerService : MediaLibraryService() {
     @Volatile private var usbSink: UsbAudioSink? = null
     /** Playing through the USB driver right now: "rate/bits", else null. */
     private fun usbNow(): String? = if (usbSink?.usb == true && UsbDriver.active) UsbDriver.describe() else null
-    /** The DAC's own volume control is what the slider drives. */
-    private fun usbVolume(): Boolean = usbSink?.usb == true && UsbDriver.hasVolume
+    /** The USB level is what the slider drives: the DAC's own control, or software gain for a DAC without one — unless the volume is fixed. */
+    private fun usbVolume(): Boolean = usbSink?.usb == true && UsbDriver.controlsVolume
+    /** The phone's volume buttons, in USB direct: a step on the USB level. False when they are Android's to handle. */
+    fun usbVolumeKey(up: Boolean): Boolean {
+        if (!usbVolume()) return false
+        UsbDriver.stepVolume(up)
+        usbVolumeChanged()
+        return true
+    }
+    /** The USB level, or the fixed/limit settings, changed: the page and the lock screen follow. */
+    fun usbVolumeChanged() {
+        reportSoon(); bumpRevision()
+        main.post { sessionPlayer?.deviceChanged() }
+    }
+    /**
+     * The player the media session sees. In USB direct with the slider
+     * driving the level, it tells the session the volume is a remote
+     * device's (0–100, the USB level) so the phone's volume buttons, the lock
+     * screen and Bluetooth controls move the DAC, not Android's stream —
+     * which plays nothing then.
+     */
+    @Volatile private var sessionPlayer: UsbVolumePlayer? = null
+    private inner class UsbVolumePlayer(p: Player) : androidx.media3.common.ForwardingPlayer(p) {
+        private val listeners = java.util.concurrent.CopyOnWriteArraySet<Player.Listener>()
+        private val remote = androidx.media3.common.DeviceInfo.Builder(androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE).setMinVolume(0).setMaxVolume(100).build()
+        private fun usb() = usbVolume()
+        override fun addListener(listener: Player.Listener) { listeners.add(listener); super.addListener(listener) }
+        override fun removeListener(listener: Player.Listener) { listeners.remove(listener); super.removeListener(listener) }
+        override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands().buildUpon()
+            .addAll(Player.COMMAND_GET_DEVICE_VOLUME, Player.COMMAND_SET_DEVICE_VOLUME_WITH_FLAGS, Player.COMMAND_ADJUST_DEVICE_VOLUME_WITH_FLAGS).build()
+        override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
+        override fun getDeviceInfo(): androidx.media3.common.DeviceInfo = if (usb()) remote else super.getDeviceInfo()
+        override fun getDeviceVolume(): Int = if (usb()) UsbDriver.volume() else
+            Math.round(audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)).toInt()
+        override fun isDeviceMuted(): Boolean = if (usb()) UsbDriver.isMuted() else Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC)
+        private fun set(v: Int) { onPlayer { this@PhonePlayerService.apply(Phone.Command(0, "volume", value = v), fromPage = true); usbVolumeChanged() } }
+        @Deprecated("flags") override fun setDeviceVolume(volume: Int) = set(volume)
+        override fun setDeviceVolume(volume: Int, flags: Int) = set(volume)
+        @Deprecated("flags") override fun increaseDeviceVolume() = set(deviceVolume + 5)
+        override fun increaseDeviceVolume(flags: Int) = set(deviceVolume + 5)
+        @Deprecated("flags") override fun decreaseDeviceVolume() = set(deviceVolume - 5)
+        override fun decreaseDeviceVolume(flags: Int) = set(deviceVolume - 5)
+        @Deprecated("flags") override fun setDeviceMuted(muted: Boolean) = setDeviceMuted(muted, 0)
+        override fun setDeviceMuted(muted: Boolean, flags: Int) { onPlayer { this@PhonePlayerService.apply(Phone.Command(0, "mute", muted = muted), fromPage = true); usbVolumeChanged() } }
+        /** The USB path came or went, or the level moved: the session re-reads the device. */
+        fun deviceChanged() {
+            val info = deviceInfo; val v = deviceVolume; val m = isDeviceMuted
+            for (l in listeners) { runCatching { l.onDeviceInfoChanged(info); l.onDeviceVolumeChanged(v, m) } }
+        }
+    }
     /**
      * USB direct switched, or the DAC came or went: the sink decides per
      * track, so the current one is started again from where it is (a short
@@ -564,6 +613,8 @@ class PhonePlayerService : MediaLibraryService() {
         player.prepare()
         player.playWhenReady = playing
         reportSoon()
+        // The sink opens the stream on the next buffer; the session learns of the volume's new home shortly after.
+        main.postDelayed({ sessionPlayer?.deviceChanged() }, 1500)
     }
     /** A setting from the server (hello, or a "dsp" command): run from the next buffer, kept for offline. */
     private fun applyDsp(json: JSONObject) {
@@ -1150,8 +1201,8 @@ class PhonePlayerService : MediaLibraryService() {
             p.currentPosition / 1000.0, if (p.duration > 0) p.duration / 1000.0 else 0.0,
             p.shuffleModeEnabled,
             when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
-            (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
+            if (usbVolume()) UsbDriver.volume() else (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
+            if (usbVolume()) UsbDriver.isMuted() else Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
             items, revision, formatOf(p.currentMediaItem).let { if (it == FORMAT_OPUS && floatOpus()) FORMAT_OPUS24 else it },
             dsp.active, usbNow()
         )

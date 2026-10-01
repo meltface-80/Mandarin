@@ -487,6 +487,14 @@ class MainActivity : Activity() {
         back()
     }
 
+    /** The volume buttons move the USB DAC's level when the app plays through it (Stage 9); Android's stream otherwise. */
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (PhonePlayerService.current?.usbVolumeKey(keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) == true) return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     /** Run [js] in the page (from any thread). */
     fun tellPage(js: String) {
         runOnUiThread {

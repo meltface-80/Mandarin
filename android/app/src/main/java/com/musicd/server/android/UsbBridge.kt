@@ -11,6 +11,8 @@ import android.webkit.JavascriptInterface
  *   MusicdUsb.refresh()      look at the port again
  *   MusicdUsb.phoneZone()    this phone's zone id, so the page knows whose device page to put it on
  *   MusicdUsb.setDirect(on)  the USB direct switch (plays through the driver from 9.2)
+ *   MusicdUsb.setFixed(on)   fixed volume (the DAC at full) or the slider
+ *   MusicdUsb.setLimit(pct)  the most the slider may set
  *   MusicdUsb.diagnostics()  everything as text, for a report
  *
  * The app calls window.__musicdUsbChanged() when the port changes.
@@ -34,6 +36,22 @@ class UsbBridge(private val activity: Activity) {
     fun setDirect(on: Boolean) {
         Store.setUsbDirect(activity, on)
         activity.runOnUiThread { PhonePlayerService.current?.usbChanged() }
+    }
+
+    /** Fixed volume: the DAC at full, the amplifier for the level. */
+    @JavascriptInterface
+    fun setFixed(on: Boolean) {
+        Store.setUsbFixed(activity, on)
+        UsbDriver.settingsChanged()
+        activity.runOnUiThread { PhonePlayerService.current?.usbVolumeChanged() }
+    }
+
+    /** The volume limit, 1–100: the slider can't go above it. */
+    @JavascriptInterface
+    fun setLimit(pct: Int) {
+        Store.setUsbLimit(activity, pct)
+        UsbDriver.settingsChanged()
+        activity.runOnUiThread { PhonePlayerService.current?.usbVolumeChanged() }
     }
 
     @JavascriptInterface
