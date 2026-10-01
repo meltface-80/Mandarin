@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.28
+- **Listen later.** Put an album aside to play another time: on its page, ⋯ → Listen later, or
+  select several albums on a wall and choose Listen later. They are a Home row and a wall of
+  their own (also in the side menu), newest first, kept on the server by the album's identity
+  so they survive a rescan. An album comes off the list by itself once every one of its tracks
+  has been played since it was put aside — on any zone — or by hand. (Stage 7, the last of the
+  roadmap.)
+
 ## v0.5.27
 - **Downloads that outlive the app.** Settings → Downloads → Save to now offers the music
   folder's own “Mandarin” folder (the folder chosen for Music on this phone, on the phone or an
