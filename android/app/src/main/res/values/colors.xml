@@ -3,7 +3,7 @@
     <!-- The page's own background, so the window never flashes a different
          colour behind it while it loads. -->
     <color name="app_background">#FF132019</color>
-    <!-- The launcher icon's felt, behind the cream duck (Mandarin's badge). -->
-    <color name="icon_background">#FF1D2E26</color>
+    <!-- The launcher icon's plum, behind the white duck (Mandarin's badge). -->
+    <color name="icon_background">#FF8B6FB0</color>
     <color name="accent">#FFC9A45C</color>
 </resources>

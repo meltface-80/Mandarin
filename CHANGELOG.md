@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.35
+- **The icon in plum.** The duck is white now, on the plum of the transport controls, with the
+  gold level meter kept: the Android launcher (square, round and adaptive), the web app's
+  icons, the Apple touch icon, the favicon and the site's.
+
 ## v0.5.34
 - **A Playlists row on Home.** Your playlists and the Dynamic Playlists on one shelf (the
   side menu keeps their two screens): yours first, newest change first, then the Dynamic ones

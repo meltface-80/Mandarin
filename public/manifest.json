@@ -9,11 +9,11 @@
   "background_color": "#0e1012",
   "theme_color": "#0e1012",
   "icons": [
-    { "src": "/icons/icon-192.png?v=mandarin", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-256.png?v=mandarin", "sizes": "256x256", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-384.png?v=mandarin", "sizes": "384x384", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png?v=mandarin", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-192.png?v=mandarin", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/maskable-512.png?v=mandarin", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icons/icon-192.png?v=plum", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-256.png?v=plum", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-384.png?v=plum", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png?v=plum", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png?v=plum", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png?v=plum", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
