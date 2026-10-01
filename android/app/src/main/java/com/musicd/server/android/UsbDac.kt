@@ -166,6 +166,8 @@ object UsbDac {
         val o = JSONObject().put("attached", d != null).put("permission", permission)
             .put("direct", Store.usbDirect(c)).put("error", error ?: JSONObject.NULL)
             .put("fixed", UsbDriver.fixed(c)).put("limit", Store.usbLimit(c))
+            .put("dsd_mode", Store.usbDsd(c))
+            .put("dsd_native", JSONArray(UsbDriver.dsdCaps(info).first)).put("dsd_dop", JSONArray(UsbDriver.dsdCaps(info).second))
         if (d != null) {
             val maker = d.manufacturerName ?: ""
             val name = d.productName ?: "USB audio device"
@@ -177,6 +179,7 @@ object UsbDac {
         info?.let { o.put("info", it.json()) }
         // The stream, when one is open (9.2): what the DAC is being fed, and how it is going.
         UsbDriver.current?.let { s -> o.put("stream", JSONObject().put("rate", s.rate).put("bits", s.bits).put("alt", s.stream.alt)
+            .put("kind", s.kind).put("dsd", if (s.dsd) s.dsdMultiple else JSONObject.NULL)
             .put("volume", UsbDriver.volume()).put("level", UsbDriver.level()).put("software_volume", UsbDriver.softwareGain() != 1f)
             .put("volume_db", UsbDriver.volumeDb()?.let { r -> JSONObject().put("min", r[0]).put("max", r[1]).put("step", r[2]) } ?: JSONObject.NULL)
             .put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }

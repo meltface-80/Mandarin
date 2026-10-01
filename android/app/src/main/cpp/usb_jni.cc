@@ -171,7 +171,16 @@ struct Driver {
   std::atomic<int64_t> lastDoneMs{0};
   std::string lastError;
   std::string events;                   // the last lifecycle calls, newest last
+  // What goes out when there is nothing to send: zeros for PCM, DSD silence
+  // (0x69) for native DSD, DoP frames with their markers — repeated in phase.
+  std::vector<uint8_t> silence;
+  size_t silPos = 0;
 };
+
+void fillSilence(Driver* d, uint8_t* p, size_t n) {
+  if (d->silence.empty()) { memset(p, 0, n); return; }
+  for (size_t i = 0; i < n; i++) { p[i] = d->silence[d->silPos]; if (++d->silPos >= d->silence.size()) d->silPos = 0; }
+}
 
 int64_t nowMs() {
   struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -233,7 +242,7 @@ void fillOut(Driver* d, Urb& u) {
     size_t bytes = (size_t)n * d->frameBytes;
     size_t got = play ? ringRead(d, u.buf + off, bytes) : 0;
     if (got < bytes) {
-      memset(u.buf + off + got, 0, bytes - got);
+      fillSilence(d, u.buf + off + got, bytes - got);
       if (play && !d->draining) d->underruns++;
     }
     u.urb->iso_frame_desc[p].length = (unsigned)bytes;
@@ -387,10 +396,14 @@ Driver* get(jlong h) { return (Driver*)(intptr_t)h; }
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_musicd_server_android_UsbDriver_nativeOpen(JNIEnv*, jclass, jint fd, jint iface, jint alt, jint ep, jint fbEp,
+Java_com_musicd_server_android_UsbDriver_nativeOpen(JNIEnv* env, jclass, jint fd, jint iface, jint alt, jint ep, jint fbEp,
                                                       jboolean highSpeed, jint interval, jint fbInterval, jint maxPacket,
-                                                      jint fbMaxPacket, jint frameBytes, jint rate) {
+                                                      jint fbMaxPacket, jint frameBytes, jint rate, jbyteArray silence) {
   Driver* d = new Driver();
+  if (silence) {
+    jsize n = env->GetArrayLength(silence);
+    if (n > 0) { d->silence.resize((size_t)n); env->GetByteArrayRegion(silence, 0, n, (jbyte*)d->silence.data()); }
+  }
   d->fd = fd; d->iface = iface; d->alt = alt; d->ep = ep; d->fbEp = fbEp; d->highSpeed = highSpeed;
   d->interval = interval > 0 ? interval : 1; d->fbInterval = fbInterval > 0 ? fbInterval : 1;
   d->maxPacket = maxPacket; d->fbMaxPacket = fbMaxPacket > 0 ? fbMaxPacket : (highSpeed ? 4 : 3);

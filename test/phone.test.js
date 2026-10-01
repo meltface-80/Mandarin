@@ -161,6 +161,11 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · USB 24/96 ✓" });
       await phone("POST", "/api/phone/state", { index: 0, position: 9, duration: 60, state: "playing", volume: 40, format: "original", dsp: false, usb: "nonsense" });
       assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless" });
+      // Native DSD and DoP (Stage 9.3).
+      await phone("POST", "/api/phone/state", { index: 0, position: 9, duration: 60, state: "playing", volume: 40, format: "original", dsp: false, usb: "dsd64" });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · USB DSD64 ✓" });
+      await phone("POST", "/api/phone/state", { index: 0, position: 9, duration: 60, state: "playing", volume: 40, format: "original", dsp: false, usb: "dop128" });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · USB DoP DSD128 ✓" });
       await phone("PATCH", "/api/audio-devices/" + zoneId, { dsp: { enabled: false } });
       seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
     });
@@ -266,6 +271,40 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(h.resume.items.length, 6);
       assert.equal(h.resume.index, 2);
     });
+    await t.test("a USB DAC's ceiling (Stage 9.3): the queue is planned for it, and planned back without it", async () => {
+      // Hi-res to a phone goes as 24/48 FLAC (the Sonos rule) until the app
+      // says what its DAC takes; then the file as it is, and the app is
+      // handed the same queue again at the same place.
+      const hi = albums.find(a => a.title === "Hi Res");
+      await phone("POST", "/api/play", { offset: hi.offset, zone_or_output_id: zoneId, kind: "play_now" });
+      let got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      let load = got.commands.find(c => c.op === "load");
+      assert.match(load.items[0].url, /\/stream\/t\d+\.flac\?/, "24/48 by the Sonos rule: " + load.items[0].url);
+      seq = got.seq;
+      await phone("POST", "/api/phone/state", { index: 0, position: 3, duration: 60, state: "playing", volume: 40 });
+      await phone("POST", "/api/phone/state", { index: 0, position: 4, duration: 60, state: "playing", volume: 40,
+        usb_caps: { rates: [44100, 48000, 88200, 96000], bits: [16, 24], dsd: [64] } });
+      got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      load = got.commands.find(c => c.op === "load");
+      assert.ok(load, JSON.stringify(got));
+      assert.match(load.items[0].url, /\.orig\.flac\?/, "the 96 kHz file as it is");
+      assert.equal(load.index, 0);
+      assert.ok(load.seconds >= 4, "from where it was");
+      assert.equal(load.play, true);
+      seq = got.seq;
+      // The same report again: nothing new. The DAC gone: back to the Sonos rule.
+      await phone("POST", "/api/phone/state", { index: 0, position: 5, duration: 60, state: "playing", volume: 40,
+        usb_caps: { rates: [44100, 48000, 88200, 96000], bits: [16, 24], dsd: [64] } });
+      assert.equal((await phone("GET", `/api/phone/commands?after=${seq}`)).commands.filter(c => c.op === "load").length, 0);
+      await phone("POST", "/api/phone/state", { index: 0, position: 6, duration: 60, state: "paused", volume: 40, usb_caps: null });
+      got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      load = got.commands.find(c => c.op === "load");
+      assert.ok(load);
+      assert.match(load.items[0].url, /\/stream\/t\d+\.flac\?/);
+      assert.equal(load.play, false);
+      seq = got.seq;
+    });
+
   } finally {
     await srv.stop();
     await house.stop();

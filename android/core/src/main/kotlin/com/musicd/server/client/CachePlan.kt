@@ -50,5 +50,14 @@ object CachePlan {
      * the original and as Opus are two entries — and whichever is on the phone
      * can be played wherever the phone is.
      */
-    fun key(trackId: Long, opus: Boolean) = "t$trackId:" + (if (opus) "opus" else "orig")
+    fun key(trackId: Long, opus: Boolean, variant: String = "") = "t$trackId:" + (if (opus) "opus" else "orig") + (if (variant.isEmpty() || opus) "" else ":$variant")
+
+    /**
+     * What a server stream address says it carries (Stage 9.3): "orig" (the
+     * file as it is), "96000-24" (a conversion to that), or "" (the Sonos
+     * rule, as the addresses were). Part of the cache name: the same track
+     * planned two ways is two entries.
+     */
+    fun variantOf(url: String): String =
+        Regex("/stream/t\\d+\\.(orig|\\d+-\\d+)\\.").find(url)?.groupValues?.get(1) ?: ""
 }

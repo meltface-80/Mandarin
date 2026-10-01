@@ -79,6 +79,14 @@ object Store {
     fun usbFixed(context: Context, default: Boolean): Boolean =
         prefs(context).let { if (it.contains("usb_fixed")) it.getBoolean("usb_fixed", default) else default }
     fun setUsbFixed(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_fixed", on).apply() }
+    /**
+     * How DSD goes to the DAC (Stage 9.3): "native" (its DSD alternate
+     * setting, bytes in time order), "native_le" (the same, each 32-bit word
+     * the other way round — for a DAC that plays noise with the first),
+     * "dop" (DSD over PCM), or "pcm" (converted on the server, as before).
+     */
+    fun usbDsd(context: Context): String = prefs(context).getString("usb_dsd", "native") ?: "native"
+    fun setUsbDsd(context: Context, mode: String) { prefs(context).edit().putString("usb_dsd", if (mode in listOf("native", "native_le", "dop", "pcm")) mode else "native").apply() }
     /** The most the USB volume may be set to (0–100), so a DAC on headphones can never be driven to full. */
     fun usbLimit(context: Context): Int = prefs(context).getInt("usb_limit", 80).coerceIn(1, 100)
     fun setUsbLimit(context: Context, pct: Int) { prefs(context).edit().putInt("usb_limit", pct.coerceIn(1, 100)).apply() }

@@ -232,12 +232,23 @@ class PhonePlayerService : MediaLibraryService() {
                 // app's own driver when USB direct is on and a DAC is on the port,
                 // and hands everything to Android's track otherwise.
                 DspSink(UsbAudioSink(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build(), context).also { usbSink = it }, engine)
+            override fun buildAudioRenderers(context: Context, extensionRendererMode: Int, mediaCodecSelector: androidx.media3.exoplayer.mediacodec.MediaCodecSelector,
+                                             enableDecoderFallback: Boolean, audioSink: AudioSink, eventHandler: Handler,
+                                             eventListener: androidx.media3.exoplayer.audio.AudioRendererEventListener, out: ArrayList<androidx.media3.exoplayer.Renderer>) {
+                // DSD (Stage 9.3), ahead of the rest: DsdExtractor's chunks to the USB sink as they are.
+                out.add(DsdRenderer(eventHandler, eventListener, audioSink))
+                super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback, audioSink, eventHandler, eventListener, out)
+            }
         }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableAudioFloatOutput(true)
+        // DSF and DFF files are read by the app's own extractor (Stage 9.3); everything else by Media3's.
+        val extractors = androidx.media3.extractor.ExtractorsFactory {
+            arrayOf<androidx.media3.extractor.Extractor>(DsdExtractor()) + androidx.media3.extractor.DefaultExtractorsFactory().createExtractors()
+        }
         player = ExoPlayer.Builder(this, renderers)
             .setLoadControl(ahead)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(sources)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(this, extractors).setDataSourceFactory(sources)
                 .setLoadErrorHandlingPolicy(retrying))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(),
@@ -544,6 +555,33 @@ class PhonePlayerService : MediaLibraryService() {
     @Volatile private var usbSink: UsbAudioSink? = null
     /** Playing through the USB driver right now: "rate/bits", else null. */
     private fun usbNow(): String? = if (usbSink?.usb == true && UsbDriver.active) UsbDriver.describe() else null
+    /**
+     * A DSD track the DAC couldn't be given (UsbAudioSink.DsdUnplayable): DSD
+     * is left out of what the phone says it takes, so the server sends such
+     * tracks as PCM, until the DAC or the setting changes.
+     */
+    @Volatile private var dsdBroken = false
+    /**
+     * The USB DAC as a stream target for the server (Stage 9.3), while USB
+     * direct is on and a DAC is on the port: the rates and depths it takes
+     * and the DSD it can be given the way the setting says. Null otherwise —
+     * the server then plans by the Sonos rule as before.
+     */
+    private fun usbCaps(): JSONObject? {
+        if (!Store.usbDirect(this) || UsbDac.device() == null) return null
+        val info = UsbDac.info() ?: return null
+        val rates = sortedSetOf<Int>()
+        for (s in info.streams) if (s.pcm) { rates.addAll(s.rates); if (s.rates.isEmpty() && s.continuous == null) rates.addAll(info.clockRates) }
+        for (s in info.streams) s.continuous?.let { c -> for (r in listOf(44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000)) if (r in c[0]..c[1]) rates.add(r) }
+        if (rates.isEmpty()) return null
+        val bits = sortedSetOf<Int>(); for (s in info.streams) if (s.pcm) bits.add(s.bits)
+        val caps = UsbDriver.dsdCaps(info)
+        val dsd = when {
+            dsdBroken -> emptyList()
+            else -> when (Store.usbDsd(this)) { "pcm" -> emptyList(); "dop" -> caps.second; else -> (caps.first + caps.second).distinct().sorted() }
+        }
+        return JSONObject().put("rates", JSONArray(rates.toList())).put("bits", JSONArray(bits.toList())).put("dsd", JSONArray(dsd))
+    }
     /** The USB level is what the slider drives: the DAC's own control, or software gain for a DAC without one — unless the volume is fixed. */
     private fun usbVolume(): Boolean = usbSink?.usb == true && UsbDriver.controlsVolume
     /** The phone's volume buttons, in USB direct: a step on the USB level. False when they are Android's to handle. */
@@ -599,12 +637,17 @@ class PhonePlayerService : MediaLibraryService() {
      * track, so the current one is started again from where it is (a short
      * gap) and takes the new path. Called on the main thread.
      */
-    fun usbChanged() {
+    fun usbChanged(force: Boolean = false) {
         if (session == null) return
+        // The DAC, the switch or the DSD setting changed: what it can take is reported afresh.
+        dsdBroken = false
+        reportSoon()
         val wasUsb = usbSink?.usb == true
         val want = Store.usbDirect(this) && UsbDac.device() != null
-        if (wasUsb == want && (wasUsb || !UsbDriver.active)) return
-        if (!wasUsb && !want) return
+        if (!force) {
+            if (wasUsb == want && (wasUsb || !UsbDriver.active)) return
+            if (!wasUsb && !want) return
+        }
         if (player.mediaItemCount == 0) { if (!want) UsbDriver.close(); return }
         val idx = player.currentMediaItemIndex; val pos = player.currentPosition; val playing = player.playWhenReady
         player.stop()
@@ -665,14 +708,15 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private fun keyFor(url: String): String? {
         val id = CachePlan.trackIdOf(url) ?: return null
-        pinned[url]?.let { return CachePlan.key(id, it) }
+        val variant = CachePlan.variantOf(url)
+        pinned[url]?.let { return CachePlan.key(id, it, variant) }
         val opus = when {
-            StreamCache.complete(this, CachePlan.key(id, false)) -> false
-            StreamCache.complete(this, CachePlan.key(id, true)) -> true
+            StreamCache.complete(this, CachePlan.key(id, false, variant)) -> false
+            StreamCache.complete(this, CachePlan.key(id, true, variant)) -> true
             else -> Store.wantsOpus(this)
         }
         pinned[url] = opus
-        return CachePlan.key(id, opus)
+        return CachePlan.key(id, opus, variant)
     }
 
     /** The queue changed, a track began, the network or the settings changed: look again in a moment. */
@@ -772,6 +816,14 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private fun resumeAfterError(error: PlaybackException) {
         Log.i(TAG, "playback stopped: ${error.errorCodeName}")
+        // A DSD track the DAC couldn't be given (Stage 9.3): the server is told
+        // and sends the queue again with it as PCM; no point trying the same file.
+        if (generateSequence<Throwable>(error) { it.cause }.any { UsbAudioSink.DsdUnplayable.matches(it) }) {
+            Log.i(TAG, "DSD not playable here: asking for PCM")
+            dsdBroken = true
+            reportSoon()
+            return
+        }
         if (localMode || player.mediaItemCount == 0) return
         if (retries >= 4) {
             // Given up for now: the server is away longer than that (an update
@@ -948,6 +1000,7 @@ class PhonePlayerService : MediaLibraryService() {
             format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
             dsp = dsp.active,
             usb = usbNow(),
+            usbCaps = usbCaps(),
             local = local, localRev = localRev, localItems = localItems
         )
         val client = Store.client(this) ?: return

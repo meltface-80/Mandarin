@@ -13,6 +13,7 @@ import android.webkit.JavascriptInterface
  *   MusicdUsb.setDirect(on)  the USB direct switch (plays through the driver from 9.2)
  *   MusicdUsb.setFixed(on)   fixed volume (the DAC at full) or the slider
  *   MusicdUsb.setLimit(pct)  the most the slider may set
+ *   MusicdUsb.setDsdMode(m)  how DSD goes to the DAC: native, native_le, dop, pcm
  *   MusicdUsb.diagnostics()  everything as text, for a report
  *
  * The app calls window.__musicdUsbChanged() when the port changes.
@@ -53,6 +54,13 @@ class UsbBridge(private val activity: Activity) {
         Store.setUsbLimit(activity, pct)
         UsbDriver.settingsChanged()
         activity.runOnUiThread { PhonePlayerService.current?.usbVolumeChanged() }
+    }
+
+    /** How DSD goes to the DAC: native, native_le, dop or pcm (Store.usbDsd). */
+    @JavascriptInterface
+    fun setDsdMode(mode: String) {
+        Store.setUsbDsd(activity, mode)
+        activity.runOnUiThread { PhonePlayerService.current?.usbChanged(true) }
     }
 
     @JavascriptInterface

@@ -35,7 +35,8 @@ class DspSink(private val inner: AudioSink, private val engine: DspEngine) : For
     private var pendingFor: ByteBuffer? = null
     private var out: ByteBuffer = ByteBuffer.allocateDirect(0)
 
-    private fun linearPcm(f: Format) = f.sampleMimeType == MimeTypes.AUDIO_RAW && isPcm(f.pcmEncoding)
+    // DSD (DsdRenderer, Stage 9.3) is raw to the sinks but not PCM: passed by untouched.
+    private fun linearPcm(f: Format) = f.sampleMimeType == MimeTypes.AUDIO_RAW && isPcm(f.pcmEncoding) && !DsdRenderer.isDsd(f)
     private fun isPcm(e: Int) = e == C.ENCODING_PCM_16BIT || e == C.ENCODING_PCM_16BIT_BIG_ENDIAN ||
         e == C.ENCODING_PCM_24BIT || e == C.ENCODING_PCM_24BIT_BIG_ENDIAN ||
         e == C.ENCODING_PCM_32BIT || e == C.ENCODING_PCM_32BIT_BIG_ENDIAN ||

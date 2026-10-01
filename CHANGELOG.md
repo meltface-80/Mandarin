@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.40
+- **Native DSD over USB (Stage 9, part 3).** A DSF or DFF file goes to the DAC as DSD: natively
+  on the DAC's DSD alternate setting (the Audiolab 8300CD: DSD64, 128 and 256), or as DoP on a
+  DAC that takes 24-bit PCM at a sixteenth of the DSD rate. The app reads both containers
+  itself (Media3 knows neither), and the DSD setting on this phone's page chooses Native,
+  Native with the words reversed (for a DAC that plays noise the usual way), DoP, or PCM from
+  the server as before. A DSD track the DAC can't be given is sent again as PCM.
+- **Hi-res as it is, with USB direct.** The phone tells the server what its DAC takes — rates,
+  depths, DSD — and the server plans the queue for it like a renderer's: a 24/96 or 24/192
+  file as it is where the DAC takes the rate (the Sonos 24/48 rule no longer applies), FLAC at
+  the best rate the DAC takes otherwise. The queue is planned again the moment the DAC comes,
+  goes or changes, from where it was. The badge reads "USB DSD64 ✓" or "USB DoP DSD64 ✓".
+
 ## v0.5.39
 - **USB direct: silence on the next track, fixed for real.** The diagnostics showed it: the
   stream opened for a new track was never started. ExoPlayer says play once, when playback

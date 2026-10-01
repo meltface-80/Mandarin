@@ -104,6 +104,11 @@ object OfflineApi {
         val base = formatBase(f, dsp)
         // Through the USB driver (Stage 9.2): the depth and rate the DAC is fed, the tick with the DSP off.
         if (usb != null && base is JSONObject) {
+            // Native DSD ("dsd64") or DoP ("dop64"), Stage 9.3.
+            Regex("^(dsd|dop)(\\d+)$").find(usb)?.let { m ->
+                return JSONObject().put("kind", base.getString("kind"))
+                    .put("text", base.getString("text") + (if (m.groupValues[1] == "dop") " · USB DoP DSD" else " · USB DSD") + m.groupValues[2] + " ✓")
+            }
             val parts = usb.split("/")
             if (parts.size == 2) return JSONObject().put("kind", base.getString("kind"))
                 .put("text", base.getString("text") + " · USB " + parts[1] + "/" + (parts[0].toDouble() / 1000).let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() } + (if (dsp) "" else " ✓"))
