@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.34
+- **A Playlists row on Home.** Your playlists and the Dynamic Playlists on one shelf (the
+  side menu keeps their two screens): yours first, newest change first, then the Dynamic ones
+  marked "Dynamic · N albums", each a mosaic of its albums' covers. Tap a tile to open it, the
+  title for the Playlists screen. In the Home Screen settings like the other rows; hidden
+  until there is a playlist to show.
+
 ## v0.5.33
 - **Tracks added to a playlist are completed from the library.** An entry that arrives
   without everything the stored record needs (the album's id, its title, the track's title)

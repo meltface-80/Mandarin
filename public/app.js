@@ -377,6 +377,8 @@
   const homeFavourites = document.getElementById("home-favourites");
   let homeLaterLoaded = false;
   const homeLater = document.getElementById("home-later");
+  let homePlaylistsLoaded = false;
+  const homePlaylists = document.getElementById("home-playlists");
 
   // ---------------------------------------------------------------------------
   // The Home rows, as one table.
@@ -598,6 +600,8 @@
       load: () => { loadHomeUnplayed(); }, isFresh: () => rowsTtlFresh() },
     { id: "later", title: "Listen later",
       load: () => { loadHomeLater(); }, isFresh: () => homeLaterLoaded },
+    { id: "playlists", title: "Playlists",
+      load: () => { loadHomePlaylists(); }, isFresh: () => homePlaylistsLoaded },
     { id: "favourites", title: "Favourites",
       load: () => { loadHomeFavourites(); }, isFresh: () => homeFavouritesLoaded },
     { id: "history",  title: "Recently played",
@@ -633,7 +637,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || (id === "phone" && !localInfo());
+    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || (id === "phone" && !localInfo());
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -1153,6 +1157,40 @@
     } catch (e) { showToast(e.message, "error"); return false; }
   }
   window.__setListenLater = setListenLater;
+
+  // ----- Playlists: yours and the Dynamic ones, one row -----
+  // The side menu keeps the two apart (different screens); on Home they are
+  // one shelf, your own first, then the Dynamic ones. The title opens the
+  // Playlists wall; a Dynamic tile opens that playlist.
+  function renderHomePlaylists(mine, smart) {
+    if (!homePlaylists) return;
+    homePlaylists.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    for (const p of mine) {
+      const n = p.track_total;
+      frag.appendChild(buildAlbumTile({ title: p.name, subtitle: `${n} track${n === 1 ? "" : "s"}`, image_key: null, art_keys: p.art_keys || [] },
+        () => openUserPlaylist(p), { selectable: false }));
+    }
+    for (const p of smart) {
+      const n = Number.isFinite(p.count) ? p.count : p.album_total;
+      frag.appendChild(buildAlbumTile({ title: p.name, subtitle: "Dynamic · " + (Number.isFinite(n) ? `${n} album${n === 1 ? "" : "s"}` : describeLibView(p.view)), image_key: null, art_keys: p.art_keys || [] },
+        () => openSmartPlaylist(p), { selectable: false }));
+    }
+    homePlaylists.appendChild(frag);
+    const sec = homePlaylists.closest(".home-section");
+    if (sec) sec.classList.toggle("hidden", !(mine.length + smart.length) || !homeRowOn("playlists"));
+  }
+  async function loadHomePlaylists() {
+    if (!homePlaylists) return;
+    const read = async (url) => { try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+    const [mine, smart] = await Promise.all([read("/api/user-playlists"), read("/api/smart-playlists")]);
+    if (mine === null && smart === null) return;   // the row keeps what it had
+    const my = ((mine && mine.playlists) || []).slice().sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+    renderHomePlaylists(my, (smart && smart.playlists) || []);
+    homePlaylistsLoaded = true;
+  }
+  // A playlist made, changed or deleted anywhere: the row follows.
+  window.__playlistsChanged = () => { homePlaylistsLoaded = false; loadHomePlaylists(); };
 
   async function loadHomeHistory() {
     if (!homeHistory) return;
@@ -2932,6 +2970,7 @@
         });
         if (!r.ok) { showToast("Couldn't delete that", "error"); return; }
         showToast("Playlist deleted");
+        if (window.__playlistsChanged) window.__playlistsChanged();
         userPlDetailActive = false;
         showPlaylists();
       } catch (e) { showToast("Couldn't reach the extension", "error"); }
@@ -3330,6 +3369,7 @@
       }
       showToast(msg, (j.albums_failed && j.albums_failed.length) ? "error" : null,
                 TOAST_REPORT_MS);
+      if (window.__playlistsChanged) window.__playlistsChanged();
       return true;
     } catch (e) {
       showToast("Couldn't reach the extension", "error");
@@ -3959,6 +3999,7 @@
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) { showToast(j.error || "Couldn't save that", "error"); return; }
+        if (window.__playlistsChanged) window.__playlistsChanged();
         const lim = j.playlist && j.playlist.limit;
         const matched = j.playlist && j.playlist.album_matched;
         showToast(Number.isFinite(matched) && Number.isFinite(lim) && matched > lim
@@ -4549,6 +4590,7 @@
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { showToast(j.error || "Couldn't delete that", "error"); return; }
       showToast(`Deleted "${sp.name}"`);
+      if (window.__playlistsChanged) window.__playlistsChanged();
       smartDetailActive = false;
       showSmartPlaylists();
     } catch (e) {
@@ -4970,6 +5012,7 @@
     wireSectionHeader("home-unplayed-title", showUnplayedWall);
     wireSectionHeader("home-favourites-title", showFavouritesWall);
     wireSectionHeader("home-later-title", showLaterWall);
+    wireSectionHeader("home-playlists-title", () => showPlaylists());
     wireSectionHeader("home-random-title", () => { if (window.__applyFilter) window.__applyFilter(null); });
     wireSectionHeader("home-library-title", showLibraryWall);
     wireSectionHeader("home-lotw-title", () => {

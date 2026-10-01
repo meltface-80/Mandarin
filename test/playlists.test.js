@@ -80,6 +80,7 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       assert.equal(list[0].matched, 1, "Album One is the Rock album");
       assert.deepEqual((await api("smart-playlist/albums?id=" + list[0].id)).albums.map(a => a.title), ["Album One"]);
       assert.equal((await api("smart-playlists", { view: {} })).status, 400, "a name is needed");
+      assert.ok((await api("settings/home-rows")).rows.some(r => r.id === "playlists"), "a Home row for playlists, yours and the Dynamic ones");
     });
 
     await t.test("shared out and imported back; a playlist from MusicD Remote reads the same", async () => {
