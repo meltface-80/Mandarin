@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.31
+# Mandarin — v0.5.32
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 

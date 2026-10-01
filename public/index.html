@@ -1774,6 +1774,21 @@
     </div>
   </div>
 
+  <!-- Name dialog (a new playlist, a Dynamic Playlist). The page's own, not
+       the browser's prompt(): the Android app's WebView has no box for that
+       one and answers it with "cancel". -->
+  <div id="prompt-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-msg">
+    <div class="confirm-backdrop"></div>
+    <form class="confirm-box" id="prompt-form">
+      <p class="confirm-msg" id="prompt-msg"></p>
+      <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
+      <div class="confirm-actions">
+        <button class="confirm-btn" id="prompt-cancel" type="button">Cancel</button>
+        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+
   <!-- The card's font, Manrope, is bundled (public/fonts, @font-face in
        style.css): no wait on Google Fonts, the same offline and away. -->
 

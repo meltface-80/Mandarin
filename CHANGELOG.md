@@ -5,6 +5,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.32
+- **Playlists can be named in the Android app.** "＋ New playlist…" (from chosen tracks or
+  albums), Focus → "Save as…" (a Dynamic Playlist) and "Save as a playlist" after an import
+  used the browser's own name box, which the app's WebView has no dialog for: it answered
+  "cancel" every time, so the sheet closed and nothing was made. The page now asks with a
+  dialog of its own, in the app and the browser alike.
+- **Sharing is MusicD Remote's format.** A playlist shared from here (Share → the MDRP1
+  text) imports into MusicD Remote, and one shared from there imports here, with the same
+  found / substituted / missing report. Covered by tests now.
+
 ## v0.5.31
 - **Labels for albums whose files carry none.** With Record labels on, each album without a
   LABEL tag is looked up in the background — MusicBrainz first (a release by that title and
