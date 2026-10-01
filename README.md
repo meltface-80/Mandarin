@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.28
+# Mandarin — v0.5.29
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -278,6 +278,18 @@ Every album's page has a heart, first in its row of buttons: hollow, red once ta
 albums are a **Favourites** carousel on Home (newest first; tap its title for the full wall),
 kept on the server by the album's identity, so they survive a rescan.
 
+## Record labels
+
+Off by default; Settings → Record labels switches it on. Each album's label is its files'
+LABEL (or PUBLISHER) tag — read with the library, nothing looked up — with the company words
+and country folded away, so "Blue Note Records (UK)" and "BLUE NOTE" are one label, *Blue
+Note*. On: a **Labels** screen in the side menu (every label and its albums, alphabetical or
+shuffled), the label on the album page and the share card (tap it for the label's albums),
+labels among the search results, a *Record label* facet in Library Focus, and a **Label of the
+week** row on Home: one label with three albums or more, the same one all week. The Settings
+page says how many albums carry a label tag and how many don't. A library filed by label
+(`/music/Jazz/Blue Note/Album`) can take the label from the folder at a set depth instead.
+
 ## Identify albums
 
 Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
@@ -371,8 +383,8 @@ server's ffmpeg writes 32-bit FLAC. On a WiiM, what the decoder is really runnin
 through its own API; when it matches, the rate gets its ✓ and the badge reads *FLAC 24/176.4 ↑×4 ✓*.
 The plan for the rest is [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
 The next stages (the phone in Audio Devices away from home, the mobile-data stream, DSP
-with AutoEQ and PEQ, music on the phone, SD-card downloads, Listen later) are planned
-in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md).
+with AutoEQ and PEQ, music on the phone, SD-card downloads, Listen later, record labels) are
+planned in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md).
 
 ## Away from home (Tailscale)
 
@@ -456,7 +468,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 * Qobuz and TIDAL accounts — this plays your own files (Qobuz's public pages are still used
   for album write-ups and the share card's "open in Qobuz" link, with no login)
-* Record labels — no label pages, Label of the week, label focus or label search
+* Record label logos, merged labels and labels looked up for untagged albums — the next
+  parts of Stage 8 in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md)
 * The Android dial and voice commands from Android Random Remote
 * Audio fingerprinting (AcoustID) for albums the identification scan can't place — not
   planned; those are yours to name by hand

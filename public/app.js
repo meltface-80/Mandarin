@@ -604,6 +604,8 @@
       load: () => { loadHomeHistory(); }, isFresh: () => homeHistoryLoaded },
     { id: "picks",    title: "Smart Picks",
       load: () => { loadHomeSmartPicks(); }, isFresh: () => homePicksDay === localDayKey() },
+    { id: "lotw",     title: "Label of the week",
+      load: () => { loadHomeLabelOfWeek(); }, isFresh: () => homeLotwLoaded },
     { id: "random",   title: "Random albums",
       load: () => { loadHomeRandom(); }, isFresh: () => false },
     { id: "library",  title: "Library",
@@ -8397,7 +8399,10 @@
             // Re-poll every 4 s while the scan is running
             setTimeout(() => { if (mode === "list") showLabelsList(true); }, 4000);
           } else {
-            setBanner("No labels found yet — the background scan looks up labels via iTunes and MusicBrainz. This can take a few minutes for large libraries.", false);
+            setBanner(j.lookups
+              ? "No labels found yet — the background scan is looking them up. This can take a few minutes for large libraries."
+              : "No labels yet: none of the albums' files carry a LABEL tag.", false);
+            if (!j.lookups) return;
             // Show a rescan button so the user can retry without restarting the server.
             const rescanBtn = document.createElement("button");
             rescanBtn.className = "action-btn primary";
@@ -8427,7 +8432,7 @@
           renderLabelTiles(labels);
           const oldLink = grid.querySelector(".scan-log-link");
           if (oldLink) oldLink.remove();
-          if (!j.scanning) grid.appendChild(makeScanLogLink());
+          if (!j.scanning && j.lookups) grid.appendChild(makeScanLogLink());   // nothing to log when the tags are all there is
           if (_labelsScrollTarget && mainEl) {
             // Arrived via a deep-link (album view / search chip). Scroll the grid
             // to that label's tile so "back" lands on it instead of the top.
@@ -11375,7 +11380,8 @@ window.__musicdAppUpd = (function () {
   // Minimum albums per label — hides one-off outliers from the labels grid.
   if (labelMinSelect) {
     const stored = localStorage.getItem("rra-label-min");
-    labelMinSelect.value = (stored === "1" || stored === "5" || stored === "10") ? stored : "2";
+    // "Show all" until chosen otherwise — what labelMin() in the labels browser assumes.
+    labelMinSelect.value = (stored === "2" || stored === "5" || stored === "10") ? stored : "1";
     labelMinSelect.addEventListener("change", () => {
       localStorage.setItem("rra-label-min", labelMinSelect.value);
     });
@@ -11557,8 +11563,13 @@ window.__musicdAppUpd = (function () {
         const r = await fetch("/api/labels/rescan-force", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-        forceRescanBtn.textContent = "Rescan started";
-        if (forceRescanStatus) { forceRescanStatus.textContent = "Full rescan started — this may take several minutes. Label data will update as results come in."; forceRescanStatus.classList.remove("hidden"); }
+        forceRescanBtn.textContent = j.started === false ? "Done" : "Rescan started";
+        if (forceRescanStatus) {
+          forceRescanStatus.textContent = j.started === false
+            ? "Labels re-read from the library's tags and folders" + (j.count != null ? ": " + j.count + " label" + (j.count === 1 ? "" : "s") + "." : ".")
+            : "Full rescan started — this may take several minutes. Label data will update as results come in.";
+          forceRescanStatus.classList.remove("hidden");
+        }
         setTimeout(() => {
           forceRescanBtn.disabled = false;
           forceRescanBtn.textContent = "Force rescan";
@@ -12503,11 +12514,13 @@ window.__musicdAppUpd = (function () {
       labelsEnabledEl.checked = !!j.enabled;
       if (window.__applyFeatureMenu) window.__applyFeatureMenu({ labels: !!j.enabled });
       if (labelsEnabledNote) {
+        const tagged = j.tagged || 0, untagged = j.untagged || 0;
+        const have = tagged + " album" + (tagged === 1 ? "" : "s") + " name" + (tagged === 1 ? "s" : "") + " a label in " + (tagged === 1 ? "its" : "their") + " tags; " +
+          untagged + " " + (untagged === 1 ? "doesn't" : "don't") + ".";
         labelsEnabledNote.textContent = j.enabled
-          ? (j.scanning ? "Scanning now…"
-             : (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + " found."
-                        : "No labels yet — the first scan runs in the background."))
-          : "Off. Your /music tags are still read, so the Decade, Format and quality filters keep working.";
+          ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have
+                     : "No labels yet: none of the albums' files carry a LABEL tag.")
+          : "Off. " + have;
       }
     } catch (e) { /* keep the last shown value */ }
   }
@@ -12521,8 +12534,7 @@ window.__musicdAppUpd = (function () {
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || j.error) throw new Error(j.error || "Couldn't save");
-        showToast(on ? "Labels on — the first scan is running now"
-                     : "Labels off — no label lookups will run");
+        showToast(on ? "Labels on" : "Labels off");
         if (window.__applyFeatureMenu) window.__applyFeatureMenu({ labels: on });
         loadLabelsEnabled();
       } catch (e) {

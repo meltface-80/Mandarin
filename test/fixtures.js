@@ -34,7 +34,7 @@ function makeLibrary() {
   for (let i = 1; i <= 2; i++) {
     gen(path.join(music, "Artist B", "Hi Res", `0${i} Hi ${i}.flac`), {
       rate: 96000, fmt: "s32", codecArgs: ["-bits_per_raw_sample", "24"], seconds: 4,
-      tags: { title: `Hi ${i}`, artist: "Artist B", album: "Hi Res", track: i, date: "2020", genre: "Jazz" }
+      tags: { title: `Hi ${i}`, artist: "Artist B", album: "Hi Res", track: i, date: "2020", genre: "Jazz", label: "Blue Note Records (UK)" }
     });
   }
   gen(path.join(music, "Comp", "CD1", "01.mp3"), { fmt: null, codecArgs: ["-b:a", "192k"], tags: { title: "C1", artist: "X", album: "Best Of", track: 1 } });
