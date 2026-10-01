@@ -7,39 +7,39 @@
 <meta name="description" content="Mandarin &mdash; your own music files played to Sonos rooms and UPnP/DLNA streamers such as WiiM and Chord Poly, with MusicD Remote's interface. Docker install, Android app and docs.">
 <link rel="icon" href="mandarin-icon.png">
 <style>
-  /* Mandarin's own look (the app's Late-Night Hi-Fi): green felt, cream,
+  /* Mandarin's own look (the app's graphite and brass): a flat charcoal, warm
      muted gold; Young Serif titles over Manrope. This site alone goes light for a
      device in light mode. The --copper names are kept; they're the accent. */
   @font-face { font-family: "Manrope"; src: url("fonts/manrope.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
   @font-face { font-family: "Young Serif"; src: url("fonts/young-serif.woff2") format("woff2"); font-display: swap; }
   :root {
-    --bg:        #132019;   /* felt */
-    --bg-deep:   #0f1a14;
-    --panel:     #1a2a22;
-    --panel-2:   #20322a;
-    --line:      #2d4337;
-    --text:      #efe6d4;
-    --muted:     #a9b3a4;
+    --bg:        #17191c;   /* graphite */
+    --bg-deep:   #121416;
+    --panel:     #1f2226;
+    --panel-2:   #262a2f;
+    --line:      #30353b;
+    --text:      #ecebe6;
+    --muted:     #9a9ca1;
     --copper:    #c9a45c;   /* gold */
     --copper-hi: #d4b06a;
     --copper-dim:#6e5a32;
     --accent-wash: rgba(201,164,92,.08);
-    --code:      #e3dccb;
-    --code-dim:  #8d998a;
+    --code:      #e3dfd6;
+    --code-dim:  #8d9096;
     --good:      #8fc19a;
-    --nav-bg:    rgba(15,26,20,.92);
-    --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    --nav-bg:    rgba(18,20,22,.92);
+    --felt: none;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --serif: "Young Serif", Georgia, serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
-      --bg: #f2ebdd; --bg-deep: #ebe2d0; --panel: #fbf7ee; --panel-2: #f3ecde; --line: #d9ccb4;
-      --text: #1c2a23; --muted: #4a584f; --copper: #1f4a3a; --copper-hi: #7a5a1f; --copper-dim: #b9a57a;
-      --accent-wash: rgba(31,74,58,.07); --code: #1c2a23; --code-dim: #59645a; --good: #2f6b45;
-      --nav-bg: rgba(242,235,221,.92);
-      --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .18 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+      --bg: #f4f3ef; --bg-deep: #ece9e2; --panel: #fbfaf7; --panel-2: #f1efe9; --line: #d6d2c8;
+      --text: #17191c; --muted: #4f5257; --copper: #7a5a1f; --copper-hi: #7a5a1f; --copper-dim: #b9a57a;
+      --accent-wash: rgba(122,90,31,.07); --code: #17191c; --code-dim: #5a5d63; --good: #2f6b45;
+      --nav-bg: rgba(244,243,239,.92);
+      --felt: none;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -301,7 +301,7 @@
      browser, on an iPhone home screen, or in the app. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.5.42</span>
+    <span class="badge">v0.5.43</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>

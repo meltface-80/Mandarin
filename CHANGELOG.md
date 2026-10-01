@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.43
+- **Now playing shows the whole cover.** A framed square at a steady size, not bled to the
+  screen's edges and no longer faded into the ground at the bottom; the tabs and the corner
+  buttons sit above it, never over it.
+
 ## v0.5.42
 - **Graphite and brass.** The theme is flat now: a warm charcoal ground in place of the green,
   no felt grain or mottle on the ground, Now playing or the panels, no glow under the covers.
