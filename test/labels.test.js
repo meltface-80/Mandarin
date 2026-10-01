@@ -95,7 +95,7 @@ test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (
       assert.equal((await api("settings/labels")).count, 2);
       assert.ok(!(await api("settings/home-rows")).rows.find(r => r.id === "lotw").unavailable);
       assert.match((await api("labels-scan-log")).text, /2 labels across 2 albums; 1 albums carry no label tag/);
-      assert.equal((await api("labels/merge", { items: [] })).status, 501, "merges come later");
+      assert.equal((await api("labels/merge", { items: [] })).status, 400, "two labels are needed to merge");
     });
 
     await t.test("Label of the week needs three albums; survives a reload", async () => {

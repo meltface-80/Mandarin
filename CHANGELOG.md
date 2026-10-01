@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.30
+- **Merged labels and logos.** On the Labels screen, hold a tile to select labels and merge
+  them into the first (the tile shows "N merged"; tap that to undo one at a time). Logos are
+  found in the background for every label without one — Discogs first (your Discogs token in
+  Setup → API Keys), then FanArt.tv by the label's MusicBrainz id (your FanArt.tv key) — and
+  kept in the data folder, served like album art. On a label's page the picture button offers
+  Discogs' candidates or takes a pasted address. The Settings page counts the logos; Force
+  rescan looks again for the ones not found. (Stage 8, part 2.)
+
 ## v0.5.29
 - **Record labels, from the tags.** Settings → Record labels (off by default) turns on a Labels
   screen in the side menu, the label on the album page and share card, labels in search, a
