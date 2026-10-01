@@ -11,6 +11,8 @@ Versioning: each set of changes is a development build and takes the next third 
   The brass is the one accent — the headings, the top bar's discs, play, the lit segments of
   the progress meters (which stay, on the mini player and Now playing), the volume controls
   and the glyphs — and the plum is gone. The app's window matches before the page loads.
+- **The icon to match.** The app's launcher icon and the home-screen icon of the web app are the
+  duck in brass on the same charcoal.
 
 ## v0.5.41
 - **The download folder is its own setting.** Settings → Downloads → Download folder: a folder
