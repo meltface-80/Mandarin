@@ -41,8 +41,9 @@ class DsdRenderer(eventHandler: Handler?, eventListener: AudioRendererEventListe
     class PassException(msg: String, cause: Throwable? = null) : DecoderException(msg, cause)
 
     /** The copy. */
+    @Suppress("UNCHECKED_CAST")
     class Pass(private val rate: Int, val channels: Int) : SimpleDecoder<DecoderInputBuffer, SimpleDecoderOutputBuffer, PassException>(
-        arrayOfNulls<DecoderInputBuffer>(8), arrayOfNulls<SimpleDecoderOutputBuffer>(8)) {
+        arrayOfNulls<DecoderInputBuffer>(8) as Array<DecoderInputBuffer>, arrayOfNulls<SimpleDecoderOutputBuffer>(8) as Array<SimpleDecoderOutputBuffer>) {
         init { setInitialInputBufferSize(DsdExtractor.CHUNK) }
         override fun getName() = "musicd-dsd"
         override fun createInputBuffer() = DecoderInputBuffer(DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_NORMAL)
