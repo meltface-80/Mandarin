@@ -162,8 +162,8 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal((await api("album/extras?fast=1&title=Album%20One&artist=Artist%20A")).card.review, false);
       assert.equal((await api("settings/share-links", { card_review: true })).card.review, true);
     });
-    await t.test("labels are not part of this server", async () => {
-      // The fixture's Album One is tagged LABEL=Parlophone; none of it may surface.
+    await t.test("labels are off until switched on (test/labels.test.js has the rest)", async () => {
+      // The fixture's Album One is tagged LABEL=Parlophone; off, none of it surfaces.
       const a = await api("album?offset=" + cd.offset);
       assert.equal(a.album.label, undefined);
       const f = await api("library/facets");
@@ -172,8 +172,7 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.deepEqual((await api("filters/labels")).labels, []);
       assert.equal((await api("home/label-of-the-week")).label, null);
       assert.equal((await api("settings/labels")).enabled, false);
-      assert.equal((await api("settings/labels", { enabled: true })).status, 410);
-      assert.ok(!(await api("settings/home-rows")).rows.some(r => r.id === "lotw"));
+      assert.ok((await api("settings/home-rows")).rows.some(r => r.id === "lotw" && r.unavailable));
       // The Android app's Downloaded albums row: first, off until something is downloaded.
       const rows = (await api("settings/home-rows")).rows;
       assert.deepEqual(rows[0], Object.assign({ id: "downloads", on: false }, { unavailable: rows[0].unavailable }));

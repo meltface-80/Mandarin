@@ -5,6 +5,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.29
+- **Record labels, from the tags.** Settings → Record labels (off by default) turns on a Labels
+  screen in the side menu, the label on the album page and share card, labels in search, a
+  Record label facet in Library Focus and a Label of the week row on Home. Each album's label
+  is its files' LABEL tag, read with the library; spellings of one label fold together
+  ("Blue Note Records (UK)" is *Blue Note*), and a name that isn't a label's (a management
+  company, "Unknown") is left out. A library filed by label can take the label from the
+  folder at a set depth instead. The Settings page counts the albums with and without a label
+  tag. Merges, logos and lookups for untagged albums follow. (Stage 8, part 1.)
+
 ## v0.5.28
 - **Listen later.** Put an album aside to play another time: on its page, ⋯ → Listen later, or
   select several albums on a wall and choose Listen later. They are a Home row and a wall of

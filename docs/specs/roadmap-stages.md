@@ -367,6 +367,11 @@ Labels were left out of Mandarin on purpose — they lived in the Roon
 extension, where they were hard work because Roon never says which label an
 album is on. Mandarin reads the files, so most of that work is already done.
 
+**8.1 built in v0.5.29.** Label of the week needs three albums; the Record
+label facet, the search chips and the album page all come from the one set of
+label rules in lib/library/index.js, so they agree with each other and with the
+Settings switch.
+
 ### Today
 
 * The scanner stores the LABEL (or PUBLISHER) tag of every track and gives
