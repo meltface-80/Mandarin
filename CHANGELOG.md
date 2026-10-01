@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.25
+- **Headphone profiles from AutoEq.** On a device's DSP page — the phone's, or a renderer
+  feeding a headphone amp — choose a headphone by name: AutoEq's index of measured headphones
+  and earphones is fetched once a day and kept in the database, the chosen profile fetched once
+  and kept for good, and its bands (up to ten, with the profile's own preamp) run before the
+  PEQ's. A profile can also be pasted from a ParametricEQ.txt. Headroom stays automatic: the
+  profile's preamp when it covers the bands' combined peak, else half a dB under that peak.
+  (Stage 3, complete.)
+
 ## v0.5.24
 - **DSP on the phone.** The Mandarin app has its own engine: the phone's setting (Audio
   Devices → this phone, at home or away) runs on everything the phone plays — the server's

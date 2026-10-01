@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.24
+# Mandarin — v0.5.25
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -185,6 +185,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
+| `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
 | `DEBUG` | — | Log every API call. |
 
 Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks, Discover,
@@ -329,7 +330,9 @@ float, the headroom taken (automatic: half a dB under the bands' combined peak, 
 hand), upsampled if Output says so, the bands run in double precision, then dithered once to
 24 bits (32 where the device takes it). Off, the file goes as stored. Sonos rooms are tuned
 with Trueplay and have no DSP here. A phone running the Mandarin app has the same page: its bands run in the app, on everything
-the phone plays, through Bluetooth, USB or the speaker.
+the phone plays, through Bluetooth, USB or the speaker. Either page also takes a **headphone profile**: pick a headphone by name from AutoEq (the index
+is fetched once a day and the profile kept once chosen) or paste a ParametricEQ.txt, and its
+bands run before the PEQ's, under the profile's own preamp where that covers the peak.
 
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The
