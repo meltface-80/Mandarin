@@ -22,6 +22,12 @@ utest("a renderer's plan: Original within its ceiling, upsampling in the file's 
   // A lossy file follows the same rules; DSD is PCM at the top of the 44.1 ladder ≤ 176.4.
   assert.deepEqual(pick(S.plan({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3", sampleRate: 44100 }, Object.assign({ mode: "x2" }, wiim))), [88200, 24, 2]);
   assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, Object.assign({ mode: "max" }, wiim))), [176400, 24, undefined]);
+  // Native DSD (Stage 9.3): a device that takes DSD64 gets the DSF as it is; DSD128 beyond it is PCM as before.
+  const dsdDac = Object.assign({ dsd: [64] }, wiim);
+  const d64 = S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac);
+  assert.deepEqual([d64.transcode, d64.mime, d64.ext, d64.dsd], [false, "audio/x-dsf", "dsf", 64]);
+  assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac).mime, "audio/x-dff");
+  assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 5644800, bitsPerSample: 1 }, dsdDac)), [176400, 24, undefined]);
   // The 64-bit float pipeline, and its own cache key.
   const args = S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
   assert.match(args, /precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular/);

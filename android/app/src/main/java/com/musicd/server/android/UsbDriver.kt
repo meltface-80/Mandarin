@@ -23,12 +23,16 @@ import java.nio.ByteBuffer
 object UsbDriver {
     private const val TAG = "UsbDriver"
 
+    /** [kind]: "pcm", "dsd" (native, the DSD alternate setting) or "dop" (DSD over a PCM stream), Stage 9.3. */
     class Open(val device: UsbDevice, val conn: UsbDeviceConnection, val iface: UsbInterface, val stream: UsbDac.Stream,
-               val rate: Int, val handle: Long, val info: UsbDac.Info) {
+               val rate: Int, val handle: Long, val info: UsbDac.Info, val kind: String = "pcm") {
         val subslot get() = stream.subslot
         val bits get() = stream.bits
         val channels get() = stream.channels
         val frameBytes get() = stream.channels * stream.subslot
+        val dsd get() = kind != "pcm"
+        /** The DSD rate as a multiple of 44.1 kHz carried in this stream (0 for PCM). */
+        val dsdMultiple get() = when (kind) { "dsd" -> DsdExtractor.multiple(rate * 8 * subslot); "dop" -> DsdExtractor.multiple(rate * 16); else -> 0 }
     }
 
     @Volatile var current: Open? = null
@@ -72,7 +76,7 @@ object UsbDriver {
      */
     fun softwareGain(): Float {
         val o = current ?: return 1f
-        if (o.info.volumeControl) return 1f
+        if (o.info.volumeControl || o.dsd) return 1f
         if (fixed()) return 1f
         if (muted) return 0f
         val l = level() / 100.0
@@ -86,28 +90,57 @@ object UsbDriver {
     /** The DAC's volume range as it states it, in dB: [min, max, step]; null when it has none or hasn't said. */
     fun volumeDb(): DoubleArray? = volumeRange?.let { r -> doubleArrayOf(r[0] / 256.0, r[1] / 256.0, r[2] / 256.0) }
 
-    /** "44100/24": what the DAC is being fed, for the badge. */
-    fun describe(): String? = current?.let { "${it.rate}/${it.bits}" }
+    /** "44100/24": what the DAC is being fed, for the badge; "dsd64" native DSD, "dop64" DSD over PCM. */
+    fun describe(): String? = current?.let { if (it.dsd) "${it.kind}${it.dsdMultiple}" else "${it.rate}/${it.bits}" }
 
-    /** Can the DAC on the port take this rate? (Null: no DAC, no permission, or not read yet.) */
-    fun streamFor(info: UsbDac.Info?, rate: Int): UsbDac.Stream? {
+    /**
+     * Can the DAC on the port take this rate — as PCM, or ([dsd]) on its DSD
+     * alternate setting with 32- or 16-bit slots? (Null: no DAC, no
+     * permission, or not read yet.)
+     */
+    fun streamFor(info: UsbDac.Info?, rate: Int, dsd: Boolean = false): UsbDac.Stream? {
         if (info == null) return null
         val takes = { s: UsbDac.Stream ->
-            s.pcm && s.channels == 2 && (s.rates.contains(rate) || (s.continuous != null && rate >= s.continuous[0] && rate <= s.continuous[1]) ||
+            (if (dsd) s.dsd && (s.subslot == 4 || s.subslot == 2) else s.pcm) && s.channels == 2 &&
+                (s.rates.contains(rate) || (s.continuous != null && rate >= s.continuous[0] && rate <= s.continuous[1]) ||
                 (s.rates.isEmpty() && s.continuous == null && (info.clockRates.contains(rate) || info.clockRates.isEmpty())))
         }
         return info.streams.filter(takes).maxByOrNull { it.bits * 10 + it.subslot }
     }
 
-    /** Open the DAC for [rate]. True when the stream is up; false (with [lastError]) when it isn't. */
+    /**
+     * The DSD the DAC can be given, as multiples of 44.1 kHz: natively (its
+     * DSD alternate setting at the DSD rate over the slot width) and as DoP
+     * (24 bits or more of PCM at a sixteenth of the DSD rate).
+     */
+    fun dsdCaps(info: UsbDac.Info?): Pair<List<Int>, List<Int>> {
+        if (info == null) return Pair(emptyList(), emptyList())
+        val native = ArrayList<Int>(); val dop = ArrayList<Int>()
+        for (n in listOf(64, 128, 256, 512)) {
+            val hz = n * 44100
+            val s = streamFor(info, hz / 32, true) ?: streamFor(info, hz / 16, true)?.takeIf { it.subslot == 2 }
+            if (s != null && (s.subslot == 4 || s.subslot == 2)) native.add(n)
+            val p = streamFor(info, hz / 16)
+            if (p != null && p.bits >= 24) dop.add(n)
+        }
+        return Pair(native, dop)
+    }
+
+    /**
+     * Open the DAC for [rate]: PCM, or ([kind] "dsd") its DSD alternate
+     * setting, or ("dop") PCM carrying DoP. [silence] is what the engine
+     * sends when it has nothing (a frame or more: zeros for PCM, DSD silence,
+     * DoP frames with their markers). True when the stream is up; false
+     * (with [lastError]) when it isn't.
+     */
     @Synchronized
-    fun open(c: Context, rate: Int): Boolean {
+    fun open(c: Context, rate: Int, kind: String = "pcm", silence: ByteArray? = null): Boolean {
         close()
         val um = c.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return fail("no USB service")
         val device = UsbDac.device() ?: return fail("no DAC on the port")
         val info = UsbDac.info() ?: return fail("the DAC hasn't been read yet")
         if (!um.hasPermission(device)) return fail("no permission for the DAC")
-        val stream = streamFor(info, rate) ?: return fail("the DAC doesn't take ${rate / 1000.0} kHz")
+        val stream = streamFor(info, rate, kind == "dsd") ?: return fail(if (kind == "dsd") "the DAC doesn't take DSD at ${rate / 1000.0} kHz" else "the DAC doesn't take ${rate / 1000.0} kHz")
         val iface = (0 until device.interfaceCount).map { device.getInterface(it) }.firstOrNull { it.id == stream.iface && it.alternateSetting == stream.alt }
             ?: (0 until device.interfaceCount).map { device.getInterface(it) }.firstOrNull { it.id == stream.iface }
             ?: return fail("streaming interface ${stream.iface} not found")
@@ -127,11 +160,11 @@ object UsbDriver {
             val fbMax = if (stream.feedback != null) (if (info.speed == "high" || info.speed == "super") 4 else 3) else 0
             val h = nativeOpen(conn.fileDescriptor, stream.iface, stream.alt, stream.endpoint, stream.feedback ?: 0,
                 info.speed == "high" || info.speed == "super" || info.speed == "super-plus", stream.interval, 1, stream.maxPacket, fbMax,
-                stream.channels * stream.subslot, rate)
+                stream.channels * stream.subslot, rate, silence)
             if (h == 0L) { conn.releaseInterface(iface); conn.close(); return fail("the stream couldn't be set up (see the log)") }
-            current = Open(device, conn, iface, stream, rate, h, info)
+            current = Open(device, conn, iface, stream, rate, h, info, kind)
             lastError = null
-            Log.i(TAG, "open: ${info.name} at $rate Hz, ${stream.bits}-bit, alt ${stream.alt}" +
+            Log.i(TAG, "open: ${info.name} at $rate Hz, ${stream.bits}-bit, alt ${stream.alt}, $kind" +
                 (if (fixed(c)) ", fixed volume" else ", volume ${level()}% (limit ${limit(c)})" + (if (info.volumeControl) "" else " in software")))
             return true
         } catch (e: Throwable) {
@@ -256,7 +289,7 @@ object UsbDriver {
 
     init { runCatching { System.loadLibrary("mandarinusb") }.onFailure { Log.w(TAG, "no native usb library", it) } }
     @JvmStatic private external fun nativeOpen(fd: Int, iface: Int, alt: Int, ep: Int, fbEp: Int, highSpeed: Boolean, interval: Int, fbInterval: Int,
-                                               maxPacket: Int, fbMaxPacket: Int, frameBytes: Int, rate: Int): Long
+                                               maxPacket: Int, fbMaxPacket: Int, frameBytes: Int, rate: Int, silence: ByteArray?): Long
     @JvmStatic private external fun nativePlay(h: Long): Boolean
     @JvmStatic private external fun nativePause(h: Long)
     @JvmStatic private external fun nativeWrite(h: Long, buf: ByteBuffer, off: Int, len: Int): Int

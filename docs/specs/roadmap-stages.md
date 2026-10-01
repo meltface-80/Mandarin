@@ -517,6 +517,23 @@ WriteException has ExoPlayer reopen it. v0.5.39: UsbAudioSink keeps the
 playing state and starts a stream opened by configure() itself (ExoPlayer
 calls play() once per renderer start, not per track).
 
+**9.3 built in v0.5.40.** DsdExtractor.kt (DSF block-interleaved LSB-first
+and DFF byte-interleaved MSB-first, read into one shape: bytes interleaved
+per channel, MSB the oldest bit; a seek map on block boundaries),
+DsdRenderer.kt (a DecoderAudioRenderer whose decoder copies; the sink
+format is AUDIO_RAW 32-bit at the DSD rate over 32 with codecs "dsd", which
+DspSink passes by), UsbAudioSink DSD modes (native: four bytes of a channel
+in time order per 32-bit slot, or two per 16-bit, optionally reversed; DoP:
+marker 0x05/0xFA over two DSD bytes in each 24-bit sample at DSD/16), the
+engine's silence pattern (0x69 for DSD, DoP frames with their markers). The
+phone reports `usb_caps` {rates, bits, dsd}; phones.js keeps it, hands a
+renderer-style target to the plan (zones.targetFor), and replans the queue
+in place (a "load" at the same index and position) when it changes;
+stream.js rendererPlan sends a DSF/DFF as it is when target.dsd has its
+multiple. The badge: "USB DSD64 ✓", "USB DoP DSD64 ✓". A DSD track the
+DAC can't be given raises a ConfigurationException the service recognises;
+it reports without DSD and the server sends PCM.
+
 ### Today
 
 * The app plays through Media3 into a normal Android track (DspSink over

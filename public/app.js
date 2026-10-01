@@ -15682,9 +15682,20 @@ initServiceBrowser({
           '<div class="settings-note">The most the volume can be set to through USB — the slider stops here, so the DAC is never driven to full by mistake.</div>';
       }
     }
+    if (u.direct && ((u.dsd_native || []).length || (u.dsd_dop || []).length)) {
+      // DSD (Stage 9.3): natively where the DAC has a DSD alternate setting, as DoP where it takes 24-bit PCM at the rate, or PCM from the server.
+      const nat = (u.dsd_native || []).map(n => "DSD" + n).join(", "), dop = (u.dsd_dop || []).map(n => "DSD" + n).join(", ");
+      const mode = u.dsd_mode || "native";
+      const opt = (v, label) => '<option value="' + v + '"' + (mode === v ? " selected" : "") + ">" + label + "</option>";
+      html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">DSD</span><div class="settings-select-wrap"><select class="settings-select" data-usb-dsd>' +
+        (nat ? opt("native", "Native") + opt("native_le", "Native, words reversed") : "") + (dop ? opt("dop", "DoP") : "") + opt("pcm", "PCM from the server") + "</select></div></div>" +
+        '<div class="settings-note">' + (nat ? "Natively: " + nat + ". " : "") + (dop ? "As DoP: " + dop + ". " : "") +
+        (mode === "pcm" ? "DSD files are converted to PCM on the server, as before." : mode === "dop" ? "DSD files go to the DAC as DoP (DSD over PCM), bit-perfect." :
+          "DSD files go to the DAC as DSD, bit-perfect" + (mode === "native_le" ? ", each 32-bit word the other way round — for a DAC that plays noise with the usual order" : "") + (dop ? "; DoP where the rate isn’t native." : ".")) + "</div>";
+    }
     if (st) {
       const s = st.stats || {};
-      html += '<div class="cap-group"><span class="cap-label">Streaming now</span><div class="dev-v">' + esc(fmtRate(st.rate)) + " kHz · " + esc(st.bits) + "-bit" +
+      html += '<div class="cap-group"><span class="cap-label">Streaming now</span><div class="dev-v">' + (st.dsd ? "DSD" + st.dsd + (st.kind === "dop" ? " as DoP" : " native") : esc(fmtRate(st.rate)) + " kHz · " + esc(st.bits) + "-bit") +
         (u.fixed ? " · fixed volume" : (typeof st.level === "number" ? " · volume " + st.level + "%" + (st.software_volume ? " in software" : "") +
           (st.volume_db ? " (DAC range " + Number(st.volume_db.min).toFixed(1) + " to " + Number(st.volume_db.max).toFixed(1) + " dB)" : "") : "")) +
         (s.running === false ? " · paused" : "") +
@@ -16003,6 +16014,8 @@ initServiceBrowser({
     if (uf) { try { USB.setFixed(uf.checked); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
     const ul = e.target.closest("[data-usb-limit]");
     if (ul) { try { USB.setLimit(Number(ul.value)); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
+    const udsd = e.target.closest("[data-usb-dsd]");
+    if (udsd) { try { USB.setDsdMode(udsd.value); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
     const dspOn = e.target.closest("[data-dsp-on]");
     if (dspOn) return saveDsp(dspOn.checked);
     const bandType = e.target.closest("select[data-dsp-f='type']");
