@@ -154,6 +154,13 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "opus", text: "256 · 24/48 · DSP" });
       await phone("POST", "/api/phone/state", { index: 0, position: 6, duration: 60, state: "playing", volume: 40, format: "original", dsp: true });
       assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · DSP" });
+      // Through the app's USB driver (Stage 9.2): the depth and rate the DAC is fed; the tick only with the DSP off.
+      await phone("POST", "/api/phone/state", { index: 0, position: 7, duration: 60, state: "playing", volume: 40, format: "original", dsp: true, usb: "44100/24" });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · DSP · USB 24/44.1" });
+      await phone("POST", "/api/phone/state", { index: 0, position: 8, duration: 60, state: "playing", volume: 40, format: "original", dsp: false, usb: "96000/24" });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless · USB 24/96 ✓" });
+      await phone("POST", "/api/phone/state", { index: 0, position: 9, duration: 60, state: "playing", volume: 40, format: "original", dsp: false, usb: "nonsense" });
+      assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "lossless", text: "Lossless" });
       await phone("PATCH", "/api/audio-devices/" + zoneId, { dsp: { enabled: false } });
       seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
     });

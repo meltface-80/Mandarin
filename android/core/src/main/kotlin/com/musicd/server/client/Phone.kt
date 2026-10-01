@@ -64,6 +64,8 @@ object Phone {
         val format: String = "original",
         /** The DSP engine is changing the sound. */
         val dsp: Boolean = false,
+        /** Playing through the app's USB driver: "rate/bits" the DAC is fed, else null. */
+        val usb: String? = null,
         /** The player holds a list the server doesn't (the phone's own music, downloads it
          *  doesn't know): [localItems] carries it when it changed ([localRev] numbers it). */
         val local: Boolean = false,
@@ -73,7 +75,7 @@ object Phone {
         fun toJson(): JSONObject = JSONObject()
             .put("index", index).put("position", positionSeconds).put("duration", durationSeconds)
             .put("state", state).put("shuffle", shuffle).put("loop", loop)
-            .put("volume", volume).put("muted", muted).put("format", format).put("dsp", dsp)
+            .put("volume", volume).put("muted", muted).put("format", format).put("dsp", dsp).put("usb", usb ?: JSONObject.NULL)
             .apply { if (local) { put("local", true).put("local_rev", localRev); localItems?.let { put("local_items", it) } } }
     }
 

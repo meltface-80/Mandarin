@@ -228,7 +228,10 @@ class PhonePlayerService : MediaLibraryService() {
         val engine = dsp
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
-                DspSink(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build(), engine)
+                // Under the DSP: the USB sink (Stage 9.2), which plays through the
+                // app's own driver when USB direct is on and a DAC is on the port,
+                // and hands everything to Android's track otherwise.
+                DspSink(UsbAudioSink(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build(), context).also { usbSink = it }, engine)
         }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableAudioFloatOutput(true)
@@ -536,6 +539,32 @@ class PhonePlayerService : MediaLibraryService() {
 
     /** The phone's DSP engine: the setting from the server, run on what plays (DspSink). */
     private val dsp = DspEngine()
+    /** The USB sink (Stage 9.2), once the player is built. */
+    @Volatile private var usbSink: UsbAudioSink? = null
+    /** Playing through the USB driver right now: "rate/bits", else null. */
+    private fun usbNow(): String? = if (usbSink?.usb == true && UsbDriver.active) UsbDriver.describe() else null
+    /** The DAC's own volume control is what the slider drives. */
+    private fun usbVolume(): Boolean = usbSink?.usb == true && UsbDriver.hasVolume
+    /**
+     * USB direct switched, or the DAC came or went: the sink decides per
+     * track, so the current one is started again from where it is (a short
+     * gap) and takes the new path. Called on the main thread.
+     */
+    fun usbChanged() {
+        if (session == null) return
+        val wasUsb = usbSink?.usb == true
+        val want = Store.usbDirect(this) && UsbDac.device() != null
+        if (wasUsb == want && (wasUsb || !UsbDriver.active)) return
+        if (!wasUsb && !want) return
+        if (player.mediaItemCount == 0) { if (!want) UsbDriver.close(); return }
+        val idx = player.currentMediaItemIndex; val pos = player.currentPosition; val playing = player.playWhenReady
+        player.stop()
+        if (!want) UsbDriver.close()
+        player.seekTo(idx, pos)
+        player.prepare()
+        player.playWhenReady = playing
+        reportSoon()
+    }
     /** A setting from the server (hello, or a "dsp" command): run from the next buffer, kept for offline. */
     private fun applyDsp(json: JSONObject) {
         dsp.apply(Dsp.parse(json))
@@ -765,11 +794,11 @@ class PhonePlayerService : MediaLibraryService() {
                 ensurePrepared()
                 player.play()
             }
-            "volume" -> {
+            "volume" -> if (usbVolume()) UsbDriver.setVolume(c.value) else {
                 val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 audio.setStreamVolume(AudioManager.STREAM_MUSIC, (c.value / 100.0 * max).roundToInt().coerceIn(0, max), 0)
             }
-            "mute" -> audio.adjustStreamVolume(
+            "mute" -> if (usbVolume()) UsbDriver.setMute(c.muted) else audio.adjustStreamVolume(
                 AudioManager.STREAM_MUSIC,
                 if (c.muted) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE, 0
             )
@@ -863,10 +892,11 @@ class PhonePlayerService : MediaLibraryService() {
                 Player.REPEAT_MODE_ONE -> "loop_one"
                 else -> "disabled"
             },
-            volume = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
-            muted = muted,
+            volume = if (usbVolume()) UsbDriver.volume() else (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
+            muted = if (usbVolume()) UsbDriver.isMuted() else muted,
             format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
             dsp = dsp.active,
+            usb = usbNow(),
             local = local, localRev = localRev, localItems = localItems
         )
         val client = Store.client(this) ?: return
@@ -1090,7 +1120,9 @@ class PhonePlayerService : MediaLibraryService() {
                        /** The current track's format ([formatOf]), for the badge. */
                        val format: String? = null,
                        /** The DSP engine is at work. */
-                       val dsp: Boolean = false)
+                       val dsp: Boolean = false,
+                       /** Through the USB driver: "rate/bits", else null. */
+                       val usb: String? = null)
 
     /** What's playing, as the offline page shows it. */
     fun offlineState(): OfflineState? = onPlayer { p ->
@@ -1121,7 +1153,7 @@ class PhonePlayerService : MediaLibraryService() {
             (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audio.isStreamMute(AudioManager.STREAM_MUSIC),
             items, revision, formatOf(p.currentMediaItem).let { if (it == FORMAT_OPUS && floatOpus()) FORMAT_OPUS24 else it },
-            dsp.active
+            dsp.active, usbNow()
         )
     }
 

@@ -100,7 +100,17 @@ object OfflineApi {
         .put("shuffle", st?.shuffle ?: false).put("loop", st?.loop ?: "disabled").put("auto_radio", false)
 
     /** The format badge, as the server shapes it (lib/server/api-playback.js formatOf). */
-    private fun formatJson(f: String?, dsp: Boolean = false): Any {
+    private fun formatJson(f: String?, dsp: Boolean = false, usb: String? = null): Any {
+        val base = formatBase(f, dsp)
+        // Through the USB driver (Stage 9.2): the depth and rate the DAC is fed, the tick with the DSP off.
+        if (usb != null && base is JSONObject) {
+            val parts = usb.split("/")
+            if (parts.size == 2) return JSONObject().put("kind", base.getString("kind"))
+                .put("text", base.getString("text") + " · USB " + parts[1] + "/" + (parts[0].toDouble() / 1000).let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() } + (if (dsp) "" else " ✓"))
+        }
+        return base
+    }
+    private fun formatBase(f: String?, dsp: Boolean): Any {
         val tag = if (dsp) " · DSP" else ""
         return when (f) {
             null, PhonePlayerService.FORMAT_ORIGINAL -> if (dsp) JSONObject().put("kind", "lossless").put("text", "DSP") else JSONObject.NULL
@@ -121,7 +131,7 @@ object OfflineApi {
             .put("seek_position", st.position.toInt())
             .put("track_id", cur.trackId ?: JSONObject.NULL)
             .put("album_offset", if (cur.albumKey != null) "phone:${cur.albumKey}" else if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
-            .put("format", formatJson(st.format, st.dsp))
+            .put("format", formatJson(st.format, st.dsp, st.usb))
         val count = st?.items?.size ?: 0
         val index = st?.index ?: -1
         val state = st?.state ?: "stopped"
