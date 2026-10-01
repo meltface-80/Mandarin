@@ -527,7 +527,7 @@
     const sec = document.createElement("div");
     sec.className = "home-section home-section-local hidden";
     sec.dataset.row = "phone";
-    sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">On this phone</h2>' +
+    sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">Music on device</h2>' +
       '<div class="home-carousel"></div>';
     sec.querySelector("h2").addEventListener("click", () => showLocalWall());
     homeSections.prepend(sec);
@@ -555,7 +555,7 @@
     applyHomeLayout();
   }
   function showLocalWall() {
-    enterFullWall("On this phone", true);
+    enterFullWall("Music on device", true);
     unplayedWallActive = true;
     const list = localList();
     if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Downloads.", false); return; }
@@ -609,7 +609,7 @@
   ];
   if (DL) HOME_ROWS.unshift({ id: "downloads", title: "Downloaded albums",
     load: () => { loadHomeDownloads(); }, isFresh: () => homeDownloadsKey === downloadsKey(downloadList()) });
-  if (hasLocal) HOME_ROWS.unshift({ id: "phone", title: "On this phone",
+  if (hasLocal) HOME_ROWS.unshift({ id: "phone", title: "Music on device",
     load: () => { loadHomeLocal(); }, isFresh: () => homeLocalKey === localKey(localList()) });
   function homeRowEl(id) {
     return homeSections ? homeSections.querySelector('[data-row="' + id + '"]') : null;
@@ -683,6 +683,9 @@
       if (!r.ok) return;
       const j = await r.json();
       if (j && Array.isArray(j.rows) && j.rows.length) homeLayout = j.rows;
+      // A row this device has that the saved layout doesn't know (an older
+      // server): at the top, on — never silently missing.
+      for (const r of HOME_ROWS) if (!homeLayout.some(x => x.id === r.id)) homeLayout.unshift({ id: r.id, on: true });
       downloadsRowOnIfNeeded();
     } catch (e) {
       // Offline or pre-upgrade server: keep the default order. A Home screen

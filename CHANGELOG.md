@@ -14,6 +14,8 @@ Versioning: each set of changes is a development build and takes the next third 
   system settings (the page has an Allow button). “Move all here” carries existing downloads
   over, album by album, with progress; albums on a card that is out show as away rather than
   vanishing. The private store stays the default. (Stage 6.)
+- **The Home row for music on the device shows.** It is called *Music on device*; the server's
+  saved Home row order didn't know the row, so the page never showed it.
 
 ## v0.5.26
 - **Music on this phone.** In the Mandarin app, Settings → Downloads → Music on this phone
