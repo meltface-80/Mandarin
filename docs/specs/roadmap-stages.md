@@ -487,7 +487,7 @@ usb_jni.cc (usbdevfs capabilities and bus speed on the device node — the path
 the driver will stream through), the MusicdUsb bridge and the USB DAC block on
 this phone's Audio Devices page.
 
-**9.2 built in v0.5.36.** UsbDriver.kt (the alternate setting for the rate
+**9.2 built in v0.5.37.** UsbDriver.kt (the alternate setting for the rate
 at the DAC's deepest PCM depth, the interface claimed from Android's driver,
 the clock set — UAC1 by endpoint, UAC2 by clock source — the feature unit's
 volume), usb_jni.cc (a ring of frames, isochronous OUT URBs about 64 ms deep
