@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.33
+- **Tracks added to a playlist are completed from the library.** An entry that arrives
+  without everything the stored record needs (the album's id, its title, the track's title)
+  is filled in from the library — the album by its id, else by its names; the track by its
+  place on the album when the title agrees, else by its title — instead of being skipped. When
+  one still can't be stored, the toast says why ("album not in the library", "track not on
+  that album"). Fixes a playlist saved with 0 of its tracks.
+
 ## v0.5.32
 - **Playlists can be named in the Android app.** "＋ New playlist…" (from chosen tracks or
   albums), Focus → "Save as…" (a Dynamic Playlist) and "Save as a playlist" after an import

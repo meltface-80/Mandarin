@@ -53,6 +53,20 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       assert.equal(r2.track_total, 4);
       const full = await api("user-playlist?id=" + list[0].id);
       assert.deepEqual(full.tracks.map(x => x.title), ["Song 1", "Song 2", "Hi 1", "Hi 2"]);
+      // Thin entries are completed from the library: by the album's id and the
+      // track's place, or by names alone; a bogus one is skipped with a reason.
+      const thin = await api("user-playlists/add", { id: list[0].id, tracks: [
+        { album_offset: one.offset, track_index: 2 },
+        { album_title: "Hi Res", album_subtitle: "Artist B", title: "hi 2" },
+        { album_offset: one.offset, track_index: 0, title: "Song 3" },
+        { album_title: "Nothing", title: "Nope" },
+        { album_offset: one.offset, title: "Not there" }
+      ] });
+      assert.equal(thin.added, 3, JSON.stringify(thin));
+      assert.equal(thin.skipped, 2);
+      assert.equal(thin.reason, "1 album not in the library, 1 track not on that album");
+      const after = (await api("user-playlist?id=" + list[0].id)).tracks.slice(4);
+      assert.deepEqual(after.map(x => [x.title, x.album_title, x.track_index]), [["Song 3", "Album One", 2], ["Hi 2", "Hi Res", 1], ["Song 3", "Album One", 2]], "the title wins over a wrong place");
       assert.equal((await api("user-playlists/add", { name: "", tracks: entries })).status, 400);
       assert.equal((await api("user-playlists/add", { name: "Empty" })).status, 400, "tracks required");
     });
@@ -72,17 +86,17 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       const id = (await api("user-playlists")).playlists[0].id;
       const pl = await api("user-playlist?id=" + id);
       const enc = await api("share/encode", { name: pl.name, tracks: pl.tracks.map(x => ({ title: x.title, artist: x.subtitle, album: x.album_title, track_no: x.track_no })) });
-      assert.equal(enc.track_count, 4);
+      assert.equal(enc.track_count, 7);
       assert.match(enc.blob, /^MDRP1:/);
       const imp = await api("share/import", { blob: enc.blob });
       assert.equal(imp.ok, true);
       assert.equal(imp.name, "Road trip");
-      assert.equal(imp.resolved.length, 4);
+      assert.equal(imp.resolved.length, 7);
       assert.deepEqual(imp.missing, []);
       assert.equal(imp.resolved[0].album_offset, one.offset, "placed on the album it names");
       // Saved from the import report: a playlist like any other.
       const saved = await api("user-playlists/add", { name: imp.name + " (shared)", tracks: imp.resolved });
-      assert.equal(saved.track_total, 4);
+      assert.equal(saved.track_total, 7);
       // What MusicD Remote writes: the same document, its own generator stamp, and
       // a track whose album this library doesn't have under that name.
       const theirs = SH.buildShareDoc({ name: "From Roon" }, [

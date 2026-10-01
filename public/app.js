@@ -3322,7 +3322,7 @@
       }
       msg += ` to "${j.name}"`;
       if (j.full)    msg += " — the playlist is now full";
-      if (j.skipped) msg += `; ${j.skipped} couldn't be stored`;
+      if (j.skipped) msg += `; ${j.skipped} couldn't be stored` + (j.reason ? ` (${j.reason})` : "");
       // Named, not counted: knowing WHICH album Roon wouldn't open is the only
       // way to do anything about it.
       if (j.albums_failed && j.albums_failed.length) {
