@@ -26,6 +26,13 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
 
     @Volatile var usb = false
         private set
+    /**
+     * Whether the player is playing. ExoPlayer says play() once, when the
+     * renderer starts, not again when the sink is configured for the next
+     * track — so a stream opened then must be started here, as Android's own
+     * sink restarts its track. Without this the ring filled and nothing played.
+     */
+    private var playing = false
     private var rate = 0
     private var channels = 0
     private var subslot = 0
@@ -51,6 +58,7 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             rate = inputFormat.sampleRate; channels = inputFormat.channelCount
             subslot = UsbDriver.current?.subslot ?: 3
             startSet = false; drained = false; outFor = null
+            if (playing) UsbDriver.play()
             // Android's track is left unconfigured: nothing goes to it.
             return
         }
@@ -61,7 +69,7 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
     override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean {
         if (!usb) return inner.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
         if (UsbDriver.dead() || !UsbDriver.active) throw AudioSink.WriteException(-1, Format.Builder().setSampleRate(rate).build(), true)
-        if (!startSet) { startUs = presentationTimeUs; playedAtStart = UsbDriver.played(); startSet = true }
+        if (!startSet) { startUs = presentationTimeUs; playedAtStart = UsbDriver.played(); startSet = true; if (playing) UsbDriver.play() }
         // The same buffer comes back until it is taken: packed once, written as the ring has room.
         if (outFor !== buffer) { pack(buffer); outFor = buffer; outPos = 0 }
         val n = UsbDriver.write(out, outPos, out.limit() - outPos)
@@ -92,8 +100,8 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         out.flip()
     }
 
-    override fun play() { if (usb) UsbDriver.play() else inner.play() }
-    override fun pause() { if (usb) UsbDriver.pause() else inner.pause() }
+    override fun play() { playing = true; if (usb) UsbDriver.play() else inner.play() }
+    override fun pause() { playing = false; if (usb) UsbDriver.pause() else inner.pause() }
     override fun handleDiscontinuity() { if (usb) startSet = false else inner.handleDiscontinuity() }
     override fun playToEndOfStream() { if (usb) { UsbDriver.drain(); drained = true } else inner.playToEndOfStream() }
     override fun isEnded(): Boolean = if (usb) drained && UsbDriver.pending() == 0L else inner.isEnded()
