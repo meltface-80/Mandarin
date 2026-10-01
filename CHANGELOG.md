@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.27
+- **Downloads that outlive the app.** Settings → Downloads → Save to now offers the music
+  folder's own “Mandarin” folder (the folder chosen for Music on this phone, on the phone or an
+  SD card) beside the app's private storage. Albums saved there survive an uninstall: a fresh
+  install pointed at the same folder finds them again, each album's own index file being the
+  record. Writing plain files there needs Android's all-files access, granted once in the
+  system settings (the page has an Allow button). “Move all here” carries existing downloads
+  over, album by album, with progress; albums on a card that is out show as away rather than
+  vanishing. The private store stays the default. (Stage 6.)
+- **The Home row for music on the device shows.** It is called *Music on device*; the server's
+  saved Home row order didn't know the row, so the page never showed it.
+
 ## v0.5.26
 - **Music on this phone.** In the Mandarin app, Settings → Downloads → Music on this phone
   takes a folder chosen with Android's folder picker — purchases waiting to be moved to the

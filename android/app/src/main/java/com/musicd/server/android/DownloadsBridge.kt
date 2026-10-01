@@ -67,8 +67,24 @@ class DownloadsBridge(private val activity: Activity) {
                 .put("bytes", album.totalBytes).put("auto", album.auto).put("error", album.error ?: "")
                 .put("image_key", album.imageKey ?: ""))
         }
+        // Albums in the music folder while its card is out: shown as away, not lost.
+        val away = DownloadStore.awayAlbums(activity)
+        for (i in 0 until away.length()) {
+            val o = away.getJSONObject(i)
+            a.put(JSONObject().put("id", o.optInt("id")).put("state", "away").put("done", o.optInt("total")).put("total", o.optInt("total"))
+                .put("title", o.optString("title")).put("artist", o.optString("artist")).put("quality", o.optString("quality"))
+                .put("bytes", o.optLong("bytes")).put("auto", false).put("error", "").put("image_key", o.optString("image_key")))
+        }
         return a.toString()
     }
+
+    /** Android's "all files" access: the system page where it is granted. */
+    @JavascriptInterface
+    fun allowAllFiles() { activity.runOnUiThread { (activity as? MainActivity)?.openAllFilesAccess() } }
+
+    /** Every downloaded album moved to the place chosen under Save to. */
+    @JavascriptInterface
+    fun moveDownloads() { DownloadStore.moveAll(activity, DownloadStore.settings(activity).location) }
 
     @JavascriptInterface
     fun settings(): String {
@@ -77,10 +93,21 @@ class DownloadsBridge(private val activity: Activity) {
         for (p in DownloadStore.places(activity)) {
             places.put(JSONObject().put("id", p.id).put("label", p.label).put("free", p.freeBytes))
         }
+        // The music folder as a place to save to (v0.5.27): chosen or not, and
+        // whether the app may write there yet; albums elsewhere than the
+        // chosen place, for "Move all here"; a move under way.
+        val access = DownloadStore.folderAccess(activity)
+        val target = DownloadStore.target(activity)
+        val elsewhere = DownloadStore.albums(activity).count { (a, dir) -> a.state == "done" && dir.parentFile?.canonicalPath != target.dir.canonicalPath }
+        val mv = DownloadStore.moving
         return JSONObject()
             .put("quality", s.quality).put("location", s.location).put("wifiOnly", s.wifiOnly)
             .put("limitGb", s.limitGb).put("autoPicks", s.autoPicks).put("autoAotd", s.autoAotd)
             .put("autoRecent", s.autoRecent).put("awayQuality", s.awayQuality).put("places", places)
+            .put("folder", JSONObject().put("access", access).put("name", LocalMusic.folderName(activity) ?: "")
+                .put("path", DownloadStore.folderPath(activity)?.path ?: ""))
+            .put("elsewhere", elsewhere)
+            .put("moving", if (mv == null) JSONObject.NULL else JSONObject().put("to", mv.to).put("done", mv.done).put("total", mv.total).put("error", mv.error ?: ""))
             .put("used", DownloadStore.usedBytes(activity))
             .put("cacheWifi", s.cacheWifi).put("cacheMobile", s.cacheMobile).put("cacheGb", s.cacheGb)
             .put("cacheChoices", JSONObject()
