@@ -422,6 +422,7 @@
   const downloadsKey = list => list.map(d => d.id + ":" + d.state + ":" + (d.done || 0)).join(",");
   function downloadBadge(d) {
     if (d.state === "done") return null;
+    if (d.state === "away") return "Card out";
     if (d.state === "downloading") return "↓ " + (d.done || 0) + "/" + (d.total || "?");
     if (d.state === "failed") return "Failed";
     if (d.state === "waiting") return "Waiting";
@@ -473,7 +474,10 @@
     const frag = document.createDocumentFragment();
     for (const d of list) {
       const al = downloadAlbums.get(d.id);
-      const tile = al ? homeTile(al) : buildAlbumTile(
+      const tile = d.state === "away" ? buildAlbumTile(
+        { title: d.title || "Album", subtitle: d.artist || "", image_key: d.image_key || null },
+        () => { if (window.__showToast) window.__showToast("On a card that isn’t in right now", "error"); })
+      : al ? homeTile(al) : buildAlbumTile(
         { title: d.title || "Album", subtitle: d.artist || "", image_key: d.image_key || null },
         () => { try { DL.play(d.id); } catch (e) {} if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
       const text = downloadBadge(d);
@@ -14676,6 +14680,7 @@ initServiceBrowser({
     const q = d.quality === "opus" ? "Opus 256" : "Original";
     const auto = d.auto ? " · automatic" : "";
     if (d.state === "done") return d.total + " tracks · " + size(d.bytes || 0) + " · " + q + auto;
+    if (d.state === "away") return "On a card that isn’t in · " + d.total + " tracks · " + size(d.bytes || 0);
     if (d.state === "downloading") return "Downloading " + (d.done || 0) + " of " + (d.total || "?") + " · " + q;
     if (d.state === "waiting") return "Waiting for the network · " + (d.done || 0) + " of " + (d.total || "?");
     if (d.state === "failed") return "Couldn’t download: " + (d.error || "unknown");
@@ -14715,7 +14720,7 @@ initServiceBrowser({
         '<button type="button" class="dl-open" ' + (selecting ? 'data-dl-choose="' + d.id + '"' : 'data-dl-open="' + d.id + '"') + '><span class="dl-art">' + art + "</span>" +
         '<span class="dl-text"><span class="dl-title">' + esc(d.title) + '</span><span class="dl-artist">' + esc(d.artist) + "</span>" +
         '<span class="dl-state">' + esc(stateLine(d)) + "</span></span></button>" +
-        (selecting ? "" :
+        (selecting || d.state === "away" ? "" :
           (d.state === "done" ? '<button type="button" class="dl-btn" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>' : "") +
           '<button type="button" class="dl-btn" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' + binSvg + "</button>") +
@@ -14780,10 +14785,10 @@ initServiceBrowser({
         row("Quality", select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
         '<div class="settings-note">Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a tenth of the size. You can choose each time.</div>' +
         row("Save to", select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
-        (places.length > 1 ? '<div class="settings-note">Albums already downloaded stay where they are.</div>' : "") +
+        folderPlaceNote(s, places) +
         row("Size limit", select("limitGb", [0, 8, 16, 32, 64, 128, 256].map(g => [g, g ? g + " GB" : "No limit"]), s.limitGb)) +
         row("Wi-Fi only", toggle("wifiOnly", s.wifiOnly)) +
-        '<div class="settings-note">Downloads live in the app’s own storage: no permission needed, but uninstalling the app deletes them (updates don’t).</div>' +
+        '<div class="settings-note">Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). The music folder’s Mandarin folder outlives the app: a fresh install pointed at the same folder finds the albums again.</div>' +
       "</div>" +
       '<div class="settings-divider"></div>' +
 
@@ -14815,6 +14820,32 @@ initServiceBrowser({
       "</div>";
 
     paintCacheStatus();
+  }
+
+  // The music folder as a place to save to (Stage 6): what stands between
+  // the folder and downloads landing in it, and the move of what is elsewhere.
+  function folderPlaceNote(s, places) {
+    const f = s.folder || { access: "none" };
+    let html = "";
+    if (f.access === "needed") {
+      html += '<div class="settings-row"><span class="settings-label">Save into “' + esc(f.name || "the music folder") + '” too</span>' +
+        '<button type="button" class="settings-update-btn" data-dl-allow>Allow</button></div>' +
+        '<div class="settings-note">Downloads into the music folder’s Mandarin folder outlive the app. Android asks for the app to be allowed all files access first — tap Allow, switch it on, and come back.</div>';
+    } else if (f.access === "unmapped") {
+      html += '<div class="settings-note">The music folder you chose is on a drive the app can’t write plain files to (a cloud drive, say). Downloads can’t go there; choose a folder on the phone or its SD card to save into it.</div>';
+    } else if (f.access === "away") {
+      html += '<div class="settings-note">The music folder isn’t reachable right now (its card out?). Downloads go to the place above until it is back.</div>';
+    }
+    const mv = s.moving;
+    if (mv) {
+      html += '<div class="settings-note">' + (mv.error ? "Moving stopped: " + esc(mv.error) + " (" + mv.done + " of " + mv.total + " moved)"
+        : "Moving " + (mv.done + 1 > mv.total ? mv.total : mv.done + 1) + " of " + mv.total + "…") + "</div>";
+    } else if (s.elsewhere > 0 && places.length > 1) {
+      html += '<div class="settings-row"><span class="settings-label">' + s.elsewhere + (s.elsewhere === 1 ? " album is" : " albums are") + ' saved elsewhere</span>' +
+        '<button type="button" class="settings-update-btn" data-dl-move>Move all here</button></div>' +
+        '<div class="settings-note">Copied album by album, then removed from where they were. Stopped partway, nothing is lost: each album is whole at one end or the other.</div>';
+    }
+    return html;
   }
 
   // Music files on the phone (Stage 5): the folder, read by the app, shown on
@@ -14865,6 +14896,12 @@ initServiceBrowser({
   pane.addEventListener("click", async (e) => {
     const list = () => json(() => dl.all(), []);
     const titleOf = id => (list().find(d => d.id === id) || {}).title || "this album";
+    if (e.target.closest("[data-dl-allow]")) { try { dl.allowAllFiles(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-move]")) {
+      if (!(await ask("Move every downloaded album to the place chosen under Save to?"))) return;
+      try { dl.moveDownloads(); } catch (x) {}
+      render(); return;
+    }
     if (e.target.closest("[data-local-choose]")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
     if (e.target.closest("[data-local-rescan]")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
     if (e.target.closest("[data-local-forget]")) {

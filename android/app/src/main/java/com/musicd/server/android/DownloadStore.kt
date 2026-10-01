@@ -15,6 +15,13 @@ import java.io.File
  * in the app's own storage on the phone or on an SD card. Those folders need
  * no storage permission; the catch is that Android deletes them if the app is
  * uninstalled (updates are fine).
+ *
+ * Since v0.5.27 there is a third place: the "Mandarin" folder inside the
+ * music folder chosen in Settings → Downloads (LocalMusic), on the phone or
+ * an SD card. Albums there outlive the app: a fresh install pointed at the
+ * same folder finds them again, album.json being the index. Writing there
+ * as plain files needs Android's "all files" access, which the user grants
+ * once in the system settings (the app opens the page).
  */
 object DownloadStore {
     private const val PREFS = "downloads"
@@ -86,7 +93,9 @@ object DownloadStore {
         val freeBytes: Long get() = runCatching { dir.usableSpace }.getOrDefault(0L)
     }
 
-    /** Phone storage, then an SD card if there is one. */
+    const val PLACE_FOLDER = "folder"
+
+    /** Phone storage, then an SD card if there is one, then the music folder's Mandarin folder when it can be written. */
     fun places(c: Context): List<Place> {
         val dirs = c.getExternalFilesDirs("music").filterNotNull()
         val out = ArrayList<Place>()
@@ -96,8 +105,115 @@ object DownloadStore {
             else if (removable && out.none { it.id == "sd" }) out += Place("sd", "SD card", d)
         }
         if (out.isEmpty()) out += Place("phone", "Phone storage", File(c.filesDir, "music"))
-        out.forEach { it.dir.mkdirs() }
+        folderPlace(c)?.let { out += it }
+        out.forEach { runCatching { it.dir.mkdirs() } }
         return out
+    }
+
+    // ------------------------------------------------------------ the music folder
+
+    /**
+     * The chosen music folder as a path — the external storage provider's
+     * tree ids are "primary:Music/Qobuz" or "1234-5678:Music", which map to
+     * /storage/emulated/0/… and /storage/1234-5678/…. Another provider's
+     * folder (a cloud drive, the Downloads provider) has no path, and can't
+     * hold downloads.
+     */
+    fun folderPath(c: Context): File? {
+        val u = LocalMusic.folder(c) ?: return null
+        if (u.authority != "com.android.externalstorage.documents") return null
+        val id = runCatching { android.provider.DocumentsContract.getTreeDocumentId(u) }.getOrNull() ?: return null
+        val vol = id.substringBefore(':'); val rel = id.substringAfter(':', "")
+        val root = if (vol == "primary") Environment.getExternalStorageDirectory() else File("/storage/$vol")
+        return if (rel.isEmpty()) root else File(root, rel)
+    }
+
+    /** Android's "all files" access, which writing plain files into the music folder needs. */
+    fun allFilesAccess(c: Context): Boolean =
+        if (android.os.Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
+        else c.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /** "granted", "needed" (a folder is chosen; access isn't), "unmapped" (that folder can't be written) or "none". */
+    fun folderAccess(c: Context): String {
+        if (LocalMusic.folder(c) == null) return "none"
+        val path = folderPath(c) ?: return "unmapped"
+        if (!allFilesAccess(c)) return "needed"
+        return if (path.isDirectory) "granted" else "away"
+    }
+
+    /** The music folder's Mandarin folder, as a place, when it is there to write. */
+    private fun folderPlace(c: Context): Place? {
+        if (folderAccess(c) != "granted") return null
+        val path = folderPath(c) ?: return null
+        val name = LocalMusic.folderName(c) ?: path.name
+        return Place(PLACE_FOLDER, "$name › ${LocalMusic.SKIP_DIR}", File(path, LocalMusic.SKIP_DIR))
+    }
+
+    /**
+     * The albums in the music folder, remembered: when its card is out, the
+     * list shows them as away rather than losing them; the next time the
+     * folder is there, they are simply there.
+     */
+    private fun rememberFolderAlbums(c: Context, list: List<Album>) {
+        val a = JSONArray()
+        for (al in list) a.put(JSONObject().put("id", al.id).put("title", al.title).put("artist", al.artist)
+            .put("image_key", al.imageKey ?: "").put("quality", al.quality).put("total", al.tracks.size).put("bytes", al.totalBytes))
+        edit(c) { putString("folder_albums", a.toString()) }
+    }
+    /** Albums in the music folder while it can't be reached (its card out): [{id, title, artist, image_key, quality, total, bytes}]. */
+    fun awayAlbums(c: Context): JSONArray {
+        if (folderAccess(c) != "away") return JSONArray()
+        return runCatching { JSONArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("folder_albums", "[]")) }.getOrDefault(JSONArray())
+    }
+
+    // ------------------------------------------------------------ moving
+
+    class Moving(val to: String, val done: Int, val total: Int, val error: String?)
+    @Volatile var moving: Moving? = null; private set
+
+    /**
+     * Every album not already at [toId] copied there, album by album — the
+     * files, then album.json last, then the old folder removed — so a move
+     * cut short leaves whole albums at one end or the other, and starting
+     * again carries on with the rest.
+     */
+    fun moveAll(c: Context, toId: String) {
+        if (moving != null) return
+        val to = places(c).firstOrNull { it.id == toId } ?: return
+        val work = albums(c).filter { (a, dir) -> a.state == "done" && dir.parentFile?.canonicalPath != to.dir.canonicalPath }
+        if (work.isEmpty()) return
+        moving = Moving(toId, 0, work.size, null)
+        changed()
+        Thread({
+            var n = 0
+            var err: String? = null
+            for ((a, from) in work) {
+                try {
+                    val dest = File(to.dir, a.id.toString())
+                    dest.mkdirs()
+                    for (f in from.listFiles() ?: emptyArray()) {
+                        if (!f.isFile || f.name == "album.json") continue
+                        val d = File(dest, f.name)
+                        if (d.exists() && d.length() == f.length()) continue
+                        f.copyTo(d, overwrite = true)
+                        if (d.length() != f.length()) throw java.io.IOException("short copy of ${f.name}")
+                    }
+                    File(from, "album.json").copyTo(File(dest, "album.json"), overwrite = true)
+                    from.deleteRecursively()
+                    n++
+                    index = null
+                    moving = Moving(toId, n, work.size, null)
+                    changed()
+                } catch (e: Exception) {
+                    err = e.message ?: "couldn't copy"
+                    break
+                }
+            }
+            moving = if (err != null) Moving(toId, n, work.size, err) else null
+            index = null
+            changed()
+            if (err != null) { Thread.sleep(8000); moving = null; changed() }
+        }, "downloads-move").apply { isDaemon = true; start() }
     }
 
     /** Where a new download goes: the chosen place, or phone storage if the card is gone. */
@@ -128,11 +244,17 @@ object DownloadStore {
     fun dirOf(c: Context, id: Int): File? =
         places(c).map { File(it.dir, id.toString()) }.firstOrNull { File(it, "album.json").exists() }
 
-    fun albums(c: Context): List<Pair<Album, File>> =
-        places(c).flatMap { p -> p.dir.listFiles()?.toList() ?: emptyList() }
+    fun albums(c: Context): List<Pair<Album, File>> {
+        val all = places(c)
+        val out = all.flatMap { p -> p.dir.listFiles()?.toList() ?: emptyList() }
             .filter { File(it, "album.json").exists() }
             .mapNotNull { d -> load(d)?.let { it to d } }
             .sortedByDescending { it.first.addedAt }
+        all.firstOrNull { it.id == PLACE_FOLDER }?.let { fp ->
+            rememberFolderAlbums(c, out.filter { it.second.parentFile?.canonicalPath == fp.dir.canonicalPath }.map { it.first })
+        }
+        return out
+    }
 
     fun album(c: Context, id: Int): Album? = dirOf(c, id)?.let { load(it) }
 

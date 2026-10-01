@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.26
+# Mandarin — v0.5.27
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -337,7 +337,10 @@ bands run before the PEQ's, under the profile's own preamp where that covers the
 **Music on this phone** (the Android app): Settings → Downloads → Music on this phone takes a
 folder of your choosing — purchases waiting to go to the server. The app reads its tags and
 covers, shows the albums on Home as *On this phone*, and plays them on the phone through its
-DSP. The server never sees these files; the folder's own `Mandarin` sub-folder is for downloads.
+DSP. The server never sees these files; the folder's own `Mandarin` sub-folder is for downloads:
+choose it under *Save to* (Android asks for all-files access once) and downloads saved there
+outlive the app — a fresh install pointed at the same folder finds them again. *Move all here*
+carries existing downloads over.
 
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The

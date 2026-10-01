@@ -297,6 +297,8 @@ merged-album behaviour if chosen.
 
 ## Stage 6: downloads on an SD card that outlive the app
 
+**Built in v0.5.27** — as plain files under the music folder's `Mandarin` folder with Android's all-files access, rather than through the document API: the downloads code is file-based throughout, and the result is the same.
+
 ### Today
 
 Downloads live in the app's private storage (`filesDir`), which Android deletes

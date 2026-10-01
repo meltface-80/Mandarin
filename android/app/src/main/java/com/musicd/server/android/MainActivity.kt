@@ -48,6 +48,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQ_LOCAL_FOLDER = 7301
+        private const val REQ_STORAGE = 7302
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
@@ -125,6 +126,16 @@ class MainActivity : Activity() {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
         runCatching { startActivityForResult(i, REQ_LOCAL_FOLDER) }
             .onFailure { Log.w(TAG, "no folder picker: ${it.message}") }
+    }
+
+    /** Android's "all files" access for the app (downloads into the music folder), or the storage permission before Android 11. */
+    fun openAllFilesAccess() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val i = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))
+            runCatching { startActivity(i) }.onFailure { runCatching { startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) } }
+        } else {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), REQ_STORAGE)
+        }
     }
 
     @Deprecated("Deprecated in Java")
