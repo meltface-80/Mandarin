@@ -31,7 +31,10 @@ class UsbBridge(private val activity: Activity) {
     fun phoneZone(): String = Store.phoneZone(activity)
 
     @JavascriptInterface
-    fun setDirect(on: Boolean) { Store.setUsbDirect(activity, on) }
+    fun setDirect(on: Boolean) {
+        Store.setUsbDirect(activity, on)
+        activity.runOnUiThread { PhonePlayerService.current?.usbChanged() }
+    }
 
     @JavascriptInterface
     fun diagnostics(): String = UsbDac.diagnostics(activity)

@@ -15657,10 +15657,21 @@ initServiceBrowser({
     html += '<div class="cap-group"><span class="cap-label">DSD</span><div class="dev-v">' + (i.dsd ? "Native DSD offered" : "No native DSD in its descriptors (DoP may still work)") + "</div></div>";
     html += '<div class="cap-group"><span class="cap-label">Volume</span><div class="dev-v">' + (i.volume_control ? "The DAC has a USB volume control" : "No USB volume control (fixed at full)") + "</div></div>";
     if (i.current_rate) html += '<div class="cap-group"><span class="cap-label">Clock now</span><div class="dev-v">' + esc(fmtRate(i.current_rate)) + " kHz</div></div>";
+    const st = u.stream;
     html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">USB direct</span>' +
-      '<label class="switch"><input type="checkbox" data-usb-direct' + (u.direct ? " checked" : "") + ' disabled aria-label="USB direct">' +
+      '<label class="switch"><input type="checkbox" data-usb-direct' + (u.direct ? " checked" : "") + ' aria-label="USB direct">' +
       '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
-      '<div class="settings-note">Playing through the app’s own USB driver — bit-perfect at the DAC’s own rate — comes in the next version. This one reads the DAC; the details above are what it will drive.</div>';
+      '<div class="settings-note">' + (u.direct
+        ? "On. The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before." +
+          (i.volume_control ? " The volume slider drives the DAC’s own control." : " The volume is fixed at full; set it on the amplifier.")
+        : "Off. The phone plays through Android’s mixer, at the mixer’s rate.") + "</div>";
+    if (st) {
+      const s = st.stats || {};
+      html += '<div class="cap-group"><span class="cap-label">Streaming now</span><div class="dev-v">' + esc(fmtRate(st.rate)) + " kHz · " + esc(st.bits) + "-bit" +
+        (s.feedback ? " · feedback " + Number(s.feedback).toFixed(3) + " frames/packet" : "") +
+        (s.underruns ? " · " + s.underruns + " underrun" + (s.underruns === 1 ? "" : "s") : "") + (s.errors ? " · " + s.errors + " error" + (s.errors === 1 ? "" : "s") : "") + "</div></div>";
+    }
+    if (u.stream_error) html += '<div class="settings-note away-error">' + esc(u.stream_error) + "</div>";
     html += '<div class="settings-row" style="margin-top:10px"><span class="settings-label">Diagnostics</span><button type="button" class="settings-update-btn" data-usb-copy>Copy</button></div>' +
       '<div class="settings-note">Everything the DAC said about itself, as text — what a report needs.</div>';
     if (u.error) html += '<div class="settings-note away-error">' + esc(u.error) + "</div>";

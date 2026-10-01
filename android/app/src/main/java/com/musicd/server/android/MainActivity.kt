@@ -205,7 +205,10 @@ class MainActivity : Activity() {
     }
 
     /** The USB port changed (a DAC in or out, permission answered): the page's Audio Devices follow. */
-    private val onUsb: () -> Unit = { tellPage("window.__musicdUsbChanged && window.__musicdUsbChanged()") }
+    private val onUsb: () -> Unit = {
+        runOnUiThread { PhonePlayerService.current?.usbChanged() }
+        tellPage("window.__musicdUsbChanged && window.__musicdUsbChanged()")
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

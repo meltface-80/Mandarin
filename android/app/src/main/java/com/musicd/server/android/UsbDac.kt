@@ -49,7 +49,7 @@ object UsbDac {
     class Info(
         val name: String, val vendorId: Int, val productId: Int, val serial: String?, val uac: Int,
         val controlInterface: Int, val clocks: List<Int>, val clockRates: List<Int>, val currentRate: Int?,
-        val volumeControl: Boolean, val muteControl: Boolean, val streams: List<Stream>, val speed: String,
+        val volumeControl: Boolean, val muteControl: Boolean, val featureUnit: Int, val streams: List<Stream>, val speed: String,
         val descriptorsHex: String, val probe: String
     ) {
         fun json(): JSONObject {
@@ -60,7 +60,7 @@ object UsbDac {
             return JSONObject().put("name", name).put("vendor_id", vendorId).put("product_id", productId)
                 .put("serial", serial ?: JSONObject.NULL).put("uac", uac).put("control_interface", controlInterface)
                 .put("clocks", JSONArray(clocks)).put("clock_rates", JSONArray(clockRates)).put("current_rate", currentRate ?: JSONObject.NULL)
-                .put("volume_control", volumeControl).put("mute_control", muteControl).put("speed", speed)
+                .put("volume_control", volumeControl).put("mute_control", muteControl).put("feature_unit", featureUnit).put("speed", speed)
                 .put("rates", JSONArray(rates.toList())).put("bits", JSONArray(bits.toList()))
                 .put("dsd", streams.any { it.dsd }).put("float", streams.any { it.float })
                 .put("sync", streams.map { it.sync }.distinct().joinToString("/"))
@@ -79,7 +79,8 @@ object UsbDac {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             when (i.action) {
-                UsbManager.ACTION_USB_DEVICE_ATTACHED, UsbManager.ACTION_USB_DEVICE_DETACHED -> refresh(c)
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> refresh(c)
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> { UsbDriver.close(); refresh(c) }
                 ACTION_PERMISSION -> {
                     val granted = i.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                     Log.i(TAG, "permission " + (if (granted) "granted" else "refused"))
@@ -156,15 +157,27 @@ object UsbDac {
     }
 
     fun hasDevice(): Boolean = device != null
+    fun device(): UsbDevice? = device
+    fun info(): Info? = info
 
     /** The page's view of it. */
     fun json(c: Context): JSONObject {
         val d = device
         val o = JSONObject().put("attached", d != null).put("permission", permission)
             .put("direct", Store.usbDirect(c)).put("error", error ?: JSONObject.NULL)
-        if (d != null) o.put("device", JSONObject().put("name", d.productName ?: "USB audio device")
-            .put("manufacturer", d.manufacturerName ?: JSONObject.NULL).put("vendor_id", d.vendorId).put("product_id", d.productId))
+        if (d != null) {
+            val maker = d.manufacturerName ?: ""
+            val name = d.productName ?: "USB audio device"
+            // "AudioQuest DragonFly" already names its maker: not twice.
+            o.put("device", JSONObject().put("name", name)
+                .put("manufacturer", if (maker.isNotEmpty() && !name.startsWith(maker, ignoreCase = true)) maker else JSONObject.NULL)
+                .put("vendor_id", d.vendorId).put("product_id", d.productId))
+        }
         info?.let { o.put("info", it.json()) }
+        // The stream, when one is open (9.2): what the DAC is being fed, and how it is going.
+        UsbDriver.current?.let { s -> o.put("stream", JSONObject().put("rate", s.rate).put("bits", s.bits).put("alt", s.stream.alt)
+            .put("volume", if (s.info.volumeControl) UsbDriver.volume() else JSONObject.NULL).put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }
+        UsbDriver.lastError?.let { o.put("stream_error", it) }
         return o
     }
 
@@ -197,7 +210,7 @@ object UsbDac {
         var uac = 1
         var acInterface = -1
         val clocks = ArrayList<Int>()
-        var volume = false; var mute = false
+        var volume = false; var mute = false; var featureUnit = -1
         val alts = ArrayList<AltBuild>()
         var cur: AltBuild? = null
         var inAC = false
@@ -220,8 +233,11 @@ object UsbDac {
                             0x01 -> if (len >= 5) { val bcd = u16(raw, i + 3); if (bcd >= 0x200) uac = 2 }
                             0x0A -> if (len >= 6) clocks.add(u8(raw, i + 3))                     // UAC2 clock source
                             0x06 -> {                                                           // feature unit
-                                if (uac == 2 && len >= 9) { val ctl = u32(raw, i + 5); if ((ctl shr 2) and 3 == 3) volume = true; if (ctl and 3 == 3) mute = true }
-                                else if (uac == 1 && len >= 7) { val size = u8(raw, i + 5); if (size >= 1) { val ctl = u8(raw, i + 6); if (ctl and 2 != 0) volume = true; if (ctl and 1 != 0) mute = true } }
+                                var v = false; var m = false
+                                if (uac == 2 && len >= 9) { val ctl = u32(raw, i + 5); if ((ctl shr 2) and 3 == 3) v = true; if (ctl and 3 == 3) m = true }
+                                else if (uac == 1 && len >= 7) { val size = u8(raw, i + 5); if (size >= 1) { val ctl = u8(raw, i + 6); if (ctl and 2 != 0) v = true; if (ctl and 1 != 0) m = true } }
+                                // The first unit with a volume control is the one driven.
+                                if (v && !volume) { volume = true; mute = m; featureUnit = u8(raw, i + 3) }
                             }
                         }
                     } else cur?.let { a ->
@@ -302,7 +318,7 @@ object UsbDac {
         val hex = StringBuilder()
         for (k in raw.indices) { hex.append(String.format("%02x", u8(raw, k))); if (k % 32 == 31) hex.append('\n') else hex.append(' ') }
         return Info(d.productName ?: "USB audio device", d.vendorId, d.productId, runCatching { d.serialNumber }.getOrNull(), uac,
-            acInterface, clocks, clockRates, current, volume, mute, streams, speed, hex.toString().trim(), probe)
+            acInterface, clocks, clockRates, current, volume, mute, featureUnit, streams, speed, hex.toString().trim(), probe)
     }
 
     // The native side (usb_jni.cc): the device node the connection holds, as

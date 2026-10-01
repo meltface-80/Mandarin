@@ -6,6 +6,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.5.36
+- **Bit-perfect USB (Stage 9, part 2).** With USB direct on (this phone's page in Audio
+  Devices), the app plays through its own USB audio driver: the DAC is fed the track at its own
+  rate and at the DAC's depth, Android's mixer out of the way — bit-perfect with the DSP off,
+  the DSP's output at the DAC's rate with it on. Asynchronous DACs are paced by their feedback;
+  adaptive and synchronous ones by the clock. The DAC's own USB volume control, where it has
+  one, is what the volume slider drives (the DragonFly); otherwise the volume is fixed at full.
+  A rate the DAC doesn't take, or the DAC unplugged mid-track, falls back to Android's track.
+  The badge reads e.g. "Lossless · USB 24/44.1 ✓"; the page shows the stream's feedback and
+  underrun counts. DSD comes in part 3.
 - **The USB DAC, found and read (Stage 9, part 1).** In the Android app, a DAC on the USB
   port shows on this phone's page in Audio Devices: Android's permission for it (asked once),
   then what its descriptors say — USB Audio Class 1 or 2, sample rates (a UAC2 DAC's clock is
