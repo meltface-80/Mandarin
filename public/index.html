@@ -1184,7 +1184,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Record labels <button class="settings-info-btn" data-info="Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. Nothing is looked up anywhere." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Record labels <button class="settings-info-btn" data-info="Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins." aria-label="Info">ⓘ</button></span>
             <label class="switch">
               <input type="checkbox" id="labels-enabled" aria-label="Record labels">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1231,7 +1231,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Label data <button class="settings-info-btn" data-info="Re-read the labels from the library's tags and folders now. The tags themselves are read by the library scan (Settings → Music folders)." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Label data <button class="settings-info-btn" data-info="Ask again about every album whose files carry no label tag, and look again for the logos not found before. The tags themselves are read by the library scan (Settings → Music folders)." aria-label="Info">ⓘ</button></span>
             <button id="force-rescan-btn" class="settings-update-btn" type="button">Force rescan</button>
           </div>
           <div id="force-rescan-status" class="settings-release-notes hidden"></div>

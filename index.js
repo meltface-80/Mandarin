@@ -134,6 +134,10 @@ function createServer(overrides = {}) {
     discogsBaseUrl: config.discogsBaseUrl || undefined, fanartBaseUrl: config.fanartBaseUrl || undefined,
     pauseMs: config.logoPauseMs
   });
+  // Labels for the albums whose files carry none, from MusicBrainz then Discogs.
+  ctx.labelLookup = new (require("./lib/labellookup").LabelLookup)({
+    db, library, log, mb: ctx.labelLogos.mb, discogsBaseUrl: config.discogsBaseUrl || undefined, pauseMs: config.logoPauseMs
+  });
   // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({

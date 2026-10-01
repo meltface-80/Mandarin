@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.30
+# Mandarin — v0.5.31
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -299,6 +299,12 @@ them. The picture button on a label's page offers Discogs' candidates or takes a
 address. A label no source has a logo for is asked about again after a week, or at once
 with Force rescan.
 
+An album whose files carry no label tag gets one **looked up**, in the background:
+MusicBrainz first (a release by that title and artist, and its label), then Discogs with your
+token. What's found is kept by the album's identity, so a library rebuild keeps it; a miss is
+asked about again after a month, or at once with Force rescan. The files' own tag always
+wins, and the scan log (on the Labels screen) says what each lookup found.
+
 ## Identify albums
 
 Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
@@ -477,8 +483,6 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 * Qobuz and TIDAL accounts — this plays your own files (Qobuz's public pages are still used
   for album write-ups and the share card's "open in Qobuz" link, with no login)
-* Record labels looked up for albums whose files carry no label tag — the last part of
-  Stage 8 in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md)
 * The Android dial and voice commands from Android Random Remote
 * Audio fingerprinting (AcoustID) for albums the identification scan can't place — not
   planned; those are yours to name by hand

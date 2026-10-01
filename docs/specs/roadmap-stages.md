@@ -379,6 +379,13 @@ The background pass runs when labels are switched on, when the wall opens (an
 hour apart, or when the set of labels changed) and after a merge; a miss is
 remembered for a week, Force rescan forgets the misses.
 
+**8.3 built in v0.5.31.** `label_lookups` by album key (lib/labellookup.js):
+MusicBrainz's release search carries the labels with its hits, so one call
+answers; Discogs' release search for the rest. The pass runs with the logo
+triggers (labels switched on, the wall opening an hour apart, the rescan
+buttons) and the logo pass follows it, so a label found gets its logo looked
+for in the same sitting. The tag and the folder always beat a lookup.
+
 ### Today
 
 * The scanner stores the LABEL (or PUBLISHER) tag of every track and gives

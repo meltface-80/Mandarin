@@ -17,6 +17,7 @@ function release(d) {
     id: d.id, title: d.title, date: d.date || "", country: d.country || "XW", disambiguation: d.disambiguation || "",
     barcode: d.barcode || "",
     "artist-credit": credit(d.artist),
+    "label-info": d.label ? [{ "catalog-number": "1", label: { id: d.label + "-id", name: d.label } }] : [],
     "release-group": { id: g.id || d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
     media: [{ position: 1, format: "CD", "track-count": d.tracks.length,
       tracks: d.tracks.map(([title, s], i) => ({ id: `${d.id}-t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
@@ -52,7 +53,7 @@ class FakeMusicBrainz {
         const want = t ? t[1].replace(/\\(.)/g, "$1").toLowerCase() : "";
         const hits = bc ? this.releases.filter(r => r.barcode === bc[1]) : this.releases.filter(r => r.title.toLowerCase() === want);
         return send({ count: hits.length, offset: 0, releases: hits.map((r, i) => ({
-          id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"],
+          id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"], "label-info": r["label-info"],
           "track-count": r.media[0]["track-count"], media: [{ format: "CD", "track-count": r.media[0]["track-count"] }]
         })) });
       }
