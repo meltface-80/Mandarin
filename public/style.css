@@ -5002,6 +5002,27 @@ button.cap-chip:active { transform: scale(.96); }
 .dsp-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 .dsp-dirty { font-size: 12.5px; color: var(--text-faint); }
 .dsp-actions .action-btn { flex: 0 0 auto; min-width: 110px; }
+/* Headphones: the profile in use, the AutoEq search, the paste box. */
+.hp-current { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--bg-elev-2); border: 1px solid var(--border); }
+.hp-name { font-size: 15px; font-weight: 600; }
+.hp-sub { margin-top: 2px; font-size: 12.5px; color: var(--text-dim); }
+.hp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.hp-search, .hp-paste { margin-top: 8px; }
+.hp-results { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+.hp-row {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%;
+  padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-elev-2);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.hp-row:hover { border-color: var(--text-faint); }
+.hp-row-name { font-size: 14.5px; font-weight: 600; }
+.hp-row-sub { font-size: 12px; color: var(--text-faint); }
+.hp-text {
+  width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-elev-2); color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.4; resize: vertical;
+}
+.hp-text:focus { outline: none; border-color: var(--accent); }
 
 /* Settings → Setup → Identify albums. */
 #identify-pane-body .settings-row { min-height: 40px; }

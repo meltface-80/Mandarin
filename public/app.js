@@ -15102,6 +15102,9 @@ initServiceBrowser({
   function dspSetting(draft, enabled) {
     return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom };
   }
+  // Every band the draft runs: the headphone profile's, then the PEQ's.
+  const allBands = dr => (dr.headphone && dr.headphone.bands ? dr.headphone.bands : []).concat(dr.bands);
+  const autoHeadroom = dr => window.Biquad ? window.Biquad.headroom(dspSetting(Object.assign({}, dr, { headroom: "auto" }), true), 48000) : 0;
   const fmtDb = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + " dB";
   const fmtHz = v => v >= 1000 ? (Math.round(v / 100) / 10) + " kHz" : Math.round(v) + " Hz";
 
@@ -15282,17 +15285,18 @@ initServiceBrowser({
     const dr = dspOf(d);
     const on = !!d.dsp.enabled;
     const B = window.Biquad;
-    const peak = B ? B.peakDb(dr.bands, 48000) : 0;
-    const auto = B ? B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000) : 0;
+    const peak = B ? B.peakDb(allBands(dr), 48000) : 0;
+    const auto = autoHeadroom(dr);
     let html = '<div class="settings-divider"></div><div class="settings-block" data-dsp-block>' +
       '<div class="settings-row"><span class="settings-label">DSP</span>' +
       '<label class="switch"><input type="checkbox" data-dsp-on' + (on ? " checked" : "") + ' aria-label="DSP"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
       '<div class="settings-note">' + (d.kind === "phone"
-        ? (on ? "On. The app runs the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
+        ? (on ? "On. The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
              : "Off. The app plays what it is given as it is.")
         : on
         ? "On. Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (d.output && d.output.flac32 && d.bits.some(b => b.n === 32 && b.on) && d.output.bits !== 24 ? "32" : "24") + " bits."
         : "Off. The device gets the file as stored (or the conversion the Output settings ask for).") + "</div>";
+    html += renderHeadphones(dr);
     html += '<div class="cap-group"><span class="cap-label">Parametric EQ · ' + dr.bands.length + ' of 10 bands</span>' +
       '<canvas class="dsp-curve" data-dsp-curve height="150" aria-label="The bands’ response"></canvas>';
     if (!dr.bands.length) html += '<div class="settings-note">No bands yet. Add one for each correction: a peak at a frequency, a shelf below or above one, or a pass filter.</div>';
@@ -15321,8 +15325,80 @@ initServiceBrowser({
   }
   function headroomNote(dr, peak, auto) {
     if (typeof dr.headroom === "number") return "Set by hand: " + fmtDb(dr.headroom) + " before the bands. Auto would take " + fmtDb(auto) + ".";
-    if (!dr.bands.length) return "Auto: nothing to take yet.";
-    return "Auto: " + fmtDb(auto) + " before the bands — their peak together is " + fmtDb(peak) + ", and half a dB is kept under it so nothing clips.";
+    if (!allBands(dr).length) return "Auto: nothing to take yet.";
+    const own = dr.headphone && typeof dr.headphone.preamp === "number" ? dr.headphone.preamp : null;
+    if (own != null && own === auto) return "Auto: " + fmtDb(auto) + " — the headphone profile's own preamp, which covers the bands' peak of " + fmtDb(peak) + ".";
+    return "Auto: " + fmtDb(auto) + " before the bands — their peak together is " + fmtDb(peak) + ", and half a dB is kept under it so nothing clips." +
+      (own != null ? " The profile's own " + fmtDb(own) + " would not cover it." : "");
+  }
+
+  /*
+   * Headphones: an AutoEq profile (searched on the server, which fetches
+   * and keeps it) or one pasted from a ParametricEQ.txt. The profile's
+   * bands run before the PEQ's; they are shown, not edited.
+   */
+  function renderHeadphones(dr) {
+    const hp = dr.headphone;
+    const ui = dr.hp || null;
+    let html = '<div class="cap-group" data-hp-group><span class="cap-label">Headphones</span>';
+    if (hp) {
+      html += '<div class="hp-current"><div class="hp-name">' + esc(hp.name || "Profile") + '</div><div class="hp-sub">' +
+        esc((hp.source === "autoeq" ? "AutoEq · " : "") + hp.bands.length + " band" + (hp.bands.length === 1 ? "" : "s") + (typeof hp.preamp === "number" ? " · preamp " + fmtDb(hp.preamp) : "")) + "</div></div>";
+    } else if (!ui) {
+      html += '<div class="settings-note">None. A profile from AutoEq corrects a headphone’s measured response; pick yours, or paste one you have.</div>';
+    }
+    if (!ui) {
+      html += '<div class="hp-actions"><button type="button" class="settings-update-btn" data-hp-choose>' + (hp ? "Change…" : "Choose from AutoEq…") + '</button>' +
+        '<button type="button" class="settings-update-btn" data-hp-paste>Paste a profile…</button>' +
+        (hp ? '<button type="button" class="settings-update-btn" data-hp-remove>Remove</button>' : "") + "</div>";
+    } else if (ui.mode === "search") {
+      html += '<div class="hp-search"><input type="search" class="dev-name-input" data-hp-q placeholder="Headphone name — HD 650, Aria, AirPods…" value="' + esc(ui.q || "") + '" autocomplete="off" autocapitalize="off">' +
+        '<div class="hp-results" data-hp-results>' + renderHpResults(ui) + "</div>" +
+        '<div class="hp-actions"><button type="button" class="settings-update-btn" data-hp-cancel>Cancel</button></div></div>';
+    } else if (ui.mode === "paste") {
+      html += '<div class="hp-paste"><input type="text" class="dev-name-input" data-hp-name placeholder="A name for it" maxlength="120" value="' + esc(ui.name || "") + '">' +
+        '<textarea class="hp-text" data-hp-text rows="6" placeholder="Preamp: -6.1 dB&#10;Filter 1: ON LSC Fc 105 Hz Gain 6.4 dB Q 0.70&#10;Filter 2: ON PK Fc 8800 Hz Gain 5.1 dB Q 1.42">' + esc(ui.text || "") + "</textarea>" +
+        (ui.error ? '<div class="settings-note away-error">' + esc(ui.error) + "</div>" : "") +
+        '<div class="hp-actions"><button type="button" class="action-btn primary" data-hp-use>Use it</button><button type="button" class="settings-update-btn" data-hp-cancel>Cancel</button></div></div>';
+    }
+    html += "</div>";
+    return html;
+  }
+  function renderHpResults(ui) {
+    if (ui.busy) return '<div class="settings-note">Looking…</div>';
+    if (ui.error) return '<div class="settings-note away-error">' + esc(ui.error) + "</div>";
+    if (!ui.q || ui.q.trim().length < 2) return '<div class="settings-note">Type a name. AutoEq has profiles for most headphones and earphones that have been measured.</div>';
+    if (!ui.results || !ui.results.length) return '<div class="settings-note">Nothing by that name. Try fewer words, or paste a profile.</div>';
+    return ui.results.map(r => '<button type="button" class="hp-row" data-hp-pick="' + esc(r.id) + '"><span class="hp-row-name">' + esc(r.name) + '</span><span class="hp-row-sub">' + esc([r.source, r.rig, r.form].filter(Boolean).join(" · ")) + "</span></button>").join("");
+  }
+  let hpTimer = null;
+  async function hpSearch(dr) {
+    const ui = dr.hp; if (!ui) return;
+    const q = (ui.q || "").trim();
+    if (q.length < 2) { ui.results = []; ui.busy = false; paintHpResults(dr); return; }
+    ui.busy = true; paintHpResults(dr);
+    try { const j = await api("/api/dsp/headphones?q=" + encodeURIComponent(q)); if (dr.hp === ui && ui.q.trim() === q) { ui.results = j.results || []; ui.error = ""; } }
+    catch (e) { if (dr.hp === ui) ui.error = e.message; }
+    ui.busy = false; paintHpResults(dr);
+  }
+  function paintHpResults(dr) { const el = body.querySelector("[data-hp-results]"); if (el && dr.hp) el.innerHTML = renderHpResults(dr.hp); }
+  async function hpPick(dr, id) {
+    const ui = dr.hp; if (!ui) return;
+    ui.busy = true; paintHpResults(dr);
+    try {
+      const j = await api("/api/dsp/headphones/profile?id=" + encodeURIComponent(id));
+      dr.headphone = j.profile; dr.hp = null; dr.dirty = true;
+      renderDetail();
+      toast(j.profile.name + " — Save to use it");
+    } catch (e) { ui.busy = false; ui.error = e.message; paintHpResults(dr); }
+  }
+  async function hpUse(dr) {
+    const ui = dr.hp; if (!ui) return;
+    try {
+      const j = await api("/api/dsp/headphones/parse", "POST", { name: ui.name || "", text: ui.text || "" });
+      dr.headphone = j.profile; dr.hp = null; dr.dirty = true;
+      renderDetail();
+    } catch (e) { ui.error = e.message; renderDetail(); }
   }
   function drawDsp() {
     const c = body.querySelector("[data-dsp-curve]");
@@ -15340,8 +15416,8 @@ initServiceBrowser({
     const fx = f => padL + W * (Math.log10(f) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20));
     const freqs = [];
     for (let i = 0; i <= 240; i++) freqs.push(Math.pow(10, Math.log10(20) + (Math.log10(20000) - Math.log10(20)) * i / 240));
-    const r = B.response(dr.bands, 48000, freqs);
-    const pre = B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: dr.headroom }, 48000);
+    const r = B.response(allBands(dr), 48000, freqs);
+    const pre = B.headroom(dspSetting(dr, true), 48000);
     const top = Math.max(6, Math.ceil(Math.max(...r.map(Math.abs), Math.abs(pre)) / 3) * 3);
     const fy = db => padT + H * (top - db) / (2 * top);
     ctx.clearRect(0, 0, cssW, cssH);
@@ -15377,7 +15453,7 @@ initServiceBrowser({
     dr.dirty = true;
     const note = body.querySelector("[data-dsp-headroom-note]");
     const B = window.Biquad;
-    if (note && B) note.textContent = headroomNote(dr, B.peakDb(dr.bands, 48000), B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000));
+    if (note && B) note.textContent = headroomNote(dr, B.peakDb(allBands(dr), 48000), autoHeadroom(dr));
     const dirty = body.querySelector("[data-dsp-dirty]"); if (dirty) dirty.textContent = "Not saved yet";
     const save = body.querySelector("[data-dsp-save]"); if (save) save.disabled = false;
     drawDsp();
@@ -15465,10 +15541,17 @@ initServiceBrowser({
     if (hr) {
       const dr = dspOf(current);
       const B = window.Biquad;
-      dr.headroom = hr.getAttribute("data-dsp-headroom") === "auto" ? "auto" : (B ? B.headroom({ enabled: true, peq: { bands: dr.bands }, headroom: "auto" }, 48000) : -0.5);
+      dr.headroom = hr.getAttribute("data-dsp-headroom") === "auto" ? "auto" : autoHeadroom(dr);
       dr.dirty = true; renderDetail(); return;
     }
     if (e.target.closest("[data-dsp-save]")) return saveDsp();
+    if (e.target.closest("[data-hp-choose]")) { const dr = dspOf(current); dr.hp = { mode: "search", q: "", results: [] }; renderDetail(); const q = body.querySelector("[data-hp-q]"); if (q) q.focus(); return; }
+    if (e.target.closest("[data-hp-paste]")) { const dr = dspOf(current); dr.hp = { mode: "paste", name: "", text: "" }; renderDetail(); return; }
+    if (e.target.closest("[data-hp-cancel]")) { const dr = dspOf(current); dr.hp = null; renderDetail(); return; }
+    if (e.target.closest("[data-hp-remove]")) { const dr = dspOf(current); dr.headphone = null; dr.dirty = true; renderDetail(); return; }
+    const pick = e.target.closest("[data-hp-pick]");
+    if (pick) return hpPick(dspOf(current), pick.getAttribute("data-hp-pick"));
+    if (e.target.closest("[data-hp-use]")) return hpUse(dspOf(current));
     if (e.target.closest("[data-dev-reset]")) { await patch({ name: "" }); return toast("Back to its network name"); }
     if (e.target.closest("[data-dev-forget]")) {
       if (!(await ask("Forget “" + current.name + "”?\n\nIts name and settings go. If it turns up again it starts afresh."))) return;
@@ -15509,8 +15592,13 @@ initServiceBrowser({
   });
   // A band's numbers as they are typed: the curve and the headroom follow.
   body.addEventListener("input", (e) => {
+    if (!current) return;
+    const hq = e.target.closest("[data-hp-q]");
+    if (hq) { const dr = dspOf(current); if (dr.hp) { dr.hp.q = hq.value; clearTimeout(hpTimer); hpTimer = setTimeout(() => hpSearch(dr), 250); } return; }
+    const hn = e.target.closest("[data-hp-name]"); if (hn) { const dr = dspOf(current); if (dr.hp) dr.hp.name = hn.value; return; }
+    const ht = e.target.closest("[data-hp-text]"); if (ht) { const dr = dspOf(current); if (dr.hp) dr.hp.text = ht.value; return; }
     const inp = e.target.closest("input[data-dsp-f]");
-    if (!inp || !current) return;
+    if (!inp) return;
     const dr = dspOf(current);
     const v = Number(inp.value);
     if (!Number.isFinite(v)) return;
