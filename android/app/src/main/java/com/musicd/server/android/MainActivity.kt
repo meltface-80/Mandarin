@@ -47,6 +47,7 @@ import androidx.webkit.WebViewFeature
 class MainActivity : Activity() {
 
     companion object {
+        private const val REQ_LOCAL_FOLDER = 7301
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
@@ -113,6 +114,28 @@ class MainActivity : Activity() {
         }
     }
 
+    /** The phone's own music changed (a scan, a folder chosen or forgotten): the page catches up. */
+    private val onLocal: () -> Unit = {
+        runOnUiThread { if (::web.isInitialized) web.evaluateJavascript("window.__musicdLocalChanged && window.__musicdLocalChanged()", null) }
+    }
+
+    /** Settings → Downloads → Music on this phone: Android's folder picker. */
+    fun pickLocalFolder() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        runCatching { startActivityForResult(i, REQ_LOCAL_FOLDER) }
+            .onFailure { Log.w(TAG, "no folder picker: ${it.message}") }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_LOCAL_FOLDER || resultCode != Activity.RESULT_OK) return
+        val uri = data?.data ?: return
+        runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        LocalMusic.setFolder(this, uri)
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -160,6 +183,8 @@ class MainActivity : Activity() {
         askForNotificationPermission()
         AutoDownloads.schedule(this)
         DownloadStore.listen(onDownloads)
+        LocalMusic.load(this)
+        LocalMusic.listen(onLocal)
         Away.listen(onAway)
         Away.watch(this)
         load()
@@ -499,14 +524,22 @@ class MainActivity : Activity() {
             }
         }
 
-        /** Offline, every request to the server is answered by the app. */
+        /** Offline, every request to the server is answered by the app; the
+         *  phone's own music (its albums, its covers) always is. */
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-            if (!offline) return null
             val base = loadedBase ?: return null
             val url = request.url
             if (!url.toString().startsWith(base)) return null
             val c = this@MainActivity
             val path = url.path ?: "/"
+            if (!offline) {
+                val mine = path.startsWith("/api/image/phone-") || path.startsWith("/api/phone-music/") ||
+                    (path == "/api/album" && (url.getQueryParameter("offset") ?: "").startsWith("phone:"))
+                if (!mine) return null
+                val q = url.queryParameterNames.associateWith { url.getQueryParameter(it) ?: "" }
+                val r = OfflineApi.handle(c, request.method, path, q, null)
+                return respond(r.status, r.mime, r.body)
+            }
             if (path.startsWith("/api/")) {
                 val q = url.queryParameterNames.associateWith { url.getQueryParameter(it) ?: "" }
                 // The page passes a request's body in a header when offline (the WebView doesn't hand it over).

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.25
+# Mandarin — v0.5.26
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -333,6 +333,11 @@ with Trueplay and have no DSP here. A phone running the Mandarin app has the sam
 the phone plays, through Bluetooth, USB or the speaker. Either page also takes a **headphone profile**: pick a headphone by name from AutoEq (the index
 is fetched once a day and the profile kept once chosen) or paste a ParametricEQ.txt, and its
 bands run before the PEQ's, under the profile's own preamp where that covers the peak.
+
+**Music on this phone** (the Android app): Settings → Downloads → Music on this phone takes a
+folder of your choosing — purchases waiting to go to the server. The app reads its tags and
+covers, shows the albums on Home as *On this phone*, and plays them on the phone through its
+DSP. The server never sees these files; the folder's own `Mandarin` sub-folder is for downloads.
 
 **Each device has a switch.** A renderer found on the network is **off until you turn it on** —
 nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The

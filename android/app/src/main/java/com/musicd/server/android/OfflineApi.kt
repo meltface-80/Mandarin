@@ -120,7 +120,7 @@ object OfflineApi {
             .put("length", (if (st.duration > 0) st.duration else cur.duration).toInt())
             .put("seek_position", st.position.toInt())
             .put("track_id", cur.trackId ?: JSONObject.NULL)
-            .put("album_offset", if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
+            .put("album_offset", if (cur.albumKey != null) "phone:${cur.albumKey}" else if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
             .put("format", formatJson(st.format, st.dsp))
         val count = st?.items?.size ?: 0
         val index = st?.index ?: -1
@@ -259,12 +259,26 @@ object OfflineApi {
                 return json(JSONObject().put("artist", q["artist"] ?: "").put("primary", albums(hits)).put("featured", JSONArray()))
             }
             "/api/album" -> {
-                val l = local(c, q["offset"]?.toIntOrNull() ?: -1) ?: return error("That album isn't on this phone", 409)
+                val off = q["offset"] ?: ""
+                if (off.startsWith("phone:")) {
+                    LocalMusic.load(c)
+                    val a = LocalMusic.album(off.removePrefix("phone:")) ?: return error("That album isn't on this phone any more", 409)
+                    return json(LocalMusic.albumPage(a))
+                }
+                val l = local(c, off.toIntOrNull() ?: -1) ?: return error("That album isn't on this phone", 409)
                 return json(albumPage(l))
+            }
+            // The phone's own music (LocalMusic): the page's "On this phone".
+            "/api/phone-music/albums" -> {
+                LocalMusic.load(c)
+                val a = JSONArray(); for (al in LocalMusic.albums) a.put(LocalMusic.albumJson(al))
+                return json(JSONObject().put("albums", a).put("folder", LocalMusic.folderName(c) ?: JSONObject.NULL)
+                    .put("scanning", LocalMusic.scanning).put("scanned_at", LocalMusic.scannedAt))
             }
             "/api/album/extras" -> return json(JSONObject())
             "/api/album/now-playing" -> {
                 val cur = PhonePlayerService.current?.offlineState()?.let { it.items.getOrNull(it.index) }
+                cur?.albumKey?.let { k -> LocalMusic.album(k)?.let { return json(JSONObject().put("album", LocalMusic.albumJson(it))) } }
                 val l = cur?.let { local(c, it.albumId) }
                 return json(JSONObject().put("album", l?.json() ?: JSONObject.NULL))
             }
@@ -281,7 +295,12 @@ object OfflineApi {
 
     /** A cover, by the key the page asks for: the downloaded album's cover.jpg. */
     private fun image(c: Context, rawKey: String): Response {
-        val key = java.net.URLDecoder.decode(rawKey, "UTF-8")
+        val key = java.net.URLDecoder.decode(rawKey, "UTF-8").substringBefore('?')
+        if (key.startsWith("phone-")) {
+            LocalMusic.load(c)
+            val f = LocalMusic.art(c, key.removePrefix("phone-"))
+            return if (f != null) Response(200, if (f.name.endsWith(".png")) "image/png" else "image/jpeg", f.readBytes()) else Response(404, "text/plain", ByteArray(0))
+        }
         val all = DownloadStore.albums(c)
         val hit = all.firstOrNull { it.first.imageKey == key }
             ?: Regex("^al-(\\d+)").find(key)?.groupValues?.get(1)?.toIntOrNull()?.let { id -> all.firstOrNull { it.first.id == id } }
