@@ -12514,11 +12514,12 @@ window.__musicdAppUpd = (function () {
       labelsEnabledEl.checked = !!j.enabled;
       if (window.__applyFeatureMenu) window.__applyFeatureMenu({ labels: !!j.enabled });
       if (labelsEnabledNote) {
-        const tagged = j.tagged || 0, untagged = j.untagged || 0;
-        const have = tagged + " album" + (tagged === 1 ? "" : "s") + " name" + (tagged === 1 ? "s" : "") + " a label in " + (tagged === 1 ? "its" : "their") + " tags; " +
-          untagged + " " + (untagged === 1 ? "doesn't" : "don't") + ".";
+        const tagged = j.tagged || 0, untagged = j.untagged || 0, lookedUp = j.looked_up || 0;
+        const have = tagged + " album" + (tagged === 1 ? "" : "s") + " name" + (tagged === 1 ? "s" : "") + " a label in " + (tagged === 1 ? "its" : "their") + " tags" +
+          (lookedUp ? ", " + lookedUp + " " + (lookedUp === 1 ? "has" : "have") + " one looked up" : "") + "; " +
+          untagged + " " + (untagged === 1 ? "has" : "have") + " none" + (j.enabled && untagged && !j.scanning && !lookedUp ? " (MusicBrainz and Discogs didn't know them)" : "") + ".";
         const logos = j.count
-          ? (j.scanning ? " Looking for logos now…"
+          ? (j.scanning ? " Looking up labels and logos now…"
              : (j.discogs || j.fanart) ? " " + (j.logos || 0) + " logo" + (j.logos === 1 ? "" : "s") + "."
              : " Logos need a Discogs token or a FanArt.tv key (Setup → API Keys).")
           : "";

@@ -42,7 +42,10 @@ test("a label's names fold together", () => {
 test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (t) => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false });
+  // A fake MusicBrainz that knows nothing: the lookup pass for the untagged
+  // album (part 3) must not reach the real one from a test.
+  const mb = await new (require("./fake-musicbrainz").FakeMusicBrainz)([]).start();
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, mbBaseUrl: mb.baseUrl, logoPauseMs: 0 });
   const ctx = await srv.start();
   const token = await signIn(B);
   const api = async (p, body) => {
@@ -72,7 +75,8 @@ test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (
     await t.test("on: the wall, a label's albums, search, the facet, the album page", async () => {
       assert.equal((await api("settings/labels", { enabled: true })).enabled, true);
       const f = await api("filters/labels");
-      assert.equal(f.scanning, false);
+      for (let i = 0; i < 100 && (await api("labels-scan-status")).scanning; i++) await new Promise(r => setTimeout(r, 50));
+      assert.equal((await api("labels-scan-status")).scanning, false);
       assert.deepEqual(f.labels.map(l => [l.title, l.albumCount]), [["Blue Note", 1], ["Parlophone", 1]], "alphabetical, the company words dropped");
       assert.equal(f.labels[0].key, "bluenote");
       assert.equal(f.labels[0].image_key, hi.image_key);
@@ -94,7 +98,7 @@ test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (
       assert.equal(ex.album.label, "Parlophone", "on the album page and the share card");
       assert.equal((await api("settings/labels")).count, 2);
       assert.ok(!(await api("settings/home-rows")).rows.find(r => r.id === "lotw").unavailable);
-      assert.match((await api("labels-scan-log")).text, /2 labels across 2 albums; 1 albums carry no label tag/);
+      assert.match((await api("labels-scan-log")).text, /2 labels; 2 albums carry a label tag, 0 have one looked up, 1 have none/);
       assert.equal((await api("labels/merge", { items: [] })).status, 400, "two labels are needed to merge");
     });
 
@@ -124,6 +128,6 @@ test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (
       assert.ok(!(await api("album/extras?fast=1&title=Album%20One&artist=Artist%20A")).album);
     });
   } finally {
-    await srv.stop();
+    await srv.stop(); await mb.stop();
   }
 });

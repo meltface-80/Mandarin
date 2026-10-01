@@ -10,9 +10,9 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const JPG = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=", "base64");
 
 class FakeDiscogs {
-  /* labels: [{ id, title, image: "x.png" }] */
-  constructor(labels, { token = "tok" } = {}) {
-    this.labels = labels; this.token = token; this.hits = []; this.server = null; this.base = "";
+  /* labels: [{ id, title, image: "x.png" }]; releases: [{ title, artist, label }] */
+  constructor(labels, { token = "tok", releases = [] } = {}) {
+    this.labels = labels; this.releases = releases; this.token = token; this.hits = []; this.server = null; this.base = "";
   }
   start() {
     return new Promise((resolve) => {
@@ -26,6 +26,11 @@ class FakeDiscogs {
           res.writeHead(200, { "Content-Type": png ? "image/png" : "image/jpeg" }); return res.end(png ? PNG : JPG);
         }
         if (req.headers.authorization !== "Discogs token=" + this.token) return send({ message: "You must authenticate" }, 401);
+        if (u.pathname === "/database/search" && u.searchParams.get("type") === "release") {
+          const t = (u.searchParams.get("release_title") || "").toLowerCase(), a = (u.searchParams.get("artist") || "").toLowerCase();
+          const hits = this.releases.filter(r => r.title.toLowerCase() === t && (!a || r.artist.toLowerCase() === a));
+          return send({ results: hits.map((r, i) => ({ id: 100 + i, type: "release", title: `${r.artist} - ${r.title}`, label: [r.label] })) });
+        }
         if (u.pathname === "/database/search") {
           const q = (u.searchParams.get("q") || "").toLowerCase();
           const hits = this.labels.filter(l => l.title.toLowerCase().includes(q.split(" ")[0]));

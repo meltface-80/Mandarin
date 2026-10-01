@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.31
+- **Labels for albums whose files carry none.** With Record labels on, each album without a
+  LABEL tag is looked up in the background — MusicBrainz first (a release by that title and
+  artist, its label), then Discogs with your token — and kept by the album's identity, so a
+  library rebuild keeps it; a miss is asked again after a month, or at once with Force rescan.
+  The files' own tag always wins. The Settings page counts tagged, looked-up and untagged
+  albums; the scan log says what each lookup found. (Stage 8, part 3 — the last.)
+
 ## v0.5.30
 - **Merged labels and logos.** On the Labels screen, hold a tile to select labels and merge
   them into the first (the tile shows "N merged"; tap that to undo one at a time). Logos are
