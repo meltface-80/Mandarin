@@ -375,6 +375,8 @@
   let homeHistoryLoaded = false;  // set once the recently-played row populates
   let homeFavouritesLoaded = false;
   const homeFavourites = document.getElementById("home-favourites");
+  let homeLaterLoaded = false;
+  const homeLater = document.getElementById("home-later");
 
   // ---------------------------------------------------------------------------
   // The Home rows, as one table.
@@ -594,6 +596,8 @@
   const HOME_ROWS = [
     { id: "unplayed", title: "Not played in 6 months",
       load: () => { loadHomeUnplayed(); }, isFresh: () => rowsTtlFresh() },
+    { id: "later", title: "Listen later",
+      load: () => { loadHomeLater(); }, isFresh: () => homeLaterLoaded },
     { id: "favourites", title: "Favourites",
       load: () => { loadHomeFavourites(); }, isFresh: () => homeFavouritesLoaded },
     { id: "history",  title: "Recently played",
@@ -627,7 +631,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || (id === "phone" && !localInfo());
+    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || (id === "phone" && !localInfo());
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -1113,6 +1117,40 @@
   }
   // A heart tapped anywhere: the row shows it at once.
   window.__favouritesChanged = () => { homeFavouritesLoaded = false; loadHomeFavourites(); };
+
+  // ----- Listen later: albums put aside, newest first -----
+  function renderHomeLater(albums) {
+    if (!homeLater) return;
+    renderAlbumRow(homeLater, albums);
+    const sec = homeLater.closest(".home-section");
+    if (sec) sec.classList.toggle("hidden", !albums.length || !homeRowOn("later"));
+  }
+  async function loadHomeLater() {
+    if (!homeLater) return;
+    try {
+      const r = await fetch("/api/listen-later", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json();
+      renderHomeLater((j && j.albums) || []);
+      homeLaterLoaded = true;
+    } catch (e) { /* the row keeps what it had */ }
+  }
+  window.__listenLaterChanged = () => { homeLaterLoaded = false; loadHomeLater(); };
+  // On or off the list, for one album or several; the row and the wall follow.
+  async function setListenLater(offsets, on) {
+    const ids = (Array.isArray(offsets) ? offsets : [offsets]).filter(o => typeof o === "number");
+    if (!ids.length) { showToast("Only the library's albums can be put aside", "error"); return false; }
+    try {
+      const r = await fetch("/api/listen-later", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offsets: ids, on }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+      showToast(on ? (ids.length === 1 ? "Put aside to listen later" : ids.length + " albums put aside to listen later") : "Taken off Listen later");
+      if (window.__listenLaterChanged) window.__listenLaterChanged();
+      if (laterWallActive) showLaterWall();
+      return true;
+    } catch (e) { showToast(e.message, "error"); return false; }
+  }
+  window.__setListenLater = setListenLater;
 
   async function loadHomeHistory() {
     if (!homeHistory) return;
@@ -1791,6 +1829,7 @@
     unplayedWallActive = false;
     libraryWallActive = false;
     favouritesWallActive = false;
+    laterWallActive = false;
     // Cleared here as well as by the caller: every other wall's entry point must
     // orphan an in-flight playlist fetch, or its response paints into this one.
     leavePlaylistScreens();
@@ -1816,6 +1855,30 @@
   // Full-screen "Not played in 6 months" grid — reached by tapping the section
   // header. Fills the main grid with a larger unplayed list (tiles open
   // unfiltered, like the Home row) and shows a Back button to Home.
+  async function showLaterWall() {
+    enterFullWall("Listen later", true);
+    laterWallActive = true;
+    try {
+      const r = await fetch("/api/listen-later", { cache: "no-store" });
+      if (!laterWallActive) return;
+      const j = await r.json();
+      if (!laterWallActive) return;
+      const albums = (j && j.albums) || [];
+      grid.innerHTML = "";
+      if (!albums.length) { setBanner("Nothing put aside — on an album, ⋯ → Listen later. An album comes off here once you’ve played it through.", false); return; }
+      setBanner(null);
+      const frag = document.createDocumentFragment();
+      for (const a of albums) frag.appendChild(homeTile(a));
+      grid.appendChild(frag);
+    } catch (e) {
+      if (!laterWallActive) return;
+      grid.innerHTML = "";
+      setBanner("Couldn’t load: " + e.message, true);
+    }
+  }
+  let laterWallActive = false;
+  window.__showListenLater = showLaterWall;
+
   async function showFavouritesWall() {
     enterFullWall("Favourites", true);
     favouritesWallActive = true;
@@ -4901,6 +4964,7 @@
   {
     wireSectionHeader("home-unplayed-title", showUnplayedWall);
     wireSectionHeader("home-favourites-title", showFavouritesWall);
+    wireSectionHeader("home-later-title", showLaterWall);
     wireSectionHeader("home-random-title", () => { if (window.__applyFilter) window.__applyFilter(null); });
     wireSectionHeader("home-library-title", showLibraryWall);
     wireSectionHeader("home-lotw-title", () => {
@@ -6878,6 +6942,13 @@
     });
   }
 
+  // Listen later: put the album aside, or take it off the list.
+  function laterMenuItem(album, page) {
+    if (!album || typeof album.offset !== "number") return [];
+    const on = !!((page && page.album && page.album.later) || album.later);
+    return [{ label: on ? "Remove from Listen later" : "Listen later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
+  }
+
   // Inside the Android app only (its MusicdDownloads bridge): keep this album
   // on the phone, or take it off. Browsers and the iPhone app never see it.
   function downloadMenuItem(album) {
@@ -6990,6 +7061,7 @@
     if (overflow.length) {
       modalActs.appendChild(buildOverflowMenu(
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
+          .concat(laterMenuItem(album, j))
           .concat([{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
         { label: "More actions" }));
@@ -8622,6 +8694,11 @@
         return;
       }
       if (act === "add") { addSelectionToPlaylist(); return; }
+      if (act === "later") {
+        if (selMenuKind === "tracks") { if (currentAlbum) setListenLater(currentAlbum.offset, true); exitTrackSelectMode(); }
+        else { setListenLater(albumSelected.map(a => a.offset), true); exitAlbumSelectMode(); }
+        return;
+      }
       if (selMenuKind === "tracks") invokeTrackMulti(act);
       else invokeAlbumMulti(act);
     });
@@ -14347,6 +14424,10 @@ initServiceBrowser({
 
       if (action === "home") {
         if (window.__showHome) window.__showHome();
+        return;
+      }
+      if (action === "later") {
+        if (window.__showListenLater) window.__showListenLater();
         return;
       }
       if (action === "shuffle") {

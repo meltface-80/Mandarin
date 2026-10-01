@@ -334,6 +334,8 @@ Two patch versions: the location and the write path, then the import.
 
 ## Stage 7: Listen later
 
+**Built in v0.5.28.** "Played through" is every track of the album having a play recorded since it was put aside; a track counts as played once it is well under way (the same rule history uses), so a track skipped in its first seconds keeps the album on the list.
+
 ### Plan
 
 * A server-side list (`listen_later(album_key, added_at)`), one per account.
