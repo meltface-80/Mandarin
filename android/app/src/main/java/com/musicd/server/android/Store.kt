@@ -68,9 +68,9 @@ object Store {
     /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
-    /** The DAC's USB volume as last set (0–100), or -1 when it has never been set: the driver then starts low. */
+    /** The DAC's USB volume as the slider set it since direct went on (0–100), or -1 (forgotten): the driver then starts low. */
     fun usbVolume(context: Context): Int = prefs(context).getInt("usb_volume", -1)
-    fun setUsbVolume(context: Context, pct: Int) { prefs(context).edit().putInt("usb_volume", pct.coerceIn(0, 100)).apply() }
+    fun setUsbVolume(context: Context, pct: Int) { prefs(context).edit().putInt("usb_volume", if (pct < 0) -1 else pct.coerceIn(0, 100)).apply() }
     /**
      * Fixed volume with USB direct: the DAC at full, the amplifier's knob for
      * the level. Unset, it follows the DAC: fixed for one with no USB volume

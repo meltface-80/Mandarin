@@ -498,8 +498,9 @@ Android's track for anything the DAC doesn't take). The report carries
 `usb: "rate/bits"`; the badge adds "USB 24/44.1 ✓".
 
 v0.5.38: the DAC's volume is set before the stream starts, never at the DAC's
-own level — the first open at most 20%, then the slider's last position
-(Store `usb_volume`); the slider maps on a loudness curve (60·log10 dB).
+own level — 10% whenever direct goes on or a DAC is attached (Store
+`usb_volume` forgotten), then the slider's position for the tracks after;
+the slider maps on a loudness curve (60·log10 dB).
 Fixed volume (Store `usb_fixed`; default on for a DAC with no volume
 control, off for one with) drives the DAC at full; otherwise the slider,
 no higher than the limit (`usb_limit`, default 80), drives the DAC's

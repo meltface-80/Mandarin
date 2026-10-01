@@ -38,11 +38,11 @@ object UsbDriver {
     /**
      * The DAC's volume starts low. A DAC with a USB volume control comes up
      * wherever it likes (the DragonFly at full), and headphones are on the
-     * other end: the first open sets it no higher than [SAFE_START] (the
-     * phone's own volume when that is lower), and every open after that to
-     * what the slider last set, remembered across runs.
+     * other end: switching USB direct on, or plugging a DAC in, starts the
+     * level at [SAFE_START]; the opens after that (the next track) keep what
+     * the slider set in between.
      */
-    const val SAFE_START = 20
+    const val SAFE_START = 10
     @Volatile private var volumePct = SAFE_START
     @Volatile private var muted = false
     private var volumeRange: IntArray? = null   // min, max, res in 1/256 dB (UAC1 and UAC2 alike)
@@ -188,18 +188,15 @@ object UsbDriver {
         } catch (e: Exception) { Log.w(TAG, "volume range", e) }
     }
 
-    /** Where the volume starts on an open: what the slider last set, else the phone's own volume capped at [SAFE_START]. */
+    /** Where the volume starts on an open: what the slider set since direct went on, else [SAFE_START]. */
     private fun startVolume(c: Context): Int {
         val kept = Store.usbVolume(c)
         val lim = Store.usbLimit(c)
-        if (kept in 0..100) return kept.coerceAtMost(lim)
-        val phone = runCatching {
-            val am = c.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-            val max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-            Math.round(am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) * 100.0 / max).toInt()
-        }.getOrDefault(SAFE_START)
-        return phone.coerceIn(0, minOf(SAFE_START, lim))
+        return (if (kept in 0..100) kept else SAFE_START).coerceAtMost(lim)
     }
+
+    /** USB direct switched on, or a DAC plugged in: the next open starts at [SAFE_START] again. */
+    fun forgetVolume(c: Context) { Store.setUsbVolume(c, -1); volumePct = SAFE_START }
 
     /** The slider, 0–100, onto the level (a loudness curve, see [applyVolume]), no higher than the limit. Remembered for the next open. */
     fun setVolume(pct: Int) {

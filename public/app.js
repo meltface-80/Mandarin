@@ -15673,7 +15673,7 @@ initServiceBrowser({
         '<div class="settings-note">' + (fixed
           ? "On. The DAC is driven at full and the amplifier sets the level — for a DAC into a preamp. Not for headphones on a DAC with its own volume control."
           : (i.volume_control
-            ? "Off. The volume slider and the phone’s volume buttons drive the DAC’s own control. It starts low the first time, never at the DAC’s own level, then where you last left it."
+            ? "Off. The volume slider and the phone’s volume buttons drive the DAC’s own control. It starts at 10% whenever USB direct goes on or the DAC is plugged in — never at the DAC’s own level."
             : "Off. This DAC has no USB volume control, so the slider and the phone’s volume buttons scale the samples before they go out — no longer bit-perfect. Switch on for bit-perfect at full.")) + "</div>";
       if (!fixed) {
         html += '<div class="settings-row" style="margin-top:10px"><span class="settings-label">Volume limit</span>' +

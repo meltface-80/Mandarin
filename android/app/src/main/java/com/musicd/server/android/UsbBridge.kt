@@ -35,6 +35,7 @@ class UsbBridge(private val activity: Activity) {
     @JavascriptInterface
     fun setDirect(on: Boolean) {
         Store.setUsbDirect(activity, on)
+        if (on) UsbDriver.forgetVolume(activity)
         activity.runOnUiThread { PhonePlayerService.current?.usbChanged() }
     }
 

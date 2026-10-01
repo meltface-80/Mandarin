@@ -8,8 +8,8 @@ Versioning: each set of changes is a development build and takes the next third 
 ## v0.5.38
 - **USB direct: the DAC's volume starts low.** A DAC with a USB volume control came up at
   its own level — the DragonFly at full. The driver now sets the volume before the stream
-  starts: the first time no higher than 20% (the phone's own volume when that is lower),
-  after that where the slider last left it, remembered across runs. The slider follows a
+  starts: at 10% whenever USB direct is switched on or a DAC is plugged in, and where the
+  slider was set since on the tracks that follow. The slider follows a
   loudness curve (50% is -18 dB, 20% is -42 dB) rather than a straight line across the DAC's
   stated range. The Audio Devices page shows the level and the DAC's range while streaming.
 - **Fixed volume, a volume limit, and the phone's buttons.** Under USB direct: a Fixed

@@ -79,7 +79,7 @@ object UsbDac {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             when (i.action) {
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> refresh(c)
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> { UsbDriver.forgetVolume(c); refresh(c) }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> { UsbDriver.close(); refresh(c) }
                 ACTION_PERMISSION -> {
                     val granted = i.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
