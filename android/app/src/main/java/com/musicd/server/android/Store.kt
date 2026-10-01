@@ -68,6 +68,9 @@ object Store {
     /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
+    /** The DAC's USB volume as last set (0–100), or -1 when it has never been set: the driver then starts low. */
+    fun usbVolume(context: Context): Int = prefs(context).getInt("usb_volume", -1)
+    fun setUsbVolume(context: Context, pct: Int) { prefs(context).edit().putInt("usb_volume", pct.coerceIn(0, 100)).apply() }
 
     fun localFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LOCAL_FOLDER, null)
     fun setLocalFolder(context: Context, uri: String?) {

@@ -15663,11 +15663,13 @@ initServiceBrowser({
       '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
       '<div class="settings-note">' + (u.direct
         ? "On. The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before." +
-          (i.volume_control ? " The volume slider drives the DAC’s own control." : " The volume is fixed at full; set it on the amplifier.")
+          (i.volume_control ? " The volume slider drives the DAC’s own control: it starts low the first time (never at the DAC’s own level), then where you last left it." : " The volume is fixed at full; set it on the amplifier.")
         : "Off. The phone plays through Android’s mixer, at the mixer’s rate.") + "</div>";
     if (st) {
       const s = st.stats || {};
       html += '<div class="cap-group"><span class="cap-label">Streaming now</span><div class="dev-v">' + esc(fmtRate(st.rate)) + " kHz · " + esc(st.bits) + "-bit" +
+        (typeof st.volume === "number" ? " · volume " + st.volume + "%" + (st.volume_db ? " (" + Number(st.volume_db.min).toFixed(1) + " to " + Number(st.volume_db.max).toFixed(1) + " dB)" : "") : "") +
+        (s.running === false ? " · paused" : "") +
         (s.feedback ? " · feedback " + Number(s.feedback).toFixed(3) + " frames/packet" : "") +
         (s.underruns ? " · " + s.underruns + " underrun" + (s.underruns === 1 ? "" : "s") : "") + (s.errors ? " · " + s.errors + " error" + (s.errors === 1 ? "" : "s") : "") + "</div></div>";
     }

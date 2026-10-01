@@ -497,6 +497,10 @@ sink: float packed to the DAC's subslot, the position from frames taken,
 Android's track for anything the DAC doesn't take). The report carries
 `usb: "rate/bits"`; the badge adds "USB 24/44.1 ✓".
 
+v0.5.38: the DAC's volume is set before the stream starts, never at the DAC's
+own level — the first open at most 20%, then the slider's last position
+(Store `usb_volume`); the slider maps on a loudness curve (60·log10 dB).
+
 ### Today
 
 * The app plays through Media3 into a normal Android track (DspSink over

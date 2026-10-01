@@ -176,7 +176,9 @@ object UsbDac {
         info?.let { o.put("info", it.json()) }
         // The stream, when one is open (9.2): what the DAC is being fed, and how it is going.
         UsbDriver.current?.let { s -> o.put("stream", JSONObject().put("rate", s.rate).put("bits", s.bits).put("alt", s.stream.alt)
-            .put("volume", if (s.info.volumeControl) UsbDriver.volume() else JSONObject.NULL).put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }
+            .put("volume", if (s.info.volumeControl) UsbDriver.volume() else JSONObject.NULL)
+            .put("volume_db", UsbDriver.volumeDb()?.let { r -> JSONObject().put("min", r[0]).put("max", r[1]).put("step", r[2]) } ?: JSONObject.NULL)
+            .put("stats", UsbDriver.stats() ?: JSONObject.NULL)) }
         UsbDriver.lastError?.let { o.put("stream_error", it) }
         return o
     }

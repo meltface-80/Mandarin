@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.38
+- **USB direct: the DAC's volume starts low.** A DAC with a USB volume control came up at
+  its own level — the DragonFly at full. The driver now sets the volume before the stream
+  starts: the first time no higher than 20% (the phone's own volume when that is lower),
+  after that where the slider last left it, remembered across runs. The slider follows a
+  loudness curve (50% is -18 dB, 20% is -42 dB) rather than a straight line across the DAC's
+  stated range. The Audio Devices page shows the volume and the DAC's range while streaming.
+
 ## v0.5.37
 - **Bit-perfect USB (Stage 9, part 2).** With USB direct on (this phone's page in Audio
   Devices), the app plays through its own USB audio driver: the DAC is fed the track at its own
