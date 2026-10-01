@@ -156,17 +156,21 @@ jobs:
           APK: ${{ steps.name.outputs.apk }}
         run: |
           set -euo pipefail
-          if [ -f "dist/$APK" ]; then echo "dist/$APK already published"; exit 0; fi
-          git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk'
-          mkdir -p dist
-          cp "android/$APK" "dist/$APK"
+          # One fixed name, so the README and the site link straight at the file.
           version=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
-          sha=$(sha256sum "dist/$APK" | cut -d' ' -f1)
-          printf '{\n  "version": "%s",\n  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s"\n}\n' \
-            "$version" "$GITHUB_REPOSITORY" "$APK" "$sha" > dist/latest.json
-          git add "dist/$APK" dist/latest.json
+          OUT=mandarin-android.apk
+          if [ -f "dist/$OUT" ] && grep -q "\"version\": \"$version\"" dist/latest.json && grep -q "\"file\": \"$APK\"" dist/latest.json; then
+            echo "$version already published"; exit 0
+          fi
+          git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' "dist/$OUT"
+          mkdir -p dist
+          cp "android/$APK" "dist/$OUT"
+          sha=$(sha256sum "dist/$OUT" | cut -d' ' -f1)
+          printf '{\n  "version": "%s",\n  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s"\n}\n' \
+            "$version" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$APK" > dist/latest.json
+          git add "dist/$OUT" dist/latest.json
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Publish $APK" -m "Built from ${GITHUB_SHA}."
+          git commit -m "Publish $OUT ($APK)" -m "Built from ${GITHUB_SHA}."
           git pull --rebase origin "$GITHUB_REF_NAME"
           git push origin "HEAD:$GITHUB_REF_NAME"
