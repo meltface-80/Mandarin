@@ -9,76 +9,95 @@
 
 # Mandarin — v0.5.40
 
-**Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
+**Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
+a streamer, an AV receiver — and to the Android app, with MusicD Remote's interface.**
 
-No Roon, no Plex, no streaming accounts. A small server on a machine you own
-scans your music folders, and every Sonos room in the house — and any UPnP/DLNA renderer you
-switch on, up to its own rate, upsampled if you like — plays from it, controlled from a
-browser, an iPhone home-screen app, or the native Android app.
+A small server on a machine you own scans your music folders. Every player in the house plays
+from it, controlled from a browser, an iPhone home-screen app, or the native Android app. No
+subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ```
  browser / iPhone PWA / Android app ──HTTP──▶  Mandarin  ──Sonos UPnP──▶  Sonos rooms
-                                                   │      ──UPnP AV / DLNA──▶  WiiM, Chord Poly, any renderer
-                                                   │                               │
+                                                   │      ──UPnP AV / DLNA──▶  WiiM, Chord Poly, receivers, TVs
+                                                   │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
 ---
 
-## What you get
+## What it does
 
-Everything MusicD Remote does that makes sense for a library of files:
+* **Home** — Not played in six months, Album of the day, Smart Picks, Favourites, Listen later,
+  Playlists, Random albums, Label of the week, genres. Reorder the rows or switch them off.
+* **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
+  decade, format, sample rate, bit depth, label, starts-with and date added.
+* **Search** — albums, artists and labels as you type. Typo-tolerant, any word order.
+* **Album pages** — tracks, year, label, write-ups from Wikipedia and Qobuz's editorial pages,
+  the Pitchfork score, favourite, listen later, download, share.
+* **Edit album** — correct the title, artist or year and find a cover. Edits live in the
+  database; your files stay exactly as they are.
+* **Identify albums** — a nightly MusicBrainz scan names mis-tagged albums from their tracks and
+  lengths. Applied at 96 % alike or better, otherwise proposed or left for you.
+* **Now playing** — a waveform seek bar drawn from the audio, the queue, history, and a badge
+  saying what the device is being sent.
+* **Share card** — the record as an image, where to hear it, where to read about it, and three
+  acts worth hearing next.
+* **Wall display** — a full-screen now-playing page at `/display` for a TV or tablet.
+* **Random Album Radio** — when a device's queue runs out, another whole album you haven't heard
+  lately goes on. Per device.
+* **Smart Picks and Discover** — five records a day from your own library, by acts near the ones
+  you play; new releases by the artists you listen to.
+* **Playlists** — ones you make, Dynamic Playlists that follow a saved Library view, and sharing
+  in MusicD Remote's own format.
+* **Favourites and Listen later** — a heart on every album; albums put aside until every track
+  has been played.
+* **Record labels** — from the files' tags or a folder level: a Labels screen, logos from Discogs
+  and FanArt.tv, lookups for untagged albums, merging of duplicates.
+* **Sonos** — rooms and groups: play, queue, play next, shuffle, repeat, volume per speaker,
+  group and ungroup, move what's playing to another room.
+* **UPnP/DLNA renderers** — a WiiM, a Chord Poly, a streamer, an AV receiver, a TV: gapless,
+  with volume, radio and everything a Sonos room has.
+* **Audio Devices** — every player with what it takes (rates, depths, formats), a name of your
+  own, a switch each, and Original or Upsample ×2, ×4 or Max output.
+* **DSP** — a parametric EQ of up to ten bands per renderer or phone, the curve drawn as you
+  edit, plus headphone profiles from AutoEq or a pasted ParametricEQ.txt.
+* **The Android app** — the same interface plus lock-screen controls, volume keys, a widget, a
+  Quick Settings tile, a share sheet, Android Auto, and updates of its own.
+* **This phone** — the phone is a room of its own: speaker, headphones or Bluetooth, with the
+  queue, history and radio like any other.
+* **USB DAC on the phone** — the app's own USB Audio driver feeds a DAC on the phone's port at
+  the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way.
+* **Downloads** — albums kept on the phone as the files themselves or as Opus 256, played with
+  no server at all; today's picks kept automatically if you like.
+* **Music on this phone** — a folder of files already on the phone, shown and played like the
+  library.
+* **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
+  Tracks come as Opus 256; only the phone plays.
+* **One account** — a username and password kept on the server, SRP sign-in, every device listed
+  under Settings → Account.
+* **Updates** — the server updates itself from GitHub from Settings; the app offers each new
+  version when it opens.
 
-* **Home** — Not played in 6 months, Album of the day, Smart Picks, Random albums,
-  your Library, Browse by genre. Reorder or switch rows off in Settings
-* **The whole library** — sort by title, artist, year, date added, plays, last played or a
-  stable shuffle; focus by genre, decade, format, sample rate, bit depth, starts-with
-  and date added (tap again to exclude)
-* **Instant search** across albums and artists — typo-tolerant, out of order
-* **Album pages** — tracks, year, write-ups from Wikipedia and Qobuz's editorial
-  pages, the Pitchfork score and Best New Music badge with a link to the review
-* **Edit album** (album page → ⋯ → Edit album) — correct the title, artist or release year,
-  and find a cover for an album without one. The cover search (Apple Music, Deezer,
-  MusicBrainz) matches on title, artist and track names: a sure match is picked for you,
-  otherwise you choose from suggestions or paste an image address. Your music folders
-  stay read-only; edits live in the database and survive rescans
-* **Now playing** with the **waveform** seek bar, drawn from the audio itself
-* **Share card** — the card image, where to hear it (Qobuz, TIDAL, Spotify, Apple Music,
-  Amazon, Deezer, Bandcamp), where to read about it, and "if you like this"
-* **Wall display** at `http://<server>:3500/display` for a TV or tablet
-* **Random Album Radio** — when a room's queue runs out, another album you haven't heard lately
-* **Smart Picks** — five records from your own library each day, by acts next to the ones you play
-* **Discover** — new records by the artists you actually listen to (off by default)
-* **Playlists** you make, **Dynamic Playlists** (saved Library views), and playlist sharing
-  in MusicD Remote's own format
-* **Sonos rooms and groups** — play, queue, play next, shuffle, repeat, volume per speaker,
-  group and ungroup rooms, move what's playing to another room
-* **UPnP/DLNA renderers** — a WiiM, a Chord Poly, any streamer with AVTransport: gapless, with
-  volume, radio and everything a room has; the file as stored up to the device's own rate, or
-  upsampled ×2, ×4 or to its maximum in 64-bit float (see *Audio Devices* below)
-* **Identify albums** — a nightly scan that finds an album's right artist, title, year and
-  track names on MusicBrainz from its tracks and their lengths, applied only at 96 % alike or
-  better; the rest proposed or left for you (see *Identify albums* below)
+## What each device is sent
 
-## Formats — the 24/48 rule for Sonos, each renderer's own ceiling otherwise
+Each track goes the way the device can take it. The Now playing badge says what was sent.
 
-Sonos S2 plays up to **24-bit / 48 kHz**. Mandarin sends each track the best way the
-speaker can take it (a UPnP renderer gets the same idea applied to *its* rates — 192 kHz on
-a WiiM, 768 kHz on a Poly — and can upsample; see *Audio Devices*):
+* **Sonos** plays up to 24-bit / 48 kHz. Within that, the file as stored. Above it, or in a
+  format Sonos can't read, FLAC at 24/48.
+* **A UPnP/DLNA renderer** has its own ceiling, read from the device. Within it, the file as
+  stored; above it, FLAC at the best rate the device takes in the file's family; upsampled
+  ×2, ×4 or to the device's maximum if you choose.
+* **The Android app** on the phone's own output: the file as stored within 24/48, FLAC 24/48
+  above it; Opus 256 away from home.
+* **A USB DAC on the phone**, with USB direct on: the file at its own rate and depth where the
+  DAC takes it, DSD natively or as DoP, FLAC at the DAC's best rate otherwise.
+* **Formats nothing plays as they are** — APE, WavPack, WMA Lossless, 24-bit WAV, more than two
+  channels — become FLAC, in stereo.
 
-| Your file | What the speaker gets |
-| --- | --- |
-| FLAC, ALAC, MP3, AAC, Ogg, 16-bit WAV/AIFF — at or below 24/48 | **The file itself, byte for byte** — bit-perfect |
-| Anything **above 24/48** (88.2, 96, 176.4, 192 kHz, 32-bit…) | **FLAC 24-bit / 48 kHz** — resampled, still lossless |
-| DSD (DSF/DFF) | FLAC 24/48 |
-| Formats Sonos can't read (APE, WavPack, WMA Lossless, Opus, 24-bit WAV…) | FLAC at the file's own rate and depth (within 24/48) |
-| More than two channels | Folded down to stereo |
-
-Resampling uses ffmpeg with the **SoX resampler** at high precision, with triangular dither.
-A converted track is written to a cache as it plays — the speaker starts as soon as the first
-frames exist — and the next tracks in the queue are prepared ahead, so by the time Sonos asks
-for them they are usually finished. Replays come straight from the cache (4 GB by default,
-least-recently-played removed first).
+Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track is written
+to a cache as it plays, so the device starts on the first frames, and the next tracks in the
+queue are prepared ahead. Replays come from the cache (4 GB by default, least recently played
+removed first).
 
 ## Install (Docker)
 
@@ -121,7 +140,7 @@ few minutes and albums appear as it goes.
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
 > at the same name.
 
-**Music folders, chosen in the app.** Like Roon: mount your drives or shares into the
+**Music folders, chosen in the app.** Mount your drives or shares into the
 container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
 **Settings → Music Folders**, as many as you like, and remove them there too. The folder
 picker lists every drive and share the server can see.
@@ -259,9 +278,15 @@ interface, and adds what a web page can't:
   version number in Android Auto's settings ten times to reach them).
 * **Updates itself** — the app offers each new version when it opens (or *Settings → Setup → Updates →
   Check for app update*) and installs it over the top; Android asks once to allow it.
+* **USB DAC** — plug a DAC into the phone's port and it appears on *This phone*'s page in Audio
+  Devices with what it takes. **USB direct** plays through the app's own USB Audio driver: the
+  file at its own rate and depth, DSD natively or as DoP, Android's mixer out of the way. A DAC
+  with its own volume control starts low and follows the slider and the volume buttons; the
+  rest are driven at full for the amplifier to set, with a volume limit if you want one.
 
-**Download: [dist/](dist/)** — the newest APK is committed there by GitHub Actions on every
-push to `main`. Sideload it on Android 8.0 or newer.
+**Download: [mandarin-android.apk](https://github.com/meltface-80/MusicD-Server/raw/main/dist/mandarin-android.apk)**
+— the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
+on Android 8.0 or newer.
 
 **Updates install over the top** from v0.2.1 on: every build is signed with the same key
 (`android/app/musicd-debug.keystore`). Builds before v0.2.1 were each signed with a different
@@ -315,8 +340,8 @@ second) from what the files already say: the title, the track count, the artist 
 can be trusted, and each track's title and **length** — twelve tracks that match a release to
 the second are that release, whatever the artist tag claims.
 
-Each candidate release is scored the way [beets](https://beets.io) does it, and named the way
-Roon does: the album is the MusicBrainz *release group*, the copy you have is one *release* of
+Each candidate release is scored the way [beets](https://beets.io) does it, and named by its
+release group: the album is the MusicBrainz *release group*, the copy you have is one *release* of
 it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pressing noted
 beside it, and track titles lose their remaster tails. At **96 % alike or better** the match
 is applied — artist, title, year and track titles — to the same database overlay the album
@@ -403,7 +428,7 @@ planned in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md).
 
 ## Away from home (Tailscale)
 
-Leave the house and the Android app keeps working over mobile data, like Roon ARC: the phone is
+Leave the house and the Android app keeps working over mobile data: the phone is
 the only thing it plays to. No ports are opened on your router — the phone reaches the server
 over [Tailscale](https://tailscale.com), a private network between your own devices.
 
@@ -465,9 +490,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 * **Audio.** Each queued item is a URL on this server. Within 24/48 it serves the file as
   stored, with byte ranges; above that, ffmpeg writes FLAC 24/48 to the cache and the speaker
   is served from the growing file.
-* **Interface.** MusicD Remote's own `public/` page, with the Roon-specific parts adapted,
-  talking to the same `/api` it always has — implemented here over the library and the
-  speakers instead of a Roon Core.
+* **Interface.** MusicD Remote's own `public/` page, talking to the same `/api` it always
+  has — implemented here over the library and the players.
 
 ## Troubleshooting
 
@@ -478,17 +502,6 @@ through a subnet router arrive from a home address, and the server can't tell th
 * **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the `/music` mount
   and that the container can read it.
 * **Hi-res tracks don't play.** `http://<server>:3500/api/health` must say `"ffmpeg": true`.
-
-## Not in this version
-
-* Qobuz and TIDAL accounts — this plays your own files (Qobuz's public pages are still used
-  for album write-ups and the share card's "open in Qobuz" link, with no login)
-* The Android dial and voice commands from Android Random Remote
-* Audio fingerprinting (AcoustID) for albums the identification scan can't place — not
-  planned; those are yours to name by hand
-* DSD to UPnP/DLNA renderers — later, per
-  [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md). Roon Ready, Bluetooth
-  and AirPlay: never.
 
 ## Development
 

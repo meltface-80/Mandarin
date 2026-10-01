@@ -188,7 +188,7 @@
   .note b { color: var(--copper-hi); }
 
   /* ---------- troubleshooting cards ---------- */
-  .info-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .info-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
   .info-card {
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 12px; padding: 20px;
@@ -294,37 +294,38 @@
     <img class="logo" src="mandarin-logo-dark.png" alt="Mandarin by MusicD" onerror="this.closest('header').classList.add('noimg')">
   </picture>
   <div class="wordmark">Mandarin</div>
-  <h1>Your own music files, played to Sonos rooms and UPnP streamers</h1>
-  <p class="tag">A small server on a machine you own scans your music folders, and every Sonos
-     room in the house &mdash; and any UPnP/DLNA renderer you switch on, a WiiM, a Chord Poly &mdash;
-     plays from it, with MusicD Remote's interface in a browser, on an iPhone home screen, or in
-     the Android app. Hi-res to each device's own ceiling, upsampled if you like. No Roon, no
-     Plex, no accounts. Definitely no nonsense about better sound quality.</p>
+  <h1>Your own music files, played to Sonos rooms, UPnP renderers and your phone</h1>
+  <p class="tag">A small server on a machine you own scans your music folders. Every Sonos room
+     in the house, any UPnP/DLNA renderer you switch on &mdash; a WiiM, a Chord Poly, a streamer, an
+     AV receiver, a TV &mdash; and the Android app play from it, with MusicD Remote's interface in a
+     browser, on an iPhone home screen, or in the app. No subscriptions, no streaming accounts.
+     Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
     <span class="badge">v0.5.40</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
     <span class="badge plain">UPnP / DLNA</span>
-    <span class="badge plain">Upsampling</span>
+    <span class="badge plain">Android app</span>
+    <span class="badge plain">USB DAC</span>
   </div>
 </header>
 
 <section id="how">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="lead">The interface is the MusicD Remote that was made as a Roon extension. Underneath, instead of a Roon Core, there is
-      a simple server that scans your library, drives Sonos rooms with the control ported from the Caldera Sonos Bridge,
-      and drives UPnP/DLNA renderers &mdash; a WiiM, a Chord Poly, any streamer with AVTransport &mdash; through their own
-      transport, gapless, with each one's sample rates read from the device and upsampling in 64-bit float if you want it.
-      A simple but effective music playback package. It plays music without ridiculous claims.</p>
+    <p class="lead">The interface is MusicD Remote's. Underneath is a simple server that scans your library,
+      drives Sonos rooms with the control ported from the Caldera Sonos Bridge, drives UPnP/DLNA renderers &mdash;
+      a WiiM, a Chord Poly, a streamer, an AV receiver, a TV, anything with AVTransport &mdash; through their own
+      transport, gapless, with each one's sample rates read from the device, and plays to the Android app on the
+      phone itself or through a USB DAC on its port. It plays your files without ridiculous claims.</p>
 
     <div class="flow">
       <div class="node"><b>Your phone or browser</b><span>MusicD Remote's interface</span></div>
       <div class="arrow">&rarr;</div>
       <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
       <div class="arrow">&rarr;</div>
-      <div class="node"><b>Sonos + renderers</b><span>rooms, groups, WiiM, Poly&hellip;</span></div>
+      <div class="node"><b>Players</b><span>Sonos rooms, WiiM, Poly, receivers, the app</span></div>
     </div>
     <p class="flow-note">Tracks go into the speaker's own Sonos queue, so playback is gapless and a
        skip is instant; a UPnP renderer is handed each next track ahead of time for the same reason.
@@ -363,32 +364,73 @@
         <p>A nightly scan finds an album's right artist, title, year and track names on MusicBrainz
            from its tracks and their lengths &mdash; applied only at 96&nbsp;% alike or better, the
            rest proposed or left for you. Your files are never touched.</p></div>
+      <div class="card"><h3><span class="em">&#127911;</span>UPnP/DLNA renderers</h3>
+        <p>A WiiM, a Chord Poly, a streamer, an AV receiver, a TV: found on the network, switched on
+           when you say, gapless, with volume, radio and everything a room has.</p></div>
+      <div class="card"><h3><span class="em">&#127898;</span>Audio Devices</h3>
+        <p>Every player with what it takes &mdash; rates, depths, formats &mdash; a name of your own,
+           and Original or Upsample &times;2, &times;4 or Max output per renderer.</p></div>
+      <div class="card"><h3><span class="em">&#127932;</span>DSP</h3>
+        <p>A parametric EQ of up to ten bands per renderer or phone, the curve drawn as you edit, and
+           headphone profiles from AutoEq or a pasted ParametricEQ.txt.</p></div>
+      <div class="card"><h3><span class="em">&#127991;</span>Record labels</h3>
+        <p>From the files' tags or a folder level: a Labels screen, logos from Discogs and FanArt.tv,
+           lookups for untagged albums, and merging of duplicates.</p></div>
+      <div class="card"><h3><span class="em">&#128241;</span>This phone</h3>
+        <p>In the Android app the phone is a room of its own &mdash; speaker, headphones, Bluetooth &mdash;
+           with the queue, history and radio like any other.</p></div>
+      <div class="card"><h3><span class="em">&#128268;</span>USB DAC</h3>
+        <p>The app's own USB Audio driver feeds a DAC on the phone's port at the file's rate and
+           depth, DSD natively or as DoP, Android's mixer out of the way.</p></div>
+      <div class="card"><h3><span class="em">&#11015;</span>Downloads</h3>
+        <p>Albums kept on the phone as the files themselves or as Opus 256, played with no server at
+           all; today's picks kept automatically if you like.</p></div>
+      <div class="card"><h3><span class="em">&#128205;</span>Away from home</h3>
+        <p>On mobile data the app reaches the server over its built-in Tailscale, no ports opened.
+           Tracks come as Opus 256; only the phone plays.</p></div>
+      <div class="card"><h3><span class="em">&#128274;</span>One account</h3>
+        <p>A username and password kept on the server, SRP sign-in, every device listed in Settings.
+           The server and the app update themselves.</p></div>
     </div>
   </div>
 </section>
 
 <section id="formats">
   <div class="wrap">
-    <h2>The 24/48 rule &mdash; and each renderer's own</h2>
-    <p class="lead">Sonos S2 plays up to 24-bit / 48 kHz. Everything within that goes to the speaker
-       untouched; everything above it is brought down to 24/48 and stays lossless. A UPnP/DLNA
-       renderer gets the same idea at <em>its</em> ceiling &mdash; 24/192 on a WiiM, 768 kHz on a
-       Chord Poly &mdash; and, from its page in Settings &rarr; Audio Devices, Upsample &times;2, &times;4 or Max,
-       processed in 64-bit float. A WiiM reports what its decoder is really playing, and the badge
-       gets its tick.</p>
-    <div class="tablewrap formats">
-      <table>
-        <tr><th>Your file</th><th>What the speaker gets</th></tr>
-        <tr><td>FLAC, ALAC, MP3, AAC, Ogg, 16-bit WAV/AIFF &le; 24/48</td><td>The file itself, byte for byte &mdash; bit-perfect</td></tr>
-        <tr><td>Above 24/48 (88.2&ndash;384 kHz, 32-bit)</td><td>FLAC 24-bit / 48 kHz</td></tr>
-        <tr><td>DSD (DSF, DFF)</td><td>FLAC 24-bit / 48 kHz</td></tr>
-        <tr><td>APE, WavPack, WMA Lossless, Opus, 24-bit WAV</td><td>FLAC at the file's own rate and depth</td></tr>
-        <tr><td>More than two channels</td><td>Folded down to stereo</td></tr>
-      </table>
+    <h2>What each device is sent</h2>
+    <p class="lead">Each track goes the way the device can take it, and the Now playing badge says
+       what was sent. Conversion is ffmpeg with the SoX resampler and triangular dither; a converted
+       track plays while it is still being written, the next tracks are prepared ahead, and replays
+       come from a cache.</p>
+    <div class="info-cards">
+      <div class="info-card">
+        <span class="sym">Sonos</span>
+        <h3>Up to 24-bit / 48 kHz</h3>
+        <p>Within that, the file as stored. Above it, or in a format Sonos can't read, FLAC at 24/48.</p>
+      </div>
+      <div class="info-card">
+        <span class="sym">UPnP / DLNA renderer</span>
+        <h3>Its own ceiling, read from the device</h3>
+        <p>Within it, the file as stored. Above it, FLAC at the best rate the device takes in the
+           file's family. Upsample &times;2, &times;4 or Max if you choose, from its page in Audio Devices.</p>
+      </div>
+      <div class="info-card">
+        <span class="sym">The Android app</span>
+        <h3>The phone's own output</h3>
+        <p>The file as stored within 24/48, FLAC 24/48 above it. Away from home, Opus 256.</p>
+      </div>
+      <div class="info-card">
+        <span class="sym">USB DAC on the phone</span>
+        <h3>USB direct</h3>
+        <p>The file at its own rate and depth where the DAC takes it, DSD natively or as DoP, FLAC at
+           the DAC's best rate otherwise.</p>
+      </div>
+      <div class="info-card">
+        <span class="sym">Everything else</span>
+        <h3>Formats nothing plays as they are</h3>
+        <p>APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
+      </div>
     </div>
-    <p class="flow-note" style="margin-top:14px">Resampling is ffmpeg with the SoX resampler at high
-       precision and triangular dither. A converted track plays while it is still being written,
-       the next tracks are prepared ahead, and replays come from a cache (4&nbsp;GB by default).</p>
   </div>
 </section>
 
@@ -472,13 +514,12 @@
         <span class="sym">Android</span>
         <h3>The Mandarin app</h3>
         <p>Enter the port and it finds the server on your Wi-Fi by itself &mdash; or type the address.
-           On top of the interface it adds lock-screen and notification controls, volume keys that
-           move the room's volume, a now-playing widget, a random-album Quick Settings tile and a
-           proper share sheet for the share card.</p>
-        <p class="fine"><a href="https://github.com/meltface-80/MusicD-Server/tree/main/dist"><b>Download the APK</b></a>
-           &mdash; the newest build is in <code>dist/</code>. Sideload on Android 8.0 or newer. Until the
-           repository has its signing key, builds are debug-signed: to install a newer one, uninstall
-           the old one first.</p>
+           On top of the interface it adds lock-screen and notification controls, volume keys, a
+           now-playing widget, a Quick Settings tile, a share sheet, Android Auto, This phone as a room,
+           downloads, a USB DAC driver, and Tailscale for away from home.</p>
+        <p class="fine"><a href="https://github.com/meltface-80/MusicD-Server/raw/main/dist/mandarin-android.apk"><b>Download mandarin-android.apk</b></a>
+           &mdash; the newest build, published on every version. Sideload on Android 8.0 or newer; the app
+           updates itself from then on.</p>
       </div>
     </div>
   </div>
