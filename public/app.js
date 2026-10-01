@@ -551,7 +551,7 @@
       const info = localInfo();
       homeLocal.innerHTML = '<div class="home-carousel-empty">' + (info
         ? (info.scanning ? "Reading the folder…" : "Nothing in “" + esc(info.name) + "” yet.")
-        : "Choose a folder of music on this phone in Settings → Downloads.") + "</div>";
+        : "Choose a folder of music on this phone in Settings → Music Folders.") + "</div>";
     } else {
       homeLocal.innerHTML = "";
       homeLocal.appendChild(localTiles(list));
@@ -562,7 +562,7 @@
     enterFullWall("Music on device", true);
     unplayedWallActive = true;
     const list = localList();
-    if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Downloads.", false); return; }
+    if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Music Folders.", false); return; }
     setBanner(null);
     grid.innerHTML = "";
     grid.appendChild(localTiles(list));
@@ -637,7 +637,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || (id === "phone" && !localInfo());
+    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || id === "phone";
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -14972,10 +14972,11 @@ initServiceBrowser({
         row("Quality", select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
         '<div class="settings-note">Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a tenth of the size. You can choose each time.</div>' +
         row("Save to", select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
+        downloadFolderRow(s) +
         folderPlaceNote(s, places) +
         row("Size limit", select("limitGb", [0, 8, 16, 32, 64, 128, 256].map(g => [g, g ? g + " GB" : "No limit"]), s.limitGb)) +
         row("Wi-Fi only", toggle("wifiOnly", s.wifiOnly)) +
-        '<div class="settings-note">Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). The music folder’s Mandarin folder outlives the app: a fresh install pointed at the same folder finds the albums again.</div>' +
+        '<div class="settings-note">Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again.</div>' +
       "</div>" +
       '<div class="settings-divider"></div>' +
 
@@ -14997,8 +14998,6 @@ initServiceBrowser({
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
-      (has("localFolder") ? localFolderBlock() + '<div class="settings-divider"></div>' : "") +
-
       '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
@@ -15009,19 +15008,34 @@ initServiceBrowser({
     paintCacheStatus();
   }
 
-  // The music folder as a place to save to (Stage 6): what stands between
-  // the folder and downloads landing in it, and the move of what is elsewhere.
+  // The download folder (v0.5.41): a folder of your own, chosen here on its
+  // own — nothing to do with the music on the phone.
+  function downloadFolderRow(s) {
+    const f = s.folder || { access: "none" };
+    if (!has("chooseDownloadFolder")) return "";
+    if (!f.chosen) {
+      return '<div class="settings-row"><span class="settings-label">Download folder</span>' +
+        '<button type="button" class="settings-update-btn" data-dl-choose-folder>Choose</button></div>' +
+        '<div class="settings-note">A folder of your own on the phone or an SD card, as a third place to save to. Albums there outlive the app.</div>';
+    }
+    return '<div class="settings-row"><span class="settings-label">Download folder: ' + esc(f.name || "chosen") + '</span>' +
+      '<span><button type="button" class="settings-update-btn" data-dl-choose-folder>Change</button> ' +
+      '<button type="button" class="settings-update-btn" data-dl-forget-folder>Forget</button></span></div>';
+  }
+
+  // What stands between the download folder and downloads landing in it,
+  // and the move of what is elsewhere.
   function folderPlaceNote(s, places) {
     const f = s.folder || { access: "none" };
     let html = "";
     if (f.access === "needed") {
-      html += '<div class="settings-row"><span class="settings-label">Save into “' + esc(f.name || "the music folder") + '” too</span>' +
+      html += '<div class="settings-row"><span class="settings-label">Save into “' + esc(f.name || "the download folder") + '”</span>' +
         '<button type="button" class="settings-update-btn" data-dl-allow>Allow</button></div>' +
-        '<div class="settings-note">Downloads into the music folder’s Mandarin folder outlive the app. Android asks for the app to be allowed all files access first — tap Allow, switch it on, and come back.</div>';
+        '<div class="settings-note">Android asks for the app to be allowed all files access first — tap Allow, switch it on, and come back.</div>';
     } else if (f.access === "unmapped") {
-      html += '<div class="settings-note">The music folder you chose is on a drive the app can’t write plain files to (a cloud drive, say). Downloads can’t go there; choose a folder on the phone or its SD card to save into it.</div>';
+      html += '<div class="settings-note">The download folder you chose is on a drive the app can’t write plain files to (a cloud drive, say). Downloads can’t go there; choose a folder on the phone or its SD card.</div>';
     } else if (f.access === "away") {
-      html += '<div class="settings-note">The music folder isn’t reachable right now (its card out?). Downloads go to the place above until it is back.</div>';
+      html += '<div class="settings-note">The download folder isn’t reachable right now (its card out?). Downloads go to the place above until it is back.</div>';
     }
     const mv = s.moving;
     if (mv) {
@@ -15035,16 +15049,17 @@ initServiceBrowser({
     return html;
   }
 
-  // Music files on the phone (Stage 5): the folder, read by the app, shown on
-  // Home as "On this phone" and played through the phone's DSP.
-  function localFolderBlock() {
+  window.__renderLocalFolder = () => { if (window.__renderMusicFoldersPane) window.__renderMusicFoldersPane(); };
+
+  // Music files on the phone (Stage 5), now on the Music Folders page (v0.5.41): the block's HTML, shared.
+  window.__localFolderBlock = function localFolderBlock() {
     let info = null;
     try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
     let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone</div>';
     if (!info) {
       html += '<div class="settings-row"><span class="settings-label">No folder chosen</span>' +
         '<button type="button" class="settings-update-btn" data-local-choose>Choose a folder</button></div>' +
-        '<div class="settings-note">Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “On this phone”, and plays it here through the phone’s DSP. The folder’s own “Mandarin” sub-folder is for downloads from the server.</div>';
+        '<div class="settings-note">Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is watched: music added or taken away shows up or goes by itself.</div>';
     } else {
       const when = info.scanned_at ? new Date(info.scanned_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "never";
       const sub = info.scanning ? "Reading the folder…"
@@ -15057,11 +15072,10 @@ initServiceBrowser({
           '<button type="button" class="settings-update-btn" data-local-rescan' + (info.scanning ? " disabled" : "") + ">Read again</button>" +
           '<button type="button" class="settings-update-btn" data-local-choose>Change folder</button>' +
           '<button type="button" class="settings-update-btn" data-local-forget>Forget</button></div>' +
-        '<div class="settings-note">Read again after adding or moving files. Forget stops Mandarin reading the folder; nothing in it is touched.</div>';
+        '<div class="settings-note">The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.</div>';
     }
     return html + "</div>";
-  }
-  window.__renderLocalFolder = () => { if (!pane.classList.contains("hidden") && view === "settings") render(); };
+  };
 
   // "12 of 20 ahead on the phone · 1.2 GB used", kept current while the pane is open.
   function paintCacheStatus() {
@@ -15089,11 +15103,10 @@ initServiceBrowser({
       try { dl.moveDownloads(); } catch (x) {}
       render(); return;
     }
-    if (e.target.closest("[data-local-choose]")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
-    if (e.target.closest("[data-local-rescan]")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
-    if (e.target.closest("[data-local-forget]")) {
-      if (!(await ask("Forget this folder?\n\nMandarin stops reading it. Nothing in it is deleted."))) return;
-      try { dl.forgetLocalFolder(); } catch (x) {}
+    if (e.target.closest("[data-dl-choose-folder]")) { try { dl.chooseDownloadFolder(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-forget-folder]")) {
+      if (!(await ask("Forget the download folder?\n\nDownloads go to phone storage from now on. Albums already in the folder stay there, and aren’t shown until it is chosen again."))) return;
+      try { dl.forgetDownloadFolder(); } catch (x) {}
       render(); return;
     }
     if (e.target.closest("[data-dl-folder]")) { view = "albums"; selecting = false; chosen.clear(); render(); pane.scrollTop = 0; return; }
@@ -15328,8 +15341,13 @@ initServiceBrowser({
       ? "The server sees only what its container has mounted. Mount your drives and shares once — e.g. <b>-v /mnt:/mnt:ro,rslave</b> (on DietPi, everything in Drive Manager is under /mnt; <b>rslave</b> lets shares the machine mounts later show up) — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
       : "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums.") + "</div>";
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    // Music on this phone (the app): its folder is a watched folder too, so it lives here (v0.5.41).
+    if (window.MusicdDownloads && typeof window.MusicdDownloads.localFolder === "function" && window.__localFolderBlock) {
+      html += '<div class="settings-divider"></div>' + window.__localFolderBlock();
+    }
     body.innerHTML = html;
   }
+  window.__renderMusicFoldersPane = () => { if (!pane.classList.contains("hidden") && !browsing) render(); };
 
   function renderBrowser() {
     const b = browsing;
@@ -15363,6 +15381,14 @@ initServiceBrowser({
   body.addEventListener("click", async (e) => {
     const t = e.target.closest("button");
     if (!t || busy) return;
+    const dl = window.MusicdDownloads;
+    if (t.hasAttribute("data-local-choose")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
+    if (t.hasAttribute("data-local-rescan")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
+    if (t.hasAttribute("data-local-forget")) {
+      if (!(await ask("Forget this folder?\n\nMandarin stops reading it. Nothing in it is deleted."))) return;
+      try { dl.forgetLocalFolder(); } catch (x) {}
+      render(); return;
+    }
     if (t.hasAttribute("data-mf-add")) { err = ""; return browse("/"); }
     if (t.hasAttribute("data-mf-cancel")) { browsing = null; err = ""; return render(); }
     if (t.hasAttribute("data-mf-go")) { err = ""; return browse(t.getAttribute("data-mf-go")); }

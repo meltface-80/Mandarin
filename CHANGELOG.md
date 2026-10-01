@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.41
+- **The download folder is its own setting.** Settings → Downloads → Download folder: a folder
+  of your own on the phone or an SD card, chosen on its own — nothing to do with the music on
+  the phone. Before, downloads could only go into the music folder's Mandarin sub-folder, and
+  forgetting that folder hid the downloads with it. A phone set up the old way carries on with
+  the same place, now remembered separately.
+- **Music on this phone watches its folder.** The folder is read again by itself when Android
+  reports a change in it, when the app comes back to the front, and every few minutes while
+  the app is open; a read of an unchanged folder is a listing, the tags kept from last time.
+  Music moved away goes from the Home row, which hides when there is nothing in it; music
+  added shows up. The setting has moved to Settings → Music Folders, with the server's.
+- **The server's music folders are watched too.** A folder added, files copied in, an album
+  deleted or renamed are noticed through the file system's own notifications and read within a
+  minute, gathered into one scan; the timed rescan stays for what the file system doesn't
+  report (a change made on a network share from another machine).
+
 ## v0.5.40
 - **Native DSD over USB (Stage 9, part 3).** A DSF or DFF file goes to the DAC as DSD: natively
   on the DAC's DSD alternate setting (the Audiolab 8300CD: DSD64, 128 and 256), or as DoP on a

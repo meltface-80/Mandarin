@@ -16,12 +16,13 @@ import java.io.File
  * no storage permission; the catch is that Android deletes them if the app is
  * uninstalled (updates are fine).
  *
- * Since v0.5.27 there is a third place: the "Mandarin" folder inside the
- * music folder chosen in Settings → Downloads (LocalMusic), on the phone or
- * an SD card. Albums there outlive the app: a fresh install pointed at the
- * same folder finds them again, album.json being the index. Writing there
- * as plain files needs Android's "all files" access, which the user grants
- * once in the system settings (the app opens the page).
+ * Since v0.5.27 there is a third place: a folder of your own on the phone
+ * or an SD card (chosen on its own in Settings → Downloads from v0.5.41;
+ * before that, the music folder's Mandarin sub-folder). Albums there
+ * outlive the app: a fresh install pointed at the same folder finds them
+ * again, album.json being the index. Writing there as plain files needs
+ * Android's "all files" access, which the user grants once in the system
+ * settings (the app opens the page).
  */
 object DownloadStore {
     private const val PREFS = "downloads"
@@ -95,7 +96,7 @@ object DownloadStore {
 
     const val PLACE_FOLDER = "folder"
 
-    /** Phone storage, then an SD card if there is one, then the music folder's Mandarin folder when it can be written. */
+    /** Phone storage, then an SD card if there is one, then the download folder when it can be written. */
     fun places(c: Context): List<Place> {
         val dirs = c.getExternalFilesDirs("music").filterNotNull()
         val out = ArrayList<Place>()
@@ -110,43 +111,95 @@ object DownloadStore {
         return out
     }
 
-    // ------------------------------------------------------------ the music folder
+    // ------------------------------------------------------------ the download folder
 
     /**
-     * The chosen music folder as a path — the external storage provider's
-     * tree ids are "primary:Music/Qobuz" or "1234-5678:Music", which map to
+     * A chosen folder as a path — the external storage provider's tree ids
+     * are "primary:Music/Qobuz" or "1234-5678:Music", which map to
      * /storage/emulated/0/… and /storage/1234-5678/…. Another provider's
      * folder (a cloud drive, the Downloads provider) has no path, and can't
      * hold downloads.
      */
-    fun folderPath(c: Context): File? {
-        val u = LocalMusic.folder(c) ?: return null
-        if (u.authority != "com.android.externalstorage.documents") return null
-        val id = runCatching { android.provider.DocumentsContract.getTreeDocumentId(u) }.getOrNull() ?: return null
+    fun pathOf(uri: android.net.Uri): File? {
+        if (uri.authority != "com.android.externalstorage.documents") return null
+        val id = runCatching { android.provider.DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
         val vol = id.substringBefore(':'); val rel = id.substringAfter(':', "")
         val root = if (vol == "primary") Environment.getExternalStorageDirectory() else File("/storage/$vol")
         return if (rel.isEmpty()) root else File(root, rel)
     }
 
-    /** Android's "all files" access, which writing plain files into the music folder needs. */
+    /**
+     * The download folder (Store.downloadFolder), its own setting since
+     * v0.5.41. Before that, downloads could go into the music folder's
+     * Mandarin sub-folder: a phone set up that way carries on with the same
+     * place, now remembered on its own, so forgetting the music folder no
+     * longer loses the downloads.
+     */
+    fun downloadFolderUri(c: Context): android.net.Uri? {
+        Store.downloadFolder(c)?.let { return android.net.Uri.parse(it) }
+        val legacy = LocalMusic.folder(c)
+        if (legacy != null && settings(c).location == PLACE_FOLDER) {
+            Store.setDownloadFolder(c, legacy.toString(), LocalMusic.SKIP_DIR)
+            return legacy
+        }
+        return null
+    }
+
+    fun setDownloadFolder(c: Context, uri: android.net.Uri) {
+        Store.setDownloadFolder(c, uri.toString(), "")
+        setLocation(c, PLACE_FOLDER)
+        index = null
+        changed()
+    }
+
+    fun forgetDownloadFolder(c: Context) {
+        Store.downloadFolder(c)?.let { u -> runCatching { c.contentResolver.releasePersistableUriPermission(android.net.Uri.parse(u), android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } }
+        Store.setDownloadFolder(c, null)
+        if (settings(c).location == PLACE_FOLDER) setLocation(c, "phone")
+        index = null
+        changed()
+    }
+
+    /** The download folder as a path, with its sub-folder. */
+    fun folderPath(c: Context): File? {
+        val u = downloadFolderUri(c) ?: return null
+        val base = pathOf(u) ?: return null
+        val sub = Store.downloadSub(c)
+        return if (sub.isEmpty()) base else File(base, sub)
+    }
+
+    /** The download folder's own name, for the page. */
+    fun folderName(c: Context): String? {
+        val u = downloadFolderUri(c) ?: return null
+        return runCatching {
+            val doc = android.provider.DocumentsContract.buildDocumentUriUsingTree(u, android.provider.DocumentsContract.getTreeDocumentId(u))
+            c.contentResolver.query(doc, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+        }.getOrNull() ?: u.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')
+    }
+
+    /** Android's "all files" access, which writing plain files into a chosen folder needs. */
     fun allFilesAccess(c: Context): Boolean =
         if (android.os.Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
         else c.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-    /** "granted", "needed" (a folder is chosen; access isn't), "unmapped" (that folder can't be written) or "none". */
+    /** "granted", "needed" (a folder is chosen; access isn't), "unmapped" (that folder can't be written), "away" (not there now) or "none". */
     fun folderAccess(c: Context): String {
-        if (LocalMusic.folder(c) == null) return "none"
+        if (downloadFolderUri(c) == null) return "none"
         val path = folderPath(c) ?: return "unmapped"
         if (!allFilesAccess(c)) return "needed"
-        return if (path.isDirectory) "granted" else "away"
+        val base = path.parentFile?.takeIf { Store.downloadSub(c).isNotEmpty() } ?: path
+        return if (base.isDirectory) "granted" else "away"
     }
 
-    /** The music folder's Mandarin folder, as a place, when it is there to write. */
+    /** The download folder as a place, when it is there to write. */
     private fun folderPlace(c: Context): Place? {
         if (folderAccess(c) != "granted") return null
         val path = folderPath(c) ?: return null
-        val name = LocalMusic.folderName(c) ?: path.name
-        return Place(PLACE_FOLDER, "$name › ${LocalMusic.SKIP_DIR}", File(path, LocalMusic.SKIP_DIR))
+        val name = folderName(c) ?: path.name
+        val sub = Store.downloadSub(c)
+        return Place(PLACE_FOLDER, if (sub.isEmpty()) name else "$name › $sub", path)
     }
 
     /**

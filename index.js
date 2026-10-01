@@ -21,6 +21,7 @@ const pkg = require("./package.json");
 const { createAuth } = require("./lib/server/auth");
 const DB = require("./lib/library/db");
 const { Scanner } = require("./lib/library/scanner");
+const { LibraryWatcher } = require("./lib/library/watch");
 const { Library } = require("./lib/library/index");
 const { ReleaseDays } = require("./lib/library/dates");
 const { TailscaleNode } = require("./lib/server/tsnode");
@@ -340,9 +341,13 @@ function createServer(overrides = {}) {
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
     const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })
-      .catch(e => log("[scan] " + e.message));
+      .catch(e => log("[scan] " + e.message)).then(() => ctx.watcher.refresh());
     ctx.scanTimers = [setTimeout(scan, 500), setInterval(scan, config.scanHours * 3600 * 1000)];
     ctx.scanTimers[1].unref();
+    // The music folders watched (lib/library/watch.js): a change on disk is
+    // read within a minute, without waiting for the timer.
+    ctx.watcher = new LibraryWatcher({ roots: () => scanner.roots(), onChange: scan, log });
+    ctx.watcher.refresh();
     return ctx;
   }
 
@@ -353,6 +358,7 @@ function createServer(overrides = {}) {
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);
+    if (ctx.watcher) ctx.watcher.stop();
     scanner.onProgress = null;
     if (ctx.httpServer) {
       const closed = new Promise(r => ctx.httpServer.close(r));

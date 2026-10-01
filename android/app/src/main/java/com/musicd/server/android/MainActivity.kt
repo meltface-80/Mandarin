@@ -48,6 +48,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQ_LOCAL_FOLDER = 7301
+        private const val REQ_DOWNLOAD_FOLDER = 7302
         private const val REQ_STORAGE = 7302
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
@@ -120,11 +121,19 @@ class MainActivity : Activity() {
         runOnUiThread { if (::web.isInitialized) web.evaluateJavascript("window.__musicdLocalChanged && window.__musicdLocalChanged()", null) }
     }
 
-    /** Settings → Downloads → Music on this phone: Android's folder picker. */
+    /** Settings → Music Folders → On this phone: Android's folder picker. */
     fun pickLocalFolder() {
         val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
         runCatching { startActivityForResult(i, REQ_LOCAL_FOLDER) }
+            .onFailure { Log.w(TAG, "no folder picker: ${it.message}") }
+    }
+
+    /** Settings → Downloads → Download folder: the picker, for the place downloads are saved (v0.5.41). */
+    fun pickDownloadFolder() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        runCatching { startActivityForResult(i, REQ_DOWNLOAD_FOLDER) }
             .onFailure { Log.w(TAG, "no folder picker: ${it.message}") }
     }
 
@@ -141,10 +150,19 @@ class MainActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQ_LOCAL_FOLDER || resultCode != Activity.RESULT_OK) return
+        if (resultCode != Activity.RESULT_OK) return
         val uri = data?.data ?: return
-        runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-        LocalMusic.setFolder(this, uri)
+        when (requestCode) {
+            REQ_LOCAL_FOLDER -> {
+                runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                LocalMusic.setFolder(this, uri)
+            }
+            REQ_DOWNLOAD_FOLDER -> {
+                runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+                DownloadStore.setDownloadFolder(this, uri)
+                tellPageDownloadsChanged()
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -197,6 +215,7 @@ class MainActivity : Activity() {
         DownloadStore.listen(onDownloads)
         LocalMusic.load(this)
         LocalMusic.listen(onLocal)
+        LocalMusic.watch(this)
         Away.listen(onAway)
         Away.watch(this)
         UsbDac.listen(onUsb)
@@ -230,6 +249,8 @@ class MainActivity : Activity() {
         web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
         tellPageDownloadsChanged()
+        // Files added to or taken from the phone's music folder meanwhile: read again (cheap when nothing changed).
+        LocalMusic.checkSoon(this)
         NowPlayingService.start(this)
         PhonePlayerService.start(this)
     }
@@ -509,6 +530,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         UsbDac.unlisten(onUsb)
+        LocalMusic.unwatch(this)
         checks.shutdownNow()
         DownloadStore.unlisten(onDownloads)
         Away.unlisten(onAway)
