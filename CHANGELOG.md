@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.39
+- **USB direct: silence on the next track, fixed for real.** The diagnostics showed it: the
+  stream opened for a new track was never started. ExoPlayer says play once, when playback
+  starts, not again when the sink is configured for the next track — Android's own sink
+  restarts its track itself, and the USB sink now does the same, so a skip, a new album or a
+  format change plays on. (v0.5.38's engine change stands: the packets run continuously.)
+
 ## v0.5.38
 - **USB direct: the DAC's volume starts low.** A DAC with a USB volume control came up at
   its own level — the DragonFly at full. The driver now sets the volume before the stream

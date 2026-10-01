@@ -513,7 +513,9 @@ streams continuously once started (silence when paused or the ring is
 empty; flush only clears the ring; `playing` gates the ring, `streaming`
 the URBs); `framesDone` counts PCM only; a second without completions
 while playing marks the stream dead and the sink's recoverable
-WriteException has ExoPlayer reopen it.
+WriteException has ExoPlayer reopen it. v0.5.39: UsbAudioSink keeps the
+playing state and starts a stream opened by configure() itself (ExoPlayer
+calls play() once per renderer start, not per track).
 
 ### Today
 
