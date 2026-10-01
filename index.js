@@ -57,6 +57,9 @@ const config = {
   mbBaseUrl: process.env.MUSICBRAINZ_URL || "",
   // Headphone profiles (lib/autoeq.js): where AutoEq's results are (a fake in the tests).
   autoeqBaseUrl: process.env.AUTOEQ_URL || "",
+  // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
+  discogsBaseUrl: process.env.DISCOGS_URL || "",
+  fanartBaseUrl: process.env.FANART_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
@@ -124,6 +127,13 @@ function createServer(overrides = {}) {
   });
   // AutoEq's headphone profiles, kept in the database once chosen.
   ctx.autoeq = new (require("./lib/autoeq").AutoEq)({ db, baseUrl: config.autoeqBaseUrl || undefined, log });
+  // Record label logos (Settings → Record labels), from Discogs and FanArt.tv.
+  ctx.labelLogos = new (require("./lib/labellogos").LabelLogos)({
+    db, dataDir: config.dataDir, log,
+    mb: new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log }),
+    discogsBaseUrl: config.discogsBaseUrl || undefined, fanartBaseUrl: config.fanartBaseUrl || undefined,
+    pauseMs: config.logoPauseMs
+  });
   // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({

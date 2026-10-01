@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.29
+# Mandarin — v0.5.30
 
 **Your own music files, played to Sonos rooms and to UPnP/DLNA streamers — a WiiM, a Chord Poly — with MusicD Remote's interface.**
 
@@ -290,6 +290,15 @@ week** row on Home: one label with three albums or more, the same one all week. 
 page says how many albums carry a label tag and how many don't. A library filed by label
 (`/music/Jazz/Blue Note/Album`) can take the label from the folder at a set depth instead.
 
+Two names the files keep apart can be **merged**: hold a tile on the Labels screen, select
+the rest, Merge folds them into the first; the tile says "N merged", and tapping that undoes
+one at a time. **Logos** are found in the background for every label without one — Discogs
+first (your Discogs token, Setup → API Keys), then FanArt.tv by the label's MusicBrainz id
+(your FanArt.tv key) — kept in the data folder and served like covers, so the app caches
+them. The picture button on a label's page offers Discogs' candidates or takes a pasted
+address. A label no source has a logo for is asked about again after a week, or at once
+with Force rescan.
+
 ## Identify albums
 
 Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
@@ -468,8 +477,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 * Qobuz and TIDAL accounts — this plays your own files (Qobuz's public pages are still used
   for album write-ups and the share card's "open in Qobuz" link, with no login)
-* Record label logos, merged labels and labels looked up for untagged albums — the next
-  parts of Stage 8 in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md)
+* Record labels looked up for albums whose files carry no label tag — the last part of
+  Stage 8 in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md)
 * The Android dial and voice commands from Android Random Remote
 * Audio fingerprinting (AcoustID) for albums the identification scan can't place — not
   planned; those are yours to name by hand

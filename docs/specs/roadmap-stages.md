@@ -372,6 +372,13 @@ label facet, the search chips and the album page all come from the one set of
 label rules in lib/library/index.js, so they agree with each other and with the
 Settings switch.
 
+**8.2 built in v0.5.30.** Merges in `label_merges` (a chain is followed to its
+end; merging a target carries its sources along); logos in `label_logos` and
+the data folder's `labels/`, served as `label-<key>` images (lib/labellogos.js).
+The background pass runs when labels are switched on, when the wall opens (an
+hour apart, or when the set of labels changed) and after a merge; a miss is
+remembered for a week, Force rescan forgets the misses.
+
 ### Today
 
 * The scanner stores the LABEL (or PUBLISHER) tag of every track and gives

@@ -26,8 +26,10 @@ function release(d) {
 }
 
 class FakeMusicBrainz {
-  constructor(releases) {
+  /* labels (the record labels, for the logo tests): [{ id, name }] */
+  constructor(releases, { labels = [] } = {}) {
     this.releases = releases.map(release);
+    this.labels = labels;
     this.requests = [];
     this.server = null;
   }
@@ -37,6 +39,12 @@ class FakeMusicBrainz {
       this.requests.push(u.pathname + u.search);
       const send = j => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(j)); };
       let m;
+      if (u.pathname === "/ws/2/label/") {
+        const t = /label:"((?:\\.|[^"])*)"/.exec(u.searchParams.get("query") || "");
+        const want = t ? t[1].replace(/\\(.)/g, "$1").toLowerCase() : "";
+        const hits = this.labels.filter(l => l.name.toLowerCase().includes(want.split(" ")[0]));
+        return send({ count: hits.length, labels: hits.map((l, i) => ({ id: l.id, name: l.name, type: "Original Production", score: 100 - i })) });
+      }
       if (u.pathname === "/ws/2/release/") {
         const q = u.searchParams.get("query") || "";
         const t = /release:"((?:\\.|[^"])*)"/.exec(q);

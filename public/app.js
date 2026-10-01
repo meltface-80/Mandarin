@@ -12517,8 +12517,13 @@ window.__musicdAppUpd = (function () {
         const tagged = j.tagged || 0, untagged = j.untagged || 0;
         const have = tagged + " album" + (tagged === 1 ? "" : "s") + " name" + (tagged === 1 ? "s" : "") + " a label in " + (tagged === 1 ? "its" : "their") + " tags; " +
           untagged + " " + (untagged === 1 ? "doesn't" : "don't") + ".";
+        const logos = j.count
+          ? (j.scanning ? " Looking for logos now…"
+             : (j.discogs || j.fanart) ? " " + (j.logos || 0) + " logo" + (j.logos === 1 ? "" : "s") + "."
+             : " Logos need a Discogs token or a FanArt.tv key (Setup → API Keys).")
+          : "";
         labelsEnabledNote.textContent = j.enabled
-          ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have
+          ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have + logos
                      : "No labels yet: none of the albums' files carry a LABEL tag.")
           : "Off. " + have;
       }
