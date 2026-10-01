@@ -1294,11 +1294,11 @@
           </button>
           <h2>API Keys</h2>
         </div>
-        <p class="settings-pane-desc">FanArt.tv key — artist photos on the wall display (optional)</p>
+        <p class="settings-pane-desc">Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos. Both optional.</p>
 
-        <div class="settings-block hidden">
+        <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Discogs token <button class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Enables logo fetching and searching for labels that the automatic scan can't find by name. Not required, but recommended." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Discogs token <button class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
             <input id="discogs-token-input" type="text" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false">
@@ -1307,11 +1307,11 @@
           <div id="discogs-token-status" class="settings-token-status"></div>
         </div>
 
-        <div class="settings-divider hidden"></div>
+        <div class="settings-divider"></div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">FanArt.tv key <button class="settings-info-btn" data-info="A free API key from fanart.tv. Used for artist photos on the wall display. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">FanArt.tv key <button class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
             <input id="fanart-key-input" type="text" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false">
