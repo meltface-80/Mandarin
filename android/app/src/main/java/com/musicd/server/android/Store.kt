@@ -24,6 +24,7 @@ object Store {
     private const val KEY_AWAY_TYPED = "away_typed"
     private const val KEY_AWAY_NOW = "away_now"
     private const val KEY_DSP = "dsp"
+    private const val KEY_LOCAL_FOLDER = "local_folder"
 
     fun server(context: Context): ServerAddress? {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -61,6 +62,12 @@ object Store {
     fun dsp(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DSP, null)
     fun setDsp(context: Context, json: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (json == null) remove(KEY_DSP) else putString(KEY_DSP, json) }.apply()
+    }
+
+    /** The folder of music files on the phone (a document tree URI), chosen in Settings → Downloads. */
+    fun localFolder(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LOCAL_FOLDER, null)
+    fun setLocalFolder(context: Context, uri: String?) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (uri == null) remove(KEY_LOCAL_FOLDER) else putString(KEY_LOCAL_FOLDER, uri) }.apply()
     }
 
     fun lastPort(context: Context): Int =

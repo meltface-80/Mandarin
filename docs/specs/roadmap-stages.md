@@ -261,6 +261,8 @@ as the LMS bridge does. Not planned.
 
 ## Stage 5: music files on the phone
 
+**Built in v0.5.26.**
+
 ### Plan
 
 * The app reads music in **the folder the user chooses** with Android's

@@ -158,6 +158,30 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
     });
 
+    await t.test("the phone's own music: the app sends its list, the page sees it as the queue", async () => {
+      const items = [
+        { title: "Opening", artist: "Someone", album: "A Purchase", image_key: "phone-abc123", album_key: "abc123", duration: 200, ext: "flac" },
+        { title: "Closing", artist: "Someone", album: "A Purchase", image_key: "phone-abc123", album_key: "abc123", duration: 180, ext: "flac" }
+      ];
+      await phone("POST", "/api/phone/state", { index: 1, position: 12, duration: 180, state: "playing", volume: 40, local: true, local_rev: 3, local_items: items, dsp: true });
+      const st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.equal(st.zone.state, "playing");
+      assert.equal(st.zone.now_playing.line1, "Closing");
+      assert.equal(st.zone.now_playing.line3, "A Purchase");
+      assert.equal(st.zone.now_playing.image_key, "phone-abc123");
+      assert.equal(st.zone.now_playing.album_offset, "phone:abc123");
+      assert.deepEqual(st.zone.now_playing.format, { kind: "lossless", text: "Lossless · DSP" });
+      // Reported again without the list (unchanged): still there.
+      await phone("POST", "/api/phone/state", { index: 1, position: 13, duration: 180, state: "playing", volume: 40, local: true, local_rev: 3 });
+      const q = await phone("GET", "/api/queue?zone=" + zoneId);
+      assert.deepEqual(q.items.map(i => i.title), ["Closing"]);
+      assert.deepEqual(q.history.map(i => i.track), ["Opening"]);
+      assert.equal(q.items[0].image_key, "phone-abc123");
+      // Back to the server's queue: the list is left behind.
+      await phone("POST", "/api/phone/state", { index: 0, position: 1, duration: 60, state: "playing", volume: 40 });
+      assert.equal((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.line1, "Song 1");
+    });
+
     await t.test("the app's player restarted: its queue comes back, paused where it was", async () => {
       // Android stopped the idle player (deep sleep); the app says hello again.
       await phone("POST", "/api/phone/state", { index: 1, position: 40, duration: 60, state: "paused", volume: 25 });

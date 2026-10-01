@@ -32,6 +32,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.musicd.server.client.Dsp
+import org.json.JSONArray
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -109,6 +110,10 @@ class PhonePlayerService : MediaLibraryService() {
         const val FORMAT_ORIGINAL = "original"
         private const val WAIT_MS = 25_000
         const val ACTION_PLAY_LOCAL = "com.musicd.server.android.action.PLAY_LOCAL"
+        /** An album of the phone's own music (LocalMusic): EXTRA_KEY, EXTRA_INDEX (−1: the album), EXTRA_KIND. */
+        const val ACTION_PLAY_PHONE = "com.musicd.server.android.action.PLAY_PHONE"
+        const val EXTRA_KEY = "key"
+        const val EXTRA_KIND = "kind"
         const val EXTRA_ALBUM = "album"
         const val EXTRA_INDEX = "index"
 
@@ -245,7 +250,7 @@ class PhonePlayerService : MediaLibraryService() {
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = fetchAheadSoon()
-            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = fetchAheadSoon()
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) { if (localMode) localRev++; fetchAheadSoon() }
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = fetchAheadSoon()
             override fun onRepeatModeChanged(repeatMode: Int) = fetchAheadSoon()
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
@@ -283,6 +288,9 @@ class PhonePlayerService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_PLAY_PHONE) {
+            playPhoneAlbum(intent.getStringExtra(EXTRA_KEY) ?: "", intent.getIntExtra(EXTRA_INDEX, -1), intent.getStringExtra(EXTRA_KIND) ?: "play_now")
+        }
         if (intent?.action == ACTION_PLAY_LOCAL) {
             playDownloaded(intent.getIntExtra(EXTRA_ALBUM, 0), intent.getIntExtra(EXTRA_INDEX, 0))
         }
@@ -316,6 +324,47 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
+    /**
+     * An album of the phone's own music (LocalMusic, Stage 5): the whole album
+     * ([index] −1) or one track, now, next, at the end, or shuffled. The
+     * server never knows these files; the player holds them itself (local
+     * mode) and tells the server what it is playing so the page shows it.
+     */
+    private fun playPhoneAlbum(key: String, index: Int, kind: String) {
+        LocalMusic.load(this)
+        var items = LocalMusic.mediaItems(this, key)
+        if (items.isEmpty()) return
+        val k = when (kind) { "queue", "add_to_queue" -> "queue"; "play_next", "add_next", "next" -> "add_next"; "shuffle" -> "shuffle"; else -> "play_now" }
+        var start = 0
+        if (index >= 0) {
+            if (k == "play_now") start = index.coerceIn(0, items.size - 1) else items = listOfNotNull(items.getOrNull(index))
+        }
+        localPlay(items, start, if (k == "shuffle") "play_now" else k)
+        if (k == "shuffle") player.shuffleModeEnabled = true
+        localRev++
+        reportSoon()
+    }
+
+    /** Items the phone holds itself onto the player: now (from [start]), next, or at the end. */
+    private fun localPlay(items: List<MediaItem>, start: Int, kind: String) {
+        if (items.isEmpty()) return
+        localMode = true
+        loggedKey = null
+        val wasEmpty = player.mediaItemCount == 0
+        when (kind) {
+            "queue" -> player.addMediaItems(items)
+            "add_next" -> player.addMediaItems((player.currentMediaItemIndex + 1).coerceAtMost(player.mediaItemCount), items)
+            else -> {
+                player.setMediaItems(items, start.coerceIn(0, items.size - 1), 0L)
+                player.prepare()
+                player.play()
+            }
+        }
+        if (wasEmpty && kind != "play_now") { player.prepare(); player.play() }
+        localRev++
+        bumpRevision()
+    }
+
     /** A downloaded album, from the phone's own storage, with no server. */
     private fun playLocal(albumId: Int, index: Int) {
         val items = localItems(albumId)
@@ -343,6 +392,9 @@ class PhonePlayerService : MediaLibraryService() {
                     .setExtras(Bundle().apply {
                         putInt(EXTRA_ALBUM, albumId)
                         putDouble("duration", t.duration)
+                        // For the server, which shows the phone's own list (report()).
+                        a.imageKey?.let { putString("image_key", it) }
+                        putString("ext", t.ext)
                         a.imageKey?.let { putString("image_key", it) }
                     })
                     .build())
@@ -504,10 +556,11 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private fun formatOf(item: MediaItem?): String? {
         val uri = item?.localConfiguration?.uri ?: return null
-        if (uri.scheme == "file") {
-            return when (uri.path.orEmpty().substringAfterLast('.').lowercase()) {
+        val ownExt = item.mediaMetadata.extras?.getString("ext")
+        if (uri.scheme == "file" || ownExt != null) {
+            return when (ownExt ?: uri.path.orEmpty().substringAfterLast('.').lowercase()) {
                 "opus", "ogg" -> FORMAT_OPUS
-                "flac", "wav", "aif", "aiff" -> FORMAT_LOSSLESS
+                "flac", "wav", "aif", "aiff", "alac", "wv", "ape" -> FORMAT_LOSSLESS
                 "mp3" -> "MP3"
                 else -> null
             }
@@ -666,7 +719,7 @@ class PhonePlayerService : MediaLibraryService() {
         if (c.op in setOf("load", "sync", "stop", "clear")) restored = false
         // Playing downloads: the server's queue isn't the one playing, so its
         // queue edits don't apply (transport, volume and modes still do).
-        if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear", "jump")) return
+        if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear")) return
         when (c.op) {
             "load", "sync" -> {
                 val items = c.items.map(::mediaItem)
@@ -765,10 +818,30 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
+    /** What the player holds in local mode, numbered: sent to the server when it changes, so the page shows it. */
+    @Volatile private var localRev = 0L
+    private var localRevSent = -1L
+    private fun localItemsJson(): JSONArray {
+        val a = JSONArray()
+        for (i in 0 until player.mediaItemCount) {
+            val md = player.getMediaItemAt(i).mediaMetadata
+            val x = md.extras
+            a.put(JSONObject().put("title", md.title?.toString() ?: "").put("artist", md.artist?.toString() ?: "")
+                .put("album", md.albumTitle?.toString() ?: "").put("image_key", x?.getString("image_key") ?: JSONObject.NULL)
+                .put("album_key", x?.getString("album_key") ?: JSONObject.NULL).put("duration", x?.getDouble("duration", 0.0) ?: 0.0)
+                .put("ext", x?.getString("ext") ?: JSONObject.NULL))
+        }
+        return a
+    }
+
     /** Read the player (main thread), send it (background). */
     private fun report() {
-        // Playing downloads the server doesn't know about: it sees the phone as idle.
-        val count = if (localMode) 0 else player.mediaItemCount
+        // Playing what the server doesn't hold (a download it doesn't know,
+        // the phone's own music): the server is told the list itself, so the
+        // page shows it like any queue.
+        val count = player.mediaItemCount
+        val local = localMode && count > 0
+        val localItems = if (local && localRevSent != localRev) localItemsJson() else null
         val state = when {
             count == 0 -> "stopped"
             player.isPlaying -> "playing"
@@ -793,10 +866,12 @@ class PhonePlayerService : MediaLibraryService() {
             volume = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             muted = muted,
             format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
-            dsp = dsp.active
+            dsp = dsp.active,
+            local = local, localRev = localRev, localItems = localItems
         )
         val client = Store.client(this) ?: return
-        runCatching { reports.execute { runCatching { client.phoneReport(r) } } }
+        val rev = localRev
+        runCatching { reports.execute { runCatching { client.phoneReport(r) }.onSuccess { if (localItems != null) localRevSent = rev } } }
     }
 
     private fun deviceName(): String {
@@ -1005,7 +1080,9 @@ class PhonePlayerService : MediaLibraryService() {
     } ?: false
 
     class OfflineItem(val trackId: Long?, val albumId: Int, val title: String, val artist: String,
-                      val album: String, val imageKey: String?, val duration: Double)
+                      val album: String, val imageKey: String?, val duration: Double,
+                      /** The phone's own music: its album's key (LocalMusic). */
+                      val albumKey: String? = null)
 
     class OfflineState(val state: String, val index: Int, val position: Double, val duration: Double,
                        val shuffle: Boolean, val loop: String, val volume: Int, val muted: Boolean,
@@ -1024,7 +1101,8 @@ class PhonePlayerService : MediaLibraryService() {
             OfflineItem(
                 m.mediaId.toLongOrNull(), x?.getInt(EXTRA_ALBUM, -1) ?: -1,
                 md.title?.toString() ?: "", md.artist?.toString() ?: "", md.albumTitle?.toString() ?: "",
-                x?.getString("image_key"), x?.getDouble("duration", 0.0) ?: 0.0
+                x?.getString("image_key"), x?.getDouble("duration", 0.0) ?: 0.0,
+                x?.getString("album_key")
             )
         }
         val state = when {

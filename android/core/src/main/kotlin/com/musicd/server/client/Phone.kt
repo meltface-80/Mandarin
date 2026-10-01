@@ -63,12 +63,18 @@ object Phone {
         /** How the track is being played: "opus" (the server's Opus 256, or an Opus download) or "original". */
         val format: String = "original",
         /** The DSP engine is changing the sound. */
-        val dsp: Boolean = false
+        val dsp: Boolean = false,
+        /** The player holds a list the server doesn't (the phone's own music, downloads it
+         *  doesn't know): [localItems] carries it when it changed ([localRev] numbers it). */
+        val local: Boolean = false,
+        val localRev: Long = 0,
+        val localItems: JSONArray? = null
     ) {
         fun toJson(): JSONObject = JSONObject()
             .put("index", index).put("position", positionSeconds).put("duration", durationSeconds)
             .put("state", state).put("shuffle", shuffle).put("loop", loop)
             .put("volume", volume).put("muted", muted).put("format", format).put("dsp", dsp)
+            .apply { if (local) { put("local", true).put("local_rev", localRev); localItems?.let { put("local_items", it) } } }
     }
 
     fun parseItems(a: JSONArray?): List<Item> {

@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.26
+- **Music on this phone.** In the Mandarin app, Settings → Downloads → Music on this phone
+  takes a folder chosen with Android's folder picker — purchases waiting to be moved to the
+  server. The app reads its tags and covers (the folder's own “Mandarin” sub-folder is for the
+  server's downloads), keeps a small index on the phone, and shows the albums on Home as
+  “On this phone”, with a wall and an album page of their own. They play on the phone, through
+  its DSP, whatever zone is picked; the page shows what's playing and the queue as for any
+  zone. The server never sees these files. (Stage 5.)
+
 ## v0.5.25
 - **Headphone profiles from AutoEq.** On a device's DSP page — the phone's, or a renderer
   feeding a headphone amp — choose a headphone by name: AutoEq's index of measured headphones

@@ -502,6 +502,69 @@
     grid.appendChild(frag);
   }
 
+  // Music files on the phone (Stage 5): the folder chosen in Settings →
+  // Downloads, read by the app (LocalMusic) and shown here as its own row.
+  // The app answers for these albums itself — their pages and covers
+  // ("phone:…", "phone-…") never reach the server — and plays them on the
+  // phone through its DSP engine.
+  const hasLocal = !!(DL && typeof DL.localAlbums === "function");
+  function localList() {
+    if (!hasLocal) return [];
+    try { return JSON.parse(DL.localAlbums()) || []; } catch (e) { return []; }
+  }
+  function localInfo() {
+    if (!hasLocal) return null;
+    try { const v = DL.localFolder(); return v && v !== "null" ? JSON.parse(v) : null; } catch (e) { return null; }
+  }
+  const isPhoneAlbum = a => !!a && typeof a.offset === "string" && a.offset.startsWith("phone:");
+  const phoneKey = a => isPhoneAlbum(a) ? a.offset.slice(6) : null;
+  let homeLocal = null, homeLocalKey = null;
+  if (hasLocal && homeSections) {
+    const sec = document.createElement("div");
+    sec.className = "home-section home-section-local hidden";
+    sec.dataset.row = "phone";
+    sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">On this phone</h2>' +
+      '<div class="home-carousel"></div>';
+    sec.querySelector("h2").addEventListener("click", () => showLocalWall());
+    homeSections.prepend(sec);
+    homeLocal = sec.querySelector(".home-carousel");
+  }
+  const localKey = list => list.map(a => a.key).join(",");
+  function localTiles(list) {
+    const frag = document.createDocumentFragment();
+    for (const a of list) frag.appendChild(homeTile(a));
+    return frag;
+  }
+  function loadHomeLocal() {
+    if (!homeLocal) return;
+    const list = localList();
+    homeLocalKey = localKey(list);
+    if (!list.length) {
+      const info = localInfo();
+      homeLocal.innerHTML = '<div class="home-carousel-empty">' + (info
+        ? (info.scanning ? "Reading the folder…" : "Nothing in “" + esc(info.name) + "” yet.")
+        : "Choose a folder of music on this phone in Settings → Downloads.") + "</div>";
+    } else {
+      homeLocal.innerHTML = "";
+      homeLocal.appendChild(localTiles(list));
+    }
+    applyHomeLayout();
+  }
+  function showLocalWall() {
+    enterFullWall("On this phone", true);
+    unplayedWallActive = true;
+    const list = localList();
+    if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Downloads.", false); return; }
+    setBanner(null);
+    grid.innerHTML = "";
+    grid.appendChild(localTiles(list));
+  }
+  if (hasLocal) window.__musicdLocalChanged = () => {
+    loadHomeLocal();
+    if (window.__renderHomeRowsList) window.__renderHomeRowsList();
+    if (window.__renderLocalFolder) window.__renderLocalFolder();
+  };
+
   // An album downloaded (or started) while the row was off switches it on for
   // good — until the downloads are removed and it's switched off again.
   function downloadsRowOnIfNeeded() {
@@ -542,6 +605,8 @@
   ];
   if (DL) HOME_ROWS.unshift({ id: "downloads", title: "Downloaded albums",
     load: () => { loadHomeDownloads(); }, isFresh: () => homeDownloadsKey === downloadsKey(downloadList()) });
+  if (hasLocal) HOME_ROWS.unshift({ id: "phone", title: "On this phone",
+    load: () => { loadHomeLocal(); }, isFresh: () => homeLocalKey === localKey(localList()) });
   function homeRowEl(id) {
     return homeSections ? homeSections.querySelector('[data-row="' + id + '"]') : null;
   }
@@ -558,7 +623,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw" || id === "favourites";
+    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || (id === "phone" && !localInfo());
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -6817,6 +6882,7 @@
     if (st.state === "downloading" || st.state === "queued" || st.state === "waiting") {
       return [{ label: `Downloading… ${st.done || 0}/${st.total || "?"}`, onClick: () => dl.open() }];
     }
+    if (isPhoneAlbum(album)) return [];
     return [{ label: "Download to this phone", onClick: () => dl.download(album.offset, album.title || "", album.subtitle || "") }];
   }
 
@@ -7071,10 +7137,15 @@
   // firing them in parallel would interleave into an arbitrary queue order.
   async function invokeTrackMulti(kind) {
     const zone = selectedZoneId;
-    if (!zone) { showToast("Pick a zone first", "error"); return; }
     if (!currentAlbum) { showToast("No album open", "error"); return; }
     const picks = trackSelected.slice().sort((a, b) => a.index - b.index);
     if (!picks.length) return;
+    if (isPhoneAlbum(currentAlbum)) {
+      picks.forEach((p, i) => invokePhone(currentAlbum, p.index, i === 0 ? kind : "queue"));
+      exitTrackSelectMode();
+      return;
+    }
+    if (!zone) { showToast("Pick a zone first", "error"); return; }
 
     let queued = 0, failed = 0, firstError = "";
     for (let i = 0; i < picks.length; i++) {
@@ -7151,6 +7222,7 @@
   // Mirrors invoke() for a single track (same zone + filter handling).
   async function invokeTrack(kind, btn, track, index, li) {
     if (!currentAlbum) return;
+    if (isPhoneAlbum(currentAlbum)) { if (invokePhone(currentAlbum, index, kind)) closeTrackRow(li); return; }
     if (!selectedZoneId) { showToast("Pick a zone first", "error"); return; }
     const orig = btn.textContent;
     btn.disabled = true; btn.textContent = "…";
@@ -7351,8 +7423,18 @@
   // IIFEs) — same clamp/expand behavior everywhere a bio renders.
   window.__setupBioToggle = setupBioToggle;
 
+  // The phone's own music plays on the phone, through the app, whatever
+  // zone is picked: the server never has these files.
+  function invokePhone(album, index, kind) {
+    const dl = window.MusicdDownloads;
+    if (!dl || typeof dl.playLocal !== "function") { showToast("Only the Mandarin app plays music on this phone", "error"); return false; }
+    try { dl.playLocal(phoneKey(album), index, kind); } catch (e) { showToast(e.message, "error"); return false; }
+    showToast((kind === "queue" ? "Queued" : kind === "play_next" || kind === "add_next" ? "Next" : "Playing") + " → This phone");
+    return true;
+  }
   async function invoke(kind, btn) {
     if (!currentAlbum) return;
+    if (isPhoneAlbum(currentAlbum)) { invokePhone(currentAlbum, -1, kind); return; }
     if (!selectedZoneId) { showToast("Pick a zone first", "error"); return; }
     const orig = btn.textContent;
     btn.disabled = true; btn.textContent = "…";
@@ -14723,6 +14805,8 @@ initServiceBrowser({
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
+      (has("localFolder") ? localFolderBlock() + '<div class="settings-divider"></div>' : "") +
+
       '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
@@ -14732,6 +14816,34 @@ initServiceBrowser({
 
     paintCacheStatus();
   }
+
+  // Music files on the phone (Stage 5): the folder, read by the app, shown on
+  // Home as "On this phone" and played through the phone's DSP.
+  function localFolderBlock() {
+    let info = null;
+    try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
+    let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone</div>';
+    if (!info) {
+      html += '<div class="settings-row"><span class="settings-label">No folder chosen</span>' +
+        '<button type="button" class="settings-update-btn" data-local-choose>Choose a folder</button></div>' +
+        '<div class="settings-note">Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “On this phone”, and plays it here through the phone’s DSP. The folder’s own “Mandarin” sub-folder is for downloads from the server.</div>';
+    } else {
+      const when = info.scanned_at ? new Date(info.scanned_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "never";
+      const sub = info.scanning ? "Reading the folder…"
+        : !info.available ? "Not reachable right now — its card may be out"
+        : info.albums + (info.albums === 1 ? " album" : " albums") + " · " + info.tracks + (info.tracks === 1 ? " track" : " tracks") + " · read " + when;
+      html += '<div class="dl-folder" style="cursor:default"><span class="dl-folder-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>' +
+        '<span class="dl-folder-txt"><span class="dl-folder-title">' + esc(info.name) + '</span><span class="dl-folder-sub">' + esc(sub) + "</span></span></div>" +
+        (info.error ? '<div class="settings-note away-error">' + esc(info.error) + "</div>" : "") +
+        '<div class="dl-toolbar" style="justify-content:flex-start;margin-top:10px">' +
+          '<button type="button" class="settings-update-btn" data-local-rescan' + (info.scanning ? " disabled" : "") + ">Read again</button>" +
+          '<button type="button" class="settings-update-btn" data-local-choose>Change folder</button>' +
+          '<button type="button" class="settings-update-btn" data-local-forget>Forget</button></div>' +
+        '<div class="settings-note">Read again after adding or moving files. Forget stops Mandarin reading the folder; nothing in it is touched.</div>';
+    }
+    return html + "</div>";
+  }
+  window.__renderLocalFolder = () => { if (!pane.classList.contains("hidden") && view === "settings") render(); };
 
   // "12 of 20 ahead on the phone · 1.2 GB used", kept current while the pane is open.
   function paintCacheStatus() {
@@ -14753,6 +14865,13 @@ initServiceBrowser({
   pane.addEventListener("click", async (e) => {
     const list = () => json(() => dl.all(), []);
     const titleOf = id => (list().find(d => d.id === id) || {}).title || "this album";
+    if (e.target.closest("[data-local-choose]")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
+    if (e.target.closest("[data-local-rescan]")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
+    if (e.target.closest("[data-local-forget]")) {
+      if (!(await ask("Forget this folder?\n\nMandarin stops reading it. Nothing in it is deleted."))) return;
+      try { dl.forgetLocalFolder(); } catch (x) {}
+      render(); return;
+    }
     if (e.target.closest("[data-dl-folder]")) { view = "albums"; selecting = false; chosen.clear(); render(); pane.scrollTop = 0; return; }
     if (e.target.closest("[data-dl-back]")) { view = "settings"; selecting = false; chosen.clear(); render(); return; }
     if (e.target.closest("[data-dl-select]")) { selecting = true; chosen.clear(); render(); return; }

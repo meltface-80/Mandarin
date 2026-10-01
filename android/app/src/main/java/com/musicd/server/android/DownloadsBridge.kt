@@ -29,9 +29,19 @@ import org.json.JSONObject
  *   MusicdDownloads.play(albumId)     play a downloaded album on this phone (through the
  *                                     server when it's in reach, so the page shows it)
  *
+ * Music files on the phone (LocalMusic, Stage 5):
+ *   MusicdDownloads.localFolder()     {"name", "albums", "tracks", "scanning", "scanned_at", "available", "error"} or null
+ *   MusicdDownloads.chooseLocalFolder()   Android's folder picker
+ *   MusicdDownloads.forgetLocalFolder()
+ *   MusicdDownloads.rescanLocal()
+ *   MusicdDownloads.localAlbums()     [{"key", "offset": "phone:<key>", "title", "subtitle", "image_key", "tracks", "year"}, …]
+ *   MusicdDownloads.playLocal(key, index, kind)   play an album on this phone: index −1 for the whole
+ *                                     album, else that track; kind play_now | queue | add_next | shuffle
+ *
  * And the other way: whenever a download starts, moves on, finishes or is
  * removed, the app calls window.__musicdDownloadsChanged() on the page
- * (MainActivity), so what it shows follows along without a reload.
+ * (MainActivity), so what it shows follows along without a reload; the
+ * phone's own music likewise, window.__musicdLocalChanged().
  */
 class DownloadsBridge(private val activity: Activity) {
 
@@ -128,6 +138,44 @@ class DownloadsBridge(private val activity: Activity) {
             .setAction(PhonePlayerService.ACTION_PLAY_LOCAL)
             .putExtra(PhonePlayerService.EXTRA_ALBUM, albumId)
             .putExtra(PhonePlayerService.EXTRA_INDEX, 0))
+    }
+
+    // ------------------------------------------------------------ music on the phone
+
+    @JavascriptInterface
+    fun localFolder(): String {
+        LocalMusic.load(activity)
+        if (Store.localFolder(activity) == null) return "null"
+        return JSONObject().put("name", LocalMusic.folderName(activity) ?: "Folder")
+            .put("albums", LocalMusic.albums.size).put("tracks", LocalMusic.albums.sumOf { it.tracks.size })
+            .put("scanning", LocalMusic.scanning).put("scanned_at", LocalMusic.scannedAt)
+            .put("available", LocalMusic.available(activity)).put("error", LocalMusic.lastError ?: "").toString()
+    }
+
+    @JavascriptInterface
+    fun chooseLocalFolder() { activity.runOnUiThread { (activity as? MainActivity)?.pickLocalFolder() } }
+
+    @JavascriptInterface
+    fun forgetLocalFolder() { LocalMusic.forget(activity) }
+
+    @JavascriptInterface
+    fun rescanLocal() { LocalMusic.rescan(activity) }
+
+    @JavascriptInterface
+    fun localAlbums(): String {
+        LocalMusic.load(activity)
+        val a = JSONArray()
+        for (al in LocalMusic.albums) a.put(LocalMusic.albumJson(al))
+        return a.toString()
+    }
+
+    @JavascriptInterface
+    fun playLocal(key: String, index: Int, kind: String) {
+        activity.startService(Intent(activity, PhonePlayerService::class.java)
+            .setAction(PhonePlayerService.ACTION_PLAY_PHONE)
+            .putExtra(PhonePlayerService.EXTRA_KEY, key)
+            .putExtra(PhonePlayerService.EXTRA_INDEX, index)
+            .putExtra(PhonePlayerService.EXTRA_KIND, kind))
     }
 
     @JavascriptInterface
