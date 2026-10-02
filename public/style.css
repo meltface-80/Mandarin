@@ -3869,6 +3869,13 @@ input.vol-range::-moz-range-thumb {
 .menu-item:hover { background: var(--bg-elev-2); }
 .menu-item:active { transform: scale(.99); }
 .menu-item.hidden { display: none; }
+/* Offline mode (v0.5.58): a switch in the menu, shown only in the app. */
+.menu-toggle.hidden + .menu-toggle-sep { display: none; }
+.menu-item .menu-switch, .menu-item .menu-switch span { flex: 0 0 auto; }
+.menu-item .menu-switch { pointer-events: none; }
+.menu-toggle.is-on .menu-switch .switch-track { background: var(--accent); border-color: transparent; }
+.menu-toggle.is-on .menu-switch .switch-thumb { transform: translateX(18px); background: #fff; }
+.menu-toggle.is-on svg { color: var(--accent); }
 .menu-item svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--text-dim); }
 .menu-item span { flex: 1; }
 /* A two-line menu row: label above, live state below. The inner spans must not

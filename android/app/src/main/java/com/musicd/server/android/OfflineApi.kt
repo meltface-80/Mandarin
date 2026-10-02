@@ -176,7 +176,7 @@ object OfflineApi {
                 .put("albums", library(c).size).put("rooms", 0).put("offline", true))
             "/api/status" -> {
                 val n = library(c).size
-                return json(JSONObject().put("offline", true).put("away", true).put("paired", true)
+                return json(JSONObject().put("offline", true).put("offline_mode", Store.offlineMode(c)).put("away", true).put("paired", true)
                     .put("core_id", "musicd-server").put("core_name", "Mandarin").put("zone_count", 1)
                     .put("library_importing", false).put("index_count", n)
                     .put("sonos", JSONObject().put("rooms", 0).put("discovered", 0).put("searching", false))
@@ -302,6 +302,13 @@ object OfflineApi {
                 val r = play(c, listOf(l.album.id), "play_now")
                 return if (r.status == 200) json(JSONObject().put("ok", true).put("album", l.json())) else r
             }
+        }
+        // Playlists offline (v0.5.58): the server's aren't shown — their albums
+        // aren't on the phone, and their pages can't be opened without it.
+        if (path == "/api/user-playlists" || path == "/api/playlists") return json(JSONObject().put("playlists", JSONArray()))
+        if (path == "/api/smart-playlists") {
+            val o = OfflineSite.api(c, path)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject()
+            return json(o.put("playlists", JSONArray()))
         }
         if (path == "/api/audio-devices") return devices(c)
         if (path.startsWith("/api/audio-devices/")) return device(c, path.removePrefix("/api/audio-devices/"))

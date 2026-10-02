@@ -113,6 +113,7 @@ class DownloadsBridge(private val activity: Activity) {
             .put("quality", s.quality).put("location", s.location).put("wifiOnly", s.wifiOnly)
             .put("limitGb", s.limitGb).put("autoPicks", s.autoPicks).put("autoAotd", s.autoAotd)
             .put("autoRecent", s.autoRecent).put("awayQuality", s.awayQuality).put("places", places)
+            .put("offlineMode", Store.offlineMode(activity))
             .put("folder", JSONObject().put("access", access).put("name", DownloadStore.folderName(activity) ?: "")
                 .put("path", DownloadStore.folderPath(activity)?.path ?: "").put("chosen", access != "none"))
             .put("elsewhere", elsewhere)
@@ -144,6 +145,10 @@ class DownloadsBridge(private val activity: Activity) {
     fun set(key: String, value: String) {
         val c = activity
         when (key) {
+            "offlineMode" -> {
+                Store.setOfflineMode(c, value == "true")
+                activity.runOnUiThread { (activity as? MainActivity)?.offlineModeChanged() }
+            }
             "quality" -> DownloadStore.setQuality(c, if (value == DownloadStore.QUALITY_OPUS) value else DownloadStore.QUALITY_ORIGINAL)
             "location" -> DownloadStore.setLocation(c, value)
             "wifiOnly" -> {

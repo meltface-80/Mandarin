@@ -679,6 +679,16 @@
         </button>
       </div>
       <div class="menu-list">
+        <!-- Offline mode (v0.5.58): only in the Android app, which shows it. -->
+        <button class="menu-item menu-toggle hidden" type="button" data-action="offline-mode" id="menu-item-offline" role="switch" aria-checked="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/><path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+          <span class="menu-item-lines">
+            <span>Offline mode</span>
+            <span class="menu-sub" id="offline-sub"></span>
+          </span>
+          <span class="switch menu-switch" aria-hidden="true"><span class="switch-track"><span class="switch-thumb"></span></span></span>
+        </button>
+        <div class="menu-sep menu-toggle-sep"></div>
         <button class="menu-item" type="button" data-action="home">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
           <span>Home</span>

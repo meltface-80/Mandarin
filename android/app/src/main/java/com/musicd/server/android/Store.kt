@@ -72,6 +72,14 @@ object Store {
 
     /** The folder of music files on the phone (a document tree URI), chosen in Settings → Downloads. */
     /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */
+    /**
+     * Offline mode (v0.5.58): the app as if there were no connection — only the
+     * music on the phone (its folder and downloads) shows, and nothing is asked
+     * of the server — even when it could be reached.
+     */
+    fun offlineMode(context: Context): Boolean = prefs(context).getBoolean("offline_mode", false)
+    fun setOfflineMode(context: Context, on: Boolean) { prefs(context).edit().putBoolean("offline_mode", on).apply() }
+
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
     /** The DAC's USB volume as the slider set it since direct went on (0–100), or -1 (forgotten): the driver then starts low. */

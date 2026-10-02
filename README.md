@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.57
+# Mandarin — v0.5.58
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -84,6 +84,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
   as Opus 256, played with no server at all; today's picks kept automatically if you like.
 * **Music on this phone** — a folder of files already on the phone, watched for changes, shown
   and played like the library.
+* **Offline mode** — one switch in the menu: only the music on the phone shows, and the server
+  isn't used. With no connection the app does the same by itself.
 * **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
   Tracks come as Opus 256; only the phone plays.
 * **One account** — a username and password kept on the server, SRP sign-in, every device listed

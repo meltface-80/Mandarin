@@ -68,6 +68,8 @@ class NowPlayingService : Service() {
             if (Store.isAway(context)) return
             // No network: no rooms to follow either — and no "Can't reach Mandarin" notification sitting there.
             if (!Away.hasNetwork(context)) return
+            // Offline mode: the server's rooms aren't followed.
+            if (Store.offlineMode(context)) return
             val i = Intent(context, NowPlayingService::class.java)
             if (action != null) i.action = action
             try {
@@ -180,6 +182,7 @@ class NowPlayingService : Service() {
         while (running) {
             val client = Store.client(this)
             if (client == null) { stopSelf(); return }
+            if (Store.offlineMode(this)) { main.post { stopSelf() }; return }
             // No Wi-Fi, no mobile data: nothing to ask (and nothing to draw again and again).
             if (!Away.hasNetwork(this)) {
                 if (reachable) { reachable = false; showSoon(latest) }

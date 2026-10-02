@@ -108,6 +108,8 @@ object Away {
         // v0.5.56 this started, rejoined and restarted Tailscale for minutes,
         // holding up every other look at the way to the server meanwhile.
         if (!hasNetwork(c)) return Store.isAway(c)
+        // Offline mode: the server isn't reached for, so no Tailscale either.
+        if (Store.offlineMode(c)) return Store.isAway(c)
         val awayAt = Store.awayAddress(c)
         val wasAway = Store.isAway(c)
         val wasEngine = Store.viaEngine(c)
@@ -181,6 +183,7 @@ object Away {
      * brings it back. Blocking; not on the main thread.
      */
     fun ensureRoute(c: Context) {
+        if (Store.offlineMode(c)) return
         if (!Store.isAway(c) || !Store.viaEngine(c)) return
         val awayAt = Store.awayAddress(c) ?: return
         if (TailscaleEngine.alive() && answers(Store.awayBase(c) ?: return, 4000)) return
