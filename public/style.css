@@ -1269,12 +1269,15 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .modal-share {
   position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; z-index: 2;
 }
-/* Previous and next (v0.5.44): a pair of discs between Back and Share, over
-   the art like them. Not on Now playing, which has no list. */
-.modal-nav {
-  position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
-  z-index: 2; display: flex; gap: 10px;
+/* Previous and next (v0.5.44): a disc at each edge of the art, halfway up,
+   scrolling with it. Not on Now playing, which has no list. */
+.modal-art { position: relative; }
+.modal-nav { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.modal-nav-btn {
+  pointer-events: auto; position: absolute; top: 50%; margin-top: -22px;
 }
+#modal-prev { left: 10px; }
+#modal-next { right: 10px; }
 .modal.np-mode .modal-nav { display: none; }
 .modal-nav-btn:disabled { opacity: .35; cursor: default; }
 .modal:not(.np-mode) .modal-nav-btn {
