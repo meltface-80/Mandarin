@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.54
+- **One Settings list.** Setup's pages — Away from home, API Keys, Smart Picks, Record labels,
+  Discover, Identify albums and Updates — are back on the Settings list, in the same order, where
+  Setup was; the Setup page is gone. All fourteen fit on one screen, and Back from any of them
+  returns to the list.
+
 ## v0.5.53
 - **Settings closes from the left.** The × on the Settings list is now to the left of the title,
   where every page's Back is.
