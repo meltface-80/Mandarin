@@ -5456,9 +5456,15 @@
     const selectable = opts && "selectable" in opts ? !!opts.selectable : true;
     if (selectable) btn.dataset.offset = String(a.offset);
 
+    // The tile knows its album and how it opens, so the album page can step to
+    // the tile beside it (albumNav, below).
+    btn.__album = a;
+    btn.__open = onClick || (() => openAlbum(a));
+    btn.__isAlbum = selectable && a.offset != null;
     btn.addEventListener("click", () => {
       if (selectable && albumSelectMode) { handleAlbumTileSelect(btn, a); return; }
-      (onClick || (() => openAlbum(a)))();
+      albumNav.from(btn);
+      btn.__open();
     });
     if (selectable) {
       // Long press ARMS selection without selecting the tile under the finger.
@@ -6011,8 +6017,86 @@
   // transport IIFE, which has no access to closeModal or this renderer.
   window.__renderArtistLinks = renderArtistLinks;
 
+  /*
+   * Previous and next on the album page (v0.5.44): an album opened from a
+   * list — a Home row, an artist's albums, a label's, the Library wall,
+   * search — remembers the tiles beside it, and the page steps to them with
+   * the two discs at the top, a swipe, or the arrow keys, each opening the
+   * way its own tile would (the same source and filter). Back still returns
+   * to the list. An album opened any other way (a search match, a link, the
+   * page restored) has no list, and the discs stay hidden.
+   */
+  const albumNav = {
+    pending: null,   // set by a tile's click, read once by openAlbum
+    current: null,   // { items: [{ album, open }], index }
+    from(btn) {
+      const parent = btn.parentElement;
+      if (!parent) { this.pending = null; return; }
+      const tiles = [...parent.children].filter(el => el.__isAlbum && el.__album);
+      const index = tiles.indexOf(btn);
+      this.pending = tiles.length > 1 && index >= 0
+        ? { items: tiles.map(el => ({ album: el.__album, open: el.__open })), index }
+        : null;
+    },
+    take() { const n = this.pending; this.pending = null; return n; },
+    step(dir) {
+      const nav = this.current;
+      if (!nav || modal.classList.contains("np-mode")) return false;
+      const i = nav.index + dir;
+      if (i < 0 || i >= nav.items.length) return false;
+      this.pending = { items: nav.items, index: i };
+      nav.items[i].open();
+      return true;
+    },
+    paint() {
+      const wrap = document.getElementById("modal-nav");
+      if (!wrap) return;
+      const nav = this.current;
+      wrap.classList.toggle("hidden", !nav);
+      const prev = document.getElementById("modal-prev"), next = document.getElementById("modal-next");
+      if (prev) prev.disabled = !nav || nav.index <= 0;
+      if (next) next.disabled = !nav || nav.index >= nav.items.length - 1;
+      if (nav) {
+        const at = n => nav.items[n] && nav.items[n].album.title ? ": " + nav.items[n].album.title : "";
+        if (prev) prev.setAttribute("aria-label", "Previous album" + at(nav.index - 1));
+        if (next) next.setAttribute("aria-label", "Next album" + at(nav.index + 1));
+      }
+    }
+  };
+  {
+    const prev = document.getElementById("modal-prev"), next = document.getElementById("modal-next");
+    if (prev) prev.addEventListener("click", () => albumNav.step(-1));
+    if (next) next.addEventListener("click", () => albumNav.step(1));
+    // A swipe across the page: left for the next album, right for the one before.
+    const panel = modal ? modal.querySelector(".modal-panel") : null;
+    if (panel) {
+      let sx = 0, sy = 0, st = 0, live = false;
+      panel.addEventListener("touchstart", (e) => {
+        if (e.touches.length !== 1) { live = false; return; }
+        sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); live = true;
+      }, { passive: true });
+      panel.addEventListener("touchend", (e) => {
+        if (!live) return;
+        live = false;
+        const t = e.changedTouches && e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Date.now() - st > 800 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) / 2) return;
+        albumNav.step(dx < 0 ? 1 : -1);
+      }, { passive: true });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (!modal || modal.classList.contains("hidden") || e.altKey || e.ctrlKey || e.metaKey) return;
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "ArrowRight" && albumNav.step(1)) e.preventDefault();
+      else if (e.key === "ArrowLeft" && albumNav.step(-1)) e.preventDefault();
+    });
+  }
+
   function openAlbum(album, opts) {
     opts = opts || {};
+    albumNav.current = albumNav.take();
     // Album select mode and track select mode both drive the one top-bar menu,
     // so they must never be live together. Opening an album ends the grid
     // selection rather than leaving a count behind that the menu would then
@@ -6038,6 +6122,8 @@
     } catch (e) { /* ignore */ }
 
     const isNP = currentSource === "now-playing";
+    if (isNP) albumNav.current = null;
+    albumNav.paint();
     resetModalScroll();   // a reopened modal must never start mid-scroll
 
     // Tabs visible only in now-playing mode

@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.44
+- **Previous and next on the album page.** An album opened from a list — a Home row, an
+  artist's albums, a label's, the Library wall, search results — knows the albums beside it.
+  Two discs at the top of the page step to them, a swipe left or right does the same on the
+  phone, and the arrow keys do on a keyboard; each opens exactly as its own tile would. At the
+  first or last album the disc for that direction is dimmed. Back still returns to the list.
+
 ## v0.5.43
 - **Now playing shows the whole cover.** A framed square at a steady size, not bled to the
   screen's edges and no longer faded into the ground at the bottom; the tabs and the corner
