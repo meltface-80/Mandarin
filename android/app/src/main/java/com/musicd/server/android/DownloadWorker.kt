@@ -33,6 +33,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         private const val TAG = "Downloads"
         private const val KEY_ALBUM = "album"
         private const val KEY_QUALITY = "quality"
+        private const val NOTIFICATION_ID = 7400
 
         private fun workName(id: Int) = "album-$id"
 
@@ -73,6 +74,20 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
 
     private class Stop(message: String) : Exception(message)
 
+    private fun foregroundInfo(c: Context, title: String): androidx.work.ForegroundInfo {
+        val nm = c.getSystemService(android.app.NotificationManager::class.java)
+        nm.createNotificationChannel(android.app.NotificationChannel("downloads", "Downloads", android.app.NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
+        val n = android.app.Notification.Builder(c, "downloads")
+            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setContentTitle("Downloading to this phone")
+            .setContentText(title)
+            .setOngoing(true)
+            .build()
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+            androidx.work.ForegroundInfo(NOTIFICATION_ID, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        else androidx.work.ForegroundInfo(NOTIFICATION_ID, n)
+    }
+
     override fun doWork(): Result {
         val c = applicationContext
         val id = inputData.getInt(KEY_ALBUM, 0)
@@ -82,6 +97,12 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         val server = Store.active(c) ?: return Result.retry()      // home, or Tailscale away
         val token = Store.token(c) ?: return Result.retry()
         var album = DownloadStore.load(dir) ?: return Result.success()
+        // In the foreground, with a notification: Android stops quiet background
+        // work after ten minutes, which cut big albums into stop-and-wait pieces.
+        // (Refused when started from the background on newer Android: it then
+        // carries on as before.)
+        runCatching { setForegroundAsync(foregroundInfo(c, album.title)).get() }
+            .onFailure { Log.i(TAG, "downloading without a notification: ${it.message}") }
         return try {
             if (album.tracks.isEmpty()) album = fetchDetails(server.baseUrl, token, id, quality, album, dir)
             album.state = "downloading"; album.error = null
@@ -102,7 +123,9 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                 if (isStopped) return Result.retry()
                 if (t.done && File(dir, t.fileName()).exists()) continue
                 val path = "/api/download/t${t.id}?quality=$quality"
-                fetch(server.baseUrl, token, path, File(dir, t.fileName()))
+                // Opus is made by the server: a fresh start rather than the rest of a
+                // file that may have been made again since (two halves of two encodes).
+                fetch(server.baseUrl, token, path, File(dir, t.fileName()), resume = quality != DownloadStore.QUALITY_OPUS)
                 t.done = true
                 DownloadStore.save(dir, album)
             }
@@ -157,9 +180,14 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         }
     }
 
-    /** GET to [dest] via a .part file, resuming a partial one. */
-    private fun fetch(base: String, token: String, pathOrUrl: String, dest: File) {
+    /**
+     * GET to [dest] via a .part file, resuming a partial one ([resume]). Only
+     * a file of the length the server said is kept: a connection cut short no
+     * longer leaves a short track marked as downloaded (v0.5.57).
+     */
+    private fun fetch(base: String, token: String, pathOrUrl: String, dest: File, resume: Boolean = true) {
         val part = File(dest.parentFile, dest.name + ".part")
+        if (!resume) part.delete()
         val have = if (part.exists()) part.length() else 0L
         val url = if (pathOrUrl.startsWith("http")) pathOrUrl else base + pathOrUrl
         val c = open(url, token)
@@ -169,6 +197,8 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
             if (code == 404) throw Stop("A track is no longer in the library — remove this album and download it again")
             if (code != 200 && code != 206) throw IOException("HTTP $code")
             val append = code == 206 && have > 0
+            val expected = c.contentLengthLong   // -1 when the server doesn't say
+            var got = 0L
             c.inputStream.use { input ->
                 FileOutputStream(part, append).use { out ->
                     val buf = ByteArray(64 * 1024)
@@ -177,9 +207,12 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                         val n = input.read(buf)
                         if (n < 0) break
                         out.write(buf, 0, n)
+                        got += n
                     }
                 }
             }
+            // Cut short: what came is kept to resume from (or dropped, not resuming), never taken as the track.
+            if (expected >= 0 && got != expected) throw IOException("cut short (${got} of ${expected} bytes)")
             if (!part.renameTo(dest)) throw IOException("couldn't save ${dest.name}")
         } finally {
             c.disconnect()

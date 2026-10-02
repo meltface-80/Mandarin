@@ -132,6 +132,10 @@ class PhonePlayerService : MediaLibraryService() {
         private const val LOCAL = "dl:"     // a downloaded album: dl:<album id>
         private const val SERVER = "sv:"    // a library album: sv:<album id>
 
+        /** The file playing now, when it's one on the phone (a moved album's old copy waits for it). */
+        @Volatile var playingPath: String? = null
+            private set
+
         /** The running player, for the offline page (OfflineApi) to drive and read. */
         @Volatile var current: PhonePlayerService? = null
             private set
@@ -268,6 +272,8 @@ class PhonePlayerService : MediaLibraryService() {
             override fun onEvents(p: Player, events: Player.Events) {
                 reportSoon()
                 bumpRevision()
+                val path = p.currentMediaItem?.localConfiguration?.uri?.takeIf { it.scheme == "file" }?.path
+                if (path != playingPath) { playingPath = path; DownloadStore.sweepSoon(this@PhonePlayerService) }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = fetchAheadSoon()
@@ -303,6 +309,7 @@ class PhonePlayerService : MediaLibraryService() {
 
         current = this
         running = true
+        DownloadStore.warm(this)
         worker = Thread({ loop() }, "phone-commands").apply { isDaemon = true; start() }
         main.postDelayed(heartbeat, 10_000)
     }
@@ -417,7 +424,6 @@ class PhonePlayerService : MediaLibraryService() {
                         // For the server, which shows the phone's own list (report()).
                         a.imageKey?.let { putString("image_key", it) }
                         putString("ext", t.ext)
-                        a.imageKey?.let { putString("image_key", it) }
                     })
                     .build())
                 .build()
@@ -445,6 +451,7 @@ class PhonePlayerService : MediaLibraryService() {
         session = null
         reports.shutdown()
         browse.shutdownNow()
+        covers.shutdownNow()
         super.onDestroy()
     }
 
@@ -1031,8 +1038,26 @@ class PhonePlayerService : MediaLibraryService() {
             local = local, localRev = localRev, localItems = localItems
         )
         val client = Store.client(this) ?: return
-        val rev = localRev
-        runCatching { reports.execute { runCatching { client.phoneReport(r) }.onSuccess { if (localItems != null) localRevSent = rev } } }
+        // Only the newest report goes: with the server slow to answer they used
+        // to queue up without end and arrive long out of date (v0.5.57).
+        latestReport.set(Triple(client, r, if (localItems != null) localRev else null))
+        if (sending.compareAndSet(false, true)) runCatching { reports.execute { sendReports() } }.onFailure { sending.set(false) }
+    }
+
+    private val latestReport = java.util.concurrent.atomic.AtomicReference<Triple<ServerClient, Phone.Report, Long?>?>(null)
+    private val sending = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    private fun sendReports() {
+        try {
+            while (true) {
+                val (client, r, rev) = latestReport.getAndSet(null) ?: break
+                runCatching { client.phoneReport(r) }.onSuccess { if (rev != null) localRevSent = rev }
+            }
+        } finally {
+            sending.set(false)
+            // One may have arrived just as this loop ended.
+            if (latestReport.get() != null && sending.compareAndSet(false, true)) runCatching { reports.execute { sendReports() } }.onFailure { sending.set(false) }
+        }
     }
 
     private fun deviceName(): String = phoneName()
@@ -1148,12 +1173,19 @@ class PhonePlayerService : MediaLibraryService() {
     ): List<MediaItem> {
         val client = Store.client(this) ?: return emptyList()
         val a = client.getJson(path, 10_000).optJSONArray(key) ?: return emptyList()
-        return (0 until a.length()).map { i ->
-            val (names, imageKey) = read(a.getJSONObject(i))
-            val art = if (imageKey.isNotEmpty()) runCatching { client.bytes(client.imageUrl(imageKey, 300)) }.getOrNull() else null
+        val rows = (0 until a.length()).map { read(a.getJSONObject(it)) }
+        // The covers four at a time, and no more than eight seconds for all of
+        // them (one after another, twenty took the car's menu a long while).
+        val jobs = rows.map { (_, imageKey) ->
+            java.util.concurrent.Callable { if (imageKey.isNotEmpty()) runCatching { client.bytes(client.imageUrl(imageKey, 300)) }.getOrNull() else null }
+        }
+        val got = runCatching { covers.invokeAll(jobs, 8, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(emptyList())
+        return rows.mapIndexed { i, (names, _) ->
+            val art = got.getOrNull(i)?.let { f -> if (f.isCancelled) null else runCatching { f.get() }.getOrNull() }
             album(SERVER + names.first, names.second, names.third, art)
         }
     }
+    private val covers = Executors.newFixedThreadPool(4)
 
     private fun folder(id: String, title: String): MediaItem = MediaItem.Builder()
         .setMediaId(id)
@@ -1209,8 +1241,15 @@ class PhonePlayerService : MediaLibraryService() {
         if (Looper.myLooper() == Looper.getMainLooper()) return f(player)
         var out: T? = null
         val done = CountDownLatch(1)
-        main.post { try { out = f(player) } finally { done.countDown() } }
-        done.await(3, java.util.concurrent.TimeUnit.SECONDS)
+        // 0 waiting, 1 running, 2 given up on: an action the caller has stopped
+        // waiting for (and reported as failed) never runs late (v0.5.57).
+        val state = java.util.concurrent.atomic.AtomicInteger(0)
+        main.post {
+            if (!state.compareAndSet(0, 1)) return@post
+            try { out = f(player) } finally { done.countDown() }
+        }
+        if (!done.await(5, java.util.concurrent.TimeUnit.SECONDS) && state.compareAndSet(0, 2)) return null
+        done.await()   // it had started: it finishes shortly
         return out
     }
 

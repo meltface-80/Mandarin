@@ -117,7 +117,7 @@ class DownloadsBridge(private val activity: Activity) {
                 .put("path", DownloadStore.folderPath(activity)?.path ?: "").put("chosen", access != "none"))
             .put("elsewhere", elsewhere)
             .put("moving", if (mv == null) JSONObject.NULL else JSONObject().put("to", mv.to).put("done", mv.done).put("total", mv.total).put("error", mv.error ?: ""))
-            .put("used", DownloadStore.usedBytes(activity))
+            .put("used", DownloadStore.usedBytesQuick(activity))
             .put("cacheWifi", s.cacheWifi).put("cacheMobile", s.cacheMobile).put("cacheGb", s.cacheGb)
             .put("cacheChoices", JSONObject()
                 .put("wifi", JSONArray(CachePlan.WIFI_CHOICES)).put("mobile", JSONArray(CachePlan.MOBILE_CHOICES))
@@ -195,7 +195,7 @@ class DownloadsBridge(private val activity: Activity) {
     fun forgetLocalFolder() { LocalMusic.forget(activity) }
 
     @JavascriptInterface
-    fun rescanLocal() { LocalMusic.rescan(activity) }
+    fun rescanLocal() { LocalMusic.rescan(activity, force = true) }   // Rescan: files whose tags couldn't be read are tried again
 
     @JavascriptInterface
     fun localAlbums(): String {
@@ -227,8 +227,9 @@ class DownloadsBridge(private val activity: Activity) {
                 .setTitle("Remove from this phone?")
                 .setMessage("${a.title} — ${a.artist}\n\nIt stays in your library on the server.")
                 .setPositiveButton("Remove") { _, _ ->
-                    DownloadStore.remove(activity, albumId)
-                    Toast.makeText(activity, "Removed from this phone", Toast.LENGTH_SHORT).show()
+                    DownloadStore.removeInBackground(activity, listOf(albumId)) {
+                        activity.runOnUiThread { Toast.makeText(activity, "Removed from this phone", Toast.LENGTH_SHORT).show() }
+                    }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -245,11 +246,14 @@ class DownloadsBridge(private val activity: Activity) {
         val ids = runCatching { JSONArray(idsJson) }.getOrNull() ?: return
         val list = (0 until ids.length()).map { ids.optInt(it) }.filter { it > 0 }
         if (list.isEmpty()) return
-        activity.runOnUiThread {
-            for (id in list) runCatching { DownloadStore.remove(activity, id) }   // stops its download too
-            Toast.makeText(activity,
-                if (list.size == 1) "Removed from this phone" else "${list.size} albums removed from this phone",
-                Toast.LENGTH_SHORT).show()
+        // Deleted in the background (stopping each one's download too): gigabytes
+        // of files deleted on the screen thread froze the app.
+        DownloadStore.removeInBackground(activity, list) {
+            activity.runOnUiThread {
+                Toast.makeText(activity,
+                    if (list.size == 1) "Removed from this phone" else "${list.size} albums removed from this phone",
+                    Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

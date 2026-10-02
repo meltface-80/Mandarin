@@ -119,7 +119,21 @@ object AppUpdate {
 
     private fun download(activity: Activity, r: Release) {
         val dest = apkFile(activity, r)
-        if (dest.exists() && (r.sha256.isEmpty() || sha256(dest) == r.sha256)) { install(activity, dest); return }
+        // An earlier download of this version: checked off the screen thread (hashing
+        // tens of megabytes on it froze the app), then installed — or fetched again.
+        if (dest.exists() && !busy) {
+            busy = true
+            work.execute {
+                val ok = runCatching { r.sha256.isEmpty() || sha256(dest) == r.sha256 }.getOrDefault(false)
+                if (!ok) dest.delete()
+                main.post {
+                    busy = false
+                    if (activity.isFinishing) return@post
+                    if (ok) install(activity, dest) else download(activity, r)
+                }
+            }
+            return
+        }
         val progress = AlertDialog.Builder(activity)
             .setTitle("Updating Mandarin")
             .setMessage("Downloading version ${r.version}…")

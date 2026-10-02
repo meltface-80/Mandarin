@@ -66,6 +66,8 @@ class NowPlayingService : Service() {
             if (Store.server(context) == null) return
             // Away from home there are no Sonos rooms to follow; "This phone" has its own controls.
             if (Store.isAway(context)) return
+            // No network: no rooms to follow either — and no "Can't reach Mandarin" notification sitting there.
+            if (!Away.hasNetwork(context)) return
             val i = Intent(context, NowPlayingService::class.java)
             if (action != null) i.action = action
             try {

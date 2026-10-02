@@ -19,8 +19,10 @@ class NowPlayingWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         render(context, NowPlayingService.latest, NowPlayingService.latestArt, NowPlayingService.reachable)
-        // Placing the widget is a reason to start following the room.
-        NowPlayingService.start(context)
+        // Placing the widget is a reason to start following the room — where Android
+        // allows it from here (from Android 12 a widget update can't start a
+        // foreground service; the app starts it when it next opens).
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) NowPlayingService.start(context)
     }
 
     companion object {

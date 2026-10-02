@@ -231,7 +231,7 @@ class DownloadsActivity : Activity() {
     private fun render() {
         val albums = DownloadStore.albums(this)
         val sig = albums.joinToString("|") { "${it.first.id}:${it.first.state}:${it.first.doneCount}:${it.first.title}" }
-        summary.text = "${albums.count { it.first.state == "done" }} albums · ${gb(DownloadStore.usedBytes(this))} used"
+        summary.text = "${albums.count { it.first.state == "done" }} albums · ${gb(DownloadStore.usedBytesQuick(this))} used"
         if (sig == lastShown) return
         lastShown = sig
         list.removeAllViews()
@@ -314,7 +314,9 @@ class DownloadsActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle("Remove from this phone?")
             .setMessage("${a.title} — ${a.artist}\n\nIt stays in your library on the server.")
-            .setPositiveButton("Remove") { _, _ -> DownloadStore.remove(this, a.id); lastShown = ""; render() }
+            .setPositiveButton("Remove") { _, _ ->
+                DownloadStore.removeInBackground(this, listOf(a.id)) { runOnUiThread { if (!isFinishing) { lastShown = ""; render() } } }
+            }
             .setNegativeButton("Cancel", null)
             .show()
     }
