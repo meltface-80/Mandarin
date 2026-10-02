@@ -80,7 +80,14 @@ object UsbDac {
         override fun onReceive(c: Context, i: Intent) {
             when (i.action) {
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> { UsbDriver.forgetVolume(c); refresh(c) }
-                UsbManager.ACTION_USB_DEVICE_DETACHED -> { UsbDriver.close(); refresh(c) }
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    // Only the DAC going ends its stream — not a USB stick or a hub's other port.
+                    @Suppress("DEPRECATION")
+                    val gone = if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java) else i.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                    val ours = UsbDriver.current?.device ?: device
+                    if (gone == null || ours == null || gone.deviceName == ours.deviceName) UsbDriver.close()
+                    refresh(c)
+                }
                 ACTION_PERMISSION -> {
                     val granted = i.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                     Log.i(TAG, "permission " + (if (granted) "granted" else "refused"))

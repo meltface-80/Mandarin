@@ -5,6 +5,37 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.57
+A review of the whole Android app, and everything it found put right.
+- **Unplugging the USB DAC mid-song no longer crashes the app.** The stream was freed while the
+  audio was still being written to it. Unplugging anything else (a USB stick) no longer stops
+  the DAC either.
+- **Removing downloads doesn't freeze the app.** Albums are deleted in the background, however
+  many gigabytes.
+- **Offline, the page stays where you left it.** After the network went with the app open, every
+  return to the app reloaded the page to Home. Now it stays put, and goes back to the server only
+  once the server answers.
+- **Update doesn't freeze the screen** when a downloaded update is checked before installing.
+- **Android's backup leaves out this phone's sign-in and Tailscale identity** (restored to a new
+  phone, two phones would have shared them) and the caches, which it rebuilds.
+- **A download cut short is never taken as finished.** Each track must arrive at the length the
+  server gave; Opus downloads start a track afresh rather than joining two halves.
+- **Downloads run with a notification**, so Android lets a big album finish in one go rather than
+  stopping it every ten minutes.
+- **Lighter on the phone:** the downloads list is read from storage once, not on every request;
+  the space downloads use is counted in the background; the player never reads storage on the
+  screen thread; and a big music folder is re-read less often while the app is open (in step with
+  how long a read takes), still every half minute for most.
+- **Reports to the server don't pile up** when it's slow: only the newest is sent.
+- **An offline play the page was told had failed doesn't start a few seconds later anyway.**
+- **Moving downloads doesn't cut off the track playing**: its old copy goes when the track is done.
+- **No "Can't reach Mandarin" notification with no network**, and the widget no longer tries to
+  start something Android refuses from the background.
+- **Android Auto's Random and Smart Picks lists open faster** (covers fetched four at a time).
+- **Phone-music covers and tags stay current**: a replaced cover is picked up, and Rescan tries
+  again the files whose tags couldn't be read.
+- **No offline play is lost** when one is made while earlier ones are being sent.
+
 ## v0.5.56
 - **No freeze when the network goes with the app open.** The freeze report from v0.5.55 showed
   the cause: the lock-screen, notification and widget controls for a Sonos room were redrawn on

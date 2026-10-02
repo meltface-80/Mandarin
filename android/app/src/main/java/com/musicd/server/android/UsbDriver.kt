@@ -37,6 +37,22 @@ object UsbDriver {
 
     @Volatile var current: Open? = null
         private set
+    /**
+     * Every call into the stream holds this (shared); closing it holds it
+     * alone. Before v0.5.57 the DAC unplugged mid-song freed the stream on the
+     * screen thread while the audio thread was still writing to it — a crash.
+     */
+    private val streamLock = java.util.concurrent.locks.ReentrantReadWriteLock()
+
+    /** [f] on the open stream, or [none] when there isn't one — never on one being closed. */
+    private inline fun <T> onStream(none: T, f: (Open) -> T): T {
+        val l = streamLock.readLock()
+        l.lock()
+        try {
+            val o = current ?: return none
+            return f(o)
+        } finally { l.unlock() }
+    }
     @Volatile var lastError: String? = null
         private set
     /**
@@ -85,7 +101,7 @@ object UsbDriver {
     /** A settings change (fixed, limit): the DAC's level follows at once. */
     fun settingsChanged() {
         volumePct = volumePct.coerceAtMost(limit())
-        current?.let { applyVolume(it.conn, it.info) }
+        onStream(Unit) { applyVolume(it.conn, it.info) }
     }
     /** The DAC's volume range as it states it, in dB: [min, max, step]; null when it has none or hasn't said. */
     fun volumeDb(): DoubleArray? = volumeRange?.let { r -> doubleArrayOf(r[0] / 256.0, r[1] / 256.0, r[2] / 256.0) }
@@ -162,7 +178,8 @@ object UsbDriver {
                 info.speed == "high" || info.speed == "super" || info.speed == "super-plus", stream.interval, 1, stream.maxPacket, fbMax,
                 stream.channels * stream.subslot, rate, silence)
             if (h == 0L) { conn.releaseInterface(iface); conn.close(); return fail("the stream couldn't be set up (see the log)") }
-            current = Open(device, conn, iface, stream, rate, h, info, kind)
+            streamLock.writeLock().lock()
+            try { current = Open(device, conn, iface, stream, rate, h, info, kind) } finally { streamLock.writeLock().unlock() }
             lastError = null
             Log.i(TAG, "open: ${info.name} at $rate Hz, ${stream.bits}-bit, alt ${stream.alt}, $kind" +
                 (if (fixed(c)) ", fixed volume" else ", volume ${level()}% (limit ${limit(c)})" + (if (info.volumeControl) "" else " in software")))
@@ -236,11 +253,11 @@ object UsbDriver {
         if (fixed()) return
         volumePct = pct.coerceIn(0, limit())
         app?.let { Store.setUsbVolume(it, volumePct) }
-        current?.let { applyVolume(it.conn, it.info) }
+        onStream(Unit) { applyVolume(it.conn, it.info) }
     }
     /** The phone's volume buttons: a step of 5. */
     fun stepVolume(up: Boolean) = setVolume(volumePct + (if (up) 5 else -5))
-    fun setMute(on: Boolean) { muted = on; current?.let { applyVolume(it.conn, it.info) } }
+    fun setMute(on: Boolean) { muted = on; onStream(Unit) { applyVolume(it.conn, it.info) } }
     fun volume(): Int = if (fixed()) 100 else volumePct
     fun isMuted(): Boolean = muted
 
@@ -265,27 +282,35 @@ object UsbDriver {
 
     // ------------------------------------------------------------- stream
 
-    fun play(): Boolean = current?.let { nativePlay(it.handle) } ?: false
-    fun pause() { current?.let { nativePause(it.handle) } }
-    fun write(buf: ByteBuffer, off: Int, len: Int): Int = current?.let { nativeWrite(it.handle, buf, off, len) } ?: -1
-    fun free(): Int = current?.let { nativeFree(it.handle) } ?: 0
-    fun pending(): Long = current?.let { nativePending(it.handle) } ?: 0
-    fun played(): Long = current?.let { nativePlayed(it.handle) } ?: 0
-    fun drain() { current?.let { nativeDrain(it.handle) } }
-    fun flush() { current?.let { nativeFlush(it.handle) } }
-    fun dead(): Boolean = current?.let { nativeDead(it.handle) } ?: false
+    fun play(): Boolean = onStream(false) { nativePlay(it.handle) }
+    fun pause() = onStream(Unit) { nativePause(it.handle) }
+    fun write(buf: ByteBuffer, off: Int, len: Int): Int = onStream(-1) { nativeWrite(it.handle, buf, off, len) }
+    fun free(): Int = onStream(0) { nativeFree(it.handle) }
+    fun pending(): Long = onStream(0L) { nativePending(it.handle) }
+    fun played(): Long = onStream(0L) { nativePlayed(it.handle) }
+    fun drain() = onStream(Unit) { nativeDrain(it.handle) }
+    fun flush() = onStream(Unit) { nativeFlush(it.handle) }
+    fun dead(): Boolean = onStream(false) { nativeDead(it.handle) }
 
     @Synchronized
     fun close() {
-        val o = current ?: return
-        current = null
-        runCatching { nativeClose(o.handle) }
+        val w = streamLock.writeLock()
+        val o = run {
+            w.lock()
+            try {
+                val open = current ?: return
+                current = null
+                // Under the lock: no write can be inside the stream while it is freed.
+                runCatching { nativeClose(open.handle) }
+                open
+            } finally { w.unlock() }
+        }
         runCatching { o.conn.releaseInterface(o.iface) }
         runCatching { o.conn.close() }
         Log.i(TAG, "closed")
     }
 
-    fun stats(): JSONObject? = current?.let { runCatching { JSONObject(nativeStats(it.handle)) }.getOrNull() }
+    fun stats(): JSONObject? = onStream(null) { runCatching { JSONObject(nativeStats(it.handle)) }.getOrNull() }
 
     init { runCatching { System.loadLibrary("mandarinusb") }.onFailure { Log.w(TAG, "no native usb library", it) } }
     @JvmStatic private external fun nativeOpen(fd: Int, iface: Int, alt: Int, ep: Int, fbEp: Int, highSpeed: Boolean, interval: Int, fbInterval: Int,

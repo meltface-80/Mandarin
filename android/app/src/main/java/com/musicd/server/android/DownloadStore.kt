@@ -34,7 +34,24 @@ object DownloadStore {
     /** [l] is told whenever an album is added, progresses, finishes or is removed (any thread). */
     fun listen(l: () -> Unit) { listeners += l }
     fun unlisten(l: () -> Unit) { listeners -= l }
-    private fun changed() { for (l in listeners) runCatching { l() } }
+    private fun changed() {
+        albumsCache = null; placesCache = null; usedFresh = false
+        warmSoon()
+        for (l in listeners) runCatching { l() }
+    }
+
+    /** Slow work (removing, sizing, indexing) off the caller's thread — never the screen's (v0.5.57). */
+    private val bg = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "downloads-store").apply { isDaemon = true } }
+    @Volatile private var app: Context? = null
+    @Volatile private var warming = false
+    /** The track index rebuilt in the background after a change, so the player never builds it on the screen thread. */
+    private fun warmSoon() {
+        val c = app ?: return
+        if (warming) return
+        warming = true
+        runCatching { bg.execute { try { if (index == null) index = buildIndex(c) } finally { warming = false } } }.onFailure { warming = false }
+    }
+    fun warm(c: Context) { app = c.applicationContext; warmSoon() }
 
     const val QUALITY_ORIGINAL = "original"
     const val QUALITY_OPUS = "opus"
@@ -97,7 +114,17 @@ object DownloadStore {
     const val PLACE_FOLDER = "folder"
 
     /** Phone storage, then an SD card if there is one, then the download folder when it can be written. */
+    @Volatile private var placesCache: Pair<Long, List<Place>>? = null
+
     fun places(c: Context): List<Place> {
+        app = c.applicationContext
+        // Asked many times a second at busy moments; the answer (which asks Android
+        // about the download folder) is kept for a few seconds (v0.5.57).
+        placesCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 5_000) return list }
+        return readPlaces(c).also { placesCache = System.currentTimeMillis() to it }
+    }
+
+    private fun readPlaces(c: Context): List<Place> {
         val dirs = c.getExternalFilesDirs("music").filterNotNull()
         val out = ArrayList<Place>()
         dirs.forEachIndexed { i, d ->
@@ -230,6 +257,36 @@ object DownloadStore {
      * cut short leaves whole albums at one end or the other, and starting
      * again carries on with the rest.
      */
+    /** Folders to delete once nothing plays from them (prefs "to_delete"). */
+    private fun deleteWhenFree(c: Context, dir: File) {
+        synchronized(this) {
+            val p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val a = runCatching { JSONArray(p.getString("to_delete", "[]")) }.getOrDefault(JSONArray())
+            a.put(dir.path)
+            p.edit().putString("to_delete", a.toString()).apply()
+        }
+        sweep(c)
+    }
+
+    /** Delete the folders waiting for it that nothing is playing from now. */
+    fun sweep(c: Context) {
+        synchronized(this) {
+            val p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val a = runCatching { JSONArray(p.getString("to_delete", "[]")) }.getOrDefault(JSONArray())
+            if (a.length() == 0) return
+            val playing = PhonePlayerService.playingPath
+            val rest = JSONArray()
+            for (i in 0 until a.length()) {
+                val path = a.optString(i)
+                if (path.isEmpty()) continue
+                if (playing != null && playing.startsWith("$path/")) { rest.put(path); continue }
+                runCatching { File(path).deleteRecursively() }
+            }
+            p.edit().putString("to_delete", rest.toString()).apply()
+        }
+    }
+    fun sweepSoon(c: Context) { val app = c.applicationContext; runCatching { bg.execute { sweep(app) } } }
+
     fun moveAll(c: Context, toId: String) {
         if (moving != null) return
         val to = places(c).firstOrNull { it.id == toId } ?: return
@@ -252,7 +309,10 @@ object DownloadStore {
                         if (d.length() != f.length()) throw java.io.IOException("short copy of ${f.name}")
                     }
                     File(from, "album.json").copyTo(File(dest, "album.json"), overwrite = true)
-                    from.deleteRecursively()
+                    // The old copy goes — but not from under a track playing from it:
+                    // it leaves the lists now and its files go once the track is done.
+                    File(from, "album.json").delete()
+                    deleteWhenFree(c, from)
                     n++
                     index = null
                     moving = Moving(toId, n, work.size, null)
@@ -297,7 +357,15 @@ object DownloadStore {
     fun dirOf(c: Context, id: Int): File? =
         places(c).map { File(it.dir, id.toString()) }.firstOrNull { File(it, "album.json").exists() }
 
+    @Volatile private var albumsCache: Pair<Long, List<Pair<Album, File>>>? = null
+
+    /** Every album on the phone, newest first — read from disk at most every few seconds, and again after any change here. */
     fun albums(c: Context): List<Pair<Album, File>> {
+        albumsCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 10_000) return list }
+        return readAlbums(c).also { albumsCache = System.currentTimeMillis() to it }
+    }
+
+    private fun readAlbums(c: Context): List<Pair<Album, File>> {
         val all = places(c)
         val out = all.flatMap { p -> p.dir.listFiles()?.toList() ?: emptyList() }
             .filter { File(it, "album.json").exists() }
@@ -360,8 +428,44 @@ object DownloadStore {
         changed()
     }
 
+    /**
+     * Albums off the phone in the background, then [done] (on that thread).
+     * Deleting gigabytes of files on the screen thread froze the app.
+     */
+    fun removeInBackground(c: Context, ids: List<Int>, done: () -> Unit) {
+        val app = c.applicationContext
+        bg.execute {
+            for (id in ids) runCatching { remove(app, id) }
+            done()
+        }
+    }
+
     fun usedBytes(c: Context): Long =
         places(c).sumOf { p -> p.dir.walkTopDown().filter { it.isFile }.sumOf { it.length() } }
+
+    @Volatile private var usedCache = 0L
+    @Volatile private var usedFresh = false
+    @Volatile private var usedAt = 0L
+    @Volatile private var sizing = false
+    /**
+     * The space downloads take, as last counted — counting every file is slow
+     * with a big library, and the page waits for the answer. Counted again in
+     * the background after a change or a minute; the page hears when it's done.
+     */
+    fun usedBytesQuick(c: Context): Long {
+        if ((!usedFresh || System.currentTimeMillis() - usedAt > 60_000) && !sizing) {
+            sizing = true
+            val app = c.applicationContext
+            bg.execute {
+                try {
+                    val before = usedCache
+                    usedCache = usedBytes(app); usedFresh = true; usedAt = System.currentTimeMillis()
+                    if (usedCache != before) for (l in listeners) runCatching { l() }
+                } finally { sizing = false }
+            }
+        }
+        return usedCache
+    }
 
     /** What the album page shows for an album: state and progress. */
     fun status(c: Context, id: Int): JSONObject {
@@ -390,18 +494,22 @@ object DownloadStore {
     // ------------------------------------------------------------ offline plays
 
     /** Plays made with no server, kept until they can be sent. */
-    fun addPlay(c: Context, trackId: Long) {
+    private val playsLock = Any()
+
+    fun addPlay(c: Context, trackId: Long) = synchronized(playsLock) {
         val p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val a = runCatching { JSONArray(p.getString("plays", "[]")) }.getOrDefault(JSONArray())
         if (a.length() < 5000) a.put(JSONObject().put("track_id", trackId).put("ts", System.currentTimeMillis()))
         p.edit().putString("plays", a.toString()).apply()
     }
 
-    fun pendingPlays(c: Context): JSONArray =
+    fun pendingPlays(c: Context): JSONArray = synchronized(playsLock) {
         runCatching { JSONArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("plays", "[]")) }
             .getOrDefault(JSONArray())
+    }
 
-    fun clearPlays(c: Context, sent: Int) {
+    /** The first [sent] plays have reached the server. (Added and cleared under one lock: a play made meanwhile isn't lost.) */
+    fun clearPlays(c: Context, sent: Int) = synchronized(playsLock) {
         val p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val a = pendingPlays(c)
         val rest = JSONArray()

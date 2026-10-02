@@ -310,17 +310,22 @@ class MainActivity : Activity() {
 
     private fun reloadIfMoved() {
         if (!::web.isInitialized) return
+        // Offline: the page stays as it is (an album open, a list scrolled) —
+        // before v0.5.57 every return to the app reloaded it to Home. The server
+        // is looked for now, and the page goes back to it only once it answers.
+        if (offline) {
+            if (relayedFor != null) PageRelay.retarget(this)
+            if (hasNetwork()) { web.removeCallbacks(serverWatch); web.postDelayed(serverWatch, 500) }
+            return
+        }
         if (relayedFor != null && relayedFor == Store.server(this)?.baseUrl) {
             // The page stays where it is; only the relay's way to the server changes.
             PageRelay.retarget(this)
-            if (offline) load()
             return
         }
-        // Offline with still no network: nothing to go back to (and the page isn't reloaded for nothing).
-        if (offline && !hasNetwork()) return
         val base = Store.active(this)?.baseUrl
-        // A new address, or the way back to the server while the page is offline.
-        if (base != null && (base != loadedBase || offline)) load()
+        // A new address.
+        if (base != null && base != loadedBase) load()
     }
 
     /**

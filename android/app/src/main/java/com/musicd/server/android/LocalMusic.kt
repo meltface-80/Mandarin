@@ -52,7 +52,9 @@ object LocalMusic {
         val disc: Int, val no: Int, val duration: Double, val ext: String,
         val size: Long, val mtime: Long, val rate: Int, val bits: Int,
         /** The album's tags from this file (kept in the index, so a re-read of an unchanged file costs nothing). */
-        val album: String = "", val albumArtist: String = "", val year: Int? = null, val tagged: Boolean = false
+        val album: String = "", val albumArtist: String = "", val year: Int? = null, val tagged: Boolean = false,
+        /** Its tags couldn't be read: tried again on Rescan (not on every read of the folder). */
+        val failed: Boolean = false
     )
 
     class Album(
@@ -64,6 +66,7 @@ object LocalMusic {
     @Volatile var albums: List<Album> = emptyList(); private set
     @Volatile var scanning = false; private set
     @Volatile private var again = false
+    @Volatile private var againForce = false
     @Volatile var scannedAt = 0L; private set
     @Volatile var lastError: String? = null; private set
     @Volatile private var loaded = false
@@ -126,7 +129,13 @@ object LocalMusic {
     private const val PERIOD_MS = 3 * 60_000L
     private const val PERIOD_FRONT_MS = 30_000L
     @Volatile private var front = false
-    private fun period() = if (front) PERIOD_FRONT_MS else PERIOD_MS
+    /**
+     * On screen, every half minute — unless reading the folder takes a while
+     * (a big library through Android's folder access): then less often, in
+     * step with the time it takes, up to every three minutes (v0.5.57).
+     */
+    private fun period() = if (front) (lastWalkMs * 15).coerceIn(PERIOD_FRONT_MS, PERIOD_MS) else PERIOD_MS
+    @Volatile private var lastWalkMs = 0L
     private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c) ; main.postDelayed(this, period()) } } }
     @Volatile private var watched: Context? = null
 
@@ -207,7 +216,7 @@ object LocalMusic {
             for (t in al.tracks) ts.put(JSONObject().put("uri", t.uri).put("name", t.name).put("title", t.title).put("artist", t.artist)
                 .put("disc", t.disc).put("no", t.no).put("duration", t.duration).put("ext", t.ext).put("size", t.size).put("mtime", t.mtime)
                 .put("rate", t.rate).put("bits", t.bits)
-                .put("album", t.album).put("album_artist", t.albumArtist).put("year", t.year ?: JSONObject.NULL).put("tagged", t.tagged))
+                .put("album", t.album).put("album_artist", t.albumArtist).put("year", t.year ?: JSONObject.NULL).put("tagged", t.tagged).put("failed", t.failed))
             a.put(JSONObject().put("key", al.key).put("title", al.title).put("artist", al.artist).put("year", al.year ?: JSONObject.NULL)
                 .put("art", al.art ?: JSONObject.NULL).put("tracks", ts))
         }
@@ -223,7 +232,8 @@ object LocalMusic {
                 val t = ts.getJSONObject(k)
                 Track(t.getString("uri"), t.optString("name"), t.optString("title"), t.optString("artist"), t.optInt("disc", 1), t.optInt("no", 0),
                     t.optDouble("duration", 0.0), t.optString("ext"), t.optLong("size"), t.optLong("mtime"), t.optInt("rate"), t.optInt("bits"),
-                    t.optString("album"), t.optString("album_artist"), if (t.isNull("year")) null else t.optInt("year"), t.optBoolean("tagged", false))
+                    t.optString("album"), t.optString("album_artist"), if (t.isNull("year")) null else t.optInt("year"), t.optBoolean("tagged", false),
+                    t.optBoolean("failed", false))
             })
     }
 
@@ -234,11 +244,14 @@ object LocalMusic {
      * time keep their tags, so a read of an unchanged folder is a listing.
      * A change is told to the page (the Home row, the settings); none isn't.
      */
-    fun rescan(c: Context) {
+    fun rescan(c: Context, force: Boolean = false) {
         // Asked while reading: once more when this read ends, so the last
         // change is always read (an album moved out file by file sends
         // notices while the first read is still going; they were dropped).
+        if (force) againForce = true
         if (scanning) { again = true; return }
+        val retry = againForce
+        againForce = false
         val tree = folder(c) ?: return
         if (!available(c)) return   // its card out, say: what was read is kept until it is back
         scanning = true; lastError = null
@@ -251,7 +264,9 @@ object LocalMusic {
                 val found = ArrayList<Pair<Track, String>>()   // track, its folder's document id
                 val covers = HashMap<String, String>()          // folder document id → cover document uri
                 val skip = skipDocId(c)
-                walk(c, tree, DocumentsContract.getTreeDocumentId(tree), 0, known, found, covers, skip)
+                val started = System.currentTimeMillis()
+                walk(c, tree, DocumentsContract.getTreeDocumentId(tree), 0, known, found, covers, skip, retry)
+                lastWalkMs = System.currentTimeMillis() - started
                 albums = group(c, found, covers)
                 scannedAt = System.currentTimeMillis()
                 save(c)
@@ -279,7 +294,7 @@ object LocalMusic {
     }
 
     private fun walk(c: Context, tree: Uri, docId: String, depth: Int, known: Map<String, Track>,
-                     out: MutableList<Pair<Track, String>>, covers: MutableMap<String, String>, skip: String?) {
+                     out: MutableList<Pair<Track, String>>, covers: MutableMap<String, String>, skip: String?, retry: Boolean) {
         if (depth > 8) return
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId)
         val cols = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
@@ -291,19 +306,21 @@ object LocalMusic {
                 if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
                     if (depth == 0 && name.equals(SKIP_DIR, ignoreCase = true)) continue
                     if (skip != null && (id == skip || id.equals(skip, ignoreCase = true))) continue
-                    walk(c, tree, id, depth + 1, known, out, covers, skip)
+                    walk(c, tree, id, depth + 1, known, out, covers, skip, retry)
                     continue
                 }
                 val ext = name.substringAfterLast('.', "").lowercase()
                 val base = name.substringBeforeLast('.').lowercase()
                 if (ext in setOf("jpg", "jpeg", "png", "webp") && base in COVERS && !covers.containsKey(docId)) {
-                    covers[docId] = DocumentsContract.buildDocumentUriUsingTree(tree, id).toString()
+                    // With its date: a cover replaced in the folder is taken up again.
+                    covers[docId] = DocumentsContract.buildDocumentUriUsingTree(tree, id).toString() + "\n" + mtime
                     continue
                 }
                 if (ext !in AUDIO) continue
                 val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                 val old = known[uri.toString()]
-                val t = if (old != null && old.size == size && old.mtime == mtime && old.tagged) old else read(c, uri, name, ext, size, mtime)
+                val same = old != null && old.size == size && old.mtime == mtime && old.tagged
+                val t = if (same && !(retry && old!!.failed)) old!! else read(c, uri, name, ext, size, mtime)
                 out += t to docId
             }
         }
@@ -327,7 +344,7 @@ object LocalMusic {
                 num(get(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)), duration, ext, size, mtime, rate, bits,
                 get(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: "", get(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: "", year, true)
         } catch (e: Exception) {
-            return Track(uri.toString(), name, name.substringBeforeLast('.'), "", 1, 0, 0.0, ext, size, mtime, 0, 0, "", "", null, true)
+            return Track(uri.toString(), name, name.substringBeforeLast('.'), "", 1, 0, 0.0, ext, size, mtime, 0, 0, "", "", null, true, failed = true)
         } finally { runCatching { r.release() } }
     }
 
@@ -352,7 +369,7 @@ object LocalMusic {
             val tracks = list.map { it.first }.sortedWith(compareBy({ it.disc }, { it.no }, { it.name.lowercase() }))
             val artists = tracks.map { it.artist }.filter { it.isNotEmpty() }.distinct()
             val artist = tags.albumArtist.ifEmpty { if (artists.size == 1) artists[0] else if (artists.size > 1) "Various Artists" else "" }
-            val artName = cover(c, key, Uri.parse(first.uri), list.first().second, covers, artDir)
+            val artName = cover(c, key, first, list.first().second, covers, artDir)
             artName?.let { keep += it }
             out += Album(key, tags.album.ifEmpty { "Unknown album" }, artist, tags.year, artName, tracks)
         }
@@ -368,17 +385,24 @@ object LocalMusic {
         return d.joinToString("") { "%02x".format(it) }.substring(0, 16)
     }
 
-    /** The cover: the first track's embedded picture, else a cover file beside it. Kept under local-art/. */
-    private fun cover(c: Context, key: String, first: Uri, folderId: String, covers: Map<String, String>, dir: File): String? {
-        val existing = dir.listFiles()?.firstOrNull { it.name.startsWith("$key.") }
+    /**
+     * The cover: the first track's embedded picture, else a cover file beside it.
+     * Kept under local-art/, named for where it came from (the track and the
+     * cover file, with their dates): either changed, it is read again — before
+     * v0.5.57 the first cover was kept for good.
+     */
+    private fun cover(c: Context, key: String, first: Track, folderId: String, covers: Map<String, String>, dir: File): String? {
+        val coverFile = covers[folderId]
+        val sig = keyOf(first.uri + "|" + first.size + "|" + first.mtime, coverFile ?: "").take(8)
+        val existing = dir.listFiles()?.firstOrNull { it.name.startsWith("$key-$sig.") }
         if (existing != null) return existing.name
         val bytes: ByteArray? = runCatching {
             val r = MediaMetadataRetriever()
-            try { r.setDataSource(c, first); r.embeddedPicture } finally { runCatching { r.release() } }
-        }.getOrNull() ?: covers[folderId]?.let { u -> runCatching { c.contentResolver.openInputStream(Uri.parse(u))?.use { it.readBytes() } }.getOrNull() }
+            try { r.setDataSource(c, Uri.parse(first.uri)); r.embeddedPicture } finally { runCatching { r.release() } }
+        }.getOrNull() ?: coverFile?.substringBefore('\n')?.let { u -> runCatching { c.contentResolver.openInputStream(Uri.parse(u))?.use { it.readBytes() } }.getOrNull() }
         if (bytes == null || bytes.size < 100) return null
         val ext = if (bytes.size > 8 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte()) "png" else "jpg"
-        val f = File(dir, "$key.$ext")
+        val f = File(dir, "$key-$sig.$ext")
         runCatching { f.writeBytes(bytes) }.onFailure { return null }
         return f.name
     }
