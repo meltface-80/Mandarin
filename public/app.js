@@ -11529,6 +11529,11 @@ window.__musicdAppUpd = (function () {
   };
   const openBtn    = document.getElementById("settings-toggle");
   const overlay    = document.getElementById("settings-overlay");
+  // While Settings covers the page, the page behind it doesn't scroll — so its
+  // scrollbar isn't drawn beside a Settings page that has nothing to scroll.
+  const markOpen = () => document.body.classList.toggle("settings-open", !overlay.classList.contains("hidden"));
+  new MutationObserver(markOpen).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+  markOpen();
   const versionEl  = document.getElementById("settings-version");
   const radioToggle = document.getElementById("radio-toggle");
   const roonRadioToggle = document.getElementById("roon-radio-toggle");

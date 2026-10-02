@@ -45,6 +45,11 @@ test("music folders are added, browsed and removed in Settings", { skip }, async
     const count = async () => (await get("/api/library-stats")).albums;
 
     await until(async () => (await count()) === 2 && !(await get("/api/status")).library_importing);
+    // Away from home (over Tailscale) the folders are still yours to see and change.
+    const away = await fetch(B + "/api/library/folders", { headers: Object.assign({ "X-Forwarded-For": "100.101.102.103" }, h) });
+    assert.equal(away.status, 200);
+    assert.equal((await away.json()).folders.length, 1);
+
     let f = await get("/api/library/folders");
     assert.deepEqual(f.folders.map(x => [x.path, x.default]), [[lib.music, true]]);
 

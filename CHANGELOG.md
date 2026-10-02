@@ -15,6 +15,10 @@ Versioning: each set of changes is a development build and takes the next third 
   MusicBrainz has without track lengths is judged by its names and applied on an exact fit
   rather than left unidentified. Settings → Setup → Identify albums → "Check the proposed and
   unidentified again" runs the leftovers under the new rules.
+- **Music folders from anywhere.** Settings → Music Folders works away from home too, over
+  Tailscale — it used to answer "Change music folders from home".
+- **No stray scrollbar in Settings.** While Settings is open the page behind it stays put,
+  so a Settings page with nothing to scroll shows no scrollbar.
 
 ## v0.5.46
 - **The repository is now `meltface-80/Mandarin`.** Every address the server, the page, the
