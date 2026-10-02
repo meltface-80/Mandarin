@@ -31,6 +31,8 @@ object TailscaleEngine {
     private var process: Process? = null
     private var port = 0
     private var secret = ""
+    /** For the default route, which [sendInterfaces] asks Android for. */
+    @Volatile private var appContext: Context? = null
 
     /** The engine's last few error-output lines (a crash says why here). */
     val stderrTail = java.util.concurrent.ConcurrentLinkedDeque<String>()
@@ -42,6 +44,7 @@ object TailscaleEngine {
     /** Start the engine if it isn't running. Blocking; not on the main thread. */
     @Synchronized
     fun ensureRunning(c: Context) {
+        appContext = c.applicationContext
         process?.let { if (it.isAlive) return }
         val bin = binary(c)
         if (!bin.exists()) throw IllegalStateException("The Tailscale engine isn't in this build (${bin.path})")
@@ -91,6 +94,9 @@ object TailscaleEngine {
             if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
             // Connections from before a network change hang until they time out: drop them.
             json("POST", "/down?on=1"); json("POST", "/down?on=0")
+            // And have Tailscale rebind its sockets and find its addresses again —
+            // its tunnel can go stale with nothing on the phone having changed.
+            json("POST", "/rebind", timeoutMs = 12_000)
         }
         // An engine that was already running and still can't reach the server
         // has most likely gone stale — its tunnel outlived a sleep or a change
@@ -166,9 +172,21 @@ object TailscaleEngine {
         readyFor = null
     }
 
-    /** The phone's network interfaces, for the engine (Android 11+ won't let it list them itself). */
+    /**
+     * The phone's network interfaces and which one carries its traffic now,
+     * for the engine (Android 11+ won't let it list them itself, and Android's
+     * Tailscale takes the default route from its app, as the Tailscale app
+     * gives it). A list that differs from the last makes Tailscale look at the
+     * network again at once — before v0.5.48 it waited up to ten minutes.
+     */
     fun sendInterfaces() {
         val sb = StringBuilder()
+        appContext?.let { c ->
+            runCatching {
+                val cm = c.getSystemService(android.net.ConnectivityManager::class.java)
+                cm.getLinkProperties(cm.activeNetwork)?.interfaceName
+            }.getOrNull()?.takeIf { it.isNotBlank() }?.let { sb.append("default ").append(it).append('\n') }
+        }
         runCatching {
             for (ni in NetworkInterface.getNetworkInterfaces().toList()) {
                 val flags = ArrayList<String>()

@@ -10,8 +10,11 @@
 // when the app does (its stdin, held open by the app, closes).
 //
 //	GET  /status               state, sign-in link, tailnet addresses
-//	POST /interfaces           the phone's interfaces, as text (Android 11+
-//	                           doesn't let native code list them)
+//	POST /interfaces           the phone's interfaces and default route, as text
+//	                           (Android 11+ doesn't let native code list them);
+//	                           a change makes Tailscale look at the network again
+//	POST /rebind               the server isn't answering: rebind Tailscale's
+//	                           sockets and find its addresses again
 //	POST /start                join (body: {"control_url","auth_key","hostname"})
 //	POST /login                ask for a sign-in link (after an expiry, say)
 //	POST /logout               sign this phone out of the tailnet
@@ -253,8 +256,21 @@ func (e *engine) handler(secret string) http.Handler {
 	})
 	mux.HandleFunc("POST /interfaces", func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(io.LimitReader(r.Body, 64<<10))
-		if err := SetInterfaces(string(b)); err != nil {
+		changed, err := SetInterfaces(string(b))
+		if err != nil {
 			fail(w, 400, err)
+			return
+		}
+		if changed {
+			e.netChanged()
+		}
+		reply(w, map[string]bool{"ok": true, "changed": changed})
+	})
+	mux.HandleFunc("POST /rebind", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if err := e.rebind(ctx); err != nil {
+			fail(w, 500, err)
 			return
 		}
 		reply(w, map[string]bool{"ok": true})

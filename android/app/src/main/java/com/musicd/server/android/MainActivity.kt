@@ -394,18 +394,27 @@ class MainActivity : Activity() {
      * Alongside the page load: does the server answer at all? An address that
      * can't be reached (away, with no route to the server) can leave the
      * WebView waiting a long time on a black screen before it gives up. If the
-     * server hasn't answered within 3 seconds, the app's own copy of MusicD
-     * takes over now — the server watch brings the page back when it answers.
+     * server hasn't answered after three tries over about ten seconds, the
+     * app's own copy of MusicD takes over — the server watch brings the page
+     * back when it answers. Three tries, not one: at a cold start away from
+     * home the app's own Tailscale engine is still coming up for the first
+     * few seconds, and one three-second look used to call that an outage.
      */
     private fun checkReachable(base: String) {
         val seq = ++loadSeq
         checks.execute {
-            val ok = runCatching {
-                val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
-                c.connectTimeout = 3000; c.readTimeout = 3000; c.useCaches = false
-                c.setRequestProperty("Connection", "close")
-                try { c.responseCode == 200 } finally { c.disconnect() }
-            }.getOrDefault(false)
+            var ok = false
+            for (attempt in 1..3) {
+                if (seq != loadSeq || pageLoaded || isFinishing) return@execute
+                ok = runCatching {
+                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 3000; c.readTimeout = 3000; c.useCaches = false
+                    c.setRequestProperty("Connection", "close")
+                    try { c.responseCode == 200 } finally { c.disconnect() }
+                }.getOrDefault(false)
+                if (ok || attempt == 3) break
+                try { Thread.sleep(1500) } catch (e: InterruptedException) { return@execute }
+            }
             if (ok) return@execute
             runOnUiThread {
                 if (seq != loadSeq || offline || pageLoaded || isFinishing) return@runOnUiThread
@@ -563,8 +572,12 @@ class MainActivity : Activity() {
             if (!request.isForMainFrame) return
             // Perhaps the phone has just left home (or come back): look again.
             Away.recheck(this@MainActivity)
-            // MusicD itself, from the app, rather than an error.
-            if (!offline && OfflineSite.has(this@MainActivity)) { goOffline(); return }
+            // MusicD itself, from the app, rather than an error. Already offline:
+            // this is the earlier load from the server failing late (the app's
+            // own copy is answered by shouldInterceptRequest and can't fail), so
+            // nothing to do — never the screen below, which is only for an app
+            // with no copy of the page at all.
+            if (OfflineSite.has(this@MainActivity)) { if (!offline) goOffline(); return }
             val where = Store.active(this@MainActivity)?.toString() ?: "the server"
             loadFailed = true
             showError("Can't reach Mandarin at $where.\n\n${error.description}\n")
