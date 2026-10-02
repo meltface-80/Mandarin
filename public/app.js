@@ -6991,7 +6991,7 @@
       }
       const done = (j.applied || []).find(x => x.album && x.album.offset === mine.album.offset);
       const c = done && done.candidate;
-      ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + c.year + ")" : ""}. Undo is under Settings → Setup → Identify albums.` : "<strong>Matched.</strong>";
+      ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + c.year + ")" : ""}. Undo is under Settings → Identify albums.` : "<strong>Matched.</strong>";
       ae.mCands.querySelectorAll(".ae-mcand").forEach(x => x.classList.toggle("is-picked", x === btn));
       showToast("Matched — names applied");
     } catch (e) {
@@ -12401,15 +12401,13 @@ window.__musicdAppUpd = (function () {
     const home = sheet && sheet.querySelector('.settings-view[data-view="home"]');
     return !home || !home.classList.contains("hidden");
   };
-  // One level up: a pane that names its parent (data-parent) goes there, a
-  // pane opened from Setup goes back to Setup, anything else home.
+  // One level up: a pane that names its parent (data-parent) goes there,
+  // anything else to the Settings list (one list since v0.5.54; Setup's
+  // pages are on it).
   const stepBack = () => {
     const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
-    const name = open && open.getAttribute("data-pane");
     const parent = open && open.getAttribute("data-parent");
-    const inSetup = name && name !== "setup" &&
-      sheet.querySelector('.settings-pane[data-pane="setup"] .settings-nav-item[data-pane="' + name + '"]');
-    showView(parent || (inSetup ? "setup" : "home"));
+    showView(parent || "home");
   };
   // For panes filled elsewhere (a device's page, opened from a list row).
   window.__settingsShowView = showView;
@@ -12718,7 +12716,7 @@ window.__musicdAppUpd = (function () {
         const logos = j.count
           ? (j.scanning ? " Looking up labels and logos now…"
              : (j.discogs || j.fanart) ? " " + (j.logos || 0) + " logo" + (j.logos === 1 ? "" : "s") + "."
-             : " Logos need a Discogs token or a FanArt.tv key (Setup → API Keys).")
+             : " Logos need a Discogs token or a FanArt.tv key (Settings → API Keys).")
           : "";
         labelsEnabledNote.textContent = j.enabled
           ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have + logos
@@ -14936,13 +14934,13 @@ initServiceBrowser({
   const json = (f, fallback) => { try { return JSON.parse(f()) || fallback; } catch (e) { return fallback; } };
   const has = (name) => typeof dl[name] === "function";
 
-  // The tile, after Wall display (just before Setup).
+  // The tile, after Wall display (just before Away from home).
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
-  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="setup"]'));
+  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="away"]'));
 
   // An app from before this pane existed: its own screen, as it was.
   if (!has("settings")) { tile.addEventListener("click", () => dl.open()); return; }
@@ -16226,7 +16224,7 @@ initServiceBrowser({
   }, 10000);
 })();
 
-/* Settings → Setup → Identify albums: the scan's switch and its night window,
+/* Settings → Identify albums: the scan's switch and its night window,
  * how far it has got, what it proposes, what it applied (undo), what it
  * couldn't place (edit by hand). */
 (function initIdentifyPane() {
@@ -16470,7 +16468,7 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Setup → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'

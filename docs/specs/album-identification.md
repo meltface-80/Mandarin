@@ -1,6 +1,6 @@
 # Album identification: fixing wrong artists, titles and track names from the library itself
 
-**Status: built in v0.5.8** (`lib/identify/`, Settings → Setup → Identify albums), with the
+**Status: built in v0.5.8** (`lib/identify/`, Settings → Identify albums), with the
 owner's changes to this plan: MusicBrainz only, **no AcoustID** (§7 is not built and not
 planned), and scheduling as one switch — on, a night window between the start and end times
 you set; off, the scan runs continuously — rather than the bursts in §6. Wikipedia tie-breaks
@@ -129,7 +129,7 @@ id, distance, when, applied/proposed/rejected) so a later pass does not redo it 
 undo it. Album art is not changed by this feature.
 
 **Step 5 — the rest.** Albums that fell in the proposed band or were unidentified are listed
-under Settings → Setup → **Identify albums**, with the top candidate and its distance shown,
+under Settings → **Identify albums**, with the top candidate and its distance shown,
 an **Accept** for each proposal, and **Edit** opening the album editor you have now.
 
 ## 5. Where Wikipedia and Last.fm fit
@@ -143,7 +143,7 @@ an **Accept** for each proposal, and **Edit** opening the album editor you have 
 
 ## 6. Scheduling
 
-Settings → Setup → **Identify albums**:
+Settings → **Identify albums**:
 
 * **On / off.**
 * **Bursts:** five minutes every hour (the default), or two, ten, fifteen.

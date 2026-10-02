@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.53
+# Mandarin — v0.5.54
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -181,7 +181,7 @@ docker build -t musicd-server:local .
 
 ### Updating
 
-**In the app:** Settings → Setup → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
+**In the app:** Settings → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
 downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
 the page reloads on its own. It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
@@ -211,7 +211,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
-| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
+| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
@@ -291,7 +291,7 @@ interface, and adds what a web page can't:
 * **Android Auto** — Downloaded albums, Smart Picks and Random albums in the car. Android Auto
   lists a sideloaded app only with *Unknown sources* on in its developer settings (tap the
   version number in Android Auto's settings ten times to reach them).
-* **Updates itself** — the app offers each new version when it opens (or *Settings → Setup → Updates →
+* **Updates itself** — the app offers each new version when it opens (or *Settings → Updates →
   Check for app update*) and installs it over the top; Android asks once to allow it.
 * **USB DAC** — plug a DAC into the phone's port and it appears on *This phone*'s page in Audio
   Devices with what it takes. **USB direct** plays through the app's own USB Audio driver: the
@@ -333,7 +333,7 @@ page says how many albums carry a label tag and how many don't. A library filed 
 Two names the files keep apart can be **merged**: hold a tile on the Labels screen, select
 the rest, Merge folds them into the first; the tile says "N merged", and tapping that undoes
 one at a time. **Logos** are found in the background for every label without one — Discogs
-first (your Discogs token, Setup → API Keys), then FanArt.tv by the label's MusicBrainz id
+first (your Discogs token, Settings → API Keys), then FanArt.tv by the label's MusicBrainz id
 (your FanArt.tv key) — kept in the data folder and served like covers, so the app caches
 them. The picture button on a label's page offers Discogs' candidates or takes a pasted
 address. A label no source has a logo for is asked about again after a week, or at once
@@ -348,7 +348,7 @@ wins, and the scan log (on the Labels screen) says what each lookup found.
 ## Identify albums
 
 Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
-isn't one, a blank, a typo — or with track titles like `Track 01`. Settings → Setup →
+isn't one, a blank, a typo — or with track titles like `Track 01`. Settings →
 **Identify albums** is a scan that finds each album's right names on
 [MusicBrainz](https://musicbrainz.org) (no key: the app names itself and asks at most once a
 second) from what the files already say: the title, the track count, the artist where the tag
@@ -467,11 +467,11 @@ from the phone.
 
 **Set up once — Tailscale is built in:**
 
-1. On the server, open *Settings → Setup → Away from home* and tap **Sign in to Tailscale**. Sign in on
+1. On the server, open *Settings → Away from home* and tap **Sign in to Tailscale**. Sign in on
    Tailscale's page (a free account is enough). The server joins your tailnet by itself as
    **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
    server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
-2. On the phone, sign Mandarin's app in to the same account: *Settings → Setup → Away from home → This phone*. The
+2. On the phone, sign Mandarin's app in to the same account: *Settings → Away from home → This phone*. The
    app carries its own Tailscale too — no Tailscale app needed.
 3. Open Mandarin once at home: the app learns the server's tailnet address.
 
