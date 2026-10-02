@@ -63,6 +63,7 @@ object LocalMusic {
 
     @Volatile var albums: List<Album> = emptyList(); private set
     @Volatile var scanning = false; private set
+    @Volatile private var again = false
     @Volatile var scannedAt = 0L; private set
     @Volatile var lastError: String? = null; private set
     @Volatile private var loaded = false
@@ -115,9 +116,28 @@ object LocalMusic {
     private val main = Handler(Looper.getMainLooper())
     private var observer: ContentObserver? = null
     private var observedFor: String? = null
+    /*
+     * A read every half minute while the app is on screen, every three
+     * minutes behind it. Android tells the app when it changes the folder
+     * itself, but not reliably when another app (a file manager moving an
+     * album to the server, say) takes files out — so the reads catch that.
+     * A read of an unchanged folder is a listing, so it costs little.
+     */
     private const val PERIOD_MS = 3 * 60_000L
-    private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c) ; main.postDelayed(this, PERIOD_MS) } } }
+    private const val PERIOD_FRONT_MS = 30_000L
+    @Volatile private var front = false
+    private fun period() = if (front) PERIOD_FRONT_MS else PERIOD_MS
+    private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c) ; main.postDelayed(this, period()) } } }
     @Volatile private var watched: Context? = null
+
+    /** The app came to the screen ([on]) or left it: the reads follow, and coming back reads now. */
+    fun foreground(c: Context, on: Boolean) {
+        front = on
+        if (watched == null) return
+        main.removeCallbacks(periodic)
+        main.postDelayed(periodic, period())
+        if (on) checkSoon(c)
+    }
 
     /** From the activity's start to its end: Android's change notices for the folder, and a read every few minutes. */
     fun watch(c: Context) {
@@ -215,7 +235,10 @@ object LocalMusic {
      * A change is told to the page (the Home row, the settings); none isn't.
      */
     fun rescan(c: Context) {
-        if (scanning) return
+        // Asked while reading: once more when this read ends, so the last
+        // change is always read (an album moved out file by file sends
+        // notices while the first read is still going; they were dropped).
+        if (scanning) { again = true; return }
         val tree = folder(c) ?: return
         if (!available(c)) return   // its card out, say: what was read is kept until it is back
         scanning = true; lastError = null
@@ -239,6 +262,7 @@ object LocalMusic {
             } finally {
                 scanning = false
                 if (before == null || before != signature() || lastError != null) changed()
+                if (again) { again = false; main.post { rescan(c) } }
             }
         }
     }

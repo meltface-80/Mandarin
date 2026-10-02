@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.52
+- **An album moved off the phone leaves Home at once.** Taking the last album out of the phone's
+  music folder (moving it to the server, say) left its tile on Home until the app was closed:
+  the app had noticed, but the Home row's "nothing here" step stopped with an error before it
+  could redraw. Fixed, and the empty row hides as it should.
+- **No change to the folder is missed.** A change noticed while the folder was being read was
+  dropped; it is now read once more when the read ends, so an album moved out file by file is
+  always caught. While the app is on screen the folder is read every half minute (every three
+  minutes behind it), and coming back to the app shows the list as it stands straight away.
+- **A tile that's out of date tidies itself.** Opening an album that has left the phone says so,
+  takes its tile off Home and the Music on device wall, and goes back to where you were.
+
 ## v0.5.51
 - **Play to another phone.** A phone running the Mandarin app is now a player for your other
   devices at home too: your phone lists the FiiO R7 (and the R7 your phone) under its own name,
