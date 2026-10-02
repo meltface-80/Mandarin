@@ -27,13 +27,20 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## What it does
 
-* **Home** — Not played in six months, Album of the day, Smart Picks, Favourites, Listen later,
-  Playlists, Random albums, Label of the week, genres. Reorder the rows or switch them off.
+* **Home** — Not played in six months with the Album of the day, Listen later, Playlists,
+  Favourites, Recently played, Smart Picks, Label of the week, Random albums, the Library and
+  genres. Reorder the rows or switch them off.
 * **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
-  decade, format, sample rate, bit depth, label, starts-with and date added.
+  decade, format, sample rate, bit depth, label, starts-with and date added. A Random albums wall
+  turns over each visit.
+* **Music folders** — any number of folders the server can see, added and removed in Settings,
+  watched so new and deleted albums show up by themselves.
 * **Search** — albums, artists and labels as you type. Typo-tolerant, any word order.
 * **Album pages** — tracks, year, label, write-ups from Wikipedia and Qobuz's editorial pages,
-  the Pitchfork score, favourite, listen later, download, share.
+  the Pitchfork score, favourite, listen later, download, share. Previous and next, or a swipe,
+  step through the albums of the row or wall you came from.
+* **Pitchfork** — the latest reviews and Best New Music to read in the app, with Play on any
+  record you own.
 * **Edit album** — correct the title, artist or year and find a cover. Edits live in the
   database; your files stay exactly as they are.
 * **Identify albums** — a nightly MusicBrainz scan names mis-tagged albums from their tracks and
@@ -49,13 +56,16 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Smart Picks and Discover** — five records a day from your own library, by acts near the ones
   you play; new releases by the artists you listen to.
 * **Playlists** — ones you make, Dynamic Playlists that follow a saved Library view, and sharing
-  in MusicD Remote's own format.
-* **Favourites and Listen later** — a heart on every album; albums put aside until every track
-  has been played.
+  and importing in MusicD Remote's own format.
+* **Favourites** — a heart on any album, gathered on a Home row of their own.
+* **Listen later** — albums put aside to hear, on a Home row and a wall of their own. Each comes
+  off by itself once every track has played.
+* **Label of the week** — with Record labels on, one label from your library on Home all week,
+  with its albums; a new one each Monday.
 * **Record labels** — from the files' tags or a folder level: a Labels screen, logos from Discogs
   and FanArt.tv, lookups for untagged albums, merging of duplicates.
-* **Sonos** — rooms and groups: play, queue, play next, shuffle, repeat, volume per speaker,
-  group and ungroup, move what's playing to another room.
+* **Sonos** — play, queue, play next, shuffle, repeat, volume per speaker, and move what's
+  playing to another room. Sonos rooms group and ungroup here too; Sonos keeps them in step.
 * **UPnP/DLNA renderers** — a WiiM, a Chord Poly, a streamer, an AV receiver, a TV: gapless,
   with volume, radio and everything a Sonos room has.
 * **Audio Devices** — every player with what it takes (rates, depths, formats), a name of your
@@ -67,9 +77,10 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **This phone** — the phone is a room of its own: speaker, headphones or Bluetooth, with the
   queue, history and radio like any other.
 * **USB DAC on the phone** — the app's own USB Audio driver feeds a DAC on the phone's port at
-  the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way.
-* **Downloads** — albums kept on the phone as the files themselves or as Opus 256, played with
-  no server at all; today's picks kept automatically if you like.
+  the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way. The DAC's
+  volume starts low, with a limit, or fixed for a DAC without its own control.
+* **Downloads** — albums kept on the phone, in a folder you choose, as the files themselves or
+  as Opus 256, played with no server at all; today's picks kept automatically if you like.
 * **Music on this phone** — a folder of files already on the phone, watched for changes, shown
   and played like the library.
 * **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
