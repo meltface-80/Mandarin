@@ -225,6 +225,38 @@ func TestEngine(t *testing.T) {
 		}
 	})
 
+	t.Run("a network change is passed on to Tailscale; a rebind keeps the way through", func(t *testing.T) {
+		if monitorOf(e.ts) == nil {
+			t.Fatal("tsnet's network monitor not found (a Tailscale upgrade moved it?)")
+		}
+		desc := javaStyleInterfaces()
+		if _, m := a.call("POST", "/interfaces", desc); m["changed"] != false {
+			t.Fatalf("the same list again: %v", m)
+		}
+		if _, m := a.call("POST", "/interfaces", desc+"default wlan0\n"); m["changed"] != true {
+			t.Fatalf("a new default route: %v", m)
+		}
+		if DefaultRoute() != "wlan0" {
+			t.Fatalf("default route %q", DefaultRoute())
+		}
+		if code, m := a.call("POST", "/rebind", ""); code != 200 {
+			t.Fatalf("rebind: %d %v", code, m)
+		}
+		ok := false
+		for i := 0; i < 20 && !ok; i++ {
+			_, m := a.call("GET", "/probe", "")
+			ok = m["ok"] == true
+		}
+		if !ok {
+			t.Fatal("server not answering after a rebind")
+		}
+		res, err := http.Get(base + "/api/health")
+		if err != nil || res.StatusCode != 200 {
+			t.Fatalf("through the forward after a rebind: %v %v", err, res)
+		}
+		res.Body.Close()
+	})
+
 	t.Run("audio with ranges, and a held request", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", base+"/stream/t1.flac", nil)
 		req.Header.Set("Range", "bytes=1000-1999")

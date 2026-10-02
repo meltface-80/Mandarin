@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.48
+- **Away from home over the app's own Tailscale stays connected.** On Android, Tailscale
+  re-reads the phone's network only every ten minutes unless its host app says the network
+  changed and which connection carries the traffic — the Tailscale app does, Mandarin's engine
+  didn't. So after Wi-Fi to mobile data, a new mobile address, or another VPN coming on or
+  off, the tunnel kept using the old network for up to ten minutes and the app went offline
+  while the server was fine. Now the app hands the engine the phone's default route with its
+  interfaces, a change makes Tailscale look again at once, and when the server doesn't answer
+  the app has Tailscale rebind its sockets before giving up.
+- **No more "On this phone" screen at a cold start away from home.** Opening the app on
+  mobile data could land on the app's own downloads screen, with "Try the server again"
+  working at once: the app looked for the server once for three seconds while its Tailscale
+  engine was still coming up, switched to its offline copy of the page, then took the first
+  page load's late failure for the copy failing. Now it looks three times over about ten
+  seconds before going offline, and a failure while the offline copy is up is left alone —
+  that screen is only for an app with no copy of the page at all.
+
 ## v0.5.47
 - **Many more albums identified.** Another pressing of the same record is no longer a rival:
   an edition with a bonus track, or a remaster, used to leave a 100 % match "proposed" because
