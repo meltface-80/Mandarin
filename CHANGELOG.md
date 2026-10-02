@@ -5,6 +5,26 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.55
+- **The app opens with no signal at all.** With Wi-Fi and mobile data off (or no SIM), the app
+  could sit on its start-up logo until force-stopped. With no network it now opens straight onto
+  its own copy of Mandarin — Home, the phone's music folder, downloads and the player — without
+  first setting up the way to the server, which needed a network. A VPN app left on with nothing
+  under it no longer counts as a network.
+- **Never held at the start.** If the WebView doesn't confirm its link to the server within a few
+  seconds, the page opens anyway rather than waiting for it.
+- **Back online by itself.** When Wi-Fi or mobile data returns, the app finds the server again
+  and moves the page back to it; no force stop needed.
+- **This phone in Audio Devices with no network.** Offline, Settings → Audio Devices said "the
+  network is being searched" and listed nothing. It now lists this phone, with its page: the USB
+  DAC on its port (and the switch to play through it), and its DSP, which can be changed offline,
+  plays at once, and is handed to the server when it's back.
+- **This phone is already chosen.** When the phone is the only player (no network, or away from
+  home), the zone picker picks it, not "Choose a zone…".
+- **The DSP curve offline.** The script that draws it is now part of the app's own copy.
+- **A freeze leaves a note.** If the app's screen ever stops answering for ten seconds, what it
+  was stuck on is kept, and the next start offers it to share — like a crash report.
+
 ## v0.5.54
 - **One Settings list.** Setup's pages — Away from home, API Keys, Smart Picks, Record labels,
   Discover, Identify albums and Updates — are back on the Settings list, in the same order, where

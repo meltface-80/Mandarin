@@ -303,9 +303,69 @@ object OfflineApi {
                 return if (r.status == 200) json(JSONObject().put("ok", true).put("album", l.json())) else r
             }
         }
+        if (path == "/api/audio-devices") return devices(c)
+        if (path.startsWith("/api/audio-devices/")) return device(c, path.removePrefix("/api/audio-devices/"))
         if (path.startsWith("/api/image/")) return image(c, path.removePrefix("/api/image/"))
         OfflineSite.api(c, path)?.let { return Response(200, "application/json", it.toByteArray()) }
         return json(JSONObject())
+    }
+
+    // ------------------------------------------------------------ audio devices
+
+    /*
+     * Settings → Audio Devices, offline: this phone, the one player there is,
+     * as the server shows it — its page, its DSP and (from the app itself)
+     * the USB DAC on its port. Before v0.5.55 the list was empty offline.
+     */
+
+    private val RATES = listOf(44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000)
+    private val BITS = listOf(16, 24, 32)
+    private val DSD = listOf(64, 128, 256)
+    private val NO_DSP get() = JSONObject().put("enabled", false).put("headphone", JSONObject.NULL).put("peq", JSONObject.NULL).put("headroom", "auto")
+
+    private fun dspOf(c: Context): JSONObject = Store.dsp(c)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: NO_DSP
+
+    private fun phoneDevice(c: Context, full: Boolean): JSONObject {
+        val st = PhonePlayerService.current?.offlineState()
+        val name = PhonePlayerService.phoneName()
+        val dsp = dspOf(c)
+        val bands = dsp.optJSONObject("peq")?.optJSONArray("bands")?.length() ?: 0
+        val o = JSONObject().put("id", zoneId(c)).put("kind", "phone").put("family", "")
+            .put("name", name).put("network_name", name).put("renamed", false)
+            .put("manufacturer", "").put("model", "Phone").put("model_number", "").put("firmware", "").put("ip", "")
+            .put("online", true).put("state", st?.state ?: "stopped").put("enabled", true).put("can_toggle", false)
+            .put("profile", JSONObject().put("id", "phone").put("label", "Phone")).put("editable", false).put("playable", true)
+            .put("rates", JSONArray(RATES.map { JSONObject().put("hz", it).put("on", it <= 192000).put("source", if (it <= 192000) "phone" else "off") }))
+            .put("bits", JSONArray(BITS.map { JSONObject().put("n", it).put("on", it <= 24).put("source", if (it <= 24) "phone" else "off") }))
+            .put("dsd", JSONArray(DSD.map { JSONObject().put("n", it).put("on", false).put("source", "off") }))
+            .put("containers", JSONArray(listOf("flac", "mp3", "alac", "aac", "ogg", "opus", "wav")))
+            .put("dsp", dsp)
+            .put("dsp_info", JSONObject().put("active", dsp.optBoolean("enabled") && (bands > 0 || !dsp.isNull("headphone"))).put("bands", bands))
+        if (full) o.put("found_by", "The Mandarin app").put("location", "").put("settings", JSONObject())
+            .put("last_error", JSONObject.NULL).put("openhome", false).put("events", JSONObject.NULL)
+            .put("volume_fixed", false).put("can_fix_volume", false).put("takes_flac", true)
+        return o
+    }
+
+    private fun devices(c: Context) =
+        json(JSONObject().put("away", true).put("offline", true).put("devices", JSONArray().put(phoneDevice(c, false))))
+
+    private fun device(c: Context, rawId: String): Response {
+        val id = java.net.URLDecoder.decode(rawId, "UTF-8")
+        return if (id == zoneId(c)) json(phoneDevice(c, true)) else error("That device is shown when Mandarin can be reached", 404)
+    }
+
+    /** This phone's page: its DSP changes here and now (and reaches the server later); the rest waits for the server. */
+    private fun changeDevice(c: Context, rawId: String, b: JSONObject): Response {
+        val id = java.net.URLDecoder.decode(rawId, "UTF-8")
+        if (id != zoneId(c)) return error("That device is shown when Mandarin can be reached", 404)
+        val patch = b.optJSONObject("dsp") ?: return error(OFFLINE)
+        val next = dspOf(c)
+        for (k in listOf("enabled", "headphone", "peq", "headroom")) if (patch.has(k)) next.put(k, patch.get(k))
+        if (next.isNull("headroom")) next.put("headroom", "auto")
+        val p = PhonePlayerService.current
+        if (p != null) p.setDspOffline(next) else { Store.setDsp(c, next.toString()); Store.setDspPending(c, true) }
+        return json(phoneDevice(c, true))
     }
 
     /** A cover, by the key the page asks for: the downloaded album's cover.jpg. */
@@ -326,6 +386,8 @@ object OfflineApi {
     // ------------------------------------------------------------ POST
 
     private fun post(c: Context, path: String, b: JSONObject): Response {
+        if (path == "/api/audio-devices/rescan") return devices(c)
+        if (path.startsWith("/api/audio-devices/")) return changeDevice(c, path.removePrefix("/api/audio-devices/"), b)
         when (path) {
             "/api/play" -> return play(c, listOf(b.optInt("offset", -1)), b.optString("kind", "play_now"))
             "/api/play-track" -> {

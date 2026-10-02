@@ -95,6 +95,13 @@ class PhonePlayerService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "PhonePlayer"
+
+        /** The name this phone goes by on the server ("Pixel 8"). */
+        fun phoneName(): String {
+            val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+            val model = Build.MODEL
+            return if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model"
+        }
         private const val AHEAD_MS = 5 * 60 * 1000
         private const val AHEAD_BYTES = 48 * 1024 * 1024
 
@@ -451,7 +458,10 @@ class PhonePlayerService : MediaLibraryService() {
             if (client == null) { pause(5_000); continue }
             try {
                 if (!hello) {
-                    val h = client.phoneHello(deviceName())
+                    // A DSP setting changed offline goes with the hello, and the server keeps it.
+                    val mine = if (Store.dspPending(this)) Store.dsp(this)?.let { runCatching { JSONObject(it) }.getOrNull() } else null
+                    val h = client.phoneHello(deviceName(), mine)
+                    if (mine != null) Store.setDspPending(this, false)
                     seq = h.seq
                     zoneId = h.zoneId
                     Store.setPhoneZone(this, h.zoneId)
@@ -664,6 +674,13 @@ class PhonePlayerService : MediaLibraryService() {
         dsp.apply(Dsp.parse(json))
         Store.setDsp(this, json.toString())
         reportSoon()
+    }
+
+    /** Set on the phone's own Audio Devices page while offline: played at once, given to the server at the next hello. */
+    fun setDspOffline(json: JSONObject) {
+        Store.setDsp(this, json.toString())
+        Store.setDspPending(this, true)
+        main.post { applyDsp(json) }
     }
 
     /** The decoder at work on the current track (Media3's name for it), or null before the first. */
@@ -1017,11 +1034,7 @@ class PhonePlayerService : MediaLibraryService() {
         runCatching { reports.execute { runCatching { client.phoneReport(r) }.onSuccess { if (localItems != null) localRevSent = rev } } }
     }
 
-    private fun deviceName(): String {
-        val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-        val model = Build.MODEL
-        return if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model"
-    }
+    private fun deviceName(): String = phoneName()
 
     // ------------------------------------------------------------ Android Auto
 

@@ -60,6 +60,12 @@ object Store {
 
     /** The phone's DSP setting as the server last sent it (JSON), kept so it applies offline too. */
     fun dsp(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DSP, null)
+    /** The DSP setting was changed offline and the server hasn't had it yet. */
+    fun dspPending(context: Context): Boolean = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("dsp_pending", false)
+    fun setDspPending(context: Context, on: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("dsp_pending", on).apply()
+    }
+
     fun setDsp(context: Context, json: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (json == null) remove(KEY_DSP) else putString(KEY_DSP, json) }.apply()
     }
