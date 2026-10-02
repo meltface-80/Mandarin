@@ -5170,6 +5170,10 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .modal .modal-home:hover,
 [data-palette="hifi"] .modal .modal-share:hover,
 [data-palette="hifi"] .modal .modal-nav-btn:not(:disabled):hover { background: var(--plum); color: var(--plum-pale); filter: brightness(1.08); }
+/* The previous and next discs on the art: a lightly translucent brass, so the
+   cover shows through them a little. */
+[data-palette="hifi"] .modal .modal-nav-btn { background: rgba(201,164,92,.72); border-color: rgba(201,164,92,.35); }
+[data-palette="hifi"] .modal .modal-nav-btn:not(:disabled):hover { background: rgba(201,164,92,.88); filter: none; }
 /* The search box, open: a brass pill, the glass in brass. */
 [data-palette="hifi"] .search-box:focus-within { border-color: var(--plum); box-shadow: 0 0 0 3px rgba(139,111,176,.22); }
 [data-palette="hifi"] .search-box:focus-within .search-ico,
