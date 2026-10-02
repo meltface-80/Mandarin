@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -50,7 +49,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_LOCAL_FOLDER = 7301
         private const val REQ_DOWNLOAD_FOLDER = 7302
-        private const val REQ_STORAGE = 7302
+        private const val REQ_STORAGE = 7303
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
@@ -83,6 +82,8 @@ class MainActivity : Activity() {
     /** The app is answering the page itself (the server can't be reached). */
     @Volatile private var offline = false
     private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
+    /** The server watch's own thread: its repair of the way to the server can take a while, and the checks above mustn't wait for it. */
+    private val watching = java.util.concurrent.Executors.newSingleThreadExecutor()
     /**
      * Offline: look for the server now and then, and go back to it when it
      * answers. Each look first has the way to the server checked and, if need
@@ -95,7 +96,7 @@ class MainActivity : Activity() {
             if (!offline || isFinishing) return
             // No network yet: nothing to look for (looked at again in 10 s).
             if (!hasNetwork()) { web.postDelayed(this, 10_000); return }
-            checks.execute {
+            watching.execute {
                 runCatching { Away.check(this@MainActivity) }
                 val base = Store.active(this@MainActivity)?.baseUrl
                 val back = base != null && runCatching {
@@ -225,6 +226,7 @@ class MainActivity : Activity() {
         Away.watch(this)
         UsbDac.listen(onUsb)
         UsbDac.start(this)
+        runCatching { getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(netWatch) }
         load()
     }
 
@@ -269,16 +271,31 @@ class MainActivity : Activity() {
      * "network" up with nothing under it (airplane mode, no SIM), and the app
      * used to take that for a way to the server.
      */
-    @Suppress("DEPRECATION")
-    private fun hasNetwork(): Boolean = runCatching {
-        val cm = getSystemService(android.net.ConnectivityManager::class.java)
-        cm.allNetworks.any { n ->
-            val caps = cm.getNetworkCapabilities(n) ?: return@any false
-            !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
-                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-                    caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+    private fun hasNetwork(): Boolean = Away.hasNetwork(this)
+
+    /**
+     * The phone's network, followed by the screen itself (v0.5.56). The last
+     * network gone: the app's own copy at once, and the relay's connections
+     * dropped — they'd only hang, and the page with them, while the checks
+     * below took up to three quarters of a minute to notice. A network back
+     * while offline: the server is looked for straight away.
+     */
+    private val netWatch = object : android.net.ConnectivityManager.NetworkCallback() {
+        override fun onLost(network: android.net.Network) {
+            web.postDelayed({
+                if (isFinishing || offline || hasNetwork()) return@postDelayed
+                PageRelay.dropAll()
+                if (OfflineSite.has(this@MainActivity)) goOffline()
+            }, 300)
         }
-    }.getOrDefault(true)
+        override fun onAvailable(network: android.net.Network) {
+            web.post {
+                if (isFinishing || !offline) return@post
+                web.removeCallbacks(serverWatch)
+                web.postDelayed(serverWatch, 1_500)
+            }
+        }
+    }
 
     /** The server can't be reached: the app answers the page from what's on the phone. */
     private fun goOffline() {
@@ -544,7 +561,12 @@ class MainActivity : Activity() {
         // leave, never web.goBack(), which could land on an earlier page load
         // (the sign-in page) and reload everything. "0": an older page with no
         // Back of its own — as before.
+        // A page that doesn't answer (stuck waiting on the server) mustn't leave Back doing nothing.
+        var answered = false
+        web.postDelayed({ if (!answered) { answered = true; moveTaskToBack(true) } }, 800)
         web.evaluateJavascript("(window.__musicdBack && window.__musicdBack()) ? 1 : (window.__pageBack ? 2 : 0)") { handled ->
+            if (answered) return@evaluateJavascript
+            answered = true
             when (handled) {
                 "1" -> return@evaluateJavascript
                 "2" -> moveTaskToBack(true)
@@ -590,7 +612,9 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         UsbDac.unlisten(onUsb)
         LocalMusic.unwatch(this)
+        runCatching { getSystemService(android.net.ConnectivityManager::class.java).unregisterNetworkCallback(netWatch) }
         checks.shutdownNow()
+        watching.shutdownNow()
         DownloadStore.unlisten(onDownloads)
         Away.unlisten(onAway)
         if (::web.isInitialized) {

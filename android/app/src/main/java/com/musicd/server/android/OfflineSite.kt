@@ -125,6 +125,15 @@ object OfflineSite {
                 for ((album, albumDir) in DownloadStore.albums(app)) runCatching {
                     save(File(albumDir, "page.json"), get("$base/api/album?offset=${album.id}", token))
                 }
+                // A cover that didn't come with its album (the download only tried once):
+                // fetched now, so the album isn't a blank tile offline.
+                for ((album, albumDir) in DownloadStore.albums(app)) {
+                    val cover = File(albumDir, "cover.jpg")
+                    if (album.state != "done" || cover.exists()) continue
+                    val key = album.imageKey ?: "al-${album.id}"
+                    runCatching { save(cover, get("$base/api/image/${java.net.URLEncoder.encode(key, "UTF-8")}?size=1200", token)) }
+                        .onFailure { Log.i(TAG, "cover of ${album.id}: ${it.message}") }
+                }
             } finally {
                 syncing = false
             }

@@ -5,6 +5,24 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.56
+- **No freeze when the network goes with the app open.** The freeze report from v0.5.55 showed
+  the cause: the lock-screen, notification and widget controls for a Sonos room were redrawn on
+  the app's screen thread every time the server couldn't be reached, and each redraw copied the
+  album cover to Android. They're now drawn on their own thread, only when something shown has
+  changed, with the cover kept small and shared rather than copied. With no network they wait
+  quietly instead of trying again and again.
+- **Offline at once.** The app now follows the phone's network itself: when the last network
+  goes, it switches to its own copy of Mandarin within a second (it could take up to ~45 s), and
+  drops connections to the server that would only hang. When a network comes back, it looks for
+  the server straight away.
+- **No Tailscale with no network.** With no Wi-Fi or mobile data the app no longer starts and
+  restarts its Tailscale connection for minutes; that also held up its other checks.
+- **Connections that go silent are dropped** after a minute instead of hanging the page.
+- **Back always does something.** If the page doesn't answer, Back leaves the app.
+- **Missing covers come back.** A downloaded album whose cover didn't arrive with it gets it the
+  next time the server is reached, so it isn't a blank tile offline.
+
 ## v0.5.55
 - **The app opens with no signal at all.** With Wi-Fi and mobile data off (or no SIM), the app
   could sit on its start-up logo until force-stopped. With no network it now opens straight onto

@@ -84,6 +84,16 @@ class NowPlayingService : Service() {
     }
 
     private val main = Handler(Looper.getMainLooper())
+    /**
+     * The lock screen, notification and widget are drawn here, never on the
+     * main thread: handing a cover to Android copies it, and on a phone that
+     * had just lost its network that copy held the app's screen for over ten
+     * seconds (v0.5.55's freeze report).
+     */
+    private val ui = android.os.HandlerThread("now-playing-ui").apply { start() }
+    private val uiHandler = Handler(ui.looper)
+    /** What was last drawn: the same again isn't drawn twice. */
+    @Volatile private var shown: String? = null
     private val commands = Executors.newSingleThreadExecutor { r -> Thread(r, "commands").apply { isDaemon = true } }
     private var session: MediaSession? = null
     private var worker: Thread? = null
@@ -142,6 +152,8 @@ class NowPlayingService : Service() {
         running = false
         worker?.interrupt()
         commands.shutdownNow()
+        uiHandler.removeCallbacksAndMessages(null)
+        ui.quitSafely()
         runCatching { session?.isActive = false; session?.release() }
         session = null
         latest = null
@@ -166,6 +178,13 @@ class NowPlayingService : Service() {
         while (running) {
             val client = Store.client(this)
             if (client == null) { stopSelf(); return }
+            // No Wi-Fi, no mobile data: nothing to ask (and nothing to draw again and again).
+            if (!Away.hasNetwork(this)) {
+                if (reachable) { reachable = false; showSoon(latest) }
+                sleep(5_000)
+                if (SystemClock.elapsedRealtime() - idleSince > IDLE_STOP_MS) { main.post { stopSelf() }; return }
+                continue
+            }
             try {
                 val zones = client.zones()
                 val chosen = zones.lastZone ?: Store.zone(this) ?: zones.zones.firstOrNull()?.id
@@ -197,7 +216,7 @@ class NowPlayingService : Service() {
                 failures++
                 reachable = false
                 if (failures == 1) Log.i(TAG, "server unreachable: ${e.message}")
-                main.post { refreshViews(latest) }
+                showSoon(latest)
                 sleep(minOf(30_000L, 2_000L * failures))
                 if (SystemClock.elapsedRealtime() - idleSince > IDLE_STOP_MS) { main.post { stopSelf() }; return }
             }
@@ -216,13 +235,39 @@ class NowPlayingService : Service() {
         val key = zone?.nowPlaying?.imageKey
         if (key != artKey) {
             artKey = key
-            latestArt = if (key == null) null else runCatching {
-                val bytes = client.bytes(client.imageUrl(key, ART_PX))
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            }.getOrNull()
+            latestArt = if (key == null) null else runCatching { art(client.bytes(client.imageUrl(key, ART_PX))) }.getOrNull()
         }
         latest = zone
-        main.post { refreshViews(zone) }
+        showSoon(zone)
+    }
+
+    /**
+     * The cover, no bigger than [ART_PX] whatever size came, and (Android 12
+     * on) in shared memory — so handing it to the lock screen, notification
+     * and widget passes a reference, not a copy of every pixel.
+     */
+    private fun art(bytes: ByteArray): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= ART_PX && bounds.outHeight / (sample * 2) >= ART_PX) sample *= 2
+        var b = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+        if (b.width > ART_PX || b.height > ART_PX) {
+            val scale = ART_PX.toFloat() / maxOf(b.width, b.height)
+            b = Bitmap.createScaledBitmap(b, (b.width * scale).toInt().coerceAtLeast(1), (b.height * scale).toInt().coerceAtLeast(1), true)
+        }
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) b.asShared() else b
+    }
+
+    /** Draw [zone] on the drawing thread — only if something shown has changed. */
+    private fun showSoon(zone: Zone?) {
+        val np = zone?.nowPlaying
+        val sig = listOf(zone?.id, zone?.name, zone?.state, np?.title, np?.artist, np?.album, np?.lengthSeconds,
+            if (zone?.state == "playing") null else np?.seekSeconds, zone?.volume, zone?.nextAllowed, zone?.previousAllowed,
+            artKey, latestArt != null, reachable).joinToString("|")
+        if (sig == shown) return
+        shown = sig
+        runCatching { uiHandler.post { if (running) refreshViews(zone) } }
     }
 
     private fun refreshViews(zone: Zone?) {

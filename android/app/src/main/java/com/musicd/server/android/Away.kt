@@ -84,10 +84,30 @@ object Away {
     }
     @Volatile private var pendingCheck: Runnable? = null
 
+    /**
+     * A network the server could be reached over: Wi-Fi, Ethernet or mobile
+     * data. A VPN alone doesn't count — another VPN app left on keeps a
+     * "network" up with nothing under it (airplane mode, no SIM).
+     */
+    @Suppress("DEPRECATION")
+    fun hasNetwork(c: Context): Boolean = runCatching {
+        val cm = c.getSystemService(ConnectivityManager::class.java)
+        cm.allNetworks.any { n ->
+            val caps = cm.getNetworkCapabilities(n) ?: return@any false
+            !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+        }
+    }.getOrDefault(true)
+
     /** Where we are now, decided and stored. Blocking; not on the main thread. */
     @Synchronized
     fun check(c: Context): Boolean {
         val home = Store.server(c) ?: return false
+        // No network at all: nothing to reach, so nothing is tried — before
+        // v0.5.56 this started, rejoined and restarted Tailscale for minutes,
+        // holding up every other look at the way to the server meanwhile.
+        if (!hasNetwork(c)) return Store.isAway(c)
         val awayAt = Store.awayAddress(c)
         val wasAway = Store.isAway(c)
         val wasEngine = Store.viaEngine(c)
