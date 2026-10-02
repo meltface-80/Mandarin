@@ -10,7 +10,7 @@
 # Mandarin — v0.5.50
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
-a streamer, an AV receiver — and to the Android app, with MusicD Remote's interface.**
+a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
 
 A small server on a machine you own scans your music folders. Every player in the house plays
 from it, controlled from a browser, an iPhone home-screen app, or the native Android app. No
@@ -56,7 +56,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Smart Picks and Discover** — five records a day from your own library, by acts near the ones
   you play; new releases by the artists you listen to.
 * **Playlists** — ones you make, Dynamic Playlists that follow a saved Library view, and sharing
-  and importing in MusicD Remote's own format.
+  and importing as a playlist file you can pass on.
 * **Favourites** — a heart on any album, gathered on a Home row of their own.
 * **Listen later** — albums put aside to hear, on a Home row and a wall of their own. Each comes
   off by itself once every track has played.
@@ -253,11 +253,12 @@ own addresses are let through, so playback is unaffected.
 ## iPhone and iPad
 
 Open `http://<server-ip>:3500` in Safari, tap **Share → Add to Home Screen**. It opens full
-screen like an app — the same PWA arrangement as MusicD Remote.
+screen like an app, with the same interface as the Android app.
 
 ## Android
 
-A native app: **[android/](android/)**. Enter the port (3500 unless you changed it) and it
+A bespoke native app, designed from the ground up for the Mandarin server:
+**[android/](android/)**. Enter the port (3500 unless you changed it) and it
 finds the server on your Wi-Fi by itself — or type the address — then signs in (or creates the
 account on a new server) right in the app, no other device needed. It shows the server's own
 interface, and adds what a web page can't:
@@ -511,8 +512,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 * **Audio.** Each queued item is a URL on this server. Within 24/48 it serves the file as
   stored, with byte ranges; above that, ffmpeg writes FLAC 24/48 to the cache and the speaker
   is served from the growing file.
-* **Interface.** MusicD Remote's own `public/` page, talking to the same `/api` it always
-  has — implemented here over the library and the players.
+* **Interface.** Mandarin's own page in `public/`, served by the server and shown in the browser,
+  the iPhone home-screen app and the Android app alike, talking to the server's `/api`.
 
 ## Troubleshooting
 
@@ -539,5 +540,5 @@ bit-perfect FLAC for the first, FLAC 24/48 for the second. It needs ffmpeg on th
 
 ## License
 
-MIT. The interface is MusicD Remote's; the Sonos control is ported from Caldera Sonos Bridge
-and the UPnP to Sonos bridge — all by the same author.
+MIT. The Sonos control is ported from Caldera Sonos Bridge and the UPnP to Sonos bridge, by the
+same author.
