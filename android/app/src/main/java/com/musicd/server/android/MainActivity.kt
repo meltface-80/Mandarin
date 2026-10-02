@@ -94,6 +94,8 @@ class MainActivity : Activity() {
     private val serverWatch = object : Runnable {
         override fun run() {
             if (!offline || isFinishing) return
+            // Offline mode: the server isn't looked for (switching it off does that).
+            if (Store.offlineMode(this@MainActivity)) return
             // No network yet: nothing to look for (looked at again in 10 s).
             if (!hasNetwork()) { web.postDelayed(this, 10_000); return }
             watching.execute {
@@ -251,7 +253,7 @@ class MainActivity : Activity() {
         Away.recheck(this)
         // A page that offers the app's updates with the server's does it; an older
         // one doesn't, and the app offers itself. (Given the page a moment to say.)
-        web.postDelayed({ if (!AppBridge.pageOffersUpdates && !isFinishing) AppUpdate.check(this) }, 8000)
+        web.postDelayed({ if (!AppBridge.pageOffersUpdates && !isFinishing && !Store.offlineMode(this)) AppUpdate.check(this) }, 8000)
         web.removeCallbacks(liveWatch)
         web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
@@ -375,6 +377,8 @@ class MainActivity : Activity() {
     private fun load() {
         AppBridge.pageOffersUpdates = false    // the page being loaded says so again if it does
         val home = Store.server(this) ?: return openConnect()
+        // Offline mode: the phone's music only, the server not asked — reachable or not.
+        if (Store.offlineMode(this) && OfflineSite.has(this)) return loadOffline(home.baseUrl)
         // No Wi-Fi, no mobile data: the app's own copy at once, on the home
         // address, with nothing set up that needs a network first. The relay is
         // set up when a network comes back (the server watch, or a change of
@@ -406,6 +410,26 @@ class MainActivity : Activity() {
         pageLoaded = false
         web.loadUrl("$base/")
         checkReachable(Store.active(this)?.baseUrl ?: base)
+    }
+
+    /**
+     * Offline mode switched (the menu, or Settings → Downloads): the page goes
+     * onto the phone's music, or back to the server — or, if that can't be
+     * reached, stays on the phone's music. The services follow.
+     */
+    fun offlineModeChanged() {
+        if (!::web.isInitialized) return
+        val on = Store.offlineMode(this)
+        if (on) {
+            PageRelay.dropAll()
+            web.removeCallbacks(serverWatch)
+            runCatching { stopService(Intent(this, NowPlayingService::class.java)) }
+        } else {
+            NowPlayingService.start(this)
+            Away.recheck(this)
+        }
+        offline = false
+        load()
     }
 
     /** The app's own copy of the page, answered by the app (see [Client.shouldInterceptRequest]); the server is looked for now and then. */

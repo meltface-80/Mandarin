@@ -463,6 +463,9 @@ class PhonePlayerService : MediaLibraryService() {
         while (running) {
             val client = Store.client(this)
             if (client == null) { pause(5_000); continue }
+            // Offline mode: the server isn't asked anything; the phone plays for itself.
+            // (Hello again after: the server may have let this phone go meanwhile.)
+            if (Store.offlineMode(this)) { connected = false; hello = false; pause(2_000); continue }
             try {
                 if (!hello) {
                     // A DSP setting changed offline goes with the hello, and the server keeps it.
@@ -778,6 +781,8 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private val fetchAhead = Runnable {
         if (!running) return@Runnable
+        // Offline mode: nothing fetched from the server ahead.
+        if (Store.offlineMode(this)) { writer?.cancel(); return@Runnable }
         val isMetered = metered()
         val s = DownloadStore.settings(this)
         val count = if (isMetered) s.cacheMobile else s.cacheWifi
@@ -1038,6 +1043,7 @@ class PhonePlayerService : MediaLibraryService() {
             local = local, localRev = localRev, localItems = localItems
         )
         val client = Store.client(this) ?: return
+        if (Store.offlineMode(this)) return
         // Only the newest report goes: with the server slow to answer they used
         // to queue up without end and arrive long out of date (v0.5.57).
         latestReport.set(Triple(client, r, if (localItems != null) localRev else null))
@@ -1107,7 +1113,7 @@ class PhonePlayerService : MediaLibraryService() {
                     val album = id.removePrefix(SERVER).toIntOrNull()
                     val zone = zoneId
                     val client = Store.client(this@PhonePlayerService)
-                    if (album == null || zone == null || client == null) {
+                    if (album == null || zone == null || client == null || Store.offlineMode(this@PhonePlayerService)) {
                         return Futures.immediateFailedFuture(IllegalStateException("server not reachable"))
                     }
                     return serverLoad(album, zone, client, null)
@@ -1151,7 +1157,7 @@ class PhonePlayerService : MediaLibraryService() {
     private fun children(parentId: String): List<MediaItem> = when (parentId) {
         ROOT -> buildList {
             add(folder(DOWNLOADS, "Downloaded albums"))
-            if (Store.client(this@PhonePlayerService) != null) {
+            if (Store.client(this@PhonePlayerService) != null && !Store.offlineMode(this@PhonePlayerService)) {
                 add(folder(PICKS, "Smart Picks"))
                 add(folder(RANDOM, "Random albums"))
             }

@@ -63,6 +63,8 @@ class AutoDownloads(context: Context, params: WorkerParameters) : Worker(context
 
     override fun doWork(): Result {
         val c = applicationContext
+        // Offline mode: nothing from the server (the next run, once it's off).
+        if (Store.offlineMode(c)) return Result.success()
         val s = DownloadStore.settings(c)
         val keep = HashMap<Int, Pair<String, String>>()
         if (s.autoOn) {

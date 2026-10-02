@@ -883,6 +883,9 @@
   // repaint, not a reload. Bumped the key suffix if the cached shape changes.
   const HOME_CACHE_KEY = "rra-home-cache-v1";
   function saveHomeCache(patch) {
+    // The app's own copy, offline (v0.5.58): what it shows is the phone's music,
+    // which mustn't become the server's Home the next time it opens.
+    if (window.__musicdOffline) return;
     try {
       const cur = JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || "{}") || {};
       localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(Object.assign(cur, patch)));
@@ -5143,6 +5146,9 @@
   // an old cache while random refreshed) forces a silent revalidation instead
   // of riding the fresh row's freshness.
   function hydrateHomeFromCache() {
+    // Offline the saved Home is the server's: its albums aren't on the phone.
+    // Only what the app answers (the phone's music and downloads) is shown.
+    if (window.__musicdOffline) return false;
     const c = readHomeCache();
     if (!c) return false;
     // Order and enablement first: painting into the default order and then
@@ -9026,7 +9032,8 @@
             const m = sessionStorage.getItem("rra-modal");
             if (m) {
               const parsed = JSON.parse(m);
-              if (parsed && parsed.album) {
+              // Offline, a server album left open isn't reopened (it isn't on the phone).
+              if (parsed && parsed.album && !window.__musicdOffline) {
                 openAlbum(parsed.album, { source: parsed.source, zoneId: parsed.zoneId,
                                          filter: parsed.filter });
               }
@@ -14622,7 +14629,26 @@ initServiceBrowser({
     }
   }
 
-  const openMenu  = () => { overlay.classList.remove("hidden"); refreshRescanSub(); };
+  // Offline mode (v0.5.58): only in the app, which keeps the setting.
+  function offlineModeOn() {
+    try { return !!JSON.parse(window.MusicdDownloads.settings()).offlineMode; } catch (e) { return false; }
+  }
+  function paintOfflineItem() {
+    const item = document.getElementById("menu-item-offline");
+    if (!item) return;
+    let has = false;
+    try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) {}
+    item.classList.toggle("hidden", !has);
+    if (!has) return;
+    const on = offlineModeOn();
+    item.classList.toggle("is-on", on);
+    item.setAttribute("aria-checked", String(on));
+    const sub = document.getElementById("offline-sub");
+    if (sub) sub.textContent = on ? "On · only the music on this phone" : "Off";
+  }
+  paintOfflineItem();
+
+  const openMenu  = () => { overlay.classList.remove("hidden"); refreshRescanSub(); paintOfflineItem(); };
   const closeMenu = () => overlay.classList.add("hidden");
 
   toggle.addEventListener("click", openMenu);
@@ -14639,6 +14665,11 @@ initServiceBrowser({
       const target = item.dataset.target;
       closeMenu();
 
+      if (action === "offline-mode") {
+        // The app reloads the page onto the phone's music, or back onto the server.
+        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) {}
+        return;
+      }
       if (action === "home") {
         if (window.__showHome) window.__showHome();
         return;
@@ -14788,8 +14819,10 @@ initServiceBrowser({
     if (albums && el.dataset.wasEmpty === "1") { location.reload(); return; }
     let msg = null, err = false;
     if (j.offline) {
-      // The Android app answering for the server (no connection): say so, once, quietly.
-      msg = "Offline — Mandarin can’t be reached. Showing what’s on this phone.";
+      // The Android app answering for the server (no connection, or offline mode): say so, once, quietly.
+      msg = j.offline_mode
+        ? "Offline mode — showing the music on this phone. Switch it off in the menu to see the server’s library."
+        : "Offline — Mandarin can’t be reached. Showing what’s on this phone.";
     } else if (j.data_persistent === false) {
       msg = "Your library, album edits and play history are stored inside the container and will be lost " +
             "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.";
@@ -15081,6 +15114,15 @@ initServiceBrowser({
         "</button>" +
       "</div>" +
       '<div class="settings-divider"></div>' +
+
+      ("offlineMode" in s ?
+        '<div class="settings-block">' +
+          row("Offline mode", toggle("offlineMode", s.offlineMode)) +
+          '<div class="settings-note">' + (s.offlineMode
+            ? "On. Only the music on this phone shows — its music folder and downloads — and the app doesn’t use the server, even when it can be reached."
+            : "Off. The server’s library shows whenever it can be reached; with no connection, only the music on this phone.") + "</div>" +
+        "</div>" +
+        '<div class="settings-divider"></div>' : "") +
 
       '<div class="settings-block"><div class="settings-subhead">Downloading</div>' +
         row("Quality", select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +

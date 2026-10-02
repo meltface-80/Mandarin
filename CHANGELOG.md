@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.58
+- **Offline shows only what's on the phone.** With no connection, Home showed the server's albums
+  (Random albums, Library and the rest), which then wouldn't open: the page painted the last Home
+  it had saved while online. Offline it now shows only the phone's music folder and downloads;
+  the saved Home is kept for the server, untouched.
+- **Offline mode.** A switch at the top of the menu, and in Settings → Downloads: the app as if
+  there were no connection — only the music on the phone, and nothing asked of the server (no
+  Sonos rooms, downloads wait, no Tailscale), even when it could be reached. Off again, the server's
+  library is back.
+- **No server playlists offline**, and an album left open isn't reopened offline unless it's on
+  the phone.
+
 ## v0.5.57
 A review of the whole Android app, and everything it found put right.
 - **Unplugging the USB DAC mid-song no longer crashes the app.** The stream was freed while the
