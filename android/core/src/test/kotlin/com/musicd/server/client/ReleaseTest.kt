@@ -16,6 +16,17 @@ class ReleaseTest {
         assertEquals(0, Release.compare("0.3", "0.3.0"))
     }
 
+    @Test fun releaseCandidates() {
+        assertTrue(Release.compare("0.6.0-RC1", "0.5.58") > 0)
+        assertTrue(Release.compare("0.6.0", "0.6.0-RC1") > 0)
+        assertTrue(Release.compare("0.6.0-RC2", "0.6.0-RC1") > 0)
+        assertTrue(Release.compare("0.6.0-RC10", "0.6.0-RC2") > 0)
+        assertTrue(Release.compare("0.6.1", "0.6.0") > 0)
+        assertEquals(0, Release.compare("v0.6.0-RC1", "0.6.0-rc1"))
+        assertFalse(Release("0.6.0-RC1", "https://x", "").newerThan("0.6.0"))
+        assertTrue(Release("0.6.0", "https://x", "").newerThan("0.6.0-RC1"))
+    }
+
     @Test fun latestJsonAsPublished() {
         val r = Release.parse(JSONObject("""
             {"version": "0.3.4",

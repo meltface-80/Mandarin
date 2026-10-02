@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.58
+# Mandarin — v0.6.0-RC1
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
