@@ -39,7 +39,7 @@ server's database, without you editing albums one by one.
 | **Cover Art Archive** | No | Covers by MusicBrainz release | — | Free |
 
 The plain statement: **MusicBrainz needs no API key.** It asks only that the app names itself
-(`Mandarin/0.6 (github.com/meltface-80/MusicD-Server)`) and stays under one request a
+(`Mandarin/0.6 (github.com/meltface-80/Mandarin)`) and stays under one request a
 second — which a scan running in the background does anyway. It is also the only source that
 answers the exact question ("a release by this artist with these N tracks of these lengths")
 in structured form. This is what Picard, beets, Jellyfin, Navidrome, Lidarr and Plex all use
