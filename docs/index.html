@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mandarin &mdash; install &amp; docs</title>
-<meta name="description" content="Mandarin &mdash; your own music files played to Sonos rooms and UPnP/DLNA streamers such as WiiM and Chord Poly, with MusicD Remote's interface. Docker install, Android app and docs.">
+<meta name="description" content="Mandarin &mdash; your own music files played to Sonos rooms and UPnP/DLNA streamers such as WiiM and Chord Poly, and a bespoke Android app designed for it. Docker install, Android app and docs.">
 <link rel="icon" href="mandarin-icon.png">
 <style>
   /* Mandarin's own look (the app's graphite and brass): a flat charcoal, warm
@@ -297,8 +297,8 @@
   <h1>Your own music files, played to Sonos rooms, UPnP renderers and your phone</h1>
   <p class="tag">A small server on a machine you own scans your music folders. Every Sonos room
      in the house, any UPnP/DLNA renderer you switch on &mdash; a WiiM, a Chord Poly, a streamer, an
-     AV receiver, a TV &mdash; and the Android app play from it, with MusicD Remote's interface in a
-     browser, on an iPhone home screen, or in the app. No subscriptions, no streaming accounts.
+     AV receiver, a TV &mdash; and the Mandarin app play from it, controlled from a browser, an
+     iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
     <span class="badge">v0.5.50</span>
@@ -314,14 +314,14 @@
 <section id="how">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="lead">The interface is MusicD Remote's. Underneath is a simple server that scans your library,
+    <p class="lead">Mandarin is a server and the app built for it. The server scans your library,
       drives Sonos rooms with the control ported from the Caldera Sonos Bridge, drives UPnP/DLNA renderers &mdash;
       a WiiM, a Chord Poly, a streamer, an AV receiver, a TV, anything with AVTransport &mdash; through their own
       transport, gapless, with each one's sample rates read from the device, and plays to the Android app on the
       phone itself or through a USB DAC on its port. It plays your files without ridiculous claims.</p>
 
     <div class="flow">
-      <div class="node"><b>Your phone or browser</b><span>MusicD Remote's interface</span></div>
+      <div class="node"><b>Your phone or browser</b><span>Mandarin's own interface</span></div>
       <div class="arrow">&rarr;</div>
       <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
       <div class="arrow">&rarr;</div>
@@ -377,7 +377,7 @@
            reviews, artist stories and more from your library.</p></div>
       <div class="card"><h3><span class="em">&#127926;</span>Playlists</h3>
         <p>Playlists you build, Dynamic Playlists that follow a saved focus, and sharing and
-           importing in MusicD Remote's own format.</p></div>
+           importing as a playlist file you can pass on.</p></div>
       <div class="card"><h3><span class="em">&#9998;</span>Edit album</h3>
         <p>Correct the title, artist or year and find a cover. Edits live in the database; your
            files stay exactly as they are.</p></div>
@@ -537,12 +537,13 @@
         <span class="sym">iPhone &amp; iPad</span>
         <h3>Add to Home Screen</h3>
         <p>Open <code>http://&lt;server-ip&gt;:3500</code> in Safari, tap <b>Share &rarr; Add to Home
-           Screen</b>. It opens full screen like an app &mdash; the same arrangement as MusicD Remote.</p>
+           Screen</b>. It opens full screen like an app, with the same interface as the Android app.</p>
       </div>
       <div class="info-card">
         <span class="sym">Android</span>
         <h3>The Mandarin app</h3>
-        <p>Enter the port and it finds the server on your Wi-Fi by itself &mdash; or type the address.
+        <p>Bespoke, and designed from the ground up for the Mandarin server. Enter the port and it
+           finds the server on your Wi-Fi by itself &mdash; or type the address.
            On top of the interface it adds lock-screen and notification controls, volume keys, a
            now-playing widget, a Quick Settings tile, a share sheet, Android Auto, This phone as a room,
            downloads, a USB DAC driver, and Tailscale for away from home.</p>
