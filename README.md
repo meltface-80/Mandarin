@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.48
+# Mandarin — v0.5.49
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Android app, with MusicD Remote's interface.**
@@ -37,7 +37,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Edit album** — correct the title, artist or year and find a cover. Edits live in the
   database; your files stay exactly as they are.
 * **Identify albums** — a nightly MusicBrainz scan names mis-tagged albums from their tracks and
-  lengths. Applied at 96 % alike or better, otherwise proposed or left for you.
+  lengths, with Apple's iTunes catalogue as a second opinion. Applied at 96 % alike or better,
+  otherwise proposed or left for you.
 * **Now playing** — a waveform seek bar drawn from the audio, the queue, history, and a badge
   saying what the device is being sent.
 * **Share card** — the record as an image, where to hear it, where to read about it, and three
@@ -204,6 +205,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
+| `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
 | `DEBUG` | — | Log every API call. |
 
@@ -351,6 +353,13 @@ different releases that fit equally, is left **unidentified** for you: tap it, t
 ⋯ → Edit album — or tap **Barcode…** and type the digits off the sleeve, or paste the
 release's musicbrainz.org address, and that release is applied. Applied names have **Undo**.
 Albums you edited by hand are never touched.
+
+An album MusicBrainz can't place is looked up in **Apple's iTunes catalogue** too (no account
+or key; a request every 3.2 seconds, well inside what Apple allows). What iTunes finds is
+applied only when it fits exactly — every track there, every length within the grace, every
+name the same — and proposed when it's near. Apple's release date is often a reissue's, so an
+album matched this way keeps the year its files carry. **Ask iTunes too** on the same page
+switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
 
 **Scheduling** is on by default: the scan runs between the start and end times you set each
 night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library

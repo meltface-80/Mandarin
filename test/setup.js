@@ -5,3 +5,5 @@
  * asks the real MusicBrainz about the fixture library.
  */
 if (!process.env.IDENTIFY) process.env.IDENTIFY = "0";
+// Nor Apple's iTunes: a closed port on loopback unless a test brings a fake.
+if (!process.env.ITUNES_URL) process.env.ITUNES_URL = "http://127.0.0.1:9";

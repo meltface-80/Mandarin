@@ -6889,6 +6889,7 @@
   // and the page behind follows; Undo is on the Identify albums page.
   function aeMatchLineFor(c) {
     const bits = [];
+    if (c.source === "itunes") bits.push("iTunes");
     if (c.year) bits.push(String(c.year));
     if (c.release_year && c.year && c.release_year !== c.year) bits.push("this pressing " + c.release_year);
     if (c.edition) bits.push(c.edition);
@@ -16257,11 +16258,12 @@ initServiceBrowser({
   function albumRow(it, kind) {
     const a = it.album, c = it.candidate;
     let line2 = "";
-    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "");
-    else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c);
-    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" : "nothing with this title on MusicBrainz";
+    const from = c && c.source === "itunes" ? " · from iTunes" : "";
+    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "") + from;
+    else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c) + from;
+    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
     else line2 = c ? "declined: " + names(c) : "";
-    if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : "link");
+    if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
     const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
       : kind === "applied" ? btn("undo", a.offset, "Undo")
       : btn("recheck", a.offset, "Check again");
@@ -16292,7 +16294,9 @@ initServiceBrowser({
     if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     const s = st.settings, p = st.progress;
     let html = '<div class="settings-block">' + row("Identify albums", sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
-      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div></div>';
+      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div>' +
+      row("Ask iTunes too", sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
+      '<div class="settings-note">An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue as well — no account or key, a request every few seconds. What iTunes finds is applied only when it fits exactly: every track there, every length within a few seconds, every name the same. Anything less is proposed. Apple’s release date is often a reissue’s, so the album keeps the year its files carry.</div></div>';
     html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling", sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
     if (s.schedule) {
       html += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +

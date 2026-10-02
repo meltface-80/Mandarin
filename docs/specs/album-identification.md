@@ -12,7 +12,10 @@ another pressing of the same release group is not a rival (so an edition with a 
 longer blocks a 100 % match), the search asks for forty results, a loose search by the title's
 words runs when the phrase finds nothing near, the release group's other editions are fetched
 when the best fit hasn't the copy's track count, and a release MusicBrainz has without lengths
-is judged by its names (applied only on an exact fit). The rest is as written below: a plan for a scan that finds an album's
+is judged by its names (applied only on an exact fit). Since v0.5.49 an album MusicBrainz
+can't place is asked of Apple's iTunes Search API too (no key; one request every 3.2 s, a
+quarter-hour pause if Apple says 429): applied only on an exact fit — every track, every length
+within the grace, every name — proposed when near, and never given Apple's date as its year. The rest is as written below: a plan for a scan that finds an album's
 right names from what the files already say — the artist where it is right, the album title,
 the track names and, above all, the track lengths — and writes the corrections into the
 server's database, without you editing albums one by one.

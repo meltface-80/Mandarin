@@ -56,6 +56,7 @@ const config = {
   // Album identification (lib/identify): where MusicBrainz is (a fake in the
   // tests) and how often the scan looks for the next album.
   mbBaseUrl: process.env.MUSICBRAINZ_URL || "",
+  itunesBaseUrl: process.env.ITUNES_URL || "",
   // Headphone profiles (lib/autoeq.js): where AutoEq's results are (a fake in the tests).
   autoeqBaseUrl: process.env.AUTOEQ_URL || "",
   // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
@@ -124,7 +125,8 @@ function createServer(overrides = {}) {
   // Setup → Identify albums).
   ctx.identifier = new (require("./lib/identify/identifier").Identifier)({
     db, library, scanner, log, tickMs: config.identifyTickMs,
-    mb: new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log })
+    mb: new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log }),
+    itunes: new (require("./lib/identify/itunes").ITunes)({ baseUrl: config.itunesBaseUrl || undefined, log })
   });
   // AutoEq's headphone profiles, kept in the database once chosen.
   ctx.autoeq = new (require("./lib/autoeq").AutoEq)({ db, baseUrl: config.autoeqBaseUrl || undefined, log });

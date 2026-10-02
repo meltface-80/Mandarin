@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.49
+- **iTunes as a second opinion for identification.** An album MusicBrainz can't place is now
+  looked up in Apple's iTunes catalogue too — no account or key, one request every 3.2
+  seconds, a quarter-hour pause if Apple asks us to slow down. What iTunes finds is applied only
+  when it fits exactly: every track there, every length within a few seconds, every name the
+  same. Anything less is proposed. Apple's release date is often a reissue's, so the album keeps
+  the year its files carry. Albums already unidentified are asked of iTunes once, by
+  themselves, after the new albums; MusicBrainz isn't asked about them again. Find match in the
+  album editor lists iTunes's albums too when MusicBrainz has nothing near, marked "iTunes".
+  Settings → Setup → Identify albums → **Ask iTunes too** switches it off; `ITUNES_COUNTRY`
+  picks Apple's store (US by default).
+
 ## v0.5.48
 - **Away from home over the app's own Tailscale stays connected.** On Android, Tailscale
   re-reads the phone's network only every ten minutes unless its host app says the network
