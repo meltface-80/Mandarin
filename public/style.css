@@ -1466,6 +1466,8 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 main {
   padding-bottom: 94px;
 }
+/* Settings open: the page behind it stays put, and shows no scrollbar. */
+body.settings-open main { overflow-y: hidden; }
 
 /* On mobile, hide track info if the bar is cramped */
 @media (max-width: 480px) {

@@ -105,6 +105,40 @@ test("score: the verdicts — applied, proposed, unidentified, ambiguous", () =>
   assert.equal(SCORE.decide(album(), []).status, "unidentified");
 });
 
+test("score: another pressing of the same record is not a rival", () => {
+  const g = { group_mbid: "g1" };
+  // The same release group, one pressing with a bonus track: the record, applied.
+  const bonus = cand(Object.assign({ mbid: "y", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) }, g));
+  let v = SCORE.decide(album(), [cand(g), bonus]);
+  assert.equal(v.status, "applied");
+  assert.equal(v.ambiguous, false);
+  // Two groups that would write the same names over these four tracks: not a rival either.
+  v = SCORE.decide(album(), [cand({ group_mbid: "g1" }), cand({ mbid: "y", group_mbid: "g2", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) })]);
+  assert.equal(v.status, "applied");
+  // Another artist's name at the same distance still is.
+  v = SCORE.decide(album({ artist: "Various Artists" }), [cand(g), cand({ mbid: "y", group_mbid: "g2", artist: "Radio Head" })]);
+  assert.equal(v.status, "proposed");
+  assert.ok(v.ambiguous);
+  // Between equals, the one with lengths known comes first, then the earlier.
+  const blank = cand({ mbid: "b", tracks: album().tracks.map(t => ({ title: t.title, length: null })) });
+  assert.equal(SCORE.decide(album(), [blank, cand({ mbid: "late", release_date: "2015-01-01" }), cand({ mbid: "early", release_date: "2000-10-02" })]).best.candidate.mbid, "early");
+});
+
+test("score: a release MusicBrainz has without lengths is judged by its names", () => {
+  const blank = tracks => cand({ tracks: tracks.map(t => ({ title: t.title, length: null })) });
+  // Every title and the count agree: applied, as Roon would.
+  let v = SCORE.decide(album(), [blank(album().tracks)]);
+  assert.equal(v.status, "applied");
+  assert.equal(v.best.parts.no_lengths, true);
+  assert.equal(v.best.parts.track_lengths, null);
+  // One title off: proposed, never applied on names alone.
+  v = SCORE.decide(album(), [blank(album().tracks.map((t, i) => i === 2 ? { title: "The National Anthem (Live)" } : t))]);
+  assert.equal(v.status, "proposed");
+  // A track short: proposed.
+  v = SCORE.decide(album(), [blank(album().tracks.slice(0, 3))]);
+  assert.equal(v.status, "proposed");
+});
+
 test("score: a ripper's 'null' is not part of a name", () => {
   assert.equal(SCORE.tidy("null: Line Up (null)"), "Line Up");
   assert.equal(SCORE.tidy("Line Up - undefined"), "Line Up");
@@ -162,13 +196,24 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     gen(path.join(lib.music, "Artist C", "Old Record (2015 Remaster)", `0${i}.flac`), { freq: 300 * i, seconds: 5,
       tags: { title: `Tune ${i} (2015 Remaster)`, artist: "Artist C", album: "Old Record (2015 Remaster)", track: i, date: "2015" } });
   }
+  // A fifth: a three-track deluxe copy whose record the search lists only as the two-track standard.
+  for (let i = 1; i <= 3; i++) {
+    gen(path.join(lib.music, "Artist D", "Wide Record", `0${i}.flac`), { freq: 250 * i, seconds: 5,
+      tags: { title: `W${i}`, artist: "Artist D", album: "Wide Record", track: i, date: "2010" } });
+  }
   // Best Of (Various Artists, two 3 s tracks C1/C2) → a release with those two and a bonus track
   //   between them: too much missing on a two-track record to apply unasked → proposed; accepted,
   //   each track takes the name of the one it paired with.
   // Hi Res (Artist B, two 4 s tracks) → the right names but one length 40 s off: proposed.
   // Album One (Artist A, three 3 s tracks, 1997) → a release that shares nothing: unidentified.
   // Old Record → the 2015 remaster release of a 1988 release group: applied with the group's name and year.
+  // Wide Record → the search finds the standard pressing (a track short); the release group lists
+  //   the deluxe with the copy's count, fetched and applied at 100 %.
   const mb = await new FakeMusicBrainz([
+    { id: "wide-std", title: "Wide Record", artist: "Artist D", date: "2010-03-01", group: { id: "g-wide", title: "Wide Record", date: "2010-03-01" },
+      tracks: [["W1", 5], ["W2", 5]] },
+    { id: "wide-deluxe", title: "Wide Record (Deluxe Edition)", artist: "Artist D", date: "2011-03-01", disambiguation: "deluxe edition", group: { id: "g-wide", title: "Wide Record", date: "2010-03-01" },
+      tracks: [["W1", 5], ["W2", 5], ["W3", 5]] },
     { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["Bonus Thing", 9], ["C2 (Live)", 3]] },
     { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 44]] },
     { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] },
@@ -189,13 +234,21 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   try {
-    await until(async () => (await api("status")).index_count === 4);
+    await until(async () => (await api("status")).index_count === 5);
     // Scheduling off: it scans now, whatever the clock says.
     let r = await api("identify/settings", { schedule: false });
     assert.equal(r.settings.schedule, false);
     assert.equal(r.settings.enabled, true);
-    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j; });
-    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [1, 2, 1]);
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 5 && j; });
+    assert.deepEqual([r.progress.applied, r.progress.proposed, r.progress.unidentified], [2, 2, 1]);
+
+    // Wide Record: widened through the release group to the pressing with the copy's count.
+    const wide = r.applied.find(x => x.album.title === "Wide Record");
+    assert.ok(wide, JSON.stringify(r.applied.map(x => x.album.title)));
+    assert.equal(wide.candidate.mbid, "wide-deluxe");
+    assert.equal(wide.similarity, 100);
+    assert.ok(mb.requests.some(u => u.startsWith("/ws/2/release-group/g-wide")));
+    assert.deepEqual((await api("album?offset=" + wide.album.offset)).tracks.map(t => t.title), ["W1", "W2", "W3"]);
 
     // Old Record: the search went out without the edition and without a track
     // count, and what's written is the album's name and original year, with
@@ -235,7 +288,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     r = await api("identify/accept", { offset: prop.album.offset });
     assert.equal(r.status, 200);
-    assert.equal(r.progress.applied, 3);
+    assert.equal(r.progress.applied, 4);
     assert.equal(r.progress.proposed, 0);
 
     // Album One: unidentified, with the best guess named so you can judge it.
@@ -247,7 +300,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Undo puts Best Of back exactly: year from the files (none), tagged track titles.
     r = await api("identify/undo", { offset: applied.album.offset });
     assert.equal(r.status, 200);
-    assert.equal(r.progress.applied, 2);
+    assert.equal(r.progress.applied, 3);
     assert.equal(r.progress.rejected, 1);
     const back = await api("album?offset=" + applied.album.offset);
     assert.equal(back.album.year, undefined);
@@ -263,7 +316,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Everything survives a library reload (rows keyed by album identity).
     ctx.library.reload();
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
-    assert.equal((await api("identify")).progress.applied, 2);
+    assert.equal((await api("identify")).progress.applied, 3);
 
     // The album editor's Find match: the releases to choose from, scored, best first; nothing written.
     r = await api("identify/candidates?offset=" + un.album.offset);
@@ -299,14 +352,14 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Back to unidentified for the rest of the test.
     await api("identify/undo", { offset: un.album.offset });
     await api("identify/recheck", { offset: un.album.offset });
-    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j.progress.unidentified === 1 && j; });
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 5 && j.progress.unidentified === 1 && j; });
 
     // "Check everything again" forgets the unidentified verdict (not the declined one, not the applied).
     r = await api("identify/recheck-all", {});
     assert.equal(r.progress.unidentified, 0);
     assert.equal(r.progress.rejected, 1);
-    assert.equal(r.progress.applied, 2);
-    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 4 && j; });
+    assert.equal(r.progress.applied, 3);
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 5 && j; });
     assert.equal(r.progress.unidentified, 1);
 
     // The switch off stops it: state says so.

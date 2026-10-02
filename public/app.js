@@ -11529,6 +11529,11 @@ window.__musicdAppUpd = (function () {
   };
   const openBtn    = document.getElementById("settings-toggle");
   const overlay    = document.getElementById("settings-overlay");
+  // While Settings covers the page, the page behind it doesn't scroll — so its
+  // scrollbar isn't drawn beside a Settings page that has nothing to scroll.
+  const markOpen = () => document.body.classList.toggle("settings-open", !overlay.classList.contains("hidden"));
+  new MutationObserver(markOpen).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+  markOpen();
   const versionEl  = document.getElementById("settings-version");
   const radioToggle = document.getElementById("radio-toggle");
   const roonRadioToggle = document.getElementById("roon-radio-toggle");
@@ -16287,7 +16292,7 @@ initServiceBrowser({
     if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     const s = st.settings, p = st.progress;
     let html = '<div class="settings-block">' + row("Identify albums", sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
-      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div></div>';
+      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div></div>';
     html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling", sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
     if (s.schedule) {
       html += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
