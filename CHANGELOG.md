@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.45
+- **Lighter previous and next discs.** The two brass discs on the album art are now much
+  more translucent, so the cover shows through them; the brass rim and the dark chevron
+  keep them easy to find. Pressing one still firms it up a little.
+
 ## v0.5.44
 - **Previous and next on the album page.** An album opened from a list — a Home row, an
   artist's albums, a label's, the Library wall, search results — knows the albums beside it.
