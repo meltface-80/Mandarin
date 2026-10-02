@@ -800,6 +800,12 @@ class PhonePlayerService : MediaLibraryService() {
             .setArtist(it.artist)
             .setAlbumTitle(it.album)
             .apply { it.artUrl?.let { u -> setArtworkUri(Uri.parse(Store.localize(this@PhonePlayerService, u))) } }
+            // Which of the server's tracks it is, so a list the phone holds
+            // itself can name it to the server (its cover, its album).
+            .setExtras(android.os.Bundle().apply {
+                it.trackId?.let { id -> putLong("track_id", id) }
+                putDouble("duration", it.durationSeconds)
+            })
             .build()
         // A downloaded copy plays in place of the stream.
         val local = DownloadStore.trackFile(this, it.trackId)
@@ -850,8 +856,10 @@ class PhonePlayerService : MediaLibraryService() {
         if (c.op == "load" || c.op == "sync") localMode = false
         if (c.op in setOf("load", "sync", "stop", "clear")) restored = false
         // Playing downloads: the server's queue isn't the one playing, so its
-        // queue edits don't apply (transport, volume and modes still do).
-        if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear")) return
+        // queue edits don't apply (transport, volume and modes still do) —
+        // except an album added to this list itself (v0.5.50: before, adding a
+        // server album while a download played was dropped without a word).
+        if (!fromPage && localMode && c.op in setOf("insert", "remove", "clear") && !(c.op == "insert" && c.local)) return
         when (c.op) {
             "load", "sync" -> {
                 val items = c.items.map(::mediaItem)
@@ -961,7 +969,8 @@ class PhonePlayerService : MediaLibraryService() {
             a.put(JSONObject().put("title", md.title?.toString() ?: "").put("artist", md.artist?.toString() ?: "")
                 .put("album", md.albumTitle?.toString() ?: "").put("image_key", x?.getString("image_key") ?: JSONObject.NULL)
                 .put("album_key", x?.getString("album_key") ?: JSONObject.NULL).put("duration", x?.getDouble("duration", 0.0) ?: 0.0)
-                .put("ext", x?.getString("ext") ?: JSONObject.NULL))
+                .put("ext", x?.getString("ext") ?: JSONObject.NULL)
+                .put("track_id", if (x != null && x.containsKey("track_id")) x.getLong("track_id") else JSONObject.NULL))
         }
         return a
     }

@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.50
+- **Adding to the queue while the phone plays a download.** When the phone was playing a list of
+  its own — a downloaded album played while the server couldn't be reached, or the phone's own
+  music — an album added with Add to queue or Play next went to the server's queue, which the
+  phone wasn't playing, and the phone dropped it without a word. Now it goes into the list the
+  phone is playing: at the end, or straight after the current track. Downloaded tracks play from
+  the phone, the rest stream, and the queue shows them with their covers. Play Now also leaves
+  the phone's own list at once, so an album queued straight after goes where it should.
+
 ## v0.5.49
 - **iTunes as a second opinion for identification.** An album MusicBrainz can't place is now
   looked up in Apple's iTunes catalogue too — no account or key, one request every 3.2

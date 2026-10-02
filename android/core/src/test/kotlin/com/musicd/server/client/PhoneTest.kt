@@ -28,6 +28,13 @@ class PhoneTest {
         assertEquals("loop_one", b.commands[2].loop)
     }
 
+    @Test fun `an insert for the phone's own list says so`() {
+        val local = Phone.parseCommand(JSONObject("""{"seq": 9, "op": "insert", "at": 2, "local": true, "items": []}"""))
+        assertEquals(true, local.local)
+        assertEquals(2, local.at)
+        assertEquals(false, Phone.parseCommand(JSONObject("""{"seq": 10, "op": "insert", "at": 3, "items": []}""")).local)
+    }
+
     @Test fun `a report goes out in the server's shape`() {
         val j = Phone.Report(2, 31.5, 180.0, "playing", false, "disabled", 40, false).toJson()
         assertEquals(2, j.getInt("index"))

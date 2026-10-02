@@ -34,7 +34,13 @@ object Phone {
         val shuffle: Boolean = false,
         val loop: String = "disabled",
         /** "dsp": the phone's DSP setting as saved on the server (Dsp.parse reads it). */
-        val dsp: JSONObject? = null
+        val dsp: JSONObject? = null,
+        /**
+         * An "insert" meant for the list the phone holds itself (playing
+         * downloads or its own music, v0.5.50): [at] counts that list's
+         * tracks, and the app takes it even in local mode.
+         */
+        val local: Boolean = false
     )
 
     class Batch(val seq: Long, val commands: List<Command>)
@@ -110,7 +116,8 @@ object Phone {
         muted = o.optBoolean("muted", false),
         shuffle = o.optBoolean("shuffle", false),
         loop = o.optString("loop", "disabled"),
-        dsp = o.optJSONObject("dsp")
+        dsp = o.optJSONObject("dsp"),
+        local = o.optBoolean("local", false)
     )
 
     fun parseBatch(o: JSONObject): Batch {
