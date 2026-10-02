@@ -2968,7 +2968,7 @@ input.vol-range::-moz-range-thumb {
   display: flex; flex-direction: column;
 }
 #settings-overlay .settings-view[data-view="home"] .settings-head {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
 }
 /* The lists as the side menu draws its rows: icon, then the title, flat on
    the sheet — no tile boxes, nothing stretched to fill the screen. */
@@ -3014,7 +3014,7 @@ input.vol-range::-moz-range-thumb {
 #settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: auto; padding-top: 14px; }
 #settings-overlay .settings-app-close {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; margin-right: -6px;
+  flex: 0 0 auto; width: 36px; height: 36px; margin-left: -6px;
   border: none; border-radius: 999px; background: none;
   color: var(--text-dim); cursor: pointer;
 }

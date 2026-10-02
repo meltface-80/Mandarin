@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.53
+- **Settings closes from the left.** The × on the Settings list is now to the left of the title,
+  where every page's Back is.
+- **The side menu covers the mini transport bar.** The bar showed over the open menu; the menu
+  now sits above it.
+
 ## v0.5.52
 - **An album moved off the phone leaves Home at once.** Taking the last album out of the phone's
   music folder (moving it to the server, say) left its tile on Home until the app was closed:
