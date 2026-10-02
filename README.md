@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.50
+# Mandarin — v0.5.51
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -75,7 +75,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **The Android app** — the same interface plus lock-screen controls, volume keys, a widget, a
   Quick Settings tile, a share sheet, Android Auto, and updates of its own.
 * **This phone** — the phone is a room of its own: speaker, headphones or Bluetooth, with the
-  queue, history and radio like any other.
+  queue, history and radio like any other. At home your other devices can play to it too, under
+  its own name, while the app is running on it.
 * **USB DAC on the phone** — the app's own USB Audio driver feeds a DAC on the phone's port at
   the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way. The DAC's
   volume starts low, with a limit, or fixed for a DAC without its own control.
