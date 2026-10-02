@@ -27,7 +27,7 @@ RUN npm ci --omit=dev --no-audit --no-fund --loglevel=error
 FROM node:22-bookworm-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
-      org.opencontainers.image.source="https://github.com/meltface-80/MusicD-Server" \
+      org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
       org.opencontainers.image.licenses="MIT"
 
 # ffmpeg converts anything above 24-bit/48 kHz (and formats Sonos cannot

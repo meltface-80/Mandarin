@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.46
+- **The repository is now `meltface-80/Mandarin`.** Every address the server, the page, the
+  Android app and the docs carry now names the new repository: the update check, the APK
+  download, the Tailscale engine download and the user-agent strings. GitHub redirects the
+  old name, so installs on earlier versions still find this update. The Docker image, the
+  container and the data volume keep the `musicd-server` name, so nothing changes for a
+  running install.
+
 ## v0.5.45
 - **Lighter previous and next discs.** The two brass discs on the album art are now much
   more translucent, so the cover shows through them; the brass rim and the dark chevron

@@ -9,7 +9,7 @@ import org.json.JSONObject
 class Release(val version: String, val url: String, val sha256: String) {
 
     companion object {
-        const val LATEST = "https://raw.githubusercontent.com/meltface-80/MusicD-Server/main/dist/latest.json"
+        const val LATEST = "https://raw.githubusercontent.com/meltface-80/Mandarin/main/dist/latest.json"
 
         /**
          * The same file through GitHub's API, asked first. The address above is
@@ -19,7 +19,7 @@ class Release(val version: String, val url: String, val sha256: String) {
          * (sent as the file itself with [API_ACCEPT]); the address above is the
          * fall-back if it's refused (its limit is 60 asks an hour from one place).
          */
-        const val LATEST_API = "https://api.github.com/repos/meltface-80/MusicD-Server/contents/dist/latest.json?ref=main"
+        const val LATEST_API = "https://api.github.com/repos/meltface-80/Mandarin/contents/dist/latest.json?ref=main"
         const val API_ACCEPT = "application/vnd.github.raw+json"
 
         fun parse(j: JSONObject): Release? {

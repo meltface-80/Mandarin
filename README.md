@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.5.45
+# Mandarin — v0.5.46
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Android app, with MusicD Remote's interface.**
@@ -160,8 +160,8 @@ A `docker-compose.yml` is in the repository: set your music path and `docker com
 ### Build it yourself instead
 
 ```bash
-git clone https://github.com/meltface-80/MusicD-Server.git
-cd MusicD-Server
+git clone https://github.com/meltface-80/Mandarin.git
+cd Mandarin
 docker build -t musicd-server:local .
 # then the docker run above, with musicd-server:local as the image
 ```
@@ -284,7 +284,7 @@ interface, and adds what a web page can't:
   with its own volume control starts low and follows the slider and the volume buttons; the
   rest are driven at full for the amplifier to set, with a volume limit if you want one.
 
-**Download: [mandarin-android.apk](https://github.com/meltface-80/MusicD-Server/raw/main/dist/mandarin-android.apk)**
+**Download: [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk)**
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
 on Android 8.0 or newer.
 
