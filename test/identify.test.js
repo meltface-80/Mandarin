@@ -12,6 +12,8 @@ const { minutes, Identifier } = require("../lib/identify/identifier");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
+const { FakeITunes } = require("./fake-itunes");
+const { ITunes } = require("../lib/identify/itunes");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = 3611;
@@ -224,9 +226,11 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     { id: "old-record-2015", title: "Old Record", artist: "Artist C", date: "2015-06-01", disambiguation: "2015 remaster", group: { title: "Old Record", date: "1988-03-01" },
       tracks: [["Tune 1 (2015 Remaster)", 5], ["Tune 2 - 2015 Remaster", 5]] }
   ]).start();
+  // iTunes knows none of these: what MusicBrainz can't place stays unidentified.
+  const itunes = await new FakeITunes([]).start();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
-    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl });
+    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
   const ctx = await srv.start();
   const token = await signIn(B);
   const api = async (p, body) => {
@@ -372,5 +376,117 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   } finally {
     await srv.stop();
     await mb.stop();
+    await itunes.stop();
+  }
+});
+
+test("iTunes: an album as Apple has it, with its lengths; Single and EP set aside; a 429 pauses it", async () => {
+  const fake = await new FakeITunes([
+    { id: 77, title: "Some Record - EP", artist: "Somebody", date: "2015-06-01", tracks: [["One", 200.4], ["Two", 181]] }
+  ]).start();
+  try {
+    const it = new ITunes({ baseUrl: fake.baseUrl });
+    const found = await it.search({ title: "Some Record", artist: "Somebody" });
+    assert.deepEqual(found.map(f => [f.id, f.track_count]), [["77", 2]]);
+    assert.ok(fake.requests[0].includes("country=US") && fake.requests[0].includes("entity=album"));
+    const c = await it.album("77");
+    assert.equal(c.mbid, "itunes:77");
+    assert.equal(c.source, "itunes");
+    assert.equal(c.title, "Some Record");
+    assert.equal(c.type, "EP");
+    // Apple's date is the edition's: never the album's year.
+    assert.equal(c.year, null);
+    assert.equal(c.release_date, "2015-06-01");
+    assert.deepEqual(c.tracks.map(t => [t.title, t.length]), [["One", 200.4], ["Two", 181]]);
+    fake.refuse = true;
+    await assert.rejects(it.search({ title: "x" }), e => e.paused === true);
+    assert.equal(it.paused, true);
+    const n = fake.requests.length;
+    await assert.rejects(it.search({ title: "x" }), e => e.paused === true);
+    assert.equal(fake.requests.length, n);     // not asked while paused
+  } finally { await fake.stop(); }
+});
+
+test("score: exact — what a second source needs before it's applied unasked", () => {
+  const v = SCORE.decide(album(), [cand()]);
+  assert.equal(SCORE.exact(v.best), true);
+  const off = SCORE.decide(album(), [cand({ tracks: album().tracks.map((t, i) => i === 0 ? { title: t.title, length: t.length + 20 } : t) })]);
+  assert.equal(SCORE.exact(off.best), false);    // a length 20 s off: applied from MusicBrainz, not from iTunes
+  const short = SCORE.decide(album(), [cand({ tracks: album().tracks.slice(0, 3) })]);
+  assert.equal(SCORE.exact(short.best), false);
+});
+
+test("iTunes for what MusicBrainz can't place: exact applied, near proposed; skipped while it says wait, then asked", { skip, timeout: 90000 }, async () => {
+  const lib = makeLibrary();
+  const mb = await new FakeMusicBrainz([]).start();        // MusicBrainz knows none of them
+  // Album One (Artist A): three 3 s tracks, exactly — applied, Apple's names written ("- EP" set aside).
+  // Hi Res (Artist B): two 4 s tracks, Apple's second 40 s longer — proposed.
+  // Best Of: not in Apple's catalogue — unidentified.
+  const itunes = await new FakeITunes([
+    { id: 101, title: "Album One - EP", artist: "Artist A", date: "2019-01-01", tracks: [["Song 1", 3], ["Song 2 (feat. Guest)", 3], ["Song 3", 3]] },
+    { id: 102, title: "Hi Res", artist: "Artist B", date: "2020-01-01", tracks: [["Hi 1", 4], ["Hi 2", 44]] }
+  ]).start();
+  itunes.refuse = true;     // at first it asks us to wait
+  delete require.cache[require.resolve("../index.js")];
+  const { createServer } = require("../index.js");
+  const port = PORT + 1, base = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
+    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
+  const ctx = await srv.start();
+  const token = await signIn(base);
+  const api = async (p, body) => {
+    const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+    return { status: r.status, ...(await r.json().catch(() => ({}))) };
+  };
+  try {
+    await until(async () => (await api("status")).index_count === 3);
+    let r = await api("identify/settings", { schedule: false });
+    assert.equal(r.settings.itunes, true);
+    // iTunes refusing: every album unidentified, and iTunes resting.
+    r = await until(async () => { const j = await api("identify"); return j.progress.checked === 3 && j; });
+    assert.equal(r.progress.unidentified, 3);
+    assert.equal(ctx.identifier.itunes.paused, true);
+    const asked = () => ctx.db.raw.prepare("SELECT itunes FROM album_matches").all().map(x => x.itunes);
+    assert.ok(asked().includes("skipped"), JSON.stringify(asked()));
+
+    // Answering again: the unidentified ones are asked of iTunes alone.
+    const mbBefore = mb.requests.length;
+    itunes.refuse = false;
+    ctx.identifier.itunes.pausedUntil = 0;
+    r = await until(async () => { const j = await api("identify"); return j.progress.applied === 1 && j.progress.proposed === 1 && asked().every(x => x === "asked") && j; });
+    assert.equal(mb.requests.length, mbBefore, "MusicBrainz isn't asked again for an iTunes-only look");
+    assert.equal(r.progress.unidentified, 1);
+
+    const one = r.applied.find(x => x.album.title === "Album One");
+    assert.ok(one, JSON.stringify(r.applied.map(x => x.album.title)));
+    assert.equal(one.candidate.source, "itunes");
+    assert.equal(one.candidate.mbid, "itunes:101");
+    const page = await api("album?offset=" + one.album.offset);
+    assert.equal(page.album.title, "Album One");
+    assert.equal(page.album.year, 1997);                     // the tags' year kept
+    assert.deepEqual(page.tracks.map(t => t.title), ["Song 1", "Song 2 (feat. Guest)", "Song 3"]);
+
+    const hi = r.proposed.find(x => x.album.title === "Hi Res");
+    assert.ok(hi);
+    assert.equal(hi.candidate.source, "itunes");
+    assert.ok(hi.similarity < 96 && hi.similarity >= 85, String(hi.similarity));
+
+    // Asked once: nothing more goes to iTunes for these.
+    const n = itunes.requests.length;
+    await new Promise(res => setTimeout(res, 500));
+    assert.equal(itunes.requests.length, n);
+
+    // Typed by hand it's neither a barcode nor a link…
+    assert.equal((await api("identify/match", { offset: hi.album.offset, query: "itunes:102" })).status, 400);
+    // …but picked from Find match's suggestions it's applied, as you chose.
+    r = await api("identify/match", { offset: hi.album.offset, query: "itunes:102", how: "pick" });
+    assert.equal(r.status, 200);
+    const picked = r.applied.find(x => x.album.title === "Hi Res");
+    assert.equal(picked.candidate.mbid, "itunes:102");
+    assert.equal(picked.candidate.manual, "pick");
+  } finally {
+    await srv.stop();
+    await mb.stop();
+    await itunes.stop();
   }
 });

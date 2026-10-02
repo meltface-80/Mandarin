@@ -301,7 +301,7 @@
      browser, on an iPhone home screen, or in the app. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.5.48</span>
+    <span class="badge">v0.5.49</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -362,8 +362,9 @@
            MusicD Remote's own format.</p></div>
       <div class="card"><h3><span class="em">&#127919;</span>Identify albums</h3>
         <p>A nightly scan finds an album's right artist, title, year and track names on MusicBrainz
-           from its tracks and their lengths &mdash; applied only at 96&nbsp;% alike or better, the
-           rest proposed or left for you. Your files are never touched.</p></div>
+           from its tracks and their lengths, with Apple's iTunes catalogue as a second opinion
+           &mdash; applied only at 96&nbsp;% alike or better, the rest proposed or left for you.
+           Your files are never touched.</p></div>
       <div class="card"><h3><span class="em">&#127911;</span>UPnP/DLNA renderers</h3>
         <p>A WiiM, a Chord Poly, a streamer, an AV receiver, a TV: found on the network, switched on
            when you say, gapless, with volume, radio and everything a room has.</p></div>
@@ -538,6 +539,7 @@
         <tr><td>SONOS_HOSTS</td><td>&mdash;</td><td>A speaker's IP, for when multicast discovery is unreliable. One is enough.</td></tr>
         <tr><td>UPNP_HOSTS</td><td>&mdash;</td><td>UPnP/DLNA renderers to ask by address (an IP or a description URL), for when multicast discovery misses them.</td></tr>
         <tr><td>IDENTIFY</td><td>on</td><td><code>0</code> leaves the album identification scan out entirely.</td></tr>
+        <tr><td>ITUNES_COUNTRY</td><td>US</td><td>The Apple store the identification scan's iTunes lookups use (<code>GB</code>, <code>DE</code>&hellip;).</td></tr>
         <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from, on hosts with several interfaces.</td></tr>
         <tr><td>INCLUDE_ZONES</td><td>&mdash;</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
         <tr><td>EXCLUDE_ZONES</td><td>&mdash;</td><td>Offer every room except these.</td></tr>
