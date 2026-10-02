@@ -127,8 +127,8 @@ object Phone {
 }
 
 /** The phone-player calls, on a signed-in [ServerClient]. */
-fun ServerClient.phoneHello(name: String): Phone.Hello {
-    val j = post("/api/phone/hello", JSONObject().put("name", name))
+fun ServerClient.phoneHello(name: String, dsp: JSONObject? = null): Phone.Hello {
+    val j = post("/api/phone/hello", JSONObject().put("name", name).apply { if (dsp != null) put("dsp", dsp) })
     return Phone.Hello(
         j.getString("zone_id"), j.optLong("seq"), j.optBoolean("away", false),
         j.optString("away_address", "").takeIf { it.isNotEmpty() && it != "null" },

@@ -5666,7 +5666,7 @@
       const r = await fetch("/api/zones");
       const j = await r.json();
       zones = j.zones || [];
-      const prev = localStorage.getItem("rra-zone");
+      let prev = localStorage.getItem("rra-zone");
       zoneSel.innerHTML = "";
       if (!zones.length) {
         const opt = document.createElement("option");
@@ -5679,7 +5679,10 @@
       // Nothing is picked for you: until you choose a zone (the mini
       // transport's speaker button, or here) there is no zone selected, and
       // the bar says so. A zone chosen before is remembered.
-      const known = prev && zones.some(z => z.zone_id === prev);
+      let known = prev && zones.some(z => z.zone_id === prev);
+      // The phone alone (no network, or away from home): it's the zone, picked already.
+      const only = zones.length === 1 && zones[0].is_phone ? zones[0].zone_id : null;
+      if (!known && only) { known = true; prev = only; }
       if (!known) {
         const opt = document.createElement("option");
         opt.value = ""; opt.textContent = "Choose a zone…";
@@ -15633,7 +15636,9 @@ initServiceBrowser({
           '<span class="switch-track"><span class="switch-thumb"></span></span></label>' : "") +
         "</div>";
     }
-    if (away) html += '<div class="settings-note">Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.</div>';
+    if (away) html += '<div class="settings-note">' + (window.__musicdOffline
+      ? "No network: this phone is the player, through its speaker, headphones, Bluetooth or a USB DAC. Sonos rooms and streamers come back with the network."
+      : "Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.") + "</div>";
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     list.innerHTML = html;
   }

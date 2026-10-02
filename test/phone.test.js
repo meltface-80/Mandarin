@@ -181,6 +181,12 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       seq = got.seq;
       // And a fresh hello carries it too.
       assert.equal((await phone("POST", "/api/phone/hello", { name: "Pixel 8" })).dsp.peq.bands.length, 1);
+      // Changed on the phone while offline: the hello brings it, and the server keeps it.
+      const offline = await phone("POST", "/api/phone/hello", { name: "Pixel 8", dsp: { enabled: true, peq: { bands: [
+        { type: "peak", freq: 1000, gain: -2, q: 1 }, { type: "high_shelf", freq: 8000, gain: 1, q: 0.707 }] } } });
+      assert.equal(offline.dsp.peq.bands.length, 2, JSON.stringify(offline.dsp));
+      assert.equal((await phone("GET", "/api/audio-devices/" + zoneId)).dsp.peq.bands[0].freq, 1000);
+      seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
       // The app says its engine is on: the badge says so.
       await phone("POST", "/api/phone/state", { index: 0, position: 5, duration: 60, state: "playing", volume: 40, format: "opus24", dsp: true });
       assert.deepEqual((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing.format, { kind: "opus", text: "256 · 24/48 · DSP" });

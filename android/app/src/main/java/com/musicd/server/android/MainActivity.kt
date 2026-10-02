@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -53,6 +54,8 @@ class MainActivity : Activity() {
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
+        /** How long the page waits for the WebView to say the relay is in place. */
+        private const val RELAY_WAIT_MS = 2_500L
 
         /**
          * Offline only, added to the page the app serves: tells the page it's
@@ -90,6 +93,8 @@ class MainActivity : Activity() {
     private val serverWatch = object : Runnable {
         override fun run() {
             if (!offline || isFinishing) return
+            // No network yet: nothing to look for (looked at again in 10 s).
+            if (!hasNetwork()) { web.postDelayed(this, 10_000); return }
             checks.execute {
                 runCatching { Away.check(this@MainActivity) }
                 val base = Store.active(this@MainActivity)?.baseUrl
@@ -258,8 +263,21 @@ class MainActivity : Activity() {
         PhonePlayerService.start(this)
     }
 
+    /**
+     * A network the server could be reached over: Wi-Fi, Ethernet or mobile
+     * data. A VPN alone doesn't count — another VPN app left on keeps a
+     * "network" up with nothing under it (airplane mode, no SIM), and the app
+     * used to take that for a way to the server.
+     */
+    @Suppress("DEPRECATION")
     private fun hasNetwork(): Boolean = runCatching {
-        getSystemService(android.net.ConnectivityManager::class.java).activeNetwork != null
+        val cm = getSystemService(android.net.ConnectivityManager::class.java)
+        cm.allNetworks.any { n ->
+            val caps = cm.getNetworkCapabilities(n) ?: return@any false
+            !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+        }
     }.getOrDefault(true)
 
     /** The server can't be reached: the app answers the page from what's on the phone. */
@@ -281,6 +299,8 @@ class MainActivity : Activity() {
             if (offline) load()
             return
         }
+        // Offline with still no network: nothing to go back to (and the page isn't reloaded for nothing).
+        if (offline && !hasNetwork()) return
         val base = Store.active(this)?.baseUrl
         // A new address, or the way back to the server while the page is offline.
         if (base != null && (base != loadedBase || offline)) load()
@@ -303,14 +323,20 @@ class MainActivity : Activity() {
                 .addBypassRule("${home.urlHost}:${home.port}")
                 .setReverseBypassEnabled(true)
                 .build()
+            // Once, whichever comes first: the WebView saying the relay is in
+            // place, or a few seconds without an answer — the page is never
+            // left waiting on it (the start-up logo that stayed, v0.5.55).
+            var done = false
+            val go = { if (!done) { done = true; then() } }
+            web.postDelayed({ if (!done) Log.w(TAG, "no answer from the relay set-up; loading anyway"); go() }, RELAY_WAIT_MS)
             try {
                 ProxyController.getInstance().setProxyOverride(config, { r -> runOnUiThread(r) }) {
                     relayedFor = home.baseUrl
-                    then()
+                    go()
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "the page can't go through the relay: ${e.message}")
-                then()
+                go()
             }
         } else {
             then()
@@ -327,6 +353,11 @@ class MainActivity : Activity() {
     private fun load() {
         AppBridge.pageOffersUpdates = false    // the page being loaded says so again if it does
         val home = Store.server(this) ?: return openConnect()
+        // No Wi-Fi, no mobile data: the app's own copy at once, on the home
+        // address, with nothing set up that needs a network first. The relay is
+        // set up when a network comes back (the server watch, or a change of
+        // network, loads again).
+        if (!hasNetwork() && OfflineSite.has(this)) return loadOffline(home.baseUrl)
         if (relayTriedFor != home.baseUrl) {
             // Once per home address (a changed server is set up again).
             relayTriedFor = home.baseUrl
@@ -338,20 +369,35 @@ class MainActivity : Activity() {
         val token = Store.token(this) ?: return signedOut()
         loadedBase = base
         loadFailed = false
-        // No network at all: straight to the app's own copy, rather than an error first.
-        offline = !hasNetwork() && OfflineSite.has(this)
-        if (offline) web.postDelayed(serverWatch, 10_000)
+        offline = false
+        web.removeCallbacks(serverWatch)
         // The page signs in with the same token the rest of the app uses.
-        CookieManager.getInstance().apply {
-            setAcceptCookie(true)
-            setCookie(base, "musicd_session=$token; Path=/")
-            flush()
+        runCatching {
+            CookieManager.getInstance().apply {
+                setAcceptCookie(true)
+                setCookie(base, "musicd_session=$token; Path=/")
+                flush()
+            }
         }
         errorPanel.visibility = View.GONE
         web.visibility = View.VISIBLE
         pageLoaded = false
         web.loadUrl("$base/")
-        if (!offline) checkReachable(Store.active(this)?.baseUrl ?: base)
+        checkReachable(Store.active(this)?.baseUrl ?: base)
+    }
+
+    /** The app's own copy of the page, answered by the app (see [Client.shouldInterceptRequest]); the server is looked for now and then. */
+    private fun loadOffline(base: String) {
+        loadedBase = base
+        loadFailed = false
+        offline = true
+        ++loadSeq                                 // a reachability check still running is moot
+        errorPanel.visibility = View.GONE
+        web.visibility = View.VISIBLE
+        pageLoaded = false
+        web.loadUrl("$base/")
+        web.removeCallbacks(serverWatch)
+        web.postDelayed(serverWatch, 10_000)
     }
 
     /**

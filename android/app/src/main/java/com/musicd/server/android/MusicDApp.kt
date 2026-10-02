@@ -19,6 +19,7 @@ class MusicDApp : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLog.install(this)
+        CrashLog.watchMainThread(this)
     }
 }
 
@@ -41,7 +42,40 @@ object CrashLog {
         }
     }
 
-    /** After a crash: say so, once, and offer the details to share. */
+    /**
+     * A frozen app leaves no crash behind — it just sits there (the start-up
+     * logo, until it's force-stopped). So the main thread is watched: if it
+     * hasn't answered for 10 s, what it's stuck on is kept the same way as a
+     * crash, and the next start offers it to share.
+     */
+    fun watchMainThread(c: Context) {
+        val app = c.applicationContext
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        Thread({
+            var stuckFor = 0
+            var kept = false
+            while (true) {
+                val answered = java.util.concurrent.atomic.AtomicBoolean(false)
+                main.post { answered.set(true) }
+                try { Thread.sleep(2_000) } catch (e: InterruptedException) { return@Thread }
+                if (answered.get()) { stuckFor = 0; kept = false; continue }
+                stuckFor += 2
+                if (stuckFor >= 10 && !kept) {
+                    kept = true
+                    runCatching {
+                        val trace = android.os.Looper.getMainLooper().thread.stackTrace.joinToString("\n") { "  at $it" }
+                        file(app).writeText(
+                            "$FROZE ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
+                                "${Build.MANUFACTURER} ${Build.MODEL}\nThe screen stopped answering for $stuckFor s at:\n\n$trace"
+                        )
+                    }
+                }
+            }
+        }, "main-watch").apply { isDaemon = true; start() }
+    }
+    private const val FROZE = "Mandarin froze"
+
+    /** After a crash (or a freeze): say so, once, and offer the details to share. */
     fun offer(activity: Activity) {
         val f = file(activity)
         if (!f.exists()) return
@@ -49,13 +83,13 @@ object CrashLog {
         f.delete()
         if (text.isBlank()) return
         AlertDialog.Builder(activity)
-            .setTitle("Mandarin stopped last time")
+            .setTitle(if (text.startsWith(FROZE)) "Mandarin froze last time" else "Mandarin stopped last time")
             .setMessage("Sharing the details helps get it fixed.\n\n" + text.take(1200))
             .setPositiveButton("Share details") { _, _ ->
                 runCatching {
                     activity.startActivity(Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_SUBJECT, "Mandarin crash")
+                            .putExtra(Intent.EXTRA_SUBJECT, if (text.startsWith(FROZE)) "Mandarin freeze" else "Mandarin crash")
                             .putExtra(Intent.EXTRA_TEXT, text),
                         "Share crash details"))
                 }
