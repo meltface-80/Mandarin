@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.47
+- **Many more albums identified.** Another pressing of the same record is no longer a rival:
+  an edition with a bonus track, or a remaster, used to leave a 100 % match "proposed" because
+  "two releases fit"; now the record is applied and the pressing is a detail. The search asks
+  MusicBrainz for forty results rather than ten, a loose search by the title's words runs when
+  the phrase finds nothing near, and when the best fit hasn't the copy's track count the
+  record's other editions are fetched too — the deluxe the search didn't list. A release
+  MusicBrainz has without track lengths is judged by its names and applied on an exact fit
+  rather than left unidentified. Settings → Setup → Identify albums → "Check the proposed and
+  unidentified again" runs the leftovers under the new rules.
+
 ## v0.5.46
 - **The repository is now `meltface-80/Mandarin`.** Every address the server, the page, the
   Android app and the docs carry now names the new repository: the update check, the APK

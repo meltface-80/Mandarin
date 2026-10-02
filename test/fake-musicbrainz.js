@@ -49,9 +49,13 @@ class FakeMusicBrainz {
       if (u.pathname === "/ws/2/release/") {
         const q = u.searchParams.get("query") || "";
         const t = /release:"((?:\\.|[^"])*)"/.exec(q);
+        const loose = /release:\(([^)]*)\)/.exec(q);          // the title's words in any order
         const bc = /barcode:(\d+)/.exec(q);
         const want = t ? t[1].replace(/\\(.)/g, "$1").toLowerCase() : "";
-        const hits = bc ? this.releases.filter(r => r.barcode === bc[1]) : this.releases.filter(r => r.title.toLowerCase() === want);
+        const words = loose ? loose[1].split(" AND ").map(w => w.replace(/\\(.)/g, "$1").toLowerCase()) : null;
+        const hits = bc ? this.releases.filter(r => r.barcode === bc[1])
+          : words ? this.releases.filter(r => words.every(w => r.title.toLowerCase().includes(w)))
+          : this.releases.filter(r => r.title.toLowerCase() === want);
         return send({ count: hits.length, offset: 0, releases: hits.map((r, i) => ({
           id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"], "label-info": r["label-info"],
           "track-count": r.media[0]["track-count"], media: [{ format: "CD", "track-count": r.media[0]["track-count"] }]

@@ -7,7 +7,12 @@ you set; off, the scan runs continuously — rather than the bursts in §6. Wiki
 (§5) are not built. Since v0.5.9 the names follow Roon's model: the album is the MusicBrainz
 release group (its title, its first release year), the copy you have is one release of it
 (its own date and what sets it apart — "2015 remaster" — shown beside the album, never in
-its name), and editions are set aside both when searching and when scoring. The rest is as written below: a plan for a scan that finds an album's
+its name), and editions are set aside both when searching and when scoring. Since v0.5.47
+another pressing of the same release group is not a rival (so an edition with a bonus track no
+longer blocks a 100 % match), the search asks for forty results, a loose search by the title's
+words runs when the phrase finds nothing near, the release group's other editions are fetched
+when the best fit hasn't the copy's track count, and a release MusicBrainz has without lengths
+is judged by its names (applied only on an exact fit). The rest is as written below: a plan for a scan that finds an album's
 right names from what the files already say — the artist where it is right, the album title,
 the track names and, above all, the track lengths — and writes the corrections into the
 server's database, without you editing albums one by one.
