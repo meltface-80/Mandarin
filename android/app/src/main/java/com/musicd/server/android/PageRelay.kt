@@ -32,6 +32,13 @@ object PageRelay {
     @Volatile private var server: ServerSocket? = null
     private val open = Collections.synchronizedSet(HashSet<Socket>())
     @Volatile private var lastTarget: String? = null
+    @Volatile private var listening = false
+
+    /** Every open connection closed (the phone's network gone: they'd hang, not fail). */
+    fun dropAll() {
+        lastTarget = null
+        synchronized(open) { open.toList() }.forEach { runCatching { it.close() } }
+    }
 
     /** Listening (idempotent). False if the port can't be had — the page then loads as before. */
     @Synchronized
@@ -52,7 +59,7 @@ object PageRelay {
             }
         }, "page-relay-accept").apply { isDaemon = true; start() }
         // A new route: connections on the old one are dropped (they'd only hang).
-        Away.listen { retarget(app) }
+        if (!listening) { listening = true; Away.listen { retarget(app) } }
         return true
     }
 
@@ -72,6 +79,10 @@ object PageRelay {
         try {
             upstream.connect(InetSocketAddress(to.host, to.port), 5_000)
             upstream.tcpNoDelay = true
+            // Nothing from the server for a minute (the longest wait it holds a
+            // request is 25 s): the connection is dead, not slow — dropped.
+            upstream.soTimeout = 60_000
+            upstream.keepAlive = true
             client.tcpNoDelay = true
         } catch (e: Exception) {
             runCatching { client.close() }; runCatching { upstream.close() }

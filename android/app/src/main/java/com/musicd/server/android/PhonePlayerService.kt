@@ -487,7 +487,8 @@ class PhonePlayerService : MediaLibraryService() {
                         for (c in batch.commands) runCatching { apply(c) }.onFailure { Log.w(TAG, "command ${c.op} failed", it) }
                         done.countDown()
                     }
-                    done.await()
+                    // Not for ever: a busy main thread mustn't stop the commands for good.
+                    done.await(10, java.util.concurrent.TimeUnit.SECONDS)
                 }
             } catch (e: InterruptedException) {
                 return
