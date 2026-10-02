@@ -556,6 +556,24 @@
           <img id="modal-img" alt="" decoding="async">
           <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
           <span id="modal-quality" class="album-quality hidden"></span>
+          <!-- Previous and next (v0.5.44): the album before and after this one in
+               the list it was opened from — a Home row, an artist's albums, a
+               label's, the Library wall, search — at the art's edges, halfway up.
+               Hidden when there is no list. -->
+          <div class="modal-nav hidden" id="modal-nav">
+            <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="modal-info">
           <h2 id="modal-title">—</h2>
