@@ -15657,6 +15657,15 @@ initServiceBrowser({
           ? "On. When this device’s queue ends, whole random albums keep coming — ones you haven’t played in the last two months."
           : "Off. When this device’s queue ends, it stops.") + "</div></div><div class=\"settings-divider\"></div>";
     }
+    // A phone others at home may play to (v0.5.51).
+    if (d.kind === "phone" && d.shared !== undefined) {
+      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">Other devices can play here</span>' +
+        '<label class="switch"><input type="checkbox" data-dev-shared="' + esc(d.id) + '"' + (d.shared ? " checked" : "") + ' aria-label="Other devices can play here">' +
+        '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
+        '<div class="settings-note">' + (d.shared
+          ? "On. At home, your other devices list this phone as a player while the Mandarin app is running on it, and can play to it and change its volume. Away from home it plays for itself only."
+          : "Off. Only this phone plays to itself.") + "</div></div><div class=\"settings-divider\"></div>";
+    }
     html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
     if (d.kind === "phone") {
       html += '<div class="dev-kv"><span class="dev-v">' + esc(d.network_name) + '</span></div><div class="settings-note">Named in the app on the phone.</div>';
@@ -16141,6 +16150,13 @@ initServiceBrowser({
       const dr = dspOf(current);
       const b = dr.bands[Number(bandType.closest("[data-dsp-band]").getAttribute("data-dsp-band"))];
       if (b) { b.type = bandType.value; if (isPass(b.type)) b.gain = 0; dr.dirty = true; renderDetail(); }
+      return;
+    }
+    const sh = e.target.closest("[data-dev-shared]");
+    if (sh) {
+      const on = sh.checked;
+      await patch({ shared: on });
+      if (!err) toast(on ? "Your other devices can play to " + current.name : "Only " + current.name + " plays to itself now");
       return;
     }
     const rd = e.target.closest("[data-dev-radio]");

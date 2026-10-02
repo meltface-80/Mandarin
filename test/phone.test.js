@@ -64,17 +64,49 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       seq = h.seq;
     });
 
-    await t.test("it is 'This phone' to itself, and invisible and unreachable to every other device", async () => {
+    await t.test("'This phone' to itself; to another device at home, a player under its own name", async () => {
       const mine = (await phone("GET", "/api/zones")).zones.find(z => z.zone_id === zoneId);
       assert.equal(mine.display_name, "This phone");
       assert.equal(mine.is_phone, true);
-      assert.ok(!(await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId), "hidden from other devices");
-      assert.ok(!(await other("GET", "/api/shortcut/zones")).zones.some(z => z.zone_id === zoneId));
+      const seen = (await other("GET", "/api/zones")).zones.find(z => z.zone_id === zoneId);
+      assert.ok(seen, "listed for another device at home");
+      assert.equal(seen.display_name, "Pixel 8");
+      assert.equal(seen.outputs[0].display_name, "Pixel 8");
+      assert.ok((await other("GET", "/api/shortcut/zones")).zones.some(z => z.zone_id === zoneId && z.display_name === "Pixel 8"));
       assert.ok(!(await phone("GET", "/api/outputs")).outputs.some(o => o.output_id === zoneId), "not offered for Sonos grouping");
-      assert.equal((await other("GET", "/api/zone-state?zone=" + zoneId)).status, 403);
+      assert.equal((await other("GET", "/api/zone-state?zone=" + zoneId)).status, 200);
+      // Played to from the other device: the phone's player is handed the album.
       const cd0 = (await other("GET", "/api/library/albums?sort=album")).albums[0];
-      assert.equal((await other("POST", "/api/play", { offset: cd0.offset, zone_or_output_id: zoneId, kind: "play_now" })).status, 403);
-      assert.equal((await other("POST", "/api/control", { zone_or_output_id: zoneId, command: "pause" })).status, 403);
+      assert.equal((await other("POST", "/api/play", { offset: cd0.offset, zone_or_output_id: zoneId, kind: "play_now" })).status, 200);
+      assert.equal((await other("POST", "/api/control", { zone_or_output_id: zoneId, command: "pause" })).status, 200);
+      const got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.deepEqual(got.commands.map(c => c.op), ["load", "pause"]);
+      seq = got.seq;
+    });
+
+    await t.test("hidden from others while the phone is away, or while its switch is off", async () => {
+      const TAILNET = { "X-Forwarded-For": "100.101.102.103" };
+      const awayCall = (m, p) => fetch(B + p, { method: m, headers: Object.assign({ Authorization: "Bearer " + phoneToken }, TAILNET) }).then(r => r.json());
+      // The phone checks in from away: others no longer see it, nor reach it.
+      await awayCall("GET", `/api/phone/commands?after=${seq}`);
+      assert.ok(!(await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId), "away: hidden");
+      assert.equal((await other("POST", "/api/control", { zone_or_output_id: zoneId, command: "play" })).status, 403);
+      // Home again: back on the list.
+      await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.ok((await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId), "home: listed again");
+      // Its switch off (Audio Devices → the phone): only the phone sees itself.
+      ctx.devices.syncKnown();
+      const off = await other("PATCH", "/api/audio-devices/" + zoneId, { shared: false });
+      assert.equal(off.status, 200);
+      assert.equal(off.shared, false);
+      assert.ok(!(await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId), "switched off: hidden");
+      assert.equal((await other("POST", "/api/control", { zone_or_output_id: zoneId, command: "play" })).status, 403);
+      assert.ok((await phone("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId && z.display_name === "This phone"), "itself, always");
+      assert.equal((await other("PATCH", "/api/audio-devices/" + zoneId, { shared: true })).shared, true);
+      assert.ok((await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId));
+      // Only a phone has the switch.
+      const room = (await other("GET", "/api/audio-devices")).devices.find(d => d.kind === "sonos");
+      assert.equal((await other("PATCH", "/api/audio-devices/" + room.id, { shared: false })).status, 400);
     });
 
     const albums = (await other("GET", "/api/library/albums?sort=album")).albums;
@@ -272,7 +304,10 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       const r = await phone("POST", "/api/group-outputs", { output_ids: [kitchen.zone_id, zoneId] });
       assert.equal(r.status, 500);
       assert.match(r.error, /can't be grouped/);
-      assert.equal((await other("POST", "/api/transfer-zone", { from: kitchen.zone_id, to: zoneId })).status, 403, "another device can't move music to the phone");
+      // Moving music to a phone from another device needs the phone's switch on.
+      await other("PATCH", "/api/audio-devices/" + zoneId, { shared: false });
+      assert.equal((await other("POST", "/api/transfer-zone", { from: kitchen.zone_id, to: zoneId })).status, 403, "switched off: no moving music to it");
+      await other("PATCH", "/api/audio-devices/" + zoneId, { shared: true });
     });
 
     await t.test("the server restarted (an update): the phone's queue and place are kept", async () => {

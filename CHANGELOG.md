@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.5.51
+- **Play to another phone.** A phone running the Mandarin app is now a player for your other
+  devices at home too: your phone lists the FiiO R7 (and the R7 your phone) under its own name,
+  and can play, queue, pause, change the volume and move music to it, as with any room. To
+  itself it is still "This phone". It shows while the app is running on it and the phone is at
+  home; away from home it plays for itself only. Audio Devices → the phone → **Other devices can
+  play here** switches it off. Before, a phone was only ever a player for itself.
+
 ## v0.5.50
 - **Adding to the queue while the phone plays a download.** When the phone was playing a list of
   its own — a downloaded album played while the server couldn't be reached, or the phone's own
