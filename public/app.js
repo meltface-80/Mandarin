@@ -550,7 +550,7 @@
     if (!list.length) {
       const info = localInfo();
       homeLocal.innerHTML = '<div class="home-carousel-empty">' + (info
-        ? (info.scanning ? "Reading the folder…" : "Nothing in “" + esc(info.name) + "” yet.")
+        ? (info.scanning ? "Reading the folder…" : "Nothing in “" + escapeHtml(info.name) + "” yet.")
         : "Choose a folder of music on this phone in Settings → Music Folders.") + "</div>";
     } else {
       homeLocal.innerHTML = "";
@@ -561,13 +561,22 @@
   function showLocalWall() {
     enterFullWall("Music on device", true);
     unplayedWallActive = true;
+    renderLocalWall();
+  }
+  function renderLocalWall() {
+    grid.dataset.wall = "local";
     const list = localList();
     if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Music Folders.", false); return; }
     setBanner(null);
     grid.innerHTML = "";
     grid.appendChild(localTiles(list));
   }
+  // The wall open now, still showing the phone's albums (another wall may
+  // have taken the grid since)?
+  const localWallOpen = () => grid.dataset.wall === "local" && !grid.classList.contains("hidden") &&
+    [...grid.children].every(t => !t.__album || isPhoneAlbum(t.__album));
   if (hasLocal) window.__musicdLocalChanged = () => {
+    if (localWallOpen()) renderLocalWall();
     loadHomeLocal();
     if (window.__renderHomeRowsList) window.__renderHomeRowsList();
     if (window.__renderLocalFolder) window.__renderLocalFolder();
@@ -1866,6 +1875,7 @@
   // list tracks, and offering a grid/list switch over those would be a control
   // that does nothing.
   function enterFullWall(title, albumWall) {
+    grid.dataset.wall = "";     // whichever wall comes next says what it is
     unplayedWallActive = false;
     libraryWallActive = false;
     favouritesWallActive = false;
@@ -6161,6 +6171,16 @@
       if (typeof window.__refreshTransport === "function") window.__refreshTransport();
     } else {
       fetchAlbumDetail(album).catch(err => {
+        // An album of the phone's own music that has left the folder since
+        // its tile was drawn (moved to the server, say): say so, take the
+        // tile off Home and the wall, and go back to where you were.
+        if (err.gone && isPhoneAlbum(album)) {
+          showToast(err.message, "error");
+          if (window.__musicdLocalChanged) window.__musicdLocalChanged();
+          const back = modal.querySelector(".modal-close[data-close]");
+          if (album === currentAlbum) { if (back) back.click(); else closeModal(); }
+          return;
+        }
         modalActs.innerHTML = `<div class="modal-error">${escapeHtml(err.message)}</div>`;
       });
       fetchAlbumExtras(album).catch(() => { /* extras are non-critical — modal still opens */ });
@@ -7147,7 +7167,7 @@
     const r = await fetch(`/api/album?offset=${album.offset}${idQS}${filterQSOf(currentDetailFilter)}`);
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
-      throw new Error(j.error || `HTTP ${r.status}`);
+      throw Object.assign(new Error(j.error || `HTTP ${r.status}`), { gone: r.status === 409 });
     }
     const j = await r.json();
 

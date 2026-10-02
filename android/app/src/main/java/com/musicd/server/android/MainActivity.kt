@@ -249,8 +249,11 @@ class MainActivity : Activity() {
         web.postDelayed(liveWatch, 15_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
         tellPageDownloadsChanged()
-        // Files added to or taken from the phone's music folder meanwhile: read again (cheap when nothing changed).
-        LocalMusic.checkSoon(this)
+        // Files added to or taken from the phone's music folder meanwhile: the
+        // page shows the list as it stands now, the folder is read again
+        // (cheap when nothing changed) and every half minute while on screen.
+        onLocal()
+        LocalMusic.foreground(this, true)
         NowPlayingService.start(this)
         PhonePlayerService.start(this)
     }
@@ -317,6 +320,7 @@ class MainActivity : Activity() {
     override fun onPause() {
         // Only while it's on screen.
         if (::web.isInitialized) web.removeCallbacks(liveWatch)
+        LocalMusic.foreground(this, false)
         super.onPause()
     }
 
