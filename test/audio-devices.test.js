@@ -82,7 +82,16 @@ test("profiles: what a model takes, and the layers a chip comes from", () => {
   const poly = effective({ kind: "upnp", manufacturer: "Chord Electronics", model: "Poly", caps: {} });
   assert.ok(poly.rates.find(r => r.hz === 768000).on);
   assert.ok(poly.bits.find(b => b.n === 32).on);
-  assert.equal(poly.dsd.find(d => d.n === 256).source, "later");
+  // DSD (v0.6.0-RC3): only once the device says it takes DSD files — then its profile's multiples.
+  assert.deepEqual(poly.dsd.map(d => d.on), [false, false, false], "no DSD it hasn't said it takes");
+  const polyDsd = effective({ kind: "upnp", manufacturer: "Chord Electronics", model: "Poly", caps: { advertised: { containers: ["flac", "dsd"] } } });
+  assert.deepEqual(polyDsd.dsd.filter(d => d.on).map(d => d.n), [64, 128, 256]);
+  assert.equal(polyDsd.dsd[0].source, "profile");
+  const boxDsd = effective({ kind: "upnp", manufacturer: "Acme", model: "Box", caps: { advertised: { containers: ["flac", "dsd"] } } });
+  assert.deepEqual(boxDsd.dsd.filter(d => d.on).map(d => d.n), [64], "a device with no profile: DSD64");
+  const polyOff = effective({ kind: "upnp", manufacturer: "Chord Electronics", model: "Poly", caps: { advertised: { containers: ["flac", "dsd"] }, user: { dsd: [64] } } });
+  assert.deepEqual(polyOff.dsd.filter(d => d.on).map(d => d.n), [64], "yours, when set");
+  assert.equal(polyOff.dsd[0].source, "user");
 
   const generic = effective({ kind: "upnp", manufacturer: "Acme", model: "Box", caps: { advertised: { rates: [96000] } } });
   assert.deepEqual(on(generic.rates), [44100, 48000, 96000]);

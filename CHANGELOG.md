@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC3
+- **DSD to UPnP/DLNA renderers, as it is.** A DSD64 album on a Chord Poly arrived as 176.4 kHz
+  PCM: every renderer was sent DSD as PCM. Now a device that says it takes DSD files (in its
+  GetProtocolInfo, as the Poly does) is sent the DSF or DFF file itself, named as the device
+  names it — at the DSD rates its page has on: those known for its model (DSD64–256 for a Poly),
+  or DSD64 for a device without a profile. Tap a DSD rate off on its page and that rate goes as
+  PCM again. Now playing shows "DSD64".
+
 ## v0.6.0-RC2
 - **"Play something unheard" plays again.** The tile on Home (and the compass) said
   "zone_or_output_id required": the page named the zone one way and the server read it another.

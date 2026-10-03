@@ -10,7 +10,8 @@
  */
 const test = require("node:test");
 const assert = require("node:assert");
-const { haveFfmpeg, makeLibrary, probe } = require("./fixtures");
+const path = require("path");
+const { haveFfmpeg, makeLibrary, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeRenderer } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
@@ -33,12 +34,14 @@ async function until(fn, ms = 10000) {
 
 test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const lib = makeLibrary();
+  // A DSD64 album (v0.6.0-RC3), for the Poly, which says it takes DSD files.
+  writeDsf(path.join(lib.music, "Artist D", "DSD Album", "01 Dsd.dsf"), 2);
   const house = new FakeHousehold();
   await house.start();
   const wiim = new FakeRenderer({ name: "WiiM Pro Plus", manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro Plus", linkplay: { DeviceName: "Living Room WiiM" } });
   // A Poly feeds a Mojo: fixed volume, and this one has no SetNextAVTransportURI.
   const poly = new FakeRenderer({ name: "Poly", manufacturer: "Chord Electronics Ltd", model: "Poly", setNext: false,
-    sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*" });
+    sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*" });
   await wiim.start(); await poly.start();
   const { createServer } = require("../index.js");
   const options = {
@@ -60,7 +63,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn);
 
   try {
-    await until(async () => (await api("status")).index_count === 3);
+    await until(async () => (await api("status")).index_count === 4);
     // A renderer found on the network is off until switched on: two rooms only…
     await until(async () => { const z = await api("zones"); return z.zones.length === 2; }, 20000);
     await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === WIIM) && l.some(d => d.id === POLY); }, 20000);
@@ -283,6 +286,31 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // still playing, heads the list.
       const list = await until(async () => { const l = (await api("audio-devices")).devices; return l[0].id === WIIM && l[0].state === "playing" && l; }, 15000);
       assert.equal(list[0].name, "Living Room WiiM");
+    });
+
+    await t.test("DSD: a device that takes DSD files gets the .dsf as it is, in its own words; tapped off, PCM", async () => {
+      const dsdAlbum = (await api("library/albums?sort=album")).albums.find(a => a.title === "DSD Album");
+      assert.ok(dsdAlbum, "the DSF is in the library");
+      const dev = await api("audio-devices/" + POLY);
+      assert.deepEqual(dev.dsd.filter(d => d.on).map(d => d.n), [64, 128, 256], JSON.stringify(dev.dsd));
+      let from = poly.fetches.length;
+      await api("play", { offset: dsdAlbum.offset, zone_or_output_id: POLY, kind: "play_now" });
+      const f = await until(() => poly.fetches.slice(from).find(x => x.done && /\.orig\.dsf/.test(x.uri) && x), 15000);
+      assert.equal(f.status, 200);
+      assert.equal(f.body.toString("ascii", 0, 4), "DSD ", "the file itself, not a conversion");
+      assert.equal(f.type, "audio/dsf", "served as the device names it");
+      assert.match(poly.meta, /audio\/dsf/, "and announced so");
+      await until(async () => { const z = await state(POLY); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64" && z; }, 15000);
+      // Tapped off on its page: DSD goes as PCM again.
+      const off = await api("audio-devices/" + POLY, { caps: { user: { dsd: [] } } }, "PATCH");
+      assert.equal(off.status, 200, JSON.stringify(off));
+      assert.deepEqual(off.dsd.filter(d => d.on), []);
+      from = poly.fetches.length;
+      await api("play", { offset: dsdAlbum.offset, zone_or_output_id: POLY, kind: "play_now" });
+      const g = await until(() => poly.fetches.slice(from).find(x => x.done && x.body && x.body.length > 1000 && x), 20000);
+      assert.match(g.uri, /\.\d+-\d+\.flac/, g.uri);
+      assert.ok(probe(g.body), "FLAC");
+      await api("audio-devices/" + POLY, { caps: { user: { dsd: null } } }, "PATCH");
     });
 
     await t.test("the server restarted (an update): the renderer's queue is kept and the playing track recognised", async () => {

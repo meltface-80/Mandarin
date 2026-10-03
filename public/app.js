@@ -15627,7 +15627,7 @@ initServiceBrowser({
   const SOURCE = {
     verified: "Confirmed by the device", user: "You set it", profile: "Known for this model",
     advertised: "The device advertises it", floor: "Every renderer takes this", sonos: "Sonos plays this",
-    phone: "The phone plays this", later: "DSD comes in a later version", off: "Not offered"
+    phone: "The phone plays this", later: "Not sent as DSD", off: "Not offered"
   };
   let devices = [], away = false, err = "", current = null, busy = false;
   // The DSP block's unsaved edits (bands, headroom) for the device open now.
@@ -15777,12 +15777,18 @@ initServiceBrowser({
       d.rates.map(r => chip("rate", r.hz, fmtRate(r.hz), r.on, r.source, ed)).join("") + "</div></div>";
     html += '<div class="cap-group"><span class="cap-label">Bit depth</span><div class="cap-chips">' +
       d.bits.map(b => chip("bits", b.n, b.n + "-bit", b.on, b.source, ed)).join("") + "</div></div>";
+    // DSD (v0.6.0-RC3): sent as the file itself where the device says it takes
+    // DSD files; tap one off and that multiple goes as PCM.
+    const takesDsd = (d.containers || []).includes("dsd");
     html += '<div class="cap-group"><span class="cap-label">DSD</span><div class="cap-chips">' +
-      d.dsd.map(x => chip("dsd", x.n, "DSD" + x.n, false, x.source, false)).join("") + "</div></div>";
+      d.dsd.map(x => chip("dsd", x.n, "DSD" + x.n, x.on, x.source, ed && takesDsd)).join("") + "</div></div>";
     if (d.containers && d.containers.length) {
       html += '<div class="cap-group"><span class="cap-label">Formats</span><div class="dev-v">' + esc(d.containers.map(c => c.toUpperCase()).join(", ")) + "</div></div>";
     }
-    html += '<div class="cap-legend">' + (ed ? "Tap a rate or depth to change what Mandarin may send it. " : "") + "✓ confirmed by the device · ◆ known for this model · ✎ you set it · DSD comes in a later version.</div>";
+    html += '<div class="cap-legend">' + (ed ? "Tap a rate or depth to change what Mandarin may send it. " : "") + "✓ confirmed by the device · ◆ known for this model · ✎ you set it.</div>";
+    if (d.kind === "upnp") html += '<div class="settings-note">' + (takesDsd
+      ? "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
+      : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
     if (d.kind === "sonos") html += '<div class="settings-note">Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
     if (d.kind === "phone") html += '<div class="settings-note">At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
     if (d.profile && d.profile.notes) html += '<div class="settings-note">' + esc(d.profile.notes) + "</div>";
@@ -16129,6 +16135,12 @@ initServiceBrowser({
   }
   function toggleChip(el) {
     const kind = el.getAttribute("data-cap"), v = Number(el.getAttribute("data-v"));
+    if (kind === "dsd") {
+      // All off is allowed: DSD then goes as PCM.
+      const on = current.dsd.filter(x => x.n === v ? !x.on : x.on).map(x => x.n);
+      patch({ caps: { user: { dsd: on } } });
+      return;
+    }
     if (kind !== "rate" && kind !== "bits") return;
     const all = kind === "rate" ? current.rates.map(r => ({ v: r.hz, on: r.on })) : current.bits.map(b => ({ v: b.n, on: b.on }));
     const on = all.filter(x => x.v === v ? !x.on : x.on).map(x => x.v);
