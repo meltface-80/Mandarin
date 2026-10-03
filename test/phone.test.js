@@ -130,6 +130,24 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(audio.headers.get("content-type"), "audio/flac");
     });
 
+    await t.test("Play something unheard plays on the zone, however the page names it", async () => {
+      // The page sent { zone } while the server read only zone_or_output_id (v0.6.0-RC1's bug).
+      for (const body of [{ zone: zoneId }, { zone_or_output_id: zoneId }]) {
+        const waiting = phone("GET", `/api/phone/commands?after=${seq}&wait=5000`);
+        const r = await phone("POST", "/api/play-unheard", body);
+        assert.equal(r.status, 200, JSON.stringify(r));
+        assert.ok(r.album && r.album.title, JSON.stringify(r));
+        const got = await waiting;
+        assert.ok(got.commands.some(c => c.op === "load"), JSON.stringify(got));
+        seq = got.seq;
+      }
+      assert.equal((await phone("POST", "/api/play-unheard", {})).status, 400);
+      // The queue the next steps expect, back as it was.
+      const waiting = phone("GET", `/api/phone/commands?after=${seq}&wait=5000`);
+      await phone("POST", "/api/play", { offset: cd.offset, zone_or_output_id: zoneId, kind: "play_now" });
+      seq = (await waiting).seq;
+    });
+
     await t.test("what the phone reports is now playing, and becomes history", async () => {
       await phone("POST", "/api/phone/state", { index: 1, position: 31, duration: 60, state: "playing", volume: 40 });
       const st = await phone("GET", "/api/zone-state?zone=" + zoneId);

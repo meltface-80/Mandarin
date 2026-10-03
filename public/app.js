@@ -14217,13 +14217,16 @@ initServiceBrowser({
       const r = await fetch("/api/play-unheard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zone })
+        body: JSON.stringify({ zone_or_output_id: zone })
       });
       const j = await r.json();
       if (!r.ok) {
         if (window.__showToast) window.__showToast(j.error || "Could not start playback", "error");
       } else {
-        if (window.__showToast) window.__showToast("Playing: " + (j.album || "random album"));
+        // The server answers with the album itself (its title, its artist).
+        const al = j.album;
+        const name = al && typeof al === "object" ? [al.title, al.subtitle].filter(Boolean).join(" — ") : al;
+        if (window.__showToast) window.__showToast("Playing: " + (name || "an album you haven’t heard"));
       }
     } catch (e) {
       if (window.__showToast) window.__showToast("Request failed", "error");
