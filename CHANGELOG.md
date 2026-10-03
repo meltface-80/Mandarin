@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC10
+- **Untagged albums named from their folders.** A file with no artist tag showed under "Unknown
+  Artist", its album titled with the whole folder name. Now its names come from where it's filed:
+  the artist from the folder above the album's (`808 State/10x10 (1993)`), or an
+  "Artist - Album" folder; the album and year from the album's folder (10x10, 1993); the title,
+  track and disc from the file name (`1-01 - Pacific State`). Only what the tags leave empty is
+  taken; folders such as Music or 4tb are never an artist. Nothing is written to the files.
+- **Then identified.** Those albums are looked up on MusicBrainz again under their new names, so
+  a match can put back what folder names can't hold ("ex_el" → "ex:el"). The album page says when
+  an album's names come from its folders.
+- **Read once, only what's needed.** On the first start only the tracks without an artist or
+  album tag are read again. Each album keeps its id, favourite, Listen later and play history.
+
 ## v0.6.0-RC9
 - **Volume Levelling heard at once on Sonos.** Changing a Sonos room's Volume Levelling did
   nothing to what it was playing: a Sonos queue keeps the addresses it was loaded with, and only

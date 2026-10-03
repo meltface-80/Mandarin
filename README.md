@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC9
+# Mandarin — v0.6.0-RC10
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -102,6 +102,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
 * **Not played in six months** — Waits until Mandarin has six months of your listening, then offers the albums you haven't heard since.
+* **Untagged albums named from folders** — A file with no tags takes its artist, album, year, title and track from its folder and file names, then is identified on MusicBrainz; nothing is written to the files.
 * **One album per folder** — Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album's folder are one album, shown disc by disc.
 * **Every tag kept** — All of each file's tags and identifiers — MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain — read into the server's database.
 * **Library Scanner** — Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.
@@ -386,6 +387,13 @@ finds the releases carrying it, and a **catalogue number** with its label the sa
 those, a few of the tracks' **ISRCs** find the releases those recordings share. A release found
 this way is applied when its tracks fit, and the Applied list says what matched it ("matched by
 barcode"). A barcode is asked of iTunes too, for what MusicBrainz doesn't know.
+
+**Files with no tags** are named from where they're filed: the artist from the folder above the
+album's (`808 State/10x10 (1993)`) or an `Artist - Album` folder, the album and year from the
+album's folder, and the title, track and disc from the file name (`1-01 - Pacific State`). Only
+what the tags leave empty is filled; folders such as `Music` or `4tb` are never taken for an
+artist, and nothing is written to the files. Those albums are then looked up like any other, and
+their page says the names come from their folders until a match or an edit replaces them.
 
 Each candidate release is scored the way [beets](https://beets.io) does it, and named by its
 release group: the album is the MusicBrainz *release group*, the copy you have is one *release* of

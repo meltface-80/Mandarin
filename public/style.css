@@ -5347,3 +5347,6 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .modal-actions .action-btn {
   background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700;
 }
+
+/* An album named from its folders (v0.6.0-RC10). */
+.modal-names-note { font-size: 13px; color: var(--text-faint); margin-top: 4px; text-align: center; }

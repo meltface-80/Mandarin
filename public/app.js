@@ -7267,6 +7267,20 @@
     if (Array.isArray(j.artists) && j.artists.length) {
       setModalArtist((j.album && j.album.subtitle) || album.subtitle || "", j.artists);
     }
+    // Named from its folders, its files carrying no tags (v0.6.0-RC10): said
+    // under the names, so they read as the best guess they are.
+    {
+      let note = document.getElementById("modal-names-note");
+      if (j.names_from_folders) {
+        if (!note && modalSub && modalSub.parentNode) {
+          note = document.createElement("div");
+          note.id = "modal-names-note";
+          note.className = "modal-names-note";
+          modalSub.parentNode.insertBefore(note, modalSub.nextSibling);
+        }
+        if (note) note.textContent = "Names from its folders — the files carry no tags";
+      } else if (note) note.remove();
+    }
 
     // Build action buttons in preferred order
     const order  = ["play_now", "queue", "play_next", "shuffle", "radio"];
