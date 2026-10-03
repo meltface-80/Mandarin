@@ -6,7 +6,8 @@
  */
 const test = require("node:test");
 const assert = require("node:assert");
-const { haveFfmpeg, makeLibrary } = require("./fixtures");
+const path = require("path");
+const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
@@ -58,6 +59,37 @@ test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, as
     assert.equal(u.no_history, false);
     assert.ok(u.albums.length >= 1);
     assert.ok(!u.albums.some(x => x.offset === al.id), "the album just played isn't offered");
+
+    // The library changes (an album added, the scan run) and the server is
+    // restarted, as an update does: still the same day's album, still played —
+    // not a new one in its place (v0.6.0-RC8).
+    for (let i = 1; i <= 2; i++) {
+      gen(path.join(lib.music, "Artist N", "New Arrival", `0${i}.flac`), { freq: 300 + 100 * i, tags: { title: `N${i}`, artist: "Artist N", album: "New Arrival", track: i } });
+    }
+    await ctx.scanner.scan();
+    ctx.library.reload();
+    assert.equal(ctx.library.albums.length, 4);
+    assert.equal(ctx.library.albumOfTheDay().id, al.id);
+    let a4 = await get("/api/home/album-of-the-day");
+    assert.equal(a4.album, null);
+    assert.equal(a4.played, true);
+    await srv.stop();
+    const srv2 = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [] });
+    const ctx2 = await srv2.start();
+    try {
+      // (The first connections can be the old server's kept-alive ones: asked again.)
+      let token2 = null;
+      for (let i = 0; i < 50 && !token2; i++) token2 = await signIn(B).catch(() => new Promise(r => setTimeout(() => r(null), 100)));
+      a4 = await (await fetch(B + "/api/home/album-of-the-day", { headers: { Authorization: "Bearer " + token2 } })).json();
+      assert.equal(a4.album, null, "still played after a restart");
+      assert.equal(a4.played, true);
+      assert.equal(ctx2.library.albumOfTheDay().id, al.id);
+      // A new day is a new choice, kept in its turn.
+      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+      const next = ctx2.library.albumOfTheDay(tomorrow);
+      assert.equal(ctx2.library.albumOfTheDay(tomorrow).id, next.id);
+      assert.equal(ctx2.db.setting("album_of_the_day").day, ctx2.library.dayKey(tomorrow));
+    } finally { await srv2.stop(); }
 
     // The day turns over at 00:01: 00:00:30 is still yesterday, 00:01:30 today.
     const y = new Date(2026, 9, 3, 0, 0, 30), z = new Date(2026, 9, 3, 0, 1, 30);

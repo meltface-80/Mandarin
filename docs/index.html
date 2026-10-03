@@ -279,6 +279,7 @@
   <div class="wrap">
     <a class="brand" href="#top"><img src="mandarin-icon.png" alt="">Mandarin</a>
     <a href="#how">How it works</a>
+    <a href="#new">New</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
     <a href="#apps">Phones</a>
@@ -301,7 +302,7 @@
      iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.6.0-RC7</span>
+    <span class="badge">v0.6.0-RC8</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -337,6 +338,9 @@
         <p>Not played in six months with the Album of the day, Listen later, Favourites, Recently
            played, Smart Picks, Label of the week, random albums and genres &mdash; rows you reorder or
            switch off.</p></div>
+      <div class="card"><h3><span class="em">&#128197;</span>Album of the day</h3>
+        <p>The same album on every device, chosen by the server at 00:01. Once played, from anywhere,
+           it&#39;s gone until the next 00:01.</p></div>
       <div class="card"><h3><span class="em">&#128269;</span>Instant search &amp; focus</h3>
         <p>Search albums, artists and labels as you type. Sort and focus the library by genre,
            decade, format, sample rate, bit depth, label or date added.</p></div>
@@ -393,7 +397,8 @@
            LUFS, peaks respected. Sonos, renderers and the phone, downloads included.</p></div>
       <div class="card"><h3><span class="em">&#127911;</span>UPnP/DLNA renderers</h3>
         <p>A WiiM, a Chord Poly, a streamer, an AV receiver, a TV: found on the network, switched on
-           when you say, gapless, with volume, radio and everything a room has.</p></div>
+           when you say, gapless, with volume, radio and everything a room has. DSD sent as DSD where
+           taken.</p></div>
       <div class="card"><h3><span class="em">&#127898;</span>Audio Devices</h3>
         <p>Every player with what it takes &mdash; rates, depths, formats &mdash; a name of your own,
            and Original or Upsample &times;2, &times;4 or Max output per renderer.</p></div>
@@ -419,13 +424,48 @@
            library.</p></div>
       <div class="card"><h3><span class="em">&#9992;&#65039;</span>Offline mode</h3>
         <p>One switch in the menu: only the music on the phone shows, and the server isn't used. With
-           no connection the app does the same by itself.</p></div>
+           no connection the app does the same by itself, and reconnects on its own.</p></div>
       <div class="card"><h3><span class="em">&#128205;</span>Away from home</h3>
         <p>On mobile data the app reaches the server over its built-in Tailscale, no ports opened.
            Tracks come as Opus 256; only the phone plays.</p></div>
       <div class="card"><h3><span class="em">&#128274;</span>One account</h3>
         <p>A username and password kept on the server, SRP sign-in, every device listed in Settings.
            The server and the app update themselves.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="new">
+  <div class="wrap">
+    <h2>New since the last beta</h2>
+    <p class="lead">Everything added and improved from v0.5.50 to this release candidate.</p>
+    <div class="grid">
+      <div class="card"><h3>Album of the day, kept by the server</h3>
+        <p>One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it&#39;s gone until the next 00:01.</p></div>
+      <div class="card"><h3>Not played in six months</h3>
+        <p>Waits until Mandarin has six months of your listening, then offers the albums you haven&#39;t heard since.</p></div>
+      <div class="card"><h3>One album per folder</h3>
+        <p>Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album&#39;s folder are one album, shown disc by disc.</p></div>
+      <div class="card"><h3>Every tag kept</h3>
+        <p>All of each file&#39;s tags and identifiers &mdash; MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain &mdash; read into the server&#39;s database.</p></div>
+      <div class="card"><h3>Library Scanner</h3>
+        <p>Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.</p></div>
+      <div class="card"><h3>Volume Levelling</h3>
+        <p>ReplayGain set per device &mdash; Off, Track, Album or Auto &mdash; with a target from &minus;14 to &minus;25 LUFS and a level for tracks of unknown loudness.</p></div>
+      <div class="card"><h3>DSD to renderers</h3>
+        <p>A renderer that takes DSD files, such as a Chord Poly, is sent the DSF or DFF itself, at the DSD rates switched on for it.</p></div>
+      <div class="card"><h3>Move to another device</h3>
+        <p>Moving what&#39;s playing to another room, renderer or phone carries the queue over and plays on from the same track and second.</p></div>
+      <div class="card"><h3>Play to another phone</h3>
+        <p>A phone running the app is a player for your other devices at home, under its own name, while the app runs.</p></div>
+      <div class="card"><h3>Offline mode</h3>
+        <p>One switch: only the music on the phone shows and the server isn&#39;t asked. The app also opens with no signal and finds the server again by itself.</p></div>
+      <div class="card"><h3>Share card saved</h3>
+        <p>In the app, Download saves the card to the phone&#39;s Pictures/Mandarin.</p></div>
+      <div class="card"><h3>Help behind &#9432;</h3>
+        <p>Every setting&#39;s longer explanation opens from an ⓘ after its name, with a short line left under it.</p></div>
+      <div class="card"><h3>Release candidates</h3>
+        <p>The app, its update check and the server&#39;s updater read 0.6.0-RC builds in order, so updates arrive one after another.</p></div>
     </div>
   </div>
 </section>
