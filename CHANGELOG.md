@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC2
+- **"Play something unheard" plays again.** The tile on Home (and the compass) said
+  "zone_or_output_id required": the page named the zone one way and the server read it another.
+  Both now agree (and the server takes either), and the message says which album started.
+
 ## v0.6.0-RC1
 The first release candidate for 0.6.0: everything up to v0.5.58, settled.
 - **Release candidates update in order.** The app, its update check and the server's updater now
