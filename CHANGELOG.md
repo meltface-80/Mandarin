@@ -6,17 +6,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.6.0-RC4
-- **Home's first row keeps up, in the app and the browser alike.** "Not played in 6 months" was
-  fetched only while the row was empty: once it held tiles — including the Home saved for an
-  instant open — it was never fetched again, so the app could show yesterday's Album of the day,
-  or a one-album list left from an offline session, while the browser showed today's. It is now
-  fetched afresh every few minutes, and again when you come back to the app or the tab; a saved
-  Album of the day is shown only on its own day.
-- **Album of the day stays all day.** It used to vanish once played (so one device had it and
-  another didn't); now it stays, marked "★ Today · played". The same album everywhere, all day.
-- **Nothing "not played in 6 months" before anything is played.** Until Mandarin has a play
-  history the row offers only Play something unheard and the Album of the day; its full page says
-  to play some music first.
+- **The app and the browser show the same Home row.** "Not played in 6 months" was fetched only
+  while the row was empty: once it held tiles — including the Home saved for an instant open — it
+  was never fetched again, so the app could show yesterday's Album of the day, or a one-album list
+  left from an offline session, while the browser showed today's. It is now fetched afresh every
+  few minutes and when you come back to the app or the tab.
+- **Album of the day, in step everywhere.** A new one at 00:01 (in the server's time zone, `TZ`),
+  the same on every device; once played — from any device — it's gone from all of them until the
+  next 00:01. Each page asks the server every minute while Home is open, and on coming back.
+- **Not played in 6 months waits for six months of listening.** Until Mandarin has been played
+  for six months, every album would count as "not played", so the row offers only Play something
+  unheard and the Album of the day; its full page says from which date albums will show.
 
 ## v0.6.0-RC3
 - **DSD to UPnP/DLNA renderers, as it is.** A DSD64 album on a Chord Poly arrived as 176.4 kHz

@@ -1,8 +1,8 @@
 "use strict";
 /*
  * Home's first row (v0.6.0-RC4): Album of the day is the same album for
- * every device all day, shown even once played; "Not played in 6 months"
- * offers nothing until Mandarin has a play history.
+ * every device from 00:01, gone from all of them once played; "Not played in
+ * 6 months" offers nothing until Mandarin has six months of listening.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -36,19 +36,34 @@ test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, as
     assert.equal(a1.played, false);
     assert.equal(a1.day, ctx.library.dayKey());
 
-    // Played today: still shown, marked played (it used to vanish).
+    // Played: gone, for every device that asks; the day still said.
     const al = ctx.library.album(a1.album.offset);
     const t = ctx.library.tracks(al.id)[0];
-    ctx.features.insertPlay.run(al.id, t.id, t.title, t.artist || "", al.title, "TEST", Date.now());
+    const play = (ts) => ctx.features.insertPlay.run(al.id, t.id, t.title, t.artist || "", al.title, "TEST", ts);
+    play(Date.now());
     const a3 = await get("/api/home/album-of-the-day");
-    assert.equal(a3.album.offset, a1.album.offset);
+    assert.equal(a3.album, null);
     assert.equal(a3.played, true);
+    assert.equal(a3.day, a1.day);
 
-    // With a history, the albums not heard lately are offered.
+    // A day's listening isn't six months: still nothing, and when it will be.
+    u = await get("/api/home/unplayed?months=6&count=30");
+    assert.deepEqual(u.albums, []);
+    assert.equal(u.no_history, true);
+    assert.ok(u.ready_at > Date.now());
+
+    // Six months and more of listening: the albums not heard lately are offered.
+    play(Date.now() - 200 * 24 * 3600 * 1000);
     u = await get("/api/home/unplayed?months=6&count=30");
     assert.equal(u.no_history, false);
     assert.ok(u.albums.length >= 1);
     assert.ok(!u.albums.some(x => x.offset === al.id), "the album just played isn't offered");
+
+    // The day turns over at 00:01: 00:00:30 is still yesterday, 00:01:30 today.
+    const y = new Date(2026, 9, 3, 0, 0, 30), z = new Date(2026, 9, 3, 0, 1, 30);
+    assert.equal(ctx.library.dayKey(y), "2026-10-2");
+    assert.equal(ctx.library.dayKey(z), "2026-10-3");
+    assert.equal(ctx.library.dayStart(z), new Date(2026, 9, 3, 0, 1, 0).getTime());
   } finally {
     await srv.stop();
   }

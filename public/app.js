@@ -824,13 +824,15 @@
       if (row.id === "unplayed" ? ttlFresh : row.isFresh()) continue;
       row.load();
     }
+    // The row kept (within its few minutes): Album of the day is asked about all the same.
+    if (ttlFresh) refreshAotd();
   }
   // Back to the app or the tab after a while (overnight, say): Home on screen
   // catches up where it stands, without jumping to the top.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     if (!homeView || homeView.classList.contains("hidden")) return;
-    if (!rowsTtlFresh()) refreshHomeRows();
+    refreshHomeRows();
   });
   // Shared freshness for the two rows that turn over on a clock rather than a
   // flag: recheck every 5 minutes, but only when they actually hold tiles.
@@ -897,7 +899,8 @@
   // cache (the server sends them immutable for a week), so it's a flash-free
   // repaint, not a reload. Bumped the key suffix if the cached shape changes.
   const HOME_CACHE_KEY = "rra-home-cache-v1";
-  const todayKey = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  // Album of the day's day: it turns over at 00:01, as on the server.
+  const todayKey = () => { const d = new Date(Date.now() - 60 * 1000); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   function saveHomeCache(patch) {
     // The app's own copy, offline (v0.5.58): what it shows is the phone's music,
     // which mustn't become the server's Home the next time it opens.
@@ -977,13 +980,15 @@
   }
 
   // Render helper shared by the live loader and the instant-open cache repaint.
+  // What the row shows now: Album of the day is checked on its own every
+  // minute (refreshAotd) and the row redrawn only when it changes.
+  let shownUnplayed = { aotd: null, albums: [] };
   function renderHomeUnplayed(aotd, albums) {
     albums = albums || [];
+    shownUnplayed = { aotd: aotd || null, albums };
     homeUnplayed.innerHTML = "";
-    if (!albums.length && !aotd) {
-      homeUnplayed.innerHTML = '<div class="home-carousel-empty">Nothing here yet — play some music and check back.</div>';
-      return;
-    }
+    // Nothing to offer (the first six months, Album of the day played): the
+    // row keeps Play something unheard, which always has something.
     const frag = document.createDocumentFragment();
     // "Play something unheard" leads the row it belongs to: this carousel IS
     // the unheard albums, so the action and the row mean the same thing, and
@@ -997,7 +1002,7 @@
       if (wrap) {
         const badge = document.createElement("span");
         badge.className = "aotd-badge";
-        badge.textContent = aotd._played ? "★ Today · played" : "★ Today";
+        badge.textContent = "★ Today";
         wrap.appendChild(badge);
       }
       frag.appendChild(tile);
@@ -1005,6 +1010,27 @@
     for (const a of albums) frag.appendChild(homeTile(a));
     homeUnplayed.appendChild(frag);
   }
+
+  /*
+   * Album of the day, in step on every device (v0.6.0-RC4): asked of the
+   * server every minute while Home is on screen, when you come back to the app
+   * or the tab, and with the rows. Played anywhere, it goes everywhere; at
+   * 00:01 the new one comes everywhere.
+   */
+  async function refreshAotd() {
+    if (!homeUnplayed || !homeRowOn("unplayed") || !rowHasContent(homeUnplayed)) return;
+    let aj = null;
+    try { aj = await (await fetch("/api/home/album-of-the-day", { cache: "no-store" })).json(); } catch (e) { return; }
+    const next = (aj && aj.album) || null;
+    const cur = shownUnplayed.aotd;
+    if ((next && next.offset) === (cur && cur.offset)) return;
+    renderHomeUnplayed(next, shownUnplayed.albums);
+    if (shownUnplayed.albums.length || next) saveHomeCache({ unplayed: { aotd: next, albums: shownUnplayed.albums, day: todayKey() } });
+  }
+  setInterval(() => {
+    if (document.visibilityState !== "visible" || !homeView || homeView.classList.contains("hidden")) return;
+    refreshAotd();
+  }, 60 * 1000);
 
   async function loadHomeUnplayed() {
     if (!homeUnplayed) return;
@@ -1019,7 +1045,7 @@
     const unplayedPromise = fetch("/api/home/unplayed?months=6&count=30");
     unplayedPromise.catch(() => {});   // handled at the await below — this just silences the pre-await rejection warning
     const aj = await aotdPromise;
-    const aotd = (aj && aj.album) ? Object.assign({}, aj.album, { _played: !!aj.played }) : null;   // non-fatal — just no album-of-the-day
+    const aotd = (aj && aj.album) ? aj.album : null;   // non-fatal — just no album-of-the-day
     try {
       const r = await unplayedPromise;
       if (r.status === 503) {
@@ -1990,7 +2016,12 @@
       const albums = (j && j.albums) || [];
       grid.innerHTML = "";
       if (!albums.length) {
-        setBanner("Nothing here yet — play some music and check back.", false);
+        // Six months of listening first (v0.6.0-RC4): before that, every album is "not played".
+        const when = j && j.no_history && j.ready_at
+          ? " — from " + new Date(j.ready_at).toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" }) : "";
+        setBanner(j && j.no_history
+          ? "Albums show here once Mandarin has six months of listening behind it" + when + "."
+          : "Nothing here yet — play some music and check back.", false);
         return;
       }
       setBanner(null);

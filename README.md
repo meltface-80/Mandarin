@@ -204,7 +204,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3500` | The web interface, the API, and where speakers fetch audio. |
-| `TZ` | UTC | Your time zone — Album of the day and Smart Picks change over at local midnight. |
+| `TZ` | UTC | Your time zone — Album of the day changes over at 00:01 and Smart Picks at local midnight. |
 | `SONOS_HOSTS` | — | A speaker's IP (comma-separated for several), for when multicast discovery is unreliable. One is enough. |
 | `UPNP_HOSTS` | — | UPnP/DLNA renderers to ask by address (an IP, or a description URL like `http://192.168.1.50:49152/description.xml`), for when multicast discovery misses them. |
 | `SERVER_IP` | auto | The address speakers should fetch audio from, for hosts with several network interfaces. |
