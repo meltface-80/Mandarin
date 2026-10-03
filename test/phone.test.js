@@ -197,6 +197,15 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal(cmd.dsp.enabled, true);
       assert.equal(cmd.dsp.peq.bands[0].freq, 100);
       seq = got.seq;
+      // Volume Levelling is the phone's own too (v0.6.0-RC7): the app is told, and the hello carries it.
+      assert.deepEqual(dev.levelling, { mode: "off", target: -14, unknown: -5 });
+      const lv = await phone("PATCH", "/api/audio-devices/" + zoneId, { levelling: { mode: "auto", target: -16 } });
+      assert.equal(lv.status, 200, JSON.stringify(lv));
+      const got2 = await phone("GET", `/api/phone/commands?after=${seq}`);
+      const rg = got2.commands.find(c => c.op === "replaygain");
+      assert.deepEqual(rg && rg.replaygain, { mode: "auto", target: -16, unknown: -5 }, JSON.stringify(got2));
+      seq = got2.seq;
+      assert.deepEqual((await phone("POST", "/api/phone/hello", { name: "Pixel 8" })).replaygain, { mode: "auto", target: -16, unknown: -5 });
       // And a fresh hello carries it too.
       assert.equal((await phone("POST", "/api/phone/hello", { name: "Pixel 8" })).dsp.peq.bands.length, 1);
       // Changed on the phone while offline: the hello brings it, and the server keeps it.

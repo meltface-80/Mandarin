@@ -301,7 +301,7 @@
      iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.6.0-RC6</span>
+    <span class="badge">v0.6.0-RC7</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -384,14 +384,13 @@
       <div class="card"><h3><span class="em">&#128193;</span>Music folders</h3>
         <p>Any number of folders the server can see, added in Settings and watched, so new and
            deleted albums show up by themselves.</p></div>
-      <div class="card"><h3><span class="em">&#127919;</span>Identify albums</h3>
-        <p>Identifiers in your files come first &mdash; MusicBrainz ID, barcode, catalogue number,
-           ISRC. Then a nightly MusicBrainz scan by tracks and lengths, with iTunes as a second
-           opinion. Files never touched.</p></div>
-      <div class="card"><h3><span class="em">&#128264;</span>ReplayGain</h3>
-        <p>Track, Album or Auto, from your files' ReplayGain tags, peaks respected. Files without
-           tags can be measured on the server. Applied on every device, the phone and its downloads
-           included.</p></div>
+      <div class="card"><h3><span class="em">&#127919;</span>Library Scanner</h3>
+        <p>Albums identified by their files' identifiers first &mdash; MusicBrainz ID, barcode,
+           catalogue number, ISRC &mdash; then MusicBrainz by tracks and lengths, iTunes as a second
+           opinion. ReplayGain measured for untagged files.</p></div>
+      <div class="card"><h3><span class="em">&#128264;</span>Volume Levelling</h3>
+        <p>ReplayGain set per device: Track, Album or Auto, a target from &minus;14 to &minus;25
+           LUFS, peaks respected. Sonos, renderers and the phone, downloads included.</p></div>
       <div class="card"><h3><span class="em">&#127911;</span>UPnP/DLNA renderers</h3>
         <p>A WiiM, a Chord Poly, a streamer, an AV receiver, a TV: found on the network, switched on
            when you say, gapless, with volume, radio and everything a room has.</p></div>

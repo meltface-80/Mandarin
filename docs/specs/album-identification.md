@@ -1,6 +1,6 @@
 # Album identification: fixing wrong artists, titles and track names from the library itself
 
-**Status: built in v0.5.8** (`lib/identify/`, Settings → Identify albums), with the
+**Status: built in v0.5.8** (`lib/identify/`, Settings → Identify albums; Settings → Library Scanner from v0.6.0-RC7), with the
 owner's changes to this plan: MusicBrainz only, **no AcoustID** (§7 is not built and not
 planned), and scheduling as one switch — on, a night window between the start and end times
 you set; off, the scan runs continuously — rather than the bursts in §6. Wikipedia tie-breaks
