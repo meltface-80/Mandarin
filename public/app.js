@@ -810,13 +810,30 @@
     // cache) is reused; after it, or if a load failed, both rows reload fresh.
     // The unplayed and random rows share one TTL, so mark it before the loop
     // rather than once per row.
-    if (!rowsTtlFresh()) homeRowsLoadedAt = Date.now();
+    refreshHomeRows();
+  }
+  // Decided BEFORE the clock is marked (v0.6.0-RC4): marking first made the
+  // unplayed row read as fresh, so once it held tiles it was never fetched
+  // again — a saved Home (yesterday's Album of the day, an offline session's
+  // list) stayed on screen for good, and the app and the browser drifted apart.
+  function refreshHomeRows() {
+    const ttlFresh = rowsTtlFresh();
+    if (!ttlFresh) homeRowsLoadedAt = Date.now();
     for (const row of HOME_ROWS) {
       if (!homeRowOn(row.id)) continue;   // off means the work does not run
-      if (row.isFresh()) continue;
+      if (row.id === "unplayed" ? ttlFresh : row.isFresh()) continue;
       row.load();
     }
+    // The row kept (within its few minutes): Album of the day is asked about all the same.
+    if (ttlFresh) refreshAotd();
   }
+  // Back to the app or the tab after a while (overnight, say): Home on screen
+  // catches up where it stands, without jumping to the top.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (!homeView || homeView.classList.contains("hidden")) return;
+    refreshHomeRows();
+  });
   // Shared freshness for the two rows that turn over on a clock rather than a
   // flag: recheck every 5 minutes, but only when they actually hold tiles.
   function rowsTtlFresh() {
@@ -882,6 +899,8 @@
   // cache (the server sends them immutable for a week), so it's a flash-free
   // repaint, not a reload. Bumped the key suffix if the cached shape changes.
   const HOME_CACHE_KEY = "rra-home-cache-v1";
+  // Album of the day's day: it turns over at 00:01, as on the server.
+  const todayKey = () => { const d = new Date(Date.now() - 60 * 1000); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   function saveHomeCache(patch) {
     // The app's own copy, offline (v0.5.58): what it shows is the phone's music,
     // which mustn't become the server's Home the next time it opens.
@@ -961,13 +980,15 @@
   }
 
   // Render helper shared by the live loader and the instant-open cache repaint.
+  // What the row shows now: Album of the day is checked on its own every
+  // minute (refreshAotd) and the row redrawn only when it changes.
+  let shownUnplayed = { aotd: null, albums: [] };
   function renderHomeUnplayed(aotd, albums) {
     albums = albums || [];
+    shownUnplayed = { aotd: aotd || null, albums };
     homeUnplayed.innerHTML = "";
-    if (!albums.length && !aotd) {
-      homeUnplayed.innerHTML = '<div class="home-carousel-empty">Nothing here yet — play some music and check back.</div>';
-      return;
-    }
+    // Nothing to offer (the first six months, Album of the day played): the
+    // row keeps Play something unheard, which always has something.
     const frag = document.createDocumentFragment();
     // "Play something unheard" leads the row it belongs to: this carousel IS
     // the unheard albums, so the action and the row mean the same thing, and
@@ -989,6 +1010,27 @@
     for (const a of albums) frag.appendChild(homeTile(a));
     homeUnplayed.appendChild(frag);
   }
+
+  /*
+   * Album of the day, in step on every device (v0.6.0-RC4): asked of the
+   * server every minute while Home is on screen, when you come back to the app
+   * or the tab, and with the rows. Played anywhere, it goes everywhere; at
+   * 00:01 the new one comes everywhere.
+   */
+  async function refreshAotd() {
+    if (!homeUnplayed || !homeRowOn("unplayed") || !rowHasContent(homeUnplayed)) return;
+    let aj = null;
+    try { aj = await (await fetch("/api/home/album-of-the-day", { cache: "no-store" })).json(); } catch (e) { return; }
+    const next = (aj && aj.album) || null;
+    const cur = shownUnplayed.aotd;
+    if ((next && next.offset) === (cur && cur.offset)) return;
+    renderHomeUnplayed(next, shownUnplayed.albums);
+    if (shownUnplayed.albums.length || next) saveHomeCache({ unplayed: { aotd: next, albums: shownUnplayed.albums, day: todayKey() } });
+  }
+  setInterval(() => {
+    if (document.visibilityState !== "visible" || !homeView || homeView.classList.contains("hidden")) return;
+    refreshAotd();
+  }, 60 * 1000);
 
   async function loadHomeUnplayed() {
     if (!homeUnplayed) return;
@@ -1018,7 +1060,7 @@
       // empty response can't be cached and shown as "Nothing here yet" next
       // open. Timestamp is per-row so a stale sibling can't ride a fresh one's
       // freshness (see hydrateHomeFromCache).
-      if (albums.length || aotd) saveHomeCache({ unplayed: { aotd, albums }, unplayedAt: Date.now() });
+      if (albums.length || aotd) saveHomeCache({ unplayed: { aotd, albums, day: todayKey() }, unplayedAt: Date.now() });
     } catch (e) {
       if (!rowHasContent(homeUnplayed)) homeUnplayed.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
       homeRowsLoadedAt = 0;   // retry on the next Home visit
@@ -1974,7 +2016,12 @@
       const albums = (j && j.albums) || [];
       grid.innerHTML = "";
       if (!albums.length) {
-        setBanner("Nothing here yet — play some music and check back.", false);
+        // Six months of listening first (v0.6.0-RC4): before that, every album is "not played".
+        const when = j && j.no_history && j.ready_at
+          ? " — from " + new Date(j.ready_at).toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" }) : "";
+        setBanner(j && j.no_history
+          ? "Albums show here once Mandarin has six months of listening behind it" + when + "."
+          : "Nothing here yet — play some music and check back.", false);
         return;
       }
       setBanner(null);
@@ -5155,7 +5202,8 @@
     // reordering is a visible flash on every cold open.
     applyHomeLayout();
     let painted = false;
-    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.aotd, c.unplayed.albums); painted = rowHasContent(homeUnplayed) || painted; }
+    // Album of the day only on its own day: a saved one from yesterday isn't painted.
+    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.day === todayKey() ? c.unplayed.aotd : null, c.unplayed.albums); painted = rowHasContent(homeUnplayed) || painted; }
     if (c.random   && homeRandom)   { renderHomeRandom(c.random);                              painted = rowHasContent(homeRandom)   || painted; }
     // Only when it was cached in the order that is current NOW. The other rows
     // hydrate stale-then-revalidate, but "stale" here means the wrong ORDER —
@@ -11285,7 +11333,21 @@
     //
     // Narrowed to STANDALONE rather than to iOS: in Safari proper the tab is
     // still there to return from, and on every other platform it works.
-    if (!iosStandalone()) {
+    // In the Android app (v0.6.0-RC4): a download link does nothing in its
+    // WebView, so the app saves the card itself — to Pictures/Mandarin.
+    const app = window.MusicDShare;
+    if (app && typeof app.saveImage === "function") {
+      const b = mkBtn("ghost", icon("download"), "Download");
+      b.onclick = async () => {
+        try {
+          const url = await blobToDataUrl(blob);
+          const ok = app.saveImage(String(url).slice(String(url).indexOf(",") + 1), fileName, "image/png");
+          setLabel(b, ok ? "Saved to Pictures" : "Couldn’t save");
+          setTimeout(() => setLabel(b, "Download"), 2500);
+        } catch (e) { errEl.textContent = e.message || String(e); }
+      };
+      actions.appendChild(b);
+    } else if (!iosStandalone()) {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = fileName;
