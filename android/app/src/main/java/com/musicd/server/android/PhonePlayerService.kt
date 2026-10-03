@@ -692,15 +692,15 @@ class PhonePlayerService : MediaLibraryService() {
     private fun gainAt(i: Int): Double? {
         if (i < 0 || i >= player.mediaItemCount) return null
         val x = player.getMediaItemAt(i).mediaMetadata.extras ?: return null
-        if (x.containsKey("gain_db")) return x.getDouble("gain_db")
-        val rg = x.getString("rg") ?: return null
+        if (x.getBoolean("gain_set", false)) return if (x.containsKey("gain_db")) x.getDouble("gain_db") else null
         val s = Store.replayGain(this)
         if (!s.on) return null
+        val rg = x.getString("rg")
         val album = x.getInt(EXTRA_ALBUM, -1)
         fun same(j: Int) = j >= 0 && j < player.mediaItemCount && album > 0 &&
             player.getMediaItemAt(j).mediaMetadata.extras?.getInt(EXTRA_ALBUM, -1) == album
         val kind = ReplayGain.kindFor(s.mode, player.shuffleModeEnabled, same(i - 1) || same(i + 1))
-        return ReplayGain.gainDb(ReplayGain.Info.parse(runCatching { JSONObject(rg) }.getOrNull()), kind, s.preamp)
+        return ReplayGain.gainDb(rg?.let { r -> ReplayGain.Info.parse(runCatching { JSONObject(r) }.getOrNull()) }, kind, s.offset, s.unknown)
     }
 
     /** The track heard now, and the one after: their gains to the engine. */
@@ -870,6 +870,8 @@ class PhonePlayerService : MediaLibraryService() {
                 it.trackId?.let { id -> putLong("track_id", id) }
                 putDouble("duration", it.durationSeconds)
                 // ReplayGain as the server worked it out (v0.6.0-RC5).
+                // (None from the server is none: it already knew this phone's setting.)
+                putBoolean("gain_set", true)
                 it.gainDb?.let { g -> putDouble("gain_db", g) }
             })
             .build()

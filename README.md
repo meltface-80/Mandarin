@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC6
+# Mandarin — v0.6.0-RC7
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -45,10 +45,10 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
   database; your files stay exactly as they are.
 * **Every tag kept** — all of each file's tags and identifiers are read into the server's
   database, and used to identify albums.
-* **Identify albums** — identifiers in the files first (MusicBrainz ID, barcode, catalogue number,
-  ISRC), then a nightly MusicBrainz scan by tracks and lengths, with iTunes as a second opinion.
-* **ReplayGain** — Track, Album or Auto from the files' tags, peaks respected; files without tags
-  measured on the server. Applied on every device, the phone included.
+* **Library Scanner** — albums identified by their files' identifiers first, then MusicBrainz by
+  tracks and lengths, with iTunes as a second opinion; ReplayGain measured for untagged files.
+* **Volume Levelling** — ReplayGain per device: Track, Album or Auto, a target from −14 to −25
+  LUFS, peaks respected. On every kind of device, the phone included.
 * **Now playing** — a waveform seek bar drawn from the audio, the queue, history, and a badge
   saying what the device is being sent.
 * **Share card** — the record as an image, where to hear it, where to read about it, and three
@@ -351,11 +351,11 @@ token. What's found is kept by the album's identity, so a library rebuild keeps 
 asked about again after a month, or at once with Force rescan. The files' own tag always
 wins, and the scan log (on the Labels screen) says what each lookup found.
 
-## Identify albums
+## Library Scanner
 
 Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
-isn't one, a blank, a typo — or with track titles like `Track 01`. Settings →
-**Identify albums** is a scan that finds each album's right names on
+isn't one, a blank, a typo — or with track titles like `Track 01`. Settings → **Library
+Scanner** (under Music Folders) holds **Identify albums**, a scan that finds each album's right names on
 [MusicBrainz](https://musicbrainz.org) (no key: the app names itself and asks at most once a
 second) from what the files already say: the title, the track count, the artist where the tag
 can be trusted, and each track's title and **length** — twelve tracks that match a release to
@@ -394,23 +394,30 @@ isn't being scanned, about twelve albums a minute, until every album has been lo
 albums are checked as they arrive. The design is in
 [docs/specs/album-identification.md](docs/specs/album-identification.md).
 
-## Loudness (ReplayGain)
+## Volume Levelling
 
-Settings → **Loudness** plays one record after another at an even level. **ReplayGain** is Off,
-**Track** (each track at the same level), **Album** (each record at the same level, its quiet and
-loud songs as they were made) or **Auto** — Album while a record plays in order, Track when tracks
-from different records follow one another: a shuffle, a playlist, radio. The gains are the files'
-own ReplayGain tags (`REPLAYGAIN_TRACK_GAIN`, `REPLAYGAIN_ALBUM_GAIN` and their peaks, or Opus's
-R128 gains); a track's peak caps its gain so it is never turned up into clipping. **Pre-amp**
-shifts every gain by up to ±12 dB.
+Each device has its own **Volume levelling** (Settings → Audio Devices → the device, above DSP):
+Off, **Track** (each track at the same level), **Album** (each record at the same level, its quiet
+and loud songs as they were made) or **Auto** — Album while a record plays in order, Track when
+tracks from different records follow one another: a shuffle, a playlist, radio. With it on, two
+more settings show:
 
-**Measure loudness** fills in files without ReplayGain tags: the server measures each one (EBU
-R128 integrated loudness and true peak, with ffmpeg) one file at a time in the background, and
-works out an album's gain once all of its tracks are known. The files are never changed.
+* **Target volume level** — −14 LUFS (the default) down to −25 LUFS.
+* **Volume adjustment when loudness is unknown** — 0 to −12 dB (−5 by default), for a track with
+  no ReplayGain tags that hasn't been measured.
 
-On Sonos and UPnP/DLNA renderers the gain goes into the stream: the track is converted to FLAC at
-its own rate with the gain applied. The Android app applies the gain itself, to streams and
-downloads alike. A change applies to what you play next.
+The gains are the files' own ReplayGain tags (`REPLAYGAIN_TRACK_GAIN`, `REPLAYGAIN_ALBUM_GAIN` and
+their peaks, or Opus's R128 gains); a track's peak caps its gain so it is never turned up into
+clipping. On Sonos rooms and UPnP/DLNA renderers the gain goes into the stream: the track is sent
+as FLAC at its own rate with the gain applied. The Android app applies its own setting itself, to
+streams and downloads alike. A change applies to what you play next.
+
+**Measure ReplayGain** (Settings → Library Scanner) fills in files without ReplayGain tags: the
+server measures each one (EBU R128 integrated loudness and true peak, with ffmpeg) one file at a
+time in the background, and works out an album's gain once all of its tracks are known. The files
+are never changed.
+
+Every setting's longer explanation sits behind the ⓘ after its name.
 
 ## Audio Devices
 

@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC7
+- **Volume Levelling, per device.** ReplayGain is now set on each device's own page (Settings →
+  Audio Devices → the device, above DSP) rather than once for everything: Off, Track, Album or
+  Auto. With it on, a **Target volume level** from −14 LUFS (the default) to −25 LUFS replaces
+  the pre-amp, and **Volume adjustment when loudness is unknown** (0 to −12 dB, −5 by default)
+  sets the level of a track with no ReplayGain tags. A phone's setting goes to the app, for its
+  downloads too. Every device starts Off; the old Settings → Loudness page is gone.
+- **Library Scanner.** Identify albums is renamed Library Scanner and sits under Music Folders.
+  It holds **Measure ReplayGain** (what was Measure loudness), under Ask iTunes.
+- **Help behind ⓘ.** Longer explanations on the settings pages — Library Scanner, Audio Devices,
+  Downloads, Away from home — now open from an ⓘ after the setting's name, as Smart Picks' do,
+  with a short line left under each. The ⓘ is the size of the name it follows.
+
 ## v0.6.0-RC6
 - **Moving the music to another zone works.** Choosing another zone while something plays asks
   whether to move it there; Yes did nothing, because the page and the server named the two

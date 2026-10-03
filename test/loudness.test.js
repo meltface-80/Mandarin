@@ -47,9 +47,24 @@ test("which gain, and the peak's cap", () => {
   assert.equal(l.gainOf({ track_gain: -6, track_peak: 0.5, album_gain: null }, "album"), -6);
   // +10 dB asked, but the peak at 0.5 leaves room for 6.0 only.
   assert.equal(l.gainOf({ track_gain: 10, track_peak: 0.5 }, "track"), 6);
-  assert.equal(l.gainOf({ track_gain: -6, track_peak: 0.5 }, "track", 2), -4);                   // pre-amp
+  // A -14 LUFS target is 4 dB above ReplayGain's -18; -25 is 7 below.
+  assert.equal(l.gainOf({ track_gain: -6, track_peak: 0.5 }, "track", 4), -2);
+  assert.equal(l.gainOf({ track_gain: -6, track_peak: 0.5 }, "track", -7), -13);
   assert.equal(l.gainOf({ track_gain: null, album_gain: null }, "track"), null);
+  // Loudness unknown: the fixed adjustment.
+  assert.equal(l.gainOf({ track_gain: null, album_gain: null }, "track", 4, -5), -5);
   assert.equal(l.gainOf({ track_gain: 0.02 }, "track"), null);                                     // nothing to do
+});
+
+test("a device's Volume Levelling: checked, with its defaults", () => {
+  const { levelling, levellingPatch } = require("../lib/loudness");
+  assert.deepEqual(levelling(null), { mode: "off", target: -14, unknown: -5 });
+  assert.deepEqual(levelling({ mode: "auto", target: -30, unknown: 3 }), { mode: "auto", target: -14, unknown: -5 });
+  assert.deepEqual(levellingPatch(null, { mode: "album", target: -20 }), { mode: "album", target: -20, unknown: -5 });
+  assert.throws(() => levellingPatch(null, { target: -13 }), e => e.status === 400);
+  assert.throws(() => levellingPatch(null, { target: -26 }), e => e.status === 400);
+  assert.throws(() => levellingPatch(null, { unknown: 2 }), e => e.status === 400);
+  assert.throws(() => levellingPatch(null, { mode: "loud" }), e => e.status === 400);
 });
 
 test("the plan: a gain means a conversion, never on DSD sent as DSD", () => {
@@ -81,10 +96,13 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, loudnessTickMs: 100 });
   const ctx = await srv.start();
   const token = await signIn(B);
-  const api = async (p, body) => {
-    const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+  const api = async (p, body, method) => {
+    const r = await fetch(B + "/api/" + p, body ? { method: method || "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
+  // Two Sonos rooms in the register, each with its own Volume Levelling.
+  for (const id of ["RINCON_X", "RINCON_Y"]) ctx.devices.registry.seen({ id, kind: "sonos", network_name: id, model: "Five" });
+  const level = (id, lv) => api("audio-devices/" + id, { levelling: lv }, "PATCH");
   try {
     await until(async () => (await api("status")).index_count === 4);
     const al = ctx.library.albums.find(a => a.title === "Loud Record");
@@ -93,26 +111,36 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
     assert.deepEqual(tracks.map(t => t.rg_album_gain), [-7, -7]);
 
     // Off by default: every file goes as it is.
-    let r = await api("loudness");
-    assert.equal(r.settings.mode, "off");
+    let r = await api("audio-devices/RINCON_X");
+    assert.deepEqual(r.levelling, { mode: "off", target: -14, unknown: -5 });
+    r = await api("loudness");
     assert.equal(r.settings.measure, false);
     assert.ok(!ctx.playback.itemsFor("RINCON_X", tracks)[0].uri.includes("g="));
 
     // Track: each its own; Album: the record's; Auto: the record's in order, each its own shuffled.
-    const gains = (opts) => ctx.loudness.gainsFor(tracks, opts);
-    await api("loudness", { mode: "track" });
+    // At -18 LUFS the gains are the tags' own.
+    const gains = (opts) => ctx.loudness.gainsFor(tracks, Object.assign({ levelling: ctx.devices.levellingFor("RINCON_X") }, opts));
+    r = await level("RINCON_X", { mode: "track", target: -18 });
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.deepEqual(r.levelling, { mode: "track", target: -18, unknown: -5 });
     assert.deepEqual(gains(), [-6, -8]);
-    await api("loudness", { mode: "album" });
+    await level("RINCON_X", { mode: "album" });
     assert.deepEqual(gains(), [-7, -7]);
-    await api("loudness", { mode: "auto" });
+    await level("RINCON_X", { mode: "auto" });
     assert.deepEqual(gains(), [-7, -7]);
     assert.deepEqual(gains({ shuffled: true }), [-6, -8]);
-    assert.deepEqual(ctx.loudness.gainsFor([tracks[0]]), [-6]);           // alone: its own
-    assert.equal((await api("loudness", { mode: "loud" })).status, 400);
-    assert.equal((await api("loudness", { preamp: 40 })).status, 400);
+    assert.deepEqual(ctx.loudness.gainsFor([tracks[0]], { levelling: ctx.devices.levellingFor("RINCON_X") }), [-6]);   // alone: its own
+    // The target moves them: -14 LUFS is 4 dB up (the peaks allow it here).
+    await level("RINCON_X", { mode: "track", target: -14 });
+    assert.deepEqual(gains(), [-2, -4]);
+    assert.equal((await level("RINCON_X", { mode: "loud" })).status, 400);
+    assert.equal((await level("RINCON_X", { target: -10 })).status, 400);
+    // The other room is untouched: each device is its own.
+    assert.equal(ctx.devices.levellingFor("RINCON_Y").mode, "off");
+    assert.ok(!ctx.playback.itemsFor("RINCON_Y", tracks)[0].uri.includes("g="));
 
     // Sonos is handed a conversion with the gain in it, and the stream is that much quieter.
-    await api("loudness", { mode: "track" });
+    await level("RINCON_X", { mode: "track", target: -18 });
     const it = ctx.playback.itemsFor("RINCON_X", tracks)[0];
     assert.match(it.uri, /\/stream\/t\d+\.flac\?g=-6/);
     assert.equal(it.plan.bits, 24);

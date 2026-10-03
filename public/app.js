@@ -7050,7 +7050,7 @@
       }
       const done = (j.applied || []).find(x => x.album && x.album.offset === mine.album.offset);
       const c = done && done.candidate;
-      ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + c.year + ")" : ""}. Undo is under Settings → Identify albums.` : "<strong>Matched.</strong>";
+      ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + c.year + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
       ae.mCands.querySelectorAll(".ae-mcand").forEach(x => x.classList.toggle("is-picked", x === btn));
       showToast("Matched — names applied");
     } catch (e) {
@@ -10600,6 +10600,13 @@
 /* ------------------------------------------------------------------ */
 /*  Settings info-icon toasts                                         */
 /* ------------------------------------------------------------------ */
+/* An ⓘ after a setting's name: its help, shown when tapped (v0.6.0-RC7 puts
+ * every longer explanation behind one, as Smart Picks and the rest had). */
+function settingsInfo(text) {
+  const t = String(text == null ? "" : text).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return ' <button class="settings-info-btn" type="button" data-info="' + t + '" aria-label="Info">ⓘ</button>';
+}
+
 (() => {
   let toast = null;
   let dismissTimer = null;
@@ -15207,40 +15214,39 @@ initServiceBrowser({
         '<div class="settings-divider"></div>' : "") +
 
       '<div class="settings-block"><div class="settings-subhead">Downloading</div>' +
-        row("Quality", select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
-        '<div class="settings-note">Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a tenth of the size. You can choose each time.</div>' +
-        row("Save to", select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
+        row("Quality" + settingsInfo("Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a tenth of the size. You can choose each time."),
+          select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
+        row("Save to" + settingsInfo("Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again."), select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
         downloadFolderRow(s) +
         folderPlaceNote(s, places) +
         row("Size limit", select("limitGb", [0, 8, 16, 32, 64, 128, 256].map(g => [g, g ? g + " GB" : "No limit"]), s.limitGb)) +
         row("Wi-Fi only", toggle("wifiOnly", s.wifiOnly)) +
-        '<div class="settings-note">Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again.</div>' +
       "</div>" +
       '<div class="settings-divider"></div>' +
 
       ("awayQuality" in s ?
         '<div class="settings-block"><div class="settings-subhead">Playing away from home</div>' +
-          row("Stream as", select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
-          '<div class="settings-note">Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a tenth of the data; Original sends the files as they are. At home it’s always the original.</div>' +
+          row("Stream as" + settingsInfo("Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a tenth of the data; Original sends the files as they are."),
+            select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
+          '<div class="settings-note">At home it’s always the original.</div>' +
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
       ("cacheWifi" in s && s.cacheChoices ?
-        '<div class="settings-block"><div class="settings-subhead">Cached ahead</div>' +
+        '<div class="settings-block"><div class="settings-subhead">Cached ahead' + settingsInfo("Playing on this phone: the next tracks in the queue are kept on the phone ahead of time, so they play without the network — through a dead spot, or on mobile data without using any. On mobile data " + s.cacheMobile + " tracks is about " + Math.round(s.cacheMobile * 9) + " MB as Opus 256. Tracks stay until the space is needed, so one played again is already here.") + "</div>" +
           row("On Wi-Fi", select("cacheWifi", s.cacheChoices.wifi.map(n => [n, n + " tracks"]), s.cacheWifi)) +
           row("On mobile data", select("cacheMobile", s.cacheChoices.mobile.map(n => [n, n + " tracks"]), s.cacheMobile)) +
           row("Cache size", select("cacheGb", s.cacheChoices.gb.map(g => [g, g + " GB"]), s.cacheGb)) +
-          '<div class="settings-note">Playing on this phone: the next tracks in the queue are kept on the phone ahead of time, so they play without the network — through a dead spot, or on mobile data without using any. On mobile data ' + s.cacheMobile + ' tracks is about ' + Math.round(s.cacheMobile * 9) + ' MB as Opus 256. Tracks stay until the space is needed, so one played again is already here.</div>' +
           '<div class="settings-row"><span class="settings-label dl-cache-status" id="dl-cache-status">…</span>' +
             '<button type="button" class="settings-update-btn" data-dl-clear-cache>Clear cache</button></div>' +
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
-      '<div class="settings-block"><div class="settings-subhead">Automatic downloads</div>' +
+      '<div class="settings-block"><div class="settings-subhead">Automatic downloads' + settingsInfo("Kept on the phone by themselves, in the quality above, and removed again when they drop off the list. Albums you download yourself are never removed.") + "</div>" +
         row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
         row("Album of the day", toggle("autoAotd", s.autoAotd)) +
         row("Recently added", select("autoRecent", [0, 5, 10, 20, 30].map(n => [n, n ? "The newest " + n : "Off"]), s.autoRecent)) +
-        '<div class="settings-note">Kept on the phone by themselves, in the quality above, and removed again when they drop off the list. Albums you download yourself are never removed.</div>' +
+        '<div class="settings-note">Removed again when they drop off the list.</div>' +
       "</div>";
 
     paintCacheStatus();
@@ -15293,11 +15299,11 @@ initServiceBrowser({
   window.__localFolderBlock = function localFolderBlock() {
     let info = null;
     try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
-    let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone</div>';
+    let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone' + settingsInfo("Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.") + "</div>";
     if (!info) {
       html += '<div class="settings-row"><span class="settings-label">No folder chosen</span>' +
         '<button type="button" class="settings-update-btn" data-local-choose>Choose a folder</button></div>' +
-        '<div class="settings-note">Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is watched: music added or taken away shows up or goes by itself.</div>';
+        '<div class="settings-note">Music already on the phone, in a folder you choose.</div>';
     } else {
       const when = info.scanned_at ? new Date(info.scanned_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "never";
       const sub = info.scanning ? "Reading the folder…"
@@ -15309,8 +15315,7 @@ initServiceBrowser({
         '<div class="dl-toolbar" style="justify-content:flex-start;margin-top:10px">' +
           '<button type="button" class="settings-update-btn" data-local-rescan' + (info.scanning ? " disabled" : "") + ">Read again</button>" +
           '<button type="button" class="settings-update-btn" data-local-choose>Change folder</button>' +
-          '<button type="button" class="settings-update-btn" data-local-forget>Forget</button></div>' +
-        '<div class="settings-note">The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.</div>';
+          '<button type="button" class="settings-update-btn" data-local-forget>Forget</button></div>';
     }
     return html + "</div>";
   };
@@ -15466,9 +15471,9 @@ initServiceBrowser({
     const blk = document.createElement("div");
     blk.className = "settings-block away-phone";
     blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead">This phone</div>' +
-      '<div class="settings-row"><span class="settings-label">Tailscale on this phone</span>' +
+      '<div class="settings-row"><span class="settings-label">Tailscale on this phone' + settingsInfo("The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.") + "</span>" +
       '<button type="button" class="settings-update-btn">Tailscale</button></div>' +
-      '<div class="settings-note">The app has its own Tailscale too — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.</div>';
+      '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
     blk.querySelector("button").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
     awayPane.appendChild(blk);
   }
@@ -15807,11 +15812,11 @@ initServiceBrowser({
     }
     // A phone others at home may play to (v0.5.51).
     if (d.kind === "phone" && d.shared !== undefined) {
-      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">Other devices can play here</span>' +
+      html += '<div class="settings-block"><div class="settings-row"><span class="settings-label">Other devices can play here' + settingsInfo("At home, your other devices list this phone as a player while the Mandarin app is running on it, and can play to it and change its volume. Away from home it plays for itself only.") + "</span>" +
         '<label class="switch"><input type="checkbox" data-dev-shared="' + esc(d.id) + '"' + (d.shared ? " checked" : "") + ' aria-label="Other devices can play here">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
         '<div class="settings-note">' + (d.shared
-          ? "On. At home, your other devices list this phone as a player while the Mandarin app is running on it, and can play to it and change its volume. Away from home it plays for itself only."
+          ? "On. Your other devices at home can play here."
           : "Off. Only this phone plays to itself.") + "</div></div><div class=\"settings-divider\"></div>";
     }
     html += '<div class="settings-block"><div class="settings-block-title">Name</div>';
@@ -15872,15 +15877,14 @@ initServiceBrowser({
         if (o.mode === "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is.";
         return "A 16-bit/44.1 kHz file plays as " + outBits + "-bit/" + (rate / 1000) + " kHz FLAC" + (rate === 176400 ? " (×4)" : rate === 88200 ? " (×2)" : "") + ".";
       })();
-      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Output</div>' +
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Output' + settingsInfo("Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " + (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ".") + "</div>" +
         '<div class="cap-group"><span class="cap-label">Mode</span>' +
         seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
         (has32 ? '<div class="cap-group"><span class="cap-label">Bit depth</span>' +
           seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
           "" +
           (!o.flac32 ? '<div class="settings-note">32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
-        '<div class="settings-note">' + esc(example) + " Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
-        (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ". Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes.</div>" +
+        '<div class="settings-note">' + esc(example) + "</div>" +
         (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label">Fixed volume</span>' +
           '<label class="switch"><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
           '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
@@ -15889,6 +15893,7 @@ initServiceBrowser({
             : "Mandarin’s slider and mute drive the device. Turn on if the device’s volume is fixed — a WiiM on fixed line out, a Poly feeding a Mojo.") + "</div>" : "") +
         "</div>";
     }
+    if (d.levelling) html += renderLevelling(d);
     if ((d.kind === "upnp" || d.kind === "phone") && d.dsp) html += renderDsp(d);
     if (d.kind === "phone" && isThisPhone(d)) html += renderUsb();
     if (!d.online) {
@@ -15899,6 +15904,33 @@ initServiceBrowser({
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     body.innerHTML = html;
     drawDsp();
+  }
+
+  /*
+   * Volume Levelling (v0.6.0-RC7): ReplayGain for this device — Off, Track,
+   * Album or Auto; with it on, the target level and the adjustment for a
+   * track whose loudness isn't known. Saved as soon as it's chosen.
+   */
+  const LV_MODES = [["off", "Off"], ["track", "Track"], ["album", "Album"], ["auto", "Auto"]];
+  const infoBtn = t => ' <button class="settings-info-btn" type="button" data-info="' + esc(t) + '" aria-label="Info">ⓘ</button>';
+  function renderLevelling(d) {
+    const lv = d.levelling;
+    const sel = (key, opts, cur) => '<div class="settings-select-wrap"><select class="settings-select" data-lv="' + key + '"' + (busy ? " disabled" : "") + ">" +
+      opts.map(([v, label]) => '<option value="' + v + '"' + (String(v) === String(cur) ? " selected" : "") + ">" + esc(label) + "</option>").join("") + "</select></div>";
+    const where = d.kind === "phone" ? "The app applies the gain itself, to streams and downloads alike."
+      : "The gain goes into the stream: each track is sent as FLAC with it applied. Off sends every file as it is.";
+    let html = '<div class="settings-divider"></div><div class="settings-block">' +
+      '<div class="settings-row"><span class="settings-label">Volume levelling' + infoBtn("ReplayGain. Track plays every track at the same level. Album plays every record at the same level, its quiet and loud songs as they were made. Auto is Album while a record plays in order and Track when tracks from different records follow one another — a shuffle, a playlist, radio. Gains come from the files’ ReplayGain tags, or from Measure ReplayGain (Settings → Library Scanner); a track’s peak keeps it from being turned up into clipping. " + where + " A change applies to what you play next.") +
+      "</span>" + sel("mode", LV_MODES, lv.mode) + "</div>";
+    if (lv.mode !== "off") {
+      const targets = [];
+      for (let n = -14; n >= -25; n--) targets.push([n, n + " LUFS" + (n === -14 ? " (Default)" : "")]);
+      const unknown = [];
+      for (let n = 0; n >= -12; n--) unknown.push([n, n + " dB" + (n === -5 ? " (Default)" : "")]);
+      html += '<div class="settings-row"><span class="settings-label">Target volume level' + infoBtn("How loud every track is brought to. −14 LUFS is about the level streaming services play at; lower numbers play quieter and leave more room for loud peaks.") + "</span>" + sel("target", targets, lv.target) + "</div>" +
+        '<div class="settings-row"><span class="settings-label">Volume adjustment when loudness is unknown' + infoBtn("For a track with no ReplayGain tags that hasn’t been measured: a fixed change instead, so it doesn’t jump out louder than the levelled tracks around it.") + "</span>" + sel("unknown", unknown, lv.unknown) + "</div>";
+    }
+    return html + "</div>";
   }
 
   /*
@@ -15939,11 +15971,11 @@ initServiceBrowser({
     html += '<div class="cap-group"><span class="cap-label">Volume</span><div class="dev-v">' + (i.volume_control ? "The DAC has a USB volume control" : "No USB volume control (fixed at full)") + "</div></div>";
     if (i.current_rate) html += '<div class="cap-group"><span class="cap-label">Clock now</span><div class="dev-v">' + esc(fmtRate(i.current_rate)) + " kHz</div></div>";
     const st = u.stream;
-    html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">USB direct</span>' +
+    html += '<div class="settings-row" style="margin-top:14px"><span class="settings-label">USB direct' + settingsInfo("The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before. Off, the phone plays through Android’s mixer, at the mixer’s rate.") + "</span>" +
       '<label class="switch"><input type="checkbox" data-usb-direct' + (u.direct ? " checked" : "") + ' aria-label="USB direct">' +
       '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
       '<div class="settings-note">' + (u.direct
-        ? "On. The app plays through its own USB driver: the DAC is fed the track at its own rate and the DAC’s depth, Android’s mixer out of the way — bit-perfect with the DSP off. A rate the DAC doesn’t take goes through Android as before."
+        ? "On. Through the app’s own USB driver, at the track’s own rate."
         : "Off. The phone plays through Android’s mixer, at the mixer’s rate.") + "</div>";
     if (u.direct) {
       const fixed = !!u.fixed;
@@ -16003,14 +16035,12 @@ initServiceBrowser({
     const peak = B ? B.peakDb(allBands(dr), 48000) : 0;
     const auto = autoHeadroom(dr);
     let html = '<div class="settings-divider"></div><div class="settings-block" data-dsp-block>' +
-      '<div class="settings-row"><span class="settings-label">DSP</span>' +
+      '<div class="settings-row"><span class="settings-label">DSP' + settingsInfo(d.kind === "phone"
+        ? "The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
+        : "Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (d.output && d.output.flac32 && d.bits.some(b => b.n === 32 && b.on) && d.output.bits !== 24 ? "32" : "24") + " bits. Off, the device gets the file as stored (or the conversion the Output settings ask for).") + "</span>" +
       '<label class="switch"><input type="checkbox" data-dsp-on' + (on ? " checked" : "") + ' aria-label="DSP"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
-      '<div class="settings-note">' + (d.kind === "phone"
-        ? (on ? "On. The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
-             : "Off. The app plays what it is given as it is.")
-        : on
-        ? "On. Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (d.output && d.output.flac32 && d.bits.some(b => b.n === 32 && b.on) && d.output.bits !== 24 ? "32" : "24") + " bits."
-        : "Off. The device gets the file as stored (or the conversion the Output settings ask for).") + "</div>";
+      '<div class="settings-note">' + (on ? "On. A headphone profile and up to ten bands, on everything it plays."
+        : d.kind === "phone" ? "Off. The app plays what it is given as it is." : "Off. The device gets the file as stored.") + "</div>";
     html += renderHeadphones(dr);
     html += '<div class="cap-group"><span class="cap-label">Parametric EQ · ' + dr.bands.length + ' of 10 bands</span>' +
       '<canvas class="dsp-curve" data-dsp-curve height="150" aria-label="The bands’ response"></canvas>';
@@ -16305,6 +16335,13 @@ initServiceBrowser({
     if (udsd) { try { USB.setDsdMode(udsd.value); renderDetail(true); } catch (x) { toast(x.message, "error"); } return; }
     const dspOn = e.target.closest("[data-dsp-on]");
     if (dspOn) return saveDsp(dspOn.checked);
+    const lv = e.target.closest("select[data-lv]");
+    if (lv) {
+      const key = lv.getAttribute("data-lv");
+      await patch({ levelling: { [key]: key === "mode" ? lv.value : Number(lv.value) } });
+      if (!err && key === "mode") toast("Volume levelling: " + (LV_MODES.find(m => m[0] === lv.value) || [, ""])[1]);
+      return;
+    }
     const bandType = e.target.closest("select[data-dsp-f='type']");
     if (bandType) {
       const dr = dspOf(current);
@@ -16365,9 +16402,10 @@ initServiceBrowser({
   }, 10000);
 })();
 
-/* Settings → Identify albums: the scan's switch and its night window,
- * how far it has got, what it proposes, what it applied (undo), what it
- * couldn't place (edit by hand). */
+/* Settings → Library Scanner (v0.6.0-RC7; "Identify albums" before): the
+ * identification scan's switch and its night window, how far it has got, what
+ * it proposes, what it applied (undo), what it couldn't place (edit by hand)
+ * — and Measure ReplayGain, the loudness of files without ReplayGain tags. */
 (function initIdentifyPane() {
   const body = document.getElementById("identify-pane-body");
   const pane = document.querySelector('.settings-pane[data-pane="identify"]');
@@ -16377,7 +16415,7 @@ initServiceBrowser({
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
   const num = n => Number(n || 0).toLocaleString();
   const SHOW = 60;
-  let st = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+  let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
   let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
 
   async function api(url, payload) {
@@ -16388,7 +16426,17 @@ initServiceBrowser({
   }
   async function load() {
     if (busy) return;
-    try { st = await api("/api/identify"); err = ""; } catch (e) { err = e.message; }
+    try {
+      const [a, b] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null)]);
+      st = a; loud = b; err = "";
+    } catch (e) { err = e.message; }
+    render();
+  }
+  async function setMeasure(on) {
+    if (busy) return;
+    busy = true;
+    try { loud = await api("/api/loudness", { measure: on }); err = ""; } catch (e) { err = e.message; }
+    busy = false;
     render();
   }
   async function act(url, payload, done) {
@@ -16403,6 +16451,8 @@ initServiceBrowser({
   const sw = (attr, on, label) => '<label class="switch"><input type="checkbox" ' + attr + (on ? " checked" : "") + (busy ? " disabled" : "") +
     ' aria-label="' + esc(label) + '"><span class="switch-track"><span class="switch-thumb"></span></span></label>';
   const row = (label, right) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + right + "</div>";
+  // The help behind ⓘ, as on every other settings page.
+  const info = t => ' <button class="settings-info-btn" type="button" data-info="' + esc(t) + '" aria-label="Info">ⓘ</button>';
   const names = a => (a.artist ? esc(a.artist) + " — " : "") + esc(a.title);
   const btn = (act, off, label, primary) => '<button type="button" class="id-btn' + (primary ? " is-primary" : "") + '" data-id-act="' + act + '" data-id-off="' + off + '"' + (busy ? " disabled" : "") + ">" + label + "</button>";
 
@@ -16471,17 +16521,31 @@ initServiceBrowser({
   function render() {
     if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     const s = st.settings, p = st.progress;
-    let html = '<div class="settings-block">' + row("Identify albums", sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
-      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. What the files themselves carry is asked first — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — and a release found that way is applied when it fits. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div>' +
-      row("Ask iTunes too", sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
-      '<div class="settings-note">An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue as well — no account or key, a request every few seconds. What iTunes finds is applied only when it fits exactly: every track there, every length within a few seconds, every name the same. Anything less is proposed. Apple’s release date is often a reissue’s, so the album keeps the year its files carry.</div></div>';
-    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling", sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
+    let html = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
+        sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
+      '<div class="settings-note">The right names for each album, from its files and MusicBrainz.</div>' +
+      row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied only when it fits exactly: every track there, every length within a few seconds, every name the same. Anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
+        sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
+      '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
+    // Measure ReplayGain: the server's loudness measuring (lib/loudness.js).
+    if (loud) {
+      const m = loud.settings || {};
+      html += '<div class="settings-divider"></div><div class="settings-block">' +
+        row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — one file at a time in the background, so Volume Levelling (Settings → Audio Devices → a device) can level them too. An album’s gain is worked out once all of its tracks are known. Your files are never changed."),
+          '<label class="switch"><input type="checkbox" data-ld-measure' + (m.measure ? " checked" : "") + (busy ? " disabled" : "") + ' aria-label="Measure ReplayGain"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
+        '<div class="settings-note">Loudness for tracks without ReplayGain tags.</div>' +
+        '<div class="id-progress">' + num(loud.tagged) + " tagged · " + num(loud.measured) + " measured · " + num(loud.left) + " to measure" +
+          (loud.failed ? " · " + num(loud.failed) + " couldn’t be read" : "") + "</div>" +
+        (m.measure ? '<div class="settings-note">' + (loud.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
+    }
+    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling" + info("On: the scan runs between the start and end times each night, on the server’s clock. Off: it runs whenever the library isn’t being scanned. About twelve albums a minute, one MusicBrainz request a second, until every album has been looked at; new albums are checked as they arrive."),
+      sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
     if (s.schedule) {
       html += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
         row("End", '<input type="time" class="id-time" data-id-time="end" value="' + esc(s.end) + '"' + (busy ? " disabled" : "") + ' aria-label="End">') +
-        '<div class="settings-note">Runs between these times each night, on the server’s clock. About twelve albums a minute, one MusicBrainz request a second.</div>';
+        '<div class="settings-note">Each night, on the server’s clock.</div>';
     } else {
-      html += '<div class="settings-note">Off: it runs whenever the library isn’t being scanned, about twelve albums a minute, until every album has been looked at.</div>';
+      html += '<div class="settings-note">Runs whenever the library isn’t being scanned.</div>';
     }
     html += "</div>";
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
@@ -16498,6 +16562,7 @@ initServiceBrowser({
   }
 
   body.addEventListener("change", (e) => {
+    if (e.target.closest("[data-ld-measure]")) return setMeasure(e.target.checked);
     const s = e.target.closest("[data-id-set]");
     if (s) return act("/api/identify/settings", { [s.getAttribute("data-id-set")]: s.checked });
     const t = e.target.closest("[data-id-time]");
@@ -16611,13 +16676,13 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">The server is on your tailnet as “' + esc(st.hostname) + '”. The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale ' + (window.MusicdApp ? "under <i>This phone</i> below" : "in the app, under Settings → Away from home") + '. Anything else with Tailscale — an iPhone, a laptop — opens <b>' + esc(st.address || "") + "</b>.</div>";
+      html += '<div class="settings-note">On your tailnet as “' + esc(st.hostname) + '”' + settingsInfo("The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale " + (window.MusicdApp ? "under This phone below" : "in the app, under Settings → Away from home") + ". Anything else with Tailscale — an iPhone, a laptop — opens " + (st.address || "the address above") + ".") + "</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'
         : '<button type="button" class="settings-update-btn" data-away-act="login"' + (busy ? " disabled" : "") + ">Sign in to Tailscale</button>";
       html += '<div class="settings-row"><span class="settings-label"></span>' + link + "</div>";
-      html += '<div class="settings-note">Opens Tailscale’s sign-in page. Sign in with the same account as your phone; the server then joins your tailnet as “' + esc(st.hostname) + '” — nothing else to install. Free for personal use.</div>';
+      html += '<div class="settings-note">Sign in with the same account as your phone.' + settingsInfo("Opens Tailscale’s sign-in page. The server then joins your tailnet as “" + st.hostname + "” — nothing else to install. Free for personal use.") + "</div>";
     }
     if (err || st.error) html += '<div class="settings-note away-error">' + esc(err || st.error) + "</div>";
     body.innerHTML = html;
@@ -16636,67 +16701,3 @@ initServiceBrowser({
   setInterval(() => { if (!pane.classList.contains("hidden") && !busy) load(); }, 3000);
 })();
 
-/* Settings → Loudness (v0.6.0-RC5): ReplayGain's mode and pre-amp, and the
- * background measuring of files without ReplayGain tags. */
-(function initLoudnessPane() {
-  const body = document.getElementById("loudness-pane-body");
-  const pane = document.querySelector('.settings-pane[data-pane="loudness"]');
-  const navItem = document.querySelector('.settings-nav-item[data-pane="loudness"]');
-  if (!body || !pane || !navItem) return;
-  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
-  const num = n => Number(n || 0).toLocaleString();
-  let st = null, busy = false, err = "";
-
-  async function api(payload) {
-    const r = await fetch("/api/loudness", payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-    return j;
-  }
-  async function load() {
-    if (busy) return;
-    try { st = await api(); err = ""; } catch (e) { err = e.message; }
-    render();
-  }
-  async function set(patch, done) {
-    if (busy) return;
-    busy = true;
-    try { st = await api(patch); err = ""; if (done) toast(done); } catch (e) { err = e.message; }
-    busy = false;
-    render();
-  }
-
-  const MODES = [["off", "Off"], ["track", "Track"], ["album", "Album"], ["auto", "Auto"]];
-  const row = (label, right) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + right + "</div>";
-  const sw = (attr, on, label) => '<label class="switch"><input type="checkbox" ' + attr + (on ? " checked" : "") + (busy ? " disabled" : "") +
-    ' aria-label="' + esc(label) + '"><span class="switch-track"><span class="switch-thumb"></span></span></label>';
-
-  function render() {
-    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
-    const s = st.settings;
-    const select = '<select class="id-time" data-ld-mode aria-label="ReplayGain"' + (busy ? " disabled" : "") + ">" +
-      MODES.map(([v, l]) => '<option value="' + v + '"' + (s.mode === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>";
-    const pre = '<select class="id-time" data-ld-preamp aria-label="Pre-amp"' + (busy || s.mode === "off" ? " disabled" : "") + ">" +
-      Array.from({ length: 25 }, (_, i) => i - 12).map(n => '<option value="' + n + '"' + (Number(s.preamp) === n ? " selected" : "") + ">" + (n > 0 ? "+" : "") + n + " dB</option>").join("") + "</select>";
-    let html = '<div class="settings-block">' + row("ReplayGain", select) +
-      '<div class="settings-note">Track: each track at the same level. Album: each record at the same level, its quiet and loud songs as they were made. Auto: Album when a record plays in order, Track when tracks from different records follow one another — a shuffle, a playlist, radio. The tracks’ peaks are respected, so nothing is turned up into clipping.</div>' +
-      '<div class="settings-note">On Sonos and other speakers the gain goes into the stream, converted to FLAC; Off sends every file as it is. The Android app applies the gain itself, downloads included. A change applies to what you play next.</div>' +
-      row("Pre-amp", pre) +
-      '<div class="settings-note">Added to every gain. ReplayGain plays at about −18 LUFS; +4 dB brings it nearer to what streaming services play at.</div></div>';
-    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Measure loudness", sw("data-ld-measure", s.measure, "Measure loudness")) +
-      '<div class="settings-note">Tracks without ReplayGain tags are measured on the server (EBU R128 loudness and true peak), one file at a time in the background. An album’s gain is worked out once all of its tracks are known. The files are never changed.</div>' +
-      '<div class="id-progress">' + num(st.tagged) + " tagged · " + num(st.measured) + " measured · " + num(st.left) + " to measure" + (st.failed ? " · " + num(st.failed) + " couldn’t be read" : "") + " · " + num(st.tracks) + " tracks</div>" +
-      (s.measure ? '<div class="settings-note">' + (st.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
-    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
-    body.innerHTML = html;
-  }
-
-  body.addEventListener("change", (e) => {
-    if (e.target.closest("[data-ld-mode]")) return set({ mode: e.target.value }, "ReplayGain: " + (MODES.find(m => m[0] === e.target.value) || [, ""])[1]);
-    if (e.target.closest("[data-ld-preamp]")) return set({ preamp: Number(e.target.value) });
-    if (e.target.closest("[data-ld-measure]")) return set({ measure: e.target.checked });
-  });
-  navItem.addEventListener("click", load);
-  setInterval(() => { if (!pane.classList.contains("hidden") && !busy && st && st.settings.measure) load(); }, 5000);
-})();

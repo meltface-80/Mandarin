@@ -162,8 +162,6 @@ function createServer(overrides = {}) {
   // ReplayGain (v0.6.0-RC5): which gain each track gets, and the background
   // loudness measuring for files without ReplayGain tags.
   ctx.loudness = new (require("./lib/loudness").Loudness)({ db, log, tickMs: config.loudnessTickMs });
-  // The phones apply their gain themselves: each is told the setting.
-  ctx.loudness.onChange = s => zones.phones.replaygainChanged(s);
   ctx.playback = new Playback(ctx);
   // A queue moving between players is rebuilt for the player it goes to.
   zones.rebuildItems = (ids, zoneId) => ctx.playback.itemsFor(zoneId, ids.map(id => library.track(id)).filter(Boolean));
