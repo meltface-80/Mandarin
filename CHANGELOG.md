@@ -12,6 +12,13 @@ Versioning: each set of changes is a development build and takes the next third 
   update while the library was being read, put a different album there mid-day — and one you had
   played came back as a "new" one. Now it is the same album on every device all day, through
   scans, updates and restarts; once played, from anywhere, it's gone until the next 00:01.
+- **One album per folder.** Two copies of a record in two folders — "Random Access Memories
+  (2013)" and "(2023)" — were shown as one album holding both sets of tracks, because an album
+  was told apart only by its artist and title. Its folder now counts too: separate folders are
+  separate albums, always. Disc folders inside an album's folder ("Disc 1", "CD2", "DISC 1",
+  "cd 2"…) are still one album, shown disc by disc. The first start after the update puts merged
+  albums right (one scan, no tags read again); favourites, Listen later, edits and identification
+  stay with the album, and a renamed album folder stays the same album.
 - **Mandarin's own words throughout.** Every tip, note, message and label carried over from the
   software Mandarin grew out of is reworded or gone; an unused streaming account, its browser
   and its menu entries are removed, along with its share card link.

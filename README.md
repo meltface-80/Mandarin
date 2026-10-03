@@ -102,6 +102,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
 * **Not played in six months** — Waits until Mandarin has six months of your listening, then offers the albums you haven't heard since.
+* **One album per folder** — Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album's folder are one album, shown disc by disc.
 * **Every tag kept** — All of each file's tags and identifiers — MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain — read into the server's database.
 * **Library Scanner** — Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.
 * **Volume Levelling** — ReplayGain set per device — Off, Track, Album or Auto — with a target from −14 to −25 LUFS and a level for tracks of unknown loudness.
