@@ -810,13 +810,28 @@
     // cache) is reused; after it, or if a load failed, both rows reload fresh.
     // The unplayed and random rows share one TTL, so mark it before the loop
     // rather than once per row.
-    if (!rowsTtlFresh()) homeRowsLoadedAt = Date.now();
+    refreshHomeRows();
+  }
+  // Decided BEFORE the clock is marked (v0.6.0-RC4): marking first made the
+  // unplayed row read as fresh, so once it held tiles it was never fetched
+  // again — a saved Home (yesterday's Album of the day, an offline session's
+  // list) stayed on screen for good, and the app and the browser drifted apart.
+  function refreshHomeRows() {
+    const ttlFresh = rowsTtlFresh();
+    if (!ttlFresh) homeRowsLoadedAt = Date.now();
     for (const row of HOME_ROWS) {
       if (!homeRowOn(row.id)) continue;   // off means the work does not run
-      if (row.isFresh()) continue;
+      if (row.id === "unplayed" ? ttlFresh : row.isFresh()) continue;
       row.load();
     }
   }
+  // Back to the app or the tab after a while (overnight, say): Home on screen
+  // catches up where it stands, without jumping to the top.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (!homeView || homeView.classList.contains("hidden")) return;
+    if (!rowsTtlFresh()) refreshHomeRows();
+  });
   // Shared freshness for the two rows that turn over on a clock rather than a
   // flag: recheck every 5 minutes, but only when they actually hold tiles.
   function rowsTtlFresh() {
@@ -882,6 +897,7 @@
   // cache (the server sends them immutable for a week), so it's a flash-free
   // repaint, not a reload. Bumped the key suffix if the cached shape changes.
   const HOME_CACHE_KEY = "rra-home-cache-v1";
+  const todayKey = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   function saveHomeCache(patch) {
     // The app's own copy, offline (v0.5.58): what it shows is the phone's music,
     // which mustn't become the server's Home the next time it opens.
@@ -981,7 +997,7 @@
       if (wrap) {
         const badge = document.createElement("span");
         badge.className = "aotd-badge";
-        badge.textContent = "★ Today";
+        badge.textContent = aotd._played ? "★ Today · played" : "★ Today";
         wrap.appendChild(badge);
       }
       frag.appendChild(tile);
@@ -1003,7 +1019,7 @@
     const unplayedPromise = fetch("/api/home/unplayed?months=6&count=30");
     unplayedPromise.catch(() => {});   // handled at the await below — this just silences the pre-await rejection warning
     const aj = await aotdPromise;
-    const aotd = (aj && aj.album) ? aj.album : null;   // non-fatal — just no album-of-the-day
+    const aotd = (aj && aj.album) ? Object.assign({}, aj.album, { _played: !!aj.played }) : null;   // non-fatal — just no album-of-the-day
     try {
       const r = await unplayedPromise;
       if (r.status === 503) {
@@ -1018,7 +1034,7 @@
       // empty response can't be cached and shown as "Nothing here yet" next
       // open. Timestamp is per-row so a stale sibling can't ride a fresh one's
       // freshness (see hydrateHomeFromCache).
-      if (albums.length || aotd) saveHomeCache({ unplayed: { aotd, albums }, unplayedAt: Date.now() });
+      if (albums.length || aotd) saveHomeCache({ unplayed: { aotd, albums, day: todayKey() }, unplayedAt: Date.now() });
     } catch (e) {
       if (!rowHasContent(homeUnplayed)) homeUnplayed.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
       homeRowsLoadedAt = 0;   // retry on the next Home visit
@@ -5155,7 +5171,8 @@
     // reordering is a visible flash on every cold open.
     applyHomeLayout();
     let painted = false;
-    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.aotd, c.unplayed.albums); painted = rowHasContent(homeUnplayed) || painted; }
+    // Album of the day only on its own day: a saved one from yesterday isn't painted.
+    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.day === todayKey() ? c.unplayed.aotd : null, c.unplayed.albums); painted = rowHasContent(homeUnplayed) || painted; }
     if (c.random   && homeRandom)   { renderHomeRandom(c.random);                              painted = rowHasContent(homeRandom)   || painted; }
     // Only when it was cached in the order that is current NOW. The other rows
     // hydrate stale-then-revalidate, but "stale" here means the wrong ORDER —
