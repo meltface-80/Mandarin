@@ -7,7 +7,7 @@
 const http = require("http");
 
 class FakeITunes {
-  /* albums: [{ id, title, artist, date, tracks: [[title, seconds], …] }] */
+  /* albums: [{ id, title, artist, date, upc, tracks: [[title, seconds], …] }] */
   constructor(albums = []) {
     this.albums = albums;
     this.requests = [];
@@ -29,7 +29,8 @@ class FakeITunes {
         return send({ resultCount: hits.length, results: hits.map(collection) });
       }
       if (u.pathname === "/lookup") {
-        const a = this.albums.find(x => String(x.id) === u.searchParams.get("id"));
+        const upc = u.searchParams.get("upc");
+        const a = this.albums.find(x => upc ? x.upc && String(x.upc) === upc : String(x.id) === u.searchParams.get("id"));
         if (!a) return send({ resultCount: 0, results: [] });
         const songs = a.tracks.map(([title, s], i) => ({
           wrapperType: "track", kind: "song", collectionId: a.id, trackId: a.id * 100 + i, trackName: title,

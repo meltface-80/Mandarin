@@ -49,6 +49,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.musicd.server.client.CachePlan
 import com.musicd.server.client.Phone
+import com.musicd.server.client.ReplayGain
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.phoneCommands
 import com.musicd.server.client.phoneHello
@@ -276,10 +277,10 @@ class PhonePlayerService : MediaLibraryService() {
                 if (path != playingPath) { playingPath = path; DownloadStore.sweepSoon(this@PhonePlayerService) }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = fetchAheadSoon()
-            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) { if (localMode) localRev++; fetchAheadSoon() }
-            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = fetchAheadSoon()
-            override fun onRepeatModeChanged(repeatMode: Int) = fetchAheadSoon()
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) { applyGains(); fetchAheadSoon() }
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) { if (localMode) localRev++; nextGain(); fetchAheadSoon() }
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { nextGain(); fetchAheadSoon() }
+            override fun onRepeatModeChanged(repeatMode: Int) { nextGain(); fetchAheadSoon() }
             override fun onPlayerError(error: PlaybackException) = resumeAfterError(error)
         })
         // Which decoder is at work: "libopus" is the app's own (float), a
@@ -424,6 +425,8 @@ class PhonePlayerService : MediaLibraryService() {
                         // For the server, which shows the phone's own list (report()).
                         a.imageKey?.let { putString("image_key", it) }
                         putString("ext", t.ext)
+                        // ReplayGain's numbers, applied as the setting says (gainAt).
+                        t.replaygain?.let { putString("rg", it.toString()) }
                     })
                     .build())
                 .build()
@@ -477,6 +480,7 @@ class PhonePlayerService : MediaLibraryService() {
                     Store.setPhoneZone(this, h.zoneId)
                     Store.setAwayLearned(this, h.awayAddress)
                     h.dsp?.let { applyDsp(it) }
+                    h.replaygain?.let { Store.setReplayGain(this, ReplayGain.Setting.parse(it)) }
                     hello = true
                     // The queue from before this player was restarted (Android
                     // stops an idle one after a while): back, paused where it
@@ -680,6 +684,36 @@ class PhonePlayerService : MediaLibraryService() {
         // The sink opens the stream on the next buffer; the session learns of the volume's new home shortly after.
         main.postDelayed({ sessionPlayer?.deviceChanged() }, 1500)
     }
+    /**
+     * ReplayGain (v0.6.0-RC5) for the track at [i], in dB: the server's own
+     * figure when it queued the track; for a download played by the phone
+     * itself, worked out from album.json's numbers and the setting.
+     */
+    private fun gainAt(i: Int): Double? {
+        if (i < 0 || i >= player.mediaItemCount) return null
+        val x = player.getMediaItemAt(i).mediaMetadata.extras ?: return null
+        if (x.containsKey("gain_db")) return x.getDouble("gain_db")
+        val rg = x.getString("rg") ?: return null
+        val s = Store.replayGain(this)
+        if (!s.on) return null
+        val album = x.getInt(EXTRA_ALBUM, -1)
+        fun same(j: Int) = j >= 0 && j < player.mediaItemCount && album > 0 &&
+            player.getMediaItemAt(j).mediaMetadata.extras?.getInt(EXTRA_ALBUM, -1) == album
+        val kind = ReplayGain.kindFor(s.mode, player.shuffleModeEnabled, same(i - 1) || same(i + 1))
+        return ReplayGain.gainDb(ReplayGain.Info.parse(runCatching { JSONObject(rg) }.getOrNull()), kind, s.preamp)
+    }
+
+    /** The track heard now, and the one after: their gains to the engine. */
+    private fun applyGains() {
+        if (player.mediaItemCount == 0) { dsp.gains(1.0, 1.0); return }
+        dsp.gains(ReplayGain.linear(gainAt(player.currentMediaItemIndex)), ReplayGain.linear(gainAt(player.nextMediaItemIndex)))
+    }
+
+    /** The order changed: the next track's gain, without touching what plays now. */
+    private fun nextGain() {
+        if (player.mediaItemCount > 0) dsp.nextGain(ReplayGain.linear(gainAt(player.nextMediaItemIndex)))
+    }
+
     /** A setting from the server (hello, or a "dsp" command): run from the next buffer, kept for offline. */
     private fun applyDsp(json: JSONObject) {
         dsp.apply(Dsp.parse(json))
@@ -835,6 +869,8 @@ class PhonePlayerService : MediaLibraryService() {
             .setExtras(android.os.Bundle().apply {
                 it.trackId?.let { id -> putLong("track_id", id) }
                 putDouble("duration", it.durationSeconds)
+                // ReplayGain as the server worked it out (v0.6.0-RC5).
+                it.gainDb?.let { g -> putDouble("gain_db", g) }
             })
             .build()
         // A downloaded copy plays in place of the stream.
@@ -944,6 +980,7 @@ class PhonePlayerService : MediaLibraryService() {
                 if (c.muted) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE, 0
             )
             "dsp" -> c.dsp?.let { applyDsp(it) }
+            "replaygain" -> c.replaygain?.let { Store.setReplayGain(this, ReplayGain.Setting.parse(it)); applyGains() }
             "mode" -> {
                 player.shuffleModeEnabled = c.shuffle
                 player.repeatMode = when (c.loop) {

@@ -16438,6 +16438,8 @@ initServiceBrowser({
     else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
     else line2 = c ? "declined: " + names(c) : "";
     if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
+    // Found by what the files carry (v0.6.0-RC5).
+    else if (kind === "applied" && c && c.matched_by) line2 += " · matched by " + ({ "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs" }[c.matched_by] || c.matched_by);
     const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
       : kind === "applied" ? btn("undo", a.offset, "Undo")
       : btn("recheck", a.offset, "Check again");
@@ -16468,7 +16470,7 @@ initServiceBrowser({
     if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     const s = st.settings, p = st.progress;
     let html = '<div class="settings-block">' + row("Identify albums", sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
-      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div>' +
+      '<div class="settings-note">Each album is looked up on MusicBrainz by its title, its track count and — where the tag can be trusted — its artist, and the releases found are scored against the tracks and their lengths. What the files themselves carry is asked first — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — and a release found that way is applied when it fits. A match 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit (the files are never touched). Another pressing of the same record — a bonus track, a remaster — is the same answer, not a rival; when the search lists the wrong pressing, its other editions are looked at too. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone.</div>' +
       row("Ask iTunes too", sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue as well — no account or key, a request every few seconds. What iTunes finds is applied only when it fits exactly: every track there, every length within a few seconds, every name the same. Anything less is proposed. Apple’s release date is often a reissue’s, so the album keeps the year its files carry.</div></div>';
     html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling", sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
@@ -16630,4 +16632,69 @@ initServiceBrowser({
   navItem.addEventListener("click", load);
   // While it's open: signing in happens in another tab, so look now and then.
   setInterval(() => { if (!pane.classList.contains("hidden") && !busy) load(); }, 3000);
+})();
+
+/* Settings → Loudness (v0.6.0-RC5): ReplayGain's mode and pre-amp, and the
+ * background measuring of files without ReplayGain tags. */
+(function initLoudnessPane() {
+  const body = document.getElementById("loudness-pane-body");
+  const pane = document.querySelector('.settings-pane[data-pane="loudness"]');
+  const navItem = document.querySelector('.settings-nav-item[data-pane="loudness"]');
+  if (!body || !pane || !navItem) return;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
+  const num = n => Number(n || 0).toLocaleString();
+  let st = null, busy = false, err = "";
+
+  async function api(payload) {
+    const r = await fetch("/api/loudness", payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+    return j;
+  }
+  async function load() {
+    if (busy) return;
+    try { st = await api(); err = ""; } catch (e) { err = e.message; }
+    render();
+  }
+  async function set(patch, done) {
+    if (busy) return;
+    busy = true;
+    try { st = await api(patch); err = ""; if (done) toast(done); } catch (e) { err = e.message; }
+    busy = false;
+    render();
+  }
+
+  const MODES = [["off", "Off"], ["track", "Track"], ["album", "Album"], ["auto", "Auto"]];
+  const row = (label, right) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + right + "</div>";
+  const sw = (attr, on, label) => '<label class="switch"><input type="checkbox" ' + attr + (on ? " checked" : "") + (busy ? " disabled" : "") +
+    ' aria-label="' + esc(label) + '"><span class="switch-track"><span class="switch-thumb"></span></span></label>';
+
+  function render() {
+    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
+    const s = st.settings;
+    const select = '<select class="id-time" data-ld-mode aria-label="ReplayGain"' + (busy ? " disabled" : "") + ">" +
+      MODES.map(([v, l]) => '<option value="' + v + '"' + (s.mode === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>";
+    const pre = '<select class="id-time" data-ld-preamp aria-label="Pre-amp"' + (busy || s.mode === "off" ? " disabled" : "") + ">" +
+      Array.from({ length: 25 }, (_, i) => i - 12).map(n => '<option value="' + n + '"' + (Number(s.preamp) === n ? " selected" : "") + ">" + (n > 0 ? "+" : "") + n + " dB</option>").join("") + "</select>";
+    let html = '<div class="settings-block">' + row("ReplayGain", select) +
+      '<div class="settings-note">Track: each track at the same level. Album: each record at the same level, its quiet and loud songs as they were made. Auto: Album when a record plays in order, Track when tracks from different records follow one another — a shuffle, a playlist, radio. The tracks’ peaks are respected, so nothing is turned up into clipping.</div>' +
+      '<div class="settings-note">On Sonos and other speakers the gain goes into the stream, converted to FLAC; Off sends every file as it is. The Android app applies the gain itself, downloads included. A change applies to what you play next.</div>' +
+      row("Pre-amp", pre) +
+      '<div class="settings-note">Added to every gain. ReplayGain plays at about −18 LUFS; +4 dB brings it nearer to what streaming services play at.</div></div>';
+    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Measure loudness", sw("data-ld-measure", s.measure, "Measure loudness")) +
+      '<div class="settings-note">Tracks without ReplayGain tags are measured on the server (EBU R128 loudness and true peak), one file at a time in the background. An album’s gain is worked out once all of its tracks are known. The files are never changed.</div>' +
+      '<div class="id-progress">' + num(st.tagged) + " tagged · " + num(st.measured) + " measured · " + num(st.left) + " to measure" + (st.failed ? " · " + num(st.failed) + " couldn’t be read" : "") + " · " + num(st.tracks) + " tracks</div>" +
+      (s.measure ? '<div class="settings-note">' + (st.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    body.innerHTML = html;
+  }
+
+  body.addEventListener("change", (e) => {
+    if (e.target.closest("[data-ld-mode]")) return set({ mode: e.target.value }, "ReplayGain: " + (MODES.find(m => m[0] === e.target.value) || [, ""])[1]);
+    if (e.target.closest("[data-ld-preamp]")) return set({ preamp: Number(e.target.value) });
+    if (e.target.closest("[data-ld-measure]")) return set({ measure: e.target.checked });
+  });
+  navItem.addEventListener("click", load);
+  setInterval(() => { if (!pane.classList.contains("hidden") && !busy && st && st.settings.measure) load(); }, 5000);
 })();

@@ -490,3 +490,76 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
     await itunes.stop();
   }
 });
+
+test("what the files carry decides first: MusicBrainz id, barcode, catalogue number, ISRCs; iTunes by UPC", { skip, timeout: 90000 }, async () => {
+  const fs = require("fs");
+  const path = require("path");
+  const lib = makeLibrary();
+  fs.rmSync(lib.music, { recursive: true, force: true });
+  const album = (dir, name, n, tags) => {
+    for (let i = 1; i <= n; i++) {
+      gen(path.join(lib.music, dir, `0${i}.flac`), { freq: 200 + 50 * i, seconds: 3,
+        tags: Object.assign({ title: `${name} ${i}`, artist: "Tagger", album: name, track: i, date: "2001" },
+          typeof tags === "function" ? tags(i) : tags) });
+    }
+  };
+  // Filed under a name no search would find, but carrying its release id.
+  album("Mbid", "Untitled Rip", 3, { MUSICBRAINZ_ALBUMID: "11111111-0000-0000-0000-000000000001" });
+  album("Barcode", "Bar Album", 3, { BARCODE: "0602537000016" });
+  album("Catno", "Cat Album", 3, { CATALOGNUMBER: "ABC-123", label: "Tag Records" });
+  album("Isrc", "Isrc Album", 3, i => ({ ISRC: `GBAAA010000${i}` }));
+  album("Upc", "Apple Album", 2, { BARCODE: "0886440000002" });
+  const tr = name => [1, 2, 3].map(i => [`${name} ${i}`, 3]);
+  const mb = await new FakeMusicBrainz([
+    { id: "11111111-0000-0000-0000-000000000001", title: "The Real Name", artist: "Tagger", date: "2001-01-01", tracks: [["One", 3], ["Two", 3], ["Three", 3]] },
+    // Two pressings with the barcode's title: only one carries the barcode.
+    { id: "bar-other", title: "Bar Album", artist: "Tagger", date: "2005", tracks: tr("Bar Album") },
+    { id: "bar-1", title: "Bar Album", artist: "Tagger", date: "2001", barcode: "0602537000016", tracks: tr("Bar Album") },
+    { id: "cat-1", title: "Cat Album", artist: "Tagger", date: "2001", label: "Tag Records", catno: "ABC-123", tracks: tr("Cat Album") },
+    { id: "isrc-1", title: "Isrc Album", artist: "Tagger", date: "2001", isrcs: ["GBAAA0100001", "GBAAA0100002", "GBAAA0100003"], tracks: tr("Isrc Album") }
+  ]).start();
+  const itunes = await new FakeITunes([
+    { id: 301, upc: "0886440000002", title: "Apple Album", artist: "Tagger", date: "2001-01-01", tracks: [["Apple Album 1", 3], ["Apple Album 2", 3]] }
+  ]).start();
+  delete require.cache[require.resolve("../index.js")];
+  const { createServer } = require("../index.js");
+  const port = 3618, base = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
+    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
+  const ctx = await srv.start();
+  const token = await signIn(base);
+  const api = async (p, body) => {
+    const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+    return { status: r.status, ...(await r.json().catch(() => ({}))) };
+  };
+  try {
+    await until(async () => (await api("status")).index_count === 5);
+    // Every tag the files carry is kept, by name.
+    const raw = ctx.db.raw;
+    const t = raw.prepare("SELECT t.barcode, t.catno, tt.tags FROM tracks t JOIN track_tags tt ON tt.track_id = t.id WHERE t.catno IS NOT NULL").get();
+    assert.equal(t.catno, "ABC-123");
+    assert.deepEqual(JSON.parse(t.tags).CATALOGNUMBER, ["ABC-123"]);
+    assert.equal(raw.prepare("SELECT barcode FROM albums WHERE barcode = '0602537000016'").get().barcode, "0602537000016");
+    assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM tracks WHERE isrc LIKE 'GBAAA%'").get().n, 3);
+
+    await api("identify/settings", { schedule: false });
+    const r = await until(async () => { const j = await api("identify"); return j.progress.checked === 5 && j; });
+    assert.equal(r.progress.applied, 5, JSON.stringify({ p: r.progress, u: r.unidentified.map(x => x.album.title), p2: r.proposed.map(x => x.album.title) }));
+    const by = Object.fromEntries(r.applied.map(x => [x.candidate.mbid, x.candidate.matched_by]));
+    assert.deepEqual(by, {
+      "11111111-0000-0000-0000-000000000001": "musicbrainz-id", "bar-1": "barcode", "cat-1": "catalogue-number", "isrc-1": "isrc", "itunes:301": "barcode"
+    });
+    // The release id is taken as it is: its names written, whatever the tags said.
+    const real = r.applied.find(x => x.candidate.mbid.startsWith("1111"));
+    assert.deepEqual((await api("album?offset=" + real.album.offset)).tracks.map(x => x.title), ["One", "Two", "Three"]);
+    // Nothing found by its identifiers was searched for by name.
+    for (const name of ["Untitled Rip", "Bar Album", "Cat Album", "Isrc Album"]) {
+      assert.ok(!mb.requests.some(u => u.includes(encodeURIComponent(`release:"${name}"`))), name);
+    }
+    assert.ok(itunes.requests.some(u => u.includes("upc=0886440000002")));
+  } finally {
+    await srv.stop();
+    await mb.stop();
+    await itunes.stop();
+  }
+});

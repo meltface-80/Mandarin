@@ -23,6 +23,11 @@ import java.nio.ByteOrder
  * the result goes to the sink as float — whatever the decoder gave, so a
  * change of setting never needs the sink reconfigured. Off, the audio is
  * still passed as float: the same path, nothing done to it.
+ *
+ * ReplayGain (v0.6.0-RC5) is applied here too, ahead of the bands: the
+ * engine's [DspEngine.gain]. The decoders run ahead of what is heard, so the
+ * next track's gain is taken up when the decoders move on to it (Media3
+ * reports that to the sink as a discontinuity), not when it is heard.
  */
 @UnstableApi
 class DspSink(private val inner: AudioSink, private val engine: DspEngine) : ForwardingAudioSink(inner) {
@@ -86,6 +91,7 @@ class DspSink(private val inner: AudioSink, private val engine: DspEngine) : For
         val big = encoding == C.ENCODING_PCM_16BIT_BIG_ENDIAN || encoding == C.ENCODING_PCM_24BIT_BIG_ENDIAN || encoding == C.ENCODING_PCM_32BIT_BIG_ENDIAN
         val src = buffer.duplicate().order(if (big) ByteOrder.BIG_ENDIAN else if (encoding == C.ENCODING_PCM_FLOAT) ByteOrder.nativeOrder() else ByteOrder.LITTLE_ENDIAN)
         val chain = engine.chain
+        val gain = engine.gain
         var ch = 0
         for (i in 0 until samples) {
             var v: Double = when (encoding) {
@@ -99,6 +105,7 @@ class DspSink(private val inner: AudioSink, private val engine: DspEngine) : For
                 C.ENCODING_PCM_8BIT -> ((src.get().toInt() and 0xff) - 128) / 128.0
                 else -> src.getInt() / 2147483648.0
             }
+            if (gain != 1.0) v *= gain
             if (chain != null) v = chain.process(ch, v)
             out.putFloat(v.toFloat())
             ch++; if (ch == channels) ch = 0
@@ -106,6 +113,9 @@ class DspSink(private val inner: AudioSink, private val engine: DspEngine) : For
         out.flip()
         return out
     }
+
+    /** The decoders have moved on to the next track (gapless): its ReplayGain from here. */
+    override fun handleDiscontinuity() { engine.streamChanged(); inner.handleDiscontinuity() }
 
     override fun flush() { inner.flush(); engine.reset(); pending = null; pendingFor = null }
     override fun reset() { inner.reset(); engine.reset(); pending = null; pendingFor = null }
@@ -128,6 +138,19 @@ class DspEngine {
 
     /** Is the engine changing the sound right now? */
     val active: Boolean get() = chain != null
+
+    /** ReplayGain as a multiplier on what is being fed now; 1 for none. */
+    @Volatile var gain: Double = 1.0
+        private set
+    private var upcoming = 1.0
+    private var armed = false
+
+    /** The track heard now and the one after it (the service, at each transition). */
+    @Synchronized fun gains(current: Double, next: Double) { gain = current; upcoming = next; armed = true }
+    /** The track after this one changed (the queue edited, shuffle turned on). */
+    @Synchronized fun nextGain(next: Double) { upcoming = next }
+    /** The decoders moved on: the next track's gain, once per transition. */
+    @Synchronized fun streamChanged() { if (armed) { gain = upcoming; armed = false } }
 
     @Synchronized fun apply(s: Dsp.Setting) {
         setting = s

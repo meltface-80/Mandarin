@@ -169,7 +169,8 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                     DownloadStore.Track(
                         t.getLong("id"), t.optString("title"), t.optString("artist"), t.optInt("disc_no", 1),
                         if (t.isNull("track_no")) null else t.optInt("track_no"),
-                        t.optDouble("duration", 0.0), t.optString("ext", "flac"), t.optLong("size"), false
+                        t.optDouble("duration", 0.0), t.optString("ext", "flac"), t.optLong("size"), false,
+                        t.optJSONObject("replaygain")
                     )
                 },
                 old.addedAt,

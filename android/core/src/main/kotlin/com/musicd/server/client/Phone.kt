@@ -17,7 +17,9 @@ object Phone {
         val artist: String,
         val album: String,
         val artUrl: String?,
-        val durationSeconds: Double
+        val durationSeconds: Double,
+        /** ReplayGain to apply, in dB (v0.6.0-RC5); null for none. */
+        val gainDb: Double? = null
     )
 
     /** One command. Only the fields its [op] uses are set. */
@@ -35,6 +37,8 @@ object Phone {
         val loop: String = "disabled",
         /** "dsp": the phone's DSP setting as saved on the server (Dsp.parse reads it). */
         val dsp: JSONObject? = null,
+        /** "replaygain": the setting, for what the phone plays by itself (v0.6.0-RC5). */
+        val replaygain: JSONObject? = null,
         /**
          * An "insert" meant for the list the phone holds itself (playing
          * downloads or its own music, v0.5.50): [at] counts that list's
@@ -54,7 +58,9 @@ object Phone {
     class Hello(val zoneId: String, val seq: Long, val away: Boolean = false, val awayAddress: String? = null,
                 val resume: Command? = null,
                 /** The phone's DSP setting, as the server keeps it. */
-                val dsp: JSONObject? = null)
+                val dsp: JSONObject? = null,
+                /** ReplayGain's setting (v0.6.0-RC5). */
+                val replaygain: JSONObject? = null)
 
     /** What the player is doing, as the server wants to hear it. */
     class Report(
@@ -99,7 +105,8 @@ object Phone {
                 artist = o.optString("artist", ""),
                 album = o.optString("album", ""),
                 artUrl = o.optString("art_url", "").takeIf { it.isNotEmpty() },
-                durationSeconds = o.optDouble("duration", 0.0).let { if (it.isNaN()) 0.0 else it }
+                durationSeconds = o.optDouble("duration", 0.0).let { if (it.isNaN()) 0.0 else it },
+                gainDb = if (!o.has("gain_db") || o.isNull("gain_db")) null else o.optDouble("gain_db").takeIf { !it.isNaN() }
             )
         }
     }
@@ -117,6 +124,7 @@ object Phone {
         shuffle = o.optBoolean("shuffle", false),
         loop = o.optString("loop", "disabled"),
         dsp = o.optJSONObject("dsp"),
+        replaygain = o.optJSONObject("replaygain"),
         local = o.optBoolean("local", false)
     )
 
@@ -133,7 +141,8 @@ fun ServerClient.phoneHello(name: String, dsp: JSONObject? = null): Phone.Hello 
         j.getString("zone_id"), j.optLong("seq"), j.optBoolean("away", false),
         j.optString("away_address", "").takeIf { it.isNotEmpty() && it != "null" },
         j.optJSONObject("resume")?.let { Phone.parseCommand(it) }?.takeIf { it.items.isNotEmpty() },
-        j.optJSONObject("dsp")
+        j.optJSONObject("dsp"),
+        j.optJSONObject("replaygain")
     )
 }
 

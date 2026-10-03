@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC4
+# Mandarin — v0.6.0-RC5
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -43,9 +43,12 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
   record you own.
 * **Edit album** — correct the title, artist or year and find a cover. Edits live in the
   database; your files stay exactly as they are.
-* **Identify albums** — a nightly MusicBrainz scan names mis-tagged albums from their tracks and
-  lengths, with Apple's iTunes catalogue as a second opinion. Applied at 96 % alike or better,
-  otherwise proposed or left for you.
+* **Every tag kept** — all of each file's tags and identifiers are read into the server's
+  database, and used to identify albums.
+* **Identify albums** — identifiers in the files first (MusicBrainz ID, barcode, catalogue number,
+  ISRC), then a nightly MusicBrainz scan by tracks and lengths, with iTunes as a second opinion.
+* **ReplayGain** — Track, Album or Auto from the files' tags, peaks respected; files without tags
+  measured on the server. Applied on every device, the phone included.
 * **Now playing** — a waveform seek bar drawn from the audio, the queue, history, and a badge
   saying what the device is being sent.
 * **Share card** — the record as an image, where to hear it, where to read about it, and three
@@ -358,6 +361,14 @@ second) from what the files already say: the title, the track count, the artist 
 can be trusted, and each track's title and **length** — twelve tracks that match a release to
 the second are that release, whatever the artist tag claims.
 
+**What the files carry comes first.** The scanner reads every tag in every file into the
+database, and an album whose files name their release is matched by that before any search by
+name: a **MusicBrainz release ID** (as Picard writes it) is taken as it is; a **barcode** (UPC/EAN)
+finds the releases carrying it, and a **catalogue number** with its label the same; failing
+those, a few of the tracks' **ISRCs** find the releases those recordings share. A release found
+this way is applied when its tracks fit, and the Applied list says what matched it ("matched by
+barcode"). A barcode is asked of iTunes too, for what MusicBrainz doesn't know.
+
 Each candidate release is scored the way [beets](https://beets.io) does it, and named by its
 release group: the album is the MusicBrainz *release group*, the copy you have is one *release* of
 it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pressing noted
@@ -382,6 +393,24 @@ night (01:00–06:00 to begin with, on the server's clock). Off, it runs wheneve
 isn't being scanned, about twelve albums a minute, until every album has been looked at; new
 albums are checked as they arrive. The design is in
 [docs/specs/album-identification.md](docs/specs/album-identification.md).
+
+## Loudness (ReplayGain)
+
+Settings → **Loudness** plays one record after another at an even level. **ReplayGain** is Off,
+**Track** (each track at the same level), **Album** (each record at the same level, its quiet and
+loud songs as they were made) or **Auto** — Album while a record plays in order, Track when tracks
+from different records follow one another: a shuffle, a playlist, radio. The gains are the files'
+own ReplayGain tags (`REPLAYGAIN_TRACK_GAIN`, `REPLAYGAIN_ALBUM_GAIN` and their peaks, or Opus's
+R128 gains); a track's peak caps its gain so it is never turned up into clipping. **Pre-amp**
+shifts every gain by up to ±12 dB.
+
+**Measure loudness** fills in files without ReplayGain tags: the server measures each one (EBU
+R128 integrated loudness and true peak, with ffmpeg) one file at a time in the background, and
+works out an album's gain once all of its tracks are known. The files are never changed.
+
+On Sonos and UPnP/DLNA renderers the gain goes into the stream: the track is converted to FLAC at
+its own rate with the gain applied. The Android app applies the gain itself, to streams and
+downloads alike. A change applies to what you play next.
 
 ## Audio Devices
 

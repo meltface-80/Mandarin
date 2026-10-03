@@ -20,6 +20,12 @@ right names from what the files already say — the artist where it is right, th
 the track names and, above all, the track lengths — and writes the corrections into the
 server's database, without you editing albums one by one.
 
+**v0.6.0-RC5:** the files' own identifiers are asked first, before any search by name —
+the MusicBrainz release ID (taken as it is), then the barcode, then the catalogue number with
+its label, then the releases a few of the tracks' ISRCs share (`Identifier.idResolve`); a
+release found that way is applied when it fits within "proposed". The scanner keeps every tag
+(`track_tags`) and these identifiers in their own columns.
+
 ## 1. What the owner asked for
 
 * Some albums show **Various Artists** (or another wrong artist) because the tags are off.

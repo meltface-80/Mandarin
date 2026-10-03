@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC5
+- **Every tag is kept.** The scanner reads all of each file's tags into the database — not only
+  the names it shows — including identifiers (MusicBrainz IDs, barcode, catalogue number, ISRC,
+  country) and ReplayGain. The library is read once more after the update to collect them.
+- **Albums are identified by what their files carry, first.** A MusicBrainz release ID in the
+  tags is taken as it is; then a barcode, then a catalogue number with its label, then the
+  tracks' ISRCs — each before any search by name. iTunes is asked by barcode too. The Applied
+  list says what matched ("matched by barcode").
+- **ReplayGain.** Settings → Loudness: Off (the default), Track, Album or Auto, and a pre-amp.
+  Auto takes the album's gain while a record plays in order and the track's when records mix.
+  Peaks cap every gain, so nothing clips. On Sonos and renderers the gain goes into the stream
+  (converted to FLAC); the Android app applies it itself, downloads included.
+- **Loudness measured for files without tags.** A switch on the same page measures them on the
+  server (EBU R128 loudness and true peak), one at a time in the background, with progress shown;
+  an album's gain is worked out once all its tracks are known.
+
 ## v0.6.0-RC4
 - **The app and the browser show the same Home row.** "Not played in 6 months" was fetched only
   while the row was empty: once it held tiles — including the Home saved for an instant open — it
