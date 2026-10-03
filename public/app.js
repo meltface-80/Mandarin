@@ -5858,16 +5858,18 @@
       const r = await fetch("/api/transfer-zone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from_zone: prevZoneId, to_zone: newZoneId })
+        body: JSON.stringify({ from: prevZoneId, to: newZoneId })
       });
+      const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
-        const msg = (j.error || "").toString();
-        if (msg && !/no.*(queue|playing|track)/i.test(msg)) console.warn("[zone transfer]", msg);
+        toast((j.error || "Couldn't move the music").toString(), "error");
+      } else {
+        toast(`Moved to ${nameOf(newZoneId, "this zone")}`);
       }
       loadZones();
     } catch (e) {
-      console.warn("[zone transfer] network error", e);
+      if (window.__showToast) window.__showToast("Couldn't reach the server to move the music", "error");
     }
   });
 

@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC6
+- **Moving the music to another zone works.** Choosing another zone while something plays asks
+  whether to move it there; Yes did nothing, because the page and the server named the two
+  zones differently and the server refused the request without the page saying so. Yes now
+  carries the queue over and plays on from the same track and second in the new zone (the old
+  one stops), and a toast says it moved, or why it couldn't.
+
 ## v0.6.0-RC5
 - **Every tag is kept.** The scanner reads all of each file's tags into the database — not only
   the names it shows — including identifiers (MusicBrainz IDs, barcode, catalogue number, ISRC,

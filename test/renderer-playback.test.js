@@ -195,6 +195,24 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(q.items.length + q.history.length, 3);
     });
 
+    await t.test("Move to another room, as the page asks it (from_zone / to_zone): Sonos to Sonos, then to a renderer", async () => {
+      const study = zones.find(z => z.display_name === "Study");
+      const room = house.room("Kitchen"), other = house.room("Study");
+      await api("play", { offset: cd.offset, zone_or_output_id: kitchen.zone_id, kind: "play_now" });
+      await until(() => room.state === "PLAYING" && room.queue.length === 3);
+      let r = await api("transfer-zone", { from_zone: kitchen.zone_id, to_zone: study.zone_id });
+      assert.equal(r.status, 200, JSON.stringify(r));
+      await until(() => other.queue.length === 3 && other.state === "PLAYING");
+      assert.deepEqual(other.queue.map(q => q.uri.split("?")[0]), room.queue.map(q => q.uri.split("?")[0]), "the same queue");
+      await until(() => room.state !== "PLAYING");
+      r = await api("transfer-zone", { from_zone: study.zone_id, to_zone: WIIM });
+      assert.equal(r.status, 200, JSON.stringify(r));
+      await until(() => wiim.state === "PLAYING");
+      await until(() => other.state !== "PLAYING");
+      assert.equal((await api("transfer-zone", {})).status, 400);
+      await api("control", { zone_or_output_id: WIIM, command: "stop" });
+    });
+
     await t.test("Upsample ×2: a CD rip goes out as 24/88.2 in 64-bit float, and the WiiM confirms it", async () => {
       let r = await api("audio-devices/" + WIIM, { output: { mode: "x2" } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
