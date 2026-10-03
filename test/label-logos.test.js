@@ -150,7 +150,10 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       assert.match(log, /Blue Note: logo from Discogs/);
       assert.match(log, /ECM: logo from FanArt.tv/);
       assert.match(log, /Nonesuch: no logo found/);
-      assert.match(log, /done, 2 of 4 found/);
+      // One pass or two, depending on how soon the second key lands while the
+      // first key's pass runs: two found between them, and nothing left over.
+      const found = [...log.matchAll(/logos: done, (\d+) of \d+ found/g)].reduce((n, m) => n + Number(m[1]), 0);
+      assert.equal(found, 2, log);
       // Served as an image, cached hard.
       const img = await fetch(B + by("Blue Note").logo_url, { headers: { Authorization: "Bearer " + token } });
       assert.equal(img.status, 200);
