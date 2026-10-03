@@ -112,3 +112,21 @@ test("a library scanned before: Unknown Artist albums named from their folders, 
   assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM album_matches WHERE status = 'unidentified'").get().n, 0);
   db.close();
 });
+
+test("Beatles are The Beatles: one artist, filed under B", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  gen(path.join(lib.music, "The Beatles", "Abbey Road", "01.flac"), { seconds: 1, tags: { title: "Come Together", artist: "Beatles", album_artist: "Beatles", album: "Abbey Road", track: 1 } });
+  gen(path.join(lib.music, "The Beatles", "Let It Be", "01.flac"), { seconds: 1, tags: { title: "Two of Us", artist: "The Beatles", album_artist: "The Beatles", album: "Let It Be", track: 1 } });
+  const db = DB.open(lib.data, { log: quiet });
+  const library = new Library(db, { musicRoot: lib.music, log: quiet });
+  await new Scanner({ db, root: lib.music, log: quiet }).scan();
+  library.reload();
+  const ar = library.albums.find(a => a.title === "Abbey Road");
+  assert.equal(ar.artist, "The Beatles");
+  assert.equal(ar.sortArtist, "beatles");
+  const { primary, featured } = library.artistAlbums("The Beatles");
+  assert.deepEqual(primary.map(a => a.title).sort(), ["Abbey Road", "Let It Be"]);
+  assert.equal(featured.length, 0);
+  assert.deepEqual(library.artistAlbums("Beatles").primary.length, 2);
+  db.close();
+});

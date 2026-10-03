@@ -15,6 +15,11 @@ Versioning: each set of changes is a development build and takes the next third 
 - **Then identified.** Those albums are looked up on MusicBrainz again under their new names, so
   a match can put back what folder names can't hold ("ex_el" → "ex:el"). The album page says when
   an album's names come from its folders.
+- **Beatles are The Beatles.** Albums tagged "Beatles" and "The Beatles" were two artists: half
+  the albums sat under "Also appears on", and each track carried the other name. Where the library
+  has "The …", the albums tagged without it are shown under that name, so the artist page, search
+  and links are one; it's filed under B either way. An artist you set yourself in Edit album stays
+  as you set it.
 - **Read once, only what's needed.** On the first start only the tracks without an artist or
   album tag are read again. Each album keeps its id, favourite, Listen later and play history.
 
