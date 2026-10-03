@@ -1,6 +1,6 @@
 "use strict";
 /*
- * tag-report.js — what tags and identifiers the music files carry, for a
+ * tag-report.js — what tags, identifiers and loudness (ReplayGain) the music files carry, for a
  * sample of albums. Read-only: it opens files, never writes them.
  *
  * Run inside the Mandarin container (it has Node and the tag reader):
@@ -15,6 +15,8 @@ const root = process.argv[2] || process.env.MUSIC_DIR || "/music";
 const want = Math.max(1, parseInt(process.argv[3], 10) || 10);
 const AUDIO = new Set([".flac", ".mp3", ".m4a", ".mp4", ".aac", ".alac", ".ogg", ".oga", ".opus", ".wav", ".aif", ".aiff", ".aifc", ".dsf", ".dff", ".wv", ".ape", ".wma"]);
 // The tags that say which release or recording a file is — what identification could use first.
+// Loudness: ReplayGain (track and album gain and peak), R128 and iTunes' own.
+const LOUD = /replaygain|r128|itunnorm|loudness/i;
 const IDS = /musicbrainz|mbid|barcode|upc|ean|catalog|isrc|discogs|qobuz|tidal|deezer|spotify|apple|itunes|acoustid|asin|label|releasecountry|releasestatus|releasetype|media|originaldate|originalyear|script|totaltracks|totaldiscs|tracktotal|disctotal/i;
 
 function albumFolders(dir, out, depth = 0) {
@@ -65,15 +67,15 @@ const short = v => {
     console.log(`  First file: ${path.basename(f)}`);
     console.log(`  Format: ${fm.container || "?"} · ${fm.codec || "?"} · ${fm.sampleRate || "?"} Hz · ${fm.bitsPerSample || "?"}-bit · ${fm.numberOfChannels || "?"} ch · tag types: ${(fm.tagTypes || []).join(", ") || "none"}`);
     const c = md.common || {};
-    const ids = Object.entries(c).filter(([k, v]) => IDS.test(k) && v != null && !(Array.isArray(v) && !v.length));
-    console.log("  Identifiers (as the tag reader names them):");
+    const ids = Object.entries(c).filter(([k, v]) => (IDS.test(k) || LOUD.test(k)) && v != null && !(Array.isArray(v) && !v.length));
+    console.log("  Identifiers and loudness (as the tag reader names them):");
     if (!ids.length) console.log("    — none");
     for (const [k, v] of ids) console.log(`    ${k}: ${short(v)}`);
     console.log("  Every tag in the file:");
     for (const [fmt, tags] of Object.entries(md.native || {})) {
       for (const t of tags) {
         if (/^(APIC|PIC|covr|METADATA_BLOCK_PICTURE|PICTURE)$/i.test(t.id) || (t.value && t.value.data)) continue;
-        console.log(`    [${fmt}] ${t.id}${IDS.test(t.id) ? "  ◆" : ""}: ${short(t.value)}`);
+        console.log(`    [${fmt}] ${t.id}${IDS.test(t.id) ? "  ◆" : LOUD.test(t.id) ? "  ♪" : ""}: ${short(t.value)}`);
       }
     }
     console.log("");
@@ -81,6 +83,6 @@ const short = v => {
   console.log("═".repeat(78));
   console.log("Tags across the sampled albums (in how many of them):");
   for (const [k, n] of [...seenKeys].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
-    console.log(`  ${String(n).padStart(3)}  ${k}${IDS.test(k) ? "  ◆ identifier" : ""}`);
+    console.log(`  ${String(n).padStart(3)}  ${k}${IDS.test(k) ? "  ◆ identifier" : LOUD.test(k) ? "  ♪ loudness" : ""}`);
   }
 })().catch(e => { console.error("tag-report failed:", e.message); process.exit(1); });
