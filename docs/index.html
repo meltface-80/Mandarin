@@ -1,818 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mandarin &mdash; install &amp; docs</title>
-<meta name="description" content="Mandarin &mdash; your own music files played to Sonos rooms and UPnP/DLNA streamers such as WiiM and Chord Poly, and a bespoke Android app designed for it. Docker install, Android app and docs.">
-<link rel="icon" href="mandarin-icon.png">
-<style>
-  /* Mandarin's own look (the app's graphite and brass): a flat charcoal, warm
-     muted gold; Young Serif titles over Manrope. This site alone goes light for a
-     device in light mode. The --copper names are kept; they're the accent. */
-  @font-face { font-family: "Manrope"; src: url("fonts/manrope.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
-  @font-face { font-family: "Young Serif"; src: url("fonts/young-serif.woff2") format("woff2"); font-display: swap; }
-  :root {
-    --bg:        #17191c;   /* graphite */
-    --bg-deep:   #121416;
-    --panel:     #1f2226;
-    --panel-2:   #262a2f;
-    --line:      #30353b;
-    --text:      #ecebe6;
-    --muted:     #9a9ca1;
-    --copper:    #c9a45c;   /* gold */
-    --copper-hi: #d4b06a;
-    --copper-dim:#6e5a32;
-    --accent-wash: rgba(201,164,92,.08);
-    --code:      #e3dfd6;
-    --code-dim:  #8d9096;
-    --good:      #8fc19a;
-    --nav-bg:    rgba(18,20,22,.92);
-    --felt: none;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --serif: "Young Serif", Georgia, serif;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f4f3ef; --bg-deep: #ece9e2; --panel: #fbfaf7; --panel-2: #f1efe9; --line: #d6d2c8;
-      --text: #17191c; --muted: #4f5257; --copper: #7a5a1f; --copper-hi: #7a5a1f; --copper-dim: #b9a57a;
-      --accent-wash: rgba(122,90,31,.07); --code: #17191c; --code-dim: #5a5d63; --good: #2f6b45;
-      --nav-bg: rgba(244,243,239,.92);
-      --felt: none;
-    }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-  body {
-    background: var(--bg);
-    background-image: var(--felt);
-    color: var(--text);
-    font-family: var(--sans);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--copper-hi); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
-
-  /* ---------- top nav ---------- */
-  nav.topnav {
-    position: sticky; top: 0; z-index: 50;
-    background: var(--nav-bg);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
-  }
-  nav.topnav .wrap {
-    display: flex; align-items: center; gap: 18px;
-    height: 52px; overflow-x: auto; white-space: nowrap;
-  }
-  nav.topnav a {
-    color: var(--muted); font-size: 14px; font-weight: 500;
-  }
-  nav.topnav a:hover { color: var(--copper-hi); text-decoration: none; }
-  nav.topnav .brand { color: var(--text); font-family: var(--serif); font-size: 18px; font-weight: 400; display: inline-flex; align-items: center; gap: 8px; }
-  nav.topnav .brand img { width: 26px; height: 26px; }
-  nav.topnav .gh { margin-left: auto; }
-
-  /* ---------- hero ---------- */
-  header.hero {
-    text-align: center;
-    padding: 48px 20px 40px;
-    background: transparent;
-    border-bottom: 1px solid var(--line);
-  }
-  header.hero img.logo {
-    max-width: min(560px, 88vw);
-    width: 100%; height: auto;
-    border-radius: 18px;
-    box-shadow: 0 18px 50px -12px rgba(0,0,0,.45);
-  }
-  header.hero .wordmark { display: none; font-family: var(--serif); font-size: 52px; font-weight: 400; }
-  header.hero .wordmark span { color: var(--copper); }
-  header.hero.noimg img.logo { display: none; }
-  header.hero.noimg .wordmark { display: block; }
-  header.hero h1 { font-family: var(--serif); font-size: 34px; margin-top: 26px; font-weight: 400; }
-  header.hero p.tag { color: var(--muted); max-width: 640px; margin: 10px auto 0; font-size: 16px; }
-  .badges { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .badge {
-    display: inline-block; font-size: 12.5px; font-weight: 600;
-    padding: 4px 12px; border-radius: 999px;
-    border: 1px solid var(--copper-dim); color: var(--copper-hi);
-    background: var(--accent-wash);
-  }
-  .badge.plain { border-color: var(--line); color: var(--muted); background: transparent; }
-
-  /* ---------- sections ---------- */
-  section { padding: 52px 0 8px; scroll-margin-top: 56px; }
-  section > .wrap > h2 {
-    font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 6px;
-  }
-  section > .wrap > p.lead { color: var(--muted); margin-bottom: 26px; max-width: 720px; }
-
-  /* ---------- signal path ---------- */
-  .flow {
-    display: grid; gap: 12px; margin-bottom: 22px;
-    grid-template-columns: 1fr auto 1fr auto 1fr;
-    align-items: center;
-  }
-  .flow .node {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 16px 14px; text-align: center;
-  }
-  .flow .node b { display: block; font-size: 14.5px; font-weight: 650; }
-  .flow .node span { font-size: 12.5px; color: var(--muted); }
-  .flow .node.mid { border-color: var(--copper); background: var(--accent-wash); }
-  .flow .arrow { color: var(--copper); font-size: 18px; text-align: center; }
-  .flow-note { font-size: 13.5px; color: var(--muted); margin-bottom: 26px; }
-  @media (max-width: 700px) {
-    .flow { grid-template-columns: 1fr; }
-    .flow .arrow { transform: rotate(90deg); }
-  }
-
-  /* ---------- feature grid ---------- */
-  .grid {
-    display: grid; gap: 14px;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 18px 18px 16px;
-  }
-  .card h3 { font-family: var(--serif); font-size: 17px; font-weight: 400; margin-bottom: 6px; }
-  .card h3 .em { margin-right: 8px; }
-  .card p { font-size: 13.5px; color: var(--muted); }
-
-  /* ---------- code + notes ---------- */
-  .out { display: grid; gap: 12px; min-width: 0; }
-  .out > * { min-width: 0; }
-  .codebox { position: relative; }
-  .codebox pre {
-    background: var(--bg-deep);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 18px; padding-top: 40px;
-    overflow-x: auto;
-    font: 13px/1.55 var(--mono);
-    color: var(--code);
-    white-space: pre;
-  }
-  .codebox pre .k { color: var(--copper-hi); }     /* flags / keys */
-  .codebox pre .c { color: var(--code-dim); }       /* comments */
-  .copy-btn {
-    position: absolute; top: 10px; right: 10px;
-    font: 600 12px var(--sans); cursor: pointer;
-    color: var(--text); background: var(--panel-2);
-    border: 1px solid var(--line); border-radius: 7px;
-    padding: 6px 12px;
-  }
-  .copy-btn:hover { border-color: var(--copper); color: var(--copper-hi); }
-  .copy-btn.done { color: var(--good); border-color: var(--good); }
-  .after-note { font-size: 13.5px; color: var(--muted); }
-  .after-note code, p code, li code, td code {
-    font: 12.5px var(--mono);
-    background: var(--bg-deep);
-    border: 1px solid var(--line);
-    border-radius: 5px; padding: 1.5px 6px;
-    color: var(--copper-hi);
-  }
-  .note {
-    font-size: 13px; color: var(--muted);
-    background: var(--accent-wash);
-    border: 1px solid var(--copper-dim);
-    border-radius: 10px; padding: 12px 14px;
-  }
-  .note b { color: var(--copper-hi); }
-
-  /* ---------- troubleshooting cards ---------- */
-  .info-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
-  .info-card {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 20px;
-  }
-  .info-card h3 { font-family: var(--serif); font-size: 19px; font-weight: 400; margin-bottom: 4px; }
-  .info-card .sym { font-size: 12px; font-weight: 700; color: var(--copper-hi); letter-spacing: .06em; text-transform: uppercase; }
-  .info-card p { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
-  .info-card .fine { font-size: 12.5px; color: var(--muted); margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-
-  /* ---------- env table ---------- */
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  th { background: var(--panel-2); color: var(--copper-hi); font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; }
-  tr:last-child td { border-bottom: none; }
-  td:first-child { font-family: var(--mono); white-space: nowrap; }
-  td { color: var(--muted); }
-  td:first-child { color: var(--text); }
-
-  /* ---------- first run ---------- */
-  .firstrun {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 20px;
-  }
-  .firstrun ol { padding-left: 20px; font-size: 14px; display: grid; gap: 9px; color: var(--muted); }
-  .firstrun ol li::marker { color: var(--copper); font-weight: 700; }
-  .firstrun ol li b { color: var(--text); }
-
-  /* ---------- small screens (phones, portrait) ---------- */
-  @media (max-width: 600px) {
-    header.hero { padding: 32px 16px 30px; }
-    header.hero h1 { font-size: 24px; margin-top: 20px; }
-    header.hero .wordmark { font-size: 34px; }
-    section { padding: 40px 0 6px; }
-    section > .wrap > h2 { font-size: 21px; }
-    .codebox pre { font-size: 12px; padding: 14px; padding-top: 40px; }
-    th, td { padding: 9px 10px; }
-  }
-
-  footer {
-    margin-top: 64px; padding: 28px 20px 40px;
-    border-top: 1px solid var(--line);
-    text-align: center; font-size: 13px; color: var(--muted);
-  }
-
-  /* ---------- builder ---------- */
-  .builder { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
-  .builder label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
-  .builder input {
-    font: 14px var(--mono); color: var(--text); background: var(--bg-deep);
-    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%;
-  }
-  .builder input:focus { outline: none; border-color: var(--copper); }
-  .folders { display: grid; gap: 8px; margin-bottom: 14px; }
-  .folders > .ftitle { font-size: 13px; color: var(--muted); }
-  .frow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; min-width: 0; }
-  .frow input {
-    font: 14px var(--mono); color: var(--text); background: var(--bg-deep);
-    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0;
-  }
-  .frow input:focus { outline: none; border-color: var(--copper); }
-  .frow .to { grid-column: 1 / -1; font: 12px var(--mono); color: var(--muted); margin: -3px 0 2px 2px; }
-  .frow .to b { color: var(--copper-hi); font-weight: 500; }
-  .frow button.rm {
-    font: 600 18px/1 var(--sans); cursor: pointer; color: var(--muted);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-    width: 40px; height: 40px;
-  }
-  .frow button.rm:hover { color: var(--copper-hi); border-color: var(--copper); }
-  .frow button.rm[hidden] { display: none; }
-  button.addf {
-    justify-self: start; font: 600 13px var(--sans); cursor: pointer; color: var(--copper-hi);
-    background: transparent; border: 1px dashed var(--copper-dim); border-radius: 8px; padding: 8px 14px;
-  }
-  button.addf:hover { border-style: solid; }
-  .formats td:nth-child(2) { color: var(--text); }
-  .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .tabs button {
-    font: 600 13px var(--sans); cursor: pointer; color: var(--muted);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
-  }
-  .tabs button.on { color: var(--copper-hi); border-color: var(--copper); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandarin — Your Self-Hosted Music Server</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://tailwindcss.com"></script>
+    <!-- Modern Tech Font -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
-<body>
+<body class="bg-[#0b0f19] text-slate-100 antialiased selection:bg-orange-500/30 selection:text-orange-400">
 
-<nav class="topnav">
-  <div class="wrap">
-    <a class="brand" href="#top"><img src="mandarin-icon.png" alt="">Mandarin</a>
-    <a href="#how">How it works</a>
-    <a href="#new">New</a>
-    <a href="#formats">Formats</a>
-    <a href="#install">Install</a>
-    <a href="#apps">Phones</a>
-    <a href="#env">Environment</a>
-    <a href="#trouble">Troubleshooting</a>
-    <a class="gh" href="https://github.com/meltface-80/Mandarin">GitHub&nbsp;&rarr;</a>
-  </div>
-</nav>
+    <!-- Premium Navigation -->
+    <nav class="sticky top-0 z-50 backdrop-blur-md bg-[#0b0f19]/70 border-b border-slate-900">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🍊</span>
+                <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Mandarin</span>
+            </div>
+            <div class="flex items-center space-x-6 text-sm font-medium">
+                <a href="#features" class="text-slate-400 hover:text-white transition">Features</a>
+                <a href="#docker" class="text-slate-400 hover:text-white transition">Docker Setup</a>
+                <a href="#mobile" class="text-slate-400 hover:text-white transition">Get the App</a>
+                <a href="https://github.com" target="_blank" class="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2 rounded-lg transition flex items-center gap-2">
+                    <span>GitHub</span> →
+                </a>
+            </div>
+        </div>
+    </nav>
 
-<header class="hero" id="top">
-  <picture>
-    <source media="(prefers-color-scheme: light)" srcset="mandarin-logo-light.png">
-    <img class="logo" src="mandarin-logo-dark.png" alt="Mandarin by MusicD" onerror="this.closest('header').classList.add('noimg')">
-  </picture>
-  <div class="wordmark">Mandarin</div>
-  <h1>Your own music files, played to Sonos rooms, UPnP renderers and your phone</h1>
-  <p class="tag">A small server on a machine you own scans your music folders. Every Sonos room
-     in the house, any UPnP/DLNA renderer you switch on &mdash; a WiiM, a Chord Poly, a streamer, an
-     AV receiver, a TV &mdash; and the Mandarin app play from it, controlled from a browser, an
-     iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
-     Definitely no nonsense about better sound quality: it plays the files on your server.</p>
-  <div class="badges">
-    <span class="badge">v0.6.0</span>
-    <span class="badge plain">Docker</span>
-    <span class="badge plain">MIT</span>
-    <span class="badge plain">Sonos</span>
-    <span class="badge plain">UPnP / DLNA</span>
-    <span class="badge plain">Android app</span>
-    <span class="badge plain">USB DAC</span>
-  </div>
-</header>
+    <!-- Tech Hero Section -->
+    <header class="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+        <!-- Tech Badges -->
+        <div class="flex flex-wrap justify-center gap-2 mb-6">
+            <span class="bg-orange-500/10 text-orange-400 text-xs font-semibold px-3 py-1 rounded-full border border-orange-500/20">v0.6.0</span>
+            <span class="bg-slate-900 text-slate-400 text-xs font-semibold px-3 py-1 rounded-full border border-slate-800">Docker</span>
+            <span class="bg-slate-900 text-slate-400 text-xs font-semibold px-3 py-1 rounded-full border border-slate-800">MIT License</span>
+            <span class="bg-slate-900 text-slate-400 text-xs font-semibold px-3 py-1 rounded-full border border-slate-800">Sonos & UPnP</span>
+        </div>
+        
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            Your own music files.<br>
+            <span class="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">Played to your rooms and phone.</span>
+        </h1>
+        <p class="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
+            A small server on a machine you own scans your music folders. Stream to any Sonos room, TV, AV receiver, or your phone. No subscriptions. No streaming accounts. <strong>Definitely no nonsense.</strong>
+        </p>
 
-<section id="how">
-  <div class="wrap">
-    <h2>How it works</h2>
-    <p class="lead">Mandarin is a server and the app built for it. The server scans your library,
-      drives Sonos rooms with the control ported from the Caldera Sonos Bridge, drives UPnP/DLNA renderers &mdash;
-      a WiiM, a Chord Poly, a streamer, an AV receiver, a TV, anything with AVTransport &mdash; through their own
-      transport, gapless, with each one's sample rates read from the device, and plays to the Android app on the
-      phone itself or through a USB DAC on its port. It plays your files without ridiculous claims.</p>
+        <!-- CTA Cluster -->
+        <div class="flex flex-wrap items-center justify-center gap-4 max-w-md mx-auto">
+            <a href="#docker" class="w-full sm:w-auto bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-6 py-3.5 rounded-xl transition shadow-lg shadow-orange-500/20 text-center">
+                Deploy Server (Docker)
+            </a>
+            <a href="#mobile" class="w-full sm:w-auto bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold px-6 py-3.5 rounded-xl transition text-center">
+                Get Android APK
+            </a>
+        </div>
+    </header>
+    <!-- Features Architecture Grid -->
+    <section id="features" class="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900">
+        <div class="mb-12">
+            <h2 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Built to handle audio seamlessly</h2>
+            <p class="text-slate-400 text-sm mt-1">Smart playback engine paired with a highly customisable, zero-bloat user layer.</p>
+        </div>
 
-    <div class="flow">
-      <div class="node"><b>Your phone or browser</b><span>Mandarin's own interface</span></div>
-      <div class="arrow">&rarr;</div>
-      <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
-      <div class="arrow">&rarr;</div>
-      <div class="node"><b>Players</b><span>Sonos rooms, WiiM, Poly, receivers, the app</span></div>
-    </div>
-    <p class="flow-note">Tracks go into the speaker's own Sonos queue, so playback is gapless and a
-       skip is instant; a UPnP renderer is handed each next track ahead of time for the same reason.
-       Each device fetches the audio straight from the server &mdash; as the file itself when it can
-       play it, converted to what it takes when it can't.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card 1 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">🏠</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">Smarter Home Dashboard</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Album of the Day, Listen Later, Smart Picks, and custom modules you can reorder or toggle off instantly.</p>
+            </div>
+            <!-- Card 2 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">🔊</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">Cross-Room Management</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Control volume per speaker, shuffle, repeat, or seamlessly move queues to entirely different hardware targets.</p>
+            </div>
+            <!-- Card 3 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">🔌</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">Native USB DAC Mode</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Bypass standard Android system mixers entirely. Feed external DAC architectures natively with DSD or DoP rates.</p>
+            </div>
+            <!-- Card 4 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">🎯</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">Deep Library Scans</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Matches MusicBrainz, barcodes, and iTunes data. Calculates ReplayGain targets dynamically from -14 to -25 LUFS.</p>
+            </div>
+            <!-- Card 5 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">✈️</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">True Offline Fluidity</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">One toggle drops the layout to local storage mode only. Transcodes down to clean Opus 256 files automatically.</p>
+            </div>
+            <!-- Card 6 -->
+            <div class="p-6 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm hover:border-orange-500/20 transition group">
+                <span class="text-2xl mb-4 block">🔒</span>
+                <h3 class="text-lg font-bold text-slate-200 mb-2 group-hover:text-orange-400 transition">Built-In Tailscale Mesh</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Stream away from home without opening any router ports. Connect safely using encrypted peer networks automatically.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Docker Setup Area -->
+    <section id="docker" class="max-w-4xl mx-auto px-6 py-20 border-t border-slate-900">
+        <div class="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-white mb-3">Install with Docker</h2>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                Deploy on any always-on Linux machine inside the local network subnet (NAS, Raspberry Pi 4/5, or generic home systems). 
+                <strong class="text-orange-400 font-medium">--network host is required</strong> to guarantee multicast discovery loops function correctly.
+            </p>
+            
+            <!-- Code Block Component -->
+            <div class="bg-black/60 rounded-xl p-5 border border-slate-800 font-mono text-xs md:text-sm text-emerald-400 overflow-x-auto relative mb-6">
+                <code>docker run -d \<br>
+&nbsp;&nbsp;--name musicd-server \<br>
+&nbsp;&nbsp;--network host \<br>
+&nbsp;&nbsp;-v /path/to/music:/music:ro \<br>
+&nbsp;&nbsp;-v musicd-server-data:/data \<br>
+&nbsp;&nbsp;-e TZ=Europe/London \<br>
+&nbsp;&nbsp;-e PORT=3500 \<br>
+&nbsp;&nbsp;--restart unless-stopped \<br>
+&nbsp;&nbsp;meltface-80/mandarin:latest</code>
+            </div>
 
-    <div class="grid">
-      <div class="card"><h3><span class="em">&#127968;</span>Home, the way Mandarin does it</h3>
-        <p>Not played in six months with the Album of the day, Listen later, Favourites, Recently
-           played, Smart Picks, Label of the week, random albums and genres &mdash; rows you reorder or
-           switch off.</p></div>
-      <div class="card"><h3><span class="em">&#128197;</span>Album of the day</h3>
-        <p>The same album on every device, chosen by the server at 00:01. Once played, from anywhere,
-           it&#39;s gone until the next 00:01.</p></div>
-      <div class="card"><h3><span class="em">&#128269;</span>Instant search &amp; focus</h3>
-        <p>Search albums, artists and labels as you type. Sort and focus the library by genre,
-           decade, format, sample rate, bit depth, label or date added.</p></div>
-      <div class="card"><h3><span class="em">&#128191;</span>Album pages</h3>
-        <p>Tracks, year and label, favourite, listen later, download and share. Previous and next,
-           or a swipe, step through the albums of the row you came from.</p></div>
-      <div class="card"><h3><span class="em">&#128278;</span>Listen later</h3>
-        <p>Albums put aside to hear, on a Home row and a wall of their own. Each comes off by itself
-           once every track has played.</p></div>
-      <div class="card"><h3><span class="em">&#128197;</span>Label of the week</h3>
-        <p>With Record labels on, one label from your library on Home all week, with its albums
-           &mdash; a new one each Monday.</p></div>
-      <div class="card"><h3><span class="em">&#10084;</span>Favourites</h3>
-        <p>A heart on any album, gathered on a Home row of their own.</p></div>
-      <div class="card"><h3><span class="em">&#10024;</span>Smart Picks &amp; Discover</h3>
-        <p>Five records a day from your own library, by acts near the ones you play, and new
-           releases by the artists you listen to.</p></div>
-      <div class="card"><h3><span class="em">&#128240;</span>Write-ups &amp; reviews</h3>
-        <p>Album and artist stories from Wikipedia and Qobuz's editorial pages, and the Pitchfork
-           score with a link to the review &mdash; no account needed.</p></div>
-      <div class="card"><h3><span class="em">&#128214;</span>Pitchfork</h3>
-        <p>The latest reviews and Best New Music to read in the app, with Play on any record you
-           own.</p></div>
-      <div class="card"><h3><span class="em">&#12336;</span>Waveform</h3>
-        <p>The seek bar draws the shape of the track, measured from your file and kept, so it is
-           instant after the first play.</p></div>
-      <div class="card"><h3><span class="em">&#128228;</span>Share card</h3>
-        <p>The record as an image, where to hear it and where to read about it, and three acts
-           worth hearing next &mdash; the ones you own play straight away.</p></div>
-      <div class="card"><h3><span class="em">&#128251;</span>Random Album Radio</h3>
-        <p>When a player's queue runs out, another whole album you haven't played lately goes on.
-           Per player.</p></div>
-      <div class="card"><h3><span class="em">&#128266;</span>Rooms</h3>
-        <p>Volume per speaker, shuffle and repeat, and move what's playing to another room or
-           player. Sonos rooms can be grouped here too, and Sonos keeps them in step itself.</p></div>
-      <div class="card"><h3><span class="em">&#128250;</span>Wall display</h3>
-        <p>A full-screen now-playing page for a TV or tablet at <code>/display</code>, with
-           reviews, artist stories and more from your library.</p></div>
-      <div class="card"><h3><span class="em">&#127926;</span>Playlists</h3>
-        <p>Playlists you build, Dynamic Playlists that follow a saved focus, and sharing and
-           importing as a playlist file you can pass on.</p></div>
-      <div class="card"><h3><span class="em">&#9998;</span>Edit album</h3>
-        <p>Correct the title, artist or year and find a cover. Edits live in the database; your
-           files stay exactly as they are.</p></div>
-      <div class="card"><h3><span class="em">&#128193;</span>Music folders</h3>
-        <p>Any number of folders the server can see, added in Settings and watched, so new and
-           deleted albums show up by themselves.</p></div>
-      <div class="card"><h3><span class="em">&#127919;</span>Library Scanner</h3>
-        <p>Albums identified by their files' identifiers first &mdash; MusicBrainz ID, barcode,
-           catalogue number, ISRC &mdash; then MusicBrainz by tracks and lengths, iTunes as a second
-           opinion. ReplayGain measured for untagged files.</p></div>
-      <div class="card"><h3><span class="em">&#128264;</span>Volume Levelling</h3>
-        <p>ReplayGain set per device: Track, Album or Auto, a target from &minus;14 to &minus;25
-           LUFS, peaks respected. Sonos, renderers and the phone, downloads included.</p></div>
-      <div class="card"><h3><span class="em">&#127911;</span>UPnP/DLNA renderers</h3>
-        <p>A WiiM, a Chord Poly, a streamer, an AV receiver, a TV: found on the network, switched on
-           when you say, gapless, with volume, radio and everything a room has. DSD sent as DSD where
-           taken.</p></div>
-      <div class="card"><h3><span class="em">&#127898;</span>Audio Devices</h3>
-        <p>Every player with what it takes &mdash; rates, depths, formats &mdash; a name of your own,
-           and Original or Upsample &times;2, &times;4 or Max output per renderer.</p></div>
-      <div class="card"><h3><span class="em">&#127932;</span>DSP</h3>
-        <p>A parametric EQ of up to ten bands per renderer or phone, the curve drawn as you edit, and
-           headphone profiles from AutoEq or a pasted ParametricEQ.txt.</p></div>
-      <div class="card"><h3><span class="em">&#127991;</span>Record labels</h3>
-        <p>From the files' tags or a folder level: a Labels screen, logos from Discogs and FanArt.tv,
-           lookups for untagged albums, and merging of duplicates.</p></div>
-      <div class="card"><h3><span class="em">&#128241;</span>This phone</h3>
-        <p>In the Android app the phone is a room of its own &mdash; speaker, headphones, Bluetooth &mdash;
-           with the queue, history and radio like any other. At home your other devices can play to
-           it too.</p></div>
-      <div class="card"><h3><span class="em">&#128268;</span>USB DAC</h3>
-        <p>The app's own USB Audio driver feeds a DAC on the phone's port at the file's rate and
-           depth, DSD natively or as DoP, Android's mixer out of the way. Volume starts low, with a
-           limit, or fixed.</p></div>
-      <div class="card"><h3><span class="em">&#11015;</span>Downloads</h3>
-        <p>Albums kept on the phone, in a folder you choose, as the files themselves or as Opus 256,
-           played with no server at all; today's picks kept automatically if you like.</p></div>
-      <div class="card"><h3><span class="em">&#127925;</span>Music on this phone</h3>
-        <p>A folder of files already on the phone, watched for changes, shown and played like the
-           library.</p></div>
-      <div class="card"><h3><span class="em">&#9992;&#65039;</span>Offline mode</h3>
-        <p>One switch in the menu: only the music on the phone shows, and the server isn't used. With
-           no connection the app does the same by itself, and reconnects on its own.</p></div>
-      <div class="card"><h3><span class="em">&#128205;</span>Away from home</h3>
-        <p>On mobile data the app reaches the server over its built-in Tailscale, no ports opened.
-           Tracks come as Opus 256; only the phone plays.</p></div>
-      <div class="card"><h3><span class="em">&#128274;</span>One account</h3>
-        <p>A username and password kept on the server, SRP sign-in, every device listed in Settings.
-           The server and the app update themselves.</p></div>
-    </div>
-  </div>
-</section>
+            <p class="text-xs text-slate-500 italic">
+                Note: Docker Desktop setups for macOS and Windows lack native host network layers—a production Linux kernel host environment is required.
+            </p>
+        </div>
+    </section>
 
-<section id="new">
-  <div class="wrap">
-    <h2>New since the last beta</h2>
-    <p class="lead">Everything added and improved from v0.5.50 to v0.6.0.</p>
-    <div class="grid">
-      <div class="card"><h3>Multi-disc albums</h3>
-        <p>A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.</p></div>
-      <div class="card"><h3>Random Album</h3>
-        <p>Home&#39;s first tile, a brass disc turning in its middle: one tap plays a whole album you haven&#39;t heard lately.</p></div>
-      <div class="card"><h3>Album of the day, kept by the server</h3>
-        <p>One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it&#39;s gone until the next 00:01.</p></div>
-      <div class="card"><h3>Not played in six months</h3>
-        <p>Waits until Mandarin has six months of your listening, then offers the albums you haven&#39;t heard since.</p></div>
-      <div class="card"><h3>Untagged albums named from folders</h3>
-        <p>A file with no tags takes its artist, album, year, title and track from its folder and file names, then is identified on MusicBrainz; nothing is written to the files.</p></div>
-      <div class="card"><h3>One album per folder</h3>
-        <p>Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album&#39;s folder are one album, shown disc by disc.</p></div>
-      <div class="card"><h3>Every tag kept</h3>
-        <p>All of each file&#39;s tags and identifiers &mdash; MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain &mdash; read into the server&#39;s database.</p></div>
-      <div class="card"><h3>Library Scanner</h3>
-        <p>Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.</p></div>
-      <div class="card"><h3>Volume Levelling</h3>
-        <p>ReplayGain set per device &mdash; Off, Track, Album or Auto &mdash; with a target from &minus;14 to &minus;25 LUFS and a level for tracks of unknown loudness.</p></div>
-      <div class="card"><h3>DSD to renderers</h3>
-        <p>A renderer that takes DSD files, such as a Chord Poly, is sent the DSF or DFF itself, at the DSD rates switched on for it.</p></div>
-      <div class="card"><h3>Move to another device</h3>
-        <p>Moving what&#39;s playing to another room, renderer or phone carries the queue over and plays on from the same track and second.</p></div>
-      <div class="card"><h3>Play to another phone</h3>
-        <p>A phone running the app is a player for your other devices at home, under its own name, while the app runs.</p></div>
-      <div class="card"><h3>Offline mode</h3>
-        <p>One switch: only the music on the phone shows and the server isn&#39;t asked. The app also opens with no signal and finds the server again by itself.</p></div>
-      <div class="card"><h3>Share card saved</h3>
-        <p>In the app, Download saves the card to the phone&#39;s Pictures/Mandarin.</p></div>
-      <div class="card"><h3>Help behind &#9432;</h3>
-        <p>Every setting&#39;s longer explanation opens from an ⓘ after its name, with a short line left under it.</p></div>
-      <div class="card"><h3>Release candidates</h3>
-        <p>The app, its update check and the server&#39;s updater read 0.6.0-RC builds in order, so updates arrive one after another.</p></div>
-    </div>
-  </div>
-</section>
+    <!-- Application Sideload Channels -->
+    <section id="mobile" class="max-w-4xl mx-auto px-6 py-16 border-t border-slate-900 text-center">
+        <h2 class="text-2xl font-bold text-white mb-2">Connect Your Devices</h2>
+        <p class="text-slate-400 text-sm mb-8">Access the client matching your mobile phone ecosystem seamlessly.</p>
 
-<section id="formats">
-  <div class="wrap">
-    <h2>What each device is sent</h2>
-    <p class="lead">Each track goes the way the device can take it, and the Now playing badge says
-       what was sent. Conversion is ffmpeg with the SoX resampler and triangular dither; a converted
-       track plays while it is still being written, the next tracks are prepared ahead, and replays
-       come from a cache.</p>
-    <div class="info-cards">
-      <div class="info-card">
-        <span class="sym">Sonos</span>
-        <h3>Up to 24-bit / 48 kHz</h3>
-        <p>Within that, the file as stored. Above it, or in a format Sonos can't read, FLAC at 24/48.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">UPnP / DLNA renderer</span>
-        <h3>Its own ceiling, read from the device</h3>
-        <p>Within it, the file as stored. Above it, FLAC at the best rate the device takes in the
-           file's family. Upsample &times;2, &times;4 or Max if you choose, from its page in Audio Devices.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">The Android app</span>
-        <h3>The phone's own output</h3>
-        <p>The file as stored within 24/48, FLAC 24/48 above it. Away from home, Opus 256.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">USB DAC on the phone</span>
-        <h3>USB direct</h3>
-        <p>The file at its own rate and depth where the DAC takes it, DSD natively or as DoP, FLAC at
-           the DAC's best rate otherwise.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">Everything else</span>
-        <h3>Formats nothing plays as they are</h3>
-        <p>APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
-      </div>
-    </div>
-  </div>
-</section>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <!-- Android Card -->
+            <div class="p-6 rounded-xl bg-slate-900/30 border border-slate-900 text-left">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest block mb-1">Android Client</span>
+                <h3 class="text-lg font-bold text-white mb-3">Native APK Build</h3>
+                <p class="text-slate-400 text-xs leading-relaxed mb-4">Features notification audio keys, hardware volume controls, Android Auto, and background sync logic.</p>
+                <a href="https://github.com" class="inline-block bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg transition">
+                    Download .APK Package
+                </a>
+            </div>
 
-<section id="install">
-  <div class="wrap">
-    <h2>Install with Docker</h2>
-    <p class="lead">On an always-on Linux machine on the same network as your speakers &mdash; a NAS,
-       a Raspberry Pi 4/5 on a 64-bit OS, a home server. Fill in your music folders and time zone and
-       copy the command.</p>
+            <!-- iOS Card -->
+            <div class="p-6 rounded-xl bg-slate-900/30 border border-slate-900 text-left">
+                <span class="text-xs font-bold text-indigo-400 uppercase tracking-widest block mb-1">iOS Deployment</span>
+                <h3 class="text-lg font-bold text-white mb-3">Add to Home Screen</h3>
+                <p class="text-slate-400 text-xs leading-relaxed mb-4">Open the server address in Safari browser tools, click Share parameters, and tap <span class="text-slate-300">"Add to Home Screen"</span> directly.</p>
+            </div>
+        </div>
+    </section>
 
-    <div class="folders" id="b-folders">
-      <span class="ftitle">Music folders on this machine</span>
-      <div id="b-folder-list"></div>
-      <button type="button" class="addf" id="b-add">+ Add another folder</button>
-    </div>
+    <!-- Plain Text Footer -->
+    <footer class="border-t border-slate-900 py-12 text-center text-xs text-slate-600 bg-black/10">
+        <p class="mb-2">Mandarin · Distributed under the open-source MIT License guidelines.</p>
+        <p>© 2026 Lewis Menzies. Independent project unaffiliated with Sonos, Inc. or Linkplay tech.</p>
+    </footer>
 
-    <div class="builder">
-      <label>Time zone<input id="b-tz" value="Europe/London" spellcheck="false"></label>
-      <label>Port<input id="b-port" value="3500" inputmode="numeric"></label>
-      <label>A speaker's IP (optional)<input id="b-sonos" placeholder="only if rooms aren't found" spellcheck="false"></label>
-    </div>
-
-    <div class="tabs">
-      <button type="button" class="on" data-tab="run">docker run</button>
-      <button type="button" data-tab="compose">docker compose</button>
-    </div>
-
-    <div class="out">
-      <div class="codebox">
-        <button class="copy-btn" id="copy">Copy</button>
-<pre id="cmd"></pre>
-      </div>
-
-      <div class="note">
-        <b>--network host is required.</b> Speakers are found by multicast, which does not cross
-        Docker's default bridge network, and they fetch audio from this machine's own address.
-        Docker Desktop for macOS and Windows has no real host networking, so this needs a Linux host.
-      </div>
-      <div class="note">
-        <b>Keep the musicd-server-data volume.</b> It holds the library database, play history,
-        playlists, settings and the artwork and conversion caches. The command above is a swap, not a
-        fresh start &mdash; re-run it to update.
-      </div>
-      <div class="note">
-        <b>More than one music folder?</b> Add each one above. A single folder is mounted as
-        <code>/music</code>; with several, each becomes its own folder inside it &mdash;
-        <code>/mnt/nas/Albums</code> as <code>/music/Albums</code>, <code>/mnt/usb/Vinyl</code> as
-        <code>/music/Vinyl</code> &mdash; and the scan reads them all as one library. All are
-        mounted read-only. Adding or removing a folder later is the same command re-run; albums
-        in a folder that is gone drop out at the next scan.
-      </div>
-    </div>
-
-    <div class="firstrun" style="margin-top:22px">
-      <ol>
-        <li>Open <b>http://&lt;server-ip&gt;:<span class="port">3500</span></b> on a device at home and
-            <b>create your account</b> — one username and password, kept on the server. The first scan
-            starts straight away; albums appear as it goes.</li>
-        <li>Pick a room under <b>Settings &rarr; Audio Devices</b>, or from the speaker button on Now playing.</li>
-        <li>Tap an album and <b>Play Now</b>.</li>
-      </ol>
-      <p class="fine" style="font-size:12.5px;color:var(--muted);margin-top:12px">
-        If Docker isn't installed: <code>dietpi-software install 162</code> on DietPi, or
-        <code>curl -fsSL https://get.docker.com | sh</code> on Debian, Ubuntu and Raspberry Pi OS.</p>
-    </div>
-  </div>
-</section>
-
-<section id="apps">
-  <div class="wrap">
-    <h2>On your phone</h2>
-    <p class="lead">The same interface everywhere, because it comes from the server.</p>
-    <div class="info-cards">
-      <div class="info-card">
-        <span class="sym">iPhone &amp; iPad</span>
-        <h3>Add to Home Screen</h3>
-        <p>Open <code>http://&lt;server-ip&gt;:3500</code> in Safari, tap <b>Share &rarr; Add to Home
-           Screen</b>. It opens full screen like an app, with the same interface as the Android app.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">Android</span>
-        <h3>The Mandarin app</h3>
-        <p>Bespoke, and designed from the ground up for the Mandarin server. Enter the port and it
-           finds the server on your Wi-Fi by itself &mdash; or type the address.
-           On top of the interface it adds lock-screen and notification controls, volume keys, a
-           now-playing widget, a Quick Settings tile, a share sheet, Android Auto, This phone as a room,
-           downloads, a USB DAC driver, and Tailscale for away from home.</p>
-        <p class="fine"><a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk"><b>Download mandarin-android.apk</b></a>
-           &mdash; the newest build, published on every version. Sideload on Android 8.0 or newer; the app
-           updates itself from then on.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="env">
-  <div class="wrap">
-    <h2>Environment variables</h2>
-    <p class="lead">All optional; pass any with <code>-e NAME=value</code>. Everything else is in the
-       app's Settings and kept in the data volume.</p>
-    <div class="tablewrap">
-      <table>
-        <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
-        <tr><td>PORT</td><td>3500</td><td>The interface, the API, and where speakers fetch audio.</td></tr>
-        <tr><td>TZ</td><td>UTC</td><td>Album of the day changes over at 00:01 and Smart Picks at local midnight.</td></tr>
-        <tr><td>SONOS_HOSTS</td><td>&mdash;</td><td>A speaker's IP, for when multicast discovery is unreliable. One is enough.</td></tr>
-        <tr><td>UPNP_HOSTS</td><td>&mdash;</td><td>UPnP/DLNA renderers to ask by address (an IP or a description URL), for when multicast discovery misses them.</td></tr>
-        <tr><td>IDENTIFY</td><td>on</td><td><code>0</code> leaves the album identification scan out entirely.</td></tr>
-        <tr><td>ITUNES_COUNTRY</td><td>US</td><td>The Apple store the identification scan's iTunes lookups use (<code>GB</code>, <code>DE</code>&hellip;).</td></tr>
-        <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from, on hosts with several interfaces.</td></tr>
-        <tr><td>INCLUDE_ZONES</td><td>&mdash;</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
-        <tr><td>EXCLUDE_ZONES</td><td>&mdash;</td><td>Offer every room except these.</td></tr>
-        <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Changes are noticed as they happen where the file system reports them.</td></tr>
-        <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted hi-res tracks.</td></tr>
-        <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>Tracks converted at once.</td></tr>
-        <tr><td>DEBUG</td><td>&mdash;</td><td>Log every API call.</td></tr>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section id="trouble">
-  <div class="wrap">
-    <h2>Troubleshooting</h2>
-    <p class="lead"><code>http://&lt;server-ip&gt;:3500/api/health</code> answers without signing in;
-       <code>/api/status</code> (signed in) says what the server can see. Forgot the password?
-       <code>docker exec musicd-server node reset-password.js</code>, then create the account again.</p>
-    <div class="info-cards">
-      <div class="info-card">
-        <span class="sym">No rooms</span>
-        <h3>"No Sonos rooms found yet"</h3>
-        <p>Check the container is on host networking and on the same subnet as the speakers, then
-           look at <code>sonos.error</code> in <code>/api/status</code>. Setting
-           <code>SONOS_HOSTS</code> to one speaker's IP skips discovery.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">Silence</span>
-        <h3>A room skips every track</h3>
-        <p>The speakers can't reach the server. On a machine with several network interfaces set
-           <code>SERVER_IP</code> to its LAN address, and check nothing blocks the port.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">No albums</span>
-        <h3>The library is empty</h3>
-        <p><code>/api/status</code> shows <code>music_dir</code> and <code>index_count</code>. Check
-           the <code>-v …:/music:ro</code> mount and that the folder is readable.</p>
-      </div>
-      <div class="info-card">
-        <span class="sym">Hi-res</span>
-        <h3>96 kHz files won't play</h3>
-        <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. The Docker image includes it;
-           a hand-run server needs ffmpeg on the PATH.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
-     <a href="https://github.com/meltface-80/Mandarin">github.com/meltface-80/Mandarin</a><br>
-     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics.
-     This is an independent project, affiliated with none of them.</p>
-</footer>
-
-<script>
-(function () {
-  "use strict";
-  var tab = "run";
-  var $ = function (id) { return document.getElementById(id); };
-  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function q(s) { return /^[A-Za-z0-9_\/.:+-]+$/.test(s) ? s : "'" + String(s).replace(/'/g, "'\\''") + "'"; }
-
-  // ---- music folders: one or more host paths, each mounted under /music ----
-  var DEFAULT_FOLDER = "/mnt/dietpi_userdata/Music";
-
-  function folderInputs() {
-    return Array.prototype.slice.call(document.querySelectorAll("#b-folder-list input"));
-  }
-
-  // Where each host folder appears inside the container. One folder IS
-  // /music; several each get a subfolder named after the last part of the
-  // host path, made safe for a path and numbered when two share a name.
-  function mounts() {
-    var paths = folderInputs().map(function (el) { return el.value.trim(); }).filter(Boolean);
-    if (!paths.length) paths = ["/your/path/to/Music"];
-    if (paths.length === 1) return [{ src: paths[0], dst: "/music" }];
-    var used = {};
-    return paths.map(function (p, i) {
-      var base = p.replace(/\/+$/, "").split("/").pop() || "";
-      base = base.replace(/\s+/g, "-").replace(/[^A-Za-z0-9._-]/g, "").replace(/^[.-]+/, "") || ("Music" + (i + 1));
-      var name = base, n = 2;
-      while (used[name.toLowerCase()]) name = base + "-" + n++;
-      used[name.toLowerCase()] = true;
-      return { src: p, dst: "/music/" + name };
-    });
-  }
-
-  function addFolder(value, focus) {
-    var row = document.createElement("div");
-    row.className = "frow";
-    var input = document.createElement("input");
-    input.spellcheck = false;
-    input.placeholder = "/mnt/…/Music";
-    input.value = value || "";
-    input.setAttribute("aria-label", "Music folder");
-    input.addEventListener("input", build);
-    var rm = document.createElement("button");
-    rm.type = "button";
-    rm.className = "rm";
-    rm.textContent = "\u00d7";
-    rm.setAttribute("aria-label", "Remove this folder");
-    rm.addEventListener("click", function () { row.remove(); build(); });
-    var to = document.createElement("div");
-    to.className = "to";
-    row.appendChild(input); row.appendChild(rm); row.appendChild(to);
-    $("b-folder-list").appendChild(row);
-    if (focus) input.focus();
-    build();
-  }
-
-  function paintFolders(ms) {
-    var rows = document.querySelectorAll("#b-folder-list .frow");
-    var only = rows.length === 1;
-    var k = 0;
-    for (var i = 0; i < rows.length; i++) {
-      var input = rows[i].querySelector("input");
-      rows[i].querySelector("button.rm").hidden = only;
-      var to = rows[i].querySelector(".to");
-      if (input.value.trim() && ms[k]) { to.innerHTML = "in the container: <b>" + esc(ms[k].dst) + "</b>"; k++; }
-      else to.textContent = "";
-    }
-  }
-
-  function build() {
-    var ms = mounts();
-    paintFolders(ms);
-    var tz = $("b-tz").value.trim() || "Europe/London";
-    var port = ($("b-port").value.trim().match(/^\d{2,5}$/) || ["3500"])[0];
-    var sonos = $("b-sonos").value.trim();
-    var ports = document.querySelectorAll(".port");
-    for (var i = 0; i < ports.length; i++) ports[i].textContent = port;
-    var K = function (t) { return '<span class="k">' + t + "</span>"; };
-    var C = function (t) { return '<span class="c">' + t + "</span>"; };
-    var out;
-    if (tab === "run") {
-      out = C("# Replace any existing container (the data volume is kept)") + "\n" +
-        "docker stop musicd-server 2&gt;/dev/null\ndocker rm musicd-server 2&gt;/dev/null\n" +
-        "docker pull ghcr.io/meltface-80/musicd-server:latest\n\n" +
-        "docker run -d \\\n" +
-        "  " + K("--name") + " musicd-server \\\n" +
-        "  " + K("--network") + " host \\\n" +
-        "  " + K("--restart") + " unless-stopped \\\n" +
-        "  " + K("-e") + " TZ=" + esc(q(tz)) + " \\\n" +
-        (port !== "3500" ? "  " + K("-e") + " PORT=" + port + " \\\n" : "") +
-        (sonos ? "  " + K("-e") + " SONOS_HOSTS=" + esc(q(sonos)) + " \\\n" : "") +
-        "  " + K("-v") + " musicd-server-data:/app/data \\\n" +
-        ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro")) + " \\\n"; }).join("") +
-        "  ghcr.io/meltface-80/musicd-server:latest";
-    } else {
-      out = C("# docker-compose.yml — then: docker compose up -d") + "\n" +
-        "services:\n  musicd-server:\n    image: ghcr.io/meltface-80/musicd-server:latest\n" +
-        "    container_name: musicd-server\n    restart: unless-stopped\n    network_mode: host\n" +
-        "    environment:\n      TZ: " + esc(tz) + "\n" +
-        (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
-        (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +
-        "    volumes:\n      - musicd-server-data:/app/data\n" +
-        ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") + "\n" +
-        "volumes:\n  musicd-server-data:\n    name: musicd-server-data";
-    }
-    $("cmd").innerHTML = out;
-  }
-
-  ["b-tz", "b-port", "b-sonos"].forEach(function (id) { $(id).addEventListener("input", build); });
-  $("b-add").addEventListener("click", function () { addFolder("", true); });
-  addFolder(DEFAULT_FOLDER, false);
-  var tabs = document.querySelectorAll(".tabs button");
-  for (var i = 0; i < tabs.length; i++) tabs[i].addEventListener("click", function (e) {
-    tab = e.currentTarget.getAttribute("data-tab");
-    for (var j = 0; j < tabs.length; j++) tabs[j].classList.toggle("on", tabs[j] === e.currentTarget);
-    build();
-  });
-  build();
-
-  var btn = $("copy");
-  btn.addEventListener("click", function () {
-    var text = $("cmd").innerText;
-    function done() {
-      btn.textContent = "Copied \u2713"; btn.classList.add("done");
-      setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1600);
-    }
-    function fallback() {
-      var ta = document.createElement("textarea");
-      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); done(); } catch (e) { /* no clipboard: the text can be selected by hand */ }
-      document.body.removeChild(ta);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
-    else fallback();
-  });
-})();
-</script>
 </body>
 </html>
