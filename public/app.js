@@ -949,14 +949,17 @@
     btn.type = "button";
     btn.className = "album home-unheard-tile";
     btn.id = "home-unheard-tile";
-    btn.setAttribute("aria-label", "Play something you haven't heard");
+    btn.setAttribute("aria-label", "Random Album");
 
     const art = document.createElement("div");
     art.className = "album-art-wrap unheard-art";
     const glyph = document.createElement("span");
-    glyph.className = "unheard-glyph";
+    // A disc turning on its own centre, the middle of the tile (v0.6.0).
+    glyph.className = "unheard-glyph unheard-disc";
     glyph.setAttribute("aria-hidden", "true");
-    glyph.textContent = "✧";
+    glyph.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">' +
+      '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/>' +
+      '<path d="M6.6 8.4A6.6 6.6 0 0 1 9.4 5.9"/><path d="M17.4 15.6A6.6 6.6 0 0 1 14.6 18.1"/></svg>';
     art.appendChild(glyph);
     btn.appendChild(art);
 
@@ -964,11 +967,8 @@
     meta.className = "album-meta";
     const t = document.createElement("div");
     t.className = "album-title";
-    t.textContent = "Play something unheard";
-    const s = document.createElement("div");
-    s.className = "album-artist";
-    s.textContent = "Surprise me";
-    meta.appendChild(t); meta.appendChild(s);
+    t.textContent = "Random Album";
+    meta.appendChild(t);
     btn.appendChild(meta);
 
     // One implementation, two triggers: the request, the zone check and the
@@ -5468,6 +5468,14 @@
     // nothing until you navigated away and back.
     const qBadge = qualityBadge(a);
     if (qBadge) artWrap.appendChild(qBadge);
+    // More than one disc (v0.6.0): two discs, bottom right, opposite the quality.
+    if (a.discs > 1) {
+      const d = document.createElement("span");
+      d.className = "album-discs";
+      d.title = a.discs + " discs";
+      d.setAttribute("aria-label", a.discs + " discs");
+      artWrap.appendChild(d);
+    }
     // A playlist has no cover of its own, so it gets a mosaic of the artwork
     // from the first few tracks — the way Roon draws them. Two or more distinct
     // covers make a 2x2; a single one just fills the tile, because a lone
@@ -16528,3 +16536,24 @@ initServiceBrowser({
   setInterval(() => { if (!pane.classList.contains("hidden") && !busy) load(); }, 3000);
 })();
 
+
+/* ------------------------------------------------------------------ */
+/*  Toasts above the mini transport bar (v0.6.0): --toast-lift is how   */
+/*  far its top edge is from the bottom of the screen, plus a gap, kept */
+/*  current as the bar shows, hides or changes size; 0 without it.      */
+/* ------------------------------------------------------------------ */
+(function keepToastsAboveTransport() {
+  const bar = document.getElementById("mini-transport");
+  if (!bar) return;
+  const root = document.documentElement;
+  const update = () => {
+    const r = bar.getBoundingClientRect();
+    const shown = !bar.classList.contains("hidden") && r.height > 0 && getComputedStyle(bar).display !== "none";
+    root.style.setProperty("--toast-lift", shown ? Math.ceil(window.innerHeight - r.top + 10) + "px" : "0px");
+  };
+  update();
+  new MutationObserver(update).observe(bar, { attributes: true, attributeFilter: ["class", "style"] });
+  if (window.ResizeObserver) new ResizeObserver(update).observe(bar);
+  window.addEventListener("resize", update);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", update);
+})();
