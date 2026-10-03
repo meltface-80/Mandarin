@@ -18,7 +18,7 @@ class ReplayGainTest {
         assertNull(ReplayGain.gainDb(null, "track"))
     }
 
-    @Test fun `the target moves every gain; the peak keeps it from clipping`() {
+    @Test fun `the target moves every gain, and the peak keeps it from clipping`() {
         assertEquals(6.0, ReplayGain.gainDb(ReplayGain.Info(10.0, 0.5, null, null), "track")!!, 1e-9)
         // -14 LUFS is 4 dB above ReplayGain's -18.
         assertEquals(-2.0, ReplayGain.gainDb(info, "track", 4.0)!!, 1e-9)
