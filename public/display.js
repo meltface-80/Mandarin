@@ -155,7 +155,7 @@
       bbTot.textContent    = fmt(np.length);
 
       // Reconcile, do not snap — the same fix app.js carries, for the same
-      // reason. Roon quantises the position to whole seconds and emits on its
+      // reason. The player reports the position in whole seconds and emits on its
       // own ~1Hz cadence, so what arrives here is up to ~2s behind what the
       // local clock has already painted. Assigning it every poll dragged the
       // strip backwards on each tick. Re-baseline on a real event only: a track
@@ -186,9 +186,8 @@
 
   /* ---------------- Waveform ---------------- */
   /*
-   * The same shape the Now playing screen draws, on the bottom strip. Local
-   * files only — Roon streams Qobuz and TIDAL to the endpoint and never to an
-   * extension, so those tracks keep the plain fill.
+   * The same shape the Now playing screen draws, on the bottom strip. Library
+   * tracks only; anything else keeps the plain fill.
    *
    * The canvas sits INSIDE .bb-track, over the existing fill rather than
    * instead of it: if there is no waveform, or the setting is off, or anything

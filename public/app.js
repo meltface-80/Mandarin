@@ -159,7 +159,7 @@
   function setModalSource(album) {
     if (!modalSource) return;
     const kind = album && (album.source || (album.local ? "local" : null));
-    const label = { local: "Local albums", qobuz: "Qobuz", tidal: "TIDAL" }[kind];
+    const label = { local: "Local albums", qobuz: "Qobuz" }[kind];
     modalSource.className = "album-source" + (label ? " " + kind : " hidden");
     if (label) { modalSource.title = label; modalSource.setAttribute("aria-label", label); }
     // Same badge as the tiles, on the album's own artwork. Cleared on every
@@ -1012,8 +1012,8 @@
   }
 
   /*
-   * Album of the day, in step on every device (v0.6.0-RC4): asked of the
-   * server every minute while Home is on screen, when you come back to the app
+   * Album of the day, in step on every device (v0.6.0-RC4): the server
+   * chooses it at 00:01 and keeps it (v0.6.0-RC8), and is asked every minute while Home is on screen, when you come back to the app
    * or the tab, and with the rows. Played anywhere, it goes everywhere; at
    * 00:01 the new one comes everywhere.
    */
@@ -1040,7 +1040,7 @@
     // Album of the day (completely random; hidden once played today) sits
     // first. Fetched in PARALLEL with the unplayed list — they're independent,
     // and awaiting them in sequence added a full round-trip to every reload.
-    const aotdPromise = fetch("/api/home/album-of-the-day")
+    const aotdPromise = fetch("/api/home/album-of-the-day", { cache: "no-store" })
       .then(ar => ar.json()).catch(() => null);
     const unplayedPromise = fetch("/api/home/unplayed?months=6&count=30");
     unplayedPromise.catch(() => {});   // handled at the await below — this just silences the pre-await rejection warning
@@ -1313,12 +1313,11 @@
         // Deliberately not just "Added": the album is in the streaming library
         // now, but Roon imports on its own schedule, and the first version's
         // bare "Added" left people wondering why they still could not play it.
-        button.textContent = "✓ Added — waiting for Roon";
+        button.textContent = "✓ Added";
         button.classList.add("is-done");
         button.disabled = true;
         button.dataset.added = "1";
-        showToast("Added to " + (pick.service === "tidal" ? "TIDAL" : "Qobuz") +
-                  " — Roon will import it on its next sync", "ok");
+        showToast("Added to your Qobuz favourites", "ok");
       } else {
         button.textContent = before;
         button.disabled = false;
@@ -1423,7 +1422,7 @@
         wait.type = "button";
         wait.className = "pick-add is-done";
         wait.disabled = true;
-        wait.textContent = "✓ Added — waiting for Roon";
+        wait.textContent = "✓ Added";
         actions.appendChild(wait);
       } else {
         const add = document.createElement("button");
@@ -1537,12 +1536,11 @@
     if (!picks.length) {
       setBanner(j.service_ready
         ? "Building today's picks — this takes a minute the first time. Come back shortly."
-        : "Connect Qobuz or TIDAL in Settings and Smart Picks can suggest albums " +
-          "you can add straight to your library.", false);
+        : "No picks today yet — come back shortly.", false);
       return;
     }
     setBanner(j.service_ready ? null
-      : "Connect Qobuz or TIDAL in Settings to add any of these to your library.", false);
+      : null, false);
     const wrap = document.createElement("div");
     wrap.className = "pick-list";
     for (const p of picks) wrap.appendChild(smartPickCard(p, true));
@@ -1777,12 +1775,12 @@
   // (10 minutes). One number for both would be wrong exactly when it is read.
   function libraryChangingAdvice(moved) {
     return (moved
-      ? " Your Roon library changed after this list was built"
-      : " This usually means your Roon library changed after this list was built") +
+      ? " Your library changed after this list was built"
+      : " This usually means your library changed after this list was built") +
       " — normally because albums are being added or identified. " +
       (moved ? "A re-check is already scheduled — about 5 minutes"
              : "The extension re-checks every 10 minutes") +
-      " — and it refreshes itself once Roon settles, so this usually clears on " +
+      " — and it refreshes itself once the scan settles, so this usually clears on " +
       "its own. If it hasn't, open the side menu and tap Rescan library.";
   }
 
@@ -3491,7 +3489,7 @@
       // its own line. One run-on sentence buried the important half.
       const warnings = [];
       if (c.incomplete) {
-        warnings.push("Reading stopped early because Roon returned an error — " +
+        warnings.push("Reading stopped early because the server returned an error — " +
                       "this file is INCOMPLETE. Try again before sharing it.");
       }
       if (c.albumsCapped) {
@@ -3499,7 +3497,7 @@
                       "that's the limit for one go.");
       }
       if (c.sourceTruncated) {
-        warnings.push("The playlist is longer than this app can read from Roon, " +
+        warnings.push("The playlist is longer than this app can read in one go, " +
                       "so the end of it isn't here.");
       }
       if (j.truncated) warnings.push("Stopped at the sharing limit of tracks.");
@@ -3823,13 +3821,12 @@
       // it — so the number is stated rather than left to be noticed.
       const COVERAGE_NOTE = {
         decade: "Release years come from your file tags (ORIGINALDATE, then DATE) " +
-                "and from Qobuz/TIDAL. Undated albums aren't in any decade.",
+                "and from MusicBrainz. Undated albums aren't in any decade.",
         genre:  "Genres are read from your files' GENRE tags. " +
                 "An album with no genre tag won't appear here.",
         label:  "Labels are collected during the label scan, which runs in the background " +
                 "and fills in over time.",
-        format: "Read from your own files, and — for albums you have no file for — from " +
-                "the Qobuz or TIDAL account you've connected. Anything from neither has none.",
+        format: "Read from your own files.",
         added:  "Date added is when the files arrived in your music folder, as Mandarin could work " +
                 "out for itself — file timestamps, and albums appearing between scans."
       };
@@ -3927,8 +3924,7 @@
             // identifies — so when nothing else can claim an album, counting by
             // elimination is both exact and honest, and the user should know
             // that's the reasoning rather than assume every file was matched.
-            note(s.section, "No streaming service is connected, so every album in your " +
-                            "Roon library came from your own files.");
+            note(s.section, "Every album in your library came from your own files.");
           }
         }
 
@@ -4544,7 +4540,7 @@
       // The fetch died, but the server keeps going — it has no way to hear
       // that we left. Saying "couldn't reach" would invite a retry that
       // restarts the queue from scratch on top of the run still in progress.
-      showToast("Lost contact while filling the queue — check Roon before trying again",
+      showToast("Lost contact while filling the queue — check the queue before trying again",
                 "error", TOAST_REPORT_MS);
     } finally {
       btn.disabled = false;
@@ -4559,7 +4555,7 @@
   // offer is saving the current queue as a playlist from its own remote, so the
   // extension does the half it can (assembling the queue in the right order)
   // and then says exactly which two taps finish the job.
-  async function sendSmartPlaylistToRoon(sp, btn) {
+  async function sendSmartPlaylistToQueue(sp, btn) {
     const zsel = document.getElementById("zone-select");
     const zone = (zsel && zsel.value) || selectedZoneId;
     if (!zone) { showToast("Choose a zone first", "error"); return; }
@@ -4572,9 +4568,7 @@
       : "";
     const ok = await confirmDialog(
       `Queue "${sp.name}" to ${(zsel && zsel.selectedOptions[0] && zsel.selectedOptions[0].textContent) || "this zone"}?\n\n` +
-      "Roon's API can't create playlists, so this fills the queue instead. " +
-      "Then in Roon: open the queue, tap the 3 dots above it, and choose " +
-      "\"Add the queue to a Playlist\".\n\nThis replaces what's in the queue now." +
+      "This replaces what's in the queue now." +
       capNote);
     if (!ok) return;
 
@@ -4600,11 +4594,10 @@
       });
       const pj = await pr.json().catch(() => ({}));
       if (!pr.ok) { showToast(pj.error || "Sonos refused that", "error"); return; }
-      showToast(multiOutcome("Queued", pj, albums.length, smartMatched(j)) +
-                " — now save the queue as a playlist in Roon", null, TOAST_REPORT_MS);
+      showToast(multiOutcome("Queued", pj, albums.length, smartMatched(j)), null, TOAST_REPORT_MS);
     } catch (e) {
       // Same reasoning as playSmartPlaylist: the server run outlives our fetch.
-      showToast("Lost contact while filling the queue — check Roon before trying again",
+      showToast("Lost contact while filling the queue — check the queue before trying again",
                 "error", TOAST_REPORT_MS);
     } finally {
       btn.disabled = false;
@@ -4876,7 +4869,7 @@
   // Unlike the grouping sheet these actions fire immediately: a power button
   // that waits for an Apply is a power button people press twice.
   const SOURCE_STATUS_LABEL = {
-    selected:      "On — Roon input selected",
+    selected:      "On — this input selected",
     deselected:    "On — another input selected",
     standby:       "In standby",
     indeterminate: "",
@@ -4928,9 +4921,7 @@
           const note = document.createElement("div");
           note.className = "lib-sheet-note";
           note.textContent = list.length
-            ? "None of your outputs expose a source control, so Roon can't switch them " +
-              "on or off. This works with devices that report power state to Roon — many " +
-              "network streamers and AVRs do, plain audio endpoints don't."
+            ? "None of your devices can be switched on or off from here."
             : "No Sonos rooms found. The server must share a network with your speakers (host networking), or set SONOS_HOSTS to a speaker's IP.";
           body.appendChild(note);
           return;
@@ -4983,8 +4974,8 @@
             sw.type = "button";
             sw.className = "dev-btn";
             sw.dataset.action = "switch";
-            sw.textContent = "Roon input";
-            sw.setAttribute("aria-label", "Switch " + sc.display_name + " to its Roon input");
+            sw.textContent = "Select input";
+            sw.setAttribute("aria-label", "Switch " + sc.display_name + " to this input");
             sw.addEventListener("click", () => act("/api/output/convenience-switch",
               { output_id: o.output_id, control_key: sc.control_key }, sw));
             actions.appendChild(sw);
@@ -5380,7 +5371,7 @@
     return el;
   }
 
-  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz", tidal: "TIDAL" };
+  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz" };
   function sourceBadge(a) {
     const kind = a.source || (a.local ? "local" : null);
     if (!kind || !SOURCE_LABEL[kind]) return null;
@@ -8002,7 +7993,6 @@
         wrap.className = "ext-search-wrap";
         let added = 0;
         added += extServiceSection(wrap, "Qobuz", j.qobuz, "qobuz-toggle", "qobuz-search-input");
-        added += extServiceSection(wrap, "Tidal", j.tidal, "tidal-toggle", "tidal-search-input");
         added += extPitchforkSection(wrap, j.pitchfork);
         if (!added) return;
         extWrap = wrap;
@@ -12127,172 +12117,9 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  /* ---- Tidal account (OAuth device flow — no password entered here) ---- */
-  const tidalConnect     = document.getElementById("tidal-connect");
-  const tidalDisconnect  = document.getElementById("tidal-disconnect");
-  const tidalStatus      = document.getElementById("tidal-status");
-  const tidalAuthPending = document.getElementById("tidal-auth-pending");
-  const tidalTopbarBtn   = document.getElementById("tidal-toggle");
-  const tidalMenuItem    = document.getElementById("menu-item-tidal");
-
-  // Loads connection state, and gates the Tidal controls on it — the Tidal
-  // browser is only reachable while an account is connected.
-  async function loadTidalStatus() {
-    try {
-      const r = await fetch("/api/settings/tidal");
-      const j = await r.json();
-      if (tidalDisconnect) tidalDisconnect.classList.toggle("hidden", !j.connected);
-      if (tidalTopbarBtn) tidalTopbarBtn.classList.toggle("hidden", !j.connected);
-      if (tidalMenuItem) tidalMenuItem.classList.toggle("hidden", !j.connected);
-      if (!tidalStatus) return;
-      if (j.connected) {
-        tidalStatus.textContent = "Connected" + (j.displayName ? " as " + j.displayName : "");
-        return;
-      }
-      // Not connected — surface the outcome of a device-flow attempt the
-      // server finished (or is still driving) while Settings was closed, so
-      // a failure isn't silently swallowed into a bare "Not connected".
-      let extra = "";
-      try {
-        const s = await (await fetch("/api/settings/tidal/status", { cache: "no-store" })).json();
-        if (s.state === "error" && s.error) extra = " — last login attempt failed: " + s.error;
-        else if (s.state === "pending") extra = " — a login is awaiting authorization on tidal.com";
-      } catch (_) { /* best-effort detail — a plain "Not connected" is fine */ }
-      tidalStatus.textContent = "Not connected" + extra;
-    } catch (_) { /* display-only status — stale on failure is fine; the topbar button keeps its last known state */ }
-  }
-
-  // Device-flow poll timer: one active poll at most. A new Connect supersedes
-  // any previous pending authorization; closing Settings also stops the poll
-  // (the SERVER keeps polling Tidal — reopening Settings shows the outcome).
-  let tidalPollTimer = null;
-  function stopTidalPoll() {
-    if (tidalPollTimer) { clearInterval(tidalPollTimer); tidalPollTimer = null; }
-  }
-
-  function hideTidalPending() {
-    if (tidalAuthPending) { tidalAuthPending.classList.add("hidden"); tidalAuthPending.innerHTML = ""; }
-  }
-
-  // Ends the client side of the device flow: stop polling, clear the pending
-  // block, re-enable Connect and refresh the status line + topbar gating.
-  function finishTidalAuth() {
-    stopTidalPoll();
-    hideTidalPending();
-    if (tidalConnect) tidalConnect.disabled = false;
-    loadTidalStatus();
-  }
-
-  // Shows the device-authorization instructions: a link to Tidal's own page,
-  // the user code in large monospace, and a waiting line. Built with
-  // createElement/textContent so nothing from the server is injected as HTML.
-  function showTidalPending(j) {
-    if (!tidalAuthPending) return;
-    tidalAuthPending.innerHTML = "";
-    const link = document.createElement("a");
-    link.className = "tidal-auth-link";
-    link.href = j.verification_uri_complete || j.verification_uri;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Open the Tidal authorization page";
-    tidalAuthPending.appendChild(link);
-    if (j.user_code) {
-      const code = document.createElement("div");
-      code.className = "tidal-auth-code";
-      code.textContent = j.user_code;
-      tidalAuthPending.appendChild(code);
-    }
-    const wait = document.createElement("div");
-    wait.className = "tidal-auth-wait";
-    wait.textContent = "Waiting for you to authorize in the Tidal page…";
-    tidalAuthPending.appendChild(wait);
-    tidalAuthPending.classList.remove("hidden");
-  }
-
-  // Poll the server every 3 s while an authorization is pending. The server
-  // does the actual Tidal polling; this only watches for the outcome.
-  function startTidalPoll() {
-    stopTidalPoll();
-    let pollFailures = 0;
-    tidalPollTimer = setInterval(async () => {
-      try {
-        const r = await fetch("/api/settings/tidal/status", { cache: "no-store" });
-        const j = await r.json();
-        pollFailures = 0;
-        if (j.state === "connected") {
-          showToast("Tidal connected" + (j.displayName ? " as " + j.displayName : ""), "ok");
-          finishTidalAuth();
-        } else if (j.state === "error") {
-          // finishTidalAuth → loadTidalStatus renders the persistent error
-          // line ("Not connected — last login attempt failed: …").
-          showToast(j.error || "Tidal authorization failed", "error");
-          finishTidalAuth();
-        } else if (j.state === "idle") {
-          // The server no longer has a pending authorization (expired/reset).
-          showToast("Tidal authorization expired — tap Connect to try again", "error");
-          finishTidalAuth();
-        }
-        // state "pending" — keep polling
-      } catch (e) {
-        // Transient network failures shouldn't abort a flow the server is
-        // still driving — but three misses in a row means we can no longer
-        // observe the outcome, so surface it and stop.
-        pollFailures++;
-        if (pollFailures >= 3) {
-          showToast("Lost contact while waiting for Tidal: " + e.message, "error");
-          finishTidalAuth();
-        }
-      }
-    }, 3000);
-  }
-
-  if (tidalConnect) {
-    tidalConnect.addEventListener("click", async () => {
-      if (tidalConnect.disabled) return;
-      tidalConnect.disabled = true;
-      stopTidalPoll(); // a new start supersedes any previous pending authorization
-      hideTidalPending();
-      try {
-        const r = await fetch("/api/settings/tidal/start", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
-        });
-        const j = await r.json();
-        if (!r.ok || j.error) throw new Error(j.error || ("HTTP " + r.status));
-        if (!j.verification_uri_complete && !j.verification_uri) {
-          throw new Error("Tidal did not return an authorization link");
-        }
-        showTidalPending(j);
-        startTidalPoll();
-        // Connect stays disabled while the poll runs; finishTidalAuth re-enables it.
-      } catch (e) {
-        showToast("Tidal connect failed: " + e.message, "error");
-        tidalConnect.disabled = false;
-      }
-    });
-  }
-
-  if (tidalDisconnect) {
-    tidalDisconnect.addEventListener("click", async () => {
-      tidalDisconnect.disabled = true;
-      try {
-        await fetch("/api/settings/tidal/disconnect", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
-        });
-        showToast("Tidal disconnected", "ok");
-        loadTidalStatus(); // also hides the topbar Tidal button
-      } catch (e) {
-        showToast("Failed: " + e.message, "error");
-      } finally {
-        tidalDisconnect.disabled = false;
-      }
-    });
-  }
-
-  // Boot-time gate: the topbar Qobuz and Tidal buttons — and their side-menu
-  // entries — must reflect the connection without the user ever opening
-  // Settings. Qobuz was missing from this and so was never gated at all.
+  // Boot-time gate: the topbar Qobuz button — and its side-menu entry — must
+  // reflect the connection without the user ever opening Settings.
   loadQobuzStatus();
-  loadTidalStatus();
 
   // ----- Share card: services and reviews -----
   //
@@ -12551,7 +12378,7 @@ window.__musicdAppUpd = (function () {
       if (picksNote) {
         picksNote.textContent = j.service_ready
           ? "Picks you were not offered automatically are always yours to accept or reject."
-          : "Connect Qobuz or TIDAL under Streaming accounts first — without one, picks can be shown but not added.";
+          : "Picks can be shown but not added to a streaming library.";
       }
     } catch (e) {
       // Settings simply show their last values; the pane is not the place to
@@ -12984,13 +12811,8 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
-  const close = () => {
-    overlay.classList.add("hidden");
-    // Closing Settings ends the client side of any pending Tidal device flow
-    // (the server keeps polling Tidal; reopening Settings shows the outcome).
-    if (tidalPollTimer) finishTidalAuth();
-  };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const close = () => { overlay.classList.add("hidden"); };
 
   openBtn.addEventListener("click", open);
   overlay.addEventListener("click", (e) => {
@@ -13790,22 +13612,6 @@ initServiceBrowser({
   ]
 });
 
-initServiceBrowser({
-  service:     "tidal",
-  serviceName: "Tidal",
-  idPrefix:    "tidal",
-  apiBase:     "/api/tidal",
-  historyKey:  "td",
-  closeAttr:   "data-tidal-close",
-  notConnectedMsg: "Connect your Tidal account in Settings to browse Tidal.",
-  tabs: [
-    { id: "new-releases", label: "New Releases", kind: "new-releases" },
-    { id: "top",          label: "Top Albums",   kind: "featured" },
-    { id: "rising",       label: "Rising",       kind: "featured" },
-    { id: "recommended",  label: "Recommended",  kind: "featured" }
-  ]
-});
-
 /* ------------------------------------------------------------------ */
 /*  Pitchfork magazine — full-page overlay (side menu → Pitchfork)     */
 /*                                                                     */
@@ -14140,10 +13946,6 @@ initServiceBrowser({
     const query = ((it.artist || "") + " " + (it.album || "")).trim();
     const qBtn = document.getElementById("qobuz-toggle");
     if (qBtn) container.appendChild(makeFindBtn("Find on Qobuz", qBtn, "qobuz-search-input", query));
-    const tBtn = document.getElementById("tidal-toggle");
-    if (tBtn && !tBtn.classList.contains("hidden")) {
-      container.appendChild(makeFindBtn("Find on Tidal", tBtn, "tidal-search-input", query));
-    }
   }
 
   function makeFindBtn(label, toggleBtn, searchInputId, query) {

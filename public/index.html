@@ -145,17 +145,6 @@
           </svg>
         </button>
 
-        <!-- Hidden until a Tidal account is connected (app.js loadTidalStatus unhides it) -->
-        <button id="tidal-toggle" class="icon-btn hidden" aria-label="Tidal" title="Tidal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M2 9l3-3 3 3-3 3z"/>
-            <path d="M9 9l3-3 3 3-3 3z"/>
-            <path d="M16 9l3-3 3 3-3 3z"/>
-            <path d="M9 16l3-3 3 3-3 3z"/>
-          </svg>
-        </button>
-
         <!-- Hidden trigger for the side-menu "Pitchfork" item (topbar-controls is display:none) -->
         <button id="pitchfork-toggle" class="icon-btn" aria-label="Pitchfork" title="Pitchfork">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -549,7 +538,7 @@
                   <path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/>
                 </svg>
               </button>
-              <!-- Repeat cycles off → whole queue → this track, like Roon.
+              <!-- Repeat cycles off → whole queue → this track.
                    The "1" badge is DOM text, not an SVG glyph, so it themes and
                    scales with the rest of the interface. -->
               <button class="np-btn np-mode-btn" id="np-loop" aria-label="Repeat off">
@@ -594,7 +583,7 @@
                     <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.17v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/>
                   </svg>
                 </button>
-                <!-- Same Roon-style volume sheet as the mini bar's -->
+                <!-- Same volume sheet as the mini bar's -->
                 <div class="np-popover np-vol-popover vol-sheet hidden" id="np-vol-popover">
                   <div class="vol-controls" id="np-vol-controls">
                     <div class="vol-readout" aria-hidden="true">
@@ -663,7 +652,7 @@
   <!-- Toast -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-  <!-- Mini transport (now-playing bar) — Roon-style layout -->
+  <!-- Mini transport (now-playing bar) -->
   <!-- The side menu: outside .app (which is a layer of its own at 0), so it
        sits above the mini transport bar (70) as it should. -->
   <div id="menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true" aria-label="Menu">
@@ -709,10 +698,6 @@
         <button class="menu-item hidden" type="button" data-target="qobuz-toggle" id="menu-item-qobuz">
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M39.203 39.203A21.43 21.43 0 0 0 45.5 24c0-11.874-9.626-21.5-21.5-21.5S2.5 12.126 2.5 24S12.126 45.5 24 45.5c4.89 0 9.4-1.633 13.012-4.383"/><circle cx="24" cy="24" r="4.873"/><path d="M32.944 32.944L45.5 45.5"/></svg>
           <span>Qobuz</span>
-        </button>
-        <button class="menu-item hidden" type="button" data-target="tidal-toggle" id="menu-item-tidal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l3-3 3 3-3 3z"/><path d="M9 9l3-3 3 3-3 3z"/><path d="M16 9l3-3 3 3-3 3z"/><path d="M9 16l3-3 3 3-3 3z"/></svg>
-          <span>Tidal</span>
         </button>
         <button class="menu-item" type="button" data-target="pitchfork-toggle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
@@ -815,7 +800,7 @@
       <button class="np-popover-action" type="button" id="mt-unmute-all">Unmute all zones</button>
     </div>
 
-    <!-- Roon-style volume sheet: [icon + value] [slider with min/max scale] [− +] -->
+    <!-- Volume sheet: [icon + value] [slider with min/max scale] [− +] -->
     <div class="mt-vol-popover vol-sheet hidden" id="mt-vol-popover" role="dialog" aria-label="Volume">
       <div class="vol-readout" aria-hidden="true">
         <span class="vol-icon">
@@ -905,47 +890,9 @@
     </div>
   </div>
 
-  <!-- Tidal browser overlay — same structure/classes as the Qobuz overlay
-       (shared qobuz-* CLASSES drive the styling; only ids differ). Driven by
-       the same initServiceBrowser factory in app.js. -->
-  <div id="tidal-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Tidal">
-    <div class="settings-backdrop" data-tidal-close></div>
-    <div class="settings-sheet qobuz-sheet">
-      <div class="qobuz-pin">
-        <div class="settings-grip"></div>
-        <div class="settings-head">
-          <h2>Tidal</h2>
-          <button id="tidal-overlay-close" class="icon-btn" type="button" aria-label="Close" data-tidal-close>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div class="qobuz-search-row">
-          <input id="tidal-search-input" type="search" placeholder="Search the Tidal catalogue…"
-                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="tidal-search-clear" class="hidden" type="button" aria-label="Clear search">×</button>
-        </div>
-        <div id="tidal-tabs" role="tablist" aria-label="Tidal sections">
-          <button class="qobuz-tab is-active" type="button" role="tab" data-qtab="new-releases">New Releases</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="top">Top Albums</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="rising">Rising</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="recommended">Recommended</button>
-        </div>
-      </div>
-      <div id="tidal-nr-status" class="settings-token-status"></div>
-      <div id="tidal-artist-head" class="hidden"></div>
-      <div id="tidal-artists" class="hidden"></div>
-      <div id="tidal-nr-list" class="qobuz-nr-list"></div>
-      <button id="tidal-load-more" class="hidden" type="button">Load more</button>
-      <div id="tidal-nr-detail" class="qobuz-nr-detail hidden"></div>
-    </div>
-  </div>
-
   <!-- Pitchfork magazine overlay — reuses the settings-sheet / qobuz-pin / qobuz-tab
        chrome; the magazine grid + detail use dedicated pf-* classes. Driven by
-       initPitchfork() in app.js (its own module — does NOT touch the Qobuz/Tidal
+       initPitchfork() in app.js (its own module — does NOT touch the Qobuz
        initServiceBrowser factory). -->
   <div id="pitchfork-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Pitchfork">
     <div class="settings-backdrop" data-pitchfork-close></div>
@@ -1270,7 +1217,7 @@
           <!-- Qobuz waveforms. Off until the user signs in, and the sign-in
                happens on qobuz.com — no password or key is typed in here. -->
           <div class="settings-row hidden" style="margin-top:12px">
-            <span class="settings-label">Qobuz waveforms <button class="settings-info-btn" data-info="Waveforms for Qobuz tracks, which Roon streams straight to your endpoint and never to this extension. Uses the same Qobuz sign-in as the rest of the app — there is nothing extra to set up here. Each track is fetched from Qobuz with YOUR account, piped through ffmpeg into a thousand loudness values and discarded: no audio is written to disk, and Roon still handles all playback." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Qobuz waveforms <button class="settings-info-btn" data-info="Waveforms for Qobuz tracks, with the same Qobuz sign-in as the rest of the app. Each track is read from Qobuz with your account, turned into a thousand loudness values by ffmpeg and discarded: no audio is written to disk." aria-label="Info">ⓘ</button></span>
           </div>
           <div id="qobuz-secret-status" class="settings-token-status hidden"></div>
         </div>
@@ -1432,11 +1379,11 @@
           </button>
           <h2>Streaming accounts</h2>
         </div>
-        <p class="settings-pane-desc">Qobuz &amp; Tidal</p>
+        <p class="settings-pane-desc">Qobuz</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Qobuz account <button class="settings-info-btn" data-info="Signs in on Qobuz&#39;s own page — your password is never typed into or seen by Mandarin. One sign-in covers everything: browsing and searching the Qobuz catalogue, adding albums to your Qobuz favourites, and waveforms for Qobuz tracks. Roon still handles all playback. This uses Qobuz&#39;s unofficial API, which is against their Terms of Service and may break at any time." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Qobuz account <button class="settings-info-btn" data-info="Signs in on Qobuz&#39;s own page — your password is never typed into or seen by Mandarin. One sign-in covers browsing and searching the Qobuz catalogue, adding albums to your Qobuz favourites, and waveforms for Qobuz tracks. This uses Qobuz&#39;s unofficial API, which is against their Terms of Service and may break at any time." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
             <button id="qobuz-connect" class="settings-update-btn" type="button">Connect</button>
@@ -1452,18 +1399,6 @@
           <div class="settings-token-status" style="opacity:.6;font-size:11px;margin-top:6px;">Unofficial Qobuz API — against Qobuz ToS, may break, use at your own risk.</div>
         </div>
 
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Tidal account <button class="settings-info-btn" data-info="Connects to Tidal via the unofficial API (the Lyrion/LMS Tidal plugin's client id). Used only to browse and search the Tidal catalogue and manage your Tidal favourites/library — no streaming or downloading (Roon streams). Against Tidal's Terms of Service and may break at any time. Login happens on Tidal's own device-authorization page — your password is never entered here; only tokens are stored." aria-label="Info">ⓘ</button></span>
-          </div>
-          <button id="tidal-connect" class="settings-update-btn" type="button">Connect Tidal…</button>
-          <div id="tidal-auth-pending" class="tidal-auth-pending hidden"></div>
-          <div id="tidal-status" class="settings-token-status"></div>
-          <button id="tidal-disconnect" class="settings-update-btn hidden" type="button">Disconnect</button>
-          <div class="settings-token-status" style="opacity:.6;font-size:11px;margin-top:6px;">Unofficial Tidal API — against Tidal ToS, may break, use at your own risk.</div>
-        </div>
       </div>
 
       <!-- Share Card — the links under the card, grouped in one place -->
@@ -1634,7 +1569,7 @@
 
         <div class="settings-block hidden">
           <div class="settings-row">
-            <span class="settings-label">Add picks automatically <button class="settings-info-btn" data-info="Favourites the day's picks in your Qobuz or TIDAL library as soon as they are chosen, so Roon imports them overnight and they are ready to play by morning. Turn this off and each pick becomes Add / Not for me instead." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Add picks automatically <button class="settings-info-btn" data-info="Favourites the day&#39;s picks in your Qobuz library as soon as they are chosen. Turn this off and each pick becomes Add / Not for me instead." aria-label="Info">ⓘ</button></span>
             <label class="switch">
               <input type="checkbox" id="picks-autoadd" aria-label="Add picks automatically">
               <span class="switch-track"><span class="switch-thumb"></span></span>

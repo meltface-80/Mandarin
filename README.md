@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC7
+# Mandarin — v0.6.0-RC8
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -30,6 +30,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Home** — Not played in six months with the Album of the day, Listen later, Playlists,
   Favourites, Recently played, Smart Picks, Label of the week, Random albums, the Library and
   genres. Reorder the rows or switch them off.
+* **Album of the day** — the same album on every device, chosen by the server at 00:01; once
+  played, from anywhere, it's gone until the next 00:01.
 * **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
   decade, format, sample rate, bit depth, label, starts-with and date added. A Random albums wall
   turns over each visit.
@@ -68,9 +70,9 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Record labels** — from the files' tags or a folder level: a Labels screen, logos from Discogs
   and FanArt.tv, lookups for untagged albums, merging of duplicates.
 * **Sonos** — play, queue, play next, shuffle, repeat, volume per speaker, and move what's
-  playing to another room. Sonos rooms group and ungroup here too; Sonos keeps them in step.
+  playing to another room, renderer or phone. Sonos rooms group and ungroup here too; Sonos keeps them in step.
 * **UPnP/DLNA renderers** — a WiiM, a Chord Poly, a streamer, an AV receiver, a TV: gapless,
-  with volume, radio and everything a Sonos room has.
+  with volume, radio and everything a Sonos room has; DSD sent as DSD where taken.
 * **Audio Devices** — every player with what it takes (rates, depths, formats), a name of your
   own, a switch each, and Original or Upsample ×2, ×4 or Max output.
 * **DSP** — a parametric EQ of up to ten bands per renderer or phone, the curve drawn as you
@@ -88,13 +90,28 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Music on this phone** — a folder of files already on the phone, watched for changes, shown
   and played like the library.
 * **Offline mode** — one switch in the menu: only the music on the phone shows, and the server
-  isn't used. With no connection the app does the same by itself.
+  isn't used. With no connection the app does the same by itself, and reconnects on its own.
 * **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
   Tracks come as Opus 256; only the phone plays.
 * **One account** — a username and password kept on the server, SRP sign-in, every device listed
   under Settings → Account.
 * **Updates** — the server updates itself from GitHub from Settings; the app offers each new
   version when it opens.
+
+## New since the last beta (v0.5.50)
+
+* **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
+* **Not played in six months** — Waits until Mandarin has six months of your listening, then offers the albums you haven't heard since.
+* **Every tag kept** — All of each file's tags and identifiers — MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain — read into the server's database.
+* **Library Scanner** — Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.
+* **Volume Levelling** — ReplayGain set per device — Off, Track, Album or Auto — with a target from −14 to −25 LUFS and a level for tracks of unknown loudness.
+* **DSD to renderers** — A renderer that takes DSD files, such as a Chord Poly, is sent the DSF or DFF itself, at the DSD rates switched on for it.
+* **Move to another device** — Moving what's playing to another room, renderer or phone carries the queue over and plays on from the same track and second.
+* **Play to another phone** — A phone running the app is a player for your other devices at home, under its own name, while the app runs.
+* **Offline mode** — One switch: only the music on the phone shows and the server isn't asked. The app also opens with no signal and finds the server again by itself.
+* **Share card saved** — In the app, Download saves the card to the phone's Pictures/Mandarin.
+* **Help behind ⓘ** — Every setting's longer explanation opens from an ⓘ after its name, with a short line left under it.
+* **Release candidates** — The app, its update check and the server's updater read 0.6.0-RC builds in order, so updates arrive one after another.
 
 ## What each device is sent
 

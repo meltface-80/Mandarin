@@ -36,8 +36,8 @@ object OfflineSite {
         "/api/settings/home-rows", "/api/settings/waveform", "/api/settings/smart-picks",
         "/api/settings/discover", "/api/settings/labels", "/api/settings/share-links",
         "/api/settings/display", "/api/settings/label-folder-depth", "/api/settings/fanart-key",
-        "/api/settings/discogs-token", "/api/settings/qobuz", "/api/settings/tidal",
-        "/api/settings/tidal/status", "/api/update/status", "/api/filters/tags",
+        "/api/settings/discogs-token", "/api/settings/qobuz",
+        "/api/update/status", "/api/filters/tags",
         "/api/filters/labels", "/api/user-playlists", "/api/smart-playlists", "/api/playlists"
     )
 

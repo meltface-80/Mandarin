@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC8
+- **Album of the day stays put.** The server now chooses the day's album once, at the first ask
+  after 00:01, and keeps it in its database. Before, it was worked out afresh on every ask from
+  the date and the list of albums, so a scan that added or removed an album, or a restart or
+  update while the library was being read, put a different album there mid-day — and one you had
+  played came back as a "new" one. Now it is the same album on every device all day, through
+  scans, updates and restarts; once played, from anywhere, it's gone until the next 00:01.
+- **Mandarin's own words throughout.** Every tip, note, message and label carried over from the
+  software Mandarin grew out of is reworded or gone; an unused streaming account, its browser
+  and its menu entries are removed, along with its share card link.
+- **README and site:** a list of everything new since the last beta (v0.5.50).
+
 ## v0.6.0-RC7
 - **Volume Levelling, per device.** ReplayGain is now set on each device's own page (Settings →
   Audio Devices → the device, above DSP) rather than once for everything: Off, Track, Album or
