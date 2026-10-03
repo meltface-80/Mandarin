@@ -44,6 +44,23 @@ function makeLibrary() {
   return { root, music, data: path.join(root, "data") };
 }
 
+/*
+ * A DSD64 file (DSF) of DSD silence: the header chunks as the format lays
+ * them out, then whole 4096-byte blocks per channel. ffmpeg can't write DSF.
+ */
+function writeDsf(file, seconds = 1, rate = 2822400) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const block = 4096, samples = Math.round(seconds * rate), perCh = Math.ceil(samples / 8 / block) * block;
+  const data = Buffer.alloc(perCh * 2, 0x69);
+  const dsd = Buffer.alloc(28), fmt = Buffer.alloc(52), dh = Buffer.alloc(12);
+  dsd.write("DSD ", 0); dsd.writeBigUInt64LE(28n, 4); dsd.writeBigUInt64LE(BigInt(28 + 52 + 12 + data.length), 12);
+  fmt.write("fmt ", 0); fmt.writeBigUInt64LE(52n, 4); fmt.writeUInt32LE(1, 12); fmt.writeUInt32LE(0, 16);
+  fmt.writeUInt32LE(2, 20); fmt.writeUInt32LE(2, 24); fmt.writeUInt32LE(rate, 28); fmt.writeUInt32LE(1, 32);
+  fmt.writeBigUInt64LE(BigInt(samples), 36); fmt.writeUInt32LE(block, 44);
+  dh.write("data", 0); dh.writeBigUInt64LE(BigInt(12 + data.length), 4);
+  fs.writeFileSync(file, Buffer.concat([dsd, fmt, dh, data]));
+}
+
 function probe(buf) {
   // Stream info of a FLAC read straight from its STREAMINFO block: sample
   // rate (20 bits), channels (3), bits per sample (5).
@@ -55,4 +72,4 @@ function probe(buf) {
   return { rate, channels, bits };
 }
 
-module.exports = { haveFfmpeg, makeLibrary, gen, probe, FFMPEG };
+module.exports = { haveFfmpeg, makeLibrary, gen, probe, writeDsf, FFMPEG };

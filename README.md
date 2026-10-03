@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC2
+# Mandarin — v0.6.0-RC3
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -101,7 +101,8 @@ Each track goes the way the device can take it. The Now playing badge says what 
   format Sonos can't read, FLAC at 24/48.
 * **A UPnP/DLNA renderer** has its own ceiling, read from the device. Within it, the file as
   stored; above it, FLAC at the best rate the device takes in the file's family; upsampled
-  ×2, ×4 or to the device's maximum if you choose.
+  ×2, ×4 or to the device's maximum if you choose. DSD goes as the DSF or DFF file itself to a
+  device that says it takes DSD files (DSD rates switchable on its page), as PCM otherwise.
 * **The Android app** on the phone's own output: the file as stored within 24/48, FLAC 24/48
   above it; Opus 256 away from home.
 * **A USB DAC on the phone**, with USB direct on: the file at its own rate and depth where the

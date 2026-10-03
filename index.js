@@ -196,7 +196,11 @@ function createServer(overrides = {}) {
     // says nothing and gets the 24/48 rule, as ever.
     const seg = req.params[1] || "";
     let p;
-    if (seg === "orig") p = { transcode: false, mime: STREAM.mimeForExt(req.params[2]) };
+    if (seg === "orig") {
+      p = { transcode: false, mime: STREAM.mimeForExt(req.params[2]) };
+      // A renderer's own word for DSD (v0.6.0-RC3), from a short list only.
+      if (/^audio\/(x-)?(dsf|dff|dsd)$/.test(String(req.query.m || "")) && /^(dsf|dff)$/i.test(req.params[2])) p.mime = String(req.query.m);
+    }
     else if (seg) {
       const [rate, bits] = seg.split("-").map(Number);
       if (!(rate >= 8000 && rate <= 768000) || ![16, 24, 32].includes(bits) || (bits === 32 && !FF.info().flac32)) return res.status(400).end();

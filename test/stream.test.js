@@ -27,6 +27,10 @@ utest("a renderer's plan: Original within its ceiling, upsampling in the file's 
   const d64 = S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac);
   assert.deepEqual([d64.transcode, d64.mime, d64.ext, d64.dsd], [false, "audio/x-dsf", "dsf", 64]);
   assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac).mime, "audio/x-dff");
+  // A renderer that names its own DSD type is told the file in those words (v0.6.0-RC3).
+  const named = Object.assign({ dsdMimes: { dsf: "audio/dsf", dff: null } }, dsdDac);
+  assert.equal(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/dsf");
+  assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/x-dff");
   assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 5644800, bitsPerSample: 1 }, dsdDac)), [176400, 24, undefined]);
   // The 64-bit float pipeline, and its own cache key.
   const args = S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
