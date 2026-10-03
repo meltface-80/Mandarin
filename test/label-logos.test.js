@@ -47,6 +47,21 @@ test("a bare 403 says nothing about a key; one that names the key refuses it", a
   } finally { srv.close(); }
 });
 
+test("a key the service refuses is shown as refused", async () => {
+  const discogs = new FakeDiscogs([]), fanart = new FakeFanart({});
+  await Promise.all([discogs.start(), fanart.start()]);
+  const settings = { discogsToken: "wrong", fanartKey: "wrong" };
+  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
+  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base });
+  try {
+    assert.equal(await logos.checkKey("discogs"), "invalid");
+    assert.equal(await logos.checkKey("fanart"), "invalid");
+    Object.assign(settings, { discogsToken: "tok", fanartKey: "fk" });
+    assert.equal(await logos.checkKey("discogs"), "ok", "a new key is checked anew");
+    assert.equal(await logos.checkKey("fanart"), "ok");
+  } finally { await Promise.all([discogs.stop(), fanart.stop()]); }
+});
+
 test("merges and logos", { skip, timeout: 90000 }, async (t) => {
   const lib = makeLibrary();
   // Two more labels: one Discogs knows, one only FanArt.tv does, one nobody does.
@@ -148,12 +163,6 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       await api("filters/labels");
       await new Promise(r => setTimeout(r, 200));
       assert.equal(discogs.hits.length + fanart.hits.length, hits);
-      // A key the service refuses says so; the good ones are put back after.
-      assert.equal((await api("settings/discogs-token", { token: "wrong" })).check, "invalid");
-      assert.equal((await api("settings/fanart-key", { key: "wrong" })).check, "invalid");
-      assert.equal((await api("settings/fanart-key")).check, "invalid");
-      assert.equal((await api("settings/discogs-token", { token: "tok" })).check, "ok");
-      assert.equal((await api("settings/fanart-key", { key: "fk" })).check, "ok");
     });
 
     await t.test("by hand: Discogs' candidates, or a pasted address; removed again", async () => {
