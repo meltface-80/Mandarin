@@ -348,6 +348,7 @@
   const homeView     = document.getElementById("home-view");
   const homeSections = document.getElementById("home-sections");
   const homeUnplayed = document.getElementById("home-unplayed");
+  const homeToday    = document.getElementById("home-today");
   const homeRandom   = document.getElementById("home-random");
   const homeLibrary  = document.getElementById("home-library");
   const homeLotw     = document.getElementById("home-lotw");
@@ -646,7 +647,7 @@
   // fresh install has no history and no picks, and an empty labelled shelf
   // reads as a fault rather than an absence.
   function rowHidesWhenEmpty(id) {
-    return id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || id === "phone";
+    return id === "unplayed" || id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || id === "phone";
   }
   function rowHasAnyContent(sectionEl) {
     return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -824,8 +825,9 @@
       if (row.id === "unplayed" ? ttlFresh : row.isFresh()) continue;
       row.load();
     }
-    // The row kept (within its few minutes): Album of the day is asked about all the same.
-    if (ttlFresh) refreshAotd();
+    // The strip under the greeting, on every visit: Random Album at once,
+    // Album of the day asked for (v0.6.1).
+    refreshAotd();
   }
   // Back to the app or the tab after a while (overnight, say): Home on screen
   // catches up where it stands, without jumping to the top.
@@ -839,7 +841,7 @@
   function rowsTtlFresh() {
     return !!(homeRowsLoadedAt &&
       (Date.now() - homeRowsLoadedAt) < HOME_ROWS_TTL_MS &&
-      homeUnplayed && homeUnplayed.querySelector(".album") &&
+      (homeUnplayedLoaded || !homeRowOn("unplayed")) &&
       homeRandom && homeRandom.querySelector(".album"));
   }
   // Reveal the album wall. opts.loadIfEmpty loads a fresh wall only when it has
@@ -880,7 +882,14 @@
     return (sel && sel.value) || selectedZoneId || null;
   };
 
-  if (topbarBack)    topbarBack.addEventListener("click", showHome);
+  // The artist view's own Back listener (capture) is meant to run first, but
+  // browsers before the 2020–21 event-order change (older iPads) run the
+  // listeners on the target in the order they were added — so this one checks
+  // for itself (v0.6.1).
+  if (topbarBack)    topbarBack.addEventListener("click", () => {
+    if (window.__artistViewActive && window.__artistViewActive()) return;
+    showHome();
+  });
   if (topbarRefresh) topbarRefresh.addEventListener("click", () => loadRandom());
 
   // Home's "Not played" row is reused within this TTL instead of being rebuilt
@@ -979,90 +988,97 @@
     return btn;
   }
 
-  // Render helper shared by the live loader and the instant-open cache repaint.
-  // What the row shows now: Album of the day is checked on its own every
-  // minute (refreshAotd) and the row redrawn only when it changes.
-  let shownUnplayed = { aotd: null, albums: [] };
-  function renderHomeUnplayed(aotd, albums) {
-    albums = albums || [];
-    shownUnplayed = { aotd: aotd || null, albums };
-    homeUnplayed.innerHTML = "";
-    // Nothing to offer (the first six months, Album of the day played): the
-    // row keeps Play something unheard, which always has something.
-    const frag = document.createDocumentFragment();
-    // "Play something unheard" leads the row it belongs to: this carousel IS
-    // the unheard albums, so the action and the row mean the same thing, and
-    // it sits at the top of Home without needing a place of its own. Built as
-    // a tile so it inherits the carousel's sizing on every screen rather than
-    // carrying breakpoints of its own.
-    frag.appendChild(buildUnheardTile());
-    if (aotd) {
-      const tile = homeTile(aotd, "home-aotd");
-      const wrap = tile.querySelector(".album-art-wrap");
-      if (wrap) {
-        const badge = document.createElement("span");
-        badge.className = "aotd-badge";
-        badge.textContent = "★ Today";
-        wrap.appendChild(badge);
-      }
-      frag.appendChild(tile);
+  // Album of the day's tile, with its ★ Today badge.
+  function buildAotdTile(aotd) {
+    const tile = homeTile(aotd, "home-aotd");
+    const wrap = tile.querySelector(".album-art-wrap");
+    if (wrap) {
+      const badge = document.createElement("span");
+      badge.className = "aotd-badge";
+      badge.textContent = "★ Today";
+      wrap.appendChild(badge);
     }
+    return tile;
+  }
+
+  // Only unplayed albums since v0.6.1 — Random Album and Album of the day are
+  // the strip under the greeting (renderHomeToday). The row stays hidden while
+  // it has none, which is the whole of its first six months, and shows itself
+  // once albums arrive, unless it is switched off in Settings → Home Screen.
+  function renderHomeUnplayed(albums) {
+    albums = albums || [];
+    if (!homeUnplayed) return;
+    homeUnplayed.innerHTML = "";
+    const frag = document.createDocumentFragment();
     for (const a of albums) frag.appendChild(homeTile(a));
     homeUnplayed.appendChild(frag);
+    const sec = homeUnplayed.closest(".home-section");
+    if (sec) sec.classList.toggle("hidden", !albums.length || !homeRowOn("unplayed"));
+  }
+
+  // The strip under the greeting (v0.6.1): Random Album, then Album of the
+  // day when there is one (none once it has been played, until the next
+  // 00:01). Random Album is kept, not rebuilt, so a disc that is spinning
+  // carries on spinning when Album of the day changes beside it.
+  let shownAotd = null;
+  function renderHomeToday(aotd) {
+    if (!homeToday) return;
+    shownAotd = aotd || null;
+    const unheard = homeToday.querySelector("#home-unheard-tile") || buildUnheardTile();
+    for (const el of [...homeToday.children]) if (el !== unheard) el.remove();
+    if (unheard.parentElement !== homeToday) homeToday.appendChild(unheard);
+    if (aotd) homeToday.appendChild(buildAotdTile(aotd));
   }
 
   /*
    * Album of the day, in step on every device (v0.6.0-RC4): the server
-   * chooses it at 00:01 and keeps it (v0.6.0-RC8), and is asked every minute while Home is on screen, when you come back to the app
-   * or the tab, and with the rows. Played anywhere, it goes everywhere; at
-   * 00:01 the new one comes everywhere.
+   * chooses it at 00:01 and keeps it (v0.6.0-RC8), and is asked every minute
+   * while Home is on screen, when you come back to the app or the tab, and
+   * on every Home visit. Played anywhere, it goes everywhere; at 00:01 the
+   * new one comes everywhere. It no longer depends on the Not-played row
+   * (v0.6.1): switched off or empty, Album of the day still turns over.
    */
   async function refreshAotd() {
-    if (!homeUnplayed || !homeRowOn("unplayed") || !rowHasContent(homeUnplayed)) return;
+    if (!homeToday) return;
+    // Random Album needs no answer: it shows before one arrives.
+    if (!homeToday.querySelector("#home-unheard-tile")) renderHomeToday(shownAotd);
     let aj = null;
-    try { aj = await (await fetch("/api/home/album-of-the-day", { cache: "no-store" })).json(); } catch (e) { return; }
+    try {
+      const r = await fetch("/api/home/album-of-the-day", { cache: "no-store" });
+      if (!r.ok) return;   // the index building, or a server error: what is showing stays
+      aj = await r.json();
+    } catch (e) { return; }   // offline or restarting: what is showing stays
     const next = (aj && aj.album) || null;
-    const cur = shownUnplayed.aotd;
-    if ((next && next.offset) === (cur && cur.offset)) return;
-    renderHomeUnplayed(next, shownUnplayed.albums);
-    if (shownUnplayed.albums.length || next) saveHomeCache({ unplayed: { aotd: next, albums: shownUnplayed.albums, day: todayKey() } });
+    if ((next && next.offset) !== (shownAotd && shownAotd.offset)) renderHomeToday(next);
+    saveHomeCache({ today: { aotd: next, day: todayKey() } });
   }
   setInterval(() => {
     if (document.visibilityState !== "visible" || !homeView || homeView.classList.contains("hidden")) return;
     refreshAotd();
   }, 60 * 1000);
 
+  // Whether the Not-played row has had an answer (empty counts): its emptiness
+  // is no longer a reason to ask again on every Home visit.
+  let homeUnplayedLoaded = false;
   async function loadHomeUnplayed() {
     if (!homeUnplayed) return;
-    // Don't flash "Loading…" over cached tiles the user is already looking at —
-    // only when the row is genuinely empty (first ever load).
-    if (!rowHasContent(homeUnplayed)) homeUnplayed.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
-    // Album of the day (completely random; hidden once played today) sits
-    // first. Fetched in PARALLEL with the unplayed list — they're independent,
-    // and awaiting them in sequence added a full round-trip to every reload.
-    const aotdPromise = fetch("/api/home/album-of-the-day", { cache: "no-store" })
-      .then(ar => ar.json()).catch(() => null);
-    const unplayedPromise = fetch("/api/home/unplayed?months=6&count=30");
-    unplayedPromise.catch(() => {});   // handled at the await below — this just silences the pre-await rejection warning
-    const aj = await aotdPromise;
-    const aotd = (aj && aj.album) ? aj.album : null;   // non-fatal — just no album-of-the-day
     try {
-      const r = await unplayedPromise;
-      if (r.status === 503) {
-        if (!rowHasContent(homeUnplayed)) homeUnplayed.innerHTML = '<div class="home-carousel-empty">Reading your music library…</div>';
+      const r = await fetch("/api/home/unplayed?months=6&count=30");
+      if (r.status === 503 || !r.ok) {
+        homeUnplayedLoaded = false;
         homeRowsLoadedAt = 0;   // retry on the next Home visit
         return;   // keep any cached tiles + cache untouched while the index builds
       }
       const j = await r.json();
       const albums = (j && j.albums) || [];
-      renderHomeUnplayed(aotd, albums);
-      // Persist only a non-empty row (mirrors random/genres) so a legitimately
-      // empty response can't be cached and shown as "Nothing here yet" next
-      // open. Timestamp is per-row so a stale sibling can't ride a fresh one's
-      // freshness (see hydrateHomeFromCache).
-      if (albums.length || aotd) saveHomeCache({ unplayed: { aotd, albums, day: todayKey() }, unplayedAt: Date.now() });
+      renderHomeUnplayed(albums);
+      homeUnplayedLoaded = true;
+      // An empty row is saved as empty, so a cold open never shows albums the
+      // server no longer offers. Timestamp is per-row so a stale sibling can't
+      // ride a fresh one's freshness (see hydrateHomeFromCache).
+      saveHomeCache({ unplayed: { albums }, unplayedAt: Date.now() });
     } catch (e) {
-      if (!rowHasContent(homeUnplayed)) homeUnplayed.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
+      homeUnplayedLoaded = false;
       homeRowsLoadedAt = 0;   // retry on the next Home visit
     }
   }
@@ -1918,6 +1934,11 @@
   // list tracks, and offering a grid/list switch over those would be a control
   // that does nothing.
   function enterFullWall(title, albumWall) {
+    // Leaving the artist view through the side menu (v0.6.1): Listen later,
+    // Smart Picks, Playlists and the rest all come through here, and an
+    // artist view left armed made the shared Back put the old screen back
+    // over the new one and reopen the album.
+    if (window.__exitArtistView) window.__exitArtistView({ restore: false });
     grid.dataset.wall = "";     // whichever wall comes next says what it is
     unplayedWallActive = false;
     libraryWallActive = false;
@@ -5193,8 +5214,10 @@
     // reordering is a visible flash on every cold open.
     applyHomeLayout();
     let painted = false;
-    // Album of the day only on its own day: a saved one from yesterday isn't painted.
-    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.day === todayKey() ? c.unplayed.aotd : null, c.unplayed.albums); painted = rowHasContent(homeUnplayed) || painted; }
+    // The strip: Random Album always; Album of the day only on its own day,
+    // so a saved one from yesterday isn't painted.
+    if (homeToday) { renderHomeToday(c.today && c.today.day === todayKey() ? c.today.aotd : null); }
+    if (c.unplayed && homeUnplayed) { renderHomeUnplayed(c.unplayed.albums); homeUnplayedLoaded = true; painted = rowHasContent(homeUnplayed) || painted; }
     if (c.random   && homeRandom)   { renderHomeRandom(c.random);                              painted = rowHasContent(homeRandom)   || painted; }
     // Only when it was cached in the order that is current NOW. The other rows
     // hydrate stale-then-revalidate, but "stale" here means the wrong ORDER —
@@ -6165,8 +6188,32 @@
     });
   }
 
+  // The screen Now playing was opened over (v0.6.1). Now playing is this same
+  // modal, so tapping the mini player while an album is open REPLACES that
+  // album — and the only way out was Home. Its Back puts back what it
+  // replaced: the album that was open, or (none) whatever screen is under the
+  // modal, which closing reveals as it was.
+  let npReturn = null;
+
   function openAlbum(album, opts) {
     opts = opts || {};
+    if (opts.source === "now-playing") {
+      const albumOpen = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode");
+      // Re-opened while already on Now playing: keep what it is to go back to.
+      if (albumOpen) {
+        // Where the album was opened from (its prev/next) and how far down it
+        // was scrolled go with it, so Back puts back the screen as it was.
+        const bodyEl = modal.querySelector(".modal-body");
+        npReturn = currentAlbum
+          ? { album: currentAlbum, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter },
+              nav: albumNav.current, scrollTop: bodyEl ? bodyEl.scrollTop : 0 }
+          : null;
+      } else if (modal.classList.contains("hidden")) {
+        npReturn = null;
+      }
+    } else {
+      npReturn = null;
+    }
     albumNav.current = albumNav.take();
     // Album select mode and track select mode both drive the one top-bar menu,
     // so they must never be live together. Opening an album ends the grid
@@ -6776,8 +6823,41 @@
     if (typeof window.__refreshTransport === "function") window.__refreshTransport();
   }
   modal.addEventListener("click", (e) => {
-    if (e.target.closest && e.target.closest("[data-close]")) closeModal();
+    if (!(e.target.closest && e.target.closest("[data-close]"))) return;
+    // On Now playing a close — the backdrop round a reduced card, say — is the
+    // same as its Back: it returns to the album it replaced, if there was one.
+    if (modal.classList.contains("np-mode")) leaveNowPlaying();
+    else closeModal();
   });
+
+  // np-mode's top-left Back (v0.6.1; it was Home, which always went Home):
+  // back to the screen before the mini player was tapped — the album that was
+  // open, or the screen under the modal, which closing leaves exactly as it was.
+  function leaveNowPlaying() {
+    const back = npReturn;
+    npReturn = null;
+    closeModal();
+    if (!back) return;
+    // Reopened as if from its tile, so previous / next, the swipe and the
+    // arrow keys still walk the list it came from.
+    albumNav.pending = back.nav || null;
+    try { openAlbum(back.album, back.opts); }
+    finally { albumNav.pending = null; }
+    // And scrolled back to where it was, once the track list is long enough
+    // to hold that position again (it loads after the panel opens).
+    const want = back.scrollTop || 0;
+    if (want > 0) {
+      const bodyEl = modal.querySelector(".modal-body");
+      let tries = 0;
+      const settle = () => {
+        // Stop if the panel was closed or something else was opened meanwhile.
+        if (!bodyEl || modal.classList.contains("hidden") || currentAlbum !== back.album) return;
+        if (bodyEl.scrollHeight - bodyEl.clientHeight >= want) { bodyEl.scrollTop = want; return; }
+        if (++tries < 20) setTimeout(settle, 100);
+      };
+      setTimeout(settle, 50);
+    }
+  }
 
   // THE PHONE'S BACK BUTTON (Android app): one step back, the way the page's
   // own buttons go — a dialog, a pop-up, the menu, the share sheet, the album
@@ -6799,22 +6879,138 @@
     if (menu) { const c = menu.querySelector("[data-menu-close]"); if (c) c.click(); else menu.classList.add("hidden"); return true; }
     const share = visibleEl("#share-overlay");
     if (share) { const c = share.querySelector("[data-share-close]"); if (c) c.click(); return true; }
-    if (!modal.classList.contains("hidden")) { closeModal(); return true; }
+    if (!modal.classList.contains("hidden")) {
+      if (modal.classList.contains("np-mode")) leaveNowPlaying(); else closeModal();
+      return true;
+    }
     // The artist view: back to the album it was opened from (v0.6.0-RC11).
     if (window.__artistViewActive && window.__artistViewActive()) { window.__exitArtistView(); return true; }
     if ((homeView && homeView.classList.contains("hidden")) || !grid.classList.contains("hidden")) { showHome(); return true; }
     return false;
   };
-  // np-mode's top-left Home button (the × is hidden there): close the modal
-  // and land on the Home screen, leaving any labels/artist view behind.
   const modalHomeBtn = document.getElementById("modal-home-btn");
-  if (modalHomeBtn) modalHomeBtn.addEventListener("click", () => {
-    closeModal();
-    showHome();   // showHome resets labels/artist/search state itself
-  });
+  if (modalHomeBtn) modalHomeBtn.addEventListener("click", leaveNowPlaying);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    if (e.key !== "Escape" || modal.classList.contains("hidden")) return;
+    if (modal.classList.contains("np-mode")) leaveNowPlaying();
+    else closeModal();
   });
+
+  // The album view's corner button names what it does at each size: a back
+  // chevron while the album view fills the screen, an × from 720px up, where it
+  // is a card over the page (the glyph swaps in CSS at the same width).
+  // Now playing's corner button: on a desktop — a large screen driven by a
+  // mouse — it CLOSES the screen (×), full size or reduced; on a phone or a
+  // tablet it goes BACK (‹). The same tests as the CSS that swaps the glyphs,
+  // and the same action either way.
+  {
+    const watch = (mq, fn) => {
+      fn();
+      if (!mq) return;
+      if (mq.addEventListener) mq.addEventListener("change", fn);
+      else if (mq.addListener) mq.addListener(fn);   // older Safari
+    };
+    const name = (btn, word) => { if (btn) { btn.setAttribute("aria-label", word); btn.title = word; } };
+    const closeBtn = document.getElementById("modal-close-btn");
+    const card = window.matchMedia ? window.matchMedia("(min-width: 720px)") : null;
+    watch(card, () => name(closeBtn, card && card.matches ? "Close" : "Back"));
+    const desktop = window.matchMedia
+      ? window.matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine)") : null;
+    watch(desktop, () => name(modalHomeBtn, desktop && desktop.matches ? "Close" : "Back"));
+  }
+
+  // ---------------------------------------------------------------------------
+  // NOW PLAYING, REDUCED (v0.6.1) — large screens only.
+  //
+  // On a big desktop the full-screen Now playing hides everything. Reduce size
+  // turns it into a card the size of the album view's; the same button then
+  // reads "Full size". The card is dragged by its top strip (not by its
+  // buttons, its tabs or anything inside the body). The choice is remembered
+  // on this device; the position is not — every opening starts centred.
+  // ---------------------------------------------------------------------------
+  {
+    const sizeBtn = document.getElementById("modal-np-size-btn");
+    const panel = modal.querySelector(".modal-panel");
+    const SIZE_KEY = "rra-np-reduced";
+    const large = window.matchMedia ? window.matchMedia("(min-width: 1200px) and (min-height: 700px)") : null;
+    let reduced = false;
+    try { reduced = localStorage.getItem(SIZE_KEY) === "1"; }
+    catch (e) { /* storage blocked — full size, the default */ }
+    let dx = 0, dy = 0;
+
+    const place = () => { if (panel) panel.style.transform = (dx || dy) ? "translate(" + dx + "px," + dy + "px)" : ""; };
+    function paintSize() {
+      const on = reduced && !!(large && large.matches) && modal.classList.contains("np-mode");
+      if (modal.classList.contains("np-reduced") !== on) modal.classList.toggle("np-reduced", on);
+      if (!on) { dx = 0; dy = 0; place(); }
+      if (sizeBtn) {
+        sizeBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        sizeBtn.setAttribute("aria-label", on ? "Full size" : "Reduce size");
+        sizeBtn.title = on ? "Full size" : "Reduce size";
+      }
+    }
+    if (sizeBtn) sizeBtn.addEventListener("click", () => {
+      reduced = !modal.classList.contains("np-reduced");
+      try { localStorage.setItem(SIZE_KEY, reduced ? "1" : "0"); }
+      catch (e) { /* storage blocked — it still applies for this visit */ }
+      dx = 0; dy = 0;
+      paintSize();
+    });
+    if (large) {
+      if (large.addEventListener) large.addEventListener("change", paintSize);
+      else if (large.addListener) large.addListener(paintSize);
+    }
+    // Opening and closing come and go through the classes on the modal, so the
+    // state follows them: a fresh opening is centred.
+    // Every write below is guarded by a check that it CHANGES something:
+    // classList.remove() rewrites the class attribute even when the token is
+    // absent, and that write would wake this observer again, for ever.
+    new MutationObserver(() => {
+      if (modal.classList.contains("hidden") || !modal.classList.contains("np-mode")) {
+        if (modal.classList.contains("np-reduced")) modal.classList.remove("np-reduced");
+        if (dx || dy) { dx = 0; dy = 0; place(); }
+        if (sizeBtn && sizeBtn.getAttribute("aria-pressed") !== "false") paintSize();
+      } else if (reduced && !modal.classList.contains("np-reduced") && large && large.matches) {
+        paintSize();
+      }
+    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+
+    // Drag by the top strip: a press on the panel above its body's content —
+    // never on a button, a tab or anything that is itself interactive.
+    const STRIP = 56;
+    let drag = null;
+    if (panel) panel.addEventListener("pointerdown", (e) => {
+      if (!modal.classList.contains("np-reduced") || e.button !== 0) return;
+      if (e.target.closest("button, a, input, select, .modal-tabs, [role='button']")) return;
+      const box = panel.getBoundingClientRect();
+      if (e.clientY - box.top > STRIP) return;
+      drag = { id: e.pointerId, x: e.clientX - dx, y: e.clientY - dy,
+               baseLeft: box.left - dx, baseTop: box.top - dy, w: box.width, h: box.height };
+      panel.classList.add("is-dragging");
+      try { panel.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety; the move handler still works */ }
+      e.preventDefault();
+    });
+    if (panel) panel.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      // Kept wholly on screen, so its corner buttons can never be dragged out
+      // of reach.
+      const minX = -drag.baseLeft, maxX = Math.max(minX, window.innerWidth - drag.baseLeft - drag.w);
+      const minY = -drag.baseTop,  maxY = Math.max(minY, window.innerHeight - drag.baseTop - drag.h);
+      dx = Math.max(minX, Math.min(maxX, e.clientX - drag.x));
+      dy = Math.max(minY, Math.min(maxY, e.clientY - drag.y));
+      place();
+    });
+    const endDrag = (e) => {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      drag = null;
+      if (panel) panel.classList.remove("is-dragging");
+    };
+    if (panel) {
+      panel.addEventListener("pointerup", endDrag);
+      panel.addEventListener("pointercancel", endDrag);
+    }
+    paintSize();
+  }
 
   // ---- Edit album ---------------------------------------------------------
   // Title, artist and year corrections plus a cover for an album without one.
@@ -9807,6 +10003,22 @@
     return track ? { track, artist, album, key: track + " " + album } : null;
   }
 
+  // Redraw when the canvas changes size (v0.6.1). drawWave sizes its bars
+  // from the canvas's width AT THE TIME IT DRAWS, and while a track is paused
+  // nothing else redraws it — so a reflow after the draw (a web font arriving
+  // and moving the time labels, a rotation, a resize) left the shape
+  // stretched to the old width, its silences a couple of pixels off the
+  // playhead.
+  if (npWave && typeof ResizeObserver === "function") {
+    let lastW = -1, lastH = -1;
+    new ResizeObserver(() => {
+      const w = npWave.clientWidth, h = npWave.clientHeight;
+      if (w === lastW && h === lastH) return;
+      lastW = w; lastH = h;
+      if (npWavePeaks && npWavePeaks.length) drawWave();
+    }).observe(npWave);
+  }
+
   function drawWave(pos) {
     if (!npWave || !npProgressEl) return;
     const peaks = npWavePeaks;
@@ -10649,8 +10861,30 @@ function settingsInfo(text) {
     t.textContent = text;
     t.classList.add("visible");
     clearTimeout(dismissTimer);
-    dismissTimer = setTimeout(hideToast, 5000);
+    // Long enough to READ (v0.6.1): 5s was gone halfway through the longer
+    // notes. About a fifth of a second a word on top of four seconds, at most
+    // 25s; any tap elsewhere still closes it at once.
+    const words = String(text || "").split(/\s+/).length;
+    dismissTimer = setTimeout(hideToast, Math.min(25000, 4000 + words * 220));
   }
+
+  // Every ⓘ was announced as just "Info". Each is named after the setting it
+  // explains, read from the label it sits in — the ones in the page now and
+  // the ones the settings screens draw later.
+  function nameInfoButtons(root) {
+    const list = root.matches && root.matches(".settings-info-btn") ? [root]
+      : root.querySelectorAll ? root.querySelectorAll(".settings-info-btn") : [];
+    for (const btn of list) {
+      if (btn.getAttribute("aria-label") && btn.getAttribute("aria-label") !== "Info") continue;
+      const host = btn.closest(".settings-label, .settings-block-title") || btn.parentElement;
+      const name = host ? host.textContent.replace(/[ⓘ\u24D8]/g, "").trim() : "";
+      btn.setAttribute("aria-label", name && name.length <= 60 ? "About " + name : "More information");
+    }
+  }
+  nameInfoButtons(document);
+  new MutationObserver((records) => {
+    for (const r of records) for (const n of r.addedNodes) if (n.nodeType === 1) nameInfoButtons(n);
+  }).observe(document.body, { childList: true, subtree: true });
 
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".settings-info-btn");
@@ -10677,9 +10911,10 @@ function settingsInfo(text) {
   const errEl     = document.getElementById("share-err");
   const modalBtn  = document.getElementById("modal-share-btn");
 
+  // Bounded (v0.6.1): a font that never arrived held the card up for ever.
   async function ensureFont() {
     if (!document.fonts || !document.fonts.load) return;
-    try {
+    const loaded = (async () => {
       await Promise.all([
         document.fonts.load('700 42px Manrope'),
         document.fonts.load('400 28px Manrope'),
@@ -10687,7 +10922,8 @@ function settingsInfo(text) {
         document.fonts.load('400 22px Manrope')
       ]);
       await document.fonts.ready;
-    } catch { /* fall back */ }
+    })().catch(() => { /* fall back to the system face */ });
+    await Promise.race([loaded, new Promise(r => setTimeout(r, 2000))]);
   }
 
   function close() {
@@ -11877,96 +12113,84 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  const discogsTokenInput  = document.getElementById("discogs-token-input");
-  const discogsTokenSave   = document.getElementById("discogs-token-save");
-  const discogsTokenStatus = document.getElementById("discogs-token-status");
-
-  async function loadDiscogsToken() {
-    try {
-      const r = await fetch("/api/settings/discogs-token");
-      const j = await r.json();
-      if (discogsTokenStatus) {
-        // Naming where an env-seeded key came from is the whole point of
-        // reporting the source: without it a key set by the install command
-        // looks identical to a saved one, and editing settings.json to change
-        // it appears to do nothing.
-        discogsTokenStatus.textContent = j.set
-          ? ("Current: " + j.masked + (j.source === "env" ? " — from the install command (RRA_DISCOGS_KEY). Saving here overrides it." : ""))
-          : "Not set";
-      }
-    } catch (_) { /* display-only status — if the fetch fails, silence is fine; status just stays stale */ }
+  // Whether each API key works (v0.6.1): the server asks the service, and the
+  // box says so — a brass ✓ and "Checked and working", or a red ✕ and "Not
+  // accepted". No answer (offline, the service down) is not shown as bad.
+  function paintKeyCheck(input, badge, j, emptyHint) {
+    const state = j && j.set ? j.check : null;
+    if (badge) {
+      badge.classList.toggle("hidden", state !== "ok" && state !== "invalid");
+      badge.classList.toggle("is-ok", state === "ok");
+      badge.classList.toggle("is-bad", state === "invalid");
+      badge.textContent = state === "ok" ? "✓" : state === "invalid" ? "✕" : "";
+      badge.setAttribute("aria-label", state === "ok" ? "Key checked and working"
+        : state === "invalid" ? "Key refused by the service" : "");
+      badge.title = badge.getAttribute("aria-label");
+    }
+    if (input) {
+      input.classList.toggle("is-ok", state === "ok");
+      input.classList.toggle("is-bad", state === "invalid");
+      input.placeholder = !(j && j.set) ? emptyHint
+        : state === "ok" ? "Checked and working — " + j.masked
+        : state === "invalid" ? "Not accepted — paste a new one"
+        : "Saved — " + j.masked;
+    }
+  }
+  function keyStatusText(j) {
+    if (!j.set) return "Not set";
+    if (j.check === "ok") return "✓ Checked and working: " + j.masked;
+    if (j.check === "invalid") return "The service refused this key (" + j.masked + "). Check it was copied in full.";
+    return "Current: " + j.masked + " — couldn’t reach the service to check it.";
   }
 
-  if (discogsTokenSave) {
-    discogsTokenSave.addEventListener("click", async () => {
-      const token = discogsTokenInput ? discogsTokenInput.value.trim() : "";
-      if (!token) return;
-      discogsTokenSave.disabled = true;
+  // One API key's box, status line and Save: Discogs' token and FanArt.tv's key.
+  function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun }) {
+    const input  = document.getElementById(inputId);
+    const save   = document.getElementById(saveId);
+    const status = document.getElementById(statusId);
+    const badge  = document.getElementById(checkId);
+    const hint   = input ? input.placeholder : "";
+    const paint = (j) => {
+      paintKeyCheck(input, badge, j, hint);
+      if (status) status.textContent = keyStatusText(j);
+    };
+    async function load() {
       try {
-        const r = await fetch("/api/settings/discogs-token", {
+        const r = await fetch("/api/settings/" + route);
+        paint(await r.json());
+      } catch (_) { /* display-only status — if the fetch fails, silence is fine; status just stays stale */ }
+    }
+    if (save) save.addEventListener("click", async () => {
+      const value = input ? input.value.trim() : "";
+      if (!value) return;
+      save.disabled = true;
+      try {
+        const r = await fetch("/api/settings/" + route, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token })
+          body: JSON.stringify({ [field]: value })
         });
         const j = await r.json();
         if (j.ok) {
-          if (discogsTokenInput) discogsTokenInput.value = "";
-          showToast(j.saved === false ? "Token set but file write failed — won't persist after restart" : "Discogs token saved", j.saved === false ? "error" : "ok");
-          loadDiscogsToken();
+          if (input) input.value = "";
+          paint(j);
+          if (j.check === "invalid") showToast("Saved, but " + service + " refused this " + noun, "error");
+          else showToast(service + " " + noun + " saved" + (j.check === "ok" ? " — checked and working" : ""), "ok");
         } else {
-          showToast(j.error || "Failed to save token", "error");
+          showToast(j.error || "Failed to save " + noun, "error");
         }
       } catch (e) {
         showToast("Failed: " + e.message, "error");
       } finally {
-        discogsTokenSave.disabled = false;
+        save.disabled = false;
       }
     });
+    return load;
   }
-
-  const fanartKeyInput  = document.getElementById("fanart-key-input");
-  const fanartKeySave   = document.getElementById("fanart-key-save");
-  const fanartKeyStatus = document.getElementById("fanart-key-status");
-
-  async function loadFanartKey() {
-    try {
-      const r = await fetch("/api/settings/fanart-key");
-      const j = await r.json();
-      if (fanartKeyStatus) {
-        // Same reasoning as the Discogs status above: say where it came from.
-        fanartKeyStatus.textContent = j.set
-          ? ("Current: " + j.masked + (j.source === "env" ? " — from the install command (RRA_FANART_KEY). Saving here overrides it." : ""))
-          : "Not set";
-      }
-    } catch (_) { /* display-only status — if the fetch fails, silence is fine; status just stays stale */ }
-  }
-
-  if (fanartKeySave) {
-    fanartKeySave.addEventListener("click", async () => {
-      const key = fanartKeyInput ? fanartKeyInput.value.trim() : "";
-      if (!key) return;
-      fanartKeySave.disabled = true;
-      try {
-        const r = await fetch("/api/settings/fanart-key", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key })
-        });
-        const j = await r.json();
-        if (j.ok) {
-          if (fanartKeyInput) fanartKeyInput.value = "";
-          showToast(j.saved === false ? "Key set but file write failed — won't persist after restart" : "FanArt.tv key saved", j.saved === false ? "error" : "ok");
-          loadFanartKey();
-        } else {
-          showToast(j.error || "Failed to save key", "error");
-        }
-      } catch (e) {
-        showToast("Failed: " + e.message, "error");
-      } finally {
-        fanartKeySave.disabled = false;
-      }
-    });
-  }
+  const loadDiscogsToken = wireKey({ route: "discogs-token", field: "token", inputId: "discogs-token-input", saveId: "discogs-token-save",
+    statusId: "discogs-token-status", checkId: "discogs-token-check", service: "Discogs", noun: "token" });
+  const loadFanartKey = wireKey({ route: "fanart-key", field: "key", inputId: "fanart-key-input", saveId: "fanart-key-save",
+    statusId: "fanart-key-status", checkId: "fanart-key-check", service: "FanArt.tv", noun: "key" });
 
   // ----- Wall display (/display): toggle + rotation interval -----
   const displayToggle    = document.getElementById("display-toggle");
@@ -14109,8 +14333,12 @@ initServiceBrowser({
     if (!zone) { if (window.__showToast) window.__showToast("Select a zone first"); return; }
     if (el.classList.contains("spinning")) return;
 
-    // Spin the compass for 2 seconds, then fetch
+    // Spin the compass for 2 seconds, then fetch. The Random Album disc is
+    // always turning: it speeds up from where it is (v0.6.1) rather than
+    // jumping to another angle — the same animation, run faster.
     el.classList.add("spinning");
+    const disc = el.querySelector && el.querySelector(".unheard-disc");
+    rampDisc(disc, 7.5);   // 6s a turn becomes 0.8s, as it was
     await new Promise(r => setTimeout(r, 2000));
 
     try {
@@ -14132,7 +14360,30 @@ initServiceBrowser({
       if (window.__showToast) window.__showToast("Request failed", "error");
     } finally {
       el.classList.remove("spinning");
+      rampDisc(disc, 1);
     }
+  }
+
+  // Eases the disc's own animation to `rate` times its speed over 0.6s.
+  function rampDisc(disc, rate) {
+    if (!disc || typeof disc.getAnimations !== "function") return;
+    const anim = disc.getAnimations()[0];
+    if (!anim) return;   // reduced motion: no animation to speed up
+    clearTimeout(disc.__rampTimer);
+    const from = anim.playbackRate || 1;
+    const t0 = Date.now();
+    // Timed steps (~60 a second) rather than requestAnimationFrame: the same
+    // smoothness on screen, and a ramp that still finishes if no frame is
+    // drawn meanwhile (a backgrounded tab), so the disc never stays fast.
+    const step = () => {
+      const k = Math.min(1, (Date.now() - t0) / 600);
+      // Set directly: like updatePlaybackRate() it keeps the current angle,
+      // and it is in effect at once rather than at the animation's next
+      // "ready", which a ramp of quick steps would outrun.
+      anim.playbackRate = from + (rate - from) * (1 - Math.pow(1 - k, 3));
+      if (k < 1) disc.__rampTimer = setTimeout(step, 16);
+    };
+    step();
   }
   btn.addEventListener("click", () => playUnheard(btn));
   window.__playUnheard = playUnheard;

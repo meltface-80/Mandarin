@@ -12,7 +12,7 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDiscogs, FakeFanart, PNG } = require("./fake-discogs");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
-const { typeOf } = require("../lib/labellogos");
+const { typeOf, LabelLogos } = require("../lib/labellogos");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = 3614;
@@ -22,6 +22,29 @@ test("an image's kind is read from its bytes", () => {
   assert.deepEqual(typeOf(PNG), ["image/png", "png"]);
   assert.deepEqual(typeOf(Buffer.from("<svg xmlns='x'/>")), ["image/svg+xml", "svg"]);
   assert.equal(typeOf(Buffer.from("<html>no</html>"), "text/html"), null);
+});
+
+test("a bare 403 says nothing about a key; one that names the key refuses it", async () => {
+  const http = require("http");
+  let body = "Host not in allowlist", code = 403;
+  const srv = http.createServer((req, res) => { res.writeHead(code); res.end(body); });
+  await new Promise(r => srv.listen(0, "127.0.0.1", r));
+  const base = "http://127.0.0.1:" + srv.address().port;
+  const settings = { discogsToken: "tok" };
+  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
+  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: base });
+  try {
+    assert.equal(await logos.checkKey("discogs"), "unknown", "a proxy's 403 is not evidence the key is wrong");
+    assert.equal(await logos.checkKey("discogs"), "unknown", "remembered");
+    body = '{"message": "Invalid consumer token."}';
+    assert.equal(await logos.checkKey("discogs", true), "invalid");
+    code = 500;
+    assert.equal(await logos.checkKey("discogs", true), "unknown");
+    code = 200;
+    assert.equal(await logos.checkKey("discogs", true), "ok");
+    settings.discogsToken = "";
+    assert.equal(await logos.checkKey("discogs", true), null);
+  } finally { srv.close(); }
 });
 
 test("merges and logos", { skip, timeout: 90000 }, async (t) => {
@@ -89,9 +112,14 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
     });
 
     await t.test("with the keys: Discogs first, FanArt.tv for the rest, misses remembered", async () => {
-      assert.equal((await api("settings/discogs-token", { token: "tok" })).ok, true);
+      // Each key says whether the service takes it (v0.6.1).
+      const saved = await api("settings/discogs-token", { token: "tok" });
+      assert.equal(saved.ok, true);
+      assert.equal(saved.check, "ok");
       assert.equal((await api("settings/discogs-token")).masked, "••••tok");
-      await api("settings/fanart-key", { key: "fk" });
+      assert.equal((await api("settings/discogs-token")).check, "ok");
+      assert.equal((await api("settings/fanart-key", { key: "fk" })).check, "ok", "a good key gets a 404 for an artist without art");
+      assert.equal((await api("settings/fanart-key")).check, "ok");
       const r = await api("labels/rescan-force", {});
       assert.equal(r.started, true);
       await until(async () => !(await api("labels-scan-status")).scanning);
@@ -120,6 +148,12 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       await api("filters/labels");
       await new Promise(r => setTimeout(r, 200));
       assert.equal(discogs.hits.length + fanart.hits.length, hits);
+      // A key the service refuses says so; the good ones are put back after.
+      assert.equal((await api("settings/discogs-token", { token: "wrong" })).check, "invalid");
+      assert.equal((await api("settings/fanart-key", { key: "wrong" })).check, "invalid");
+      assert.equal((await api("settings/fanart-key")).check, "invalid");
+      assert.equal((await api("settings/discogs-token", { token: "tok" })).check, "ok");
+      assert.equal((await api("settings/fanart-key", { key: "fk" })).check, "ok");
     });
 
     await t.test("by hand: Discogs' candidates, or a pasted address; removed again", async () => {

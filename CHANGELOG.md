@@ -5,6 +5,25 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.1
+- **Random Album and Album of the day sit under the greeting**, with no heading, ahead of
+  every row. "Not played in 6 months" holds only albums you haven't played, and stays hidden
+  until it has some (its first six months), unless switched off.
+- **Now playing goes back.** Opened from the mini player over an album, its corner button
+  returns to that album (with its previous/next) instead of going Home. On a desktop it's an
+  ×; on phones and tablets a ‹.
+- **Album view on larger screens closes with an ×**, and its cover starts below the corner
+  buttons, with previous/next still on its centre line. Phones keep the ‹.
+- **Now playing, reduced.** On large screens a button beside Back shrinks Now playing to the
+  album view's size and back; the card can be dragged by its top strip. Remembered per device.
+- **The Random Album disc speeds up smoothly** from where it is when tapped, instead of jumping.
+- **API keys say whether they work.** The Discogs and FanArt.tv boxes show a brass ✓
+  "Checked and working" or a red ✕ when the service refuses the key.
+- Smaller fixes: the waveform redraws when its bar changes size; the share card no longer
+  waits for ever on a font; ⓘ notes stay up long enough to read and are named for screen
+  readers; the share card's × is a brass disc; leaving an artist's page through the side menu
+  no longer brings it back on Back.
+
 ## v0.6.0
 The release: everything in the release candidates since v0.5.50, settled.
 - **Multi-disc albums show it.** An album of more than one disc — disc folders ("Disc 1",
