@@ -195,6 +195,24 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(q.items.length + q.history.length, 3);
     });
 
+    await t.test("Volume Levelling changed while a Sonos room plays: its queue is planned again and plays on", async () => {
+      const room = house.room("Kitchen");
+      await until(async () => (await api("audio-devices")).devices.some(d => d.id === kitchen.zone_id));
+      await api("audio-devices/" + kitchen.zone_id, { levelling: { mode: "off" } }, "PATCH");
+      await api("play", { offset: cd.offset, zone_or_output_id: kitchen.zone_id, kind: "play_now" });
+      await until(() => room.state === "PLAYING" && room.queue.length === 3);
+      assert.ok(room.queue.every(q => !/[?&]g=/.test(q.uri)));
+      // Album at -25 LUFS, -10 dB for what isn't known (these files carry no ReplayGain).
+      const r = await api("audio-devices/" + kitchen.zone_id, { levelling: { mode: "album", target: -25, unknown: -10 } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      await until(() => room.queue.length === 3 && room.queue.every(q => /[?&]g=-10\b/.test(q.uri)), 10000);
+      await until(() => room.state === "PLAYING");
+      // And off again: the files as they were.
+      await api("audio-devices/" + kitchen.zone_id, { levelling: { mode: "off" } }, "PATCH");
+      await until(() => room.queue.length === 3 && room.queue.every(q => !/[?&]g=/.test(q.uri)), 10000);
+      await api("control", { zone_or_output_id: kitchen.zone_id, command: "stop" });
+    });
+
     await t.test("Move to another room, as the page asks it (from_zone / to_zone): Sonos to Sonos, then to a renderer", async () => {
       const study = zones.find(z => z.display_name === "Study");
       const room = house.room("Kitchen"), other = house.room("Study");

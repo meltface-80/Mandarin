@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC8
+# Mandarin — v0.6.0-RC9
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -428,7 +428,7 @@ The gains are the files' own ReplayGain tags (`REPLAYGAIN_TRACK_GAIN`, `REPLAYGA
 their peaks, or Opus's R128 gains); a track's peak caps its gain so it is never turned up into
 clipping. On Sonos rooms and UPnP/DLNA renderers the gain goes into the stream: the track is sent
 as FLAC at its own rate with the gain applied. The Android app applies its own setting itself, to
-streams and downloads alike. A change applies to what you play next.
+streams and downloads alike. A change is heard straight away, from where the music is.
 
 **Measure ReplayGain** (Settings → Library Scanner) fills in files without ReplayGain tags: the
 server measures each one (EBU R128 integrated loudness and true peak, with ffmpeg) one file at a
