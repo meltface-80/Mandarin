@@ -1,6 +1,7 @@
 package com.musicd.server.android
 
 import android.content.Context
+import com.musicd.server.client.ReplayGain
 import com.musicd.server.client.ServerAddress
 import com.musicd.server.client.ServerClient
 
@@ -69,6 +70,11 @@ object Store {
     fun setDsp(context: Context, json: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply { if (json == null) remove(KEY_DSP) else putString(KEY_DSP, json) }.apply()
     }
+
+    /** ReplayGain's setting as the server last sent it (v0.6.0-RC5), for what the phone plays by itself. */
+    fun replayGain(context: Context): ReplayGain.Setting =
+        ReplayGain.Setting.parse(prefs(context).getString("replaygain", null)?.let { runCatching { org.json.JSONObject(it) }.getOrNull() })
+    fun setReplayGain(context: Context, s: ReplayGain.Setting) { prefs(context).edit().putString("replaygain", s.toJson().toString()).apply() }
 
     /** The folder of music files on the phone (a document tree URI), chosen in Settings → Downloads. */
     /** USB direct (Stage 9): play through the app's own USB driver when a DAC is on the port. */

@@ -63,6 +63,7 @@ const config = {
   discogsBaseUrl: process.env.DISCOGS_URL || "",
   fanartBaseUrl: process.env.FANART_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
+  loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -158,9 +159,14 @@ function createServer(overrides = {}) {
   });
   // One account and its signed-in devices; everything below sits behind it.
   const auth = ctx.auth = createAuth(ctx);
+  // ReplayGain (v0.6.0-RC5): which gain each track gets, and the background
+  // loudness measuring for files without ReplayGain tags.
+  ctx.loudness = new (require("./lib/loudness").Loudness)({ db, log, tickMs: config.loudnessTickMs });
+  // The phones apply their gain themselves: each is told the setting.
+  ctx.loudness.onChange = s => zones.phones.replaygainChanged(s);
   ctx.playback = new Playback(ctx);
   // A queue moving between players is rebuilt for the player it goes to.
-  zones.rebuildItems = (ids, zoneId) => ids.map(id => library.track(id)).filter(Boolean).map(t => ctx.playback.item(t, zones.targetFor(zoneId)));
+  zones.rebuildItems = (ids, zoneId) => ctx.playback.itemsFor(zoneId, ids.map(id => library.track(id)).filter(Boolean));
   const features = ctx.features = new Features(ctx);
 
   const app = express();
@@ -211,6 +217,13 @@ function createServer(overrides = {}) {
         if (part) { p.dsp = part; p.inRate = Number(t.sample_rate) || 0; }
       }
     } else p = planFor(t);
+    // ?g=<dB>: with this ReplayGain in it (lib/loudness.js).
+    if (req.query.g != null) {
+      const g = Number(req.query.g);
+      if (!Number.isFinite(g) || g < -24 || g > 12) return res.status(400).end();
+      p = STREAM.withGain(p, { path: t.path, codec: t.codec, sampleRate: t.sample_rate, bitsPerSample: t.bits, channels: t.channels }, null, g);
+      if (seg && seg !== "orig") p.hq = true;
+    }
     if (!p.transcode) {
       res.set("Content-Type", p.mime);
       res.set("Cache-Control", "no-store");
@@ -258,6 +271,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-phone")(app, ctx);
   require("./lib/server/api-devices")(app, ctx);
   require("./lib/server/api-identify")(app, ctx);
+  require("./lib/server/api-loudness")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   require("./lib/server/downloads").mount(app, ctx);
@@ -341,6 +355,7 @@ function createServer(overrides = {}) {
     zones.start();
     ctx.devices.start();
     if (config.identify) ctx.identifier.start();
+    ctx.loudness.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
     ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
@@ -361,6 +376,7 @@ function createServer(overrides = {}) {
     zones.stop();
     ctx.devices.stop();
     ctx.identifier.stop();
+    ctx.loudness.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);

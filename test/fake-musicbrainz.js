@@ -10,14 +10,15 @@ const http = require("http");
 function credit(name) { return [{ name, artist: { name } }]; }
 
 /* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …],
- * group: { title, date } (the release group, when it differs), disambiguation, barcode } */
+ * group: { title, date } (the release group, when it differs), disambiguation, barcode,
+ * catno (with label), isrcs: [code per track] } */
 function release(d) {
   const g = d.group || {};
   return {
     id: d.id, title: d.title, date: d.date || "", country: d.country || "XW", disambiguation: d.disambiguation || "",
-    barcode: d.barcode || "",
+    barcode: d.barcode || "", isrcs: d.isrcs || [],
     "artist-credit": credit(d.artist),
-    "label-info": d.label ? [{ "catalog-number": "1", label: { id: d.label + "-id", name: d.label } }] : [],
+    "label-info": d.label ? [{ "catalog-number": d.catno || "1", label: { id: d.label + "-id", name: d.label } }] : [],
     "release-group": { id: g.id || d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
     media: [{ position: 1, format: "CD", "track-count": d.tracks.length,
       tracks: d.tracks.map(([title, s], i) => ({ id: `${d.id}-t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
@@ -51,15 +52,27 @@ class FakeMusicBrainz {
         const t = /release:"((?:\\.|[^"])*)"/.exec(q);
         const loose = /release:\(([^)]*)\)/.exec(q);          // the title's words in any order
         const bc = /barcode:(\d+)/.exec(q);
+        const cat = /catno:"((?:\\.|[^"])*)"/.exec(q);
+        const lab = /label:"((?:\\.|[^"])*)"/.exec(q);
+        const un = x => x.replace(/\\(.)/g, "$1").toLowerCase();
+        const info = r => r["label-info"][0] || {};
         const want = t ? t[1].replace(/\\(.)/g, "$1").toLowerCase() : "";
         const words = loose ? loose[1].split(" AND ").map(w => w.replace(/\\(.)/g, "$1").toLowerCase()) : null;
         const hits = bc ? this.releases.filter(r => r.barcode === bc[1])
+          : cat ? this.releases.filter(r => (info(r)["catalog-number"] || "").toLowerCase() === un(cat[1]) && (!lab || ((info(r).label || {}).name || "").toLowerCase() === un(lab[1])))
           : words ? this.releases.filter(r => words.every(w => r.title.toLowerCase().includes(w)))
           : this.releases.filter(r => r.title.toLowerCase() === want);
         return send({ count: hits.length, offset: 0, releases: hits.map((r, i) => ({
           id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"], "label-info": r["label-info"],
           "track-count": r.media[0]["track-count"], media: [{ format: "CD", "track-count": r.media[0]["track-count"] }]
         })) });
+      }
+      if ((m = /^\/ws\/2\/isrc\/([^/]+)$/.exec(u.pathname))) {
+        const code = decodeURIComponent(m[1]);
+        const rs = this.releases.filter(r => r.isrcs.includes(code));
+        if (!rs.length) { res.statusCode = 404; return send({ error: "Not Found" }); }
+        return send({ isrc: code, recordings: rs.map(r => ({ id: r.id + "-rec-" + code, title: "",
+          releases: [{ id: r.id, title: r.title, "track-count": r.media[0]["track-count"] }] })) });
       }
       if ((m = /^\/ws\/2\/release-group\/([^/]+)$/.exec(u.pathname))) {
         const rs = this.releases.filter(r => r["release-group"].id === decodeURIComponent(m[1]));

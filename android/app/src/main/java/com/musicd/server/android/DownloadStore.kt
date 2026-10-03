@@ -339,7 +339,9 @@ object DownloadStore {
 
     class Track(
         val id: Long, val title: String, val artist: String, val disc: Int, val number: Int?,
-        val duration: Double, val ext: String, val size: Long, var done: Boolean
+        val duration: Double, val ext: String, val size: Long, var done: Boolean,
+        /** ReplayGain's numbers from the server (v0.6.0-RC5), as album.json keeps them; null if none. */
+        val replaygain: JSONObject? = null
     ) {
         fun fileName() = "$id.$ext"
     }
@@ -394,7 +396,8 @@ object DownloadStore {
                 Track(
                     t.getLong("id"), t.optString("title"), t.optString("artist"), t.optInt("disc_no", 1),
                     if (t.isNull("track_no") || !t.has("track_no")) null else t.optInt("track_no"),
-                    t.optDouble("duration", 0.0), t.optString("ext", "flac"), t.optLong("size"), t.optBoolean("done")
+                    t.optDouble("duration", 0.0), t.optString("ext", "flac"), t.optLong("size"), t.optBoolean("done"),
+                    t.optJSONObject("replaygain")
                 )
             },
             addedAt = j.optLong("added_at"),
@@ -407,7 +410,7 @@ object DownloadStore {
         for (t in a.tracks) tracks.put(JSONObject()
             .put("id", t.id).put("title", t.title).put("artist", t.artist).put("disc_no", t.disc)
             .put("track_no", t.number ?: JSONObject.NULL).put("duration", t.duration).put("ext", t.ext)
-            .put("size", t.size).put("done", t.done))
+            .put("size", t.size).put("done", t.done).put("replaygain", t.replaygain ?: JSONObject.NULL))
         val j = JSONObject()
             .put("id", a.id).put("title", a.title).put("artist", a.artist).put("year", a.year ?: JSONObject.NULL)
             .put("quality", a.quality).put("image_key", a.imageKey ?: "").put("state", a.state)
