@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0-RC11",
+  "version": "0.6.0",
   "url": "https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk",
-  "sha256": "6604ecc446f76d193061129c78fe2638d564eb78f3c267c9ff94334d8a0975ee",
-  "file": "musicd-server-android-0.6.0-RC11-debug.apk"
+  "sha256": "4fcef7f4447cae864a7aedff6f8eb570df6d401f34e3f6a0f7a9de8f0930577e",
+  "file": "musicd-server-android-0.6.0-debug.apk"
 }
