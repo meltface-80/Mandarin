@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC1
+The first release candidate for 0.6.0: everything up to v0.5.58, settled.
+- **Release candidates update in order.** The app, its update check and the server's updater now
+  read "-RC1" as a release candidate: 0.6.0-RC1 is newer than 0.5.58, RC2 newer than RC1 (and
+  RC10 than RC2), and 0.6.0 newer than any of them. Before, the app ignored the "-RC1" and
+  wouldn't have offered 0.6.0 over it.
+
 ## v0.5.58
 - **Offline shows only what's on the phone.** With no connection, Home showed the server's albums
   (Random albums, Library and the rest), which then wouldn't open: the page painted the last Home

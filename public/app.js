@@ -14106,10 +14106,25 @@ initServiceBrowser({
   // BEHIND the Settings sheet — there was no visible button to tap).
   let pendingUpdate = false;
   const appUpd = window.__musicdAppUpd;
-  // "0.3.20" newer than "0.3.19", part by part.
+  // "0.3.20" newer than "0.3.19", part by part; a pre-release before its
+  // release, and RC2 before RC10 (0.6.0-RC1 < 0.6.0-RC2 < 0.6.0).
   const verNewer = (x, y) => {
-    const a = String(x).split(".").map(Number), b = String(y).split(".").map(Number);
-    for (let i = 0; i < Math.max(a.length, b.length); i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); }
+    const parse = v => {
+      const s = String(v).trim().replace(/^v/i, "");
+      const i = s.indexOf("-");
+      return { core: (i < 0 ? s : s.slice(0, i)).split(".").map(n => parseInt(n, 10) || 0), pre: i < 0 ? null : s.slice(i + 1).toLowerCase() };
+    };
+    const a = parse(x), b = parse(y);
+    for (let i = 0; i < Math.max(a.core.length, b.core.length); i++) {
+      if ((a.core[i] || 0) !== (b.core[i] || 0)) return (a.core[i] || 0) > (b.core[i] || 0);
+    }
+    if (!a.pre || !b.pre) return !a.pre && !!b.pre;
+    const pa = a.pre.match(/\d+|\D+/g) || [], pb = b.pre.match(/\d+|\D+/g) || [];
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      if (pa[i] === undefined || pb[i] === undefined) return pb[i] === undefined && pa[i] !== undefined;
+      const na = /^\d+$/.test(pa[i]) && /^\d+$/.test(pb[i]);
+      if (pa[i] !== pb[i]) return na ? Number(pa[i]) > Number(pb[i]) : pa[i] > pb[i];
+    }
     return false;
   };
   let pendingWhat = null;          // { server, app } in the Android app
