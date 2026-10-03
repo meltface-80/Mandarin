@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC9
+- **Volume Levelling heard at once on Sonos.** Changing a Sonos room's Volume Levelling did
+  nothing to what it was playing: a Sonos queue keeps the addresses it was loaded with, and only
+  renderers were planned again on a change. Now the room's queue is planned again with the new
+  gain and carries on from the same track and second (paused, it stays paused), as a renderer's
+  does.
+
 ## v0.6.0-RC8
 - **Album of the day stays put.** The server now chooses the day's album once, at the first ask
   after 00:01, and keeps it in its database. Before, it was worked out afresh on every ask from
