@@ -6064,11 +6064,14 @@
         // Close FIRST. showArtistAlbums parks the grid/topbar/labels but knows
         // nothing about the album modal, so with the modal still open the
         // artist grid renders behind it and body scroll stays locked.
+        // The album it was opened from (v0.6.0-RC11): Back on the artist page
+        // comes back to it, not to Home.
+        const fromAlbum = currentAlbum ? { album: currentAlbum, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } } : null;
         closeModal();
         // The artist view PARKS the labels browser itself (see showArtistAlbums)
         // so its Back can restore it — tearing it down here would lose the open
         // label and leave the restored grid without its labels bar.
-        window.__showArtistAlbums && window.__showArtistAlbums(part.name);
+        window.__showArtistAlbums && window.__showArtistAlbums(part.name, { fromAlbum });
       });
       box.appendChild(btn);
     });
@@ -6789,6 +6792,8 @@
     const share = visibleEl("#share-overlay");
     if (share) { const c = share.querySelector("[data-share-close]"); if (c) c.click(); return true; }
     if (!modal.classList.contains("hidden")) { closeModal(); return true; }
+    // The artist view: back to the album it was opened from (v0.6.0-RC11).
+    if (window.__artistViewActive && window.__artistViewActive()) { window.__exitArtistView(); return true; }
     if ((homeView && homeView.classList.contains("hidden")) || !grid.classList.contains("hidden")) { showHome(); return true; }
     return false;
   };
@@ -14193,10 +14198,21 @@ initServiceBrowser({
       const mainEl = document.querySelector("main");
       if (mainEl && typeof saved.scrollTop === "number") mainEl.scrollTop = saved.scrollTop;
     }
+    const back = saved && saved.fromAlbum;
     saved = null;
+    // Opened from an album: back to that album, over the screen it was on.
+    if (back && !(opts && opts.reopen === false) && window.__openAlbum) window.__openAlbum(back.album, back.opts);
   }
+  // The brass Back beside the menu: while the artist view is up it steps back
+  // out of it (to the album it came from), ahead of its usual "go Home".
+  if (topbarBack) topbarBack.addEventListener("click", (e) => {
+    if (!artistViewActive) return;
+    e.stopImmediatePropagation();
+    exitArtistView();
+  }, true);
 
-  async function showArtistAlbums(artistName) {
+  async function showArtistAlbums(artistName, how) {
+    const fromAlbum = (how && how.fromAlbum) || null;
     if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
     if (!artistName) return;
     // Drop any active/pending search (incl. the delayed external-sources fetch)
@@ -14207,7 +14223,7 @@ initServiceBrowser({
     // Artist → album → artist chaining: put the FIRST screen back before
     // capturing, so what we snapshot below is the real originating screen (and
     // its live view flags), not a half-torn-down artist view.
-    if (artistViewActive) exitArtistView();
+    if (artistViewActive) exitArtistView({ reopen: false });
     // The artist view takes over the shared grid (and snapshot-restores it on
     // Back) — park the library wall's infinite scroll so it can't append into
     // this view, remembering whether it was live so Back can re-arm it.
@@ -14255,6 +14271,7 @@ initServiceBrowser({
       topbarBackHidden:    topbarBack    ? topbarBack.classList.contains("hidden")    : true,
       topbarRefreshHidden: topbarRefresh ? topbarRefresh.classList.contains("hidden") : true,
       topbarSearchHidden:  topbarSearch  ? topbarSearch.classList.contains("hidden")  : true,
+      fromAlbum,
     };
     artistViewActive = true;
     // Reveal the shared album grid and leave the Home landing / search results.
@@ -14264,10 +14281,10 @@ initServiceBrowser({
     if (homeView)     homeView.classList.add("hidden");
     if (homeSections) homeSections.classList.add("hidden");
     grid.classList.remove("hidden");
-    // Hide the shared topbar nav — this view has its own "← Back" button in
-    // countBar, so leaving the shared Back/Refresh/Search visible (whatever the
-    // previous screen set them to) would show a second, redundant back control.
-    if (topbarBack)    topbarBack.classList.add("hidden");
+    // The shared Back — the brass < beside the menu, as on every other screen
+    // (v0.6.0-RC11; it was a "← Back" button of its own) — takes this view
+    // back (see the listener below); Refresh and Search don't belong here.
+    if (topbarBack)    topbarBack.classList.remove("hidden");
     if (topbarRefresh) topbarRefresh.classList.add("hidden");
     if (topbarSearch)  topbarSearch.classList.add("hidden");
 
@@ -14275,9 +14292,7 @@ initServiceBrowser({
     if (countBar) {
       countBar.classList.remove("hidden");
       countBar.innerHTML = `
-        <button class="artist-view-back" id="artist-back-btn">← Back</button>
         <span class="count-text">Loading…</span>`;
-      document.getElementById("artist-back-btn").addEventListener("click", exitArtistView);
     }
     grid.innerHTML = "";
 
@@ -14289,10 +14304,8 @@ initServiceBrowser({
 
       if (countBar) {
         countBar.innerHTML = `
-          <button class="artist-view-back" id="artist-back-btn">← Back</button>
-          <span class="count-text">${total} album${total !== 1 ? "s" : ""} · ${artistName}</span>`;
-        document.getElementById("artist-back-btn").addEventListener("click", exitArtistView);
-      }
+            <span class="count-text">${total} album${total !== 1 ? "s" : ""} · ${artistName}</span>`;
+        }
 
       if (!total) {
         grid.innerHTML = `<div class="artist-view-empty">No albums found for "${artistName}"</div>`;
@@ -14334,10 +14347,8 @@ initServiceBrowser({
     } catch (e) {
       if (countBar) {
         countBar.innerHTML = `
-          <button class="artist-view-back" id="artist-back-btn">← Back</button>
-          <span class="count-text" style="color:var(--danger)">Error: ${e.message}</span>`;
-        document.getElementById("artist-back-btn").addEventListener("click", exitArtistView);
-      }
+            <span class="count-text" style="color:var(--danger)">Error: ${e.message}</span>`;
+        }
     }
   }
 

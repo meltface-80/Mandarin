@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0-RC11
+- **Back from an artist goes back to the album.** Tapping the artist on an album's page opens
+  the artist's page; Back from there went to Home. Now it reopens the album you came from — the
+  brass Back beside the menu and the phone's back gesture alike — and closing the album returns
+  to where you started.
+- **The artist page's Back is the brass < beside the menu**, as on every other screen, in place
+  of its own "← Back" button.
+
 ## v0.6.0-RC10
 - **Untagged albums named from their folders.** A file with no artist tag showed under "Unknown
   Artist", its album titled with the whole folder name. Now its names come from where it's filed:
