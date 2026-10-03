@@ -50,9 +50,13 @@ test("two folders of the same record are two albums; disc folders are one", { sk
   assert.deepEqual(rams.map(a => s.library.tracks(a.id).length).sort(), [3, 4]);
   const twoDisc = rams.find(a => s.library.tracks(a.id).length === 4);
   assert.deepEqual(s.library.tracks(twoDisc.id).map(t => t.disc_no), [1, 1, 2, 2]);
+  // Its tiles say so (v0.6.0); a single disc says nothing.
+  assert.equal(s.library.json(twoDisc).discs, 2);
+  assert.equal(s.library.json(rams.find(a => a !== twoDisc)).discs, undefined);
   const box = s.library.albums.filter(a => a.title === "Box Set");
   assert.equal(box.length, 1);
   assert.deepEqual(s.library.tracks(box[0].id).map(t => t.disc_no), [1, 2, 3, 4]);
+  assert.equal(s.library.json(box[0]).discs, 4);
   s.db.close();
 });
 

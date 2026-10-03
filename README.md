@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0-RC11
+# Mandarin — v0.6.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -100,6 +100,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## New since the last beta (v0.5.50)
 
+* **Multi-disc albums** — A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.
+* **Random Album** — Home's first tile, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
 * **Not played in six months** — Waits until Mandarin has six months of your listening, then offers the albums you haven't heard since.
 * **Untagged albums named from folders** — A file with no tags takes its artist, album, year, title and track from its folder and file names, then is identified on MusicBrainz; nothing is written to the files.

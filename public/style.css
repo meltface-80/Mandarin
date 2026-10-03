@@ -1140,7 +1140,9 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .toast {
   /* Now that the app runs standalone (v1.7.60), 28px from the bottom is 28px
      into the home-indicator area. The inset lifts it clear. */
-  position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom));
+  /* Above the mini transport bar while it shows (v0.6.0): --toast-lift is
+     its top edge's distance from the bottom, kept by app.js. */
+  position: fixed; left: 50%; bottom: max(calc(28px + env(safe-area-inset-bottom)), var(--toast-lift, 0px));
   transform: translateX(-50%) translateY(8px);
   background: var(--bg-elev); color: var(--text);
   border: 1px solid var(--border);
@@ -2880,7 +2882,7 @@ input.vol-range::-moz-range-thumb {
 .settings-info-btn:hover { color: var(--accent-text); }
 
 .settings-info-toast {
-  position: fixed; bottom: calc(88px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: max(calc(88px + env(safe-area-inset-bottom)), var(--toast-lift, 0px)); left: 50%; transform: translateX(-50%);
   background: var(--bg-elev-2); border: 1px solid var(--border);
   color: var(--text); font-size: 14px; line-height: 1.5;
   padding: 12px 18px; border-radius: 12px; max-width: min(400px, 92vw);
@@ -4136,6 +4138,21 @@ input.vol-range::-moz-range-thumb {
   white-space: nowrap; pointer-events: none;
 }
 .album-quality { display: block; }
+/* Several discs (v0.6.0): bottom right, opposite the quality badge, its size. */
+.album-discs {
+  position: absolute; right: 6px; bottom: 6px; z-index: 2;
+  width: 24px; height: 19px; border-radius: 5px;
+  background: rgba(10, 14, 20, .62);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  pointer-events: none;
+}
+.album-discs::before {
+  content: ""; position: absolute; inset: 0;
+  background-color: rgba(255,255,255,.92);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23fff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M9.05%206.41A7%207%200%201%201%2015.15%2017.39%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%277%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%272.6%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%270.6%27%20fill%3D%27%23fff%27%2F%3E%3C%2Fsvg%3E") center / 15px 15px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23fff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M9.05%206.41A7%207%200%201%201%2015.15%2017.39%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%277%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%272.6%27%2F%3E%3Ccircle%20cx%3D%279.4%27%20cy%3D%2713.4%27%20r%3D%270.6%27%20fill%3D%27%23fff%27%2F%3E%3C%2Fsvg%3E") center / 15px 15px no-repeat;
+}
 /* Better than CD. Roon marks hi-res; there is no room to say so in words, so
    the badge takes the accent instead. */
 .album-quality.is-hires { color: var(--accent-text); }
@@ -4144,7 +4161,8 @@ input.vol-range::-moz-range-thumb {
 #modal-quality { left: 8px; bottom: 8px; padding: 3px 7px; font-size: 12px; border-radius: 6px; }
 
 /* Larger on the album detail artwork, which is far bigger than a tile. */
-#modal-source { width: 28px; height: 28px; top: 8px; right: 8px; border-radius: 8px; }
+/* On the phone: bottom right of the cover (v0.6.0), clear of the share button. */
+#modal-source { width: 28px; height: 28px; top: auto; bottom: 8px; right: 8px; border-radius: 8px; }
 #modal-source::before { -webkit-mask-size: 16px 16px; mask-size: 16px 16px; }
 /* TIDAL — its overlapping-diamond mark (evenodd leaves the overlap open,
    which is what gives the logo its character). */
@@ -4561,12 +4579,18 @@ input.vol-range::-moz-range-thumb {
   border: 1px solid var(--accent);
 }
 .unheard-glyph { font-size: 2.4rem; line-height: 1; color: var(--accent-text); }
+/* Random Album's disc (v0.6.0): brass, half the tile, turning slowly on its own
+   centre — the middle of the square — and fast while an album is being found. */
+.unheard-disc { display: block; width: 52%; aspect-ratio: 1; color: var(--accent); transform-origin: 50% 50%;
+  animation: unheard-spin 6s linear infinite; }
+.unheard-disc svg { display: block; width: 100%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .unheard-disc { animation: none; } }
 .home-unheard-tile .album-title { color: var(--accent-text); }
 @media (hover: hover) and (pointer: fine) {
   .home-unheard-tile:hover .unheard-art { background: var(--accent); }
   .home-unheard-tile:hover .unheard-glyph { color: var(--on-accent); }
 }
-.home-unheard-tile.spinning .unheard-glyph { animation: unheard-spin 1s linear infinite; }
+.home-unheard-tile.spinning .unheard-glyph { animation: unheard-spin .8s linear infinite; }
 @keyframes unheard-spin { to { transform: rotate(360deg); } }
 /* Share sheet — the blob is the payload, so it gets the room and the monospace
    face; everything above it is the honest accounting of what went in. */

@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.0
+The release: everything in the release candidates since v0.5.50, settled.
+- **Multi-disc albums show it.** An album of more than one disc — disc folders ("Disc 1",
+  "CD2", "DISC 1"…) or disc numbers in the tags — has a two-disc symbol on its cover in every
+  grid, bottom right, opposite the quality. Tracks in disc folders whose tags carry no disc
+  number take the folder's.
+- **The phone's symbol moved.** On an album's page, the sign that it's on this phone sits at
+  the bottom right of the cover, no longer under the share button.
+- **Random Album.** Home's "Play something unheard" tile is now Random Album: a brass disc in
+  the middle of the tile, turning on its own centre, faster while an album is found.
+- **Messages above the transport bar.** Toasts showed over the mini transport bar; they now
+  sit just above it while it's on screen.
+
 ## v0.6.0-RC11
 - **Back from an artist goes back to the album.** Tapping the artist on an album's page opens
   the artist's page; Back from there went to Home. Now it reopens the album you came from — the
