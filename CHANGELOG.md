@@ -17,6 +17,9 @@ Versioning: each set of changes is a development build and takes the next third 
 - **Not played in 6 months waits for six months of listening.** Until Mandarin has been played
   for six months, every album would count as "not played", so the row offers only Play something
   unheard and the Album of the day; its full page says from which date albums will show.
+- **The share card's Download saves the card in the app.** The button (there since the card was
+  first made, for browsers) did nothing in the Android app, whose WebView ignores download links;
+  it now saves the card to the phone's Pictures/Mandarin and says so.
 
 ## v0.6.0-RC3
 - **DSD to UPnP/DLNA renderers, as it is.** A DSD64 album on a Chord Poly arrived as 176.4 kHz

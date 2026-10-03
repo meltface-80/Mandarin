@@ -21,7 +21,7 @@ import java.io.File
  * were dead — and Copy and Share did not even render, because the page
  * feature-detects before drawing them.
  *
- * Only Share is provided, and that is a decision rather than an omission:
+ * Share and (since v0.6.0-RC4) Download are provided; Copy is not:
  *
  *  - **Share** works, and on Android it is the button that already leads
  *    everywhere else — save to Files, send to another app, put it in a message.
@@ -29,12 +29,10 @@ import java.io.File
  *    clipboard as a content:// URI, and the app doing the pasting holds no
  *    grant against our FileProvider, so the copy reports success and pastes
  *    nothing.
- *  - **Download** is blocked by scoped storage from Android 10, and the
- *    supported route — a MediaStore insert — is the same two taps as Share.
- *
- * The two that cannot work are removed rather than left to fail: the page
- * feature-detects Copy, so not shimming it takes the button away, and the
- * download anchor is dropped from the DOM.
+ *  - **Download** as a link does nothing in a WebView. Since v0.6.0-RC4 the
+ *    page offers its own Download in the app, which calls [saveImage] (a
+ *    MediaStore insert into Pictures/Mandarin); a download link from an older
+ *    page is still dropped from the DOM below.
  *
  * The fix belongs here rather than in the page. The bundled assets are kept
  * byte-identical to MusicD-Remote's so a newer upstream UI stays a file copy,
@@ -159,6 +157,44 @@ class ShareBridge(private val activity: Activity) {
     } catch (e: Exception) {
         Log.w(TAG, "copy text failed", e)
         false
+    }
+
+    /**
+     * The card's Download, in the app (v0.6.0-RC4): saved to the phone's
+     * Pictures/Mandarin, where the gallery shows it. A download link does
+     * nothing in a WebView. Android 10 on needs no permission for this; before
+     * that, the storage permission the app already asks for.
+     */
+    @JavascriptInterface
+    fun saveImage(base64: String, fileName: String, mime: String): Boolean {
+        val bytes = decode(base64) ?: return false
+        val name = safeName(fileName)
+        val type = mime.ifEmpty { "image/png" }
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, type)
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Mandarin")
+                    put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val r = activity.contentResolver
+                val uri = r.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+                try {
+                    r.openOutputStream(uri)?.use { it.write(bytes) } ?: throw java.io.IOException("no stream")
+                    r.update(uri, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+                } catch (e: Exception) { r.delete(uri, null, null); throw e }
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "Mandarin").apply { mkdirs() }
+                val f = File(dir, name).apply { writeBytes(bytes) }
+                android.media.MediaScannerConnection.scanFile(activity, arrayOf(f.path), arrayOf(type), null)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "save failed", e)
+            false
+        }
     }
 
     @JavascriptInterface

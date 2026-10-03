@@ -11333,7 +11333,21 @@
     //
     // Narrowed to STANDALONE rather than to iOS: in Safari proper the tab is
     // still there to return from, and on every other platform it works.
-    if (!iosStandalone()) {
+    // In the Android app (v0.6.0-RC4): a download link does nothing in its
+    // WebView, so the app saves the card itself — to Pictures/Mandarin.
+    const app = window.MusicDShare;
+    if (app && typeof app.saveImage === "function") {
+      const b = mkBtn("ghost", icon("download"), "Download");
+      b.onclick = async () => {
+        try {
+          const url = await blobToDataUrl(blob);
+          const ok = app.saveImage(String(url).slice(String(url).indexOf(",") + 1), fileName, "image/png");
+          setLabel(b, ok ? "Saved to Pictures" : "Couldn’t save");
+          setTimeout(() => setLabel(b, "Download"), 2500);
+        } catch (e) { errEl.textContent = e.message || String(e); }
+      };
+      actions.appendChild(b);
+    } else if (!iosStandalone()) {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = fileName;
