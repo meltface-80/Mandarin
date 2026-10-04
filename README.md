@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.9
+# Mandarin — v0.6.10
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -355,7 +355,8 @@ interface, and adds what a web page can't:
 on Android 8.0 or newer.
 
 **Updates install over the top** from v0.2.1 on: every build is signed with the same key
-(`android/app/musicd-debug.keystore`). Builds before v0.2.1 were each signed with a different
+(`android/app/musicd-debug.keystore`). From v0.6.10 every build is a release build (optimised,
+not debuggable), still signed with that key. Builds before v0.2.1 were each signed with a different
 key, so going from one of those to v0.2.1 needs **one** uninstall first — after that, never again.
 
 That key is a debug key committed to this public repository, so it only keeps your own updates
