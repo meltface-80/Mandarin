@@ -38,13 +38,26 @@
 /* ------------------------------------------------------------------ */
 (function uiSettings() {
   const OPTS = {
-    text:   { key: "rra-ui-text",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
-    title:  { key: "rra-ui-title", def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
+    // +75% and +100% are a desktop's (v0.6.6): elsewhere they read as +50%.
+    text:   { key: "rra-ui-text",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5", "1.75", "2"] },
+    title:  { key: "rra-ui-title", def: "1",    allowed: ["1", "1.1", "1.25", "1.5", "1.75", "2"] },
+    // Every other piece of text: the side menu, Home's headings, Settings, the
+    // album and Now playing views, the player bar (v0.6.6).
+    menu:   { key: "rra-ui-menu",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5", "1.75", "2"] },
     layout: { key: "rra-ui-cols",  def: "auto", allowed: ["auto", "3", "2", "list"] },
     tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] }
   };
   const mem = {};
+  // A desktop: a large screen with a mouse (the test Now playing's corner
+  // button uses). Only there do the text sizes go past +50%.
+  const desktopQ = window.matchMedia ? window.matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine)") : null;
+  const isDesktop = () => !!(desktopQ && desktopQ.matches);
+  const BIG = ["1.75", "2"];
   function get(k) {
+    const v = stored(k);
+    return (BIG.indexOf(v) > -1 && !isDesktop()) ? "1.5" : v;
+  }
+  function stored(k) {
     if (k in mem) return mem[k];
     const o = OPTS[k];
     let v = null;
@@ -75,6 +88,7 @@
     const put = (prop, v, def) => { if (v === def) root.removeProperty(prop); else root.setProperty(prop, v); };
     put("--ui-text", get("text"), "1");
     put("--ui-title", get("title"), "1");
+    put("--ui-menu", get("menu"), "1");
     put("--ui-tile", get("tile"), "1");
     const c = cols();
     if (c === baseCols()) root.removeProperty("--grid-cols"); else root.setProperty("--grid-cols", String(c));
@@ -92,7 +106,8 @@
     if ((k === "layout" || k === "tile") && window.__refreshWallCount) window.__refreshWallCount();
   }
   window.addEventListener("resize", apply);
-  window.__uiPrefs = { get, set, cols, apply, OPTS };
+  if (desktopQ && desktopQ.addEventListener) desktopQ.addEventListener("change", apply);
+  window.__uiPrefs = { get, set, cols, apply, OPTS, isDesktop };
   apply();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
 })();
@@ -17113,11 +17128,15 @@ initServiceBrowser({
 (function initUiPane() {
   const pane = document.querySelector('.settings-pane[data-pane="ui"]');
   if (!pane || !window.__uiPrefs) return;
-  const sels = { text: "ui-text-select", title: "ui-title-select", layout: "ui-layout-select", tile: "ui-tile-select" };
+  const sels = { text: "ui-text-select", title: "ui-title-select", menu: "ui-menu-select", layout: "ui-layout-select", tile: "ui-tile-select" };
   function paint() {
+    const desk = window.__uiPrefs.isDesktop();
     for (const [k, id] of Object.entries(sels)) {
       const el = document.getElementById(id);
-      if (el) el.value = window.__uiPrefs.get(k);
+      if (!el) continue;
+      // +75% and +100% are offered on a desktop only.
+      el.querySelectorAll("option[data-desktop]").forEach(o => { o.hidden = !desk; o.disabled = !desk; });
+      el.value = window.__uiPrefs.get(k);
     }
   }
   for (const [k, id] of Object.entries(sels)) {

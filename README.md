@@ -35,8 +35,8 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
   decade, format, sample rate, bit depth, label, starts-with and date added, from the top bar. A
   Random albums wall turns over each visit.
-* **UI Settings** — text size, grid layout (Auto, 3 or 2 columns, or List) and tile size, on
-  each device.
+* **UI Settings** — text size (tile names, screen titles, and menu and Home text), grid layout
+  (Auto, 3 or 2 columns, or List) and tile size, on each device.
 * **Music folders** — any number of folders the server can see, added and removed in Settings,
   watched so new and deleted albums show up by themselves.
 * **Search** — albums, artists and labels as you type. Typo-tolerant, any word order.
@@ -103,7 +103,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 ## New since the last beta (v0.5.50)
 
 * **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcodes match without asking musicbrainz.org. Optional: an 845 MB download, kept in a folder you choose.
-* **UI Settings** — Album and artist text, grid screen titles, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
+* **UI Settings** — Album and artist text, grid screen titles, menu and Home text, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
 * **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
 * **Library controls in the top bar** — Focus, Sort and search sit in the Library screen's top bar; the search opens over them, and × clears, then closes.
 * **Titles beside Back** — An artist's album count and name, and a label's name, sit beside Back at the top of the screen.

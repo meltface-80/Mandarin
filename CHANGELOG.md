@@ -24,8 +24,9 @@ Also carries what was built as v0.6.4 and v0.6.5, released together here.
   MusicBrainz and iTunes about a sample of your barcoded albums and lists which tags the files
   carry. `--pack` answers from the pack; `--same=FILE` asks about an earlier run's albums and
   prints both summaries.
-- **Settings → UI Settings**, per device: Album & artist text and Grid screen title (Normal to
-  +50%), Grid layout (Auto, 3 columns, 2 columns or List, for album, playlist and label grids)
+- **Settings → UI Settings**, per device: Album & artist text, Grid screen title and Menu &
+  Home Screen text (every other piece of text: the side menu, Home's headings, Settings, the
+  album and Now playing views, the player bar; Normal to +50%, and +75% or +100% on a desktop), Grid layout (Auto, 3 columns, 2 columns or List, for album, playlist and label grids)
   and Tile size (−50% to +50%: Home's tiles, and how many fit on an Auto grid). The grid/list
   button leaves the top bar; Refresh takes its corner, and a device set to List stays List.
 - **Labels screen**: find a label from the top bar (× clears, then closes the field) and turn

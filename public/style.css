@@ -5608,3 +5608,20 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   }
 }
 
+/* UI Settings → Menu & Home Screen text (v0.6.6): every piece of text the
+   other two text settings don't cover, scaled as one with zoom (text, line
+   spacing and the controls beside it), set on the contents rather than the
+   drawers so the side menu and the Settings list keep their width. In the
+   album and Now playing views only the words grow: the transport buttons and
+   the tabs keep their size, or a phone runs out of width for them. */
+.menu-drawer > *,
+.home-greeting, .home-section-title, .home-carousel-empty,
+#settings-overlay .settings-view,
+#modal-title, .modal-subtitle, .np-track, .np-artist, .np-album, .np-format, .np-times,
+.track-list-wrap, .section-label, #album-bio-section, .queue-summary, .queue-list, .queue-empty,
+.np-popover-title, .np-device-list, .vol-readout,
+.mt-text,
+.lib-sheet-head, .lib-sheet-body, .lib-sheet-foot,
+.artist-bio-head, .artist-section-header, .artist-view-empty,
+.status-banner { zoom: var(--ui-menu, 1); }
+

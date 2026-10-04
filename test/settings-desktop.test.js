@@ -34,6 +34,13 @@ const DRIVER = `(async () => {
     document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
   }
   out.back_to_list = width();
+  // +75% and +100% text: offered on a desktop only, and +50% anywhere else.
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="ui"]').click(); await sleep(300);
+  out.text_options = [...document.querySelectorAll("#ui-text-select option")].filter(o => !o.hidden).map(o => o.textContent);
+  window.__uiPrefs.set("text", "2");
+  out.text_2 = window.__uiPrefs.get("text");
+  window.__uiPrefs.set("text", "1");
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
   document.querySelector("#settings-overlay .settings-backdrop").click(); await sleep(300);
   out.closed = document.getElementById("settings-overlay").classList.contains("hidden");
   return out;
@@ -72,10 +79,15 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
     assert.ok(desk.panes.ui.w < desk.panes.homescreen.w, "a short page is narrower than a long one");
     assert.equal(desk.back_to_list, desk.menu, "back on the list, back to the menu's width");
     assert.equal(desk.closed, true, "a click outside closes it");
+    const isDesk = !!size.mouse;
+    assert.deepEqual(desk.text_options, isDesk ? ["Normal", "+10%", "+25%", "+50%", "+75%", "+100%"] : ["Normal", "+10%", "+25%", "+50%"], size.width + "px: text sizes offered");
+    assert.equal(desk.text_2, isDesk ? "2" : "1.5", size.width + "px: +100% is a desktop's");
     }
 
     const phone = await run({ width: 390, height: 844 });
     assert.equal(phone.list.w, 390, "a phone keeps the full screen");
+    assert.deepEqual(phone.text_options, ["Normal", "+10%", "+25%", "+50%"], "a phone stops at +50%");
+    assert.equal(phone.text_2, "1.5");
     for (const v of Object.values(phone.panes)) assert.equal(v.w, 390);
     const sideways = await run({ width: 844, height: 390 });
     assert.equal(sideways.list.w, 844, "a phone on its side keeps the full screen");

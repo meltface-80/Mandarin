@@ -104,6 +104,14 @@ const DRIVER = `(async () => {
   const lay = $("ui-layout-select"); lay.value = "2"; lay.dispatchEvent(new Event("change"));
   out.pane_sets = window.__uiPrefs.get("layout") + " " + getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
   lay.value = "auto"; lay.dispatchEvent(new Event("change"));
+  const drawerW = () => document.querySelector(".menu-drawer").getBoundingClientRect().width;
+  $("menu-toggle").click(); await sleep(300); const w0 = drawerW(); document.querySelector(".menu-backdrop").click(); await sleep(300);
+  const mn = $("ui-menu-select"); mn.value = "1.5"; mn.dispatchEvent(new Event("change"));
+  $("menu-toggle").click(); await sleep(300);
+  out.menu_zoom = getComputedStyle(document.querySelector(".menu-drawer > *")).zoom;
+  out.menu_drawer_same = Math.abs(drawerW() - w0) < 1;
+  document.querySelector(".menu-backdrop").click(); await sleep(300);
+  mn.value = "1"; mn.dispatchEvent(new Event("change"));
   $("topbar-back").click(); await sleep(400);
   out.title_after = title();
   return out;
@@ -155,7 +163,9 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.equal(r.list, true);
     assert.equal(r.bigger_tiles_cols, 2, "a phone's 3 across, half as big again: 2");
     assert.equal(r.text_ratio, 1.5);
-    assert.deepEqual(r.pane, ["ui-text-select=1", "ui-title-select=1", "ui-layout-select=auto", "ui-tile-select=1"]);
+    assert.deepEqual(r.pane, ["ui-text-select=1", "ui-title-select=1", "ui-menu-select=1", "ui-layout-select=auto", "ui-tile-select=1"]);
+    assert.equal(r.menu_zoom, "1.5", "Menu & Home Screen text scales the side menu");
+    assert.equal(r.menu_drawer_same, true, "and the drawer keeps its width");
     assert.equal(r.pane_sets, "2 2", "a choice in the pane lays the wall out");
     assert.equal(r.title_after, "", "Home has no title");
   } finally {
