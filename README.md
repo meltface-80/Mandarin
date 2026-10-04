@@ -190,6 +190,18 @@ few minutes and albums appear as it goes.
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
 > at the same name.
 
+**The MusicBrainz pack on another drive (optional).** The pack (Settings → Library Scanner) is
+2 GB, kept in the data volume unless you choose a folder. To keep it on another drive, add a
+writable mount — no `:ro` — to the command above, e.g.:
+
+```bash
+  -v /mnt/dietpi_userdata/1tb/mandarin:/packs \
+```
+
+then choose `/packs` under **Folder** on that page. Keep the line in every future `docker run`
+(an update included): without it `/packs` isn't there, and the page says so. A folder reached
+through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
+
 **Music folders, chosen in the app.** Mount your drives or shares into the
 container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
 **Settings → Music Folders**, as many as you like, and remove them there too. The folder
@@ -436,7 +448,7 @@ switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
 
 **MusicBrainz pack** (optional, same page): every MusicBrainz release with a barcode, with its
 tracks, kept on the server — an 845 MB download, 2 GB on disk, in the data folder or any folder
-you choose (in Docker, mount it without `:ro`). Barcodes are then matched there, without asking
+you choose (in Docker, a writable mount: see [Install](#install-docker)). Barcodes are then matched there, without asking
 musicbrainz.org; anything it lacks is asked for as before. It's built each week from
 MusicBrainz's data dump on GitHub and fetched again when a newer one is out.
 
