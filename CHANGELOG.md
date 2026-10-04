@@ -12,6 +12,9 @@ Versioning: each set of changes is a development build and takes the next third 
   at 95 % or more are applied when the server starts.
 - **Spellings of the same name match.** "&", "+" and "and"; "Kickin'", "Kickin" and
   "Kicking"; "Rock 'n' Roll" and "Rock and Roll" — no longer counted against a match.
+- **Capitals don't make a different genre.** "Rock", "rock" and "ROCK" are one genre on Home
+  and in Library Focus, shown as most of your albums write it. (Names to the match score,
+  albums and artists already paid capitals no attention: "If I Fell" is "if i fell".)
 - **Edit album shows the album's folder**, above Find match — from your music folder down, so
   a box set or a remix ("Yes - The Steven Wilson Remixes (2018)/Disc 4 - …") can be told from
   the original when matching by hand.
