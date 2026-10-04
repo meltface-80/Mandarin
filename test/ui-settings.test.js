@@ -162,3 +162,60 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     await srv.stop();
   }
 });
+
+// The Library wall's top bar at a phone's two common widths, a tablet either
+// way up and a desktop: everything fits inside the screen without overlapping,
+// the bar keeps one height with the field open or shut, the glass is round,
+// and the title shows from 480px up (as Rouen v1.8.78 has it).
+const SIZES_DRIVER = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  await until(() => document.querySelector("#home-random .album, #home-today .album"));
+  document.getElementById("home-library-title").click();
+  await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-ctl-sort"));
+  await sleep(200);
+  const box = sel => { const b = document.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width, h: b.height }; };
+  const title = document.getElementById("album-count");
+  const out = { vw: innerWidth, back: box("#topbar-back"), focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort"), glass: box(".lib-filter-btn"),
+    title_shown: getComputedStyle(title).display !== "none", title: box("#album-count"), bar: box(".topbar").h };
+  document.querySelector(".lib-filter-btn").click(); await sleep(200);
+  out.open = { field: box(".lib-filter-box"), bar: box(".topbar").h };
+  return out;
+})()`;
+
+test("the Library's top bar on phones, tablets and desktops", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT + 1, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  await srv.start();
+  const B2 = "http://127.0.0.1:" + (PORT + 1);
+  try {
+    const token = await signIn(B2);
+    const H = { Authorization: "Bearer " + token };
+    for (let i = 0; i < 100; i++) {
+      const s = await (await fetch(B2 + "/api/status", { headers: H })).json();
+      if (s.index_count >= 3 && !s.library_importing) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    for (const size of [{ width: 360, height: 760 }, { width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1180, height: 820 }, { width: 1440, height: 900, mouse: true }]) {
+      const b = await Browser.launch(size);
+      let r;
+      try {
+        const page = await b.page(B2 + "/", { cookies: [{ name: "musicd_session", value: token, url: B2 }] });
+        r = await page.eval(SIZES_DRIVER);
+        assert.deepEqual(page.errors, []);
+      } finally { await b.close(); }
+      const at = size.width + "px";
+      assert.ok(r.back.r <= r.focus.l && r.focus.r <= r.sort.l && r.sort.r <= r.glass.l, at + ": in order, none overlapping");
+      assert.ok(r.glass.r <= r.vw, at + ": the glass is on the screen");
+      assert.ok(Math.abs(r.glass.w - r.glass.h) < 1, at + ": the glass is round");
+      assert.ok(r.focus.w > 50, at + ": Focus keeps its word");
+      assert.equal(r.title_shown, size.width >= 480, at + ": the title shows from 480px");
+      if (r.title_shown) assert.ok(r.title.r <= r.focus.l, at + ": the title stops short of Focus");
+      assert.equal(r.open.bar, r.bar, at + ": opening the field doesn't change the bar's height");
+      assert.ok(r.open.field.r <= r.vw && r.open.field.w > 150, at + ": the field takes the room");
+    }
+  } finally {
+    await srv.stop();
+  }
+});
