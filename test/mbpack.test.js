@@ -118,3 +118,62 @@ test("the pack: built from a dump, read by the scan", async () => {
   assert.equal(MbPack.open(path.join(dir, "none.sqlite")), null);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test("the pack downloaded from where it's published, checked, kept up to date, removed", async () => {
+  const http = require("http");
+  const zlib = require("zlib");
+  const crypto = require("crypto");
+  const { PackStore, FORMAT } = require("../lib/identify/mbpack");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbpack-store-"));
+  const dumpDir = path.join(dir, "dump"); fs.mkdirSync(dumpDir);
+  writeDump(dumpDir);
+  const built = path.join(dir, "built.sqlite");
+  await build({ dump: dumpDir, out: built });
+  const gz = zlib.gzipSync(fs.readFileSync(built));
+  let desc = { format: FORMAT, built: "2026-10-01T00:00:00Z", releases: "2", file: `mbpack-${FORMAT}.sqlite.gz`, gz_size: gz.length, size: fs.statSync(built).size, sha256: crypto.createHash("sha256").update(gz).digest("hex") };
+  let served = gz;
+  const srv = http.createServer((req, res) => {
+    if (req.url.endsWith(".json")) return res.end(JSON.stringify(desc));
+    if (req.url.endsWith(".gz")) return res.end(served);
+    res.statusCode = 404; res.end();
+  });
+  await new Promise(r => srv.listen(0, "127.0.0.1", r));
+  const settings = {};
+  const db = { setting: (k, d) => (k in settings ? settings[k] : d), setSetting: (k, v) => { settings[k] = v; } };
+  const store = new PackStore({ dataDir: dir, db, url: `http://127.0.0.1:${srv.address().port}` });
+  try {
+    assert.equal(store.get(), null);
+    assert.equal(store.status().installed, null);
+    await store.describe();
+    assert.equal(store.status().latest.gz_size, gz.length);
+
+    // A download that doesn't match its checksum is thrown away.
+    served = Buffer.from(gz); served[served.length - 1] ^= 1;
+    await store.download(); await store.running;
+    assert.match(store.status().job.error, /checksum|unexpected end|incorrect|invalid/i);
+    assert.equal(store.get(), null);
+    assert.ok(!fs.existsSync(store.file + ".download"));
+
+    served = gz;
+    await store.download(); await store.running;
+    assert.equal(store.status().job.phase, "done");
+    assert.equal(store.status().installed.releases, 2);
+    assert.deepEqual(store.get().byBarcode("081227934019").map(f => f.mbid), [G(100)]);
+    assert.equal(settings.mbpack, true);
+    assert.equal(store.status().newer, false, "built before the one here");
+
+    // A newer one published is seen.
+    desc = Object.assign({}, desc, { built: "2099-01-01T00:00:00Z" });
+    await store.describe();
+    assert.equal(store.status().newer, true);
+
+    store.remove();
+    assert.equal(store.get(), null);
+    assert.ok(!fs.existsSync(store.file));
+    assert.equal(settings.mbpack, false);
+  } finally {
+    store.stop();
+    srv.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

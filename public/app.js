@@ -16555,6 +16555,7 @@ initServiceBrowser({
   const num = n => Number(n || 0).toLocaleString();
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+  let pack = null, packChecked = false;   // the MusicBrainz pack (v0.6.4)
   let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
 
   async function api(url, payload) {
@@ -16566,8 +16567,10 @@ initServiceBrowser({
   async function load() {
     if (busy) return;
     try {
-      const [a, b] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null)]);
-      st = a; loud = b; err = "";
+      const [a, b, c] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
+        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null)]);
+      st = a; loud = b; pack = c; packChecked = true; err = "";
+      if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
     } catch (e) { err = e.message; }
     render();
   }
@@ -16577,6 +16580,49 @@ initServiceBrowser({
     try { loud = await api("/api/loudness", { measure: on }); err = ""; } catch (e) { err = e.message; }
     busy = false;
     render();
+  }
+  async function packAct(what) {
+    if (busy) return;
+    busy = true;
+    try { pack = await api("/api/identify/pack/" + what, {}); err = ""; } catch (e) { err = e.message; }
+    busy = false;
+    render();
+    if (what === "download") followPack();
+  }
+  // The download's progress, once a second until it's done.
+  let following = false;
+  async function followPack() {
+    if (following) return;
+    following = true;
+    while (pack && pack.job && !pack.job.error && pack.job.phase !== "done") {
+      await new Promise(r => setTimeout(r, 1000));
+      try { pack = await api("/api/identify/pack"); } catch (e) { break; }
+      if (!busy) render();
+    }
+    following = false;
+    if (pack && pack.job && pack.job.phase === "done") toast("MusicBrainz pack ready");
+  }
+  const mbs = n => (Number(n || 0) / 1048576).toLocaleString(undefined, { maximumFractionDigits: 0 }) + " MB";
+  const day = iso => { const d = new Date(iso || ""); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); };
+  function packBlock() {
+    if (!pack) return "";
+    const have = pack.installed, job = pack.job, latest = pack.latest;
+    let state, buttons = "";
+    if (job && !job.error && job.phase !== "done") {
+      const pc = job.total ? Math.floor(job.done / job.total * 100) : 0;
+      state = job.phase === "checking" ? "Asking GitHub…" : "Downloading… " + pc + " % (" + mbs(job.done) + " of " + mbs(job.total) + ")";
+    } else if (have) {
+      state = num(have.releases) + " releases · from " + day(have.built) + " · " + mbs(have.size) + " on disk" + (pack.newer ? " · a newer one is out" : "");
+      buttons = (pack.newer ? '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy ? " disabled" : "") + ">Update</button>" : "") +
+        '<button type="button" class="id-btn" data-pack="remove"' + (busy ? " disabled" : "") + ">Remove</button>";
+    } else {
+      state = latest ? "Not downloaded. " + mbs(latest.gz_size) + " to download, " + mbs(latest.size) + " on disk." : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
+      buttons = '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy || !latest ? " disabled" : "") + ">Download</button>";
+    }
+    return '<div class="settings-divider"></div><div class="settings-block">' +
+      row("MusicBrainz pack" + info("Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."),
+        '<span class="id-actions">' + buttons + "</span>") +
+      '<div class="settings-note">' + state + (job && job.error ? ' <span class="away-error">' + esc(job.error) + "</span>" : "") + "</div></div>";
   }
   async function act(url, payload, done) {
     if (busy) return;
@@ -16668,6 +16714,7 @@ initServiceBrowser({
       row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 95 % alike or better, as a MusicBrainz match is; anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
         sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
+    html += packBlock();
     // Measure ReplayGain: the server's loudness measuring (lib/loudness.js).
     if (loud) {
       const m = loud.settings || {};
@@ -16716,6 +16763,8 @@ initServiceBrowser({
       const said = { accept: "Applied", reject: "Declined", undo: "Put back", recheck: "It will be looked at again" }[what];
       return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
     }
+    const pk = e.target.closest("[data-pack]");
+    if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
     const mb = e.target.closest("[data-id-match]");
     if (mb) {
@@ -16749,7 +16798,7 @@ initServiceBrowser({
     await act("/api/identify/match", { offset: off, query: q }, "Matched and applied");
     if (!err) { matching = null; matchDraft = ""; render(); }
   });
-  navItem.addEventListener("click", () => { more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
+  navItem.addEventListener("click", () => { packChecked = false; more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
   // Progress moves while the pane is open (not while you're typing in it).
   setInterval(() => {
     if (pane.classList.contains("hidden") || busy || matching !== null) return;

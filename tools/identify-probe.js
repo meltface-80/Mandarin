@@ -22,6 +22,10 @@
  * --sample (default 150): albums asked about — all those waiting or not
  * found first, then ones the scan matched by name, then ones not yet looked
  * at. A summary is printed at the end; the details go to the file.
+ *
+ * --pack: MusicBrainz's answers from the MusicBrainz pack (v0.6.4) instead
+ * of musicbrainz.org — the one downloaded in Settings, or --pack=FILE — so
+ * what the pack would find is measured without a second's wait each.
  */
 const fs = require("fs");
 const os = require("os");
@@ -62,7 +66,14 @@ function otherForm(code) {
   const db = DB.open(tmp, { log: () => {} });
   const library = new Library(db, { musicRoot: musicDir, log: () => {} });
   library.reload();
-  const mb = new MusicBrainz({ baseUrl: args.mb || undefined, log: () => {} });
+  let mb = new MusicBrainz({ baseUrl: args.mb || undefined, log: () => {} });
+  if (args.pack) {
+    const { MbPack } = req("lib/identify/mbpack");
+    const pack = MbPack.open(args.pack === true ? path.join(dataDir, "mbpack.sqlite") : args.pack);
+    if (!pack) throw new Error("no MusicBrainz pack there (Settings → Library Scanner → MusicBrainz pack, or --pack=FILE)");
+    say(`MusicBrainz pack: ${pack.info().releases} releases, built ${pack.meta.built}`);
+    mb = { byBarcode: async c => pack.byBarcode(c), release: async m => pack.release(m) };
+  }
   const itunes = new ITunes({ baseUrl: args.itunes || undefined, log: () => {} });
   const identifier = new Identifier({ db, library, mb, itunes: null, log: () => {} });
 
