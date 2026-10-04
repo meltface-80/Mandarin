@@ -302,7 +302,7 @@
      iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.6.6</span>
+    <span class="badge">v0.6.7</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -438,7 +438,7 @@
 <section id="new">
   <div class="wrap">
     <h2>New since the last beta</h2>
-    <p class="lead">Everything added and improved from v0.5.50 to v0.6.6.</p>
+    <p class="lead">Everything added and improved from v0.5.50 to v0.6.7.</p>
     <div class="grid">
       <div class="card"><h3>MusicBrainz pack</h3>
         <p>Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcodes match without asking musicbrainz.org. Optional: an 845 MB download, kept in a folder you choose.</p></div>
@@ -548,6 +548,7 @@
       <label>Time zone<input id="b-tz" value="Europe/London" spellcheck="false"></label>
       <label>Port<input id="b-port" value="3500" inputmode="numeric"></label>
       <label>A speaker's IP (optional)<input id="b-sonos" placeholder="only if rooms aren't found" spellcheck="false"></label>
+      <label>MusicBrainz pack folder (optional)<input id="b-pack" placeholder="e.g. /mnt/ssd/mandarin" spellcheck="false"></label>
     </div>
 
     <div class="tabs">
@@ -578,6 +579,13 @@
         <code>/music/Vinyl</code> &mdash; and the scan reads them all as one library. All are
         mounted read-only. Adding or removing a folder later is the same command re-run; albums
         in a folder that is gone drop out at the next scan.
+      </div>
+      <div class="note">
+        <b>The MusicBrainz pack on another drive?</b> The pack (Settings &rarr; Library Scanner)
+        is 2&nbsp;GB, kept in the data volume unless you choose a folder. To keep it on another drive,
+        give its host folder above: it is mounted as <code>/packs</code>, writable (no <code>:ro</code>),
+        and you choose <code>/packs</code> under Folder in the app. Leave the line in every time you
+        re-run the command, or the folder isn&#39;t there for the pack.
       </div>
     </div>
 
@@ -767,6 +775,7 @@
     var tz = $("b-tz").value.trim() || "Europe/London";
     var port = ($("b-port").value.trim().match(/^\d{2,5}$/) || ["3500"])[0];
     var sonos = $("b-sonos").value.trim();
+    var pack = $("b-pack").value.trim();
     var ports = document.querySelectorAll(".port");
     for (var i = 0; i < ports.length; i++) ports[i].textContent = port;
     var K = function (t) { return '<span class="k">' + t + "</span>"; };
@@ -785,6 +794,7 @@
         (sonos ? "  " + K("-e") + " SONOS_HOSTS=" + esc(q(sonos)) + " \\\n" : "") +
         "  " + K("-v") + " musicd-server-data:/app/data \\\n" +
         ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro")) + " \\\n"; }).join("") +
+        (pack ? "  " + K("-v") + " " + esc(q(pack + ":/packs")) + " \\\n" : "") +
         "  ghcr.io/meltface-80/musicd-server:latest";
     } else {
       out = C("# docker-compose.yml — then: docker compose up -d") + "\n" +
@@ -794,13 +804,14 @@
         (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
         (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +
         "    volumes:\n      - musicd-server-data:/app/data\n" +
-        ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") + "\n" +
+        ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") +
+        (pack ? '      - "' + esc(pack.replace(/"/g, '\\"')) + ':/packs"\n' : "") + "\n" +
         "volumes:\n  musicd-server-data:\n    name: musicd-server-data";
     }
     $("cmd").innerHTML = out;
   }
 
-  ["b-tz", "b-port", "b-sonos"].forEach(function (id) { $(id).addEventListener("input", build); });
+  ["b-tz", "b-port", "b-sonos", "b-pack"].forEach(function (id) { $(id).addEventListener("input", build); });
   $("b-add").addEventListener("click", function () { addFolder("", true); });
   addFolder(DEFAULT_FOLDER, false);
   var tabs = document.querySelectorAll(".tabs button");

@@ -16932,7 +16932,8 @@ initServiceBrowser({
         pack.dir_fixed ? '<span class="away-value">Set by MBPACK_DIR</span>'
           : '<span class="id-actions">' + (pack.dir !== pack.data_dir ? '<button type="button" class="id-btn" data-pack-folder-reset' + (busy ? " disabled" : "") + ">Data folder</button>" : "") +
             '<button type="button" class="id-btn" data-pack-folder' + (busy ? " disabled" : "") + ">Change…</button></span>") +
-      '<div class="settings-note">' + esc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") + "</div></div>";
+      '<div class="settings-note">' + esc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") +
+        (pack.dir_problem && !(job && job.error === pack.dir_problem) ? ' <span class="away-error">' + esc(pack.dir_problem) + "</span>" : "") + "</div></div>";
   }
   async function act(url, payload, done) {
     if (busy) return;

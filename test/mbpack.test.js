@@ -187,6 +187,15 @@ test("the pack downloaded from where it's published, checked, kept up to date, r
     assert.equal(fixed.status().dir_fixed, true);
     await assert.rejects(fixed.setDir(dir), /MBPACK_DIR/);
 
+    // A chosen folder that has gone (a container started without its mount):
+    // said in words, before any download, not an ENOENT from it.
+    settings.mbpack_dir = path.join(dir, "gone");
+    assert.match(store.status().dir_problem, /gone isn't there/);
+    await store.download();
+    assert.match(store.status().job.error, /isn't there/);
+    settings.mbpack_dir = null;
+    assert.equal(store.status().dir_problem, null);
+
     store.remove();
     assert.equal(store.get(), null);
     assert.ok(!fs.existsSync(store.file));

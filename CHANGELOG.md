@@ -5,6 +5,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.7
+- **A pack folder that isn't there is said in words.** A folder chosen for the MusicBrainz pack
+  that the container was started without (`/packs` with no `-v …:/packs` line) gave
+  "ENOENT … mbpack.sqlite.download". The page now says the folder isn't there and how to put it
+  right, beside Folder, and Download stops before it starts.
+- **The pack's mount, documented.** README → Install says how to keep the pack on another drive:
+  a writable `-v …:/packs` line, kept in every `docker run`, and why the read-only `/mnt` mount
+  won't do. The site's command builder takes an optional pack folder and adds the line to
+  docker run and compose.
+
 ## v0.6.6
 Also carries what was built as v0.6.4 and v0.6.5, released together here.
 
