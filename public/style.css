@@ -198,18 +198,27 @@ a.action-btn:active,
   display: flex; align-items: center; justify-content: flex-start;
   gap: 10px;
 }
-/* The right-hand cluster. Refresh carries the margin that pushes the group
-   over, and #topbar-view sits after it in the markup — so on the random wall
-   the pair lands at the right with the view control in the corner and Refresh
-   beside it. On the Library wall there is no Refresh, so the hidden one hands
-   the push to its neighbour and the view control takes the corner alone.
-   (`.hidden` is display:none, which a sibling selector still matches.) */
+/* The right-hand cluster: Refresh in the corner (the grid ⇄ list button that
+   sat there went to Settings → UI Settings in v0.6.5), and the labels' tools
+   where they show. */
 #topbar-refresh { margin-left: auto; }
-#topbar-refresh.hidden + #topbar-view { margin-left: auto; }
+.labels-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.labels-tools.is-searching { flex: 1 1 auto; }
+.labels-tools .labels-search { flex: 1 1 auto; }
+.labels-tools .labels-search input {
+  flex: 1 1 auto; min-width: 0; appearance: none; background: transparent; color: var(--text);
+  border: 0; outline: none; font-size: 16px; line-height: 1.2; padding: 2px 0;
+}
+.labels-tools .labels-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.labels-tools > .icon-btn { flex: 0 0 auto; }
+.labels-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.album-count.is-hidden-by-search { display: none; }
+/* UI Settings' four dropdowns one width, sized for the widest ("3 columns"). */
+.settings-pane[data-pane="ui"] .settings-select { width: 9.5em; }
 
 
 .album-count {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-title, 1));
   font-weight: 600;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
@@ -515,23 +524,23 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   display: grid;
   /* Phone portrait default: 3×3. minmax(0,1fr) prevents long titles
      from stretching one column wider than others. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr));
   gap: 14px 10px;
 }
 
 /* ── Tablet portrait: 5×4 ───────────────────────────────────────── */
 @media (min-width: 768px) and (orientation: portrait) {
-  .album-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px 14px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 5), minmax(0, 1fr)); gap: 20px 14px; }
 }
 
 /* ── Tablet landscape: 7×3 ──────────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
-  .album-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px 12px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 7), minmax(0, 1fr)); gap: 16px 12px; }
 }
 
 /* ── Desktop: 9×5 ───────────────────────────────────────────────── */
 @media (min-width: 1200px) {
-  .album-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 18px 12px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 9), minmax(0, 1fr)); gap: 18px 12px; }
 }
 
 /* Title/subtitle scale — phone (≤767px) rules live AFTER the base
@@ -540,24 +549,24 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 /* Tablet portrait (5 cols) and tablet landscape (7 cols) also need small text */
 @media (min-width: 768px) and (max-width: 1199px) {
   .album-title {
-    font-size: 12px; line-height: 1.25;
+    font-size: calc(12px * var(--ui-text, 1)); line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 11px; }
+  .album-artist { font-size: calc(11px * var(--ui-text, 1)); }
 }
 /* Desktop (9 cols) compact text */
 @media (min-width: 1200px) {
   .album-title {
-    font-size: 11px; line-height: 1.2;
+    font-size: calc(11px * var(--ui-text, 1)); line-height: 1.2;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 10px; }
+  .album-artist { font-size: calc(10px * var(--ui-text, 1)); }
 }
 
 .album {
@@ -675,11 +684,11 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .logo-url-input:focus { outline: none; border-color: var(--accent); }
 .album-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .album-title {
-  font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.3;
+  font-size: calc(14px * var(--ui-text, 1)); font-weight: 500; color: var(--text); line-height: 1.3;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .album-artist {
-  font-size: 13px; color: var(--text-dim); line-height: 1.3;
+  font-size: calc(13px * var(--ui-text, 1)); color: var(--text-dim); line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -693,13 +702,13 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   .album-grid { gap: 12px 8px; }
   .album-meta { margin-top: 5px; gap: 1px; }
   .album-title {
-    font-size: 12px; line-height: 1.25;
+    font-size: calc(12px * var(--ui-text, 1)); line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 10.5px; }
+  .album-artist { font-size: calc(10.5px * var(--ui-text, 1)); }
 }
 
 /* ── List mode ──────────────────────────────────────────────────────
@@ -3265,7 +3274,7 @@ input.vol-range::-moz-range-thumb {
 .playlist-back { align-self: flex-start; }
 .playlist-head { display: flex; flex-direction: column; gap: 4px; }
 .playlist-title {
-  margin: 0; font-size: 22px; font-weight: 700; color: var(--text);
+  margin: 0; font-size: calc(22px * var(--ui-title, 1)); font-weight: 700; color: var(--text);
   border-bottom: 1px solid var(--panel-hairline); padding-bottom: 8px;
 }
 .playlist-sub { font-size: 14px; color: var(--text-dim); }
@@ -3936,7 +3945,7 @@ input.vol-range::-moz-range-thumb {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: 1fr;          /* phone / portrait: single row */
-  grid-auto-columns: 150px;
+  grid-auto-columns: calc(150px * var(--ui-tile, 1));
   gap: 12px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
@@ -3979,7 +3988,7 @@ input.vol-range::-moz-range-thumb {
    and dark palettes come out right without a second rule set.
    -------------------------------------------------------------------------- */
 .pick-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.home-carousel .pick-card { width: 150px; cursor: pointer; }
+.home-carousel .pick-card { width: calc(150px * var(--ui-tile, 1)); cursor: pointer; }
 .pick-art {
   position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 8px;
   overflow: hidden; background: var(--bg-elev); border: 1px solid var(--border);
@@ -3989,11 +3998,11 @@ input.vol-range::-moz-range-thumb {
    not mistaken for a bad adjacent recommendation. */
 .pick-meta { min-width: 0; }
 .pick-artist {
-  font-size: 13px; font-weight: 600; color: var(--text);
+  font-size: calc(13px * var(--ui-text, 1)); font-weight: 600; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pick-album {
-  font-size: 12px; color: var(--text-dim);
+  font-size: calc(12px * var(--ui-text, 1)); color: var(--text-dim);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pick-reason {
@@ -5248,7 +5257,7 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .home-lotw-sep { display: none; }
 [data-palette="hifi"] .home-section-lotw .home-section-link { align-items: flex-end; }
 
-[data-palette="hifi"] .home-carousel { grid-auto-columns: 144px; gap: 16px; padding-bottom: 18px; }
+[data-palette="hifi"] .home-carousel { grid-auto-columns: calc(144px * var(--ui-tile, 1)); gap: 16px; padding-bottom: 18px; }
 
 /* Covers: rounder, flat on the ground with a hairline edge. */
 [data-palette="hifi"] .album-art-wrap {
@@ -5274,7 +5283,7 @@ button.cap-chip:active { transform: scale(.96); }
 }
 
 /* Smart Picks on Home: the same flat tile. */
-[data-palette="hifi"] .home-carousel .pick-card { width: 156px; }
+[data-palette="hifi"] .home-carousel .pick-card { width: calc(156px * var(--ui-tile, 1)); }
 [data-palette="hifi"] .pick-art {
   border-radius: 12px; border: 0;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
@@ -5483,3 +5492,97 @@ button.cap-chip:active { transform: scale(.96); }
 }
 .modal-box-disc:hover { border-color: var(--accent); }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
+
+/* The labels' #–Z / Z–# button: a pill wide enough for its text (v0.6.5),
+   after the palette's round discs so it keeps its shape. */
+html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 0 10px; border-radius: 999px; }
+
+/* The Library wall's Focus, Sort and search, in the TOP BAR (v0.6.5, as Rouen
+   v1.8.78), at its right-hand end — Focus and Sort as brass pills, the
+   magnifier as the brass disc in the corner. Open, the field takes the place
+   of Focus and Sort (and the title steps aside for it, as it does for Home's
+   and Labels' search). At the end of the file so the bar's own rules, and the
+   palette's brass disc, are already in place for these to refine. */
+.library-controls.in-topbar {
+  flex: 0 1 auto; min-width: 0;
+  margin: 0 0 0 auto; padding: 0; border: 0;
+  gap: 6px;
+}
+.library-controls.in-topbar .lib-ctl-sort { margin-left: 0; }
+.library-controls.in-topbar.is-filtering { flex: 1 1 auto; }
+.library-controls.in-topbar.is-filtering .lib-ctl-focus,
+.library-controls.in-topbar.is-filtering .lib-ctl-sort { display: none; }
+.topbar.lib-filtering .album-count { display: none; }
+.library-controls.in-topbar .lib-ctl:not(.icon-btn) {
+  min-height: 0; height: var(--ctl-h);
+  padding: 0 12px; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent);
+  border: 1px solid var(--accent);
+  font-size: 13px;
+}
+.library-controls.in-topbar .lib-ctl:not(.icon-btn):hover { color: var(--on-accent); filter: brightness(1.08); }
+.library-controls.in-topbar .lib-ctl-chevron,
+.library-controls.in-topbar .lib-ctl-arrow,
+.library-controls.in-topbar .lib-ctl-caret,
+.library-controls.in-topbar .lib-ctl-focus.is-active,
+.library-controls.in-topbar .lib-ctl-focus.is-active .lib-ctl-chevron { color: var(--on-accent); }
+/* The count of active facets: the pill is brass, so the badge inverts. */
+.library-controls.in-topbar .lib-ctl-badge { background: var(--on-accent); color: var(--accent); }
+/* The glass is the bar's disc, at the bar's size: .lib-filter-btn's own tap
+   minimum would otherwise beat .topbar .icon-btn's height (min-height wins
+   over height), drawing an oval and making the bar taller on this wall. */
+.library-controls.in-topbar .lib-filter-btn { flex: 0 0 auto; min-height: 0; width: auto; aspect-ratio: 1 / 1; }
+.library-controls.in-topbar .lib-filter-btn.is-active { box-shadow: 0 0 0 2px var(--accent-soft); }
+.library-controls.in-topbar .lib-filter-wrap { min-width: 0; }
+.library-controls.in-topbar.is-filtering .lib-filter-wrap { flex: 1 1 auto; }
+/* One height for everything in the bar — pills, the open field and the disc
+   are the bar's own control height at every width, so neither entering the
+   wall nor opening the field moves the page under it. */
+.library-controls.in-topbar .lib-ctl:not(.icon-btn),
+.library-controls.in-topbar .lib-filter-box { height: var(--ctl-h); box-sizing: border-box; }
+.lib-filter-box {
+  flex: 1 1 auto; min-width: 0;
+  padding: 0 4px 0 12px;
+  /* Rebuilt on every keystroke, so a transition would replay the focus ring
+     each time a letter is typed. */
+  transition: none;
+}
+.lib-filter-box .lib-filter-clear { width: 28px; height: 28px; }
+/* Focus keeps its word; Sort's label is what gives way when room runs out. */
+.library-controls.in-topbar .lib-ctl-focus { flex: 0 0 auto; }
+/* The menu and Back never shrink to make room — they are the way out. */
+.topbar-row > .icon-btn { flex-shrink: 0; }
+/* With albums selected the ⋯ menu sits beside the controls rather than the
+   two auto margins splitting the bar between them. */
+.sel-menu-wrap:not(.hidden) ~ .library-controls.in-topbar { margin-left: 8px; }
+/* From 480px the title shows again, and it is the title that gives way when
+   room runs short — not the Sort label, which says how the wall is ordered. */
+@media (min-width: 480px) {
+  .library-controls.in-topbar .lib-ctl-sort { flex-shrink: 0; }
+}
+/* Phones: the bar is the width of a hamburger, Back, two pills and a disc, and
+   there is no room left for a title — so on this wall the title gives way
+   below 480px (from 480px up it shows in full). */
+@media (max-width: 479px) {
+  .topbar.lib-wall .album-count { display: none; }
+  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
+  .library-controls.in-topbar .lib-filter-box { height: 40px; }
+  .library-controls.in-topbar .lib-ctl:not(.icon-btn) { padding: 0 10px; font-size: 12.5px; }
+}
+@media (max-width: 389px) {
+  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
+  .library-controls.in-topbar .lib-filter-box { height: 37px; }
+  .library-controls.in-topbar .lib-ctl:not(.icon-btn) { padding: 0 8px; }
+}
+@media (max-width: 359px) {
+  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
+  .library-controls.in-topbar .lib-filter-box { height: 33px; }
+}
+/* Inside the pill the input is bare — the pill is the field's edge. */
+.lib-filter-box .lib-filter-input {
+  min-height: 0; padding: 2px 0; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; font-size: 16px;   /* 16px: no iOS zoom on focus */
+}
+.lib-filter-box .lib-filter-input:focus { border: 0; box-shadow: none; }
+.lib-filter-box .lib-filter-input::-webkit-search-decoration,
+.lib-filter-box .lib-filter-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

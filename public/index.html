@@ -221,25 +221,6 @@
           <path d="M3 21v-5h5"/>
         </svg>
       </button>
-      <!-- Grid ⇄ list for the album walls. One control, one stored choice: the
-           walls are the same shelf seen from different screens, and a per-screen
-           setting would mean finding it again on each of them. -->
-      <button id="topbar-view" class="icon-btn hidden" type="button"
-              aria-label="Show as list" title="Show as list" aria-pressed="false">
-        <svg id="topbar-view-grid" width="20" height="20" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true">
-          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-          <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-        </svg>
-        <svg id="topbar-view-list" width="20" height="20" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true" class="hidden">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-      </button>
     </div>
 
     <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true">
@@ -1099,6 +1080,15 @@
             </span>
           </button>
 
+          <button class="settings-nav-item" type="button" data-pane="ui">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h5"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">UI Settings</span>
+            </span>
+          </button>
+
           <button class="settings-nav-item" type="button" data-pane="sharecard">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -1517,6 +1507,92 @@
                    aria-label="Display rotation interval in seconds">
           </div>
         </div>
+      </div>
+
+      <!-- UI Settings (v0.6.5): text sizes, how the album walls are laid out
+           and how big the tiles are. Kept on each device (a phone and a big
+           screen want different things); app.js builds the rows from UI_PREFS. -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ui">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>UI Settings</h2>
+        </div>
+        <p class="settings-pane-desc">Text size, layout &amp; tile size</p>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Album &amp; artist text <button class="settings-info-btn" data-info="The size of the album name and artist name under every tile — on the Home carousels and on every grid screen." aria-label="About Album &amp; artist text">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-text-select" class="settings-select" aria-label="Album &amp; artist text">
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Grid screen title <button class="settings-info-btn" data-info="The size of the title at the top of a grid screen, such as the one a Home carousel opens to, and of a playlist&#39;s name." aria-label="About Grid screen title">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-title-select" class="settings-select" aria-label="Grid screen title">
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Grid layout <button class="settings-info-btn" data-info="How album, playlist and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album." aria-label="About Grid layout">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-layout-select" class="settings-select" aria-label="Grid layout">
+                <option value="auto">Auto</option>
+                <option value="3">3 columns</option>
+                <option value="2">2 columns</option>
+                <option value="list">List</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Tile size <button class="settings-info-btn" data-info="The size of album and label tiles on every screen. On the Home carousels it sets the tile width; on a grid screen in Auto layout it sets how many columns fit — bigger tiles, fewer columns. On a small screen a 10% step may not change the column count, only the carousels." aria-label="About Tile size">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-tile-select" class="settings-select" aria-label="Tile size">
+                <option value="0.5">−50%</option>
+                <option value="0.75">−25%</option>
+                <option value="0.9">−10%</option>
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <p class="settings-note">Saved on this device only.</p>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is

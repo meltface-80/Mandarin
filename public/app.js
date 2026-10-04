@@ -26,6 +26,77 @@
   };
 })();
 
+/* ------------------------------------------------------------------ */
+/*  UI Settings (v0.6.5, as Rouen v1.8.77 has them): text size, grid   */
+/*  layout and tile size — per device, in localStorage, painted as     */
+/*  custom properties on <html> so every screen reads the same numbers */
+/*  without being told. Nothing here rebuilds a tile.                  */
+/*    --ui-text   album and artist text, a multiplier on each size     */
+/*    --ui-title  a grid screen's title in the top bar, a playlist name*/
+/*    --ui-tile   the Home carousels' tile width (150px × this)        */
+/*    --grid-cols every .album-grid's columns, when not the screen's   */
+/* ------------------------------------------------------------------ */
+(function uiSettings() {
+  const OPTS = {
+    text:   { key: "rra-ui-text",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
+    title:  { key: "rra-ui-title", def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
+    layout: { key: "rra-ui-cols",  def: "auto", allowed: ["auto", "3", "2", "list"] },
+    tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] }
+  };
+  const mem = {};
+  function get(k) {
+    if (k in mem) return mem[k];
+    const o = OPTS[k];
+    let v = null;
+    try {
+      v = localStorage.getItem(o.key);
+      // List was the top bar's grid ⇄ list button until v0.6.5.
+      if (v === null && k === "layout" && localStorage.getItem("rra-album-view") === "list") v = "list";
+    } catch (e) {} // localStorage optional — the default stands
+    return (mem[k] = o.allowed.indexOf(v) > -1 ? v : o.def);
+  }
+  // The screen's own column count, by the SAME breakpoints style.css uses for
+  // .album-grid (keep the two in step).
+  function baseCols() {
+    const w = window.innerWidth, h = window.innerHeight;
+    if (w >= 1200) return 9;
+    if (w >= 768) return h >= w ? 5 : 7;
+    return 3;
+  }
+  // "3" or "2" fixes the count; Auto (and List, for the count a wall asks for)
+  // is the screen's own count divided by the tile size: bigger tiles, fewer columns.
+  function cols() {
+    const l = get("layout");
+    if (l === "3" || l === "2") return Number(l);
+    return Math.max(1, Math.round(baseCols() / parseFloat(get("tile"))));
+  }
+  function apply() {
+    const root = document.documentElement.style;
+    const put = (prop, v, def) => { if (v === def) root.removeProperty(prop); else root.setProperty(prop, v); };
+    put("--ui-text", get("text"), "1");
+    put("--ui-title", get("title"), "1");
+    put("--ui-tile", get("tile"), "1");
+    const c = cols();
+    if (c === baseCols()) root.removeProperty("--grid-cols"); else root.setProperty("--grid-cols", String(c));
+    const grid = document.getElementById("album-grid");
+    if (grid) grid.classList.toggle("as-list", get("layout") === "list");
+  }
+  function set(k, v) {
+    const o = OPTS[k];
+    if (!o || o.allowed.indexOf(v) < 0) return;
+    try { localStorage.setItem(o.key, v); } catch (e) {} // localStorage optional — applied for this session regardless
+    mem[k] = v;
+    apply();
+    // The columns moved at once (CSS); the random wall's COUNT was a screenful
+    // at the old columns, so it asks again when that is now a different number.
+    if ((k === "layout" || k === "tile") && window.__refreshWallCount) window.__refreshWallCount();
+  }
+  window.addEventListener("resize", apply);
+  window.__uiPrefs = { get, set, cols, apply, OPTS };
+  apply();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+})();
+
 (() => {
   /*
    * TWO ZOOM HACKS USED TO LIVE HERE. Both are gone (v1.8.42), with the
@@ -208,6 +279,13 @@
   // aborts the whole app (blank screen).
   const PHONE_WALL_COUNT = 24;
   let albumCount = computeAlbumCount();
+  // Whether the Library wall's filter field is open, and whether a filter was
+  // dropped by leaving the wall (so the wall re-reads unfiltered when it comes
+  // back). Up here because showHome(), showWall() and enterFullWall() reach
+  // them through hideLibraryControls(): a `let` read above its declaration is
+  // a startup crash.
+  let libFilterOpen = false;
+  let libPrefixDropped = false;
   let labelsActive = false;        // viewing the record-label browser?
   let unplayedWallActive = false;  // viewing the full "Not played in 6 months" grid?
   let libraryWallActive = false;   // viewing the full A-Z library grid?
@@ -313,12 +391,23 @@
     // artwork, the same as every other wall, and it scrolls.
     if (minDim < 768) return PHONE_WALL_COUNT;
 
-    // Desktop (width ≥ 1200 px)
-    if (w >= 1200) return 45;       // 9×5
-
-    // Tablet (768–1199 px)
-    return isLandscape ? 21 : 20;   // 7×3 or 5×4
+    // Desktop (width ≥ 1200 px), tablet (768–1199 px): a screenful of rows at
+    // the column count UI Settings has given the grid (v0.6.5).
+    const cols = window.__uiPrefs ? window.__uiPrefs.cols() : (w >= 1200 ? 9 : isLandscape ? 7 : 5);
+    if (w >= 1200) return cols * 5;       // 9×5 by default
+    return cols * (isLandscape ? 3 : 4);  // 7×3 or 5×4 by default
   }
+
+  // The random wall again, when UI Settings changes its columns: the same
+  // guards as a resize, without the phone-only limit (every size has a count).
+  window.__refreshWallCount = () => {
+    if (labelsActive || unplayedWallActive || libraryWallActive) return;
+    if (window.__artistViewActive && window.__artistViewActive()) return;
+    if (homeView && !homeView.classList.contains("hidden")) return;
+    if (window.__searchActive && window.__searchActive()) return;
+    if (grid.classList.contains("hidden")) return;
+    if (computeAlbumCount() !== albumCount) loadRandom();
+  };
 
   // A viewport change (Safari chrome collapsing, iPad split view) can change how
   // many albums are worth holding. Debounced, and only for the RANDOM wall — it
@@ -723,65 +812,24 @@
 
   // Topbar chrome per view: Back button (off Home), Refresh button (random /
   // genre grids), and the Search box (Home only, beside the hamburger).
-  // Grid or list, for every album wall, remembered.
-  //
-  // One stored choice rather than one per screen: Random, Library, a genre and
-  // "Not played" are the same shelf seen through different filters, and a
-  // per-screen setting would mean setting it again on each of them.
-  const ALBUM_VIEW_KEY = "rra-album-view";
-  let albumViewList = false;
-  try { albumViewList = localStorage.getItem(ALBUM_VIEW_KEY) === "list"; }
-  catch (e) {} // localStorage optional (private browsing) — grid is the default
-
-  // Painted onto the grid itself, so it survives every re-render without each
-  // render path having to remember it.
+  // Grid or list for the walls is Settings → UI Settings now (v0.6.5; it was
+  // a button in the top bar's corner): painted onto the grid by __uiPrefs.
   function applyAlbumView() {
-    if (grid) grid.classList.toggle("as-list", albumViewList);
-    const btn  = document.getElementById("topbar-view");
-    const icoG = document.getElementById("topbar-view-grid");
-    const icoL = document.getElementById("topbar-view-list");
-    // The icon shows what a tap GIVES you, not what you are looking at — the
-    // same way the app's other mode buttons read.
-    if (icoG) icoG.classList.toggle("hidden",  albumViewList);
-    if (icoL) icoL.classList.toggle("hidden", !albumViewList);
-    if (btn) {
-      const label = albumViewList ? "Show as grid" : "Show as list";
-      btn.setAttribute("aria-label", label);
-      btn.setAttribute("title", label);
-      btn.setAttribute("aria-pressed", String(albumViewList));
-    }
+    if (window.__uiPrefs) window.__uiPrefs.apply();
   }
 
+  // `view` (whether the screen shows album tiles) is kept for the callers'
+  // sake; nothing in the bar depends on it since the list button went.
   function setTopbarNav(back, refresh, search, view) {
     if (topbarBack)    topbarBack.classList.toggle("hidden", !back);
     if (topbarRefresh) topbarRefresh.classList.toggle("hidden", !refresh);
     if (topbarSearch)  topbarSearch.classList.toggle("hidden", !search);
-    // Defaults to hidden: only the screens that actually show album tiles ask
-    // for it, so it never appears over a playlist's track list.
-    const vb = document.getElementById("topbar-view");
-    if (vb) vb.classList.toggle("hidden", !view);
     applyAlbumView();
-  }
-
-  // Wired here, in the scope that owns albumViewList — it was briefly attached
-  // inside the mini-transport IIFE, where the state is not in scope at all and
-  // a tap would have thrown. `node --check` cannot see that; only running it
-  // can, which is what pre-flight step 3 is for.
-  {
-    const viewBtn = document.getElementById("topbar-view");
-    if (viewBtn) {
-      viewBtn.addEventListener("click", () => {
-        albumViewList = !albumViewList;
-        try { localStorage.setItem(ALBUM_VIEW_KEY, albumViewList ? "list" : "grid"); }
-        catch (e) {} // localStorage optional — the choice still holds for this session
-        applyAlbumView();
-      });
-    }
   }
 
   // Show the Home landing (hide the wall). The wall loads lazily when entered.
   function showHome() {
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    hideLibraryControls();
     unplayedWallActive = false;
     libraryWallActive = false;
     leavePlaylistScreens();
@@ -850,7 +898,7 @@
   // own content, e.g. labels/search).
   function showWall(opts) {
     leavePlaylistScreens();   // this screen owns the grid now
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    hideLibraryControls();
     unplayedWallActive = false;
     libraryWallActive = false;
     if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
@@ -1948,7 +1996,7 @@
     // orphan an in-flight playlist fetch, or its response paints into this one.
     leavePlaylistScreens();
     // The library wall's sort/focus row belongs to that wall only.
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    hideLibraryControls();
     exitAlbumSelectMode();   // a stale multi-select bar must not survive into a new wall
     if (window.__exitLabels) window.__exitLabels();
     if (activeFilter) {
@@ -2370,7 +2418,7 @@
       wrap.dataset.mosaic = String(use.length);
     }
     wrap.dataset.artKeys = use.join(",");
-    for (const k of use) loadArt(wrap, k, TILE_IMG_SIZE);
+    for (const k of use) loadArt(wrap, k, tileImgSize());
     if (!use.length) wrap.classList.add("no-image");
   }
 
@@ -2579,9 +2627,39 @@
   }
   window.__leavePlaylistScreens = leavePlaylistScreens;
 
-  function leaveLibraryWall() { const was = libraryWallActive; libraryWallActive = false; return was; }
+  // The wall's Focus / Sort / search live in the TOP BAR since v0.6.5, so a
+  // view that borrows the grid (the artist page) must take them with it, and
+  // hand them back with the wall.
+  // Every way off the wall goes through here: the controls leave the bar, an
+  // open filter closes, and the title the open field had hidden comes back —
+  // otherwise the NEXT screen's title stays hidden under .lib-filtering.
+  function hideLibraryControls() {
+    const c = document.getElementById("library-controls");
+    if (c) c.classList.add("hidden");
+    if (libFilterOpen || libView.prefix) {
+      if (libView.prefix) libPrefixDropped = true;
+      libFilterOpen = false;
+      libView.prefix = "";
+    }
+    const tb = document.querySelector(".topbar");
+    if (tb) tb.classList.remove("lib-filtering", "lib-wall");
+  }
+  function leaveLibraryWall() {
+    const was = libraryWallActive;
+    libraryWallActive = false;
+    hideLibraryControls();
+    return was;
+  }
   window.__leaveLibraryWall = leaveLibraryWall;
-  window.__restoreLibraryWall = (was) => { libraryWallActive = !!was; };
+  window.__restoreLibraryWall = (was) => {
+    libraryWallActive = !!was;
+    // The tiles that come back are the ones on screen when the wall was left.
+    // If a filter was dropped on the way out they are FILTERED tiles under a
+    // closed field — so read the wall again, unfiltered, rather than show them.
+    const dropped = libPrefixDropped;
+    libPrefixDropped = false;
+    if (was) { if (dropped) applyLibView(); else renderLibraryControls(); }
+  };
   window.__libraryWallSeq = () => libWall.seq;
 
   async function fetchLibraryPage(mySeq, firstPage) {
@@ -2663,18 +2741,21 @@
   // since v1.6.59. The row still SHOWS the direction (and the reshuffle glyph
   // for Random) as part of the sort's own label, so nothing is hidden; it just
   // isn't its own button any more.
-  // Whether the funnel's field is showing. Declared before renderLibraryControls
-  // reads it: a `let` used above its declaration is a ReferenceError, which is
-  // the v1.5.66 startup-crash class this project pre-flights for.
-  let libFilterOpen = false;
+  // (libFilterOpen is declared with the other view flags near the top: since
+  // v0.6.5 showHome() and friends reach it through hideLibraryControls().)
 
   function renderLibraryControls() {
     let bar = document.getElementById("library-controls");
     if (!bar) {
       bar = document.createElement("div");
       bar.id = "library-controls";
-      bar.className = "library-controls";
-      grid.parentNode.insertBefore(bar, grid);
+      // In the top bar (v0.6.5, as Rouen v1.8.78), at its right-hand end where
+      // Home keeps its search: Focus, Sort, then the magnifier in the corner.
+      bar.className = "library-controls in-topbar";
+      const row = document.querySelector(".topbar-row");
+      const before = document.getElementById("labels-tools");
+      if (row) row.insertBefore(bar, before && before.parentNode === row ? before : null);
+      else grid.parentNode.insertBefore(bar, grid);
     }
     // Both controls open a sheet rather than mutating the view in place, so a
     // rebuild can no longer land under the user's finger mid-interaction — but
@@ -2703,9 +2784,15 @@
     bar.appendChild(buildLibSortButton());
     bar.appendChild(buildLibFilterControl(libFilterOpen));
     bar.classList.toggle("hidden", !libraryWallActive);
+    // Marks the bar as the Library wall's, for the phone rule that gives the
+    // title's room to the controls.
+    { const tb = document.querySelector(".topbar"); if (tb) tb.classList.toggle("lib-wall", libraryWallActive); }
     // Drives the layout: Sort's auto margin is released while the field is
     // open so the input, not the margin, gets the row's free space.
     bar.classList.toggle("is-filtering", libFilterOpen);
+    // The open field takes the bar, title included, as Home's search does.
+    { const tb = document.querySelector(".topbar");
+      if (tb) tb.classList.toggle("lib-filtering", libFilterOpen && libraryWallActive); }
 
     if (libFilterOpen) {
       const again = bar.querySelector(".lib-filter-input");
@@ -2735,7 +2822,7 @@
     if (!open) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "lib-filter-btn lib-ctl" + (libView.prefix ? " is-active" : "");
+      btn.className = "lib-filter-btn lib-ctl icon-btn" + (libView.prefix ? " is-active" : "");
       btn.setAttribute("aria-label", "Filter by name");
       btn.setAttribute("aria-expanded", "false");
       btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
@@ -2751,6 +2838,14 @@
       return wrap;
     }
 
+    // The field as Home's search draws it: a pill with the glass, the input and
+    // an ×. The × clears the text when there is any, and closes the field when
+    // there is none (v0.6.5).
+    const box = document.createElement("div");
+    box.className = "search-box lib-filter-box";
+    box.innerHTML = '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
     const input = document.createElement("input");
     input.type = "search";
     input.className = "lib-filter-input";
@@ -2767,7 +2862,23 @@
     input.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeLibFilter();
     });
-    wrap.appendChild(input);
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "search-clear lib-filter-clear";
+    x.setAttribute("aria-label", "Clear the filter");
+    x.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M18 6 6 18M6 6l12 12"/></svg>';
+    x.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!input.value.trim()) { closeLibFilter(); return; }
+      input.value = "";
+      libView.prefix = "";
+      applyLibView();
+    });
+    box.appendChild(input);
+    box.appendChild(x);
+    wrap.appendChild(box);
     return wrap;
   }
 
@@ -5368,7 +5479,16 @@
   // rescale by the Roon Core. Rounded to coarse steps so the whole session
   // shares a handful of cache keys (server LRU + browser cache); the 300px
   // floor keeps DPR-1 desktops sharp on wide walls where tiles exceed 200px.
-  const TILE_IMG_SIZE = Math.min(500, Math.max(300, Math.ceil((190 * (window.devicePixelRatio || 1)) / 100) * 100));
+  // Sized from the tile actually drawn (v0.6.5: UI Settings can make a tile
+  // two or three times its old width), in device pixels, and held inside the
+  // 300–500 band the server keeps cached.
+  function tileImgSize() {
+    const p = window.__uiPrefs;
+    const gridTile = window.innerWidth / (p ? p.cols() : 3);
+    const carouselTile = 150 * parseFloat(p ? p.get("tile") : "1");
+    const css = Math.max(190, Math.min(gridTile, 600), carouselTile);
+    return Math.min(500, Math.max(300, Math.ceil((css * (window.devicePixelRatio || 1)) / 100) * 100));
+  }
 
   // Source badge for an album payload: "local" | "qobuz" | "tidal", or null
   // when the server couldn't determine it. `a.local` is still honoured so a
@@ -5510,13 +5630,13 @@
       // Keys recorded on the element so "what artwork was this tile given" is
       // answerable even after a failed <img> removes itself.
       artWrap.dataset.artKeys = mosaic.slice(0, 4).join(",");
-      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, TILE_IMG_SIZE);
+      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, tileImgSize());
     } else if (mosaic.length === 1 || a.image_key) {
       const key = mosaic[0] || a.image_key;
       // The key stays on the tile even after a failed <img> removes itself, so
       // "what artwork was this tile given" is answerable after the fact.
       artWrap.dataset.artKey = key;
-      loadArt(artWrap, key, TILE_IMG_SIZE,
+      loadArt(artWrap, key, tileImgSize(),
         (img) => { artWrap.classList.add("no-image"); img.remove(); });
     } else {
       artWrap.classList.add("no-image");
@@ -8600,6 +8720,100 @@
     const logoUrlCancel      = document.getElementById("logo-url-cancel");
     if (!labelsBtn) return;
 
+    // The labels' own controls, in the top bar's right corner (v0.6.5): find a
+    // label and turn the order round (# to Z, Z to #) on the list; the logo
+    // button on one label's albums. The bar under it that held "‹ All labels"
+    // and the label's name again is gone — the top bar's ‹ and title say both.
+    const labelsTools = document.createElement("div");
+    labelsTools.id = "labels-tools";
+    labelsTools.className = "labels-tools hidden";
+    labelsTools.innerHTML =
+      '<div class="search-box labels-search hidden">' +
+        '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+        '<input id="labels-search-input" type="search" inputmode="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Find a label…" aria-label="Find a label">' +
+        '<button id="labels-search-clear" class="search-clear" type="button" aria-label="Clear">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+      '</div>' +
+      '<button id="labels-sort-btn" class="icon-btn labels-sort-btn" type="button"></button>' +
+      '<button id="labels-search-btn" class="icon-btn" type="button" aria-label="Find a label" title="Find a label">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>';
+    {
+      const row = document.querySelector(".topbar-row");
+      const before = document.getElementById("topbar-refresh");
+      if (row) row.insertBefore(labelsTools, before && before.parentNode === row ? before : null);
+      if (labelsLogoBtn) labelsTools.appendChild(labelsLogoBtn);
+    }
+    const labelsSearchBox   = labelsTools.querySelector(".labels-search");
+    const labelsSearchInput = labelsTools.querySelector("#labels-search-input");
+    const labelsSearchClear = labelsTools.querySelector("#labels-search-clear");
+    const labelsSearchBtn   = labelsTools.querySelector("#labels-search-btn");
+    const labelsSortBtn     = labelsTools.querySelector("#labels-sort-btn");
+    let labelsReversed = false;
+    try { labelsReversed = localStorage.getItem("rra-labels-reversed") === "1"; } catch (e) {} // localStorage optional
+    let lastLabels = null;   // the list as the server sent it, for re-ordering without a fetch
+
+    function paintSortBtn() {
+      labelsSortBtn.innerHTML = '<span class="labels-order-txt">' + (labelsReversed ? "Z–#" : "#–Z") + "</span>";
+      const say = labelsReversed ? "Z to # — tap for # to Z" : "# to Z — tap for Z to #";
+      labelsSortBtn.setAttribute("aria-label", "Order: " + say);
+      labelsSortBtn.setAttribute("title", say);
+    }
+    paintSortBtn();
+    // Which of the tools show: the list's, one label's, or none.
+    function paintTools() {
+      const list = labelsActive && mode === "list", one = labelsActive && mode === "albums";
+      labelsTools.classList.toggle("hidden", !list && !one);
+      labelsSortBtn.classList.toggle("hidden", !list);
+      const open = list && !labelsSearchBox.classList.contains("hidden");
+      labelsSearchBtn.classList.toggle("hidden", !list || open);
+      if (!list) labelsSearchBox.classList.add("hidden");
+      labelsTools.classList.toggle("is-searching", open);
+      if (labelsLogoBtn) labelsLogoBtn.classList.toggle("hidden", !one);
+      // The title gives the open field its room on a phone.
+      const title = document.getElementById("album-count");
+      if (title) title.classList.toggle("is-hidden-by-search", open);
+    }
+    const fold = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    function applyLabelFilter() {
+      const q = fold(labelsSearchInput.value);
+      let shown = 0;
+      grid.querySelectorAll(".album.label-tile").forEach(t => {
+        const hit = !q || fold(t.getAttribute("aria-label")).includes(q);
+        t.classList.toggle("hidden", !hit);
+        if (hit) shown++;
+      });
+      let none = grid.querySelector(".labels-none");
+      if (q && !shown) {
+        if (!none) { none = document.createElement("div"); none.className = "labels-none artist-view-empty"; grid.appendChild(none); }
+        none.textContent = "No label matches “" + labelsSearchInput.value.trim() + "”";
+      } else if (none) none.remove();
+    }
+    function closeLabelsSearch() {
+      labelsSearchInput.value = "";
+      labelsSearchBox.classList.add("hidden");
+      applyLabelFilter();
+      paintTools();
+    }
+    labelsSearchBtn.addEventListener("click", () => {
+      labelsSearchBox.classList.remove("hidden");
+      paintTools();
+      labelsSearchInput.focus();
+    });
+    labelsSearchInput.addEventListener("input", applyLabelFilter);
+    labelsSearchInput.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLabelsSearch(); });
+    // × as on Home: the first tap clears the words, the next closes the field.
+    labelsSearchClear.addEventListener("click", () => {
+      if (labelsSearchInput.value) { labelsSearchInput.value = ""; applyLabelFilter(); labelsSearchInput.focus(); }
+      else closeLabelsSearch();
+    });
+    labelsSortBtn.addEventListener("click", () => {
+      labelsReversed = !labelsReversed;
+      try { localStorage.setItem("rra-labels-reversed", labelsReversed ? "1" : "0"); } catch (e) {} // localStorage optional
+      paintSortBtn();
+      if (lastLabels) { _lastLabelCount = -1; renderLabelTiles(lastLabels); }
+      if (mainEl) mainEl.scrollTop = 0;
+    });
+
     let currentLabelName = null;
     let currentLabelLogoUrl = null; // set when showLabelAlbums loads — used by logo picker
     let _labelsScrollSaved = 0;    // restores position when returning from a label's album view
@@ -8726,6 +8940,9 @@
       exitLabelSelectMode();
       exitAlbumSelectMode();
       updateScanBar(null);
+      labelsSearchInput.value = "";
+      labelsSearchBox.classList.add("hidden");
+      paintTools();
       if (labelUnmergeSheet) labelUnmergeSheet.classList.add("hidden");
     }
     window.__exitLabels       = exitLabels;
@@ -8755,6 +8972,7 @@
       // label tiles over the borrowing view.
       mode = null;
       labelsActive = false;
+      paintTools();
       return state;
     }
     function unparkLabels(state) {
@@ -8765,6 +8983,7 @@
       labelsActive        = true;
       labelsBtn.classList.add("is-active");
       if (labelsBar) labelsBar.classList.toggle("hidden", state.barHidden);
+      paintTools();
     }
     window.__parkLabels   = parkLabels;
     window.__unparkLabels = unparkLabels;
@@ -8895,6 +9114,8 @@
       if (window.__setTopbarNav) window.__setTopbarNav(true, false, false);   // Back (to Home), no Refresh, no search
       labelsBtn.classList.add("is-active");
       if (labelsBar) labelsBar.classList.add("hidden");
+      if (!isRepoll) { labelsSearchInput.value = ""; labelsSearchBox.classList.add("hidden"); }
+      paintTools();
       setBanner(null);
       setCountText("Labels");
       if (!isRepoll) { renderSkeletons(computeAlbumCount()); _lastLabelCount = -1; }
@@ -8993,12 +9214,14 @@
     }
 
     function renderLabelTiles(labels) {
+      lastLabels = labels;
       if (labels.length === _lastLabelCount && !labelsSelectMode) return; // no change — skip re-render
       if (labelsSelectMode) exitLabelSelectMode(); // re-render clears tile selection state
       _lastLabelCount = labels.length;
       grid.innerHTML = "";
       const frag = document.createDocumentFragment();
-      for (const lb of labels) {
+      // The server sends them # to Z; Z to # is the same list turned round.
+      for (const lb of (labelsReversed ? labels.slice().reverse() : labels)) {
         const btn = document.createElement("button");
         btn.className = "album label-tile";
         btn.type = "button";
@@ -9045,6 +9268,7 @@
         frag.appendChild(btn);
       }
       grid.appendChild(frag);
+      applyLabelFilter();   // a search under way still holds after a re-poll
     }
 
     function closeLabelLogoSheet() {
@@ -9076,8 +9300,10 @@
       grid.classList.remove("hidden");
       if (window.__setTopbarNav) window.__setTopbarNav(true, false, false);   // Back (to Home), no Refresh, no search
       labelsBtn.classList.add("is-active");
-      if (labelsBar)   labelsBar.classList.remove("hidden");
+      // The name is the top bar's title and its ‹ goes back to all labels.
+      if (labelsBar)   labelsBar.classList.add("hidden");
       if (labelsTitle) labelsTitle.textContent = name;
+      paintTools();
       setBanner(null);
       setCountText(name);
       renderSkeletons(computeAlbumCount());
@@ -9112,6 +9338,17 @@
     }
 
     if (labelsBack) labelsBack.addEventListener("click", () => showLabelsList());
+    // The top bar's ‹ on one label's albums goes back to all labels, ahead of
+    // its usual "go Home" (v0.6.5; the "‹ All labels" pill it replaces is gone).
+    {
+      const tb = document.getElementById("topbar-back");
+      if (tb) tb.addEventListener("click", (e) => {
+        if (!(labelsActive && mode === "albums")) return;
+        if (window.__artistViewActive && window.__artistViewActive()) return;
+        e.stopImmediatePropagation();
+        showLabelsList();
+      }, true);
+    }
 
     window.__exitLabelSelectMode = exitLabelSelectMode;
 
@@ -14453,6 +14690,14 @@ initServiceBrowser({
   const topbarBack    = document.getElementById("topbar-back");
   const topbarRefresh = document.getElementById("topbar-refresh");
   const topbarSearch  = document.getElementById("topbar-search");
+  // The artist's name and album count sit in the top bar beside ‹ (v0.6.5),
+  // where every other screen has its title; they were a line above the grid.
+  const titleEl       = document.getElementById("album-count");
+  function setTitle(text) {
+    if (!titleEl) return;
+    titleEl.textContent = text || "";
+    titleEl.classList.toggle("hidden", !text);
+  }
 
   let artistViewActive = false;
   let saved            = null;   // snapshot of the screen we came from
@@ -14496,6 +14741,7 @@ initServiceBrowser({
       if (topbarBack)    topbarBack.classList.toggle("hidden", saved.topbarBackHidden);
       if (topbarRefresh) topbarRefresh.classList.toggle("hidden", saved.topbarRefreshHidden);
       if (topbarSearch)  topbarSearch.classList.toggle("hidden", saved.topbarSearchHidden);
+      if (titleEl) { titleEl.textContent = saved.titleText; titleEl.classList.toggle("hidden", saved.titleHidden); }
       // Re-arm the screens whose behaviour lives OUTSIDE the restored nodes:
       // the library wall's infinite scroll (parked on the way in, else it never
       // pages again) and the labels browser's chrome/mode.
@@ -14583,6 +14829,8 @@ initServiceBrowser({
       topbarBackHidden:    topbarBack    ? topbarBack.classList.contains("hidden")    : true,
       topbarRefreshHidden: topbarRefresh ? topbarRefresh.classList.contains("hidden") : true,
       topbarSearchHidden:  topbarSearch  ? topbarSearch.classList.contains("hidden")  : true,
+      titleText:           titleEl ? titleEl.textContent : "",
+      titleHidden:         titleEl ? titleEl.classList.contains("hidden") : true,
       fromAlbum,
     };
     artistViewActive = true;
@@ -14600,12 +14848,9 @@ initServiceBrowser({
     if (topbarRefresh) topbarRefresh.classList.add("hidden");
     if (topbarSearch)  topbarSearch.classList.add("hidden");
 
-    // Show loading state
-    if (countBar) {
-      countBar.classList.remove("hidden");
-      countBar.innerHTML = `
-        <span class="count-text">Loading…</span>`;
-    }
+    // The name at once; the count when the albums come.
+    setTitle(artistName);
+    if (countBar) { countBar.innerHTML = ""; countBar.classList.add("hidden"); }
     grid.innerHTML = "";
 
     try {
@@ -14614,10 +14859,7 @@ initServiceBrowser({
       const j = await r.json();
       const total = j.primary.length + j.featured.length;
 
-      if (countBar) {
-        countBar.innerHTML = `
-            <span class="count-text">${total} album${total !== 1 ? "s" : ""} · ${artistName}</span>`;
-        }
+      if (artistViewActive) setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName);
 
       if (!total) {
         grid.innerHTML = `<div class="artist-view-empty">No albums found for "${artistName}"</div>`;
@@ -14658,6 +14900,7 @@ initServiceBrowser({
       renderArtistBioHead(artistName, bioAlbum);
     } catch (e) {
       if (countBar) {
+        countBar.classList.remove("hidden");
         countBar.innerHTML = `
             <span class="count-text" style="color:var(--danger)">Error: ${e.message}</span>`;
         }
@@ -16858,6 +17101,29 @@ initServiceBrowser({
     if (document.activeElement && document.activeElement.closest(".id-time")) return;
     load();
   }, 5000);
+})();
+
+/* ------------------------------------------------------------------ */
+/*  Settings → UI Settings (v0.6.5): text sizes, the walls' columns or */
+/*  list, and the tile size — on this device (window.__uiPrefs).        */
+/* ------------------------------------------------------------------ */
+(function initUiPane() {
+  const pane = document.querySelector('.settings-pane[data-pane="ui"]');
+  if (!pane || !window.__uiPrefs) return;
+  const sels = { text: "ui-text-select", title: "ui-title-select", layout: "ui-layout-select", tile: "ui-tile-select" };
+  function paint() {
+    for (const [k, id] of Object.entries(sels)) {
+      const el = document.getElementById(id);
+      if (el) el.value = window.__uiPrefs.get(k);
+    }
+  }
+  for (const [k, id] of Object.entries(sels)) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => { window.__uiPrefs.set(k, el.value); paint(); });
+  }
+  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
+  if (navItem) navItem.addEventListener("click", paint);
+  paint();
 })();
 
 (function initAwayPane() {
