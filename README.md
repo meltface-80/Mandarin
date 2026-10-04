@@ -450,7 +450,9 @@ switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
 tracks, kept on the server — an 845 MB download, 2 GB on disk, in the data folder or any folder
 you choose (in Docker, a writable mount: see [Install](#install-docker)). Barcodes are then matched there, without asking
 musicbrainz.org; anything it lacks is asked for as before. It's built each week from
-MusicBrainz's data dump on GitHub and fetched again when a newer one is out.
+MusicBrainz's data dump on GitHub and fetched again when a newer one is out. With it, the albums
+whose barcode it has are looked at first, and the scan carries on with them while
+musicbrainz.org isn't answering; a match from it says "matched by barcode (pack)".
 
 **Scheduling** is on by default: the scan runs between the start and end times you set each
 night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library
