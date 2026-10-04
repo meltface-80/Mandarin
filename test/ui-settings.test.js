@@ -5,8 +5,8 @@
  *     turned round to Z to #, and a label's ‹ going back to all labels — no
  *     "‹ All labels" bar of its own;
  *   - the artist page's name and album count in the top bar, not above the grid;
- *   - Settings → UI Settings: the walls in 2 columns or as a list, bigger
- *     text and tiles, and no grid ⇄ list button left in the top bar.
+ *   - Settings → UI Settings (as Rouen v1.8.77): the walls in 2 columns or as
+ *     a list, bigger text and tiles, and no grid ⇄ list button in the top bar.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const test = require("node:test");
@@ -58,15 +58,21 @@ const DRIVER = `(async () => {
   await until(() => / · /.test(title()));
   out.artist = { title: title(), above: $("content-count").classList.contains("hidden") ? "" : $("content-count").textContent.trim() };
 
-  window.__uiPrefs.set({ layout: "2" }); await sleep(100);
+  window.__uiPrefs.set("layout", "2"); await sleep(100);
   out.two = getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
-  window.__uiPrefs.set({ layout: "list" }); await sleep(100);
+  window.__uiPrefs.set("layout", "list"); await sleep(100);
   out.list = $("album-grid").classList.contains("as-list");
-  window.__uiPrefs.set({ layout: "standard", tiles: 50 }); await sleep(100);
+  window.__uiPrefs.set("layout", "auto"); window.__uiPrefs.set("tile", "1.5"); await sleep(100);
   out.bigger_tiles_cols = getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
-  window.__uiPrefs.set({ tiles: 0, gridText: 50 }); await sleep(100);
-  out.grid_zoom = getComputedStyle(document.querySelector("#album-grid .album-meta")).zoom;
-  window.__uiPrefs.set({ gridText: 0 });
+  window.__uiPrefs.set("tile", "1"); const before = parseFloat(getComputedStyle(document.querySelector("#album-grid .album-title")).fontSize);
+  window.__uiPrefs.set("text", "1.5"); await sleep(100);
+  out.text_ratio = parseFloat(getComputedStyle(document.querySelector("#album-grid .album-title")).fontSize) / before;
+  window.__uiPrefs.set("text", "1");
+  document.querySelector('.settings-nav-item[data-pane="ui"]').click(); await sleep(100);
+  out.pane = [...document.querySelectorAll('.settings-pane[data-pane="ui"] select')].map(x => x.id + "=" + x.value);
+  const lay = $("ui-layout-select"); lay.value = "2"; lay.dispatchEvent(new Event("change"));
+  out.pane_sets = window.__uiPrefs.get("layout") + " " + getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
+  lay.value = "auto"; lay.dispatchEvent(new Event("change"));
   $("topbar-back").click(); await sleep(400);
   out.title_after = title();
   return out;
@@ -105,11 +111,13 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.deepEqual(r.label, { title: "Parlophone", bar: false, logo: true, search: false });
     assert.equal(r.back, "Labels", "‹ on a label goes back to all labels");
     assert.equal(r.home, true, "and ‹ there goes Home");
-    assert.deepEqual(r.artist, { title: "Artist A · 1 album", above: "" });
+    assert.deepEqual(r.artist, { title: "1 album · Artist A", above: "" });
     assert.equal(r.two, 2);
     assert.equal(r.list, true);
     assert.equal(r.bigger_tiles_cols, 2, "a phone's 3 across, half as big again: 2");
-    assert.equal(r.grid_zoom, "1.5");
+    assert.equal(r.text_ratio, 1.5);
+    assert.deepEqual(r.pane, ["ui-text-select=1", "ui-title-select=1", "ui-layout-select=auto", "ui-tile-select=1"]);
+    assert.equal(r.pane_sets, "2 2", "a choice in the pane lays the wall out");
     assert.equal(r.title_after, "", "Home has no title");
   } finally {
     await srv.stop();

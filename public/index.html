@@ -1082,7 +1082,7 @@
 
           <button class="settings-nav-item" type="button" data-pane="ui">
             <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h5"/></svg>
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">UI Settings</span>
@@ -1519,8 +1519,80 @@
           </button>
           <h2>UI Settings</h2>
         </div>
-        <p class="settings-pane-desc">Text, layout and tile sizes on this device</p>
-        <div id="ui-pane-body"></div>
+        <p class="settings-pane-desc">Text size, layout &amp; tile size</p>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Album &amp; artist text <button class="settings-info-btn" data-info="The size of the album name and artist name under every tile — on the Home carousels and on every grid screen." aria-label="About Album &amp; artist text">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-text-select" class="settings-select" aria-label="Album &amp; artist text">
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Grid screen title <button class="settings-info-btn" data-info="The size of the title at the top of a grid screen, such as the one a Home carousel opens to, and of a playlist&#39;s name." aria-label="About Grid screen title">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-title-select" class="settings-select" aria-label="Grid screen title">
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Grid layout <button class="settings-info-btn" data-info="How album, playlist and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album." aria-label="About Grid layout">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-layout-select" class="settings-select" aria-label="Grid layout">
+                <option value="auto">Auto</option>
+                <option value="3">3 columns</option>
+                <option value="2">2 columns</option>
+                <option value="list">List</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Tile size <button class="settings-info-btn" data-info="The size of album and label tiles on every screen. On the Home carousels it sets the tile width; on a grid screen in Auto layout it sets how many columns fit — bigger tiles, fewer columns. On a small screen a 10% step may not change the column count, only the carousels." aria-label="About Tile size">ⓘ</button></span>
+            <div class="settings-select-wrap">
+              <select id="ui-tile-select" class="settings-select" aria-label="Tile size">
+                <option value="0.5">−50%</option>
+                <option value="0.75">−25%</option>
+                <option value="0.9">−10%</option>
+                <option value="1">Normal</option>
+                <option value="1.1">+10%</option>
+                <option value="1.25">+25%</option>
+                <option value="1.5">+50%</option>
+              </select>
+              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <p class="settings-note">Saved on this device only.</p>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is

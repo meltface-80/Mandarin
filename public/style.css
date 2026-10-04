@@ -211,12 +211,14 @@ a.action-btn:active,
 }
 .labels-tools .labels-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 .labels-tools > .icon-btn { flex: 0 0 auto; }
-.labels-sort-btn { font-size: 10.5px; font-weight: 700; letter-spacing: 0; font-family: inherit; white-space: nowrap; padding: 0; }
+.labels-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .album-count.is-hidden-by-search { display: none; }
+/* UI Settings' four dropdowns one width, sized for the widest ("3 columns"). */
+.settings-pane[data-pane="ui"] .settings-select { width: 9.5em; }
 
 
 .album-count {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-title, 1));
   font-weight: 600;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
@@ -522,23 +524,23 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   display: grid;
   /* Phone portrait default: 3×3. minmax(0,1fr) prevents long titles
      from stretching one column wider than others. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr));
   gap: 14px 10px;
 }
 
 /* ── Tablet portrait: 5×4 ───────────────────────────────────────── */
 @media (min-width: 768px) and (orientation: portrait) {
-  .album-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px 14px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 5), minmax(0, 1fr)); gap: 20px 14px; }
 }
 
 /* ── Tablet landscape: 7×3 ──────────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
-  .album-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px 12px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 7), minmax(0, 1fr)); gap: 16px 12px; }
 }
 
 /* ── Desktop: 9×5 ───────────────────────────────────────────────── */
 @media (min-width: 1200px) {
-  .album-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 18px 12px; }
+  .album-grid { grid-template-columns: repeat(var(--grid-cols, 9), minmax(0, 1fr)); gap: 18px 12px; }
 }
 
 /* Title/subtitle scale — phone (≤767px) rules live AFTER the base
@@ -547,24 +549,24 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 /* Tablet portrait (5 cols) and tablet landscape (7 cols) also need small text */
 @media (min-width: 768px) and (max-width: 1199px) {
   .album-title {
-    font-size: 12px; line-height: 1.25;
+    font-size: calc(12px * var(--ui-text, 1)); line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 11px; }
+  .album-artist { font-size: calc(11px * var(--ui-text, 1)); }
 }
 /* Desktop (9 cols) compact text */
 @media (min-width: 1200px) {
   .album-title {
-    font-size: 11px; line-height: 1.2;
+    font-size: calc(11px * var(--ui-text, 1)); line-height: 1.2;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 10px; }
+  .album-artist { font-size: calc(10px * var(--ui-text, 1)); }
 }
 
 .album {
@@ -682,11 +684,11 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .logo-url-input:focus { outline: none; border-color: var(--accent); }
 .album-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .album-title {
-  font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.3;
+  font-size: calc(14px * var(--ui-text, 1)); font-weight: 500; color: var(--text); line-height: 1.3;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .album-artist {
-  font-size: 13px; color: var(--text-dim); line-height: 1.3;
+  font-size: calc(13px * var(--ui-text, 1)); color: var(--text-dim); line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -700,13 +702,13 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   .album-grid { gap: 12px 8px; }
   .album-meta { margin-top: 5px; gap: 1px; }
   .album-title {
-    font-size: 12px; line-height: 1.25;
+    font-size: calc(12px * var(--ui-text, 1)); line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .album-artist { font-size: 10.5px; }
+  .album-artist { font-size: calc(10.5px * var(--ui-text, 1)); }
 }
 
 /* ── List mode ──────────────────────────────────────────────────────
@@ -3272,7 +3274,7 @@ input.vol-range::-moz-range-thumb {
 .playlist-back { align-self: flex-start; }
 .playlist-head { display: flex; flex-direction: column; gap: 4px; }
 .playlist-title {
-  margin: 0; font-size: 22px; font-weight: 700; color: var(--text);
+  margin: 0; font-size: calc(22px * var(--ui-title, 1)); font-weight: 700; color: var(--text);
   border-bottom: 1px solid var(--panel-hairline); padding-bottom: 8px;
 }
 .playlist-sub { font-size: 14px; color: var(--text-dim); }
@@ -3943,7 +3945,7 @@ input.vol-range::-moz-range-thumb {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: 1fr;          /* phone / portrait: single row */
-  grid-auto-columns: 150px;
+  grid-auto-columns: calc(150px * var(--ui-tile, 1));
   gap: 12px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
@@ -3986,7 +3988,7 @@ input.vol-range::-moz-range-thumb {
    and dark palettes come out right without a second rule set.
    -------------------------------------------------------------------------- */
 .pick-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.home-carousel .pick-card { width: 150px; cursor: pointer; }
+.home-carousel .pick-card { width: calc(150px * var(--ui-tile, 1)); cursor: pointer; }
 .pick-art {
   position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 8px;
   overflow: hidden; background: var(--bg-elev); border: 1px solid var(--border);
@@ -3996,11 +3998,11 @@ input.vol-range::-moz-range-thumb {
    not mistaken for a bad adjacent recommendation. */
 .pick-meta { min-width: 0; }
 .pick-artist {
-  font-size: 13px; font-weight: 600; color: var(--text);
+  font-size: calc(13px * var(--ui-text, 1)); font-weight: 600; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pick-album {
-  font-size: 12px; color: var(--text-dim);
+  font-size: calc(12px * var(--ui-text, 1)); color: var(--text-dim);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pick-reason {
@@ -5255,7 +5257,7 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .home-lotw-sep { display: none; }
 [data-palette="hifi"] .home-section-lotw .home-section-link { align-items: flex-end; }
 
-[data-palette="hifi"] .home-carousel { grid-auto-columns: 144px; gap: 16px; padding-bottom: 18px; }
+[data-palette="hifi"] .home-carousel { grid-auto-columns: calc(144px * var(--ui-tile, 1)); gap: 16px; padding-bottom: 18px; }
 
 /* Covers: rounder, flat on the ground with a hairline edge. */
 [data-palette="hifi"] .album-art-wrap {
@@ -5281,7 +5283,7 @@ button.cap-chip:active { transform: scale(.96); }
 }
 
 /* Smart Picks on Home: the same flat tile. */
-[data-palette="hifi"] .home-carousel .pick-card { width: 156px; }
+[data-palette="hifi"] .home-carousel .pick-card { width: calc(156px * var(--ui-tile, 1)); }
 [data-palette="hifi"] .pick-art {
   border-radius: 12px; border: 0;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
@@ -5491,23 +5493,6 @@ button.cap-chip:active { transform: scale(.96); }
 .modal-box-disc:hover { border-color: var(--accent); }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
 
-
-/* ── UI Settings (v0.6.5) ─────────────────────────────────────────────
-   app.js (UI_PREFS) sets these on <html>, per device:
-     --ui-title-text     the title at the top of a screen (Labels, a genre…)
-     --ui-carousel-text  the album and artist names under Home's tiles
-     --ui-grid-text      the same under the album walls' tiles
-     --ui-tile           Home's tile size
-     --ui-grid-cols      the walls' columns (data-ui-cols: set when not the standard)
-   zoom scales a block's text and its line spacing as one, whatever the
-   breakpoint's own font sizes are. */
-.album-count { zoom: var(--ui-title-text, 1); max-width: calc(50vw / var(--ui-title-text, 1)); }
-.home-carousel .album-meta,
-.home-carousel .pick-meta { zoom: var(--ui-carousel-text, 1); }
-.album-grid .album-meta { zoom: var(--ui-grid-text, 1); }
-html[data-ui-cols] .album-grid:not(.as-list) { grid-template-columns: repeat(var(--ui-grid-cols), minmax(0, 1fr)); }
-html[data-ui-tile] .home-carousel { grid-auto-columns: calc(150px * var(--ui-tile)); }
-html[data-ui-tile] .home-carousel .pick-card { width: calc(150px * var(--ui-tile)); }
-html[data-ui-tile][data-palette="hifi"] .home-carousel { grid-auto-columns: calc(144px * var(--ui-tile)); }
-html[data-ui-tile][data-palette="hifi"] .home-carousel .pick-card { width: calc(156px * var(--ui-tile)); }
-.ui-note-off { opacity: .5; }
+/* The labels' #–Z / Z–# button: a pill wide enough for its text (v0.6.5),
+   after the palette's round discs so it keeps its shape. */
+html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 0 10px; border-radius: 999px; }

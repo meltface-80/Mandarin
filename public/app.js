@@ -27,59 +27,74 @@
 })();
 
 /* ------------------------------------------------------------------ */
-/*  UI Settings (v0.6.5): text sizes, the album walls' layout and the  */
-/*  tile size — on this device, painted onto <html> as CSS variables   */
-/*  (style.css, "UI Settings"). The walls read layout() for grid/list. */
+/*  UI Settings (v0.6.5, as Rouen v1.8.77 has them): text size, grid   */
+/*  layout and tile size — per device, in localStorage, painted as     */
+/*  custom properties on <html> so every screen reads the same numbers */
+/*  without being told. Nothing here rebuilds a tile.                  */
+/*    --ui-text   album and artist text, a multiplier on each size     */
+/*    --ui-title  a grid screen's title in the top bar, a playlist name*/
+/*    --ui-tile   the Home carousels' tile width (150px × this)        */
+/*    --grid-cols every .album-grid's columns, when not the screen's   */
 /* ------------------------------------------------------------------ */
-(function uiPrefs() {
-  const KEY = "rra-ui";
-  const DEFAULTS = { titleText: 0, carouselText: 0, gridText: 0, layout: "standard", tiles: 0 };
-  let prefs = Object.assign({}, DEFAULTS);
-  try {
-    Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || "{}") || {});
-    // The grid ⇄ list button's old choice carries over (it was in the top bar until v0.6.5).
-    if (!localStorage.getItem(KEY) && localStorage.getItem("rra-album-view") === "list") prefs.layout = "list";
-  } catch (e) {} // localStorage optional — the defaults hold
-  const root = document.documentElement;
-  // The standard walls: 3 columns on a phone, 5 on a tablet upright, 7 on its
-  // side, 9 on a desktop (style.css .album-grid).
-  function standardCols() {
+(function uiSettings() {
+  const OPTS = {
+    text:   { key: "rra-ui-text",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
+    title:  { key: "rra-ui-title", def: "1",    allowed: ["1", "1.1", "1.25", "1.5"] },
+    layout: { key: "rra-ui-cols",  def: "auto", allowed: ["auto", "3", "2", "list"] },
+    tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] }
+  };
+  const mem = {};
+  function get(k) {
+    if (k in mem) return mem[k];
+    const o = OPTS[k];
+    let v = null;
+    try {
+      v = localStorage.getItem(o.key);
+      // List was the top bar's grid ⇄ list button until v0.6.5.
+      if (v === null && k === "layout" && localStorage.getItem("rra-album-view") === "list") v = "list";
+    } catch (e) {} // localStorage optional — the default stands
+    return (mem[k] = o.allowed.indexOf(v) > -1 ? v : o.def);
+  }
+  // The screen's own column count, by the SAME breakpoints style.css uses for
+  // .album-grid (keep the two in step).
+  function baseCols() {
     const w = window.innerWidth, h = window.innerHeight;
     if (w >= 1200) return 9;
-    if (Math.min(w, h) >= 768 || w >= 768) return w > h ? 7 : 5;
+    if (w >= 768) return h >= w ? 5 : 7;
     return 3;
   }
-  function apply() {
-    const pc = n => 1 + (Number(n) || 0) / 100;
-    root.style.setProperty("--ui-title-text", pc(prefs.titleText));
-    root.style.setProperty("--ui-carousel-text", pc(prefs.carouselText));
-    root.style.setProperty("--ui-grid-text", pc(prefs.gridText));
-    const tile = pc(prefs.tiles);
-    if (prefs.tiles) { root.dataset.uiTile = "1"; root.style.setProperty("--ui-tile", tile); }
-    else delete root.dataset.uiTile;
-    // Columns: 2 or 3 as chosen; standard ones get fewer for bigger tiles and more for smaller.
-    let cols = null;
-    if (prefs.layout === "2" || prefs.layout === "3") cols = Number(prefs.layout);
-    else if (prefs.layout === "standard" && prefs.tiles) cols = Math.max(1, Math.round(standardCols() / tile));
-    if (cols) { root.dataset.uiCols = String(cols); root.style.setProperty("--ui-grid-cols", cols); }
-    else delete root.dataset.uiCols;
-    const grid = document.getElementById("album-grid");
-    if (grid) grid.classList.toggle("as-list", prefs.layout === "list");
+  // "3" or "2" fixes the count; Auto (and List, for the count a wall asks for)
+  // is the screen's own count divided by the tile size: bigger tiles, fewer columns.
+  function cols() {
+    const l = get("layout");
+    if (l === "3" || l === "2") return Number(l);
+    return Math.max(1, Math.round(baseCols() / parseFloat(get("tile"))));
   }
-  let t = null;
-  window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(apply, 150); });
-  window.__uiPrefs = {
-    get: () => Object.assign({}, prefs),
-    set(patch) {
-      Object.assign(prefs, patch);
-      try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} // localStorage optional — holds for this session
-      apply();
-    },
-    layout: () => prefs.layout,
-    apply
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply); else apply();
+  function apply() {
+    const root = document.documentElement.style;
+    const put = (prop, v, def) => { if (v === def) root.removeProperty(prop); else root.setProperty(prop, v); };
+    put("--ui-text", get("text"), "1");
+    put("--ui-title", get("title"), "1");
+    put("--ui-tile", get("tile"), "1");
+    const c = cols();
+    if (c === baseCols()) root.removeProperty("--grid-cols"); else root.setProperty("--grid-cols", String(c));
+    const grid = document.getElementById("album-grid");
+    if (grid) grid.classList.toggle("as-list", get("layout") === "list");
+  }
+  function set(k, v) {
+    const o = OPTS[k];
+    if (!o || o.allowed.indexOf(v) < 0) return;
+    try { localStorage.setItem(o.key, v); } catch (e) {} // localStorage optional — applied for this session regardless
+    mem[k] = v;
+    apply();
+    // The columns moved at once (CSS); the random wall's COUNT was a screenful
+    // at the old columns, so it asks again when that is now a different number.
+    if ((k === "layout" || k === "tile") && window.__refreshWallCount) window.__refreshWallCount();
+  }
+  window.addEventListener("resize", apply);
+  window.__uiPrefs = { get, set, cols, apply, OPTS };
   apply();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
 })();
 
 (() => {
@@ -369,12 +384,23 @@
     // artwork, the same as every other wall, and it scrolls.
     if (minDim < 768) return PHONE_WALL_COUNT;
 
-    // Desktop (width ≥ 1200 px)
-    if (w >= 1200) return 45;       // 9×5
-
-    // Tablet (768–1199 px)
-    return isLandscape ? 21 : 20;   // 7×3 or 5×4
+    // Desktop (width ≥ 1200 px), tablet (768–1199 px): a screenful of rows at
+    // the column count UI Settings has given the grid (v0.6.5).
+    const cols = window.__uiPrefs ? window.__uiPrefs.cols() : (w >= 1200 ? 9 : isLandscape ? 7 : 5);
+    if (w >= 1200) return cols * 5;       // 9×5 by default
+    return cols * (isLandscape ? 3 : 4);  // 7×3 or 5×4 by default
   }
+
+  // The random wall again, when UI Settings changes its columns: the same
+  // guards as a resize, without the phone-only limit (every size has a count).
+  window.__refreshWallCount = () => {
+    if (labelsActive || unplayedWallActive || libraryWallActive) return;
+    if (window.__artistViewActive && window.__artistViewActive()) return;
+    if (homeView && !homeView.classList.contains("hidden")) return;
+    if (window.__searchActive && window.__searchActive()) return;
+    if (grid.classList.contains("hidden")) return;
+    if (computeAlbumCount() !== albumCount) loadRandom();
+  };
 
   // A viewport change (Safari chrome collapsing, iPad split view) can change how
   // many albums are worth holding. Debounced, and only for the RANDOM wall — it
@@ -2385,7 +2411,7 @@
       wrap.dataset.mosaic = String(use.length);
     }
     wrap.dataset.artKeys = use.join(",");
-    for (const k of use) loadArt(wrap, k, TILE_IMG_SIZE);
+    for (const k of use) loadArt(wrap, k, tileImgSize());
     if (!use.length) wrap.classList.add("no-image");
   }
 
@@ -5383,7 +5409,16 @@
   // rescale by the Roon Core. Rounded to coarse steps so the whole session
   // shares a handful of cache keys (server LRU + browser cache); the 300px
   // floor keeps DPR-1 desktops sharp on wide walls where tiles exceed 200px.
-  const TILE_IMG_SIZE = Math.min(500, Math.max(300, Math.ceil((190 * (window.devicePixelRatio || 1)) / 100) * 100));
+  // Sized from the tile actually drawn (v0.6.5: UI Settings can make a tile
+  // two or three times its old width), in device pixels, and held inside the
+  // 300–500 band the server keeps cached.
+  function tileImgSize() {
+    const p = window.__uiPrefs;
+    const gridTile = window.innerWidth / (p ? p.cols() : 3);
+    const carouselTile = 150 * parseFloat(p ? p.get("tile") : "1");
+    const css = Math.max(190, Math.min(gridTile, 600), carouselTile);
+    return Math.min(500, Math.max(300, Math.ceil((css * (window.devicePixelRatio || 1)) / 100) * 100));
+  }
 
   // Source badge for an album payload: "local" | "qobuz" | "tidal", or null
   // when the server couldn't determine it. `a.local` is still honoured so a
@@ -5525,13 +5560,13 @@
       // Keys recorded on the element so "what artwork was this tile given" is
       // answerable even after a failed <img> removes itself.
       artWrap.dataset.artKeys = mosaic.slice(0, 4).join(",");
-      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, TILE_IMG_SIZE);
+      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, tileImgSize());
     } else if (mosaic.length === 1 || a.image_key) {
       const key = mosaic[0] || a.image_key;
       // The key stays on the tile even after a failed <img> removes itself, so
       // "what artwork was this tile given" is answerable after the fact.
       artWrap.dataset.artKey = key;
-      loadArt(artWrap, key, TILE_IMG_SIZE,
+      loadArt(artWrap, key, tileImgSize(),
         (img) => { artWrap.classList.add("no-image"); img.remove(); });
     } else {
       artWrap.classList.add("no-image");
@@ -8648,7 +8683,7 @@
     let lastLabels = null;   // the list as the server sent it, for re-ordering without a fetch
 
     function paintSortBtn() {
-      labelsSortBtn.textContent = labelsReversed ? "Z–#" : "#–Z";
+      labelsSortBtn.innerHTML = '<span class="labels-order-txt">' + (labelsReversed ? "Z–#" : "#–Z") + "</span>";
       const say = labelsReversed ? "Z to # — tap for # to Z" : "# to Z — tap for Z to #";
       labelsSortBtn.setAttribute("aria-label", "Order: " + say);
       labelsSortBtn.setAttribute("title", say);
@@ -14754,7 +14789,7 @@ initServiceBrowser({
       const j = await r.json();
       const total = j.primary.length + j.featured.length;
 
-      if (artistViewActive) setTitle(artistName + " · " + total + " album" + (total !== 1 ? "s" : ""));
+      if (artistViewActive) setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName);
 
       if (!total) {
         grid.innerHTML = `<div class="artist-view-empty">No albums found for "${artistName}"</div>`;
@@ -17003,58 +17038,22 @@ initServiceBrowser({
 /*  list, and the tile size — on this device (window.__uiPrefs).        */
 /* ------------------------------------------------------------------ */
 (function initUiPane() {
-  const body = document.getElementById("ui-pane-body");
-  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
-  if (!body || !navItem || !window.__uiPrefs) return;
-  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const BIGGER = [[0, "Normal"], [10, "+10%"], [25, "+25%"], [50, "+50%"]];
-  const SIZES = [[-50, "−50%"], [-25, "−25%"], [-10, "−10%"], [0, "Normal"], [10, "+10%"], [25, "+25%"], [50, "+50%"]];
-  const LAYOUTS = [["standard", "Standard"], ["3", "3 columns"], ["2", "2 columns"], ["list", "List"]];
-  const ROWS = [
-    { block: "Text size" },
-    { key: "titleText", label: "Screen titles", choices: BIGGER, info: "The title beside ‹ at the top of a screen: Labels, a label’s name, a genre, an artist, Listen later." },
-    { key: "carouselText", label: "Names on Home", choices: BIGGER, info: "The album and artist names under the tiles in Home’s rows." },
-    { key: "gridText", label: "Names on the walls", choices: BIGGER, info: "The album and artist names under the tiles on the full screens: the library, a genre, a label, an artist, playlists and labels." },
-    { block: "Layout" },
-    { key: "layout", label: "Album walls", choices: LAYOUTS, info: "How the full screens of albums, playlists and labels are laid out. Standard fits the screen: 3 across on a phone, 5 to 9 on bigger screens." },
-    { key: "tiles", label: "Tile size", choices: SIZES, info: "Album and label tiles on every screen. On Home the tiles grow or shrink; on the walls set to Standard, fewer or more fit across. 2 and 3 columns keep their count." }
-  ];
-  const caret = '<svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
-
-  function render() {
-    const p = window.__uiPrefs.get();
-    let html = "", open = false;
-    for (const r of ROWS) {
-      if (r.block) {
-        if (open) html += "</div>";
-        html += '<div class="settings-block"><div class="settings-block-title">' + esc(r.block) + "</div>";
-        open = true;
-        continue;
-      }
-      html += '<div class="settings-row"><span class="settings-label">' + esc(r.label) +
-        ' <button class="settings-info-btn" type="button" data-info="' + esc(r.info) + '" aria-label="About ' + esc(r.label) + '">ⓘ</button></span>' +
-        '<div class="settings-select-wrap"><select class="settings-select" data-ui-key="' + r.key + '" aria-label="' + esc(r.label) + '">' +
-        r.choices.map(([v, t]) => '<option value="' + esc(v) + '"' + (String(p[r.key]) === String(v) ? " selected" : "") + ">" + esc(t) + "</option>").join("") +
-        "</select>" + caret + "</div></div>";
+  const pane = document.querySelector('.settings-pane[data-pane="ui"]');
+  if (!pane || !window.__uiPrefs) return;
+  const sels = { text: "ui-text-select", title: "ui-title-select", layout: "ui-layout-select", tile: "ui-tile-select" };
+  function paint() {
+    for (const [k, id] of Object.entries(sels)) {
+      const el = document.getElementById(id);
+      if (el) el.value = window.__uiPrefs.get(k);
     }
-    if (open) html += "</div>";
-    html += '<div class="settings-note">Kept on this device: a phone and a big screen can each have their own.</div>' +
-      '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-ui-reset>Back to normal</button></div>';
-    body.innerHTML = html;
   }
-  body.addEventListener("change", (e) => {
-    const sel = e.target.closest("[data-ui-key]");
-    if (!sel) return;
-    const k = sel.getAttribute("data-ui-key");
-    window.__uiPrefs.set({ [k]: k === "layout" ? sel.value : Number(sel.value) });
-  });
-  body.addEventListener("click", (e) => {
-    if (!e.target.closest("[data-ui-reset]")) return;
-    window.__uiPrefs.set({ titleText: 0, carouselText: 0, gridText: 0, layout: "standard", tiles: 0 });
-    render();
-  });
-  navItem.addEventListener("click", render);
-  render();
+  for (const [k, id] of Object.entries(sels)) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => { window.__uiPrefs.set(k, el.value); paint(); });
+  }
+  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
+  if (navItem) navItem.addEventListener("click", paint);
+  paint();
 })();
 
 (function initAwayPane() {
