@@ -206,7 +206,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   // Best Of (Various Artists, two 3 s tracks C1/C2) → a release with those two and a bonus track
   //   between them: too much missing on a two-track record to apply unasked → proposed; accepted,
   //   each track takes the name of the one it paired with.
-  // Hi Res (Artist B, two 4 s tracks) → the right names but one length 40 s off: proposed.
+  // Hi Res (Artist B, two 4 s tracks) → the right names but one length 26 s off: proposed.
   // Album One (Artist A, three 3 s tracks, 1997) → a release that shares nothing: unidentified.
   // Old Record → the 2015 remaster release of a 1988 release group: applied with the group's name and year.
   // Wide Record → the search finds the standard pressing (a track short); the release group lists
@@ -217,7 +217,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     { id: "wide-deluxe", title: "Wide Record (Deluxe Edition)", artist: "Artist D", date: "2011-03-01", disambiguation: "deluxe edition", group: { id: "g-wide", title: "Wide Record", date: "2010-03-01" },
       tracks: [["W1", 5], ["W2", 5], ["W3", 5]] },
     { id: "best-of-1", title: "Best Of", artist: "Various Artists", date: "2001-05-01", tracks: [["C1", 3], ["Bonus Thing", 9], ["C2 (Live)", 3]] },
-    { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 44]] },
+    { id: "hi-res-1", title: "Hi Res", artist: "Artist B", date: "2020", tracks: [["Hi 1", 4], ["Hi 2", 30]] },
     { id: "album-one-1", title: "Album One", artist: "Somebody Else", date: "1975", tracks: [["Alpha", 200], ["Beta", 300], ["Gamma", 400]] },
     // The real Album One, filed under another name: only a barcode or a link reaches it.
     { id: "12345678-1234-1234-1234-123456789abc", title: "The First Album", artist: "Artist A", date: "1997-04-01", barcode: "5012345678900",
@@ -421,11 +421,11 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
   const lib = makeLibrary();
   const mb = await new FakeMusicBrainz([]).start();        // MusicBrainz knows none of them
   // Album One (Artist A): three 3 s tracks, exactly — applied, Apple's names written ("- EP" set aside).
-  // Hi Res (Artist B): two 4 s tracks, Apple's second 40 s longer — proposed.
+  // Hi Res (Artist B): two 4 s tracks, Apple's second 26 s longer — proposed.
   // Best Of: not in Apple's catalogue — unidentified.
   const itunes = await new FakeITunes([
     { id: 101, title: "Album One - EP", artist: "Artist A", date: "2019-01-01", tracks: [["Song 1", 3], ["Song 2 (feat. Guest)", 3], ["Song 3", 3]] },
-    { id: 102, title: "Hi Res", artist: "Artist B", date: "2020-01-01", tracks: [["Hi 1", 4], ["Hi 2", 44]] }
+    { id: 102, title: "Hi Res", artist: "Artist B", date: "2020-01-01", tracks: [["Hi 1", 4], ["Hi 2", 30]] }
   ]).start();
   itunes.refuse = true;     // at first it asks us to wait
   delete require.cache[require.resolve("../index.js")];
@@ -566,16 +566,14 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
 });
 
 test("score: 95 % alike, as the page shows it, is applied unasked; 94 % is proposed (v0.6.2)", () => {
-  // The year one off (a reissue's, say) and a track 19–24 s long.
+  // The year one off (a reissue's, say) and one track a little long: the
+  // first lengths that score 95 % and 94 %, found from the scoring itself.
   const near = off => cand({ year: 1999, tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + off } : t) });
-  for (const off of [19, 22]) {
-    const v = SCORE.decide(album(), [near(off)]);
-    assert.equal(SCORE.similarity(v.best.distance), 95, String(v.best.distance));
-    assert.equal(v.status, "applied", off + " s off");
-  }
-  const v = SCORE.decide(album(), [near(24)]);
-  assert.equal(SCORE.similarity(v.best.distance), 94);
-  assert.equal(v.status, "proposed");
+  const at = pct => { for (let off = 0; off < 120; off++) { const v = SCORE.decide(album(), [near(off)]); if (SCORE.similarity(v.best.distance) === pct) return v; } return null; };
+  const v95 = at(95), v94 = at(94);
+  assert.ok(v95 && v94, "both percentages reachable");
+  assert.equal(v95.status, "applied");
+  assert.equal(v94.status, "proposed");
   // Nothing else counts (v0.6.3): no lengths, missing tracks, a close rival.
   assert.equal(SCORE.appliesUnasked({ distance: 0.03, parts: { no_lengths: true, track_titles: 0.05, missing_tracks: 1 } }), true);
   assert.equal(SCORE.appliesUnasked({ distance: 0.06, parts: {} }), false);
@@ -619,4 +617,35 @@ test("why a match is short of 100 %, in words (v0.6.3)", () => {
   assert.deepEqual(SCORE.why(SCORE.distance(album(), cand()).parts), []);
   assert.deepEqual(SCORE.why({ no_lengths: true, track_titles: 0.3 }), ["track names differ", "MusicBrainz has no track lengths"]);
   assert.deepEqual(SCORE.why({ album: 0.05 }), ["edition notes in the names"]);
+});
+
+test("what a real library taught (v0.6.3): bracketed names, lengths first, Roman numerals, disambiguation", () => {
+  // Names with something in brackets the release hasn't — or the other way — are the same track.
+  for (const [a, b] of [["Live For (Album Version (Explicit))", "Live For"], ["Little Rio", "Little Rio (Un poco Rio)"],
+    ["Bus To Baton Rouge (Album Version (New Mastering))", "Bus to Baton Rouge"], ["The Fish", "The Fish (Schindleria Praematurus)"]]) {
+    assert.ok(SCORE.titleDist(a, b) <= 0.1, a + " / " + b);
+  }
+  assert.equal(SCORE.titleDist("Kill Time", "Pipeline/Kill Time"), 0.15, "one part of a medley's name");
+  assert.ok(SCORE.titleDist("Kid A", "OK Computer") > 0.5);
+  // Part II is Part 2, Vol. 3 is Volume III; "No More Tears" stays "No".
+  assert.equal(SCORE.titleDist("Part II", "Part 2"), 0);
+  assert.equal(SCORE.titleDist("Vol. 3", "Volume III"), 0);
+  assert.ok(SCORE.titleDist("No More Tears", "Number More Tears") > 0.2);
+  // Two tracks the same length in the same place pair, however they're named ("Original Mix").
+  const mine = { title: "Hard House", artist: "Various Artists", year: 2017, tracks: [{ title: "Better Watch Out (Original Mix)", length: 483 }, { title: "Something Like This (Original Mix)", length: 546 }] };
+  const rel = cand({ title: "Hard House", artist: "Various Artists", year: 2017, tracks: [{ title: "Better Watch Out (Ben Stevens vs. Damage & Narkotique)", length: 483 }, { title: "Something Like This (Pickup & Rise vs. Adam M)", length: 546 }] });
+  const d = SCORE.distance(mine, rel);
+  assert.deepEqual([d.parts.missing_tracks, d.parts.extra_tracks], [0, 0]);
+  // The year counts least: a 2006 collection of 1955 recordings stays a match.
+  assert.equal(SCORE.decide(album({ year: 1955 }), [cand({ year: 2006 })]).status, "applied");
+  // Disambiguation: a folder that says "Remixes" prefers the release that says remix.
+  const tales = { title: "Tales From Topographic Oceans", artist: "Yes", year: 1973, context: "Disc 4 - Tales From Topographic Oceans (1973) · The Steven Wilson Remixes (2018)",
+    tracks: [{ title: "The Revealing Science of God", length: 1200 }] };
+  const orig = { mbid: "orig", title: "Tales From Topographic Oceans", artist: "Yes", year: 1973, tracks: [{ title: "The Revealing Science of God", length: 1200 }] };
+  const sw = Object.assign({}, orig, { mbid: "sw", group_note: "Steven Wilson remix" });
+  assert.equal(SCORE.decide(tales, [orig, sw]).best.candidate.mbid, "sw");
+  // And a release labelled live is charged when nothing of yours says live.
+  const live = Object.assign({}, orig, { mbid: "live", edition: "live" });
+  assert.equal(SCORE.decide(Object.assign({}, tales, { context: "" }), [live, orig]).best.candidate.mbid, "orig");
+  assert.ok(SCORE.why(SCORE.distance(Object.assign({}, tales, { context: "" }), live).parts).includes("MusicBrainz marks it as another version"));
 });

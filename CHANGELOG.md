@@ -6,6 +6,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.6.3
+- **Matching weighs what identifies a record most** — tried against a real library's report
+  first (tools/identify-report.js: 11,752 albums, 300 looked up again): the track count and
+  lengths first, then the track names, then the album's name and artist, the year least. A
+  track's name with something in brackets the release hasn't ("Live For (Album Version
+  (Explicit))", "Little Rio (Un poco Rio)") is the same track; one the same length in the same
+  place is too, whatever it's called; "Part II" is "Part 2", "Vol." is "Volume". On that
+  library: of the 47 proposals waiting, 20 now apply by themselves (2 before); 47 of the 56 you
+  accepted or matched by hand would have (45); no other record reached 95 % in any of it.
+- **Disambiguation.** A release MusicBrainz labels live, remix, demo, acoustic, instrumental…
+  costs a little when nothing of yours (the title, the folders, the box set, the tags) says
+  so — and when they do say "remix", the release that says so too comes first.
 - **95 % alike is always a match.** No exceptions any more: two releases that fit equally,
   or a release MusicBrainz has without track lengths, are applied like any other at 95 % or
   better — Undo (or the album editor) puts right the odd wrong one. Proposals already waiting

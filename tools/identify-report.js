@@ -21,9 +21,10 @@
  * --fetch asks MusicBrainz about each album (one request a second, as the
  * scan does), which takes a while — about five seconds an album. To keep it
  * short:
- *   --only=proposed,unidentified,rejected,manual,edited,unchecked   (the default)
- *   --sample-applied=100     also this many albums the scan applied by itself
- *   --limit=300              at most this many albums asked about
+ *   --only=manual,accepted,rejected,edited,proposed,unidentified,unchecked
+ *                            which albums, most telling first (the default)
+ *   --limit=300              at most this many of those
+ *   --sample-applied=100     and this many albums the scan applied by itself, besides
  * Progress goes to the terminal; the JSON to the file.
  */
 const fs = require("fs");
@@ -78,12 +79,14 @@ const HINT = /comment|version|subtitle|grouping|description|remix|mixer|edition|
     try { cand = r && r.candidate ? JSON.parse(r.candidate) : null; } catch (e) { /* none */ }
     const e = edits.get(al.key);
     // What you did: the ground truth a change in scoring is judged by.
+    // An applied match is kept the way an edit is, so the match decides
+    // first; "edited" is an album you named yourself without one.
     let decision = null;
-    if (e && (e.title || e.artist || e.year)) decision = "edited";
-    else if (r && r.status === "rejected") decision = "rejected";
+    if (r && r.status === "rejected") decision = "rejected";
     else if (r && r.status === "applied" && cand && cand.manual) decision = "manual";
     else if (r && r.status === "applied" && r.applied_at && r.applied_at > r.checked_at) decision = "accepted";
     else if (r && r.status === "applied") decision = "auto";
+    else if (e && (e.title || e.artist || e.year)) decision = "edited";
     const hints = new Set();
     for (const t of tracks) {
       let tags = {};
@@ -113,13 +116,19 @@ const HINT = /comment|version|subtitle|grouping|description|remix|mixer|edition|
   say(`${albums.length} albums the scan looks at`);
 
   if (args.fetch) {
-    const only = new Set(String(args.only || "proposed,unidentified,rejected,manual,edited,unchecked").split(","));
-    const want = a => only.has(a.decision) || (!a.scan && only.has("unchecked")) ||
-      (a.scan && only.has(a.scan.status) && a.decision !== "auto");
-    let picked = albums.filter(want);
+    // The albums that say most first — your own decisions, then what's
+    // waiting, then what was never found, then what wasn't checked — so a
+    // --limit keeps the ones that matter. The applied sample is on top.
+    const order = String(args.only || "manual,accepted,rejected,edited,proposed,unidentified,unchecked").split(",");
+    const rank = a => {
+      const kinds = [a.decision, a.scan ? a.scan.status : "unchecked"];
+      const i = Math.min(...kinds.map(k => { const x = order.indexOf(k); return x < 0 ? Infinity : x; }));
+      return a.decision === "auto" ? Infinity : i;
+    };
+    let picked = albums.filter(a => rank(a) < Infinity).sort((a, b) => rank(a) - rank(b));
+    if (args.limit) picked = picked.slice(0, Number(args.limit));
     const sample = Number(args["sample-applied"] || 0);
     if (sample) picked = picked.concat(albums.filter(a => a.decision === "auto").sort(() => Math.random() - 0.5).slice(0, sample));
-    if (args.limit) picked = picked.slice(0, Number(args.limit));
     say(`asking MusicBrainz about ${picked.length} (about ${Math.ceil(picked.length * 5 / 60)} minutes)…`);
     const byKey = new Map(library.albums.map(al => [al.key, al]));
     let n = 0;
@@ -127,7 +136,16 @@ const HINT = /comment|version|subtitle|grouping|description|remix|mixer|edition|
       n++;
       const al = byKey.get(a.key);
       try {
-        const { cands } = await identifier.resolve(identifier.input(al));
+        // MusicBrainz answers 503 when asked too fast: wait and ask again.
+        let got = null;
+        for (let tries = 0; ; tries++) {
+          try { got = await identifier.resolve(identifier.input(al)); break; }
+          catch (e) {
+            if (!/HTTP (503|429)/.test(e.message) || tries >= 4) throw e;
+            await new Promise(r => setTimeout(r, 5000 * 2 ** tries));
+          }
+        }
+        const { cands } = got;
         a.candidates = (cands || []).slice(0, 12).map(c => ({
           mbid: c.mbid, group_mbid: c.group_mbid || null, artist: c.artist, title: c.title, year: c.year,
           release_title: c.release_title, release_year: c.release_year, edition: c.edition || "", group_note: c.group_note || "",
