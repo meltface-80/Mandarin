@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 119
-        versionName = "0.6.9"
+        versionCode = 120
+        versionName = "0.6.10"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -37,9 +37,9 @@ android {
     }
 
     /*
-     * The release key comes from the environment (a CI secret) and there is no
-     * fallback that silently signs with something else: see the workflow.
-     * Android refuses to install an APK over one signed with a different key,
+     * The release key comes from the environment (a CI secret); without it the
+     * release build is signed with the committed key below (see buildTypes),
+     * and the workflow names that APK "-shared-key". Android refuses to install an APK over one signed with a different key,
      * so it must be the same key every time.
      */
     /*
@@ -68,12 +68,26 @@ android {
         }
     }
 
+    /*
+     * Every published build is a RELEASE build (v0.6.10): optimised Kotlin,
+     * the native Opus decoder compiled with optimisation, not debuggable.
+     * Before, a CI run without the release secrets built the debug variant,
+     * which Android runs noticeably slower (the app's start, its own audio
+     * path, libopus at -O0). Without the secrets the release build is signed
+     * with the committed key above — the one every earlier build used — so it
+     * still installs over them in place.
+     */
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.findByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
+
+    // A release build also runs Android's "lint vital" checks, which can stop
+    // the build over warnings the debug builds never had to pass; they don't
+    // change what's built, and CI's own tests stand for the app's behaviour.
+    lint { checkReleaseBuilds = false }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

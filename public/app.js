@@ -27,6 +27,18 @@
 })();
 
 /* ------------------------------------------------------------------ */
+/*  Later, once the first screen is up (v0.6.10): what the page asks   */
+/*  for at start but nothing on that screen shows waits until the page */
+/*  has loaded and settled, so the rows and covers go first.           */
+/* ------------------------------------------------------------------ */
+window.__afterStart = (fn) => {
+  const go = () => setTimeout(() => {
+    if (window.requestIdleCallback) requestIdleCallback(() => fn(), { timeout: 2000 }); else fn();
+  }, 1500);
+  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+};
+
+/* ------------------------------------------------------------------ */
 /*  UI Settings (v0.6.5, as Rouen v1.8.77 has them): text size, grid   */
 /*  layout and tile size — per device, in localStorage, painted as     */
 /*  custom properties on <html> so every screen reads the same numbers */
@@ -2435,7 +2447,7 @@
       wrap.dataset.mosaic = String(use.length);
     }
     wrap.dataset.artKeys = use.join(",");
-    for (const k of use) loadArt(wrap, k, tileImgSize());
+    for (const k of use) loadArt(wrap, k, tileImgSize(use.length >= 4));
     if (!use.length) wrap.classList.add("no-image");
   }
 
@@ -5499,12 +5511,20 @@
   // Sized from the tile actually drawn (v0.6.5: UI Settings can make a tile
   // two or three times its old width), in device pixels, and held inside the
   // 300–500 band the server keeps cached.
-  function tileImgSize() {
+  // The artwork size to ask for: the larger of the two tiles it may fill (a
+  // grid column, a Home carousel tile), in device pixels, to the next 100.
+  // v0.6.10: no 190px floor (a phone's 3-across tile is ~130px, so it was
+  // fetching and decoding 500px covers for it), and the density counted up to
+  // 2x only — a 3x phone draws a 150px tile from 300px, not 450-500px, which
+  // is under half the pixels to fetch, decode and hold while scrolling. A
+  // quarter of a four-cover mosaic asks for half.
+  function tileImgSize(quarter) {
     const p = window.__uiPrefs;
     const gridTile = window.innerWidth / (p ? p.cols() : 3);
     const carouselTile = 150 * parseFloat(p ? p.get("tile") : "1");
-    const css = Math.max(190, Math.min(gridTile, 600), carouselTile);
-    return Math.min(500, Math.max(300, Math.ceil((css * (window.devicePixelRatio || 1)) / 100) * 100));
+    const css = Math.max(Math.min(gridTile, 600), carouselTile) / (quarter ? 2 : 1);
+    const px = css * Math.min(2, window.devicePixelRatio || 1);
+    return Math.min(500, Math.max(quarter ? 100 : 200, Math.ceil(px / 100) * 100));
   }
 
   // Source badge for an album payload: "local" | "qobuz" | "tidal", or null
@@ -5647,7 +5667,7 @@
       // Keys recorded on the element so "what artwork was this tile given" is
       // answerable even after a failed <img> removes itself.
       artWrap.dataset.artKeys = mosaic.slice(0, 4).join(",");
-      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, tileImgSize());
+      for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, tileImgSize(mosaic.length >= 4));
     } else if (mosaic.length === 1 || a.image_key) {
       const key = mosaic[0] || a.image_key;
       // The key stays on the tile even after a failed <img> removes itself, so
@@ -9543,24 +9563,20 @@
 
   // Ask at boot. Two independent calls, so an older server or a transient
   // error on one endpoint does not decide the other entry's visibility.
+  // The three side by side (v0.6.10), not one after another.
   async function applyFeatureMenuFromServer() {
     const state = {};
-    try {
-      const r = await fetch("/api/settings/labels");
-      if (r.ok) state.labels = !!(await r.json()).enabled;
-    } catch (e) { /* leave the Labels entry as the markup has it */ }
-    try {
-      const r = await fetch("/api/settings/smart-picks");
-      if (r.ok) state.picks = !!(await r.json()).enabled;
-    } catch (e) { /* leave the Smart Picks entry as the markup has it */ }
-    try {
-      const r = await fetch("/api/settings/discover");
-      if (r.ok) state.discover = !!(await r.json()).enabled;
-    } catch (e) {
-      // Left as the markup has it, which for Discover is HIDDEN — unlike the
-      // two above it is off for everyone until asked for, so a failed lookup
-      // must not offer a menu entry that leads to an empty screen.
-    }
+    const ask = async (url) => { try { const r = await fetch(url); return r.ok ? !!(await r.json()).enabled : null; } catch (e) { return null; } };
+    const [labels, picks, discover] = await Promise.all([
+      ask("/api/settings/labels"), ask("/api/settings/smart-picks"), ask("/api/settings/discover")
+    ]);
+    // A failed lookup leaves the entry as the markup has it — which for
+    // Discover is HIDDEN: unlike the other two it is off for everyone until
+    // asked for, so a failed lookup must not offer a menu entry that leads to
+    // an empty screen.
+    if (labels !== null) state.labels = labels;
+    if (picks !== null) state.picks = picks;
+    if (discover !== null) state.discover = discover;
     window.__applyFeatureMenu(state);
   }
 
@@ -9924,15 +9940,27 @@
     } catch (e) {} // corrupt localStorage — transport bar stays hidden, no action needed
   }
 
+  // The server's change counter as of the last answer applied, and the zone it
+  // was for: an answer older than one already painted (a slow one-off fetch
+  // landing after the long-poll's) is dropped rather than painted backwards.
+  let stateRev = -1, stateZone = null;
+  function applyState(zid, j) {
+    if (zid !== selectedZoneId()) return false;
+    const rev = typeof j.revision === "number" ? j.revision : -1;
+    if (zid === stateZone && rev < stateRev) return false;
+    stateRev = rev; stateZone = zid;
+    renderZone(j.zone);
+    saveTransportState(j.zone);
+    return true;
+  }
+
   async function fetchState() {
     const zid = selectedZoneId();
     if (!zid) { renderZone(null); return; }   // no zone yet: the bar says so
     try {
       const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid), { cache: "no-store" });
       if (!r.ok) return;  // server/network error — keep current state
-      const j = await r.json();
-      renderZone(j.zone);
-      saveTransportState(j.zone);
+      applyState(zid, await r.json());
     } catch (e) {
       // network blip — keep what we have
     }
@@ -9964,7 +9992,7 @@
     }
 
     // The static mini-bar bits (text, icons, volume) are skipped when nothing
-    // changed — this runs every 1.5s, and unconditional text-node replacement
+    // changed — this ran every 1.5s before v0.6.10, and unconditional text-node replacement
     // invalidated the fixed bar's paint on every tick even mid-scroll. The
     // seek baseline below always resyncs (it moves every tick by design).
     const volOutput = (zone.outputs || []).find(o => o.volume);
@@ -11024,15 +11052,47 @@
   if (npStepMinus) npStepMinus.addEventListener("click", (e) => { e.stopPropagation(); stepVolume(-1); });
   if (npStepPlus)  npStepPlus .addEventListener("click", (e) => { e.stopPropagation(); stepVolume(+1); });
 
-  // Polling: 1.5s when visible/playing, slower when not
+  // Long-poll (v0.6.10): rather than asking every 1.5s, ask the server to
+  // answer when something changes (wait_for = the last revision seen) or after
+  // 10s regardless. Between answers the bar's clock moves the progress, and
+  // the server bumps the revision on a seek or a drift of more than 3s, so the
+  // screen is as current as before for a fraction of the requests — the phone's
+  // radio and CPU idle instead of waking forty times a minute. 10s, not longer:
+  // each ask also keeps the room "watched" (polled fast on the server), which
+  // lapses after 15s. pollTimer holds the loop's AbortController.
+  async function pollLoop(ctl) {
+    let fails = 0;
+    while (pollTimer === ctl) {
+      const zid = selectedZoneId();
+      if (!zid) { renderZone(null); await new Promise(r => setTimeout(r, 1500)); continue; }
+      const wait = zid === stateZone && stateRev >= 0 ? "&wait_for=" + stateRev + "&timeout=10000" : "";
+      try {
+        const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid) + wait, { cache: "no-store", signal: ctl.signal });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const j = await r.json();
+        if (pollTimer !== ctl) return;
+        // Not newer (a one-off fetch got there first, or the room changed):
+        // a breath before asking again, so a mismatch can never spin.
+        if (!applyState(zid, j)) await new Promise(r => setTimeout(r, 250));
+        fails = 0;
+      } catch (e) {
+        if (pollTimer !== ctl) return;
+        // Server or network trouble: back off (1.5s, 3s … 15s) and keep what we have.
+        fails++;
+        await new Promise(r => setTimeout(r, Math.min(15000, 1500 * fails)));
+      }
+    }
+  }
   function startPolling() {
     if (pollTimer) return;
-    fetchState();
-    pollTimer = setInterval(fetchState, 1500);
+    pollTimer = new AbortController();
+    pollLoop(pollTimer);
   }
   function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    if (pollTimer) { pollTimer.abort(); pollTimer = null; }
   }
+  // A new room: the waiting ask is for the old one, so start again at once.
+  function restartPolling() { if (!pollTimer) return; stopPolling(); startPolling(); }
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { stopPolling(); return; }
     // Discard the elapsed time accumulated while hidden before anything paints.
@@ -11049,7 +11109,7 @@
 
   // Refresh when zone selector changes
   const zoneSel = document.getElementById("zone-select");
-  if (zoneSel) zoneSel.addEventListener("change", fetchState);
+  if (zoneSel) zoneSel.addEventListener("change", restartPolling);
 
   // v1.7.81 gave the pill a backdrop-filter and stripped it here for the
   // duration of every scroll, so the look and the frame rate could coexist.
@@ -12170,7 +12230,7 @@ window.__musicdAppUpd = (function () {
     btnNow.click();
   };
 
-  check();
+  window.__afterStart(check);   // a notice, not the first screen
   setInterval(check, 15 * 60 * 1000);
 })();
 
@@ -12840,7 +12900,7 @@ window.__musicdAppUpd = (function () {
       saveShareLinks({ card_review: cardReviewInput.checked });
     });
   }
-  loadShareLinkSettings();
+  window.__afterStart(loadShareLinkSettings);   // Settings panes only
 
   // Settings is a two-level view: a category home list and one pane per
   // category. Only one .settings-view is visible at a time. The controls and
@@ -14643,11 +14703,12 @@ initServiceBrowser({
     if (!zone) { if (window.__showToast) window.__showToast("Select a zone first"); return; }
     if (el.classList.contains("spinning")) return;
 
-    // Spin the compass for 2 seconds, then fetch. The Random Album disc is
-    // always turning: it speeds up from where it is (v0.6.1) rather than
-    // jumping to another angle — the same animation, run faster.
+    // Spin the compass for 2 seconds, then fetch. The Random Album disc speeds
+    // up from where it is (v0.6.1) rather than jumping to another angle — the
+    // same animation, run faster, and (v0.6.10) turning again if it had stopped.
     el.classList.add("spinning");
     const disc = el.querySelector && el.querySelector(".unheard-disc");
+    discTurns(disc, Infinity);
     rampDisc(disc, 7.5);   // 6s a turn becomes 0.8s, as it was
     await new Promise(r => setTimeout(r, 2000));
 
@@ -14671,6 +14732,24 @@ initServiceBrowser({
     } finally {
       el.classList.remove("spinning");
       rampDisc(disc, 1);
+      // Then still again at the end of the turn it is on: back where it began.
+      discTurns(disc, 0);
+    }
+  }
+
+  // The disc's turns: Infinity to keep it going (and start it if it had
+  // stopped), 0 to stop at the end of the current turn. The animation stays
+  // the same one throughout, so the angle never jumps.
+  function discTurns(disc, n) {
+    if (!disc || typeof disc.getAnimations !== "function") return;
+    const anim = disc.getAnimations()[0];
+    if (!anim || !anim.effect) return;   // reduced motion: no animation
+    if (n === Infinity) {
+      anim.effect.updateTiming({ iterations: Infinity });
+      if (anim.playState !== "running") anim.play();
+    } else {
+      const turn = anim.effect.getTiming().duration || 6000;
+      anim.effect.updateTiming({ iterations: Math.floor((Number(anim.currentTime) || 0) / turn) + 1 });
     }
   }
 

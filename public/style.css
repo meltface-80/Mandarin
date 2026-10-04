@@ -3941,6 +3941,20 @@ input.vol-range::-moz-range-thumb {
   contain-intrinsic-size: auto 320px;
 }
 
+/* v0.6.10: the same for each tile of a wall. A library of thousands kept
+   every tile laid out and painted however far off screen; now only the ones
+   near the view are, and the rest hold a place their size (a square cover
+   plus two lines, until drawn once; then the size they were). Touch screens
+   only: it clips a tile's paint to its box, which would cut off the lift and
+   shadow a mouse hover gives the cover. */
+@media (hover: none) {
+  .album-grid > .album {
+    content-visibility: auto;
+    contain-intrinsic-size: auto calc(100vw / var(--grid-cols, 3)) auto calc(100vw / var(--grid-cols, 3) + 44px);
+  }
+  .album-grid.as-list > .album { contain-intrinsic-size: auto 300px auto 64px; }
+}
+
 .home-carousel {
   display: grid;
   grid-auto-flow: column;
@@ -4589,9 +4603,12 @@ input.vol-range::-moz-range-thumb {
 }
 .unheard-glyph { font-size: 2.4rem; line-height: 1; color: var(--accent-text); }
 /* Random Album's disc (v0.6.0): brass, half the tile, turning slowly on its own
-   centre — the middle of the square — and fast while an album is being found. */
+   centre — the middle of the square — and fast while an album is being found.
+   v0.6.10: two slow turns when Home is drawn, then still (forwards: at 360°,
+   where it began), rather than turning for ever and keeping the page drawing
+   a frame every 16ms on a phone; playUnheard sets it going again for a find. */
 .unheard-disc { display: block; width: 52%; aspect-ratio: 1; color: var(--accent); transform-origin: 50% 50%;
-  animation: unheard-spin 6s linear infinite; }
+  animation: unheard-spin 6s linear 2 forwards; }
 .unheard-disc svg { display: block; width: 100%; height: 100%; }
 @media (prefers-reduced-motion: reduce) { .unheard-disc { animation: none; } }
 .home-unheard-tile .album-title { color: var(--accent-text); }

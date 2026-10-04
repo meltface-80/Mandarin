@@ -116,14 +116,17 @@ object OfflineSite {
         work.execute {
             try {
                 val d = dir(app)
-                for ((path, name) in STATIC) runCatching { save(File(d, name), get(base + path, token)) }
+                // Each asked for only if changed (v0.6.10): the server answers
+                // "not modified" for the copy already kept, so app.js and the
+                // rest aren't downloaded and rewritten every five minutes.
+                for ((path, name) in STATIC) runCatching { refresh(File(d, name), base + path, token) }
                     .onFailure { Log.i(TAG, "$path: ${it.message}") }
                 for (path in CACHED_API) runCatching {
-                    save(File(d, "api" + path.replace('/', '_') + ".json"), get(base + path, token))
+                    refresh(File(d, "api" + path.replace('/', '_') + ".json"), base + path, token)
                 }
                 // Each downloaded album's page, as the server shows it.
                 for ((album, albumDir) in DownloadStore.albums(app)) runCatching {
-                    save(File(albumDir, "page.json"), get("$base/api/album?offset=${album.id}", token))
+                    refresh(File(albumDir, "page.json"), "$base/api/album?offset=${album.id}", token)
                 }
                 // A cover that didn't come with its album (the download only tried once):
                 // fetched now, so the album isn't a blank tile offline.
@@ -147,13 +150,29 @@ object OfflineSite {
         runCatching { save(File(albumDir, "page.json"), get("$base/api/album?offset=$albumId", token)) }
     }
 
+    /**
+     * Fetch [url] into [f] unless the server says the copy kept is current:
+     * the copy's ETag (kept beside it as name.etag) goes with the request,
+     * and a 304 leaves the file as it is.
+     */
+    private fun refresh(f: File, url: String, token: String) {
+        val tagFile = File(f.parentFile, f.name + ".etag")
+        val known = if (f.exists() && tagFile.exists()) runCatching { tagFile.readText() }.getOrNull() else null
+        val (bytes, tag) = get(url, token, known) ?: return
+        save(f, bytes)
+        if (tag != null) runCatching { tagFile.writeText(tag) } else tagFile.delete()
+    }
+
     private fun save(f: File, bytes: ByteArray) {
         val tmp = File(f.parentFile, f.name + ".tmp")
         tmp.writeBytes(bytes)
         if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f) }
     }
 
-    private fun get(url: String, token: String): ByteArray {
+    private fun get(url: String, token: String): ByteArray = get(url, token, null)!!.first
+
+    /** The body and its ETag; null when [etag] is still current (304). */
+    private fun get(url: String, token: String, etag: String?): Pair<ByteArray, String?>? {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 8000
             readTimeout = 20_000
@@ -161,10 +180,12 @@ object OfflineSite {
             setRequestProperty("Authorization", "Bearer $token")
             // The app's own versions of the page and stylesheet.
             setRequestProperty("User-Agent", "MusicDAndroid/${BuildConfig.VERSION_NAME}")
+            if (etag != null) setRequestProperty("If-None-Match", etag)
         }
         try {
+            if (etag != null && conn.responseCode == 304) return null
             if (conn.responseCode != 200) throw IOException("HTTP ${conn.responseCode}")
-            return conn.inputStream.use { it.readBytes() }
+            return conn.inputStream.use { it.readBytes() } to conn.getHeaderField("ETag")
         } finally {
             conn.disconnect()
         }

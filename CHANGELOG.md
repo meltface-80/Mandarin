@@ -5,6 +5,26 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.10
+- **The Android app is a release build.** It was published as a debug build, which Android runs
+  slower (and its Opus decoder unoptimised). Still signed with the same shared key, so it
+  installs over the app you have; the file is now `…-shared-key.apk`.
+- **Now playing waits for changes.** The page asked the server for the room's state every 1.5s;
+  it now asks once and the server answers when something changes (or after 10s), the bar's
+  clock moving the progress between. Back off on errors; a new room starts again at once.
+- **Covers sized to their tiles.** A phone's 3-across tile was given a 500px cover; it now
+  asks for what the tile needs (up to 2x the screen's density), and a four-cover mosaic for
+  half that.
+- **Long walls draw only what's near the screen** (touch screens): tiles off screen keep their
+  place without being laid out or painted.
+- **Random Album's disc turns twice, then rests**, and turns again while an album is found,
+  rather than turning for ever.
+- **The app's offline copy refreshes only what changed**: every five minutes it asked for the
+  page, its script and every downloaded album's page in full; now the server answers "not
+  modified" for what the app already has.
+- **Start-up asks for less first**: the update check and the share-link settings wait until
+  the first screen is up, and the side menu's three switches are asked for together.
+
 ## v0.6.9
 - **A new icon: the duck in black on the app's brass**, the old dark badge's colours turned
   round. For the Android app (the adaptive icon's brass background and black duck, and the

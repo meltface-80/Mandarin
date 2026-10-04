@@ -95,7 +95,7 @@ jobs:
 
       # The signing key comes from repository secrets — the same two as
       # Android Random Remote (MUSICD_KEYSTORE_BASE64, MUSICD_KEYSTORE_PASSWORD).
-      # Without them the APK is signed with the debug key committed in
+      # Without them the (release) APK is signed with the key committed in
       # android/app (musicd-debug.keystore) — the same key every build, so each
       # one updates the last in place.
       - name: Restore the signing key
@@ -118,12 +118,10 @@ jobs:
           MUSICD_KEYSTORE_PASSWORD: ${{ secrets.MUSICD_KEYSTORE_PASSWORD }}
           MUSICD_KEY_ALIAS: musicd
           HAVE_KEY: ${{ steps.signing.outputs.have_key }}
-        run: |
-          if [ "$HAVE_KEY" = "true" ]; then
-            ./gradlew :app:assembleRelease --no-daemon --stacktrace
-          else
-            ./gradlew :app:assembleDebug --no-daemon --stacktrace
-          fi
+        # Always the release build (v0.6.10): optimised and not debuggable.
+        # Without the secrets it's signed with the committed key, the same
+        # as every build before it, so it installs over them in place.
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Name the APK after the version
         id: name
@@ -132,8 +130,9 @@ jobs:
         run: |
           apk=$(find app/build/outputs/apk -name '*.apk' | head -1)
           version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          # "-shared-key": signed with the committed key rather than a private release key.
           if [ "$HAVE_KEY" = "true" ]; then out="musicd-server-android-${version}.apk"
-          else out="musicd-server-android-${version}-debug.apk"; fi
+          else out="musicd-server-android-${version}-shared-key.apk"; fi
           cp "$apk" "$out"
           echo "apk=$out" >> "$GITHUB_OUTPUT"
 
@@ -147,8 +146,9 @@ jobs:
       # link straight at it. From main only. Pushed with GITHUB_TOKEN, which
       # does not trigger workflows, so this cannot loop.
       #
-      # Without the signing secrets the published APK is signed with the
-      # committed debug key: the same every build, so updates install in place.
+      # Without the signing secrets the published APK (a release build) is
+      # signed with the committed key: the same every build, so updates
+      # install in place.
       - name: Publish the APK into dist/
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: .
