@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.2
+# Mandarin — v0.6.3
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -405,8 +405,14 @@ it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pre
 beside it, and track titles lose their remaster tails. At **95 % alike or better** the match
 is applied — artist, title, year and track titles — to the same database overlay the album
 editor writes, so the files are never touched and a rescan changes nothing.
-A near miss is **proposed** on the page (Accept or Reject); anything further off, or two
-different releases that fit equally, is left **unidentified** for you: tap it, then
+What counts most is the track count and the lengths, then the track names (what's in
+brackets set aside, so "Live For (Album Version (Explicit))" is "Live For"), then the album's
+name and artist, and the year least; a release labelled live or remix when your files don't
+say so costs a little. Nothing else holds a match back — two releases that fit equally, or one MusicBrainz has
+without track lengths, are applied too, and Undo puts back the odd wrong one. Names are
+compared as spellings of the same word: "&", "+" and "and", "Kickin'" and "Kicking".
+A near miss is **proposed** on the page (Accept or Reject), saying what it's short of — the
+track lengths, a name, the year; anything further off is left **unidentified** for you: tap it, then
 ⋯ → Edit album — or tap **Barcode…** and type the digits off the sleeve, or paste the
 release's musicbrainz.org address, and that release is applied. Applied names have **Undo**.
 Albums you edited by hand are never touched.

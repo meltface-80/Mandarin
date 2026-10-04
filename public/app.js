@@ -7040,6 +7040,7 @@
     reset: document.getElementById("ae-reset"),
     mStatus: document.getElementById("ae-match-status"),
     mFind: document.getElementById("ae-match-find"),
+    folder: document.getElementById("ae-folder"),
     mBox: document.getElementById("ae-match"),
     mSearchStatus: document.getElementById("ae-match-search-status"),
     mCands: document.getElementById("ae-match-cands"),
@@ -7282,6 +7283,7 @@
       ae.mFind.disabled = false;
     }
     ae.title.value = album.title || ""; ae.artist.value = album.subtitle || ""; ae.year.value = "";
+    if (ae.folder) { ae.folder.classList.add("hidden"); ae.folder.textContent = ""; }
     ae.status.textContent = "Loading…";
     ae.img.removeAttribute("src");
     ae.save.disabled = true;
@@ -7293,6 +7295,20 @@
       if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
       if (aeState !== mine) return;
       mine.data = d;
+      // The album's folder (v0.6.3), for telling a remix or a box set apart
+      // when matching by hand.
+      if (ae.folder && d.folder) {
+        ae.folder.innerHTML = '<span class="ae-folder-label">Folder</span>';
+        ae.folder.appendChild(document.createTextNode(d.folder));
+        // Part of a box set (v0.6.3): said here too, for choosing the release.
+        if (d.box) {
+          const b = document.createElement("span");
+          b.className = "ae-folder-box";
+          b.textContent = "From " + d.box.name + " · disc " + d.box.disc + " of " + d.box.of;
+          ae.folder.appendChild(b);
+        }
+        ae.folder.classList.remove("hidden");
+      }
       ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
       ["title", "artist", "year"].forEach(aeWas);
       ae.reset.classList.toggle("hidden", !d.edited);
@@ -7489,6 +7505,43 @@
         }
         if (note) note.textContent = "Names from its folders — the files carry no tags";
       } else if (note) note.remove();
+    }
+
+    // A disc of a box set filed as albums of their own (v0.6.3): which box,
+    // which disc, and the other discs a tap away — stepping through the box
+    // with previous / next once one is opened from here.
+    {
+      let box = document.getElementById("modal-box-note");
+      const b = j.album && j.album.box;
+      if (b && modalSub && modalSub.parentNode) {
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "modal-box-note";
+          box.className = "modal-box-note";
+        }
+        const anchor = document.getElementById("modal-names-note") || modalSub;
+        anchor.parentNode.insertBefore(box, anchor.nextSibling);
+        box.innerHTML = "";
+        const line = document.createElement("div");
+        line.textContent = "From " + b.name + " · disc " + b.disc + " of " + b.of;
+        box.appendChild(line);
+        const all = [Object.assign({}, album, { disc: b.disc })].concat(j.box_albums || []).sort((x, y) => (x.disc || 0) - (y.disc || 0));
+        const others = document.createElement("div");
+        others.className = "modal-box-discs";
+        all.forEach((x, i) => {
+          if (x.offset === album.offset) return;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "modal-box-disc";
+          btn.textContent = "Disc " + x.disc + " · " + x.title;
+          btn.addEventListener("click", () => {
+            albumNav.pending = { items: all.map(a => ({ album: a, open: () => openAlbum(a, { source: "home", filter: null }) })), index: i };
+            openAlbum(x, { source: "home", filter: null });
+          });
+          others.appendChild(btn);
+        });
+        box.appendChild(others);
+      } else if (box) box.remove();
     }
 
     // Build action buttons in preferred order
@@ -16571,9 +16624,11 @@ initServiceBrowser({
     const a = it.album, c = it.candidate;
     let line2 = "";
     const from = c && c.source === "itunes" ? " · from iTunes" : "";
-    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "") + from;
+    // Why it's short of 100 % (v0.6.3): the score's own reasons.
+    const why = it.why && it.why.length ? " — " + esc(it.why.join(", ")) : "";
+    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + why + (it.ambiguous ? " · two releases fit" : "") + from;
     else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c) + from;
-    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
+    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + why + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
     else line2 = c ? "declined: " + names(c) : "";
     if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
     // Found by what the files carry (v0.6.0-RC5).
