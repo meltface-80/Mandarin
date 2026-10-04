@@ -198,14 +198,21 @@ a.action-btn:active,
   display: flex; align-items: center; justify-content: flex-start;
   gap: 10px;
 }
-/* The right-hand cluster. Refresh carries the margin that pushes the group
-   over, and #topbar-view sits after it in the markup — so on the random wall
-   the pair lands at the right with the view control in the corner and Refresh
-   beside it. On the Library wall there is no Refresh, so the hidden one hands
-   the push to its neighbour and the view control takes the corner alone.
-   (`.hidden` is display:none, which a sibling selector still matches.) */
+/* The right-hand cluster: Refresh in the corner (the grid ⇄ list button that
+   sat there went to Settings → UI Settings in v0.6.5), and the labels' tools
+   where they show. */
 #topbar-refresh { margin-left: auto; }
-#topbar-refresh.hidden + #topbar-view { margin-left: auto; }
+.labels-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.labels-tools.is-searching { flex: 1 1 auto; }
+.labels-tools .labels-search { flex: 1 1 auto; }
+.labels-tools .labels-search input {
+  flex: 1 1 auto; min-width: 0; appearance: none; background: transparent; color: var(--text);
+  border: 0; outline: none; font-size: 16px; line-height: 1.2; padding: 2px 0;
+}
+.labels-tools .labels-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.labels-tools > .icon-btn { flex: 0 0 auto; }
+.labels-sort-btn { font-size: 10.5px; font-weight: 700; letter-spacing: 0; font-family: inherit; white-space: nowrap; padding: 0; }
+.album-count.is-hidden-by-search { display: none; }
 
 
 .album-count {
@@ -5483,3 +5490,24 @@ button.cap-chip:active { transform: scale(.96); }
 }
 .modal-box-disc:hover { border-color: var(--accent); }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
+
+
+/* ── UI Settings (v0.6.5) ─────────────────────────────────────────────
+   app.js (UI_PREFS) sets these on <html>, per device:
+     --ui-title-text     the title at the top of a screen (Labels, a genre…)
+     --ui-carousel-text  the album and artist names under Home's tiles
+     --ui-grid-text      the same under the album walls' tiles
+     --ui-tile           Home's tile size
+     --ui-grid-cols      the walls' columns (data-ui-cols: set when not the standard)
+   zoom scales a block's text and its line spacing as one, whatever the
+   breakpoint's own font sizes are. */
+.album-count { zoom: var(--ui-title-text, 1); max-width: calc(50vw / var(--ui-title-text, 1)); }
+.home-carousel .album-meta,
+.home-carousel .pick-meta { zoom: var(--ui-carousel-text, 1); }
+.album-grid .album-meta { zoom: var(--ui-grid-text, 1); }
+html[data-ui-cols] .album-grid:not(.as-list) { grid-template-columns: repeat(var(--ui-grid-cols), minmax(0, 1fr)); }
+html[data-ui-tile] .home-carousel { grid-auto-columns: calc(150px * var(--ui-tile)); }
+html[data-ui-tile] .home-carousel .pick-card { width: calc(150px * var(--ui-tile)); }
+html[data-ui-tile][data-palette="hifi"] .home-carousel { grid-auto-columns: calc(144px * var(--ui-tile)); }
+html[data-ui-tile][data-palette="hifi"] .home-carousel .pick-card { width: calc(156px * var(--ui-tile)); }
+.ui-note-off { opacity: .5; }

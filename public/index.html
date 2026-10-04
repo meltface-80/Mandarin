@@ -221,25 +221,6 @@
           <path d="M3 21v-5h5"/>
         </svg>
       </button>
-      <!-- Grid ⇄ list for the album walls. One control, one stored choice: the
-           walls are the same shelf seen from different screens, and a per-screen
-           setting would mean finding it again on each of them. -->
-      <button id="topbar-view" class="icon-btn hidden" type="button"
-              aria-label="Show as list" title="Show as list" aria-pressed="false">
-        <svg id="topbar-view-grid" width="20" height="20" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true">
-          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-          <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-        </svg>
-        <svg id="topbar-view-list" width="20" height="20" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true" class="hidden">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-      </button>
     </div>
 
     <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true">
@@ -1099,6 +1080,15 @@
             </span>
           </button>
 
+          <button class="settings-nav-item" type="button" data-pane="ui">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">UI Settings</span>
+            </span>
+          </button>
+
           <button class="settings-nav-item" type="button" data-pane="sharecard">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -1517,6 +1507,20 @@
                    aria-label="Display rotation interval in seconds">
           </div>
         </div>
+      </div>
+
+      <!-- UI Settings (v0.6.5): text sizes, how the album walls are laid out
+           and how big the tiles are. Kept on each device (a phone and a big
+           screen want different things); app.js builds the rows from UI_PREFS. -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ui">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>UI Settings</h2>
+        </div>
+        <p class="settings-pane-desc">Text, layout and tile sizes on this device</p>
+        <div id="ui-pane-body"></div>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is
