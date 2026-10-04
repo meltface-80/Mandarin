@@ -53,9 +53,11 @@
   const desktopQ = window.matchMedia ? window.matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine)") : null;
   const isDesktop = () => !!(desktopQ && desktopQ.matches);
   const BIG = ["1.75", "2"];
+  const TEXT = ["text", "title", "menu"];
+  // Text sizes only: "2" is also the Grid layout's 2 columns.
   function get(k) {
     const v = stored(k);
-    return (BIG.indexOf(v) > -1 && !isDesktop()) ? "1.5" : v;
+    return (TEXT.indexOf(k) > -1 && BIG.indexOf(v) > -1 && !isDesktop()) ? "1.5" : v;
   }
   function stored(k) {
     if (k in mem) return mem[k];
