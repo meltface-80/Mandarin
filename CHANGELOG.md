@@ -5,6 +5,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.3
+- **95 % alike is always a match.** No exceptions any more: two releases that fit equally,
+  or a release MusicBrainz has without track lengths, are applied like any other at 95 % or
+  better — Undo (or the album editor) puts right the odd wrong one. Proposals already waiting
+  at 95 % or more are applied when the server starts.
+- **Spellings of the same name match.** "&", "+" and "and"; "Kickin'", "Kickin" and
+  "Kicking"; "Rock 'n' Roll" and "Rock and Roll" — no longer counted against a match.
+- **A proposal says why it isn't 100 %**: track lengths differ, track names differ, the title
+  or the artist's spelling, the year (with yours), or MusicBrainz having no track lengths.
+
 ## v0.6.2
 - **95 % alike is a match.** The identification scan applies a match at 95 % alike or better
   (it was 96 %), whether MusicBrainz or iTunes found it — iTunes matches no longer have to fit

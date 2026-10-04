@@ -16571,9 +16571,11 @@ initServiceBrowser({
     const a = it.album, c = it.candidate;
     let line2 = "";
     const from = c && c.source === "itunes" ? " · from iTunes" : "";
-    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + (it.ambiguous ? " · two releases fit" : "") + from;
+    // Why it's short of 100 % (v0.6.3): the score's own reasons.
+    const why = it.why && it.why.length ? " — " + esc(it.why.join(", ")) : "";
+    if (kind === "proposed") line2 = "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + why + (it.ambiguous ? " · two releases fit" : "") + from;
     else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c) + from;
-    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
+    else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + why + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
     else line2 = c ? "declined: " + names(c) : "";
     if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
     // Found by what the files carry (v0.6.0-RC5).

@@ -97,10 +97,11 @@ test("score: the verdicts — applied, proposed, unidentified, ambiguous", () =>
   // Another record altogether.
   const other = cand({ title: "OK Computer", artist: "Radiohead", tracks: [["Airbag", 284], ["Paranoid Android", 383], ["Subterranean Homesick Alien", 267], ["Exit Music", 264]].map(([title, length]) => ({ title, length })) });
   assert.equal(SCORE.decide(album(), [other]).status, "unidentified");
-  // Two perfect candidates saying different names: never applied.
+  // Two perfect candidates saying different names: applied all the same at
+  // 95 % or more (v0.6.3), the doubt kept with it.
   const twin = cand({ mbid: "y", title: "Kid A", artist: "Radio Head" });
   const amb = SCORE.decide(album({ artist: "Various Artists" }), [cand(), twin]);
-  assert.equal(amb.status, "proposed");
+  assert.equal(amb.status, "applied");
   assert.ok(amb.ambiguous);
   // Two perfect candidates that are the same record (two countries): applied.
   assert.equal(SCORE.decide(album(), [cand(), cand({ mbid: "y" })]).status, "applied");
@@ -117,9 +118,9 @@ test("score: another pressing of the same record is not a rival", () => {
   // Two groups that would write the same names over these four tracks: not a rival either.
   v = SCORE.decide(album(), [cand({ group_mbid: "g1" }), cand({ mbid: "y", group_mbid: "g2", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) })]);
   assert.equal(v.status, "applied");
-  // Another artist's name at the same distance still is.
+  // Another artist's name at the same distance still is (and, at 95 % or
+  // more, is applied all the same, v0.6.3).
   v = SCORE.decide(album({ artist: "Various Artists" }), [cand(g), cand({ mbid: "y", group_mbid: "g2", artist: "Radio Head" })]);
-  assert.equal(v.status, "proposed");
   assert.ok(v.ambiguous);
   // Between equals, the one with lengths known comes first, then the earlier.
   const blank = cand({ mbid: "b", tracks: album().tracks.map(t => ({ title: t.title, length: null })) });
@@ -133,12 +134,11 @@ test("score: a release MusicBrainz has without lengths is judged by its names", 
   assert.equal(v.status, "applied");
   assert.equal(v.best.parts.no_lengths, true);
   assert.equal(v.best.parts.track_lengths, null);
-  // One title off: proposed, never applied on names alone.
-  v = SCORE.decide(album(), [blank(album().tracks.map((t, i) => i === 2 ? { title: "The National Anthem (Live)" } : t))]);
-  assert.equal(v.status, "proposed");
-  // A track short: proposed.
-  v = SCORE.decide(album(), [blank(album().tracks.slice(0, 3))]);
-  assert.equal(v.status, "proposed");
+  // Short of exact: by the same 95 % as any other (v0.6.3).
+  for (const r of [blank(album().tracks.map((t, i) => i === 2 ? { title: "The National Anthem (Live)" } : t)), blank(album().tracks.slice(0, 3))]) {
+    v = SCORE.decide(album(), [r]);
+    assert.equal(v.status, SCORE.similarity(v.best.distance) >= 95 ? "applied" : "proposed", String(v.best.distance));
+  }
 });
 
 test("score: a ripper's 'null' is not part of a name", () => {
@@ -288,7 +288,8 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     // Hi Res: proposed with the distance shown; the album is untouched until accepted.
     const prop = r.proposed.find(x => x.album.title === "Hi Res");
     assert.ok(prop);
-    assert.ok(prop.similarity < 96 && prop.similarity >= 85, String(prop.similarity));
+    assert.ok(prop.similarity < 95 && prop.similarity >= 85, String(prop.similarity));
+    assert.ok(prop.why.includes("track lengths differ"), JSON.stringify(prop.why));
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     r = await api("identify/accept", { offset: prop.album.offset });
     assert.equal(r.status, 200);
@@ -575,14 +576,12 @@ test("score: 95 % alike, as the page shows it, is applied unasked; 94 % is propo
   const v = SCORE.decide(album(), [near(24)]);
   assert.equal(SCORE.similarity(v.best.distance), 94);
   assert.equal(v.status, "proposed");
-  // Two different records as close are still asked about, however alike.
-  assert.equal(SCORE.appliesUnasked({ distance: 0, parts: {} }, true), false);
-  // No lengths: only an exact fit, as before.
-  assert.equal(SCORE.appliesUnasked({ distance: 0.03, parts: { no_lengths: true, track_titles: 0.05 } }, false), false);
-  assert.equal(SCORE.appliesUnasked({ distance: 0, parts: { no_lengths: true, track_titles: 0, missing_tracks: 0, extra_tracks: 0 } }, false), true);
+  // Nothing else counts (v0.6.3): no lengths, missing tracks, a close rival.
+  assert.equal(SCORE.appliesUnasked({ distance: 0.03, parts: { no_lengths: true, track_titles: 0.05, missing_tracks: 1 } }), true);
+  assert.equal(SCORE.appliesUnasked({ distance: 0.06, parts: {} }), false);
 });
 
-test("proposals already waiting at 95 % or more are applied once; the rest stay (v0.6.2)", () => {
+test("proposals already waiting at 95 % or more are applied once, whatever else; the rest stay (v0.6.3)", () => {
   const fs = require("fs"), os = require("os"), path = require("path");
   const DB = require("../lib/library/db");
   const db = DB.open(fs.mkdtempSync(path.join(os.tmpdir(), "musicd-ident-")), { log: () => {} });
@@ -594,7 +593,30 @@ test("proposals already waiting at 95 % or more are applied once; the rest stay 
     put("a95", 0.05); put("a99", 0.01, { source: "itunes" }); put("a94", 0.06); put("amb", 0.01, { ambiguous: true }); put("gone", 0.01);
     const accepted = [];
     id.accept = key => { accepted.push(key); return {}; };
-    assert.equal(id.applyWaiting(), 2);
-    assert.deepEqual(accepted.sort(), ["a95", "a99"]);
+    assert.equal(id.applyWaiting(), 3);
+    assert.deepEqual(accepted.sort(), ["a95", "a99", "amb"]);
   } finally { db.close(); }
+});
+
+test("names: '+', '&' and 'and', a dropped g, 'n' — the same word to the score (v0.6.3)", () => {
+  for (const [a, b] of [["Siouxsie & The Banshees", "Siouxsie and the Banshees"], ["Simon + Garfunkel", "Simon & Garfunkel"],
+    ["Kiddin", "Kiddin'"], ["Kickin'", "Kicking"], ["Kickin", "Kickin’"], ["Rock 'n' Roll", "Rock and Roll"], ["Rock n Roll", "Rock & Roll"]]) {
+    assert.equal(SCORE.stringDist(a, b), 0, a + " / " + b);
+    assert.equal(SCORE.titleDist(a, b), 0, a + " / " + b);
+  }
+  // Short words aren't stretched into others.
+  assert.ok(SCORE.stringDist("King", "Kin") > 0);
+  assert.ok(SCORE.stringDist("Sing", "Sin") > 0);
+  // So an album tagged one way and released the other is a full match.
+  const v = SCORE.decide(album({ artist: "Simon + Garfunkel", title: "Kickin' It" }), [cand({ artist: "Simon & Garfunkel", title: "Kicking It" })]);
+  assert.equal(v.best.distance, 0);
+});
+
+test("why a match is short of 100 %, in words (v0.6.3)", () => {
+  const near = cand({ year: 1999, tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + 30 } : t) });
+  const v = SCORE.decide(album(), [near]);
+  assert.deepEqual(SCORE.why(v.best.parts, { year: 2000 }), ["track lengths differ", "the year differs (2000 here)"]);
+  assert.deepEqual(SCORE.why(SCORE.distance(album(), cand()).parts), []);
+  assert.deepEqual(SCORE.why({ no_lengths: true, track_titles: 0.3 }), ["track names differ", "MusicBrainz has no track lengths"]);
+  assert.deepEqual(SCORE.why({ album: 0.05 }), ["edition notes in the names"]);
 });
