@@ -217,6 +217,7 @@
   .firstrun ol { padding-left: 20px; font-size: 14px; display: grid; gap: 9px; color: var(--muted); }
   .firstrun ol li::marker { color: var(--copper); font-weight: 700; }
   .firstrun ol li b { color: var(--text); }
+  details.firstrun summary { cursor: pointer; font-size: 14px; color: var(--muted); }
 
   /* ---------- small screens (phones, portrait) ---------- */
   @media (max-width: 600px) {
@@ -443,7 +444,7 @@
     <p class="lead">Everything added and improved from v0.5.50 to v0.6.11.</p>
     <div class="grid">
       <div class="card"><h3>Runs on a Mac</h3>
-        <p>Step-by-step instructions to run the server on macOS 14 or newer, macOS 27 included, without Docker, and start it at login.</p></div>
+        <p>One line in Terminal installs the server on macOS 14 or newer, macOS 27 included. Finder windows choose the music and pack folders; it starts at login.</p></div>
       <div class="card"><h3>Lighter on phones</h3>
         <p>The Android app is now a release build. Now playing waits for changes instead of asking every second and a half; covers come sized to their tiles.</p></div>
       <div class="card"><h3>A brass icon</h3>
@@ -617,44 +618,61 @@
   <div class="wrap">
     <h2>Install on a Mac</h2>
     <p class="lead">No Docker needed: macOS 14 or newer, macOS 27 included, Apple silicon or Intel.
-      The Mac stays on, on the same network as your speakers. Type each step in <b>Terminal</b>
-      (Applications &rarr; Utilities).</p>
+      The Mac stays on, on the same network as your speakers.</p>
     <div class="out">
-      <div class="firstrun"><ol><li><b>Install Homebrew</b>, the Mac's package installer, if you don't
-        have it: paste the command from <a href="https://brew.sh">brew.sh</a>, press Return and follow
-        what it says at the end.</li></ol></div>
-      <div class="firstrun"><ol start="2"><li><b>Install Node.js and ffmpeg.</b></li></ol></div>
+      <div class="firstrun"><ol start="1"><li><b>Open Terminal</b>: press Command-Space, type <b>Terminal</b> and press Return.</li></ol></div>
+      <div class="firstrun"><ol start="2"><li><b>Paste this line</b> and press Return.</li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)&quot;</pre>
+      </div>
+      <div class="firstrun"><ol start="3"><li><b>Answer what it asks.</b> Your <b>Mac's password</b>, if asked (nothing shows as you
+        type; that's normal). Your <b>music folder</b>: a Finder window opens; click the folder your music
+        is in, on the Mac or an external drive, and click <b>Choose</b>. Where to keep the
+        <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB): <b>On this Mac</b>,
+        or <b>Choose a folder...</b> for another drive. <b>Keep awake</b>, so the music doesn't stop. And
+        <b>Allow</b> if macOS asks to let <b>node</b> find devices on your network or open your files.</li></ol></div>
+      <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
+        whenever you log in. On a phone, open the address Terminal shows at the end. Add or change music
+        folders any time in Settings &rarr; Music Folders.</li></ol></div>
+      <div class="note"><b>Only listening on a Mac?</b> None of this is needed: open the server's
+        address in Safari and choose <b>File &rarr; Add to Dock</b>.</div>
+      <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
+        is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
+        Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security
+        &rarr; Full Disk Access, click +, press Command-Shift-G, paste
+        <code>/opt/homebrew/opt/node@22/bin/node</code> (Intel Mac: <code>/usr/local/opt/node@22/bin/node</code>)
+        and click Open.</div>
+      <details class="firstrun">
+        <summary><b>Prefer to install by hand?</b></summary>
+        <div class="out" style="margin-top:14px">
+      <div class="firstrun"><ol start="1"><li><b>Install Homebrew</b> from <a href="https://brew.sh">brew.sh</a> if you don't have it, then Node.js and ffmpeg.</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
 <pre>brew install node@22 ffmpeg
 echo &#x27;export PATH=&quot;$(brew --prefix)/opt/node@22/bin:$PATH&quot;&#x27; &gt;&gt; ~/.zprofile
 source ~/.zprofile</pre>
       </div>
-      <div class="firstrun"><ol start="3"><li><b>Download Mandarin.</b></li></ol></div>
+      <div class="firstrun"><ol start="2"><li><b>Download Mandarin.</b></li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
 <pre>git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
 cd ~/Mandarin
 npm ci --omit=dev</pre>
       </div>
-      <div class="firstrun"><ol start="4"><li><b>Start it</b>, pointing at your music (here, the Mac's
-        own Music folder). Allow what macOS asks the first time: to find devices on your local network,
-        to accept incoming connections, and to open your Music folder.</li></ol></div>
+      <div class="firstrun"><ol start="3"><li><b>Start it with your music folder</b>: replace <code>$HOME/Music</code> with yours (an
+        external drive is under <code>/Volumes/&hellip;</code>). To get the path without typing, type
+        <code>MUSIC_DIR="</code>, drag the folder from Finder onto Terminal, then type
+        <code>" npm start</code>. Open <b>http://localhost:3500</b> and create your account.</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
 <pre>cd ~/Mandarin
 MUSIC_DIR=&quot;$HOME/Music&quot; npm start</pre>
       </div>
-      <div class="firstrun"><ol start="5"><li><b>Open it.</b> On the Mac, <b>http://localhost:3500</b>;
-        on a phone, <b>http://&lt;mac-ip&gt;:3500</b> (the IP is in System Settings &rarr; Wi-Fi &rarr;
-        Details). Create your account, then add more folders, an external drive (<code>/Volumes/&hellip;</code>)
-        included, in Settings &rarr; Music Folders.</li></ol></div>
-      <div class="note"><b>Keep the Mac awake.</b> In System Settings &rarr; Energy (or Battery &rarr;
-        Options), turn on <b>Prevent automatic sleeping when the display is off</b>. A sleeping Mac can't
-        play to your speakers.</div>
-      <div class="firstrun"><ol start="6"><li><b>Start it when you log in</b> (optional). Stop it in
-        Terminal first (Control-C), then paste this. To undo:
-        <code>launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist</code>.</li></ol></div>
+      <div class="firstrun"><ol start="4"><li><b>Keep the Mac awake:</b> System Settings &rarr; Energy (or Battery &rarr; Options)
+        &rarr; Prevent automatic sleeping when the display is off.</li></ol></div>
+      <div class="firstrun"><ol start="5"><li><b>Start it at login</b> (optional). Stop it first (Control-C). Put the <b>same music
+        folder</b> as in step 3 where it says <code>$HOME/Music</code>, then paste it.</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
 <pre>mkdir -p ~/Mandarin/data
@@ -677,15 +695,12 @@ cat &gt; ~/Library/LaunchAgents/app.mandarin.server.plist &lt;&lt;PLIST
 PLIST
 launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
       </div>
-      <div class="note"><b>No albums when it starts at login?</b> macOS is keeping it out of the
-        folder: add <code>node</code> in System Settings &rarr; Privacy &amp; Security &rarr; Full Disk
-        Access (press Command-Shift-G and paste the path <code>which node</code> prints).</div>
-      <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
-        is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
-        Mac App Store and sign in. Rooms not found? Put <code>SONOS_HOSTS=&lt;a speaker's IP&gt;</code>
-        before <code>npm start</code>.</div>
-      <div class="note"><b>Only listening on a Mac?</b> None of this is needed: open the server's
-        address in Safari and choose <b>File &rarr; Add to Dock</b>.</div>
+          <div class="note"><b>The MusicBrainz pack</b> needs no setup on a Mac: in Settings &rarr;
+            Library Scanner &rarr; Folder, pick any folder, an external drive (Volumes) included. Unlike
+            Docker there's no <code>/packs</code> mount. With none chosen it's kept in
+            <code>~/Mandarin/data</code>.</div>
+        </div>
+      </details>
     </div>
   </div>
 </section>

@@ -247,85 +247,111 @@ docker stop musicd-server && docker rm musicd-server
 ## Install on a Mac
 
 Mandarin runs on a Mac without Docker: macOS 14 or newer, macOS 27 included, Apple silicon or
-Intel. The Mac needs to stay on, on the same network as your speakers. Everything below is typed
-in **Terminal** (Applications → Utilities).
+Intel. The Mac needs to stay on, on the same network as your speakers.
 
-**1. Install Homebrew**, the Mac's package installer, if you don't have it: paste the command from
-[brew.sh](https://brew.sh), press Return, and follow what it says at the end.
+**1. Open Terminal**: press Command-Space, type **Terminal** and press Return.
 
-**2. Install Node.js and ffmpeg:**
+**2. Paste this line** and press Return:
 
 ```bash
-brew install node@22 ffmpeg
-echo 'export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"' >> ~/.zprofile
-source ~/.zprofile
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
 ```
 
-**3. Download Mandarin:**
+**3. Answer what it asks:**
+* **Your Mac's password**, if it asks: type it and press Return. Nothing shows as you type; that's
+  normal.
+* **Your music folder**: a Finder window opens. Click the folder your music is in (on the Mac or on
+  an external drive) and click **Choose**.
+* **The MusicBrainz pack**: where to keep it, if you download it later (optional, about 2 GB).
+  **On this Mac** is fine; **Choose a folder...** to put it on another drive.
+* **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
+* **Allow** if macOS asks to let **node** find devices on your network or open your files.
 
-```bash
-git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
-cd ~/Mandarin
-npm ci --omit=dev
-```
+**4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
+log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`). Add more
+music folders, or change them, any time in **Settings → Music Folders**.
 
-**4. Start it**, pointing at your music (here, the Mac's own Music folder):
-
-```bash
-cd ~/Mandarin
-MUSIC_DIR="$HOME/Music" npm start
-```
-
-Allow what macOS asks the first time: to **find devices on your local network** (that's how it
-finds the speakers), to **accept incoming connections**, and to open your **Music folder**.
-
-**5. Open it.** On the Mac, go to **`http://localhost:3500`** and create your account. On a phone,
-use the Mac's address: **`http://<mac-ip>:3500`** (the IP is in System Settings → Wi-Fi →
-Details). Add more folders, an external drive (`/Volumes/…`) included, in **Settings → Music
-Folders**.
-
-**Keep the Mac awake.** In System Settings → Energy (or Battery → Options), turn on **Prevent
-automatic sleeping when the display is off**. A sleeping Mac can't play to your speakers.
-
-**Start it when you log in (optional).** Stop it in Terminal first (Control-C), then paste:
-
-```bash
-mkdir -p ~/Mandarin/data
-cat > ~/Library/LaunchAgents/app.mandarin.server.plist <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>Label</key><string>app.mandarin.server</string>
-  <key>ProgramArguments</key><array><string>$(which node)</string><string>$HOME/Mandarin/launcher.js</string></array>
-  <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
-  <key>EnvironmentVariables</key><dict>
-    <key>MUSIC_DIR</key><string>$HOME/Music</string>
-    <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
-  </dict>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>$HOME/Mandarin/data/server.log</string>
-  <key>StandardErrorPath</key><string>$HOME/Mandarin/data/server.log</string>
-</dict></plist>
-PLIST
-launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist
-```
-
-To stop it starting: `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`. If no
-albums appear when it's started this way, macOS is keeping it out of the folder: add `node` in
-System Settings → Privacy & Security → **Full Disk Access** (press Command-Shift-G and paste the
-path `which node` prints).
+**Only listening on a Mac?** None of this is needed: open the server's address in Safari and
+choose **File → Add to Dock**. It opens like an app.
 
 **On a Mac:**
 * **Updates** come from the app, as on Linux (Settings → **Updates**).
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
-* **Rooms not found?** Give it a speaker's IP: `SONOS_HOSTS=192.168.1.20` before `npm start`
-  (or another `<key>`/`<string>` pair beside `MUSIC_DIR` in the file above).
+* **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
+  Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
+  `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
+  and click **Open**.
+* **Rooms not found?** Run this in Terminal with one of your speakers' IP addresses, then restart
+  the Mac: `/usr/libexec/PlistBuddy -c "Add :EnvironmentVariables:SONOS_HOSTS string 192.168.1.20" ~/Library/LaunchAgents/app.mandarin.server.plist`
+* **Stop Mandarin starting at login:** `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`
 
-**Only listening on a Mac?** None of this is needed: open the server's address in Safari and
-choose **File → Add to Dock**. It opens like an app.
+<details>
+<summary><b>Prefer to install by hand?</b></summary>
+
+In **Terminal**:
+
+1. Install [Homebrew](https://brew.sh) if you don't have it, then Node.js and ffmpeg:
+
+   ```bash
+   brew install node@22 ffmpeg
+   echo 'export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"' >> ~/.zprofile
+   source ~/.zprofile
+   ```
+
+2. Download Mandarin:
+
+   ```bash
+   git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+   cd ~/Mandarin
+   npm ci --omit=dev
+   ```
+
+3. Start it with **your** music folder. Replace `$HOME/Music` with your own; to get its path
+   without typing, type `MUSIC_DIR="`, drag the folder from Finder onto the Terminal window, then
+   type `" npm start`. An external drive is under `/Volumes/…`.
+
+   ```bash
+   cd ~/Mandarin
+   MUSIC_DIR="$HOME/Music" npm start
+   ```
+
+   Open **`http://localhost:3500`** and create your account.
+
+4. **Keep the Mac awake:** System Settings → Energy (or Battery → Options) → **Prevent automatic
+   sleeping when the display is off**.
+
+5. **Start it at login (optional).** Stop it first (Control-C). In the file below, put the **same
+   music folder** as in step 3 where it says `$HOME/Music`, then paste it:
+
+   ```bash
+   mkdir -p ~/Mandarin/data
+   cat > ~/Library/LaunchAgents/app.mandarin.server.plist <<PLIST
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0"><dict>
+     <key>Label</key><string>app.mandarin.server</string>
+     <key>ProgramArguments</key><array><string>$(which node)</string><string>$HOME/Mandarin/launcher.js</string></array>
+     <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
+     <key>EnvironmentVariables</key><dict>
+       <key>MUSIC_DIR</key><string>$HOME/Music</string>
+       <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
+     </dict>
+     <key>RunAtLoad</key><true/>
+     <key>KeepAlive</key><true/>
+     <key>StandardOutPath</key><string>$HOME/Mandarin/data/server.log</string>
+     <key>StandardErrorPath</key><string>$HOME/Mandarin/data/server.log</string>
+   </dict></plist>
+   PLIST
+   launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist
+   ```
+
+**The MusicBrainz pack (optional, about 2 GB)** needs no setup on a Mac: in **Settings → Library
+Scanner → Folder**, pick any folder, an external drive (**Volumes**) included. Unlike Docker,
+there's no `/packs` mount to add. With no folder chosen it's kept in `~/Mandarin/data`.
+
+</details>
 
 ## Configuration
 

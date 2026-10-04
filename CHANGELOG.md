@@ -6,9 +6,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.6.11
-- **Install on a Mac**: a new section in the README and on the site, step by step: Homebrew,
-  Node.js and ffmpeg, download, start, open, keep the Mac awake, and (optionally) start it at
-  login. Away from home there through the Tailscale app.
+- **Install on a Mac in one line** (README and site): `tools/mac/install.sh`, pasted into Terminal,
+  installs Homebrew, Node.js 22 and ffmpeg, downloads Mandarin, asks with the Finder's own
+  folder chooser where the music is and where to keep the MusicBrainz pack, offers to keep the
+  Mac awake while plugged in, starts Mandarin now and at every login, and opens it in the
+  browser. The by-hand steps are still there, folded away, with the music folder and the pack
+  folder explained. Away from home on a Mac through the Tailscale app.
+- **Folder choosers on a Mac** (Music Folders, the pack's Folder): the top level shows Users and
+  Volumes, not the Mac's system folders.
 - **The app's signing key, as it is now**: from v0.6.10 the published app is signed with the
   project's own key. The README and the site say that coming from an earlier build needs one
   uninstall, and what a self-built app (`…-shared-key.apk`) can and can't update.
