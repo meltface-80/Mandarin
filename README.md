@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.7
+# Mandarin — v0.6.8
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -102,7 +102,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## New since the last beta (v0.5.50)
 
-* **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcodes match without asking musicbrainz.org. Optional: an 845 MB download, kept in a folder you choose.
+* **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcoded albums match first, even while musicbrainz.org is down. Optional: an 845 MB download.
 * **UI Settings** — Album and artist text, grid screen titles, menu and Home text, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
 * **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
 * **Library controls in the top bar** — Focus, Sort and search sit in the Library screen's top bar; the search opens over them, and × clears, then closes.
@@ -450,7 +450,9 @@ switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
 tracks, kept on the server — an 845 MB download, 2 GB on disk, in the data folder or any folder
 you choose (in Docker, a writable mount: see [Install](#install-docker)). Barcodes are then matched there, without asking
 musicbrainz.org; anything it lacks is asked for as before. It's built each week from
-MusicBrainz's data dump on GitHub and fetched again when a newer one is out.
+MusicBrainz's data dump on GitHub and fetched again when a newer one is out. With it, the albums
+whose barcode it has are looked at first, and the scan carries on with them while
+musicbrainz.org isn't answering; a match from it says "matched by barcode (pack)".
 
 **Scheduling** is on by default: the scan runs between the start and end times you set each
 night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library

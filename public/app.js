@@ -16959,6 +16959,7 @@ initServiceBrowser({
       case "waiting": return "Waits for " + esc(s.start) + " (the server's clock).";
       case "scanning": return "Paused while the library is being scanned.";
       case "unreachable": return "MusicBrainz isn't answering; trying again in a few minutes.";
+      case "pack": return "MusicBrainz isn't answering, so the albums the MusicBrainz pack can answer are being matched from it: " + (st.current ? names(st.current) : "…");
       case "checking": return "Checking: " + (st.current ? names(st.current) : "…");
       case "starting": return "Starting…";
       default: return "Every album has been looked at. New ones are checked as they arrive.";
@@ -16989,7 +16990,7 @@ initServiceBrowser({
     else line2 = c ? "declined: " + names(c) : "";
     if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
     // Found by what the files carry (v0.6.0-RC5).
-    else if (kind === "applied" && c && c.matched_by) line2 += " · matched by " + ({ "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs" }[c.matched_by] || c.matched_by);
+    else if (kind === "applied" && c && c.matched_by) line2 += " · matched by " + (({ "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs" }[c.matched_by] || c.matched_by) + (c.from_pack ? " (pack)" : ""));
     const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true) + btn("reject", a.offset, "Reject")
       : kind === "applied" ? btn("undo", a.offset, "Undo")
       : btn("recheck", a.offset, "Check again");

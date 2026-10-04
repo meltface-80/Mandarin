@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.8
+Released with v0.6.7.
+
+- **Barcoded albums first.** With the MusicBrainz pack, the albums whose barcode it has are
+  looked at before the rest, and placed from the pack without a request to musicbrainz.org.
+- **On through outages.** While musicbrainz.org isn't answering, the scan carries on with those
+  albums from the pack alone (the files' MusicBrainz release id, then the barcode). A fit is
+  applied as any match is; an album the pack can't place waits for musicbrainz.org rather than
+  being marked unidentified. The Library Scanner page says it is matching from the pack.
+- **"matched by barcode (pack)"** in the Applied list for a match the pack made.
+
 ## v0.6.7
 - **A pack folder that isn't there is said in words.** A folder chosen for the MusicBrainz pack
   that the container was started without (`/packs` with no `-v …:/packs` line) gave

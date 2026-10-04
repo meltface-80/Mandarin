@@ -135,6 +135,7 @@ function createServer(overrides = {}) {
   ctx.identifier = new (require("./lib/identify/identifier").Identifier)({
     db, library, scanner, log, tickMs: config.identifyTickMs,
     mb: MBPACK.withPack(new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log }), () => ctx.mbpack.get()),
+    pack: () => ctx.mbpack.get(),
     itunes: new (require("./lib/identify/itunes").ITunes)({ baseUrl: config.itunesBaseUrl || undefined, log })
   });
   // AutoEq's headphone profiles, kept in the database once chosen.
