@@ -20,6 +20,9 @@ const { spawn } = require("child_process");
 const CANDIDATES = [
   process.env.CHROME_PATH,
   "/opt/pw-browsers/chromium",
+  // Chrome itself before /usr/bin/google-chrome, which is a script that
+  // starts it: killing the script would leave Chrome running.
+  "/opt/google/chrome/chrome",
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
@@ -69,11 +72,19 @@ class Browser {
     if (!bin) throw new Error("no Chromium or Chrome found (set CHROME_PATH)");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-browser-"));
     const args = ["--headless=new", "--remote-debugging-pipe", "--no-sandbox", "--disable-gpu",
-      "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--mute-audio",
+      "--disable-dev-shm-usage", "--disable-crash-reporter", "--disable-breakpad", "--no-first-run", "--no-default-browser-check", "--mute-audio",
       "--user-data-dir=" + dir, `--window-size=${width},${height}`].concat(mouse ? [MOUSE] : [], ["about:blank"]);
-    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"] });
+    // Its own process group, so close() ends Chrome and every process it
+    // started (a wrapper script's child included), not only the first.
+    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"], detached: true });
     const b = new Browser(proc, dir, { width, height });
-    await b.send("Browser.getVersion");
+    let timer;
+    const started = await Promise.race([
+      b.send("Browser.getVersion").then(() => true),
+      new Promise(r => { timer = setTimeout(() => r(false), 20000); })
+    ]);
+    clearTimeout(timer);
+    if (!started) { await b.close(); throw new Error("the browser didn't answer: " + bin); }
     return b;
   }
 
@@ -124,8 +135,19 @@ class Browser {
   }
 
   async close() {
-    await Promise.race([this.send("Browser.close").catch(() => {}), new Promise(r => setTimeout(r, 2000))]);
+    const exited = new Promise(r => this.proc.exitCode !== null ? r() : this.proc.once("exit", r));
+    // Killed outright, the whole group: Chrome's own helpers (Google Chrome's
+    // crash reporter among them) can outlive it holding the DevTools pipe,
+    // which kept the test's process alive for minutes on GitHub's runners.
+    try { process.kill(-this.proc.pid, "SIGKILL"); } catch (e) { /* the group is gone */ }
     try { this.proc.kill("SIGKILL"); } catch (e) { /* gone */ }
+    // Nothing of the browser may keep the test's process alive afterwards.
+    for (const p of [this.proc.stdio[3], this.proc.stdio[4]]) { try { p.destroy(); } catch (e) { /* closed */ } }
+    for (const { reject } of this.waiting.values()) reject(new Error("browser closed"));
+    this.waiting.clear();
+    let timer;
+    await Promise.race([exited, new Promise(r => { timer = setTimeout(r, 2000); })]);
+    clearTimeout(timer);
     try { fs.rmSync(this.dir, { recursive: true, force: true }); } catch (e) { /* left behind */ }
   }
 }
