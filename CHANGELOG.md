@@ -22,8 +22,8 @@ Versioning: each set of changes is a development build and takes the next third 
 - Smaller fixes: the waveform redraws when its bar changes size; the share card no longer
   waits for ever on a font; ⓘ notes stay up long enough to read and are named for screen
   readers; the share card's × is a brass disc; leaving an artist's page through the side menu
-  no longer brings it back on Back; Labels' "look again" asks again for logos not found
-  before even when the label lookups run first.
+  no longer brings it back on Back; a label logo not found with one key is looked for again
+  once another key is given, and a logo search asked for while one runs is no longer dropped.
 
 ## v0.6.0
 The release: everything in the release candidates since v0.5.50, settled.

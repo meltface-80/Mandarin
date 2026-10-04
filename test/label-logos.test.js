@@ -62,6 +62,46 @@ test("a key the service refuses is shown as refused", async () => {
   } finally { await Promise.all([discogs.stop(), fanart.stop()]); }
 });
 
+test("a key given mid-pass: the pass runs again, and a miss stands only for the keys it was asked with", { timeout: 30000 }, async () => {
+  const fs = require("fs"), os = require("os");
+  const DB = require("../lib/library/db");
+  const { MusicBrainz } = require("../lib/identify/musicbrainz");
+  const discogs = new FakeDiscogs([{ id: 11, title: "Blue Note", image: "bluenote.jpg" }]);
+  const fanart = new FakeFanart({ "mb-ecm": "ecm.png" });
+  const mb = new FakeMusicBrainz([], { labels: [{ id: "mb-ecm", name: "ECM" }] });
+  await Promise.all([discogs.start(), fanart.start(), mb.start()]);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-logos-"));
+  const db = DB.open(dir, { log: () => {} });
+  const logos = new LabelLogos({ db, dataDir: dir, mb: new MusicBrainz({ baseUrl: mb.baseUrl }),
+    discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base, pauseMs: 0 });
+  const labels = [{ key: "bluenote", title: "Blue Note" }, { key: "ecm", title: "ECM" }];
+  const idle = async () => { while (logos.state.running) await new Promise(r => setTimeout(r, 20)); };
+  try {
+    // Discogs only: ECM is not found there, and that is remembered.
+    db.setSetting("discogsToken", "tok");
+    assert.equal(logos.fetchMissing(labels), true);
+    // The FanArt.tv key arrives while that pass runs; the pass asked for now
+    // is not dropped but runs straight after.
+    await new Promise(r => setTimeout(r, 0));
+    db.setSetting("fanartKey", "fk");
+    assert.equal(logos.fetchMissing(labels), true, "queued behind the running pass");
+    await idle();
+    assert.ok(logos.get("bluenote"), "from Discogs");
+    assert.ok(logos.get("ecm"), "from FanArt.tv, on the pass after the key came");
+    // A remembered miss is asked about again only when the keys change.
+    fs.rmSync(path.join(dir, "labels", logos.q.get.get("ecm").file));
+    logos.q.del.run("ecm");
+    db.cachePut("labellogo-miss", "ecm", logos.keysSig());
+    assert.equal(logos.fetchMissing(labels), false, "same keys: the miss stands");
+    db.setSetting("discogsToken", "tok2");
+    assert.equal(logos.fetchMissing(labels), true, "new keys: asked again");
+    await idle();
+  } finally {
+    db.close();
+    await Promise.all([discogs.stop(), fanart.stop(), mb.stop()]);
+  }
+});
+
 test("merges and logos", { skip, timeout: 90000 }, async (t) => {
   const lib = makeLibrary();
   // Two more labels: one Discogs knows, one only FanArt.tv does, one nobody does.
