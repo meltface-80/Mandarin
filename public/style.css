@@ -5586,3 +5586,24 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .lib-filter-box .lib-filter-input:focus { border: 0; box-shadow: none; }
 .lib-filter-box .lib-filter-input::-webkit-search-decoration,
 .lib-filter-box .lib-filter-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+/* Settings on a desktop (v0.6.6) — a large screen with a mouse, the same test
+   Now playing's corner button uses. Phones and tablets keep the full screen.
+   The list opens as a drawer from the left at the side menu's own width; a
+   page is as wide as its contents need, within a readable measure, over the
+   dimmed page (a click on which closes Settings, as before on the backdrop). */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  #settings-overlay { justify-content: flex-start; }
+  #settings-overlay .settings-backdrop { display: block; }
+  #settings-overlay > .settings-sheet {
+    width: min(82vw, 320px); margin: 0;
+    border-right: 1px solid var(--border);
+    box-shadow: 8px 0 40px rgba(0,0,0,.4);
+    animation: menuSlideIn .24s cubic-bezier(.2,.8,.2,1);
+  }
+  #settings-overlay > .settings-sheet.is-pane {
+    width: fit-content; min-width: 360px; max-width: min(680px, calc(100vw - 48px));
+    animation: none;
+  }
+}
+
