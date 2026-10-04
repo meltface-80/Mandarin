@@ -16651,12 +16651,12 @@ initServiceBrowser({
       const pc = job.total ? Math.floor(job.done / job.total * 100) : 0;
       state = job.phase === "checking" ? "Asking GitHub…" : "Downloading… " + pc + " % (" + mbs(job.done) + " of " + mbs(job.total) + ")";
     } else if (have) {
-      state = num(have.releases) + " releases · from " + day(have.built) + " · " + mbs(have.size) + " on disk" + (pack.newer ? " · a newer one is out" : "");
+      state = num(have.releases) + " releases · from " + day(have.built) + " · " + mbs(have.size) + (pack.newer ? " · a newer one is out" : "");
       buttons = (pack.newer ? '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy ? " disabled" : "") + ">Update</button>" : "") +
         '<button type="button" class="id-btn" data-pack="remove"' + (busy ? " disabled" : "") + ">Remove</button>";
     } else {
       const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
-      state = latest ? "Not downloaded. " + mbs(latest.gz_size) + " to download, " + mbs(latest.size) + " on disk." +
+      state = latest ? "Not downloaded. A " + mbs(latest.gz_size) + " download that unpacks to " + mbs(latest.size) + " in the folder below." +
         (tight ? ' <span class="away-error">Not enough room in this folder: choose another below.</span>' : "") : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
       buttons = '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy || !latest ? " disabled" : "") + ">Download</button>";
     }
