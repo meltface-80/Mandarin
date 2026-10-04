@@ -57,6 +57,8 @@ const config = {
   // tests) and how often the scan looks for the next album.
   mbBaseUrl: process.env.MUSICBRAINZ_URL || "",
   itunesBaseUrl: process.env.ITUNES_URL || "",
+  // Where the MusicBrainz pack is downloaded from (a fake in the tests).
+  mbpackUrl: process.env.MBPACK_URL || "",
   // Headphone profiles (lib/autoeq.js): where AutoEq's results are (a fake in the tests).
   autoeqBaseUrl: process.env.AUTOEQ_URL || "",
   // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
@@ -122,11 +124,15 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // The MusicBrainz pack (v0.6.4): releases with a barcode kept on this
+  // machine, asked before musicbrainz.org when downloaded.
+  const MBPACK = require("./lib/identify/mbpack");
+  ctx.mbpack = new MBPACK.PackStore({ dataDir: config.dataDir, db, url: config.mbpackUrl || undefined, log });
   // The scan that finds each album's right names on MusicBrainz (Settings →
   // Setup → Identify albums).
   ctx.identifier = new (require("./lib/identify/identifier").Identifier)({
     db, library, scanner, log, tickMs: config.identifyTickMs,
-    mb: new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log }),
+    mb: MBPACK.withPack(new (require("./lib/identify/musicbrainz").MusicBrainz)({ baseUrl: config.mbBaseUrl || undefined, log }), () => ctx.mbpack.get()),
     itunes: new (require("./lib/identify/itunes").ITunes)({ baseUrl: config.itunesBaseUrl || undefined, log })
   });
   // AutoEq's headphone profiles, kept in the database once chosen.
@@ -353,6 +359,7 @@ function createServer(overrides = {}) {
     zones.start();
     ctx.devices.start();
     if (config.identify) ctx.identifier.start();
+    ctx.mbpack.start();
     ctx.loudness.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
@@ -374,6 +381,7 @@ function createServer(overrides = {}) {
     zones.stop();
     ctx.devices.stop();
     ctx.identifier.stop();
+    ctx.mbpack.stop();
     ctx.loudness.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
