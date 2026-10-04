@@ -26,6 +26,12 @@
  * --pack: MusicBrainz's answers from the MusicBrainz pack (v0.6.4) instead
  * of musicbrainz.org — the one downloaded in Settings, or --pack=FILE — so
  * what the pack would find is measured without a second's wait each.
+ *
+ * --same=FILE: the albums of an earlier run (its identify-probe.json) rather
+ * than a new random sample, so two runs compare like for like; that run's
+ * summary is printed beside this one's. Copy it into the container first:
+ *   docker cp identify-probe.json musicd-server:/tmp/before.json
+ *   docker exec -i musicd-server node - --pack --same=/tmp/before.json < identify-probe.js > identify-probe-pack.json
  */
 const fs = require("fs");
 const os = require("os");
@@ -107,10 +113,31 @@ function otherForm(code) {
   const status = al => { const r = rows.get(al.key); if (!r) return "unchecked"; if (r.status !== "applied") return r.status; let c = {}; try { c = JSON.parse(r.candidate || "{}"); } catch (e) {} return c.matched_by ? "applied by " + c.matched_by : "applied by name"; };
   const rank = { proposed: 0, unidentified: 1, rejected: 2, "applied by name": 3, unchecked: 4 };
   const shuffled = withCode.slice().sort(() => Math.random() - 0.5);
-  const picked = shuffled.filter(al => (rank[status(al)] ?? 9) <= 2)
-    .concat(shuffled.filter(al => status(al) === "applied by name").slice(0, Math.ceil(SAMPLE / 3)))
-    .concat(shuffled.filter(al => status(al) === "unchecked").slice(0, Math.ceil(SAMPLE / 3)))
-    .slice(0, SAMPLE);
+  let picked, before = null;
+  if (args.same) {
+    // The earlier run's albums, found again by barcode (and name, where a
+    // barcode is on more than one).
+    before = JSON.parse(fs.readFileSync(args.same, "utf8"));
+    const byCode = new Map();
+    for (const al of withCode) {
+      const c = identifier.idsOf(al).barcode.replace(/\D/g, "");
+      if (!byCode.has(c)) byCode.set(c, []);
+      byCode.get(c).push(al);
+    }
+    picked = [];
+    let lost = 0;
+    for (const r of before.albums || []) {
+      const L = byCode.get(r.barcode) || [];
+      const al = L.find(a => a.title === r.title && a.artist === r.artist) || L[0];
+      if (al && !picked.includes(al)) picked.push(al); else lost++;
+    }
+    if (lost) say(`${lost} of the earlier run's albums aren't in the library now; left out`);
+  } else {
+    picked = shuffled.filter(al => (rank[status(al)] ?? 9) <= 2)
+      .concat(shuffled.filter(al => status(al) === "applied by name").slice(0, Math.ceil(SAMPLE / 3)))
+      .concat(shuffled.filter(al => status(al) === "unchecked").slice(0, Math.ceil(SAMPLE / 3)))
+      .slice(0, SAMPLE);
+  }
   say(`${albums.length} albums, ${withCode.length} with a barcode; asking about ${picked.length} (about ${Math.ceil(picked.length * 9 / 60)} minutes)…`);
 
   const results = [];
@@ -190,8 +217,9 @@ function otherForm(code) {
         itunes_95: pct(L.filter(r => r.itunes && r.itunes.similarity >= 95).length, L.length) }];
     }))
   };
+  if (before) say("\nThe earlier run (" + (before.made || "?") + ", v" + (before.version || "?") + "):\n" + JSON.stringify(before.summary, null, 2) + "\n\nThis run" + (args.pack ? " (MusicBrainz from the pack)" : "") + ":");
   say("\n" + JSON.stringify(summary, null, 2));
-  process.stdout.write(JSON.stringify({ made: new Date().toISOString(), version: req("package.json").version, summary, tags: tagNames.slice(0, 200), qobuz_tags: qobuzTags, albums: results }, null, 1) + "\n");
+  process.stdout.write(JSON.stringify({ made: new Date().toISOString(), version: req("package.json").version, pack: !!args.pack, same: args.same || null, before: before ? before.summary : null, summary, tags: tagNames.slice(0, 200), qobuz_tags: qobuzTags, albums: results }, null, 1) + "\n");
   db.close();
   fs.rmSync(tmp, { recursive: true, force: true });
 })().catch(e => { say(e.stack || e.message); process.exit(1); });
