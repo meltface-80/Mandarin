@@ -1,9 +1,9 @@
 "use strict";
 /*
- * Settings on a desktop (v0.6.6): the list opens as a drawer the side menu's
- * width, and each page only as wide as it needs (within 360–680px), over the
- * dimmed page; a click outside closes it. On a phone it still fills the
- * screen. Skipped where no Chromium or Chrome is found.
+ * Settings on a tablet or a desktop (v0.6.6): the list opens as a drawer the
+ * side menu's width, and each page only as wide as it needs (within
+ * 360–680px), over the dimmed page; a click outside closes it. A phone, held
+ * either way, still fills the screen. Skipped where no Chromium or Chrome is found.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -39,7 +39,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("Settings on a desktop: the list at the side menu's width, each page as wide as it needs", { skip, timeout: 120000 }, async () => {
+test("Settings on a tablet or desktop: the list at the side menu's width, each page as wide as it needs", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -61,8 +61,9 @@ test("Settings on a desktop: the list at the side menu's width, each page as wid
         return r;
       } finally { await b.close(); }
     };
-    const desk = await run({ width: 1440, height: 900, mouse: true });
-    assert.equal(desk.list.w, desk.menu, "the list is the side menu's width");
+    for (const size of [{ width: 1440, height: 900, mouse: true }, { width: 1180, height: 820 }, { width: 820, height: 1180 }]) {
+    const desk = await run(size);
+    assert.equal(desk.list.w, desk.menu, size.width + "px: the list is the side menu's width");
     assert.equal(desk.list.left, 0, "from the left, as the menu");
     for (const [p, v] of Object.entries(desk.panes)) {
       assert.ok(v.w >= 360 && v.w <= 680, p + " is " + v.w + "px");
@@ -71,12 +72,13 @@ test("Settings on a desktop: the list at the side menu's width, each page as wid
     assert.ok(desk.panes.ui.w < desk.panes.homescreen.w, "a short page is narrower than a long one");
     assert.equal(desk.back_to_list, desk.menu, "back on the list, back to the menu's width");
     assert.equal(desk.closed, true, "a click outside closes it");
+    }
 
     const phone = await run({ width: 390, height: 844 });
     assert.equal(phone.list.w, 390, "a phone keeps the full screen");
     for (const v of Object.values(phone.panes)) assert.equal(v.w, 390);
-    const tablet = await run({ width: 1180, height: 820 });
-    assert.equal(tablet.list.w, 1180, "a tablet (no mouse) keeps the full screen");
+    const sideways = await run({ width: 844, height: 390 });
+    assert.equal(sideways.list.w, 844, "a phone on its side keeps the full screen");
   } finally {
     await srv.stop();
   }

@@ -12843,7 +12843,7 @@ window.__musicdAppUpd = (function () {
     });
     // Fall back to home if an unknown pane was requested.
     if (!matched) views.forEach(v => v.classList.toggle("hidden", v.getAttribute("data-view") !== "home"));
-    // On a desktop the list is a drawer the side menu's width and a page is as
+    // On a tablet or desktop the list is a drawer the side menu's width and a page is as
     // wide as it needs (style.css, v0.6.6); the sheet says which it holds.
     if (sheet) sheet.classList.toggle("is-pane", matched && name !== "home");
     // Each level starts scrolled to the top, like a pushed page.

@@ -36,9 +36,9 @@ Also carries what was built as v0.6.4 and v0.6.5, released together here.
   from 480px wide it shows. Leaving the wall closes the field and gives the next screen its
   title back.
 - **An artist's page** has its album count and name beside ‹ in the top bar, not above the grid.
-- **Settings on a desktop** (a large screen with a mouse): the list opens beside the page at the
-  side menu's width, and each settings page only as wide as it needs. Phones and tablets keep
-  the full screen.
+- **Settings on a tablet or a desktop** (768px wide and 600px tall or more): the list opens
+  beside the page at the side menu's width, and each settings page only as wide as it needs.
+  Phones, held either way, keep the full screen.
 
 ## v0.6.3
 - **Matching weighs what identifies a record most** — tried against a real library's report

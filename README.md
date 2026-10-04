@@ -107,7 +107,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
 * **Library controls in the top bar** — Focus, Sort and search sit in the Library screen's top bar; the search opens over them, and × clears, then closes.
 * **Titles beside Back** — An artist's album count and name, and a label's name, sit beside Back at the top of the screen.
-* **Settings on a desktop** — Settings opens beside the page at the side menu's width, and each settings page only as wide as it needs.
+* **Settings on a tablet or desktop** — Settings opens beside the page at the side menu's width, and each settings page only as wide as it needs.
 * **Multi-disc albums** — A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.
 * **Random Album** — The first tile under Home's greeting, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
