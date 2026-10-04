@@ -271,8 +271,9 @@ Intel. The Mac needs to stay on, on the same network as your speakers.
 log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`). Add more
 music folders, or change them, any time in **Settings → Music Folders**.
 
-**Only listening on a Mac?** None of this is needed: open the server's address in Safari and
-choose **File → Add to Dock**. It opens like an app.
+**Do you have Mandarin already running on another machine?** Yes, then this Mac doesn't need to
+install anything, just open the server's IP address with port `:3500` in Safari and choose
+**File → Add to Dock**. It opens like an app, for choosing music and playing it on your speakers.
 
 **On a Mac:**
 * **Updates** come from the app, as on Linux (Settings → **Updates**).
