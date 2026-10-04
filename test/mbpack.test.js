@@ -167,6 +167,26 @@ test("the pack downloaded from where it's published, checked, kept up to date, r
     await store.describe();
     assert.equal(store.status().newer, true);
 
+    // Kept in another folder (another drive): the pack moves there and is still read.
+    const other = path.join(dir, "elsewhere"); fs.mkdirSync(other);
+    await assert.rejects(store.setDir(path.join(dir, "missing")), /Can't write/);
+    const st = await store.setDir(other);
+    assert.equal(st.dir, other);
+    assert.equal(settings.mbpack_dir, other);
+    assert.ok(fs.existsSync(path.join(other, "mbpack.sqlite")));
+    assert.ok(!fs.existsSync(path.join(dir, "mbpack.sqlite")));
+    assert.equal(store.get().info().releases, 2);
+    assert.ok(st.free > 0);
+    // And back to the data folder.
+    assert.equal((await store.setDir(null)).dir, path.resolve(dir));
+    assert.equal(settings.mbpack_dir, null);
+    assert.ok(fs.existsSync(path.join(dir, "mbpack.sqlite")));
+    // MBPACK_DIR on the server decides, and can't be changed from Settings.
+    const fixed = new PackStore({ dataDir: dir, dir: other, db, url: "http://127.0.0.1:9" });
+    assert.equal(fixed.status().dir, other);
+    assert.equal(fixed.status().dir_fixed, true);
+    await assert.rejects(fixed.setDir(dir), /MBPACK_DIR/);
+
     store.remove();
     assert.equal(store.get(), null);
     assert.ok(!fs.existsSync(store.file));
