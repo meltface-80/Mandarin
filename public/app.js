@@ -15300,7 +15300,7 @@ initServiceBrowser({
         '<div class="settings-divider"></div>' : "") +
 
       '<div class="settings-block"><div class="settings-subhead">Downloading</div>' +
-        row("Quality" + settingsInfo("Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a tenth of the size. You can choose each time."),
+        row("Quality" + settingsInfo("Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a quarter of the size of a CD-quality FLAC, less against hi-res. You can choose each time."),
           select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
         row("Save to" + settingsInfo("Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again."), select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
         downloadFolderRow(s) +
@@ -15312,7 +15312,7 @@ initServiceBrowser({
 
       ("awayQuality" in s ?
         '<div class="settings-block"><div class="settings-subhead">Playing away from home</div>' +
-          row("Stream as" + settingsInfo("Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a tenth of the data; Original sends the files as they are."),
+          row("Stream as" + settingsInfo("Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a quarter of the data of a CD-quality FLAC; Original sends the files as they are."),
             select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
           '<div class="settings-note">At home it’s always the original.</div>' +
         "</div>" +
@@ -16607,10 +16607,10 @@ initServiceBrowser({
   function render() {
     if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     const s = st.settings, p = st.progress;
-    let html = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 96 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
+    let html = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
         sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
       '<div class="settings-note">The right names for each album, from its files and MusicBrainz.</div>' +
-      row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied only when it fits exactly: every track there, every length within a few seconds, every name the same. Anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
+      row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 95 % alike or better, as a MusicBrainz match is; anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
         sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
     // Measure ReplayGain: the server's loudness measuring (lib/loudness.js).

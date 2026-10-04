@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.1
+# Mandarin — v0.6.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -304,8 +304,8 @@ interface, and adds what a web page can't:
   phone and any Sonos room. It's the Android app's own: only that phone sees it (the iPhone
   home-screen app and browsers don't). It's there while the app is open or playing.
 * **Downloads** — on an album's page, *⋯ → Download to this phone*, as **Original** (the files
-  as they are; formats a phone can't play become lossless FLAC) or **Opus 256** (about a tenth
-  of the size). Saved to phone storage or an SD card, Wi-Fi only by default, with an optional
+  as they are; formats a phone can't play become lossless FLAC) or **Opus 256** (about a quarter
+  of a CD-quality FLAC's size). Saved to phone storage or an SD card, Wi-Fi only by default, with an optional
   size limit — all under *Settings → Downloads*. Downloaded albums play with no
   server at all (the same screen, or *Play downloads* when the server can't be reached), a
   downloaded track is used instead of streaming it, and plays made offline join your history
@@ -402,7 +402,7 @@ their page says the names come from their folders until a match or an edit repla
 Each candidate release is scored the way [beets](https://beets.io) does it, and named by its
 release group: the album is the MusicBrainz *release group*, the copy you have is one *release* of
 it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pressing noted
-beside it, and track titles lose their remaster tails. At **96 % alike or better** the match
+beside it, and track titles lose their remaster tails. At **95 % alike or better** the match
 is applied — artist, title, year and track titles — to the same database overlay the album
 editor writes, so the files are never touched and a rescan changes nothing.
 A near miss is **proposed** on the page (Accept or Reject); anything further off, or two
@@ -413,8 +413,7 @@ Albums you edited by hand are never touched.
 
 An album MusicBrainz can't place is looked up in **Apple's iTunes catalogue** too (no account
 or key; a request every 3.2 seconds, well inside what Apple allows). What iTunes finds is
-applied only when it fits exactly — every track there, every length within the grace, every
-name the same — and proposed when it's near. Apple's release date is often a reissue's, so an
+applied by the same rule — 95 % alike or better — and proposed when it's near. Apple's release date is often a reissue's, so an
 album matched this way keeps the year its files carry. **Ask iTunes too** on the same page
 switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
 
@@ -529,7 +528,7 @@ Tailscale included — is offered one room: the phone asking, as *This phone*. T
 aren't listed, and nothing away can play to them, pause, group or mute them, or reach another
 phone. The server decides this by where each request comes from, so it holds for any device:
 an iPhone or a laptop on Tailscale can browse the library but has nothing to play to. At home
-everything is as before. Away, tracks stream as **Opus 256 kbps** (a tenth of the data), made
+everything is as before. Away, tracks stream as **Opus 256 kbps** (about a quarter of a CD-quality FLAC's data), made
 through a 64-bit float resample to Opus's 48 kHz and decoded on the phone to float by the app's
 own libopus — 24/48 into the phone's audio path, no 16-bit step; albums you've downloaded play
 from the phone.
@@ -607,6 +606,11 @@ The end-to-end test starts two fake Sonos rooms on 127.0.0.11/12:1400, plays a C
 album and a 24/96 album through the real server, and checks what the "speaker" fetched:
 bit-perfect FLAC for the first, FLAC 24/48 for the second. It needs ffmpeg on the PATH
 (or `FFMPEG_PATH`).
+
+The browser test opens the page itself in headless Chromium or Chrome — at a desktop with a
+mouse, a phone and a tablet — and checks Home, the album view and Now playing. It uses the
+browser already installed (or `CHROME_PATH`), with no extra packages, and is skipped where
+there is none.
 
 ## License
 

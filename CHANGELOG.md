@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.2
+- **95 % alike is a match.** The identification scan applies a match at 95 % alike or better
+  (it was 96 %), whether MusicBrainz or iTunes found it — iTunes matches no longer have to fit
+  exactly. Proposals already waiting at 95 % or more are applied when the server starts. Two
+  different records fitting equally well are still left for you.
+- **ⓘ notes checked against what the app does.** Corrected: the zone picker lists renderers
+  and phones too; the waveform isn't prepared ahead for the next track; the label folder depth
+  applies at once (no rescan); Discover's notes; Opus 256 is about a quarter of a CD-quality
+  FLAC's size, not a tenth; the wall display's address follows the server's port.
+- **Browser tests.** Home, the album view and Now playing are checked in a real browser at a
+  desktop, phone and tablet size on every push, with no extra packages.
+
 ## v0.6.1
 - **Random Album and Album of the day sit under the greeting**, with no heading, ahead of
   every row. "Not played in 6 months" holds only albums you haven't played, and stays hidden

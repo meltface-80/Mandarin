@@ -1213,7 +1213,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Zone / output <button class="settings-info-btn" data-info="Choose which Sonos room (or group) the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Zone / output <button class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
               <select id="zone-select" class="settings-select" aria-label="Output zone"></select>
               <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1240,7 +1240,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Waveform <button class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); the next track in the queue is prepared while the current one plays, and every result is stored so it is instant afterwards." aria-label="Info">&#9432;</button></span>
+            <span class="settings-label">Waveform <button class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
             <label class="switch">
               <input type="checkbox" id="waveform-enabled" aria-label="Waveform">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1329,7 +1329,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Label from folder depth <button class="settings-info-btn" data-info="For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving re-runs the label scan." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Label from folder depth <button class="settings-info-btn" data-info="For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving applies it at once." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
             <input id="label-folder-depth-input" type="number" min="0" max="6" class="settings-token-input" placeholder="0 = off (use file tag)">
@@ -1502,7 +1502,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Wall display <button class="settings-info-btn" data-info="An always-on screen at http://<server-ip>:3500/display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. When off, the page shows a notice and nothing is fetched." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Wall display <button class="settings-info-btn" data-info="An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. When off, the page shows a notice and nothing is fetched." aria-label="Info">ⓘ</button></span>
             <label class="switch">
               <input type="checkbox" id="display-toggle" aria-label="Wall display">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1546,7 +1546,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Discover <button class="settings-info-btn" data-info="Off by default. When on, the extension looks once a day for records released in the last two months by the artists you actually listen to — read from your own play history, not your whole library. It asks Deezer and nothing else. When off it does nothing at all: no daily build, no timer, no requests to anybody." aria-label="Info">&#9432;</button></span>
+            <span class="settings-label">Discover <button class="settings-info-btn" data-info="Off by default. When on, Mandarin looks once a day for records released in the last two months by the artists you actually listen to — read from your own play history, not your whole library. It asks Deezer and nothing else. When off it does nothing at all: no daily build, no timer, no requests to anybody." aria-label="Info">&#9432;</button></span>
             <label class="switch">
               <input type="checkbox" id="discover-enabled" aria-label="Discover">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1557,7 +1557,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Look for new records at <button class="settings-info-btn" data-info="The hour the daily check runs, in this server&#39;s local time. If the extension is off at that hour, it runs the next time it starts." aria-label="Info">&#9432;</button></span>
+            <span class="settings-label">Look for new records at <button class="settings-info-btn" data-info="The hour the daily check runs, in this server&#39;s local time. If the server is off at that hour, it runs the next time it starts." aria-label="Info">&#9432;</button></span>
             <select id="discover-hour" class="settings-select" aria-label="Discover build hour"></select>
           </div>
           <div class="settings-note" id="discover-note"></div>
