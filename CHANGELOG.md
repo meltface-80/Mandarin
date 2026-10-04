@@ -5,6 +5,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.9
+- **A new icon: the duck in black on the app's brass**, the old dark badge's colours turned
+  round. For the Android app (the adaptive icon's brass background and black duck, and the
+  square and round icons for older launchers) and for the home-screen app, the browser tab and
+  the site (every size, maskable included). tools/icons/make-icons.js draws them all from the
+  duck itself.
+
 ## v0.6.8
 Released with v0.6.7.
 

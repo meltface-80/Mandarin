@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.8
+# Mandarin — v0.6.9
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -102,6 +102,7 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## New since the last beta (v0.5.50)
 
+* **A brass icon** — The duck in black on the app's brass, for the Android app and the home-screen app, turned round from the old dark badge.
 * **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcoded albums match first, even while musicbrainz.org is down. Optional: an 845 MB download.
 * **UI Settings** — Album and artist text, grid screen titles, menu and Home text, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
 * **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
