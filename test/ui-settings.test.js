@@ -5,6 +5,8 @@
  *     turned round to Z to #, and a label's ‹ going back to all labels — no
  *     "‹ All labels" bar of its own;
  *   - the artist page's name and album count in the top bar, not above the grid;
+ *   - the Library wall's Focus, Sort and search in the top bar, in brass; the
+ *     field opens over Focus and Sort, × clears, then closes (as Rouen v1.8.78);
  *   - Settings → UI Settings (as Rouen v1.8.77): the walls in 2 columns or as
  *     a list, bigger text and tiles, and no grid ⇄ list button in the top bar.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
@@ -53,6 +55,35 @@ const DRIVER = `(async () => {
   out.back = title();
   $("topbar-back").click(); await sleep(500);
   out.home = !$("home-view").classList.contains("hidden");
+
+  // The Library wall: Focus, Sort and the glass in the top bar, in brass.
+  const libTitle = $("home-library-title");
+  out.has_library = !!libTitle;
+  if (libTitle) {
+    libTitle.click();
+    await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-ctl-sort"));
+    const bar = $("library-controls");
+    const vis = sel => { const e = bar.querySelector(sel); return !!e && getComputedStyle(e).display !== "none"; };
+    out.lib = { in_topbar: !!bar.closest(".topbar"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), glass: vis(".lib-filter-btn"),
+      brass: getComputedStyle(bar.querySelector(".lib-ctl-sort")).backgroundColor === getComputedStyle(document.querySelector("#menu-toggle")).backgroundColor,
+      glass_last: bar.lastElementChild.querySelector(".lib-filter-btn") !== null };
+    bar.querySelector(".lib-filter-btn").click(); await sleep(150);
+    const inp = bar.querySelector(".lib-filter-input");
+    inp.value = "Al"; inp.dispatchEvent(new Event("input")); await sleep(400);
+    const bar2 = $("library-controls");
+    out.lib_open = { focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), title: getComputedStyle($("album-count")).display === "none", value: bar2.querySelector(".lib-filter-input").value };
+    bar2.querySelector(".lib-filter-clear").click(); await sleep(400);
+    out.lib_cleared = { open: !!$("library-controls").querySelector(".lib-filter-input"), value: ($("library-controls").querySelector(".lib-filter-input") || {}).value };
+    $("library-controls").querySelector(".lib-filter-clear").click(); await sleep(300);
+    out.lib_closed = { open: !!$("library-controls").querySelector(".lib-filter-input"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort") };
+    window.__showArtistAlbums("Artist A");
+    await until(() => / · /.test(title()));
+    out.lib_in_artist = !$("library-controls").classList.contains("hidden");
+    $("topbar-back").click(); await sleep(500);
+    out.lib_back = !$("library-controls").classList.contains("hidden");
+    $("topbar-back").click(); await sleep(500);
+    out.lib_home = !$("library-controls").classList.contains("hidden");
+  }
 
   window.__showArtistAlbums("Artist A");
   await until(() => / · /.test(title()));
@@ -111,6 +142,14 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.deepEqual(r.label, { title: "Parlophone", bar: false, logo: true, search: false });
     assert.equal(r.back, "Labels", "‹ on a label goes back to all labels");
     assert.equal(r.home, true, "and ‹ there goes Home");
+    assert.equal(r.has_library, true, "Home has its Library row");
+    assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: true, brass: true, glass_last: true });
+    assert.deepEqual(r.lib_open, { focus: false, sort: false, title: true, value: "Al" }, "the field opens over Focus and Sort");
+    assert.deepEqual(r.lib_cleared, { open: true, value: "" }, "the first × clears the words");
+    assert.deepEqual(r.lib_closed, { open: false, focus: true, sort: true }, "the second × closes it");
+    assert.equal(r.lib_in_artist, false, "an artist page takes them out of the bar");
+    assert.equal(r.lib_back, true, "and Back brings them back with the wall");
+    assert.equal(r.lib_home, false, "not on Home");
     assert.deepEqual(r.artist, { title: "1 album · Artist A", above: "" });
     assert.equal(r.two, 2);
     assert.equal(r.list, true);

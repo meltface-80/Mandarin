@@ -822,7 +822,7 @@
 
   // Show the Home landing (hide the wall). The wall loads lazily when entered.
   function showHome() {
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); const tb = document.querySelector(".topbar"); if (tb) tb.classList.remove("lib-filtering"); }
     unplayedWallActive = false;
     libraryWallActive = false;
     leavePlaylistScreens();
@@ -891,7 +891,7 @@
   // own content, e.g. labels/search).
   function showWall(opts) {
     leavePlaylistScreens();   // this screen owns the grid now
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); const tb = document.querySelector(".topbar"); if (tb) tb.classList.remove("lib-filtering"); }
     unplayedWallActive = false;
     libraryWallActive = false;
     if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
@@ -1989,7 +1989,7 @@
     // orphan an in-flight playlist fetch, or its response paints into this one.
     leavePlaylistScreens();
     // The library wall's sort/focus row belongs to that wall only.
-    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); }
+    { const c = document.getElementById("library-controls"); if (c) c.classList.add("hidden"); const tb = document.querySelector(".topbar"); if (tb) tb.classList.remove("lib-filtering"); }
     exitAlbumSelectMode();   // a stale multi-select bar must not survive into a new wall
     if (window.__exitLabels) window.__exitLabels();
     if (activeFilter) {
@@ -2620,9 +2620,26 @@
   }
   window.__leavePlaylistScreens = leavePlaylistScreens;
 
-  function leaveLibraryWall() { const was = libraryWallActive; libraryWallActive = false; return was; }
+  // The wall's Focus / Sort / search live in the TOP BAR since v0.6.5, so a
+  // view that borrows the grid (the artist page) must take them with it, and
+  // hand them back with the wall.
+  function libControlsShown(on) {
+    const c = document.getElementById("library-controls");
+    if (c) c.classList.toggle("hidden", !on);
+  }
+  function leaveLibraryWall() {
+    const was = libraryWallActive;
+    libraryWallActive = false;
+    if (libFilterOpen) { libFilterOpen = false; libView.prefix = ""; }
+    libControlsShown(false);
+    { const tb = document.querySelector(".topbar"); if (tb) tb.classList.remove("lib-filtering"); }
+    return was;
+  }
   window.__leaveLibraryWall = leaveLibraryWall;
-  window.__restoreLibraryWall = (was) => { libraryWallActive = !!was; };
+  window.__restoreLibraryWall = (was) => {
+    libraryWallActive = !!was;
+    if (was) renderLibraryControls();
+  };
   window.__libraryWallSeq = () => libWall.seq;
 
   async function fetchLibraryPage(mySeq, firstPage) {
@@ -2714,8 +2731,13 @@
     if (!bar) {
       bar = document.createElement("div");
       bar.id = "library-controls";
-      bar.className = "library-controls";
-      grid.parentNode.insertBefore(bar, grid);
+      // In the top bar (v0.6.5, as Rouen v1.8.78), at its right-hand end where
+      // Home keeps its search: Focus, Sort, then the magnifier in the corner.
+      bar.className = "library-controls in-topbar";
+      const row = document.querySelector(".topbar-row");
+      const before = document.getElementById("labels-tools");
+      if (row) row.insertBefore(bar, before && before.parentNode === row ? before : null);
+      else grid.parentNode.insertBefore(bar, grid);
     }
     // Both controls open a sheet rather than mutating the view in place, so a
     // rebuild can no longer land under the user's finger mid-interaction — but
@@ -2747,6 +2769,9 @@
     // Drives the layout: Sort's auto margin is released while the field is
     // open so the input, not the margin, gets the row's free space.
     bar.classList.toggle("is-filtering", libFilterOpen);
+    // The open field takes the bar, title included, as Home's search does.
+    { const tb = document.querySelector(".topbar");
+      if (tb) tb.classList.toggle("lib-filtering", libFilterOpen && libraryWallActive); }
 
     if (libFilterOpen) {
       const again = bar.querySelector(".lib-filter-input");
@@ -2776,7 +2801,7 @@
     if (!open) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "lib-filter-btn lib-ctl" + (libView.prefix ? " is-active" : "");
+      btn.className = "lib-filter-btn lib-ctl icon-btn" + (libView.prefix ? " is-active" : "");
       btn.setAttribute("aria-label", "Filter by name");
       btn.setAttribute("aria-expanded", "false");
       btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
@@ -2792,6 +2817,14 @@
       return wrap;
     }
 
+    // The field as Home's search draws it: a pill with the glass, the input and
+    // an ×. The × clears the text when there is any, and closes the field when
+    // there is none (v0.6.5).
+    const box = document.createElement("div");
+    box.className = "search-box lib-filter-box";
+    box.innerHTML = '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
     const input = document.createElement("input");
     input.type = "search";
     input.className = "lib-filter-input";
@@ -2808,7 +2841,23 @@
     input.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeLibFilter();
     });
-    wrap.appendChild(input);
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "search-clear lib-filter-clear";
+    x.setAttribute("aria-label", "Clear the filter");
+    x.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M18 6 6 18M6 6l12 12"/></svg>';
+    x.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!input.value.trim()) { closeLibFilter(); return; }
+      input.value = "";
+      libView.prefix = "";
+      applyLibView();
+    });
+    box.appendChild(input);
+    box.appendChild(x);
+    wrap.appendChild(box);
     return wrap;
   }
 
