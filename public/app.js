@@ -16556,6 +16556,7 @@ initServiceBrowser({
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
   let pack = null, packChecked = false;   // the MusicBrainz pack (v0.6.4)
+  let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
   let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
 
   async function api(url, payload) {
@@ -16604,11 +16605,47 @@ initServiceBrowser({
   }
   const mbs = n => (Number(n || 0) / 1048576).toLocaleString(undefined, { maximumFractionDigits: 0 }) + " MB";
   const day = iso => { const d = new Date(iso || ""); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); };
+  async function packGo(p) {
+    try {
+      if (!packPlaces.length) packPlaces = ((await api("/api/library/folders").catch(() => ({}))).mounts || []);
+      packBrowse = await api("/api/library/browse?path=" + encodeURIComponent(p || "/")); err = "";
+    } catch (e) { err = e.message; if (!packBrowse) packBrowse = { path: "/", parent: null, dirs: [] }; }
+    render();
+  }
+  async function packFolder(dir) {
+    if (busy) return;
+    busy = true;
+    // A pack already here is moved: it can take a minute between drives.
+    if (pack && pack.installed) { pack = Object.assign({}, pack, { job: { phase: "moving" } }); render(); }
+    try { pack = await api("/api/identify/pack/folder", { dir }); packBrowse = null; err = ""; toast("The pack’s folder is set"); }
+    catch (e) { err = e.message; try { pack = await api("/api/identify/pack"); } catch (x) {} }
+    busy = false;
+    render();
+  }
+  const folderSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  function packBrowser() {
+    const b = packBrowse;
+    let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-pack-cancel>Cancel</button>' +
+      '<span class="mf-browse-path">' + esc(b.path) + "</span></div>";
+    if (packPlaces.length) {
+      html += '<div class="mf-places"><span class="mf-places-label">Mounted drives and shares</span>' +
+        packPlaces.map(m => '<button type="button" class="mf-place' + (m.path === b.path ? " is-on" : "") + '" data-pack-go="' + esc(m.path) + '">' + esc(m.path) + "</button>").join("") + "</div>";
+    }
+    html += '<div class="mf-browse-list">';
+    if (b.parent) html += '<button type="button" class="mf-dir mf-up" data-pack-go="' + esc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
+    for (const d of b.dirs) html += '<button type="button" class="mf-dir" data-pack-go="' + esc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + esc(d.name) + "</span></button>";
+    if (!b.dirs.length) html += '<div class="settings-note">No folders in here.</div>';
+    html += '</div><div class="mf-browse-foot"><button type="button" class="settings-update-btn mf-choose" data-pack-choose' + (busy || b.path === "/" ? " disabled" : "") + ">Keep the pack in “" + esc(b.path.split("/").pop() || b.path) + "”</button></div>";
+    return html;
+  }
   function packBlock() {
     if (!pack) return "";
+    if (packBrowse) return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Where to keep the MusicBrainz pack</div>' + packBrowser() + "</div>";
     const have = pack.installed, job = pack.job, latest = pack.latest;
     let state, buttons = "";
-    if (job && !job.error && job.phase !== "done") {
+    if (job && !job.error && job.phase === "moving") {
+      state = "Moving the pack… between drives this takes a minute or two.";
+    } else if (job && !job.error && job.phase !== "done") {
       const pc = job.total ? Math.floor(job.done / job.total * 100) : 0;
       state = job.phase === "checking" ? "Asking GitHub…" : "Downloading… " + pc + " % (" + mbs(job.done) + " of " + mbs(job.total) + ")";
     } else if (have) {
@@ -16616,13 +16653,21 @@ initServiceBrowser({
       buttons = (pack.newer ? '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy ? " disabled" : "") + ">Update</button>" : "") +
         '<button type="button" class="id-btn" data-pack="remove"' + (busy ? " disabled" : "") + ">Remove</button>";
     } else {
-      state = latest ? "Not downloaded. " + mbs(latest.gz_size) + " to download, " + mbs(latest.size) + " on disk." : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
+      const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
+      state = latest ? "Not downloaded. " + mbs(latest.gz_size) + " to download, " + mbs(latest.size) + " on disk." +
+        (tight ? ' <span class="away-error">Not enough room in this folder: choose another below.</span>' : "") : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
       buttons = '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy || !latest ? " disabled" : "") + ">Download</button>";
     }
     return '<div class="settings-divider"></div><div class="settings-block">' +
       row("MusicBrainz pack" + info("Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."),
         '<span class="id-actions">' + buttons + "</span>") +
-      '<div class="settings-note">' + state + (job && job.error ? ' <span class="away-error">' + esc(job.error) + "</span>" : "") + "</div></div>";
+      '<div class="settings-note">' + state + (job && job.error ? ' <span class="away-error">' + esc(job.error) + "</span>" : "") + "</div>" +
+      // Where it's kept (v0.6.4): any folder the server can write to, on any drive.
+      row("Folder" + info("The pack can live on any drive the server can write to. In Docker, mount the drive into the container first (for example -v /mnt/ssd/mandarin:/packs). A pack already downloaded is moved there."),
+        pack.dir_fixed ? '<span class="away-value">Set by MBPACK_DIR</span>'
+          : '<span class="id-actions">' + (pack.dir !== pack.data_dir ? '<button type="button" class="id-btn" data-pack-folder-reset' + (busy ? " disabled" : "") + ">Data folder</button>" : "") +
+            '<button type="button" class="id-btn" data-pack-folder' + (busy ? " disabled" : "") + ">Change…</button></span>") +
+      '<div class="settings-note">' + esc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") + "</div></div>";
   }
   async function act(url, payload, done) {
     if (busy) return;
@@ -16763,6 +16808,12 @@ initServiceBrowser({
       const said = { accept: "Applied", reject: "Declined", undo: "Put back", recheck: "It will be looked at again" }[what];
       return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
     }
+    if (e.target.closest("[data-pack-folder]")) { err = ""; return packGo((pack && pack.dir) || "/"); }
+    if (e.target.closest("[data-pack-folder-reset]")) return packFolder(null);
+    if (e.target.closest("[data-pack-cancel]")) { packBrowse = null; err = ""; return render(); }
+    const pg = e.target.closest("[data-pack-go]");
+    if (pg) { err = ""; return packGo(pg.getAttribute("data-pack-go")); }
+    if (e.target.closest("[data-pack-choose]")) return packFolder(packBrowse.path);
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
@@ -16798,10 +16849,10 @@ initServiceBrowser({
     await act("/api/identify/match", { offset: off, query: q }, "Matched and applied");
     if (!err) { matching = null; matchDraft = ""; render(); }
   });
-  navItem.addEventListener("click", () => { packChecked = false; more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
+  navItem.addEventListener("click", () => { packChecked = false; packBrowse = null; more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
   // Progress moves while the pane is open (not while you're typing in it).
   setInterval(() => {
-    if (pane.classList.contains("hidden") || busy || matching !== null) return;
+    if (pane.classList.contains("hidden") || busy || matching !== null || packBrowse) return;
     if (document.activeElement && document.activeElement.closest(".id-time")) return;
     load();
   }, 5000);

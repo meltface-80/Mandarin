@@ -59,6 +59,8 @@ const config = {
   itunesBaseUrl: process.env.ITUNES_URL || "",
   // Where the MusicBrainz pack is downloaded from (a fake in the tests).
   mbpackUrl: process.env.MBPACK_URL || "",
+  // The folder the pack is kept in, instead of the data folder (or Settings' choice).
+  mbpackDir: process.env.MBPACK_DIR || "",
   // Headphone profiles (lib/autoeq.js): where AutoEq's results are (a fake in the tests).
   autoeqBaseUrl: process.env.AUTOEQ_URL || "",
   // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
@@ -127,7 +129,7 @@ function createServer(overrides = {}) {
   // The MusicBrainz pack (v0.6.4): releases with a barcode kept on this
   // machine, asked before musicbrainz.org when downloaded.
   const MBPACK = require("./lib/identify/mbpack");
-  ctx.mbpack = new MBPACK.PackStore({ dataDir: config.dataDir, db, url: config.mbpackUrl || undefined, log });
+  ctx.mbpack = new MBPACK.PackStore({ dataDir: config.dataDir, dir: config.mbpackDir || undefined, db, url: config.mbpackUrl || undefined, log });
   // The scan that finds each album's right names on MusicBrainz (Settings →
   // Setup → Identify albums).
   ctx.identifier = new (require("./lib/identify/identifier").Identifier)({
