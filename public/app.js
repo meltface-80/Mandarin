@@ -7300,6 +7300,13 @@
       if (ae.folder && d.folder) {
         ae.folder.innerHTML = '<span class="ae-folder-label">Folder</span>';
         ae.folder.appendChild(document.createTextNode(d.folder));
+        // Part of a box set (v0.6.3): said here too, for choosing the release.
+        if (d.box) {
+          const b = document.createElement("span");
+          b.className = "ae-folder-box";
+          b.textContent = "From " + d.box.name + " · disc " + d.box.disc + " of " + d.box.of;
+          ae.folder.appendChild(b);
+        }
         ae.folder.classList.remove("hidden");
       }
       ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
@@ -7498,6 +7505,43 @@
         }
         if (note) note.textContent = "Names from its folders — the files carry no tags";
       } else if (note) note.remove();
+    }
+
+    // A disc of a box set filed as albums of their own (v0.6.3): which box,
+    // which disc, and the other discs a tap away — stepping through the box
+    // with previous / next once one is opened from here.
+    {
+      let box = document.getElementById("modal-box-note");
+      const b = j.album && j.album.box;
+      if (b && modalSub && modalSub.parentNode) {
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "modal-box-note";
+          box.className = "modal-box-note";
+        }
+        const anchor = document.getElementById("modal-names-note") || modalSub;
+        anchor.parentNode.insertBefore(box, anchor.nextSibling);
+        box.innerHTML = "";
+        const line = document.createElement("div");
+        line.textContent = "From " + b.name + " · disc " + b.disc + " of " + b.of;
+        box.appendChild(line);
+        const all = [Object.assign({}, album, { disc: b.disc })].concat(j.box_albums || []).sort((x, y) => (x.disc || 0) - (y.disc || 0));
+        const others = document.createElement("div");
+        others.className = "modal-box-discs";
+        all.forEach((x, i) => {
+          if (x.offset === album.offset) return;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "modal-box-disc";
+          btn.textContent = "Disc " + x.disc + " · " + x.title;
+          btn.addEventListener("click", () => {
+            albumNav.pending = { items: all.map(a => ({ album: a, open: () => openAlbum(a, { source: "home", filter: null }) })), index: i };
+            openAlbum(x, { source: "home", filter: null });
+          });
+          others.appendChild(btn);
+        });
+        box.appendChild(others);
+      } else if (box) box.remove();
     }
 
     // Build action buttons in preferred order

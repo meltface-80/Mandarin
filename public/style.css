@@ -5473,3 +5473,13 @@ button.cap-chip:active { transform: scale(.96); }
    any point rather than widening the sheet. */
 .ae-folder { margin-top: 6px; font-size: 13px; line-height: 1.4; color: var(--text-dim); overflow-wrap: anywhere; }
 .ae-folder-label { color: var(--text-faint); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; display: block; }
+
+/* A disc of a box set (v0.6.3): the box under the artist, and its other discs. */
+.modal-box-note { font-size: 13px; color: var(--text-dim); margin-top: 6px; text-align: center; }
+.modal-box-discs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.modal-box-disc {
+  font: inherit; font-size: 12px; color: var(--text); background: transparent;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer;
+}
+.modal-box-disc:hover { border-color: var(--accent); }
+.ae-folder-box { display: block; margin-top: 4px; color: var(--text); }

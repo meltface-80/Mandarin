@@ -124,3 +124,28 @@ test("a renamed album folder is the same album", { skip, timeout: 60000 }, async
   assert.equal(s.library.isFavourite(again[0]), true);
   s.db.close();
 });
+
+test("a box set filed as discs that are albums: each its own album, each knowing its box (v0.6.3)", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const box = path.join(lib.music, "Yes - The Steven Wilson Remixes (2018)");
+  const discs = [["Disc 1 - The Yes Album (1971)", "The Yes Album"], ["Disc 4 - Tales From Topographic Oceans (1973)", "Tales From Topographic Oceans"], ["Disc 5 - Relayer (1974)", "Relayer"]];
+  discs.forEach(([folder, album], d) => {
+    for (let i = 1; i <= 2; i++) gen(path.join(box, folder, `0${i}.flac`), { freq: 200 + d * 100 + i * 20, seconds: 1, tags: { title: `${album} ${i}`, artist: "Yes", album, track: i } });
+  });
+  // Plain disc folders of one album stay one album, with no box.
+  const set = path.join(lib.music, "Band", "Double");
+  ["CD1", "CD2"].forEach((d, i) => gen(path.join(set, d, "01.flac"), { freq: 700 + i * 30, seconds: 1, tags: { title: "T" + i, artist: "Band", album: "Double", track: 1, disc: i + 1 } }));
+  const s = open(lib.data, lib.music);
+  await s.scanner.scan();
+  s.library.reload();
+  const yes = s.library.albums.filter(a => a.artist === "Yes");
+  assert.equal(yes.length, 3, "three albums, not one");
+  // "of" is at least the highest disc filed: disc 4 of 5, though 2 and 3 aren't here.
+  const tales = yes.find(a => a.title === "Tales From Topographic Oceans");
+  assert.deepEqual(s.library.json(tales).box, { name: "The Steven Wilson Remixes (2018)", disc: 4, of: 5 });
+  assert.deepEqual(tales.box.ids.map(id => s.library.album(id).title), ["The Yes Album", "Tales From Topographic Oceans", "Relayer"]);
+  const double = s.library.albums.find(a => a.title === "Double");
+  assert.equal(double.box, null);
+  assert.equal(s.library.json(double).box, undefined);
+  s.db.close();
+});

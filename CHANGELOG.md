@@ -15,6 +15,16 @@ Versioning: each set of changes is a development build and takes the next third 
 - **Capitals don't make a different genre.** "Rock", "rock" and "ROCK" are one genre on Home
   and in Library Focus, shown as most of your albums write it. (Names to the match score,
   albums and artists already paid capitals no attention: "If I Fell" is "if i fell".)
+- **Box sets filed as albums.** A box whose discs are albums of their own — "Yes - The Steven
+  Wilson Remixes (2018)/Disc 4 - Tales From Topographic Oceans (1973)" — keeps each disc as its
+  own album, and its page says "From The Steven Wilson Remixes (2018) · disc 4 of 5", with the
+  other discs a tap away (previous / next then step through the box). Edit album says so too.
+  Plain "Disc 1", "CD2" folders are still one album's discs. An untagged named disc takes its
+  name and year from its own folder.
+- **tools/identify-report.js**: the identification scan's work on your library as one file —
+  each album's tracks, folder and box, what was decided and what you did, and (with `--fetch`)
+  every release MusicBrainz offers for it — for testing changes to the scoring against real
+  albums. Read-only.
 - **Edit album shows the album's folder**, above Find match — from your music folder down, so
   a box set or a remix ("Yes - The Steven Wilson Remixes (2018)/Disc 4 - …") can be told from
   the original when matching by hand.
