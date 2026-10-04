@@ -563,3 +563,38 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
     await itunes.stop();
   }
 });
+
+test("score: 95 % alike, as the page shows it, is applied unasked; 94 % is proposed (v0.6.2)", () => {
+  // The year one off (a reissue's, say) and a track 19–24 s long.
+  const near = off => cand({ year: 1999, tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + off } : t) });
+  for (const off of [19, 22]) {
+    const v = SCORE.decide(album(), [near(off)]);
+    assert.equal(SCORE.similarity(v.best.distance), 95, String(v.best.distance));
+    assert.equal(v.status, "applied", off + " s off");
+  }
+  const v = SCORE.decide(album(), [near(24)]);
+  assert.equal(SCORE.similarity(v.best.distance), 94);
+  assert.equal(v.status, "proposed");
+  // Two different records as close are still asked about, however alike.
+  assert.equal(SCORE.appliesUnasked({ distance: 0, parts: {} }, true), false);
+  // No lengths: only an exact fit, as before.
+  assert.equal(SCORE.appliesUnasked({ distance: 0.03, parts: { no_lengths: true, track_titles: 0.05 } }, false), false);
+  assert.equal(SCORE.appliesUnasked({ distance: 0, parts: { no_lengths: true, track_titles: 0, missing_tracks: 0, extra_tracks: 0 } }, false), true);
+});
+
+test("proposals already waiting at 95 % or more are applied once; the rest stay (v0.6.2)", () => {
+  const fs = require("fs"), os = require("os"), path = require("path");
+  const DB = require("../lib/library/db");
+  const db = DB.open(fs.mkdtempSync(path.join(os.tmpdir(), "musicd-ident-")), { log: () => {} });
+  try {
+    const albums = ["a95", "a99", "a94", "amb", "gone"].filter(k => k !== "gone").map((key, i) => ({ id: i + 1, key, title: key, artist: "X", tracks: 4 }));
+    const id = new Identifier({ db, library: { albums, count: albums.length }, itunes: null });
+    const put = (key, distance, extra = {}) => id.q.put.run({ key, mbid: "m-" + key, distance, status: "proposed",
+      candidate: JSON.stringify(Object.assign({ artist: "X", title: key, parts: {} }, extra)), before: null, checked_at: Date.now(), applied_at: null, itunes: null });
+    put("a95", 0.05); put("a99", 0.01, { source: "itunes" }); put("a94", 0.06); put("amb", 0.01, { ambiguous: true }); put("gone", 0.01);
+    const accepted = [];
+    id.accept = key => { accepted.push(key); return {}; };
+    assert.equal(id.applyWaiting(), 2);
+    assert.deepEqual(accepted.sort(), ["a95", "a99"]);
+  } finally { db.close(); }
+});
