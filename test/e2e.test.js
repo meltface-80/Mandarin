@@ -186,6 +186,8 @@ test("MusicD Server end to end", { skip }, async (t) => {
     await t.test("album edits are kept in the database, laid over the scan, and survive a rescan", async () => {
       const before = await api("album/edit?offset=" + cd.offset);
       assert.equal(before.title, "Album One");
+      // Where its files are, from the music folder's own name (v0.6.3).
+      assert.equal(before.folder, require("path").join(require("path").basename(lib.music), "Artist A", "Album One"));
       assert.equal(before.edited, false);
 
       // A cover from an address: here, another album's picture on this server.

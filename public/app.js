@@ -7040,6 +7040,7 @@
     reset: document.getElementById("ae-reset"),
     mStatus: document.getElementById("ae-match-status"),
     mFind: document.getElementById("ae-match-find"),
+    folder: document.getElementById("ae-folder"),
     mBox: document.getElementById("ae-match"),
     mSearchStatus: document.getElementById("ae-match-search-status"),
     mCands: document.getElementById("ae-match-cands"),
@@ -7282,6 +7283,7 @@
       ae.mFind.disabled = false;
     }
     ae.title.value = album.title || ""; ae.artist.value = album.subtitle || ""; ae.year.value = "";
+    if (ae.folder) { ae.folder.classList.add("hidden"); ae.folder.textContent = ""; }
     ae.status.textContent = "Loading…";
     ae.img.removeAttribute("src");
     ae.save.disabled = true;
@@ -7293,6 +7295,13 @@
       if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
       if (aeState !== mine) return;
       mine.data = d;
+      // The album's folder (v0.6.3), for telling a remix or a box set apart
+      // when matching by hand.
+      if (ae.folder && d.folder) {
+        ae.folder.innerHTML = '<span class="ae-folder-label">Folder</span>';
+        ae.folder.appendChild(document.createTextNode(d.folder));
+        ae.folder.classList.remove("hidden");
+      }
       ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
       ["title", "artist", "year"].forEach(aeWas);
       ae.reset.classList.toggle("hidden", !d.edited);

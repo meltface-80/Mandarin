@@ -5468,3 +5468,8 @@ button.cap-chip:active { transform: scale(.96); }
 .token-check.hidden { display: none; }
 .token-check.is-ok  { background: var(--accent); color: var(--on-accent); }
 .token-check.is-bad { background: var(--danger); color: #fff; }
+
+/* The album's folder on the Edit album sheet (v0.6.3): long names wrap at
+   any point rather than widening the sheet. */
+.ae-folder { margin-top: 6px; font-size: 13px; line-height: 1.4; color: var(--text-dim); overflow-wrap: anywhere; }
+.ae-folder-label { color: var(--text-faint); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; display: block; }

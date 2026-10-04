@@ -12,6 +12,9 @@ Versioning: each set of changes is a development build and takes the next third 
   at 95 % or more are applied when the server starts.
 - **Spellings of the same name match.** "&", "+" and "and"; "Kickin'", "Kickin" and
   "Kicking"; "Rock 'n' Roll" and "Rock and Roll" — no longer counted against a match.
+- **Edit album shows the album's folder**, above Find match — from your music folder down, so
+  a box set or a remix ("Yes - The Steven Wilson Remixes (2018)/Disc 4 - …") can be told from
+  the original when matching by hand.
 - **A proposal says why it isn't 100 %**: track lengths differ, track names differ, the title
   or the artist's spelling, the year (with yours), or MusicBrainz having no track lengths.
 
