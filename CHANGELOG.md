@@ -5,6 +5,41 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.6
+Also carries what was built as v0.6.4 and v0.6.5, released together here.
+
+- **MusicBrainz pack** (Settings → Library Scanner). Every MusicBrainz release with a barcode,
+  2.7 million of them with their tracks, in one file on the server (845 MB to download, 2 GB on
+  disk). Barcodes are looked up there first, both forms of the barcode (12-digit UPC, 13-digit
+  EAN), with no request to musicbrainz.org and no second's wait; anything the pack lacks is
+  asked for as before. Download, update and remove it on the page; the server fetches a newer
+  one by itself once a day when one is out. Built weekly on GitHub from MusicBrainz's CC0 data
+  dump (tools/mbpack/build.js, .github/workflows/mbpack.yml) and published as the rolling
+  "mbpack" pre-release.
+- **The pack's folder.** Keep it in the data folder or any folder the server can write to, on
+  any drive: chosen with the music-folder browser, its free space shown, a pack already there
+  moved across, and a download that wouldn't fit stopped before it starts. `MBPACK_DIR` sets it
+  on the server instead. A read-only folder (mounted `:ro`) is named as such, beside the button.
+- **tools/identify-probe.js**: does barcode-first identification work on your library? Asks
+  MusicBrainz and iTunes about a sample of your barcoded albums and lists which tags the files
+  carry. `--pack` answers from the pack; `--same=FILE` asks about an earlier run's albums and
+  prints both summaries.
+- **Settings → UI Settings**, per device: Album & artist text and Grid screen title (Normal to
+  +50%), Grid layout (Auto, 3 columns, 2 columns or List, for album, playlist and label grids)
+  and Tile size (−50% to +50%: Home's tiles, and how many fit on an Auto grid). The grid/list
+  button leaves the top bar; Refresh takes its corner, and a device set to List stays List.
+- **Labels screen**: find a label from the top bar (× clears, then closes the field) and turn
+  the order round, # to Z or Z to #, remembered. One label's albums lose the "‹ All labels" bar:
+  the top bar's ‹ goes back to all labels, its title is the label, the logo button top right.
+- **Library screen**: Focus, Sort and the search glass in the top bar, in brass. The search
+  opens over Focus and Sort; × clears, then closes. On a phone the title gives way to them;
+  from 480px wide it shows. Leaving the wall closes the field and gives the next screen its
+  title back.
+- **An artist's page** has its album count and name beside ‹ in the top bar, not above the grid.
+- **Settings on a desktop** (a large screen with a mouse): the list opens beside the page at the
+  side menu's width, and each settings page only as wide as it needs. Phones and tablets keep
+  the full screen.
+
 ## v0.6.3
 - **Matching weighs what identifies a record most** — tried against a real library's report
   first (tools/identify-report.js: 11,752 albums, 300 looked up again): the track count and

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.3
+# Mandarin — v0.6.6
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -33,8 +33,10 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 * **Album of the day** — the same album on every device, chosen by the server at 00:01; once
   played, from anywhere, it's gone until the next 00:01.
 * **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
-  decade, format, sample rate, bit depth, label, starts-with and date added. A Random albums wall
-  turns over each visit.
+  decade, format, sample rate, bit depth, label, starts-with and date added, from the top bar. A
+  Random albums wall turns over each visit.
+* **UI Settings** — text size, grid layout (Auto, 3 or 2 columns, or List) and tile size, on
+  each device.
 * **Music folders** — any number of folders the server can see, added and removed in Settings,
   watched so new and deleted albums show up by themselves.
 * **Search** — albums, artists and labels as you type. Typo-tolerant, any word order.
@@ -100,6 +102,12 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## New since the last beta (v0.5.50)
 
+* **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcodes match without asking musicbrainz.org. Optional: an 845 MB download, kept in a folder you choose.
+* **UI Settings** — Album and artist text, grid screen titles, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
+* **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
+* **Library controls in the top bar** — Focus, Sort and search sit in the Library screen's top bar; the search opens over them, and × clears, then closes.
+* **Titles beside Back** — An artist's album count and name, and a label's name, sit beside Back at the top of the screen.
+* **Settings on a desktop** — Settings opens beside the page at the side menu's width, and each settings page only as wide as it needs.
 * **Multi-disc albums** — A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.
 * **Random Album** — The first tile under Home's greeting, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
@@ -246,6 +254,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
+| `MBPACK_DIR` | data folder | Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there. |
 | `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
 | `DEBUG` | — | Log every API call. |
@@ -358,6 +367,8 @@ labels among the search results, a *Record label* facet in Library Focus, and a 
 week** row on Home: one label with three albums or more, the same one all week. The Settings
 page says how many albums carry a label tag and how many don't. A library filed by label
 (`/music/Jazz/Blue Note/Album`) can take the label from the folder at a set depth instead.
+The Labels screen's top bar finds a label as you type, and turns the order round (# to Z,
+Z to #).
 
 Two names the files keep apart can be **merged**: hold a tile on the Labels screen, select
 the rest, Merge folds them into the first; the tile says "N merged", and tapping that undoes
@@ -422,6 +433,12 @@ or key; a request every 3.2 seconds, well inside what Apple allows). What iTunes
 applied by the same rule — 95 % alike or better — and proposed when it's near. Apple's release date is often a reissue's, so an
 album matched this way keeps the year its files carry. **Ask iTunes too** on the same page
 switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
+
+**MusicBrainz pack** (optional, same page): every MusicBrainz release with a barcode, with its
+tracks, kept on the server — an 845 MB download, 2 GB on disk, in the data folder or any folder
+you choose (in Docker, mount it without `:ro`). Barcodes are then matched there, without asking
+musicbrainz.org; anything it lacks is asked for as before. It's built each week from
+MusicBrainz's data dump on GitHub and fetched again when a newer one is out.
 
 **Scheduling** is on by default: the scan runs between the start and end times you set each
 night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library
