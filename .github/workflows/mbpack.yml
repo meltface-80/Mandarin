@@ -1,0 +1,99 @@
+# The MusicBrainz pack (v0.6.4): every release with a barcode, with its
+# tracks, as one SQLite file the identification scan reads instead of asking
+# musicbrainz.org. Built here each week from MusicBrainz's data dump (CC0,
+# data.metabrainz.org) and attached to the rolling "mbpack" pre-release;
+# installs download it from Settings. A pre-release, and never "latest", so
+# the server's updater (releases/latest) never mistakes it for a release.
+name: MusicBrainz pack
+
+on:
+  schedule:
+    - cron: "17 4 * * 4"   # Thursdays: the dumps come out on Wednesdays and Saturdays
+  workflow_dispatch:
+  push:
+    paths: ["tools/mbpack/**", ".github/workflows/mbpack.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mbpack
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      # The dump's track table alone is several GB unpacked: room first.
+      - name: Make room
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL || true
+          df -h .
+
+      - name: Download the dump's tables
+        run: |
+          set -e
+          BASE=https://data.metabrainz.org/pub/musicbrainz/data/fullexport
+          LATEST=$(curl -sSf --retry 5 --retry-all-errors --max-time 60 "$BASE/LATEST")
+          echo "dump $LATEST"
+          # lbzip2 unpacks on every core; plain bzip2 if it can't be had.
+          UNZIP=bzip2
+          if timeout 120 sudo apt-get install -y -q lbzip2 >/dev/null 2>&1; then UNZIP=lbzip2; fi
+          mkdir -p dump
+          curl -sSf --retry 5 --retry-all-errors --max-time 7200 "$BASE/$LATEST/mbdump.tar.bz2" \
+            | tar -x -f - -C dump -I "$UNZIP" TIMESTAMP SCHEMA_SEQUENCE REPLICATION_SEQUENCE \
+                mbdump/artist_credit mbdump/release mbdump/release_group \
+                mbdump/release_group_primary_type mbdump/release_group_secondary_type mbdump/release_group_secondary_type_join \
+                mbdump/release_status mbdump/release_country mbdump/release_unknown_country mbdump/iso_3166_1 \
+                mbdump/medium_format mbdump/medium mbdump/track
+          cp dump/TIMESTAMP dump/SCHEMA_SEQUENCE dump/REPLICATION_SEQUENCE dump/mbdump/
+          curl -sSf --retry 5 --retry-all-errors --max-time 120 -o dump/CreateTables.sql \
+            https://raw.githubusercontent.com/metabrainz/musicbrainz-server/master/admin/sql/CreateTables.sql
+          cat dump/TIMESTAMP dump/SCHEMA_SEQUENCE
+          ls -la dump/mbdump
+          df -h .
+
+      - name: Build the pack
+        run: |
+          set -e
+          node --max-old-space-size=8192 tools/mbpack/build.js --dump=dump/mbdump --schema=dump/CreateTables.sql --out=mbpack.sqlite
+          rm -rf dump
+          F=$(node -p "require('./tools/mbpack/build').PACK_FORMAT")
+          mkdir -p out
+          gzip -6 -c mbpack.sqlite > out/mbpack-$F.sqlite.gz
+          node -e '
+            const fs = require("fs"), crypto = require("crypto"), Database = require("better-sqlite3");
+            const F = process.argv[1];
+            const db = new Database("mbpack.sqlite", { readonly: true });
+            const meta = Object.fromEntries(db.prepare("SELECT key, value FROM meta").all().map(r => [r.key, r.value]));
+            const gz = "out/mbpack-" + F + ".sqlite.gz";
+            const sha = crypto.createHash("sha256").update(fs.readFileSync(gz)).digest("hex");
+            fs.writeFileSync("out/mbpack-" + F + ".json", JSON.stringify(Object.assign(meta, {
+              file: "mbpack-" + F + ".sqlite.gz", gz_size: fs.statSync(gz).size, size: fs.statSync("mbpack.sqlite").size, sha256: sha }), null, 1) + "\n");
+          ' "$F"
+          cat out/mbpack-$F.json
+          ls -la out
+
+      - name: Publish to the "mbpack" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view mbpack >/dev/null 2>&1; then
+            gh release create mbpack --prerelease --latest=false --title "MusicBrainz pack (for identification)" \
+              --notes "Every MusicBrainz release with a barcode, with its tracks, for Mandarin's identification scan. Built weekly from the MusicBrainz data dump (CC0, https://musicbrainz.org/doc/MusicBrainz_Database). Not a Mandarin release." \
+              --target "${GITHUB_SHA}"
+          fi
+          # The .gz first, so the .json never names a file not there yet.
+          gh release upload mbpack out/*.gz --clobber
+          gh release upload mbpack out/*.json --clobber
