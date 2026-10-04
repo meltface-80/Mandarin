@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.11
+- **Install on a Mac**: a new section in the README and on the site, step by step: Homebrew,
+  Node.js and ffmpeg, download, start, open, keep the Mac awake, and (optionally) start it at
+  login. Away from home there through the Tailscale app.
+- **The app's signing key, as it is now**: from v0.6.10 the published app is signed with the
+  project's own key. The README and the site say that coming from an earlier build needs one
+  uninstall, and what a self-built app (`…-shared-key.apk`) can and can't update.
+
 ## v0.6.10
 - **The Android app is a release build.** It was published as a debug build, which Android runs
   slower (and its Opus decoder unoptimised). Still signed with the same shared key, so it

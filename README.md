@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.10
+# Mandarin — v0.6.11
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -185,7 +185,7 @@ few minutes and albums appear as it goes.
 > **`--network host` is required.** Sonos players are found by multicast, which does not
 > cross Docker's default bridge network — and the speakers fetch audio from this machine's
 > own address. Docker Desktop on macOS/Windows has no real host networking, so this needs a
-> Linux host.
+> Linux host. On a Mac, run it without Docker: see [Install on a Mac](#install-on-a-mac).
 
 > **Keep the `musicd-server-data` volume.** It holds the library database, play history,
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
@@ -243,6 +243,89 @@ docker pull ghcr.io/meltface-80/musicd-server:latest
 docker stop musicd-server && docker rm musicd-server
 # re-run the docker run command above — the data volume carries everything over
 ```
+
+## Install on a Mac
+
+Mandarin runs on a Mac without Docker: macOS 14 or newer, macOS 27 included, Apple silicon or
+Intel. The Mac needs to stay on, on the same network as your speakers. Everything below is typed
+in **Terminal** (Applications → Utilities).
+
+**1. Install Homebrew**, the Mac's package installer, if you don't have it: paste the command from
+[brew.sh](https://brew.sh), press Return, and follow what it says at the end.
+
+**2. Install Node.js and ffmpeg:**
+
+```bash
+brew install node@22 ffmpeg
+echo 'export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"' >> ~/.zprofile
+source ~/.zprofile
+```
+
+**3. Download Mandarin:**
+
+```bash
+git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+cd ~/Mandarin
+npm ci --omit=dev
+```
+
+**4. Start it**, pointing at your music (here, the Mac's own Music folder):
+
+```bash
+cd ~/Mandarin
+MUSIC_DIR="$HOME/Music" npm start
+```
+
+Allow what macOS asks the first time: to **find devices on your local network** (that's how it
+finds the speakers), to **accept incoming connections**, and to open your **Music folder**.
+
+**5. Open it.** On the Mac, go to **`http://localhost:3500`** and create your account. On a phone,
+use the Mac's address: **`http://<mac-ip>:3500`** (the IP is in System Settings → Wi-Fi →
+Details). Add more folders, an external drive (`/Volumes/…`) included, in **Settings → Music
+Folders**.
+
+**Keep the Mac awake.** In System Settings → Energy (or Battery → Options), turn on **Prevent
+automatic sleeping when the display is off**. A sleeping Mac can't play to your speakers.
+
+**Start it when you log in (optional).** Stop it in Terminal first (Control-C), then paste:
+
+```bash
+mkdir -p ~/Mandarin/data
+cat > ~/Library/LaunchAgents/app.mandarin.server.plist <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>app.mandarin.server</string>
+  <key>ProgramArguments</key><array><string>$(which node)</string><string>$HOME/Mandarin/launcher.js</string></array>
+  <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>MUSIC_DIR</key><string>$HOME/Music</string>
+    <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$HOME/Mandarin/data/server.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Mandarin/data/server.log</string>
+</dict></plist>
+PLIST
+launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist
+```
+
+To stop it starting: `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`. If no
+albums appear when it's started this way, macOS is keeping it out of the folder: add `node` in
+System Settings → Privacy & Security → **Full Disk Access** (press Command-Shift-G and paste the
+path `which node` prints).
+
+**On a Mac:**
+* **Updates** come from the app, as on Linux (Settings → **Updates**).
+* **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
+* **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
+  Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
+* **Rooms not found?** Give it a speaker's IP: `SONOS_HOSTS=192.168.1.20` before `npm start`
+  (or another `<key>`/`<string>` pair beside `MUSIC_DIR` in the file above).
+
+**Only listening on a Mac?** None of this is needed: open the server's address in Safari and
+choose **File → Add to Dock**. It opens like an app.
 
 ## Configuration
 
@@ -354,15 +437,19 @@ interface, and adds what a web page can't:
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
 on Android 8.0 or newer.
 
-**Updates install over the top** from v0.2.1 on: every build is signed with the same key
-(`android/app/musicd-debug.keystore`). From v0.6.10 every build is a release build (optimised,
-not debuggable), still signed with that key. Builds before v0.2.1 were each signed with a different
-key, so going from one of those to v0.2.1 needs **one** uninstall first — after that, never again.
+**Updates install over the top.** From v0.6.10 the published app is a release build signed with
+the project's own private key, and every update after it installs in place.
 
-That key is a debug key committed to this public repository, so it only keeps your own updates
-working. For a key nobody else holds, add the `MUSICD_KEYSTORE_BASE64` and
-`MUSICD_KEYSTORE_PASSWORD` secrets (the same ones as Android Random Remote); switching to it
-also needs one uninstall.
+**Coming from a build before v0.6.10?** Those were signed with a different, shared key, so
+Android refuses the update ("conflicts with an existing package"). Uninstall the app once,
+install [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk),
+open it, enter the server's address and sign in again. Albums downloaded to the phone go with
+the uninstall, so download them again. After that, never again.
+
+**Building the app yourself?** Without the `MUSICD_KEYSTORE_BASE64` and
+`MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
+(`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
+published app, nor the published app it.
 
 ## Favourites
 

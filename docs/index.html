@@ -178,6 +178,7 @@
     border: 1px solid var(--line);
     border-radius: 5px; padding: 1.5px 6px;
     color: var(--copper-hi);
+    overflow-wrap: anywhere;   /* a long path wraps rather than widening a phone's page */
   }
   .note {
     font-size: 13px; color: var(--muted);
@@ -282,6 +283,7 @@
     <a href="#new">New</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
+    <a href="#mac">Mac</a>
     <a href="#apps">Phones</a>
     <a href="#env">Environment</a>
     <a href="#trouble">Troubleshooting</a>
@@ -302,7 +304,7 @@
      iPhone home screen, or the Android app, designed for this server. No subscriptions, no streaming accounts.
      Definitely no nonsense about better sound quality: it plays the files on your server.</p>
   <div class="badges">
-    <span class="badge">v0.6.10</span>
+    <span class="badge">v0.6.11</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -438,8 +440,10 @@
 <section id="new">
   <div class="wrap">
     <h2>New since the last beta</h2>
-    <p class="lead">Everything added and improved from v0.5.50 to v0.6.10.</p>
+    <p class="lead">Everything added and improved from v0.5.50 to v0.6.11.</p>
     <div class="grid">
+      <div class="card"><h3>Runs on a Mac</h3>
+        <p>Step-by-step instructions to run the server on macOS 14 or newer, macOS 27 included, without Docker, and start it at login.</p></div>
       <div class="card"><h3>Lighter on phones</h3>
         <p>The Android app is now a release build. Now playing waits for changes instead of asking every second and a half; covers come sized to their tiles.</p></div>
       <div class="card"><h3>A brass icon</h3>
@@ -570,6 +574,7 @@
         <b>--network host is required.</b> Speakers are found by multicast, which does not cross
         Docker's default bridge network, and they fetch audio from this machine's own address.
         Docker Desktop for macOS and Windows has no real host networking, so this needs a Linux host.
+        On a Mac, run it without Docker: see <a href="#mac">Install on a Mac</a>.
       </div>
       <div class="note">
         <b>Keep the musicd-server-data volume.</b> It holds the library database, play history,
@@ -608,6 +613,83 @@
   </div>
 </section>
 
+<section id="mac">
+  <div class="wrap">
+    <h2>Install on a Mac</h2>
+    <p class="lead">No Docker needed: macOS 14 or newer, macOS 27 included, Apple silicon or Intel.
+      The Mac stays on, on the same network as your speakers. Type each step in <b>Terminal</b>
+      (Applications &rarr; Utilities).</p>
+    <div class="out">
+      <div class="firstrun"><ol><li><b>Install Homebrew</b>, the Mac's package installer, if you don't
+        have it: paste the command from <a href="https://brew.sh">brew.sh</a>, press Return and follow
+        what it says at the end.</li></ol></div>
+      <div class="firstrun"><ol start="2"><li><b>Install Node.js and ffmpeg.</b></li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>brew install node@22 ffmpeg
+echo &#x27;export PATH=&quot;$(brew --prefix)/opt/node@22/bin:$PATH&quot;&#x27; &gt;&gt; ~/.zprofile
+source ~/.zprofile</pre>
+      </div>
+      <div class="firstrun"><ol start="3"><li><b>Download Mandarin.</b></li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+cd ~/Mandarin
+npm ci --omit=dev</pre>
+      </div>
+      <div class="firstrun"><ol start="4"><li><b>Start it</b>, pointing at your music (here, the Mac's
+        own Music folder). Allow what macOS asks the first time: to find devices on your local network,
+        to accept incoming connections, and to open your Music folder.</li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>cd ~/Mandarin
+MUSIC_DIR=&quot;$HOME/Music&quot; npm start</pre>
+      </div>
+      <div class="firstrun"><ol start="5"><li><b>Open it.</b> On the Mac, <b>http://localhost:3500</b>;
+        on a phone, <b>http://&lt;mac-ip&gt;:3500</b> (the IP is in System Settings &rarr; Wi-Fi &rarr;
+        Details). Create your account, then add more folders, an external drive (<code>/Volumes/&hellip;</code>)
+        included, in Settings &rarr; Music Folders.</li></ol></div>
+      <div class="note"><b>Keep the Mac awake.</b> In System Settings &rarr; Energy (or Battery &rarr;
+        Options), turn on <b>Prevent automatic sleeping when the display is off</b>. A sleeping Mac can't
+        play to your speakers.</div>
+      <div class="firstrun"><ol start="6"><li><b>Start it when you log in</b> (optional). Stop it in
+        Terminal first (Control-C), then paste this. To undo:
+        <code>launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist</code>.</li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>mkdir -p ~/Mandarin/data
+cat &gt; ~/Library/LaunchAgents/app.mandarin.server.plist &lt;&lt;PLIST
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
+&lt;plist version=&quot;1.0&quot;&gt;&lt;dict&gt;
+  &lt;key&gt;Label&lt;/key&gt;&lt;string&gt;app.mandarin.server&lt;/string&gt;
+  &lt;key&gt;ProgramArguments&lt;/key&gt;&lt;array&gt;&lt;string&gt;$(which node)&lt;/string&gt;&lt;string&gt;$HOME/Mandarin/launcher.js&lt;/string&gt;&lt;/array&gt;
+  &lt;key&gt;WorkingDirectory&lt;/key&gt;&lt;string&gt;$HOME/Mandarin&lt;/string&gt;
+  &lt;key&gt;EnvironmentVariables&lt;/key&gt;&lt;dict&gt;
+    &lt;key&gt;MUSIC_DIR&lt;/key&gt;&lt;string&gt;$HOME/Music&lt;/string&gt;
+    &lt;key&gt;PATH&lt;/key&gt;&lt;string&gt;$(brew --prefix)/bin:/usr/bin:/bin&lt;/string&gt;
+  &lt;/dict&gt;
+  &lt;key&gt;RunAtLoad&lt;/key&gt;&lt;true/&gt;
+  &lt;key&gt;KeepAlive&lt;/key&gt;&lt;true/&gt;
+  &lt;key&gt;StandardOutPath&lt;/key&gt;&lt;string&gt;$HOME/Mandarin/data/server.log&lt;/string&gt;
+  &lt;key&gt;StandardErrorPath&lt;/key&gt;&lt;string&gt;$HOME/Mandarin/data/server.log&lt;/string&gt;
+&lt;/dict&gt;&lt;/plist&gt;
+PLIST
+launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
+      </div>
+      <div class="note"><b>No albums when it starts at login?</b> macOS is keeping it out of the
+        folder: add <code>node</code> in System Settings &rarr; Privacy &amp; Security &rarr; Full Disk
+        Access (press Command-Shift-G and paste the path <code>which node</code> prints).</div>
+      <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
+        is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
+        Mac App Store and sign in. Rooms not found? Put <code>SONOS_HOSTS=&lt;a speaker's IP&gt;</code>
+        before <code>npm start</code>.</div>
+      <div class="note"><b>Only listening on a Mac?</b> None of this is needed: open the server's
+        address in Safari and choose <b>File &rarr; Add to Dock</b>.</div>
+    </div>
+  </div>
+</section>
+
 <section id="apps">
   <div class="wrap">
     <h2>On your phone</h2>
@@ -630,6 +712,9 @@
         <p class="fine"><a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk"><b>Download mandarin-android.apk</b></a>
            &mdash; the newest build, published on every version. Sideload on Android 8.0 or newer; the app
            updates itself from then on.</p>
+        <p class="fine"><b>Installed before v0.6.10?</b> Those builds used a different signing key, so
+           Android refuses the update. Uninstall once, install the download above and sign in again;
+           downloaded albums need downloading again. Updates install in place after that.</p>
       </div>
     </div>
   </div>
@@ -844,6 +929,14 @@
     else fallback();
   });
 })();
+document.querySelectorAll("[data-copy]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var text = btn.parentNode.querySelector("pre").textContent;
+    var done = function () { btn.textContent = "Copied"; btn.classList.add("done");
+      setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+  });
+});
 </script>
 </body>
 </html>
