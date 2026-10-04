@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.0
+# Mandarin — v0.6.1
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -27,9 +27,9 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ## What it does
 
-* **Home** — Not played in six months with the Album of the day, Listen later, Playlists,
-  Favourites, Recently played, Smart Picks, Label of the week, Random albums, the Library and
-  genres. Reorder the rows or switch them off.
+* **Home** — Random Album and the Album of the day under the greeting, then Not played in six
+  months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week,
+  Random albums, the Library and genres. Reorder the rows or switch them off.
 * **Album of the day** — the same album on every device, chosen by the server at 00:01; once
   played, from anywhere, it's gone until the next 00:01.
 * **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
@@ -101,9 +101,11 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 ## New since the last beta (v0.5.50)
 
 * **Multi-disc albums** — A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.
-* **Random Album** — Home's first tile, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
+* **Random Album** — The first tile under Home's greeting, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
 * **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
-* **Not played in six months** — Waits until Mandarin has six months of your listening, then offers the albums you haven't heard since.
+* **Not played in six months** — Hidden until Mandarin has six months of your listening, then offers the albums you haven't heard since.
+* **Now playing goes back** — Opened over an album, its corner button returns to that album. On large screens it can shrink to a card and be dragged.
+* **API keys checked** — The Discogs and FanArt.tv boxes show a ✓ when the service accepts the key, or ✕ when it refuses it.
 * **Untagged albums named from folders** — A file with no tags takes its artist, album, year, title and track from its folder and file names, then is identified on MusicBrainz; nothing is written to the files.
 * **One album per folder** — Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album's folder are one album, shown disc by disc.
 * **Every tag kept** — All of each file's tags and identifiers — MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain — read into the server's database.

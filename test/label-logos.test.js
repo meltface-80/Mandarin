@@ -12,7 +12,7 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDiscogs, FakeFanart, PNG } = require("./fake-discogs");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
-const { typeOf } = require("../lib/labellogos");
+const { typeOf, LabelLogos } = require("../lib/labellogos");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = 3614;
@@ -22,6 +22,84 @@ test("an image's kind is read from its bytes", () => {
   assert.deepEqual(typeOf(PNG), ["image/png", "png"]);
   assert.deepEqual(typeOf(Buffer.from("<svg xmlns='x'/>")), ["image/svg+xml", "svg"]);
   assert.equal(typeOf(Buffer.from("<html>no</html>"), "text/html"), null);
+});
+
+test("a bare 403 says nothing about a key; one that names the key refuses it", async () => {
+  const http = require("http");
+  let body = "Host not in allowlist", code = 403;
+  const srv = http.createServer((req, res) => { res.writeHead(code); res.end(body); });
+  await new Promise(r => srv.listen(0, "127.0.0.1", r));
+  const base = "http://127.0.0.1:" + srv.address().port;
+  const settings = { discogsToken: "tok" };
+  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
+  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: base });
+  try {
+    assert.equal(await logos.checkKey("discogs"), "unknown", "a proxy's 403 is not evidence the key is wrong");
+    assert.equal(await logos.checkKey("discogs"), "unknown", "remembered");
+    body = '{"message": "Invalid consumer token."}';
+    assert.equal(await logos.checkKey("discogs", true), "invalid");
+    code = 500;
+    assert.equal(await logos.checkKey("discogs", true), "unknown");
+    code = 200;
+    assert.equal(await logos.checkKey("discogs", true), "ok");
+    settings.discogsToken = "";
+    assert.equal(await logos.checkKey("discogs", true), null);
+  } finally { srv.close(); }
+});
+
+test("a key the service refuses is shown as refused", async () => {
+  const discogs = new FakeDiscogs([]), fanart = new FakeFanart({});
+  await Promise.all([discogs.start(), fanart.start()]);
+  const settings = { discogsToken: "wrong", fanartKey: "wrong" };
+  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
+  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base });
+  try {
+    assert.equal(await logos.checkKey("discogs"), "invalid");
+    assert.equal(await logos.checkKey("fanart"), "invalid");
+    Object.assign(settings, { discogsToken: "tok", fanartKey: "fk" });
+    assert.equal(await logos.checkKey("discogs"), "ok", "a new key is checked anew");
+    assert.equal(await logos.checkKey("fanart"), "ok");
+  } finally { await Promise.all([discogs.stop(), fanart.stop()]); }
+});
+
+test("a key given mid-pass: the pass runs again, and a miss stands only for the keys it was asked with", { timeout: 30000 }, async () => {
+  const fs = require("fs"), os = require("os");
+  const DB = require("../lib/library/db");
+  const { MusicBrainz } = require("../lib/identify/musicbrainz");
+  const discogs = new FakeDiscogs([{ id: 11, title: "Blue Note", image: "bluenote.jpg" }]);
+  const fanart = new FakeFanart({ "mb-ecm": "ecm.png" });
+  const mb = new FakeMusicBrainz([], { labels: [{ id: "mb-ecm", name: "ECM" }] });
+  await Promise.all([discogs.start(), fanart.start(), mb.start()]);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-logos-"));
+  const db = DB.open(dir, { log: () => {} });
+  const logos = new LabelLogos({ db, dataDir: dir, mb: new MusicBrainz({ baseUrl: mb.baseUrl }),
+    discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base, pauseMs: 0 });
+  const labels = [{ key: "bluenote", title: "Blue Note" }, { key: "ecm", title: "ECM" }];
+  const idle = async () => { while (logos.state.running) await new Promise(r => setTimeout(r, 20)); };
+  try {
+    // Discogs only: ECM is not found there, and that is remembered.
+    db.setSetting("discogsToken", "tok");
+    assert.equal(logos.fetchMissing(labels), true);
+    // The FanArt.tv key arrives while that pass runs; the pass asked for now
+    // is not dropped but runs straight after.
+    await new Promise(r => setTimeout(r, 0));
+    db.setSetting("fanartKey", "fk");
+    assert.equal(logos.fetchMissing(labels), true, "queued behind the running pass");
+    await idle();
+    assert.ok(logos.get("bluenote"), "from Discogs");
+    assert.ok(logos.get("ecm"), "from FanArt.tv, on the pass after the key came");
+    // A remembered miss is asked about again only when the keys change.
+    fs.rmSync(path.join(dir, "labels", logos.q.get.get("ecm").file));
+    logos.q.del.run("ecm");
+    db.cachePut("labellogo-miss", "ecm", logos.keysSig());
+    assert.equal(logos.fetchMissing(labels), false, "same keys: the miss stands");
+    db.setSetting("discogsToken", "tok2");
+    assert.equal(logos.fetchMissing(labels), true, "new keys: asked again");
+    await idle();
+  } finally {
+    db.close();
+    await Promise.all([discogs.stop(), fanart.stop(), mb.stop()]);
+  }
 });
 
 test("merges and logos", { skip, timeout: 90000 }, async (t) => {
@@ -89,9 +167,14 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
     });
 
     await t.test("with the keys: Discogs first, FanArt.tv for the rest, misses remembered", async () => {
-      assert.equal((await api("settings/discogs-token", { token: "tok" })).ok, true);
+      // Each key says whether the service takes it (v0.6.1).
+      const saved = await api("settings/discogs-token", { token: "tok" });
+      assert.equal(saved.ok, true);
+      assert.equal(saved.check, "ok");
       assert.equal((await api("settings/discogs-token")).masked, "••••tok");
-      await api("settings/fanart-key", { key: "fk" });
+      assert.equal((await api("settings/discogs-token")).check, "ok");
+      assert.equal((await api("settings/fanart-key", { key: "fk" })).check, "ok", "a good key gets a 404 for an artist without art");
+      assert.equal((await api("settings/fanart-key")).check, "ok");
       const r = await api("labels/rescan-force", {});
       assert.equal(r.started, true);
       await until(async () => !(await api("labels-scan-status")).scanning);
@@ -107,7 +190,10 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       assert.match(log, /Blue Note: logo from Discogs/);
       assert.match(log, /ECM: logo from FanArt.tv/);
       assert.match(log, /Nonesuch: no logo found/);
-      assert.match(log, /done, 2 of 4 found/);
+      // One pass or two, depending on how soon the second key lands while the
+      // first key's pass runs: two found between them, and nothing left over.
+      const found = [...log.matchAll(/logos: done, (\d+) of \d+ found/g)].reduce((n, m) => n + Number(m[1]), 0);
+      assert.equal(found, 2, log);
       // Served as an image, cached hard.
       const img = await fetch(B + by("Blue Note").logo_url, { headers: { Authorization: "Bearer " + token } });
       assert.equal(img.status, 200);

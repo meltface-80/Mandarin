@@ -26,6 +26,7 @@ class FakeDiscogs {
           res.writeHead(200, { "Content-Type": png ? "image/png" : "image/jpeg" }); return res.end(png ? PNG : JPG);
         }
         if (req.headers.authorization !== "Discogs token=" + this.token) return send({ message: "You must authenticate" }, 401);
+        if (u.pathname === "/oauth/identity") return send({ id: 1, username: "listener" });
         if (u.pathname === "/database/search" && u.searchParams.get("type") === "release") {
           const t = (u.searchParams.get("release_title") || "").toLowerCase(), a = (u.searchParams.get("artist") || "").toLowerCase();
           const hits = this.releases.filter(r => r.title.toLowerCase() === t && (!a || r.artist.toLowerCase() === a));
