@@ -16636,6 +16636,8 @@ initServiceBrowser({
     for (const d of b.dirs) html += '<button type="button" class="mf-dir" data-pack-go="' + esc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + esc(d.name) + "</span></button>";
     if (!b.dirs.length) html += '<div class="settings-note">No folders in here.</div>';
     html += '</div><div class="mf-browse-foot"><button type="button" class="settings-update-btn mf-choose" data-pack-choose' + (busy || b.path === "/" ? " disabled" : "") + ">Keep the pack in “" + esc(b.path.split("/").pop() || b.path) + "”</button></div>";
+    // Why it couldn't be kept there, by the button, not at the foot of the page.
+    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     return html;
   }
   function packBlock() {
@@ -16790,7 +16792,7 @@ initServiceBrowser({
     html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
     html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
     html += section("rejected", "Declined");
-    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    if (err && !packBrowse) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     body.innerHTML = html;
   }
 
