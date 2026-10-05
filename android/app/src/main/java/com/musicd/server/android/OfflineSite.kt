@@ -46,8 +46,20 @@ object OfflineSite {
 
     private fun dir(c: Context) = File(c.filesDir, "site").apply { mkdirs() }
 
-    /** A copy good enough to open offline. */
-    private fun saved(c: Context) = File(dir(c), "index.html").exists() && File(dir(c), "app.js").exists()
+    /**
+     * A copy good enough to open offline, and no older than this app (v0.6.16):
+     * a copy saved from a server a few versions behind would otherwise stand in
+     * for the app's own, newer page and bring back what was since fixed. A copy
+     * saved before v0.6.16 doesn't say its version, so the app's own is used
+     * until the next refresh says it.
+     */
+    private fun saved(c: Context): Boolean {
+        val d = dir(c)
+        if (!File(d, "index.html").exists() || !File(d, "app.js").exists()) return false
+        val v = runCatching { File(d, VERSION_FILE).readText().trim() }.getOrNull() ?: return false
+        return runCatching { com.musicd.server.client.Release.compare(v, BuildConfig.VERSION_NAME) >= 0 }.getOrDefault(false)
+    }
+    private const val VERSION_FILE = "server-version.txt"
 
     /**
      * Always true: when nothing has been saved from the server yet, the copy
@@ -121,6 +133,11 @@ object OfflineSite {
                 // rest aren't downloaded and rewritten every five minutes.
                 for ((path, name) in STATIC) runCatching { refresh(File(d, name), base + path, token) }
                     .onFailure { Log.i(TAG, "$path: ${it.message}") }
+                // Which server version these files are (see [saved]).
+                runCatching {
+                    val v = org.json.JSONObject(String(get("$base/api/health", token))).optString("version")
+                    if (v.isNotBlank()) save(File(d, VERSION_FILE), v.toByteArray())
+                }.onFailure { Log.i(TAG, "version: ${it.message}") }
                 for (path in CACHED_API) runCatching {
                     refresh(File(d, "api" + path.replace('/', '_') + ".json"), base + path, token)
                 }

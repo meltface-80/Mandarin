@@ -37,7 +37,9 @@ object AppBackup {
     // prefs file → the keys a person sets (and nothing the app keeps for itself).
     private val KEYS = mapOf(
         "musicd" to listOf("dsp", "replaygain", "usb_direct", "usb_volume", "usb_fixed", "usb_dsd", "usb_limit",
-            "away_engine", "zone", "local_folder", "download_folder", "download_sub"),
+            "away_engine", "zone", "local_folder", "download_folder", "download_sub",
+            // The server's address away from home (learned, or typed on the Tailscale screen), v0.6.16.
+            "away_learned", "away_typed"),
         "downloads" to listOf("quality", "wifi_only", "limit_gb", "location", "auto_picks", "auto_aotd", "auto_recent",
             "away_quality", "cache_wifi", "cache_mobile", "cache_gb")
     )

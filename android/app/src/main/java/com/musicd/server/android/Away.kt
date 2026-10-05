@@ -114,8 +114,11 @@ object Away {
         val wasAway = Store.isAway(c)
         val wasEngine = Store.viaEngine(c)
         val wifi = onWifi(c)
-        val homeAnswers = wifi && answers(home, 1500)
-        var away = Route.away(wifi, homeAnswers)
+        // Off Wi-Fi with a VPN up (another VPN into the home network, v0.6.16): the
+        // home address is tried too, and used if it answers through it.
+        val vpn = !wifi && onVpn(c)
+        val homeAnswers = (wifi || vpn) && answers(home, 1500)
+        var away = Route.away(wifi, homeAnswers, vpn)
 
         // Away: MusicD's own Tailscale connection first — the whole library,
         // streamed as Opus by the server, no Tailscale app needed.
@@ -188,6 +191,15 @@ object Away {
         val awayAt = Store.awayAddress(c) ?: return
         if (TailscaleEngine.alive() && answers(Store.awayBase(c) ?: return, 4000)) return
         if (!TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")) check(c)
+    }
+
+    /** A VPN is up (another VPN app; MusicD's own Tailscale isn't one). */
+    @Suppress("DEPRECATION")
+    private fun onVpn(c: Context): Boolean {
+        val cm = c.getSystemService(ConnectivityManager::class.java) ?: return false
+        return runCatching {
+            cm.allNetworks.any { n -> cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true }
+        }.getOrDefault(false)
     }
 
     /** On Wi-Fi or Ethernet (a VPN on top of it counts; mobile data doesn't). */

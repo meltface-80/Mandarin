@@ -14,10 +14,13 @@ package com.musicd.server.client
 object Route {
 
     /**
-     * Off Wi-Fi (or Ethernet) the phone is away whatever answers; on Wi-Fi it
-     * is home if the home address answers — someone else's Wi-Fi is away too.
+     * On Wi-Fi (or Ethernet) the phone is home if the home address answers —
+     * someone else's Wi-Fi is away too. Off Wi-Fi it's away, unless a VPN is
+     * up and the home address answers through it (v0.6.16): another VPN into
+     * the home network reaches the server as if at home, so it's used.
      */
-    fun away(onWifi: Boolean, homeAnswers: Boolean): Boolean = !(onWifi && homeAnswers)
+    fun away(onWifi: Boolean, homeAnswers: Boolean, onVpn: Boolean = false): Boolean =
+        !((onWifi || onVpn) && homeAnswers)
 
     /**
      * [url] on the address in use: [home] or [away] (base URLs). A track's
