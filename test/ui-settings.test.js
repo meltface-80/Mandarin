@@ -152,7 +152,7 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.equal(r.home, true, "and ‹ there goes Home");
     assert.equal(r.has_library, true, "Home has its Library row");
     assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: true, brass: true, glass_last: true });
-    assert.deepEqual(r.lib_open, { focus: false, sort: false, title: true, value: "Al" }, "the field opens over Focus and Sort");
+    assert.deepEqual(r.lib_open, { focus: false, sort: false, title: false, value: "Al" }, "the field opens over Focus and Sort in their row; the title stays");
     assert.deepEqual(r.lib_cleared, { open: true, value: "" }, "the first × clears the words");
     assert.deepEqual(r.lib_closed, { open: false, focus: true, sort: true }, "the second × closes it");
     assert.equal(r.lib_in_artist, false, "an artist page takes them out of the bar");
@@ -184,7 +184,7 @@ const SIZES_DRIVER = `(async () => {
   document.getElementById("home-library-title").click();
   await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-ctl-sort"));
   await sleep(200);
-  const box = sel => { const b = document.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width, h: b.height }; };
+  const box = sel => { const b = document.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width, h: b.height, t: b.top, b: b.bottom }; };
   const title = document.getElementById("album-count");
   const out = { vw: innerWidth, back: box("#topbar-back"), focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort"), glass: box(".lib-filter-btn"),
     title_shown: getComputedStyle(title).display !== "none", title: box("#album-count"), bar: box(".topbar").h };
@@ -193,7 +193,7 @@ const SIZES_DRIVER = `(async () => {
   return out;
 })()`;
 
-test("the Library's top bar on phones, tablets and desktops", { skip, timeout: 120000 }, async () => {
+test("the Library's controls under the top bar on phones, tablets and desktops", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT + 1, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -216,12 +216,13 @@ test("the Library's top bar on phones, tablets and desktops", { skip, timeout: 1
         assert.deepEqual(page.errors, []);
       } finally { await b.close(); }
       const at = size.width + "px";
-      assert.ok(r.back.r <= r.focus.l && r.focus.r <= r.sort.l && r.sort.r <= r.glass.l, at + ": in order, none overlapping");
+      assert.ok(r.focus.t >= r.back.b - 1, at + ": the controls sit in their own row under the bar's");
+      assert.ok(r.focus.r <= r.sort.l && r.sort.r <= r.glass.l, at + ": Focus, Sort, the glass, in order, none overlapping");
       assert.ok(r.glass.r <= r.vw, at + ": the glass is on the screen");
       assert.ok(Math.abs(r.glass.w - r.glass.h) < 1, at + ": the glass is round");
       assert.ok(r.focus.w > 50, at + ": Focus keeps its word");
-      assert.equal(r.title_shown, size.width >= 480, at + ": the title shows from 480px");
-      if (r.title_shown) assert.ok(r.title.r <= r.focus.l, at + ": the title stops short of Focus");
+      assert.ok(r.focus.h <= 36 && r.focus.h < r.back.h, at + ": the pills are smaller than the bar's buttons");
+      assert.equal(r.title_shown, true, at + ": the title shows at every width");
       assert.equal(r.open.bar, r.bar, at + ": opening the field doesn't change the bar's height");
       assert.ok(r.open.field.r <= r.vw && r.open.field.w > 150, at + ": the field takes the room");
     }

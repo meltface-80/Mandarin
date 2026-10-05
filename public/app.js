@@ -2801,12 +2801,14 @@ window.__afterStart = (fn) => {
     if (!bar) {
       bar = document.createElement("div");
       bar.id = "library-controls";
-      // In the top bar (v0.6.5, as Rouen v1.8.78), at its right-hand end where
-      // Home keeps its search: Focus, Sort, then the magnifier in the corner.
-      bar.className = "library-controls in-topbar";
+      // Its own row under the top bar's (v0.6.24): smaller pills, Focus on
+      // the left, Sort and the magnifier on the right. Inside .topbar, which
+      // lies over the scroller, so the row stays put while the grid scrolls,
+      // and the bar's measured height reserves its room.
+      bar.className = "library-controls sub-bar";
+      const tb = document.querySelector(".topbar");
       const row = document.querySelector(".topbar-row");
-      const before = document.getElementById("labels-tools");
-      if (row) row.insertBefore(bar, before && before.parentNode === row ? before : null);
+      if (tb && row) row.insertAdjacentElement("afterend", bar);
       else grid.parentNode.insertBefore(bar, grid);
     }
     // Both controls open a sheet rather than mutating the view in place, so a
