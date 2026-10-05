@@ -108,7 +108,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.deepEqual((await api("user-playlist?id=" + favt.id)).tracks.map(x => x.title), ["Q Hi 2"]);
       // Nothing stale while everything is wanted.
       const cu = await api("library/cleanup");
-      assert.deepEqual(cu, { status: 200, files: { albums: 0, tracks: 0, folders: 0 }, qobuz: { albums: 0, signed_in: true } });
+      assert.deepEqual(cu, { status: 200, files: { albums: 0, tracks: 0, folders: 0 }, qobuz: { albums: 0, signed_in: true }, tidal: { albums: 0, signed_in: false } });
       const page = await api("album?offset=" + q1.offset);
       assert.deepEqual(page.tracks.map(x => x.title), ["Q Song 1", "Q Song 2", "Q Song 3"]);
       assert.equal(page.album.source, "qobuz");

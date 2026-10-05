@@ -245,6 +245,13 @@ FEATURES = [
      "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
      "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
      "**⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz)."),
+    ("tidal", "🎵", "Tidal", True,
+     "Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, "
+     "and the Tidal browser plays anything in the catalogue, streamed through the server.",
+     "**Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. "
+     "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
+     "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
+     "Details under [Tidal](#tidal)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

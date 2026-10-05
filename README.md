@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.23
+# Mandarin — v0.6.24
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -586,6 +586,18 @@ Sign in with your Qobuz subscription: your favourites and purchases become album
 
 ⸻
 
+🎵 **Tidal** — *new since v0.5.50*
+
+Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites (a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. Details under [Tidal](#tidal).
+
+</details>
+
+⸻
+
 🔄 **Updates**
 
 The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
@@ -972,6 +984,34 @@ Server's Qobuz plugin does — the same API, the same credentials, the same rule
 
 The app id and secret are the ones the Lyrion plugin carries, as Qobuz answers no application
 requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin behaves the same.
+
+## Tidal
+
+Mandarin streams from Tidal with a Tidal subscription (v0.6.24), the way the Lyrion Music
+Server's Tidal plugin does — the same API, the same credentials, the same rules — and Tidal
+albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser, playlists,
+Clean up, the two favourites, the server's transcode cache, nothing downloaded.
+
+* **A subscriber signs in on tidal.com** (*Settings → Services → Tidal → Sign in on tidal.com*):
+  Mandarin shows a link and a code, you sign in there on any device, and Mandarin notices by
+  itself. It keeps the sign-in token, renewed as Tidal requires, never a password.
+* **Your favourite albums are albums here**, every one, with a Tidal mark on the cover;
+  *Favourites in the library* on the Services page switches this off. **Your Tidal playlists and
+  favourite tracks are playlists here**, as with Qobuz.
+* **The Tidal browser** (*☰ → Tidal*): search, new releases, recommended, top, rising, an
+  artist's albums, as the album grid, each cover with its **+** for your Tidal favourites; an
+  album opens on its page here. The ⋯ menu on a Tidal album's page has **Add to Tidal
+  favourites** / **Remove from Tidal favourites**.
+* **The stream.** *Stream quality* on the Services page is CD (FLAC 16/44.1) or Hi-Res: Tidal's
+  hi-res FLAC, up to 24/192, where an album has it and the subscription allows. Tidal sends
+  hi-res as MPEG-DASH (an initialisation piece and numbered segments), which the server joins
+  into one stream for ffmpeg on its own loopback; where Tidal answers a hi-res ask with anything
+  else, CD quality is asked for instead. What Tidal actually streams a track at is learnt the
+  first time it is played and the album's badge corrected. Tidal has no play reports.
+
+The client id and secret are the ones the Lyrion plugin carries, as Tidal's developer programme
+answers no streaming requests; Tidal leaves that plugin be because of how it behaves, and
+Mandarin behaves the same.
 
 ## Sound devices on the server
 

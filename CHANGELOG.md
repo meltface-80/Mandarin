@@ -5,6 +5,26 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.24
+- **Tidal** (Settings → Services). Sign in with a Tidal subscription on tidal.com — Mandarin shows
+  a link and a code, and notices by itself when the sign-in lands; the token is kept and renewed,
+  never a password. Then everything Qobuz has (v0.6.23), the same way: your favourite albums as
+  albums in the library (every one, a Tidal mark on the cover), your Tidal playlists and
+  favourite tracks as playlists here, the Tidal browser (☰ → Tidal: search, new releases,
+  recommended, top, rising, an artist's albums) as the album grid with **+** / **✓** on each
+  cover and the album's own page on a tap, **Add to / Remove from Tidal favourites** in the ⋯
+  menu, Clean up on the Library Scanner page, signed out it all steps aside. The same API and
+  credentials as the Lyrion Music Server's Tidal plugin, used the same way.
+  - Streamed through the server's transcode cache like a file, the next track ready behind the
+    one playing. CD quality comes as one address; Tidal's hi-res FLAC (up to 24/192) comes as
+    MPEG-DASH, which the server joins into one stream for ffmpeg on its own loopback. *Stream
+    quality*: CD, or Hi-Res where Tidal has it (CD asked for instead where Tidal answers a hi-res
+    ask with anything else). What Tidal streams a track at is learnt on the first play and the
+    rows corrected.
+  - Under the hood the two services share one library side (lib/services): rows, kept and held
+    albums, playlists import, Clean up, pruning, and one set of routes per service. A service's
+    playlists carry which service they are from.
+
 ## v0.6.23
 - **Qobuz** (Settings → Services). Sign in with a Qobuz subscription; your favourites and purchases
   become albums in the library (every one), and the Qobuz browser (☰ → Qobuz) searches the

@@ -145,6 +145,11 @@
           </svg>
         </button>
 
+        <!-- Tidal's mark: three diamonds (v0.6.24). Shown once signed in. -->
+        <button id="tidal-toggle" class="icon-btn hidden" aria-label="Tidal" title="Tidal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
+        </button>
+
         <!-- Hidden trigger for the side-menu "Pitchfork" item (topbar-controls is display:none) -->
         <button id="pitchfork-toggle" class="icon-btn" aria-label="Pitchfork" title="Pitchfork">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -723,6 +728,10 @@
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M39.203 39.203A21.43 21.43 0 0 0 45.5 24c0-11.874-9.626-21.5-21.5-21.5S2.5 12.126 2.5 24S12.126 45.5 24 45.5c4.89 0 9.4-1.633 13.012-4.383"/><circle cx="24" cy="24" r="4.873"/><path d="M32.944 32.944L45.5 45.5"/></svg>
           <span>Qobuz</span>
         </button>
+        <button class="menu-item hidden" type="button" data-target="tidal-toggle" id="menu-item-tidal">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
+          <span>Tidal</span>
+        </button>
         <button class="menu-item" type="button" data-target="pitchfork-toggle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
           <span>Pitchfork</span>
@@ -911,6 +920,39 @@
       <div id="qobuz-nr-list" class="qobuz-nr-list album-grid"></div>
       <button id="qobuz-load-more" class="hidden" type="button">Load more</button>
       <div id="qobuz-nr-detail" class="qobuz-nr-detail hidden"></div>
+    </div>
+  </div>
+
+  <!-- Tidal browser overlay (v0.6.24): the same browser as Qobuz's, its own ids -->
+  <div id="tidal-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Tidal">
+    <div class="settings-backdrop" data-tidal-close></div>
+    <div class="settings-sheet qobuz-sheet">
+      <div class="qobuz-pin">
+        <div class="settings-grip" aria-hidden="true"></div>
+        <div class="settings-head">
+          <h2>Tidal</h2>
+          <button id="tidal-overlay-close" class="icon-btn" type="button" aria-label="Close" data-tidal-close>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="qobuz-search-row">
+          <input id="tidal-search-input" type="search" placeholder="Search the Tidal catalogue…"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+          <button id="tidal-search-clear" class="hidden" type="button" aria-label="Clear search">×</button>
+        </div>
+        <div id="tidal-tabs" role="tablist" aria-label="Tidal sections">
+          <button class="qobuz-tab is-active" type="button" role="tab" data-qtab="new-releases">New Releases</button>
+          <button class="qobuz-tab" type="button" role="tab" data-qtab="recommended">Recommended</button>
+          <button class="qobuz-tab" type="button" role="tab" data-qtab="top">Top</button>
+          <button class="qobuz-tab" type="button" role="tab" data-qtab="rising">Rising</button>
+        </div>
+      </div>
+      <div id="tidal-nr-status" class="settings-token-status"></div>
+      <div id="tidal-artist-head" class="hidden"></div>
+      <div id="tidal-artists" class="hidden"></div>
+      <div id="tidal-nr-list" class="qobuz-nr-list album-grid"></div>
+      <button id="tidal-load-more" class="hidden" type="button">Load more</button>
+      <div id="tidal-nr-detail" class="qobuz-nr-detail hidden"></div>
     </div>
   </div>
 
@@ -1429,7 +1471,7 @@
           </button>
           <h2>Services</h2>
         </div>
-        <p class="settings-pane-desc">Qobuz</p>
+        <p class="settings-pane-desc">Qobuz and Tidal</p>
 
         <div class="settings-block">
           <div class="settings-block-title">Qobuz <button class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
@@ -1455,6 +1497,36 @@
               <button id="qobuz-disconnect" class="settings-update-btn" type="button">Sign out</button>
             </div>
             <div id="qobuz-import-status" class="settings-token-status"></div>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <div class="settings-block-title">Tidal <button class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div id="tidal-signin-form">
+            <div class="settings-token-row">
+              <button id="tidal-signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
+            </div>
+            <div id="tidal-pending" class="tidal-auth-pending" hidden>
+              <div class="settings-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
+              <a id="tidal-auth-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="tidal-auth-code" class="tidal-auth-code"></div>
+              <button id="tidal-signin-cancel" class="settings-update-btn" type="button">Cancel</button>
+            </div>
+          </div>
+          <div id="tidal-status" class="settings-token-status"></div>
+          <div id="tidal-signed" hidden>
+            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="tidal-quality" class="settings-select">
+                <option value="cd">CD (16/44.1)</option>
+                <option value="hires">Hi-Res (FLAC, where Tidal has it)</option>
+              </select></div></div>
+            <div class="settings-row"><span class="settings-label">Favourites in the library <button class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off: only what you play from the Tidal browser is known here, and only for a month." aria-label="Info">&#9432;</button></span>
+              <label class="switch"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="tidal-import-now" class="settings-update-btn" type="button">Update library now</button>
+              <button id="tidal-disconnect" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="tidal-import-status" class="settings-token-status"></div>
           </div>
         </div>
       </div>
@@ -1833,7 +1905,7 @@
         </div>
         <p class="settings-pane-desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz sign-in. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
           <div class="backup-actions">
             <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>

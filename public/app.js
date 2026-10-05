@@ -259,7 +259,7 @@ window.__afterStart = (fn) => {
   function setModalSource(album) {
     if (!modalSource) return;
     const kind = album && (album.source || (album.local ? "local" : null));
-    const label = { local: "Local albums", qobuz: "Qobuz" }[kind];
+    const label = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" }[kind];
     modalSource.className = "album-source" + (label ? " " + kind : " hidden");
     if (label) { modalSource.title = label; modalSource.setAttribute("aria-label", label); }
     // Same badge as the tiles, on the album's own artwork. Cleared on every
@@ -1917,22 +1917,24 @@ window.__afterStart = (fn) => {
   const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
   // The heart on an album's page: hollow, red once tapped, kept on the server.
-  // A Qobuz album's Qobuz favourite (v0.6.23), in the ⋯ menu — Add to Qobuz
-  // favourites, or Remove from — apart from the heart, which is Mandarin's
-  // own. Only while signed in: the page says whether it is one.
-  function qobuzMenuItem(page) {
+  // A streamed album's favourite on its service (Qobuz v0.6.23, Tidal
+  // v0.6.24), in the ⋯ menu — Add to Qobuz favourites, or Remove from —
+  // apart from the heart, which is Mandarin's own. Only while signed in: the
+  // page says whether it is one.
+  function serviceMenuItem(page) {
     const a = page && page.album;
-    if (!a || a.source !== "qobuz" || !a.qobuz_id || typeof a.qobuz_favourite !== "boolean") return [];
-    let on = a.qobuz_favourite;
-    const label = () => on ? "Remove from Qobuz favourites" : "Add to Qobuz favourites";
+    const name = a && SOURCE_LABEL[a.source];
+    if (!a || !a.source || a.source === "local" || !a.service_id || typeof a.service_favourite !== "boolean") return [];
+    let on = a.service_favourite;
+    const label = () => on ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
     return [{ label: label(), onClick: async (b) => {
       b.disabled = true;
       try {
-        const r = await fetch("/api/qobuz/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.qobuz_id }) });
+        const r = await fetch("/api/" + a.source + "/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.service_id }) });
         const s = await r.json().catch(() => ({}));
         if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
-        on = !on; a.qobuz_favourite = on; b.textContent = label();
-        showToast(on ? "Added to your Qobuz favourites" : "Removed from your Qobuz favourites");
+        on = !on; a.service_favourite = on; b.textContent = label();
+        showToast(on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
       } catch (e) { showToast(e.message, "error"); }
       finally { b.disabled = false; }
     } }];
@@ -5572,7 +5574,7 @@ window.__afterStart = (fn) => {
     return el;
   }
 
-  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz" };
+  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" };
   function sourceBadge(a) {
     const kind = a.source || (a.local ? "local" : null);
     if (!kind || !SOURCE_LABEL[kind]) return null;
@@ -7601,8 +7603,8 @@ window.__afterStart = (fn) => {
   function downloadMenuItem(album) {
     const dl = window.MusicdDownloads;
     if (!dl || !album || typeof album.offset !== "number") return [];
-    // A Qobuz album is streamed, never kept on the phone (v0.6.23).
-    if (album.source === "qobuz") return [];
+    // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23).
+    if (album.source && album.source !== "local") return [];
     let st = {};
     try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
     if (st.state === "done") return [{ label: "Remove from this phone", onClick: () => dl.remove(album.offset) }];
@@ -7761,9 +7763,9 @@ window.__afterStart = (fn) => {
     if (overflow.length) {
       const more = buildOverflowMenu(
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
-          .concat(qobuzMenuItem(j))
+          .concat(serviceMenuItem(j))
           .concat(laterMenuItem(album, j))
-          .concat(album.source === "qobuz" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
+          .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
         { label: "More actions" });
       modalActs.appendChild(more);
@@ -8459,6 +8461,7 @@ window.__afterStart = (fn) => {
         wrap.className = "ext-search-wrap";
         let added = 0;
         added += extServiceSection(wrap, "Qobuz", j.qobuz, "qobuz-toggle", "qobuz-search-input");
+        added += extServiceSection(wrap, "Tidal", j.tidal, "tidal-toggle", "tidal-search-input");
         added += extPitchforkSection(wrap, j.pitchfork);
         if (!added) return;
         extWrap = wrap;
@@ -12775,6 +12778,113 @@ window.__musicdAppUpd = (function () {
   }
   loadQobuzStatus();
 
+  // ----- Tidal (v0.6.24): Settings → Services -------------------------------
+  // Signed in on tidal.com: Mandarin shows a link and a code, and asks the
+  // server every two seconds whether the sign-in has landed.
+  const tidalSignin     = document.getElementById("tidal-signin");
+  const tidalForm       = document.getElementById("tidal-signin-form");
+  const tidalPending    = document.getElementById("tidal-pending");
+  const tidalAuthLink   = document.getElementById("tidal-auth-link");
+  const tidalAuthCode   = document.getElementById("tidal-auth-code");
+  const tidalCancel     = document.getElementById("tidal-signin-cancel");
+  const tidalSigned     = document.getElementById("tidal-signed");
+  const tidalQuality    = document.getElementById("tidal-quality");
+  const tidalImport     = document.getElementById("tidal-import");
+  const tidalImportNow  = document.getElementById("tidal-import-now");
+  const tidalImportSt   = document.getElementById("tidal-import-status");
+  const tidalDisconnect = document.getElementById("tidal-disconnect");
+  const tidalStatus     = document.getElementById("tidal-status");
+  const tidalTopbarBtn  = document.getElementById("tidal-toggle");
+  const tidalMenuItem   = document.getElementById("menu-item-tidal");
+  let tidalPoll = null;
+
+  function paintTidal(j) {
+    const on = !!(j && j.connected);
+    const pending = !on && j && j.pending;
+    if (tidalForm) tidalForm.hidden = on;
+    if (tidalSignin) tidalSignin.hidden = !!pending;
+    if (tidalPending) tidalPending.hidden = !pending;
+    if (pending) {
+      if (tidalAuthLink) { tidalAuthLink.href = pending.url; tidalAuthLink.textContent = pending.url.replace(/^https?:\/\//, ""); }
+      if (tidalAuthCode) tidalAuthCode.textContent = pending.code || "";
+    }
+    if (tidalSigned) tidalSigned.hidden = !on;
+    if (tidalStatus) tidalStatus.textContent = on
+      ? ("Signed in as " + ((j.user && (j.user.name || j.user.login)) || "your account") + (j.subscription ? " · " + j.subscription.replace(/_/g, " ") : "") + (j.hires ? " · hi-res" : j.lossless ? " · lossless" : ""))
+      : pending ? (pending.error ? pending.error : "Waiting for the sign-in on tidal.com…") : "";
+    if (tidalQuality && on) tidalQuality.value = j.quality || "hires";
+    if (tidalImport && on) tidalImport.checked = j.import !== false;
+    if (tidalImportSt && on) {
+      const li = j.last_import;
+      tidalImportSt.textContent = j.importing ? "Bringing your Tidal favourites into the library…"
+        : li ? (li.albums + " Tidal album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
+          (li.playlists ? " · " + li.playlists + " playlist" + (li.playlists === 1 ? "" : "s") : ""))
+        : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Tidal browser is known here.");
+    }
+    if (tidalTopbarBtn) tidalTopbarBtn.classList.toggle("hidden", !on);
+    if (tidalMenuItem)  tidalMenuItem.classList.toggle("hidden", !on);
+    // While a sign-in is pending, or an import runs, look again shortly.
+    const again = (pending && !pending.error) || (on && j.importing);
+    clearTimeout(tidalPoll);
+    if (again) tidalPoll = setTimeout(loadTidalStatus, 2000);
+  }
+  async function loadTidalStatus() {
+    try {
+      const r = await fetch("/api/settings/tidal", { cache: "no-store" });
+      paintTidal(await r.json());
+    } catch (e) { /* the page shows the last state */ }
+  }
+  window.__tidalStatus = loadTidalStatus;
+  if (tidalSignin) tidalSignin.addEventListener("click", async () => {
+    tidalSignin.disabled = true;
+    try {
+      const r = await fetch("/api/settings/tidal/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't start the sign-in");
+      paintTidal(j);
+      if (j.pending && j.pending.url) window.open(j.pending.url, "_blank", "noopener");
+    } catch (e) { showToast(e.message, "error"); }
+    finally { tidalSignin.disabled = false; }
+  });
+  if (tidalCancel) tidalCancel.addEventListener("click", async () => {
+    await fetch("/api/settings/tidal/signin/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
+    loadTidalStatus();
+  });
+  if (tidalQuality) tidalQuality.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quality: tidalQuality.value }) });
+      paintTidal(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (tidalImport) tidalImport.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: tidalImport.checked }) });
+      paintTidal(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (tidalImportNow) tidalImportNow.addEventListener("click", async () => {
+    tidalImportNow.disabled = true;
+    if (tidalImportSt) tidalImportSt.textContent = "Bringing your Tidal favourites into the library…";
+    try {
+      const r = await fetch("/api/settings/tidal/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't update the library");
+      showToast(j.result.albums + " Tidal albums in the library", "ok");
+      loadTidalStatus();
+    } catch (e) { showToast(e.message, "error"); loadTidalStatus(); }
+    finally { tidalImportNow.disabled = false; }
+  });
+  if (tidalDisconnect) tidalDisconnect.addEventListener("click", async () => {
+    tidalDisconnect.disabled = true;
+    try {
+      await fetch("/api/settings/tidal/signout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      showToast("Signed out of Tidal", "ok");
+      loadTidalStatus();
+    } catch (e) { showToast(e.message, "error"); }
+    finally { tidalDisconnect.disabled = false; }
+  });
+  loadTidalStatus();
+
 
   // ----- Share card: services and reviews -----
   //
@@ -13468,7 +13578,7 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
   const close = () => { overlay.classList.add("hidden"); };
 
   openBtn.addEventListener("click", open);
@@ -13837,7 +13947,7 @@ function initServiceBrowser(cfg) {
       if (!al.album) throw new Error(al.error || "Couldn't open that album");
       if (!overlayVisible()) return;   // closed while the server was asked
       showUnder(a.id, favBtn);
-      window.__openAlbum(al.album, { source: "qobuz", filter: null });
+      window.__openAlbum(al.album, { source: cfg.service, filter: null });
     } catch (e) {
       toast(e.message || "Couldn't open that album", "error");
     }
@@ -14386,6 +14496,22 @@ initServiceBrowser({
     { id: "most-streamed", label: "Most Streamed", kind: "featured" },
     { id: "press-awards",  label: "Press Awards",  kind: "featured" },
     { id: "editor-picks",  label: "Editor's Picks", kind: "featured" }
+  ]
+});
+
+initServiceBrowser({
+  service:     "tidal",
+  serviceName: "Tidal",
+  idPrefix:    "tidal",
+  apiBase:     "/api/tidal",
+  historyKey:  "td",
+  closeAttr:   "data-tidal-close",
+  notConnectedMsg: "Sign in to Tidal in Settings → Services to browse Tidal.",
+  tabs: [
+    { id: "new-releases", label: "New Releases", kind: "new-releases" },
+    { id: "recommended",  label: "Recommended",  kind: "featured" },
+    { id: "top",          label: "Top",          kind: "featured" },
+    { id: "rising",       label: "Rising",       kind: "featured" }
   ]
 });
 
@@ -17324,12 +17450,13 @@ initServiceBrowser({
       "</div>";
     // Clean up (v0.6.23): what could go, counted; only what you press goes.
     if (cleanup) {
-      const f = cleanup.files || {}, qz = cleanup.qobuz || {};
+      const f = cleanup.files || {}, qz = cleanup.qobuz || {}, td = cleanup.tidal || {};
       html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Clean up' +
         info("Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it.") + "</div>" +
         row("Files gone from the server", (f.albums ? '<button type="button" class="settings-update-btn" data-cleanup="files"' + (busy ? " disabled" : "") + ">Remove " + num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
         '<div class="settings-note">' + (f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
         row("Qobuz albums no longer wanted", (qz.albums ? '<button type="button" class="settings-update-btn" data-cleanup="qobuz"' + (busy ? " disabled" : "") + ">Remove " + num(qz.albums) + " album" + (qz.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        row("Tidal albums no longer wanted", (td.albums ? '<button type="button" class="settings-update-btn" data-cleanup="tidal"' + (busy ? " disabled" : "") + ">Remove " + num(td.albums) + " album" + (td.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
         '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
     html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
@@ -17366,7 +17493,7 @@ initServiceBrowser({
     const cu = e.target.closest("[data-cleanup]");
     if (cu) {
       const kind = cu.getAttribute("data-cleanup");
-      const n = kind === "files" ? cleanup.files.albums : cleanup.qobuz.albums;
+      const n = (cleanup[kind] || {}).albums || 0;
       (async () => {
         const q = kind === "files" ? "Remove " + num(n) + " album" + (n === 1 ? "" : "s") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
           : "Remove " + num(n) + " Qobuz album" + (n === 1 ? "" : "s") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back.";
