@@ -5626,11 +5626,13 @@ window.__afterStart = (fn) => {
       btn.__open();
     });
     if (selectable) {
-      // Long press ARMS selection without selecting the tile under the finger.
-      // Pressing something and having it become selected is how you end up
-      // with a selection you didn't ask for when you only wanted the mode.
+      // A long press starts selecting, with the tile under the finger the
+      // first pick (v0.6.24: as the labels grid and the queue; the release
+      // click is eaten, so it stays picked).
       addLongPress(btn, () => {
-        if (!albumSelectMode) enterAlbumSelectMode();
+        if (albumSelectMode) return;
+        enterAlbumSelectMode();
+        handleAlbumTileSelect(btn, a);
       });
     }
     return btn;
@@ -7884,9 +7886,9 @@ window.__afterStart = (fn) => {
           toggleTrackActions(li, t, idx);
         });
 
-        // Long press ARMS selection without selecting this track — same rule
-        // as the album grid.
-        addLongPress(li, () => { if (!trackSelectMode) enterTrackSelectMode(); });
+        // A long press starts selecting, with this track the first pick —
+        // the same rule as the album grid (v0.6.24).
+        addLongPress(li, () => { if (trackSelectMode) return; enterTrackSelectMode(); toggleTrackSelected(li, t, idx); });
         modalTracks.appendChild(li);
       });
     }

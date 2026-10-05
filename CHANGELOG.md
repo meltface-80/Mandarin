@@ -35,6 +35,8 @@ Versioning: each set of changes is a development build and takes the next third 
   selection now (moved to after the track playing, the first of them played) or next (moved), or
   removes it; **Clear all** empties the queue. Sonos rooms, renderers and the phone alike.
 - **The Random albums wall is titled**, as every other grid screen is.
+- **A long press selects what it is on**, everywhere there is a selection: album grids, an album's
+  tracks, the labels grid and the queue all start with that tile or row as the first pick.
 - **Settings' ‹ and × are brass discs**, as every ‹ and × in the app, at the top bar's size.
 - **The menu button is Home's alone**: on the album grids, Labels, Listen later, the playlists
   and an artist's page, the brass ‹ stands in its place.
