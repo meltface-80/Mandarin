@@ -757,8 +757,15 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
-* **A USB DAC or the Mac's speakers:** they're in **Settings → Audio Devices**, off until you switch
-  them on. See [Sound devices on the server](#sound-devices-on-the-server).
+* **A USB DAC or the Mac's speakers:** nothing to install or add — the Mac plays them through Core
+  Audio. Plug the DAC in, then: **1.** Open **Audio MIDI Setup** (Applications → Utilities), click
+  the DAC in the list on the left and set **Format** to the rate and depth you want it to run at
+  (its highest, say 24-bit 96 kHz or 192 kHz). macOS plays at that rate and converts anything else,
+  so this is where the rate is decided. **2.** In Mandarin, **Settings → Audio Devices**, tap the
+  DAC and switch it on. It is then a zone like a Sonos room. Mandarin sends at the rate set in
+  Audio MIDI Setup, or 44.1 or 48 kHz; tick other rates on the device's page if you want them sent
+  too. An existing install needs no re-run. See
+  [Sound devices on the server](#sound-devices-on-the-server).
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
