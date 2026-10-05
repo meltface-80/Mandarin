@@ -195,6 +195,25 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(d.status, 404);
     });
 
+    await t.test("an account Tidal gives CD to: asked once, then CD straight away, never upsampled", async () => {
+      tidal.denyHires = true;
+      tidal.playbackCalls.length = 0;
+      const t2 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2002'").get().id);
+      const [a, b] = ctx.library.tracks(t2.id);
+      const ra = await ctx.tidal.resolve(a, { rate: 96000, bits: 24 });
+      const rb = await ctx.tidal.resolve(b, { rate: 96000, bits: 24 });
+      assert.deepEqual(tidal.playbackCalls.map(c => c.quality), ["HI_RES_LOSSLESS", "LOSSLESS"], "hi-res asked for once; CD from then on");
+      assert.deepEqual([ra.rate, ra.bits, rb.rate, rb.bits], [44100, 16, 44100, 16]);
+      assert.equal(ctx.tidal.hiresDenied, true);
+      // The transcoder copies such a stream as it is rather than upsampling it to the plan.
+      const plan = await ctx.transcoder.resolve.get(a, { transcode: true, rate: 96000, bits: 24, mime: "audio/flac", ext: "flac" });
+      assert.deepEqual([plan.plan.copy, plan.plan.rate, plan.plan.bits], [true, 44100, 16]);
+      // The setting touched: asked again, in case the account changed.
+      await api("settings/tidal", { quality: "hires" });
+      assert.equal(ctx.tidal.hiresDenied, false);
+      tidal.denyHires = false;
+    });
+
     await t.test("a token that stops working is refreshed, unasked", async () => {
       tidal.expireAccess();
       const s = await api("tidal/search?q=other");

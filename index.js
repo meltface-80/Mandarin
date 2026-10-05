@@ -143,9 +143,15 @@ function createServer(overrides = {}) {
     wants: t => SERVICES.isStreamed(t.path),
     get: async (t, p) => {
       const r = await ctx.services.of(t.path).resolve(t, p);
-      // FLAC at the rate and depth wanted, nothing else to do: copied as it comes.
-      const copy = !p.dsp && !p.gain && r.rate === p.rate && r.bits === p.bits && /flac/.test(String(r.mime || "audio/flac"));
-      return { src: r.src, plan: copy ? Object.assign({}, p, { copy: true }) : p };
+      // FLAC at the rate and depth wanted, nothing else to do: copied as it
+      // comes. Below what was planned (a track listed as hi-res that the
+      // account gets at CD), copied too, at what it is — never upsampled —
+      // unless a renderer was promised a rate (p.hq) or DSP or gain is in it.
+      const flac = /flac/.test(String(r.mime || "audio/flac"));
+      const same = r.rate === p.rate && r.bits === p.bits;
+      const below = !p.hq && r.rate <= p.rate && r.bits <= p.bits;
+      const copy = !p.dsp && !p.gain && flac && (same || below);
+      return { src: r.src, plan: copy ? Object.assign({}, p, { copy: true, rate: r.rate, bits: r.bits }) : p };
     }
   };
   // The MusicBrainz pack (v0.6.4): releases with a barcode kept on this

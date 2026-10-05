@@ -29,6 +29,7 @@ class FakeTidal {
     this.favourites = new Set();
     this.favouriteTracks = new Set();
     this.subscription = { type: "HIFI_PLUS", highestSoundQuality: "HI_RES_LOSSLESS" };
+    this.denyHires = false;            // an account Tidal gives CD to, whatever is asked
     this.featuredLists = [{ name: "New", path: "new", hasAlbums: true }, { name: "Recommended", path: "recommended", hasAlbums: true }, { name: "Top", path: "top", hasAlbums: true }, { name: "Rising", path: "rising", hasAlbums: true }];
     this.devices = new Map();          // deviceCode -> { approved, userCode }
     this.access = "at-" + crypto.randomBytes(6).toString("hex");
@@ -202,7 +203,7 @@ class FakeTidal {
           const f = this.trackOf(m[1]);
           if (!f) return json(404, { userMessage: "No such track" });
           this.playbackCalls.push({ track_id: m[1], quality: q.audioquality });
-          if (q.audioquality === "HI_RES_LOSSLESS" && f.a.hires && this.dash.has(m[1])) {
+          if (q.audioquality === "HI_RES_LOSSLESS" && f.a.hires && this.dash.has(m[1]) && !this.denyHires) {
             const d = this.dash.get(m[1]);
             return json(200, { trackId: Number(m[1]), assetPresentation: "FULL", audioMode: "STEREO", audioQuality: "HI_RES_LOSSLESS", sampleRate: d.rate, bitDepth: 24,
               manifestMimeType: "application/dash+xml", manifest: Buffer.from(this.mpd(m[1])).toString("base64") });
