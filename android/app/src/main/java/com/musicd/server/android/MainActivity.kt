@@ -50,6 +50,8 @@ class MainActivity : Activity() {
         private const val REQ_LOCAL_FOLDER = 7301
         private const val REQ_DOWNLOAD_FOLDER = 7302
         private const val REQ_STORAGE = 7303
+        private const val REQ_BACKUP_SAVE = 7304
+        private const val REQ_BACKUP_OPEN = 7305
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
@@ -156,8 +158,37 @@ class MainActivity : Activity() {
     }
 
     @Deprecated("Deprecated in Java")
+    // Backup & restore (v0.6.14): Android's own "save as" and "open" for the backup file.
+    private var backupSave: ((Uri?) -> Unit)? = null
+    private var backupOpen: ((Uri?) -> Unit)? = null
+
+    fun chooseBackupFile(name: String, then: (Uri?) -> Unit) {
+        runOnUiThread {
+            backupSave = then
+            val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("application/gzip").putExtra(Intent.EXTRA_TITLE, name)
+            runCatching { startActivityForResult(i, REQ_BACKUP_SAVE) }.onFailure { backupSave = null; then(null) }
+        }
+    }
+
+    fun openBackupFile(then: (Uri?) -> Unit) {
+        runOnUiThread {
+            backupOpen = then
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/gzip", "application/x-gzip", "application/x-tar", "application/octet-stream"))
+            runCatching { startActivityForResult(i, REQ_BACKUP_OPEN) }.onFailure { backupOpen = null; then(null) }
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        // The backup file's answer, chosen or not: the page is waiting for it either way.
+        if (requestCode == REQ_BACKUP_SAVE || requestCode == REQ_BACKUP_OPEN) {
+            val then = if (requestCode == REQ_BACKUP_SAVE) backupSave else backupOpen
+            backupSave = null; backupOpen = null
+            then?.invoke(if (resultCode == Activity.RESULT_OK) data?.data else null)
+            return
+        }
         if (resultCode != Activity.RESULT_OK) return
         val uri = data?.data ?: return
         when (requestCode) {
@@ -210,6 +241,7 @@ class MainActivity : Activity() {
             addJavascriptInterface(DownloadsBridge(this@MainActivity), DownloadsBridge.NAME)
             addJavascriptInterface(AppBridge(this@MainActivity), AppBridge.NAME)
             addJavascriptInterface(UsbBridge(this@MainActivity), UsbBridge.NAME)
+            addJavascriptInterface(BackupBridge(this@MainActivity), BackupBridge.NAME)
         }
         root.addView(web)
         root.addView(buildErrorPanel())

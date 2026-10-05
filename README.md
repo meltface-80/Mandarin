@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.13
+# Mandarin — v0.6.15
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -545,6 +545,18 @@ Restart Mandarin, or shut it down so it stops finding and controlling your speak
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+
+</details>
+
+⸻
+
+💾 **Backup and restore** — *new since v0.5.50*
+
+Back up settings, players, collection, API keys and the whole database: to the server, or from the Android app to a file on the phone, with the app's settings.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.
 
 </details>
 

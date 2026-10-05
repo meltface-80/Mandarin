@@ -1168,6 +1168,14 @@
               <span class="settings-nav-title">Updates</span>
             </span>
           </button>
+          <button class="settings-nav-item" type="button" data-pane="backup">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Backup &amp; restore</span>
+            </span>
+          </button>
 
           <button class="settings-nav-item hidden" type="button" data-pane="streaming">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1798,6 +1806,30 @@
             <button id="check-update-btn" class="settings-update-btn" type="button">Check for updates</button>
           </div>
           <div id="settings-release-notes" class="settings-release-notes hidden"></div>
+        </div>
+      </div>
+      <!-- Backup & restore (v0.6.14). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="backup">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>Backup &amp; restore</h2>
+        </div>
+        <p class="settings-pane-desc">Your settings, players, collection and database</p>
+        <div class="settings-block">
+          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. A backup never holds your password or other devices' sign-ins." aria-label="Info">&#9432;</button></div>
+          <div class="backup-parts" id="backup-parts"></div>
+          <div class="backup-actions">
+            <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
+            <button class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
+          </div>
+          <div class="settings-note" id="backup-note"></div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-title">Restore <button class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
+          <button class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
+          <div class="backup-list" id="backup-list"></div>
         </div>
       </div>
     </div>

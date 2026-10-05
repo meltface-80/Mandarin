@@ -15953,9 +15953,11 @@ initServiceBrowser({
     blk.className = "settings-block away-phone";
     blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead">This phone</div>' +
       '<div class="settings-row"><span class="settings-label">Tailscale on this phone' + settingsInfo("The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.") + "</span>" +
-      '<button type="button" class="settings-update-btn">Tailscale</button></div>' +
+      '<button type="button" class="settings-update-btn away-phone-open">Tailscale</button></div>' +
       '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
-    blk.querySelector("button").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
+    // The Tailscale button itself: the first button in the row is the ⓘ (v0.6.15 — until
+    // then the tap went to the ⓘ, and Tailscale did nothing).
+    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
     awayPane.appendChild(blk);
   }
 })();
@@ -17424,6 +17426,9 @@ initServiceBrowser({
   // The side menu goes first, so the question and the screen aren't under it.
   const closeMenu = () => { const c = document.querySelector(".menu-backdrop[data-menu-close]"); if (c) c.click(); };
 
+  // For Backup & restore: the same screen while the server restarts.
+  window.__serverAwayScreen = (title, text, everyMs) => { cover(title, text); reloadWhenBack(everyMs || 1000); };
+
   restartBtn.addEventListener("click", async () => {
     close(); closeMenu();
     if (!(await ask("Restart Mandarin? Music playing from Mandarin stops, and it's back in a few seconds."))) return;
@@ -17445,5 +17450,199 @@ initServiceBrowser({
       // Started again (the icon, a login): this page comes back by itself.
       reloadWhenBack(5000);
     } catch (e) { toast(e.message, "error"); }
+  });
+})();
+
+
+/* ------------------------------------------------------------------ */
+/*  Backup & restore (v0.6.14): Settings → Backup & restore. Backups   */
+/*  are kept on the server (a browser's), or saved to and restored     */
+/*  from a file on the phone (the Android app, window.MusicDBackup).   */
+/*  A restore puts back the ticked parts, then the server restarts and */
+/*  the page reloads; this device's screen settings are put back here. */
+/* ------------------------------------------------------------------ */
+(() => {
+  const pane = document.querySelector('.settings-pane[data-pane="backup"]');
+  if (!pane) return;
+  const partsEl  = document.getElementById("backup-parts");
+  const listEl   = document.getElementById("backup-list");
+  const noteEl   = document.getElementById("backup-note");
+  const toServer = document.getElementById("backup-to-server");
+  const toFile   = document.getElementById("backup-to-file");
+  const fromFile = document.getElementById("restore-from-file");
+  const APP = window.MusicDBackup && typeof window.MusicDBackup.available === "function" ? window.MusicDBackup : null;
+  const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
+  const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
+  // This device's screen settings: what a person sets, never caches.
+  const PAGE_KEYS = ["rra-ui-text", "rra-ui-title", "rra-ui-menu", "rra-ui-cols", "rra-ui-tile", "rra-zone", "rra-library-view",
+    "rra-label-order", "rra-labels-reversed", "rra-label-min", "rra-album-view", "rra-filter", "rra-np-reduced"];
+  const NAMES = {
+    settings: "Settings", devices: "Players", collection: "Your collection", keys: "API keys",
+    database: "The whole database", page: "This device's screen settings", app: "This app's settings"
+  };
+  const HINT = {
+    settings: "Only the ones you changed",
+    devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
+    collection: "Playlists, favourites, Listen later, album edits",
+    keys: "Discogs and FanArt.tv",
+    database: "Everything Mandarin knows, play history included",
+    page: "Text sizes, layout, the chosen room",
+    app: "Downloads, USB DAC, this phone's DSP and levelling"
+  };
+  let info = null;
+
+  const fmtBytes = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? Math.round(n / 1e6) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB";
+  const fmtDate = t => new Date(t).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function pageSettings() {
+    const out = {};
+    for (const k of PAGE_KEYS) { try { const v = localStorage.getItem(k); if (v !== null) out[k] = v; } catch (e) { /* none */ } }
+    return out;
+  }
+  function applyPage(page) {
+    if (!page || typeof page !== "object") return;
+    for (const k of PAGE_KEYS) {
+      try { if (Object.prototype.hasOwnProperty.call(page, k)) localStorage.setItem(k, String(page[k])); else localStorage.removeItem(k); } catch (e) { /* storage refused */ }
+    }
+  }
+
+  function tickBoxes(container, parts, prefix) {
+    container.innerHTML = parts.map(p =>
+      '<label class="backup-part"><input type="checkbox" data-part="' + p + '" checked>' +
+      '<span><b>' + esc(NAMES[p]) + (p === "database" && info ? " (" + fmtBytes(info.db_bytes) + ")" : "") + '</b>' +
+      '<small>' + esc(HINT[p] || "") + '</small></span></label>').join("");
+  }
+  const ticked = container => [...container.querySelectorAll("input[data-part]:checked")].map(i => i.dataset.part);
+
+  function backupParts() { return ["settings", "devices", "collection", "keys", "database", "page"].concat(APP ? ["app"] : []); }
+
+  async function load() {
+    try {
+      const r = await fetch("/api/backup", { cache: "no-store" });
+      if (!r.ok) return;
+      info = await r.json();
+    } catch (e) { return; }
+    if (!partsEl.childElementCount) tickBoxes(partsEl, backupParts());
+    toFile.hidden = !APP;
+    fromFile.hidden = !APP;
+    renderList();
+  }
+  document.querySelectorAll('.settings-nav-item[data-pane="backup"]').forEach(b => b.addEventListener("click", load));
+
+  function renderList() {
+    const items = (info && info.backups) || [];
+    if (!items.length) { listEl.innerHTML = '<div class="settings-note">No backups on the server yet.</div>'; return; }
+    listEl.innerHTML = items.map(b =>
+      '<div class="backup-item" data-id="' + esc(b.id) + '">' +
+        '<div class="backup-item-head"><b>' + esc(b.label) + '</b><span>' + esc(fmtDate(b.created)) + ' · v' + esc(b.version) + ' · ' + fmtBytes(b.bytes || 0) + '</span>' +
+        '<small>' + esc((b.parts || []).map(p => NAMES[p] || p).join(", ")) + '</small></div>' +
+        '<div class="backup-item-actions">' +
+          '<button class="settings-update-btn" type="button" data-act="restore">Restore…</button>' +
+          '<a class="settings-update-btn" href="/api/backup/download/' + encodeURIComponent(b.id) + '" download>Download</a>' +
+          '<button class="settings-update-btn" type="button" data-act="delete">Delete</button>' +
+        '</div>' +
+        '<div class="backup-restore hidden"></div>' +
+      '</div>').join("");
+  }
+
+  // A restore panel: the ticks for what's in it (on the phone, everything), and Restore.
+  function openRestorePanel(panel, parts, onGo, label) {
+    panel.classList.remove("hidden");
+    panel.innerHTML = '<div class="backup-parts"></div><button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
+    tickBoxes(panel.querySelector(".backup-parts"), parts);
+    panel.querySelector('[data-act="go"]').addEventListener("click", async () => {
+      const want = ticked(panel);
+      if (!want.length) { toast("Tick something to restore", "error"); return; }
+      const server = want.filter(p => p !== "page" && p !== "app");
+      const q = "Restore " + want.map(p => NAMES[p]).join(", ") + "?" +
+        (server.length ? " This puts them back for every device, and Mandarin restarts. A backup of how things are now is kept first." : "") +
+        (want.includes("database") ? " The whole database replaces everything Mandarin knows; your account and sign-ins stay." : "");
+      if (!(await ask(q))) return;
+      onGo(want);
+    });
+  }
+
+  async function finishRestore(j) {
+    if (!j || !j.ok) { if (!(j && j.cancelled)) toast((j && j.error) || "Restore failed", "error"); return; }
+    if (j.page) applyPage(j.page);
+    if (j.app && APP) { try { APP.applyApp(JSON.stringify(j.app)); } catch (e) { /* the app said no */ } }
+    const again = j.app_result && j.app_result.choose_again && j.app_result.choose_again.length
+      ? " Choose the music and download folders again in Settings: Android asks once per install." : "";
+    if (j.restarting && window.__serverAwayScreen) window.__serverAwayScreen("Restoring…", "Mandarin is restarting with the restored settings. This page reloads when it's back." + again, 1000);
+    else { if (again) toast(again.trim()); setTimeout(() => location.reload(), again ? 2500 : 300); }
+  }
+
+  listEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const item = btn.closest(".backup-item");
+    const id = item && item.dataset.id;
+    const b = ((info && info.backups) || []).find(x => x.id === id);
+    if (!b) return;
+    if (btn.dataset.act === "delete") {
+      if (!(await ask("Delete the backup “" + b.label + "” of " + fmtDate(b.created) + "?"))) return;
+      await fetch("/api/backup/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {});
+      load();
+      return;
+    }
+    if (btn.dataset.act === "restore") {
+      const parts = (b.parts || []).filter(p => p !== "app" || APP);
+      openRestorePanel(item.querySelector(".backup-restore"), parts, async (want) => {
+        try {
+          const r = await fetch("/api/backup/restore/" + encodeURIComponent(id), { method: "POST",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: want }) });
+          finishRestore(await r.json());
+        } catch (err) { toast("Couldn't reach the server", "error"); }
+      }, "Restore now");
+    }
+  });
+
+  toServer.addEventListener("click", async () => {
+    const want = ticked(partsEl);
+    if (!want.length) { toast("Tick something to back up", "error"); return; }
+    toServer.disabled = true;
+    noteEl.textContent = "Backing up…";
+    try {
+      const body = { include: want.filter(p => p !== "page" && p !== "app") };
+      if (want.includes("page")) body.page = pageSettings();
+      if (want.includes("app") && APP) body.app = JSON.parse(APP.appSettings());
+      const r = await fetch("/api/backup/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Backup failed");
+      noteEl.textContent = "Backed up: " + fmtBytes(j.backup.bytes) + ", " + fmtDate(j.backup.created) + ".";
+      load();
+    } catch (err) { noteEl.textContent = ""; toast(err.message, "error"); }
+    finally { toServer.disabled = false; }
+  });
+
+  // The Android app: Android's "save as", then the server's backup into the file.
+  window.__backupFileDone = (json) => {
+    toFile.disabled = false;
+    let j = {}; try { j = JSON.parse(json); } catch (e) { /* none */ }
+    if (j.ok) noteEl.textContent = "Saved to the file: " + fmtBytes(j.bytes || 0) + ".";
+    else { noteEl.textContent = ""; if (!j.cancelled) toast(j.error || "Backup failed", "error"); }
+  };
+  toFile.addEventListener("click", () => {
+    if (!APP) return;
+    const want = ticked(partsEl);
+    if (!want.length) { toast("Tick something to back up", "error"); return; }
+    const req = { include: want.filter(p => p !== "page" && p !== "app") };
+    if (want.includes("page")) req.page = pageSettings();
+    if (!want.includes("app")) req.noApp = true;
+    toFile.disabled = true;
+    noteEl.textContent = "Choose where to save the backup…";
+    APP.toFile(JSON.stringify(req));
+  });
+
+  window.__backupRestoreDone = (json) => {
+    let j = {}; try { j = JSON.parse(json); } catch (e) { /* none */ }
+    finishRestore(j);
+  };
+  fromFile.addEventListener("click", () => {
+    if (!APP) return;
+    let panel = pane.querySelector(".backup-file-restore");
+    if (!panel) { panel = document.createElement("div"); panel.className = "backup-restore backup-file-restore"; fromFile.after(panel); }
+    openRestorePanel(panel, backupParts(), (want) => APP.fromFile(want.join(",")), "Choose the file…");
   });
 })();

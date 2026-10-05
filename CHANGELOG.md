@@ -5,6 +5,29 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.15
+- **The Tailscale button for this phone works again** (Settings → Away from home → This phone, in
+  the Android app). The tap went to the ⓘ beside "Tailscale on this phone", which is a button too
+  and came first, so Tailscale did nothing. It now opens the phone's Tailscale screen, to sign in.
+
+## v0.6.14
+- **Backup & restore** (Settings → Backup & restore). Tick what goes in: the settings you
+  changed, every player's own settings (Sonos rooms, renderers and phones: names, output, DSP,
+  volume levelling), your collection (playlists, Dynamic Playlists, favourites, Listen later,
+  album edits), the API keys, the whole database, and this device's screen settings.
+  - **From a browser or the home-screen app:** backups are kept on the server (the last 10), each
+    with a Download button.
+  - **From the Android app:** also **Back up to a file on this phone** (Android's own "save as"),
+    which adds the app's settings: downloads, USB DAC, this phone's DSP and volume levelling.
+    **Restore from a file** sends the server's part to the server and puts the app's back.
+  - **Restoring** puts back the ticked parts as they were, for every device. A backup of how
+    things are now is kept first ("Before restore", the last 5), then Mandarin restarts and the
+    page reloads. The whole database restored keeps today's account and sign-ins. A reinstalled
+    phone's DSP and levelling follow it to its new player. A backup from a newer Mandarin is
+    refused. Only from home.
+  - Never in a backup: your password data, other devices' sign-ins, the Tailscale identity,
+    downloaded music, caches.
+
 ## v0.6.13
 - **Not played in 6 months stays empty offline.** With the server out of reach, the Android app
   answered that row (and its full screen) itself with a random handful of the albums on the
