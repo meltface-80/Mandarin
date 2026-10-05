@@ -229,8 +229,8 @@ FEATURES = [
      "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
      "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", True,
-     "Back up settings, players, collection, API keys and the whole database: to the server, or from "
-     "the Android app to a file on the phone, with the app's settings.",
+     "Back up settings, players, collection, API keys and the whole database, at home or away: to the "
+     "server, or from the Android app to a file with its settings.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),

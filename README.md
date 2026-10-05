@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.16
+# Mandarin — v0.6.17
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -552,7 +552,7 @@ Open the side menu (☰) and tap the **power button** in its top-right corner, t
 
 💾 **Backup and restore** — *new since v0.5.50*
 
-Back up settings, players, collection, API keys and the whole database: to the server, or from the Android app to a file on the phone, with the app's settings.
+Back up settings, players, collection, API keys and the whole database, at home or away: to the server, or from the Android app to a file with its settings.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 

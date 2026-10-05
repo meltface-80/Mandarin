@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.17
+- **Backup & restore away from home too.** Backing up, restoring, and deleting a backup kept on
+  the server were refused away from home ("Backup and restore only from home"). They now work
+  from anywhere the app or page reaches the server, over Tailscale as at home. The whole
+  database is a large file over mobile data; its size shows beside it.
+
 ## v0.6.16
 - **Another VPN into your home network works with the app.** Off Wi-Fi, with a VPN up, the app
   now tries the server's home address too and uses it when it answers. Before, off Wi-Fi it
