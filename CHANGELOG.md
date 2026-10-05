@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.19
+- **The side menu, as it was, with two fixes.** Choosing an item closes the menu again (v0.6.18
+  left it open). The Offline switch no longer closes it. An item is only as wide as its icon and
+  its words: a tap elsewhere in the menu does nothing, and only a tap on the page beside the
+  menu (or Escape) closes it.
+
 ## v0.6.18
 - **Backup & restore: one list, wherever the backup is.** Each card now says where it is —
   **On the server** or **On this phone** — with the date, version, size and the device it was

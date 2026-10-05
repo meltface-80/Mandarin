@@ -15222,9 +15222,9 @@ initServiceBrowser({
   const closeMenu = () => overlay.classList.add("hidden");
 
   toggle.addEventListener("click", openMenu);
-  // Closed by a tap on the page beside it (the backdrop) or Escape — never
-  // by anything in the menu itself (v0.6.18): not a toggle, not a blank
-  // part of it, not an item.
+  // Closed by a tap on the page beside it (the backdrop), Escape, or an
+  // item chosen (v0.6.19) — not by a blank part of the menu, and not by
+  // the Offline switch, which stays open to show what it did.
   overlay.addEventListener("click", (e) => {
     if (e.target.closest && e.target.closest(".menu-drawer")) return;
     if (e.target.closest && e.target.closest("[data-menu-close]")) closeMenu();
@@ -15237,6 +15237,7 @@ initServiceBrowser({
     item.addEventListener("click", () => {
       const action = item.dataset.action;
       const target = item.dataset.target;
+      if (action !== "offline-mode") closeMenu();
 
       if (action === "offline-mode") {
         // The app reloads the page onto the phone's music, or back onto the server.
