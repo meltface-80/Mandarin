@@ -157,11 +157,12 @@ function createServer(overrides = {}) {
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({
     db, zones, bindIp: config.serverIp || localIp(), seedHosts: config.upnpHosts,
-    multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log
+    multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log, local: config.localAudio
   });
   // The renderers as zones, beside the Sonos rooms and the phones.
   zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
   zones.upnp.callbackBase = () => ctx.baseUrl();
+  zones.upnp.localBase = () => "http://127.0.0.1:" + config.port;
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({

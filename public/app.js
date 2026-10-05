@@ -16173,7 +16173,9 @@ initServiceBrowser({
   const ICONS = {
     sonos: svg('<rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/>'),
     phone: svg('<rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/>'),
-    upnp: svg('<rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="17" cy="12" r="2"/><path d="M5 12h7"/>')
+    upnp: svg('<rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="17" cy="12" r="2"/><path d="M5 12h7"/>'),
+    // A sound device on the computer Mandarin runs on: a DAC on its cable.
+    local: svg('<rect x="9" y="11" width="11" height="9" rx="2"/><circle cx="14.5" cy="15.5" r="1.5"/><path d="M4 3v6a3 3 0 0 0 3 3h2"/><path d="M2.5 3h3"/>')
   };
   const MARK = { verified: "✓", user: "✎", profile: "◆", advertised: "◆" };
   const SOURCE = {
@@ -16181,7 +16183,7 @@ initServiceBrowser({
     advertised: "The device advertises it", floor: "Every renderer takes this", sonos: "Sonos plays this",
     phone: "The phone plays this", later: "Not sent as DSD", off: "Not offered"
   };
-  let devices = [], away = false, err = "", current = null, busy = false;
+  let devices = [], away = false, err = "", current = null, busy = false, local = null;
   // The DSP block's unsaved edits (bands, headroom) for the device open now.
   // Save sends them; opening another device drops them.
   let dspDraft = null;
@@ -16214,7 +16216,7 @@ initServiceBrowser({
   const when = ts => ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "—";
 
   async function load() {
-    try { const j = await api("/api/audio-devices"); devices = j.devices || []; away = !!j.away; err = ""; }
+    try { const j = await api("/api/audio-devices"); devices = j.devices || []; away = !!j.away; local = j.local || null; err = ""; }
     catch (e) { err = e.message; }
     renderList();
     if (current) refreshCurrent();
@@ -16247,6 +16249,12 @@ initServiceBrowser({
           '<input type="checkbox" data-dev-enable="' + esc(d.id) + '"' + (d.enabled ? " checked" : "") + ' aria-label="' + esc(d.name) + ' on">' +
           '<span class="switch-track"><span class="switch-thumb"></span></span></label>' : "") +
         "</div>";
+    }
+    // Sound devices on the server's computer that it can't open (v0.6.18).
+    if (!away && local && !local.off && local.platform === "linux" && !local.count && (local.hidden || local.docker)) {
+      html += '<div class="settings-note">' + (local.docker
+        ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd."
+        : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.") + "</div>";
     }
     if (away) html += '<div class="settings-note">' + (window.__musicdOffline
       ? "No network: this phone is the player, through its speaker, headphones, Bluetooth or a USB DAC. Sonos rooms and streamers come back with the network."
@@ -16281,7 +16289,8 @@ initServiceBrowser({
         '<label class="switch"><input type="checkbox" data-dev-enable="' + esc(d.id) + '"' + (d.enabled ? " checked" : "") + ' aria-label="On">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
         '<div class="settings-note">' + (d.enabled ? "Offered as a zone: in the zone picker and everywhere you play."
-          : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on." : "Not offered as a zone.")) +
+          : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on."
+            : d.kind === "local" ? "Not offered as a zone. A sound device on this computer stays off until you turn it on." : "Not offered as a zone.")) +
         "</div></div><div class=\"settings-divider\"></div>";
     }
     // Random album radio, per zone: what plays when this device's queue runs out.
@@ -16314,6 +16323,7 @@ initServiceBrowser({
     html += "</div>";
 
     const rows = [["Model", d.model], ["Made by", d.manufacturer], ["Firmware", d.firmware], ["Address", d.ip],
+      ["Device", d.kind === "local" ? d.location : ""],
       ["Found by", d.found_by], ["Standard", d.kind === "upnp" ? (d.openhome ? "UPnP AV + OpenHome" : "UPnP AV / DLNA") : ""],
       ["Updates", d.kind === "upnp" && d.playable ? (d.events === "live" ? "Sent by the device (events)" : "Read every few seconds") : ""],
       ["Last seen", d.online ? "Now" : when(d.last_seen)], ["First seen", when(d.first_seen)]].filter(r => r[1]);
@@ -16343,10 +16353,13 @@ initServiceBrowser({
       : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
     if (d.kind === "sonos") html += '<div class="settings-note">Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
     if (d.kind === "phone") html += '<div class="settings-note">At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
+    if (d.kind === "local") html += '<div class="settings-note">' + (/^This Mac/.test(d.found_by || "")
+      ? "The Mac plays at the rate set for this device in Audio MIDI Setup, converting anything else. On here: that rate, 44.1 and 48 kHz, unless you tick others. DSD goes as PCM."
+      : "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.") + "</div>";
     if (d.profile && d.profile.notes) html += '<div class="settings-note">' + esc(d.profile.notes) + "</div>";
     html += "</div>";
 
-    if (d.kind === "upnp") {
+    if (d.kind === "upnp" || d.kind === "local") {
       const o = d.output || { mode: "original", bits: "auto", flac32: false };
       const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
         '<button type="button" class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
@@ -16371,16 +16384,19 @@ initServiceBrowser({
         (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label">Fixed volume</span>' +
           '<label class="switch"><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
           '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
-          '<div class="settings-note">' + (d.volume_fixed
+          '<div class="settings-note">' + (d.kind === "local" ? (d.volume_fixed
+            ? "The audio goes to the device at full level, untouched; set the volume on the DAC or amplifier. Mandarin shows no slider for it."
+            : "Mandarin’s slider and mute scale the audio before it reaches the device; at 100% it is untouched. Turn on to set the volume on the DAC or amplifier instead.")
+            : d.volume_fixed
             ? "The volume is set on the device itself (its knob, or its line out on fixed), so Mandarin shows no slider for it."
             : "Mandarin’s slider and mute drive the device. Turn on if the device’s volume is fixed — a WiiM on fixed line out, a Poly feeding a Mojo.") + "</div>" : "") +
         "</div>";
     }
     if (d.levelling) html += renderLevelling(d);
-    if ((d.kind === "upnp" || d.kind === "phone") && d.dsp) html += renderDsp(d);
+    if ((d.kind === "upnp" || d.kind === "local" || d.kind === "phone") && d.dsp) html += renderDsp(d);
     if (d.kind === "phone" && isThisPhone(d)) html += renderUsb();
     if (!d.online) {
-      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">Not on the network</span>' +
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label">' + (d.kind === "local" ? "Not connected" : "Not on the network") + '</span>' +
         '<button type="button" class="settings-update-btn" data-dev-forget' + (busy ? " disabled" : "") + ">Forget this device</button></div>" +
         '<div class="settings-note">Its name and settings go. If it turns up again it starts afresh.</div></div>';
     }
@@ -16750,7 +16766,7 @@ initServiceBrowser({
   if (rescan) {
     rescan.addEventListener("click", async () => {
       rescan.disabled = true; rescan.textContent = "Looking…";
-      try { const j = await api("/api/audio-devices/rescan", "POST", {}); devices = j.devices || []; err = ""; }
+      try { const j = await api("/api/audio-devices/rescan", "POST", {}); devices = j.devices || []; local = j.local || local; err = ""; }
       catch (e) { err = e.message; }
       rescan.disabled = false; rescan.textContent = "Look again";
       renderList();

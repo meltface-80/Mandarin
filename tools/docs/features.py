@@ -112,6 +112,11 @@ FEATURES = [
      "Tracks join gaplessly on a renderer that supports it.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
      "Then pick it with the speaker button. **Look again** searches the network now."),
+    ("localout", "🖥️", "Sound devices on the server", True,
+     "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
+     "Tracks at the same rate join with nothing between them.",
+     "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd`. "
+     "On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",

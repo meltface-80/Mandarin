@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.18
+- **Sound devices on the server** (Settings → Audio Devices). A USB DAC, the speakers or HDMI on
+  the computer Mandarin runs on are listed (off until switched on) and play like a renderer:
+  queue, the next track, Output (Original, ×2, ×4, Max), Volume levelling and DSP.
+  - **Linux:** ALSA cards this program may open, by card name (`plughw:CARD=…`); a USB DAC's own
+    rates and depths are read from the card. While a track plays, the rate ALSA has the device
+    open at is compared with what was sent. **Docker:** `--device /dev/snd`.
+  - **Mac:** Core Audio outputs (system_profiler), played through ffmpeg's audiotoolbox output.
+    The Mac plays at the rate set for the device in Audio MIDI Setup.
+  - Two ffmpeg: one decodes each track, one holds the device open. A next track at the same rate
+    goes into the open device with nothing between them. Pause holds the device where it is.
+  - Volume: Mandarin's slider scales the samples on a 50 dB curve (100% untouched); **Fixed
+    volume** leaves them untouched always. The level is kept across restarts.
+  - From Music Assistant's Local Audio Out (studied for this): the volume curve, ids from the
+    device's name, and a failing device reported and let go rather than left "playing".
+
 ## v0.6.17
 - **Backup & restore away from home too.** Backing up, restoring, and deleting a backup kept on
   the server were refused away from home ("Backup and restore only from home"). They now work
