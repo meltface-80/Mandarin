@@ -184,7 +184,7 @@ Names albums from their files' identifiers first, then from MusicBrainz by track
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Library Scanner**. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
+Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
 
 </details>
 
@@ -945,6 +945,15 @@ Server's Qobuz plugin does — the same API, the same credentials, the same rule
   Queue, or from a track) to the zone chosen, and its heart adds it to your Qobuz favourites and
   so to the library. An album played without being kept is known here for a month (its page, Now
   playing, history) and stays off the walls.
+* **Your Qobuz playlists and favourite tracks are playlists here**: each playlist by its Qobuz name,
+  and *Qobuz favourite tracks*, on the Playlists screen, brought up to date with the library. The
+  albums their tracks come from are known (the tracks play, Now playing has the cover) but stay
+  off the walls unless they're favourites.
+* **Signed out, it all steps aside**: Qobuz albums and playlists leave the walls and the Playlists
+  screen while their rows stay, so signing in puts everything straight back. **Clean up** on the
+  Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites,
+  purchases or playlists (all of them while signed out), and, separately, albums whose files are
+  gone from the server — after showing you the counts; plays stay in history.
 * **Two favourites, kept apart.** The **+** on a Qobuz album (in the browser, and above the ⋯ on
   the album's page here) is your *Qobuz* favourite: it becomes a **✓** once added, and that is what
   puts the album in the library. The **heart** is Mandarin's own favourite, as on any album.

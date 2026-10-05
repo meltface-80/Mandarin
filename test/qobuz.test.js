@@ -44,10 +44,11 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
     { id: 1001, title: "Q Album", artist: "Q Artist", year: 2021, rate: 44100, bits: 16, tracks: cdFiles.map((f, i) => ({ id: 5001 + i, title: "Q Song " + (i + 1), file: f, duration: 3 })) },
     { id: 1002, title: "Q Hi-Res", artist: "Q Artist", year: 2022, rate: 96000, bits: 24, tracks: hiFiles.map((f, i) => ({ id: 6001 + i, title: "Q Hi " + (i + 1), file: f, duration: 4 })) },
     { id: 1003, title: "Q Other", artist: "Someone Else", year: 2020, rate: 44100, bits: 16, tracks: [{ id: 7001, title: "Q Other 1", file: cdFiles[0], duration: 3 }] }
-  ] });
+  ], playlists: [{ id: 9001, name: "Road trip", tracks: [5002, 7001] }] });
   await qobuz.start();
   qobuz.favourites.add("1001");
   qobuz.purchases.add("1002");
+  qobuz.favouriteTracks.add("6002");
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
@@ -93,7 +94,20 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(q1.quality, "16/44.1");
       assert.equal(q2.quality, "24/96");
       assert.equal(q2.hires, true);
-      assert.equal(albums.length, 5, "beside the three of your own");
+      assert.equal(albums.length, 5, "beside the three of your own (a playlist's albums stay off the walls)");
+      // Playlists: the Qobuz one by its name, and the favourite tracks, as playlists here.
+      assert.equal(r.result.playlists, 2);
+      const pls = (await api("user-playlists")).playlists;
+      const road = pls.find(x => x.name === "Road trip"), favt = pls.find(x => x.name === "Qobuz favourite tracks");
+      assert.ok(road && favt, pls.map(x => x.name).join(", "));
+      assert.equal(road.qobuz, true);
+      const roadFull = await api("user-playlist?id=" + road.id);
+      assert.deepEqual(roadFull.tracks.map(x => x.title), ["Q Song 2", "Q Other 1"]);
+      assert.equal(roadFull.tracks[1].album_title, "Q Other");
+      assert.deepEqual((await api("user-playlist?id=" + favt.id)).tracks.map(x => x.title), ["Q Hi 2"]);
+      // Nothing stale while everything is wanted.
+      const cu = await api("library/cleanup");
+      assert.deepEqual(cu, { status: 200, files: { albums: 0, tracks: 0, folders: 0 }, qobuz: { albums: 0, signed_in: true } });
       const page = await api("album?offset=" + q1.offset);
       assert.deepEqual(page.tracks.map(x => x.title), ["Q Song 1", "Q Song 2", "Q Song 3"]);
       assert.equal(page.album.source, "qobuz");
@@ -159,7 +173,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(s.albums[0].favourited, false);
       const d = await api("qobuz/album?id=1003");
       assert.deepEqual(d.tracks.map(x => x.title), ["Q Other 1"]);
-      assert.equal(d.offset, null, "not in the library yet");
+      assert.equal(typeof d.offset, "number", "known already: a playlist holds one of its tracks");
       const p = await api("qobuz/play", { album_id: "1003", zone_or_output_id: kitchen.zone_id, kind: "play_now" });
       assert.equal(p.ok, true, JSON.stringify(p));
       const st = await until(async () => { const z = (await api("zone-state?zone=" + kitchen.zone_id)).zone; return z && z.now_playing && z.now_playing.line3 === "Q Other" && z; });
@@ -167,6 +181,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       // Reachable by id (its page opens), off the walls.
       assert.equal((await api("album?offset=" + p.offset)).album.title, "Q Other");
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false, "transient: not on the walls");
+      assert.equal((await api("library/cleanup")).qobuz.albums, 0, "a playlist's album is wanted, not stale");
       // Favourited: kept, on the walls — and on Qobuz; the page's plus knows.
       assert.equal((await api("qobuz/state?album_id=1003")).favourite, false);
       await api("qobuz/favorite", { album_id: "1003" });
@@ -184,10 +199,23 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("qobuz/search?q=q")).status, 401);
       // An End report for what was playing went out with the sign-out.
       assert.ok(qobuz.reports.filter(x => x.which === "end").length >= 2, JSON.stringify(qobuz.reports.map(x => x.which + ":" + x.event.track_id)));
-      const q1 = ctx.library.albums.find(a => a.title === "Q Album");
-      assert.ok(q1, "the kept albums stay in the library (the next import decides)");
+      // Off the walls and off the Playlists screen, the rows kept for the sign-in that follows.
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"), false);
+      assert.equal((await api("user-playlists")).playlists.some(x => x.qobuz), false);
+      const q1 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:1001'").get().id);
+      assert.ok(q1, "the rows stay");
       const s = await fetch(B + "/stream/t" + ctx.library.tracks(q1.id)[0].id + ".flac", { headers: H });
       assert.notEqual(s.status, 200, "no stream without the account");
+      // Clean up: signed out, every Qobuz album counts as stale; removed on request, plays kept.
+      const cu = await api("library/cleanup");
+      assert.equal(cu.qobuz.signed_in, false);
+      assert.equal(cu.qobuz.albums, 3);
+      const playsBefore = ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
+      const r2 = await api("library/cleanup", { kind: "qobuz" });
+      assert.equal(r2.removed, 3);
+      assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM albums WHERE key LIKE 'qobuz:%'").get().n, 0);
+      assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n, playsBefore, "plays stay");
+      assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE 'qobuz-%'").get().n, 0);
     });
   } finally {
     await srv.stop().catch(() => {});

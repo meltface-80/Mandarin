@@ -78,7 +78,7 @@ FEATURES = [
     ("scanner", "🔎", "Library Scanner", True,
      "Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, "
      "with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.",
-     "Open **Settings → Library Scanner**. Matches of 95% or better are applied (with Undo); near "
+     "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near "
      "ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and "
      "**Measure ReplayGain** are on the same page."),
     ("mbpack", "📦", "MusicBrainz pack", True,

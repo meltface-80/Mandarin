@@ -17021,6 +17021,7 @@ initServiceBrowser({
  * — and Measure ReplayGain, the loudness of files without ReplayGain tags. */
 (function initIdentifyPane() {
   const body = document.getElementById("identify-pane-body");
+  let cleanup = null;   // Clean up: what could go (v0.6.23)
   const pane = document.querySelector('.settings-pane[data-pane="identify"]');
   const navItem = document.querySelector('.settings-nav-item[data-pane="identify"]');
   if (!body || !pane || !navItem) return;
@@ -17042,8 +17043,9 @@ initServiceBrowser({
   async function load() {
     if (busy) return;
     try {
-      const [a, b, c] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
-        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null)]);
+      const [a, b, c, d] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
+        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null), api("/api/library/cleanup").catch(() => null)]);
+      cleanup = d;
       st = a; loud = b; pack = c; packChecked = true; err = "";
       if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
     } catch (e) { err = e.message; }
@@ -17264,6 +17266,16 @@ initServiceBrowser({
       '<div class="settings-note">' + status() + "</div>" +
       ((p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +
       "</div>";
+    // Clean up (v0.6.23): what could go, counted; only what you press goes.
+    if (cleanup) {
+      const f = cleanup.files || {}, qz = cleanup.qobuz || {};
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Clean up' +
+        info("Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it.") + "</div>" +
+        row("Files gone from the server", (f.albums ? '<button type="button" class="settings-update-btn" data-cleanup="files"' + (busy ? " disabled" : "") + ">Remove " + num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        '<div class="settings-note">' + (f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
+        row("Qobuz albums no longer wanted", (qz.albums ? '<button type="button" class="settings-update-btn" data-cleanup="qobuz"' + (busy ? " disabled" : "") + ">Remove " + num(qz.albums) + " album" + (qz.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
+    }
     html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
     html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
     html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
@@ -17295,6 +17307,18 @@ initServiceBrowser({
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
+    const cu = e.target.closest("[data-cleanup]");
+    if (cu) {
+      const kind = cu.getAttribute("data-cleanup");
+      const n = kind === "files" ? cleanup.files.albums : cleanup.qobuz.albums;
+      (async () => {
+        const q = kind === "files" ? "Remove " + num(n) + " album" + (n === 1 ? "" : "s") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
+          : "Remove " + num(n) + " Qobuz album" + (n === 1 ? "" : "s") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back.";
+        if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
+        act("/api/library/cleanup", { kind }, "Removed");
+      })();
+      return;
+    }
     const mb = e.target.closest("[data-id-match]");
     if (mb) {
       const off = Number(mb.getAttribute("data-id-match"));

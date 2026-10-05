@@ -17,7 +17,14 @@ Versioning: each set of changes is a development build and takes the next third 
     library now, Sign out.
   - Two favourites, kept apart: the **+** on a Qobuz album (the browser, and above the ⋯ on its
     page) is the Qobuz favourite and becomes a **✓**; the heart is Mandarin's, as on any album.
+  - Your Qobuz playlists and favourite tracks are playlists here (each by its name, and "Qobuz
+    favourite tracks"); the albums their tracks come from are known but off the walls.
+  - Signed out, Qobuz albums and playlists leave the walls and the Playlists screen; their rows stay
+    for the next sign-in.
   - A Qobuz album's page has no Download, Edit album or waveform; it isn't in offline mode.
+- **Clean up** (Settings → Library Scanner): albums whose files are gone from the server, and
+  Qobuz albums no longer wanted, each counted, each removed only when you press. Plays stay in
+  history; an album's edits, heart and Listen later go with it.
   - An album played from the browser without being favourited is kept for a month (its page, Now
     playing, history) and left off the walls.
 

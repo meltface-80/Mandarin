@@ -13,8 +13,10 @@ const { credentials } = require("../lib/qobuz/api");
 
 class FakeQobuz {
   /* albums: [{ id, title, artist, tracks: [{ id, title, file, duration, rate, bits }] , rate, bits, year, label }] */
-  constructor({ albums = [], user = { login: "tester@example.com", password: "pw" }, art = null } = {}) {
+  constructor({ albums = [], user = { login: "tester@example.com", password: "pw" }, art = null, playlists = [] } = {}) {
     this.albums = albums;
+    this.playlists = playlists;      // [{ id, name, tracks: [trackId…] }]
+    this.favouriteTracks = new Set();
     this.art = art;             // a JPEG file served as every cover
     this.user = user;
     this.token = "tok-" + crypto.randomBytes(6).toString("hex");
@@ -42,6 +44,16 @@ class FakeQobuz {
       performer: { name: a.artist }, maximum_sampling_rate: (t.rate || a.rate) / 1000, maximum_bit_depth: t.bits || a.bits, isrc: "ISRC" + t.id
     })) };
     return out;
+  }
+
+  /* A track as Qobuz lists it outside its album: with its album summary. */
+  trackJson(id) {
+    const a = this.albums.find(x => x.tracks.some(t => String(t.id) === String(id)));
+    const t = a && a.tracks.find(t => String(t.id) === String(id));
+    if (!t) return null;
+    const i = a.tracks.indexOf(t);
+    return { id: t.id, title: t.title, track_number: i + 1, media_number: 1, duration: t.duration, streamable: true, performer: { name: a.artist },
+      maximum_sampling_rate: (t.rate || a.rate) / 1000, maximum_bit_depth: t.bits || a.bits, album: this.albumJson(a, false) };
   }
 
   start() {
@@ -87,9 +99,21 @@ class FakeQobuz {
           case "album/getFeatured": return json(200, { albums: { total: this.albums.length, items: this.albums.map(a => this.albumJson(a, false)) } });
           case "artist/get": return json(200, { id: Number(q.artist_id), name: "Artist A", albums: { total: this.albums.length, items: this.albums.map(a => this.albumJson(a, false)) } });
           case "favorite/getUserFavorites": {
-            const list = [...this.favourites].map(id => find(id)).filter(Boolean);
             const offset = Number(q.offset) || 0, limit = Number(q.limit) || 50;
+            if (q.type === "tracks") {
+              const list = [...this.favouriteTracks].map(id => this.trackJson(id)).filter(Boolean);
+              return json(200, { tracks: { total: list.length, offset, limit, items: list.slice(offset, offset + limit) } });
+            }
+            const list = [...this.favourites].map(id => find(id)).filter(Boolean);
             return json(200, { albums: { total: list.length, offset, limit, items: list.slice(offset, offset + limit).map(a => this.albumJson(a, false)) } });
+          }
+          case "playlist/getUserPlaylists": return json(200, { playlists: { total: this.playlists.length, items: this.playlists.map(p => ({ id: p.id, name: p.name, tracks_count: p.tracks.length, owner: { id: 4242 } })) } });
+          case "playlist/get": {
+            const p = this.playlists.find(x => String(x.id) === String(q.playlist_id));
+            if (!p) return json(404, { message: "No such playlist" });
+            const offset = Number(q.offset) || 0, limit = Number(q.limit) || 50;
+            const items = p.tracks.map(id => this.trackJson(id)).filter(Boolean);
+            return json(200, { id: p.id, name: p.name, tracks: { total: items.length, offset, limit, items: items.slice(offset, offset + limit) } });
           }
           case "purchase/getUserPurchases": {
             const list = [...this.purchases].map(id => find(id)).filter(Boolean);
