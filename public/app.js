@@ -16633,7 +16633,7 @@ initServiceBrowser({
     // Sound devices on the server's computer that it can't open (v0.6.18).
     if (!away && local && !local.off && local.platform === "linux" && !local.count && (local.hidden || local.docker)) {
       html += '<div class="settings-note">' + (local.docker
-        ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd."
+        ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
         : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.") + "</div>";
     }
     if (away) html += '<div class="settings-note">' + (window.__musicdOffline

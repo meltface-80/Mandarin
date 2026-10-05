@@ -268,7 +268,7 @@ A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sono
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd`. On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server).
+Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -674,14 +674,18 @@ then choose `/packs` under **Folder** on that page. Keep the line in every futur
 through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
 
 **A USB DAC or speakers on this machine (optional).** To play through sound devices plugged into
-the machine Docker runs on, add this line to the command above:
+the machine Docker runs on, add these two lines to the command above:
 
 ```bash
   --device /dev/snd \
+  --privileged \
 ```
 
-They then appear in **Settings → Audio Devices**. See
-[Sound devices on the server](#sound-devices-on-the-server).
+`--device /dev/snd` hands the sound devices to the container; `--privileged` lets the container
+open them, which on most hosts it otherwise can't (the device nodes belong to the host's `audio`
+group). They then appear in **Settings → Audio Devices**. A container already running needs
+re-creating with the lines (stop, rm, the `docker run` again — the data volume carries everything
+over). See [Sound devices on the server](#sound-devices-on-the-server).
 
 **Music folders, chosen in the app.** Mount your drives or shares into the
 container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
@@ -765,8 +769,15 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
-* **A USB DAC or the Mac's speakers:** they're in **Settings → Audio Devices**, off until you switch
-  them on. See [Sound devices on the server](#sound-devices-on-the-server).
+* **A USB DAC or the Mac's speakers:** nothing to install or add — the Mac plays them through Core
+  Audio. Plug the DAC in, then: **1.** Open **Audio MIDI Setup** (Applications → Utilities), click
+  the DAC in the list on the left and set **Format** to the rate and depth you want it to run at
+  (its highest, say 24-bit 96 kHz or 192 kHz). macOS plays at that rate and converts anything else,
+  so this is where the rate is decided. **2.** In Mandarin, **Settings → Audio Devices**, tap the
+  DAC and switch it on. It is then a zone like a Sonos room. Mandarin sends at the rate set in
+  Audio MIDI Setup, or 44.1 or 48 kHz; tick other rates on the device's page if you want them sent
+  too. An existing install needs no re-run. See
+  [Sound devices on the server](#sound-devices-on-the-server).
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
@@ -1021,8 +1032,8 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   plays, ALSA's own report of the rate is compared with what was sent; a match is marked ✓.
   The user Mandarin runs as must be in the `audio` group. A device another program (PipeWire,
   PulseAudio) holds is reported as in use.
-* **Docker:** add `--device /dev/snd` to `docker run` (in `docker-compose.yml`, the commented
-  `devices:` lines).
+* **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
+  the commented `devices:` and `privileged:` lines), then re-create the container.
 * **Mac:** Core Audio, through ffmpeg's `audiotoolbox` output (Homebrew's ffmpeg has it). The Mac
   plays at the rate set for the device in **Audio MIDI Setup** (Applications → Utilities) and
   converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless

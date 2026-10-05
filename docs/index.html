@@ -270,6 +270,8 @@
   /* ---------- builder ---------- */
   .builder { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
   .builder label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+  .builder label.check { grid-auto-flow: column; justify-content: start; align-items: center; gap: 8px; }
+  .builder label.check input { width: 16px; height: 16px; accent-color: var(--accent); }
   .builder input {
     font: 14px var(--mono); color: var(--text); background: var(--bg-deep);
     border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%;
@@ -433,7 +435,7 @@
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
       <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
-        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code>. On a Mac, set its rate in Audio MIDI Setup. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
+        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. On a Mac, set its rate in Audio MIDI Setup. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
         <p>Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.</p>
         <div class="how" id="how-devices" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b> and tap a device. The name you give it is what the speaker list and Now playing show. <b>Output</b> is on a renderer's page.</div></div>
@@ -577,6 +579,7 @@
       <label>Port<input id="b-port" value="3500" inputmode="numeric"></label>
       <label>A speaker's IP (optional)<input id="b-sonos" placeholder="only if rooms aren't found" spellcheck="false"></label>
       <label>MusicBrainz pack folder (optional)<input id="b-pack" placeholder="e.g. /mnt/ssd/mandarin" spellcheck="false"></label>
+      <label class="check"><input id="b-dac" type="checkbox"> A USB DAC or speakers plugged into this machine (Settings → Audio Devices)</label>
     </div>
 
     <div class="tabs">
@@ -595,6 +598,12 @@
         Docker's default bridge network, and they fetch audio from this machine's own address.
         Docker Desktop for macOS and Windows has no real host networking, so this needs a Linux host.
         On a Mac, run it without Docker: see <a href="#mac">Install on a Mac</a>.
+      </div>
+      <div class="note">
+        <b>A USB DAC on this machine</b> needs both <code>--device /dev/snd</code> (the devices handed to the
+        container) and <code>--privileged</code> (the container may open them &mdash; on most hosts it
+        otherwise can&#39;t). Tick the box above to add them. A container already running is re-created with
+        them by the same command. Macs don&#39;t use Docker: nothing to add there.
       </div>
       <div class="note">
         <b>Keep the musicd-server-data volume.</b> It holds the library database, play history,
@@ -662,6 +671,12 @@
       <div class="note"><b>Shut down and start again:</b> the power button at the top right of the side menu (☰)
         &rarr; Shut down stops Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts when you log
         in. Installed before v0.6.12? Paste the install line once more to get the icon.</div>
+      <div class="note"><b>A USB DAC or the Mac's speakers:</b> nothing to install or add &mdash; the Mac plays
+        them through Core Audio. Plug the DAC in, then <b>1.</b> open <b>Audio MIDI Setup</b> (Applications &rarr;
+        Utilities), click the DAC on the left and set <b>Format</b> to the rate and depth you want it to run at
+        (its highest, say 24-bit 96 kHz); macOS plays at that rate and converts anything else, so this is where
+        the rate is decided. <b>2.</b> In Mandarin, <b>Settings &rarr; Audio Devices</b>, tap the DAC and switch it
+        on. It is then a zone like a Sonos room. An existing install needs no re-run.</div>
       <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
         is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
         Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security
@@ -904,6 +919,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
     var port = ($("b-port").value.trim().match(/^\d{2,5}$/) || ["3500"])[0];
     var sonos = $("b-sonos").value.trim();
     var pack = $("b-pack").value.trim();
+    var dac = $("b-dac").checked;
     var ports = document.querySelectorAll(".port");
     for (var i = 0; i < ports.length; i++) ports[i].textContent = port;
     var K = function (t) { return '<span class="k">' + t + "</span>"; };
@@ -923,6 +939,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
         "  " + K("-v") + " musicd-server-data:/app/data \\\n" +
         ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro")) + " \\\n"; }).join("") +
         (pack ? "  " + K("-v") + " " + esc(q(pack + ":/packs")) + " \\\n" : "") +
+        (dac ? "  " + K("--device") + " /dev/snd \\\n  " + K("--privileged") + " \\\n" : "") +
         "  ghcr.io/meltface-80/musicd-server:latest";
     } else {
       out = C("# docker-compose.yml — then: docker compose up -d") + "\n" +
@@ -931,6 +948,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
         "    environment:\n      TZ: " + esc(tz) + "\n" +
         (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
         (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +
+        (dac ? "    devices:\n      - /dev/snd:/dev/snd\n    privileged: true\n" : "") +
         "    volumes:\n      - musicd-server-data:/app/data\n" +
         ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") +
         (pack ? '      - "' + esc(pack.replace(/"/g, '\\"')) + ':/packs"\n' : "") + "\n" +
@@ -940,6 +958,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
   }
 
   ["b-tz", "b-port", "b-sonos", "b-pack"].forEach(function (id) { $(id).addEventListener("input", build); });
+  $("b-dac").addEventListener("change", build);
   $("b-add").addEventListener("click", function () { addFolder("", true); });
   addFolder(DEFAULT_FOLDER, false);
   var tabs = document.querySelectorAll(".tabs button");
