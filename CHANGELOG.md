@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.20
+- **The Offline switch no longer closes the side menu** (the Android app). Switching it reloads
+  the page onto the phone's music or back onto the server, and the reload took the menu with
+  it. The menu is now open again on the page that follows, with the switch in its new position.
+
 ## v0.6.19
 - **The side menu, as it was, with two fixes.** Choosing an item closes the menu again (v0.6.18
   left it open). The Offline switch no longer closes it. An item is only as wide as its icon and

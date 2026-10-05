@@ -15220,6 +15220,13 @@ initServiceBrowser({
 
   const openMenu  = () => { overlay.classList.remove("hidden"); refreshRescanSub(); paintOfflineItem(); };
   const closeMenu = () => overlay.classList.add("hidden");
+  // The menu open again on the page the Offline switch reloads to (v0.6.20).
+  const REOPEN_KEY = "rra-menu-reopen";
+  try {
+    const at = Number(localStorage.getItem(REOPEN_KEY) || 0);
+    localStorage.removeItem(REOPEN_KEY);
+    if (at && Date.now() - at < 30000) openMenu();
+  } catch (e) { /* storage refused */ }
 
   toggle.addEventListener("click", openMenu);
   // Closed by a tap on the page beside it (the backdrop), Escape, or an
@@ -15240,7 +15247,10 @@ initServiceBrowser({
       if (action !== "offline-mode") closeMenu();
 
       if (action === "offline-mode") {
-        // The app reloads the page onto the phone's music, or back onto the server.
+        // The app reloads the page onto the phone's music, or back onto the
+        // server — which would take the menu with it. It is reopened on the
+        // page that follows (v0.6.20): the switch is the only thing that moved.
+        try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) {}
         try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) {}
         return;
       }
