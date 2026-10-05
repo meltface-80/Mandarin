@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.10
+# Mandarin — v0.6.11
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
 a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
@@ -185,7 +185,7 @@ few minutes and albums appear as it goes.
 > **`--network host` is required.** Sonos players are found by multicast, which does not
 > cross Docker's default bridge network — and the speakers fetch audio from this machine's
 > own address. Docker Desktop on macOS/Windows has no real host networking, so this needs a
-> Linux host.
+> Linux host. On a Mac, run it without Docker: see [Install on a Mac](#install-on-a-mac).
 
 > **Keep the `musicd-server-data` volume.** It holds the library database, play history,
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
@@ -243,6 +243,116 @@ docker pull ghcr.io/meltface-80/musicd-server:latest
 docker stop musicd-server && docker rm musicd-server
 # re-run the docker run command above — the data volume carries everything over
 ```
+
+## Install on a Mac
+
+Mandarin runs on a Mac without Docker: macOS 14 or newer, macOS 27 included, Apple silicon or
+Intel. The Mac needs to stay on, on the same network as your speakers.
+
+**1. Open Terminal**: press Command-Space, type **Terminal** and press Return.
+
+**2. Paste this line** and press Return:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
+```
+
+**3. Answer what it asks:**
+* **Your Mac's password**, if it asks: type it and press Return. Nothing shows as you type; that's
+  normal.
+* **Your music folder**: a Finder window opens. Click the folder your music is in (on the Mac or on
+  an external drive) and click **Choose**.
+* **The MusicBrainz pack**: where to keep it, if you download it later (optional, about 2 GB).
+  **On this Mac** is fine; **Choose a folder...** to put it on another drive.
+* **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
+* **Allow** if macOS asks to let **node** find devices on your network or open your files.
+
+**4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
+log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`). Add more
+music folders, or change them, any time in **Settings → Music Folders**.
+
+**Do you have Mandarin already running on another machine?** Yes, then this Mac doesn't need to
+install anything, just open the server's IP address with port `:3500` in Safari and choose
+**File → Add to Dock**. It opens like an app, for choosing music and playing it on your speakers.
+
+**On a Mac:**
+* **Updates** come from the app, as on Linux (Settings → **Updates**).
+* **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
+* **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
+  Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
+* **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
+  Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
+  `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
+  and click **Open**.
+* **Rooms not found?** Run this in Terminal with one of your speakers' IP addresses, then restart
+  the Mac: `/usr/libexec/PlistBuddy -c "Add :EnvironmentVariables:SONOS_HOSTS string 192.168.1.20" ~/Library/LaunchAgents/app.mandarin.server.plist`
+* **Stop Mandarin starting at login:** `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`
+
+<details>
+<summary><b>Prefer to install by hand?</b></summary>
+
+In **Terminal**:
+
+1. Install [Homebrew](https://brew.sh) if you don't have it, then Node.js and ffmpeg:
+
+   ```bash
+   brew install node@22 ffmpeg
+   echo 'export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"' >> ~/.zprofile
+   source ~/.zprofile
+   ```
+
+2. Download Mandarin:
+
+   ```bash
+   git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+   cd ~/Mandarin
+   npm ci --omit=dev
+   ```
+
+3. Start it with **your** music folder. Replace `$HOME/Music` with your own; to get its path
+   without typing, type `MUSIC_DIR="`, drag the folder from Finder onto the Terminal window, then
+   type `" npm start`. An external drive is under `/Volumes/…`.
+
+   ```bash
+   cd ~/Mandarin
+   MUSIC_DIR="$HOME/Music" npm start
+   ```
+
+   Open **`http://localhost:3500`** and create your account.
+
+4. **Keep the Mac awake:** System Settings → Energy (or Battery → Options) → **Prevent automatic
+   sleeping when the display is off**.
+
+5. **Start it at login (optional).** Stop it first (Control-C). In the file below, put the **same
+   music folder** as in step 3 where it says `$HOME/Music`, then paste it:
+
+   ```bash
+   mkdir -p ~/Mandarin/data
+   cat > ~/Library/LaunchAgents/app.mandarin.server.plist <<PLIST
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0"><dict>
+     <key>Label</key><string>app.mandarin.server</string>
+     <key>ProgramArguments</key><array><string>$(which node)</string><string>$HOME/Mandarin/launcher.js</string></array>
+     <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
+     <key>EnvironmentVariables</key><dict>
+       <key>MUSIC_DIR</key><string>$HOME/Music</string>
+       <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
+     </dict>
+     <key>RunAtLoad</key><true/>
+     <key>KeepAlive</key><true/>
+     <key>StandardOutPath</key><string>$HOME/Mandarin/data/server.log</string>
+     <key>StandardErrorPath</key><string>$HOME/Mandarin/data/server.log</string>
+   </dict></plist>
+   PLIST
+   launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist
+   ```
+
+**The MusicBrainz pack (optional, about 2 GB)** needs no setup on a Mac: in **Settings → Library
+Scanner → Folder**, pick any folder, an external drive (**Volumes**) included. Unlike Docker,
+there's no `/packs` mount to add. With no folder chosen it's kept in `~/Mandarin/data`.
+
+</details>
 
 ## Configuration
 
@@ -354,15 +464,19 @@ interface, and adds what a web page can't:
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
 on Android 8.0 or newer.
 
-**Updates install over the top** from v0.2.1 on: every build is signed with the same key
-(`android/app/musicd-debug.keystore`). From v0.6.10 every build is a release build (optimised,
-not debuggable), still signed with that key. Builds before v0.2.1 were each signed with a different
-key, so going from one of those to v0.2.1 needs **one** uninstall first — after that, never again.
+**Updates install over the top.** From v0.6.10 the published app is a release build signed with
+the project's own private key, and every update after it installs in place.
 
-That key is a debug key committed to this public repository, so it only keeps your own updates
-working. For a key nobody else holds, add the `MUSICD_KEYSTORE_BASE64` and
-`MUSICD_KEYSTORE_PASSWORD` secrets (the same ones as Android Random Remote); switching to it
-also needs one uninstall.
+**Coming from a build before v0.6.10?** Those were signed with a different, shared key, so
+Android refuses the update ("conflicts with an existing package"). Uninstall the app once,
+install [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk),
+open it, enter the server's address and sign in again. Albums downloaded to the phone go with
+the uninstall, so download them again. After that, never again.
+
+**Building the app yourself?** Without the `MUSICD_KEYSTORE_BASE64` and
+`MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
+(`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
+published app, nor the published app it.
 
 ## Favourites
 
