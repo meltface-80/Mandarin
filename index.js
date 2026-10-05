@@ -281,6 +281,14 @@ function createServer(overrides = {}) {
   require("./lib/server/api-loudness")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
+  // Restart and Shut down (Settings → Restart & shut down). Tests hand in their own exit.
+  require("./lib/server/api-power")(app, ctx, {
+    stop: () => stop(),
+    exit: config.exitProcess,
+    env: config.powerEnv,
+    platform: config.powerPlatform,
+    spawn: config.powerSpawn
+  });
   require("./lib/server/downloads").mount(app, ctx);
 
   app.get("/api/health", (req, res) => res.json({

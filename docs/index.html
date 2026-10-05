@@ -335,7 +335,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v0.6.11</span>
+    <span class="badge">v0.6.12</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -500,6 +500,9 @@
       <div class="card"><h3><span class="em">👤</span>One account<button class="info" type="button" aria-expanded="false" aria-controls="how-account" aria-label="How to set up and use One account">i</button></h3>
         <p>One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.</p>
         <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
+      <div class="card is-new"><h3><span class="em">⏻</span>Restart and shut down<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
+        <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
+        <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open <b>Settings → Restart &amp; shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
       <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
         <p>The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.</p>
         <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server restarts itself in a few seconds.</div></div>
@@ -637,7 +640,8 @@
         type; that's normal). Your <b>music folder</b>: a Finder window opens; click the folder your music
         is in, on the Mac or an external drive, and click <b>Choose</b>. Where to keep the
         <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB): <b>On this Mac</b>,
-        or <b>Choose a folder...</b> for another drive. <b>Keep awake</b>, so the music doesn't stop. And
+        or <b>Choose a folder...</b> for another drive. <b>Keep awake</b>, so the music doesn't stop. <b>Allow</b> access to your Desktop folder, for the
+        Mandarin icon. And
         <b>Allow</b> if macOS asks to let <b>node</b> find devices on your network or open your files.</li></ol></div>
       <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
         whenever you log in. On a phone, open the address Terminal shows at the end. Add or change music
@@ -646,6 +650,9 @@
         Mac doesn't need to install anything, just open the server's IP address with port
         <code>:3500</code> in Safari and choose <b>File &rarr; Add to Dock</b>. It opens like an app, for
         choosing music and playing it on your speakers.</div>
+      <div class="note"><b>Shut down and start again:</b> Settings &rarr; Restart &amp; shut down stops
+        Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts when you log
+        in. Installed before v0.6.12? Paste the install line once more to get the icon.</div>
       <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
         is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
         Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security

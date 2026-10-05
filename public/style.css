@@ -5642,3 +5642,13 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .artist-bio-head, .artist-section-header, .artist-view-empty,
 .status-banner { zoom: var(--ui-menu, 1); }
 
+
+/* Restart & shut down (v0.6.12): the screen over the page while the server is away. */
+.power-cover {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: var(--bg, #111214);
+}
+.power-card { max-width: 420px; text-align: center; }
+.power-title { font-size: 1.35rem; font-weight: 700; color: var(--accent-text); margin-bottom: 10px; }
+.power-text { color: var(--text-dim); line-height: 1.5; margin: 0; }

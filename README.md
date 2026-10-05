@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.11
+# Mandarin — v0.6.12
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -538,6 +538,18 @@ Create it on first visit from a device at home. **Settings → Account** lists d
 
 ⸻
 
+⏻ **Restart and shut down** — *new since v0.5.50*
+
+Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Restart & shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+
+</details>
+
+⸻
+
 🔄 **Updates**
 
 The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
@@ -687,6 +699,7 @@ Intel. The Mac needs to stay on, on the same network as your speakers.
 * **The MusicBrainz pack**: where to keep it, if you download it later (optional, about 2 GB).
   **On this Mac** is fine; **Choose a folder...** to put it on another drive.
 * **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
+* **Your Desktop folder**, if macOS asks: **Allow**, so the Mandarin icon can go on the desktop.
 * **Allow** if macOS asks to let **node** find devices on your network or open your files.
 
 **4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
@@ -699,6 +712,9 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 
 **On a Mac:**
 * **Updates** come from the app, as on Linux (Settings → **Updates**).
+* **Shut down and start again:** Settings → **Restart & shut down** stops Mandarin; double-click
+  **Mandarin** on the desktop (or in your Applications folder) to start it again. It also starts
+  when you log in. Installed before v0.6.12? Paste the install line once more to get the icon.
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.

@@ -1160,6 +1160,14 @@
               <span class="settings-nav-title">Updates</span>
             </span>
           </button>
+          <button class="settings-nav-item" type="button" data-pane="power">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Restart &amp; shut down</span>
+            </span>
+          </button>
 
           <button class="settings-nav-item hidden" type="button" data-pane="streaming">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1790,6 +1798,28 @@
             <button id="check-update-btn" class="settings-update-btn" type="button">Check for updates</button>
           </div>
           <div id="settings-release-notes" class="settings-release-notes hidden"></div>
+        </div>
+      </div>
+      <!-- Restart & shut down (v0.6.12): the server itself. -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="power">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>Restart &amp; shut down</h2>
+        </div>
+        <p class="settings-pane-desc">The Mandarin server, on the machine it runs on</p>
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Restart <button class="settings-info-btn" data-info="Stops Mandarin and starts it again, in a few seconds. Music playing from Mandarin stops. This page reloads once it is back." aria-label="Info">&#9432;</button></span>
+            <button id="power-restart" class="settings-update-btn" type="button">Restart</button>
+          </div>
+          <div class="settings-note">Stops Mandarin and starts it again.</div>
+          <div class="settings-row" id="power-shutdown-row">
+            <span class="settings-label">Shut down <button class="settings-info-btn" data-info="Stops Mandarin until you start it again, so it no longer finds or controls your speakers and renderers. Music playing from Mandarin stops. Other music apps are not affected." aria-label="Info">&#9432;</button></span>
+            <button id="power-shutdown" class="settings-update-btn" type="button">Shut down</button>
+          </div>
+          <div class="settings-note" id="power-shutdown-note"></div>
         </div>
       </div>
     </div>
