@@ -35,6 +35,9 @@ Versioning: each set of changes is a development build and takes the next third 
   selection now (moved to after the track playing, the first of them played) or next (moved), or
   removes it; **Clear all** empties the queue. Sonos rooms, renderers and the phone alike.
 - **The Random albums wall is titled**, as every other grid screen is.
+- **Settings' ‹ and × are brass discs**, as every ‹ and × in the app, at the top bar's size.
+- **The menu button is Home's alone**: on the album grids, Labels, Listen later, the playlists
+  and an artist's page, the brass ‹ stands in its place.
 - **The search asks Qobuz and Tidal too.** From Home or the Library, signed in, each service's
   artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
   an album from either opens and plays whether or not it is in your library, both versions shown

@@ -103,6 +103,7 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
 
     const phone = await run({ width: 390, height: 844 });
     assert.equal(phone.list.w, 390, "a phone keeps the full screen");
+    for (const k of ["close_disc", "back_disc"]) assert.deepEqual(phone[k], phone.bar_disc, k + " is the top bar's brass disc");
     assert.deepEqual(phone.text_options, ["Normal", "+10%", "+25%", "+50%"], "a phone stops at +50%");
     assert.equal(phone.text_2, "1.5");
     for (const v of Object.values(phone.panes)) assert.equal(v.w, 390);

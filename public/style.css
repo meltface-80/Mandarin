@@ -3098,6 +3098,23 @@ input.vol-range::-moz-range-thumb {
   transition: color .15s ease, background .15s ease;
 }
 .settings-back:hover { color: var(--text); background: var(--bg-elev-2); }
+/* Settings' ‹ and × (v0.6.24): the brass disc every ‹ and × has, at the top
+   bar's button size, the glyph sized as the top bar's. */
+.settings-app-close {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: none; border-radius: 999px; background: none;
+  color: var(--text-dim); cursor: pointer;
+}
+.settings-back, .settings-app-close { width: 40px; height: 40px; margin-left: 0; border: 1px solid transparent; }
+.settings-back svg, .settings-app-close svg { width: 20px; height: 20px; }
+@media (max-width: 389px) {
+  .settings-back, .settings-app-close { width: 37px; height: 37px; }
+  .settings-back svg, .settings-app-close svg { width: 19px; height: 19px; }
+}
+@media (max-width: 359px) {
+  .settings-back, .settings-app-close { width: 33px; height: 33px; }
+  .settings-back svg, .settings-app-close svg { width: 18px; height: 18px; }
+}
 .settings-back:active { transform: scale(.94); }
 
 .settings-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
@@ -5238,6 +5255,8 @@ button.cap-chip:active { transform: scale(.96); }
 /* Buttons with a disc — the top bar's menu, search and settings, the album
    view's back, home and share: a brass disc, the glyph in the charcoal. */
 [data-palette="hifi"] .topbar .icon-btn,
+[data-palette="hifi"] .settings-back,
+[data-palette="hifi"] .settings-app-close,
 [data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn,
 [data-palette="hifi"] #tidal-overlay .settings-head .icon-btn,
 [data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn,
@@ -5248,6 +5267,8 @@ button.cap-chip:active { transform: scale(.96); }
   border-radius: 50%; border-color: var(--plum); background: var(--plum); color: var(--plum-pale);
 }
 [data-palette="hifi"] .topbar .icon-btn:hover,
+[data-palette="hifi"] .settings-back:hover,
+[data-palette="hifi"] .settings-app-close:hover,
 [data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn:hover,
 [data-palette="hifi"] #tidal-overlay .settings-head .icon-btn:hover,
 [data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn:hover,

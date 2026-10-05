@@ -105,6 +105,8 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
   await srv.start();
   try {
     const token = await signIn(B2);
+    // The first scan done before the page opens: the app reloads itself when it lands.
+    for (let i = 0; i < 100; i++) { const st = await (await fetch(B2 + "/api/status", { headers: { Authorization: "Bearer " + token } })).json(); if (st.index_count === 3) break; await new Promise(r => setTimeout(r, 100)); }
     const b = await Browser.launch({ width: 390, height: 844 });
     let r;
     try {
@@ -125,6 +127,19 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
         out.random_title = count.classList.contains("hidden") ? "" : count.textContent;
         document.getElementById("topbar-back").click(); await sleep(300);
         out.home_title_hidden = count.classList.contains("hidden");
+        // The menu button is Home's alone: every other screen shows ‹ in its place.
+        const $ = id => document.getElementById(id);
+        const menuShown = () => !$("menu-toggle").classList.contains("hidden"), backShown = () => !$("topbar-back").classList.contains("hidden");
+        out.home_buttons = [menuShown(), backShown()];
+        const screens = {};
+        for (const [name, open] of [["random", () => $("home-random-title").click()], ["library", () => $("home-library-title").click()],
+                                    ["later", () => window.__showListenLater()], ["playlists", () => window.__showPlaylists()], ["wall", () => window.__showWall()]]) {
+          open(); await sleep(400);
+          screens[name] = [menuShown(), backShown()];
+          $("topbar-back").click(); await sleep(300);
+        }
+        out.screens = screens;
+        out.home_after = [menuShown(), backShown()];
         return out;
       })()`);
       assert.deepEqual(page.errors, []);
@@ -137,5 +152,8 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
     assert.equal(r.below_bar, true, "just under the top bar");
     assert.equal(r.random_title, "Random albums", "the Random albums wall is titled");
     assert.equal(r.home_title_hidden, true, "and Home is not");
+    assert.deepEqual(r.home_buttons, [true, false], "Home: the menu button, no ‹");
+    for (const [name, v] of Object.entries(r.screens)) assert.deepEqual(v, [false, true], name + ": ‹ in the menu button's place");
+    assert.deepEqual(r.home_after, [true, false]);
   } finally { await srv.stop(); }
 });

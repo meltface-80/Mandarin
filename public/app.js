@@ -847,6 +847,17 @@ window.__afterStart = (fn) => {
 
   // `view` (whether the screen shows album tiles) is kept for the callers'
   // sake; nothing in the bar depends on it since the list button went.
+  // The menu button is Home's alone (v0.6.24): on every other screen — the
+  // album grids, Labels, Listen later, the playlists, an artist — the brass ‹
+  // stands where it was. Followed from the ‹ itself, wherever it is toggled.
+  {
+    const menuBtn = document.getElementById("menu-toggle");
+    if (menuBtn && topbarBack) {
+      const sync = () => menuBtn.classList.toggle("hidden", !topbarBack.classList.contains("hidden"));
+      new MutationObserver(sync).observe(topbarBack, { attributes: true, attributeFilter: ["class"] });
+      sync();
+    }
+  }
   function setTopbarNav(back, refresh, search, view) {
     if (topbarBack)    topbarBack.classList.toggle("hidden", !back);
     if (topbarRefresh) topbarRefresh.classList.toggle("hidden", !refresh);
