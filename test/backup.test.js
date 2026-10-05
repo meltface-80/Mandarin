@@ -8,7 +8,8 @@
  *   - the whole database restored keeps today's account and sign-ins;
  *   - this phone's player follows it to its new id after a reinstall;
  *   - a backup from a newer Mandarin is refused; backups kept here are listed,
- *     downloaded and deleted.
+ *     downloaded and deleted;
+ *   - all of it away from home too (v0.6.17).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -192,5 +193,37 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
 
     const del = await (await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H })).json();
     assert.equal(del.ok, true);
+    // The restore's restart, before the next test takes the port.
+    for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+  } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
+});
+
+test("away from home (over Tailscale): back up to a file, keep one here, restore and delete, as at home", { timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const exits = [];
+  const { srv, ctx } = await server(lib, exits);
+  try {
+    const token = await signIn(BASE);
+    // Away: the request comes from a tailnet address.
+    const H = { Authorization: "Bearer " + token, "X-Forwarded-For": "100.101.102.103" };
+    const J = Object.assign({ "Content-Type": "application/json" }, H);
+    assert.equal((await (await fetch(BASE + "/api/auth/status", { headers: H })).json()).away, true);
+    ctx.db.setSetting("smartPicksHour", 8);
+    const file = await fetch(BASE + "/api/backup/file", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true } }) });
+    assert.equal(file.status, 200);
+    const body = Buffer.from(await file.arrayBuffer());
+    const s = await (await fetch(BASE + "/api/backup/save", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true }, page: { "rra-ui-cols": "3" } }) })).json();
+    assert.equal(s.ok, true);
+    // Restored by id (this device's part only: no restart), deleted, then from the file.
+    const byId = await fetch(BASE + "/api/backup/restore/" + s.backup.id, { method: "POST", headers: J, body: JSON.stringify({ include: { page: true } }) });
+    assert.equal(byId.status, 200);
+    assert.equal((await (await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H })).json()).ok, true);
+    ctx.db.setSetting("smartPicksHour", 2);
+    const re = await fetch(BASE + "/api/backup/restore?parts=settings", {
+      method: "POST", headers: Object.assign({ "Content-Type": "application/gzip" }, H), body });
+    assert.equal(re.status, 200);
+    assert.equal(ctx.db.setting("smartPicksHour"), 8);
+    for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+    assert.deepEqual(exits, [75], "and the server restarted");
   } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
 });
