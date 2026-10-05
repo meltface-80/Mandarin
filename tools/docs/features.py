@@ -43,9 +43,11 @@ FEATURES = [
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("search", "🔍", "Search", False,
-     "Albums, artists and labels as you type. Words can come in any order, accents and capitals are "
-     "ignored, and a title with letters left out is still found.",
-     "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on."),
+     "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
+     "album from either opens and plays whether or not it is in your library.",
+     "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in "
+     "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's; "
+     "tap a cover for the album's page, an artist for their albums."),
     ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
@@ -62,7 +64,8 @@ FEATURES = [
      "themselves where the file system reports them, otherwise at the next scan.",
      "Open **Settings → Music Folders** and add a folder from the list of drives and folders the "
      "server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
-     "**☰ → Rescan library** runs one now."),
+     "**☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, "
+     "where you are signed in with the import on."),
     ("folder-albums", "💽", "One album per folder", True,
      "Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown "
      "disc by disc, with a two-disc symbol on its cover.",

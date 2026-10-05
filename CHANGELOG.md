@@ -30,6 +30,19 @@ Versioning: each set of changes is a development build and takes the next third 
   gone altogether, its page in Settings → Setup with it.
 - **‹ from a record label's albums goes back to the album** you opened the label from, not to
   the list of all labels.
+- **The search asks Qobuz and Tidal too.** From Home or the Library, signed in, each service's
+  artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
+  an album from either opens and plays whether or not it is in your library, both versions shown
+  where both have it; an artist opens their albums in the service's browser.
+- **Rescan library goes on to the services**: once the music folder is scanned, Qobuz and then
+  Tidal are brought up to date, in that order, each where you are signed in with the import on.
+  The toast says so.
+- **The Qobuz, Tidal and Pitchfork pages have a top bar** like every other screen: the name at the
+  bar's height in the display face, the close disc in brass at the top bar's size, the bar's
+  rule beneath, no grip.
+- **Settings → Services, uniform**: the Qobuz and Tidal blocks the same — one width for the two
+  quality selects, the same words on the signed-in line (Hi-Res or CD quality after the
+  subscription), the same spacing.
 - **Now playing's album name opens the album the track is from** — a Qobuz or Tidal album you
   started opens as itself, not the copy of the same record on your drive.
 - **The Library's Focus and Sort** sit in their own row under the top bar again, as smaller

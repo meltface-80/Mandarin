@@ -246,7 +246,9 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), true);
       await api("tidal/unfavorite", { album_id: "2003" });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false);
-      assert.equal((await api("search/external?q=T+Album")).tidal.length, 1, "beside the library's search");
+      const ext = await api("search/external?q=T+Album");
+      assert.equal(ext.tidal.length, 1, "beside the library's search");
+      assert.ok(Array.isArray(ext.tidal_artists), "and Tidal's artists");
     });
 
     await t.test("signed out: nothing streams, the walls keep nothing of Tidal", async () => {

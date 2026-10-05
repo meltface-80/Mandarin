@@ -245,6 +245,66 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(r.tiles_kept, 3);
     });
 
+    // The search from Home (v0.6.24): Qobuz's albums as tiles of the results,
+    // its artists as chips, an album's page from a tile, the artist's albums
+    // in the Qobuz browser from a chip.
+    await t.test("the search from Home asks Qobuz: tiles, artist chips, the album's page", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)" }, async () => {
+      const b = await Browser.launch({ width: 390, height: 844 });
+      let r;
+      try {
+        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+        r = await page.eval(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const $ = id => document.getElementById(id);
+          const until = async (f, ms = 10000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
+          const out = {};
+          await until(() => typeof window.__runSearch === "function" && window.__serviceBrowsers && window.__serviceBrowsers.qobuz);
+          window.__runSearch("Someone Else");
+          const wrap = await until(() => document.querySelector(".ext-search-wrap"));
+          if (!wrap) return { no_wrap: true };
+          out.headers = [...wrap.querySelectorAll(".search-section-header")].map(h => h.textContent);
+          out.tiles = [...wrap.querySelectorAll(".album.qobuz-tile")].map(t => t.querySelector(".album-title").textContent + " | " + t.querySelector(".qobuz-tile-fav").textContent);
+          out.chips = [...wrap.querySelectorAll(".ext-search-artists .qobuz-artist-chip")].map(c => c.textContent);
+          wrap.querySelector(".album.qobuz-tile").click();
+          const modal = $("album-modal");
+          await until(() => !modal.classList.contains("hidden") && $("modal-title").textContent === "Q Other");
+          out.page_title = $("modal-title").textContent;
+          out.overlay_hidden = $("qobuz-overlay").classList.contains("hidden");
+          modal.querySelector("[data-close]").click();
+          await until(() => modal.classList.contains("hidden"));
+          out.results_kept = !!document.querySelector(".ext-search-wrap .album.qobuz-tile");
+          wrap.querySelector(".ext-search-artists .qobuz-artist-chip").click();
+          await until(() => !$("qobuz-overlay").classList.contains("hidden") && !$("qobuz-artist-head").classList.contains("hidden"));
+          out.artist_head = ($("qobuz-artist-head").textContent || "").includes("Artist A");   // the fake's artist page
+          return out;
+        })()`);
+        assert.deepEqual(page.errors, []);
+      } finally { await b.close(); }
+      assert.ok(!r.no_wrap, "Qobuz answered the search");
+      assert.ok(r.headers.includes("Qobuz"), r.headers.join(", "));
+      assert.deepEqual(r.tiles, ["Q Other | +"], "its album as a tile, the favourite as +");
+      assert.deepEqual(r.chips, ["Someone Else"], "its artist as a chip");
+      assert.equal(r.page_title, "Q Other", "a tap opens the album's own page");
+      assert.equal(r.overlay_hidden, true, "over the results, not the Qobuz browser");
+      assert.equal(r.results_kept, true, "closed, the results are still there");
+      assert.equal(r.artist_head, true, "the chip opens the artist's albums in the Qobuz browser");
+    });
+
+    // Rescan library (v0.6.24): the folder, then the services signed in with
+    // the import on — a favourite added on Qobuz is in the library afterwards.
+    await t.test("Rescan library goes on to Qobuz once the folder is scanned", async () => {
+      const before = (await api("settings/qobuz")).last_import;
+      qobuz.favourites.add("1003");
+      const r = await api("library/rescan", {});
+      assert.ok(["rebuilt", "fresh"].includes(r.status), r.status);
+      assert.deepEqual(r.services, ["Qobuz"], "the answer names what follows");
+      await until(async () => { const li = (await api("settings/qobuz")).last_import; return li && li.at !== (before && before.at); });
+      await until(async () => (await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"));
+      assert.equal((await api("settings/qobuz")).kept, 3, "the new favourite is kept after the rescan");
+      qobuz.favourites.delete("1003");
+      await api("settings/qobuz/import", {});
+    });
+
     await t.test("signed out: nothing streams, the walls keep nothing of Qobuz", async () => {
       const r = await api("settings/qobuz/signout", {});
       assert.equal(r.connected, false);

@@ -8344,8 +8344,8 @@ window.__afterStart = (fn) => {
         const wrap = document.createElement("div");
         wrap.className = "ext-search-wrap";
         let added = 0;
-        added += extServiceSection(wrap, "Qobuz", j.qobuz, "qobuz-toggle", "qobuz-search-input");
-        added += extServiceSection(wrap, "Tidal", j.tidal, "tidal-toggle", "tidal-search-input");
+        added += extServiceSection(wrap, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input");
+        added += extServiceSection(wrap, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input");
         added += extPitchforkSection(wrap, j.pitchfork);
         if (!added) return;
         extWrap = wrap;
@@ -8387,12 +8387,34 @@ window.__afterStart = (fn) => {
       return btn;
     }
 
-    // Qobuz/Tidal section: tapping a result opens that service's browser seeded
-    // with a search for the album (same hand-off the Pitchfork detail uses) —
-    // favourite it there to make it appear in Roon.
-    function extServiceSection(frag, label, albums, toggleId, inputId) {
-      if (!albums || !albums.length) return 0;
+    // Qobuz / Tidal (v0.6.24): the service's artists as a strip of chips (a
+    // tap: the artist's albums in the service's browser) and its albums as
+    // tiles of this grid, + / ✓ on each cover, a tap opening the album's own
+    // page over the results — in the library or not, from either service.
+    // Without the service's browser on the page, the rows of before.
+    function extServiceSection(frag, service, label, albums, artists, toggleId, inputId) {
+      const sb = window.__serviceBrowsers && window.__serviceBrowsers[service];
+      const nA = (albums && albums.length) || 0, nR = (sb && artists && artists.length) || 0;
+      if (!nA && !nR) return 0;
       extHeader(frag, label);
+      if (nR) {
+        const strip = document.createElement("div");
+        strip.className = "ext-search-artists";
+        for (const ar of artists) {
+          const chip = document.createElement("button");
+          chip.type = "button"; chip.className = "qobuz-artist-chip";
+          const img = document.createElement(ar.image ? "img" : "div");
+          img.className = "qobuz-artist-thumb";
+          if (ar.image) { img.loading = "lazy"; img.alt = ""; img.src = ar.image; }
+          const name = document.createElement("span"); name.className = "qobuz-artist-name"; name.textContent = ar.name;
+          chip.appendChild(img); chip.appendChild(name);
+          chip.addEventListener("click", () => sb.openArtist(ar));
+          strip.appendChild(chip);
+        }
+        frag.appendChild(strip);
+      }
+      if (!nA) return nR;
+      if (sb) { for (const a of albums) frag.appendChild(sb.tile(a)); return nA + nR; }
       for (const a of albums) {
         frag.appendChild(extRow(a.image, a.title, a.artist, () => {
           stopSearch();
@@ -8404,7 +8426,7 @@ window.__afterStart = (fn) => {
           if (si && seedQ) { si.value = seedQ; si.dispatchEvent(new Event("input", { bubbles: true })); }
         }));
       }
-      return albums.length;
+      return nA;
     }
 
     // Pitchfork section: tapping a review deep-links to its detail view.
@@ -12705,7 +12727,7 @@ window.__musicdAppUpd = (function () {
     }
     if (tidalSigned) tidalSigned.hidden = !on;
     if (tidalStatus) tidalStatus.textContent = on
-      ? ("Signed in as " + ((j.user && (j.user.name || j.user.login)) || "your account") + (j.subscription ? " · " + j.subscription.replace(/_/g, " ") : "") + (j.hires ? " · hi-res" : j.lossless ? " · lossless" : ""))
+      ? ("Signed in as " + ((j.user && (j.user.name || j.user.login)) || "your account") + (j.subscription ? " · " + j.subscription.replace(/_/g, " ").toLowerCase() : "") + (j.hires ? " · Hi-Res" : j.lossless ? " · CD quality" : ""))
       : pending ? (pending.error ? pending.error : "Waiting for the sign-in on tidal.com…") : "";
     if (tidalQuality && on) tidalQuality.value = j.quality || "hires";
     if (tidalImport && on) tidalImport.checked = j.import !== false;
@@ -13690,7 +13712,8 @@ function initServiceBrowser(cfg) {
   // the Grid columns setting all apply), the service favourite as a + / ✓
   // in the corner of the cover. A tap opens the album's own page, as any
   // album here. Shared by every list-type view.
-  function buildAlbumRow(a) {
+  function buildAlbumRow(a, opts) {
+    const outside = !!(opts && opts.outside);   // on the search screen, not in this overlay
     const tile = document.createElement("div");
     tile.className = "album qobuz-tile";
     tile.setAttribute("role", "button");
@@ -13717,8 +13740,9 @@ function initServiceBrowser(cfg) {
       '<div class="album-artist">' + esc(a.artist) + '</div>';
     tile.appendChild(art);
     tile.appendChild(meta);
-    tile.addEventListener("click", () => openAlbumPage(a, fav));
-    tile.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAlbumPage(a, fav); } });
+    const open = () => outside ? openAlbumOutside(a, fav) : openAlbumPage(a, fav);
+    tile.addEventListener("click", open);
+    tile.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
     return tile;
   }
 
@@ -13733,14 +13757,7 @@ function initServiceBrowser(cfg) {
   async function openAlbumPage(a, favBtn) {
     if (typeof window.__openAlbum !== "function" || !albumModal) { pushView({ kind: "detail", album: a, rowFavBtn: favBtn }); return; }
     try {
-      const r = await fetch(cfg.apiBase + "/open", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.id })
-      });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error || "Couldn't open that album");
-      // The album comes back with the answer; an older server is asked once more.
-      const album = j.album || (await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json()).album;
-      if (!album) throw new Error("Couldn't open that album");
+      const { album } = await askOpen(a.id);
       if (!overlayVisible()) return;   // closed while the server was asked
       showUnder(a.id, favBtn);
       window.__openAlbum(album, { source: cfg.service, filter: null });
@@ -13775,6 +13792,39 @@ function initServiceBrowser(cfg) {
     if (closer) closer.click(); else leaveUnder(true);
     history.pushState({ [cfg.historyKey]: viewStack.length }, "");
     return true;
+  }
+
+  // The album's rows made and its page opened from the search screen
+  // (v0.6.24), where this overlay is not showing: the page opens over the
+  // results, and the tile's + / ✓ is read again once it closes.
+  async function openAlbumOutside(a, favBtn) {
+    try {
+      const j = await askOpen(a.id);
+      if (typeof window.__openAlbum !== "function") throw new Error("Couldn't open that album");
+      const observer = new MutationObserver(() => {
+        if (!albumModal.classList.contains("hidden")) return;
+        observer.disconnect();
+        if (!favBtn || !favBtn.isConnected) return;
+        fetch(cfg.apiBase + "/state?album_id=" + encodeURIComponent(a.id)).then(r => r.json())
+          .then(st => { if (st && st.connected && favBtn.isConnected) setFavState(favBtn, !!st.favourite); }).catch(() => {});
+      });
+      window.__openAlbum(j.album, { source: cfg.service, filter: null });
+      if (albumModal) observer.observe(albumModal, { attributes: true, attributeFilter: ["class"] });
+    } catch (e) {
+      toast(e.message || "Couldn't open that album", "error");
+    }
+  }
+  // /open: the album's library rows (transient until favourited) and the
+  // album as the page's tiles carry it; an older server is asked once more.
+  async function askOpen(albumId) {
+    const r = await fetch(cfg.apiBase + "/open", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: albumId })
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "Couldn't open that album");
+    const album = j.album || (await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json()).album;
+    if (!album) throw new Error("Couldn't open that album");
+    return { offset: j.offset, album };
   }
 
   function appendAlbumRows(albums) {
@@ -14291,7 +14341,7 @@ function initServiceBrowser(cfg) {
     } catch (e) { /* the static tabs */ }
   }
 
-  btn.addEventListener("click", () => {
+  function openOverlay() {
     if (overlayVisible()) return;
     activeTab = defaultTab;
     resetSearchBox();
@@ -14300,7 +14350,17 @@ function initServiceBrowser(cfg) {
     overlay.classList.remove("hidden");
     render(currentView());
     loadTabs();
-  });
+  }
+  btn.addEventListener("click", openOverlay);
+
+  // For the search screen (v0.6.24): this service's album tile, and an
+  // artist's albums in this browser (‹ Back goes to its first tab, × closes
+  // it, the search still there beneath).
+  window.__serviceBrowsers = window.__serviceBrowsers || {};
+  window.__serviceBrowsers[cfg.service] = {
+    tile: (a) => buildAlbumRow(a, { outside: true }),
+    openArtist: (ar) => { openOverlay(); pushView({ kind: "artist", artistId: ar.id, artistName: ar.name }); }
+  };
 }
 
 initServiceBrowser({
@@ -15181,8 +15241,13 @@ initServiceBrowser({
   function scanDoneText(j) {
     const albums = j.count != null ? j.count : j.albums;
     const added = Number(j.added) || 0;
-    if (j.status === "fresh" || j.status === "unchanged") return "Library already up to date" + (albums ? " — " + albums + " albums" : "");
-    return "Library rescanned — " + (albums || 0) + " albums" + (added ? " (" + added + " new " + (added === 1 ? "track" : "tracks") + ")" : "");
+    if (j.status === "fresh" || j.status === "unchanged") return "Library already up to date" + (albums ? " — " + albums + " albums" : "") + servicesNext(j);
+    return "Library rescanned — " + (albums || 0) + " albums" + (added ? " (" + added + " new " + (added === 1 ? "track" : "tracks") + ")" : "") + servicesNext(j);
+  }
+  // The streaming services the server goes on to, in order: "· now Qobuz, then Tidal".
+  function servicesNext(j) {
+    const s = Array.isArray(j.services) ? j.services : [];
+    return s.length ? " · now " + s[0] + s.slice(1).map(n => ", then " + n).join("") : "";
   }
 
   // A scan still going when the server answered: wait for it here, then say

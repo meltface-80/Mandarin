@@ -400,6 +400,16 @@ a.action-btn:active,
    as one node. (Pre-11.1 Safari treats it as a block: rows stack full-width
    inside one grid cell — acceptable degradation.) */
 .ext-search-wrap { display: contents; }
+/* A service's artists on the search screen (v0.6.24): a strip of the browsers'
+   chips across the grid, above the service's album tiles. */
+.ext-search-artists {
+  grid-column: 1 / -1;
+  display: flex; gap: 12px; overflow-x: auto;
+  padding: 4px 0 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ext-search-artists::-webkit-scrollbar { display: none; }
 .ext-search-row {
   grid-column: 1 / -1;
   display: flex; align-items: center; gap: 12px;
@@ -2802,13 +2812,42 @@ input.vol-range::-moz-range-thumb {
 .settings-grip { width: 40px; height: 4px; border-radius: 999px; background: var(--border); margin: 4px auto 14px; }
 .settings-head { margin-bottom: 18px; }
 .settings-head h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
-/* Full-page browser overlays (Qobuz/Tidal/Pitchfork) put the close button on
-   the same row as the title, pinned top-right. Scoped to these overlays so the
+/* Full-page browser overlays (Qobuz/Tidal/Pitchfork): their head is a top
+   bar like every other screen's (v0.6.24) — the name on the left at the bar's
+   height, the close disc on the right at the top bar's button size, the bar's
+   padding and its rule beneath; no grip. Scoped to these overlays so the
    plain Settings/Filter heads (title only, no button) are unaffected. */
+#qobuz-overlay .settings-grip,
+#tidal-overlay .settings-grip,
+#pitchfork-overlay .settings-grip { display: none; }
 #qobuz-overlay .settings-head,
 #tidal-overlay .settings-head,
 #pitchfork-overlay .settings-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: var(--ctl-h); margin: 0 -6px 10px; padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+#qobuz-overlay .settings-head h2,
+#tidal-overlay .settings-head h2,
+#pitchfork-overlay .settings-head h2 { font-size: 24px; line-height: 1; }
+#qobuz-overlay .settings-head .icon-btn,
+#tidal-overlay .settings-head .icon-btn,
+#pitchfork-overlay .settings-head .icon-btn { flex: 0 0 auto; width: 40px; height: 40px; }
+@media (max-width: 389px) {
+  #qobuz-overlay .settings-head .icon-btn,
+  #tidal-overlay .settings-head .icon-btn,
+  #pitchfork-overlay .settings-head .icon-btn { width: 37px; height: 37px; }
+  #qobuz-overlay .settings-head .icon-btn svg,
+  #tidal-overlay .settings-head .icon-btn svg,
+  #pitchfork-overlay .settings-head .icon-btn svg { width: 19px; height: 19px; }
+}
+@media (max-width: 359px) {
+  #qobuz-overlay .settings-head .icon-btn,
+  #tidal-overlay .settings-head .icon-btn,
+  #pitchfork-overlay .settings-head .icon-btn { width: 33px; height: 33px; }
+  #qobuz-overlay .settings-head .icon-btn svg,
+  #tidal-overlay .settings-head .icon-btn svg,
+  #pitchfork-overlay .settings-head .icon-btn svg { width: 18px; height: 18px; }
 }
 .settings-sub { font-size: 13px; color: var(--text-faint); }
 .settings-block { padding: 4px 0; }
@@ -3072,6 +3111,12 @@ input.vol-range::-moz-range-thumb {
 }
 .settings-token-input:focus { outline: none; border-color: var(--accent); }
 .settings-token-status { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+/* Services: the Qobuz and Tidal blocks the same — the quality selects one
+   width, the signed-in line clear of the rows, the rows one height. */
+#qobuz-quality, #tidal-quality { width: 12.5em; }
+#qobuz-signed, #tidal-signed { margin-top: 8px; }
+#qobuz-signed .settings-row, #tidal-signed .settings-row { min-height: 44px; }
+#qobuz-signed .settings-row + .settings-row, #tidal-signed .settings-row + .settings-row { margin-top: 6px; }
 /* Explanatory line under a settings row — the sentence that says why the
    control above it exists, rather than what it is called. */
 .settings-note { font-size: 12px; color: var(--text-faint); margin-top: 6px; line-height: 1.45; }
@@ -3532,7 +3577,7 @@ input.vol-range::-moz-range-thumb {
   top: 0;
   z-index: 5;
   background: var(--bg-elev);
-  padding-top: calc(10px + env(safe-area-inset-top));
+  padding-top: calc(12px + env(safe-area-inset-top)); /* the top bar's */
   padding-bottom: 2px;
 }
 
@@ -5161,10 +5206,16 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .settings-head h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
 
 /* The top bar's rule, faint and warm. */
-[data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
+[data-palette="hifi"] .topbar,
+[data-palette="hifi"] #qobuz-overlay .settings-head,
+[data-palette="hifi"] #tidal-overlay .settings-head,
+[data-palette="hifi"] #pitchfork-overlay .settings-head { border-bottom-color: rgba(201,164,92,.12); }
 /* Buttons with a disc — the top bar's menu, search and settings, the album
    view's back, home and share: a brass disc, the glyph in the charcoal. */
 [data-palette="hifi"] .topbar .icon-btn,
+[data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn,
+[data-palette="hifi"] #tidal-overlay .settings-head .icon-btn,
+[data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn,
 [data-palette="hifi"] .modal .modal-close,
 [data-palette="hifi"] .modal .modal-home,
 [data-palette="hifi"] .modal .modal-nav-btn,
@@ -5172,6 +5223,9 @@ button.cap-chip:active { transform: scale(.96); }
   border-radius: 50%; border-color: var(--plum); background: var(--plum); color: var(--plum-pale);
 }
 [data-palette="hifi"] .topbar .icon-btn:hover,
+[data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn:hover,
+[data-palette="hifi"] #tidal-overlay .settings-head .icon-btn:hover,
+[data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn:hover,
 [data-palette="hifi"] .modal .modal-close:hover,
 [data-palette="hifi"] .modal .modal-home:hover,
 [data-palette="hifi"] .modal .modal-share:hover,

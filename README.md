@@ -96,11 +96,11 @@ Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top b
 
 🔍 **Search**
 
-Albums, artists and labels as you type. Words can come in any order, accents and capitals are ignored, and a title with letters left out is still found.
+Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the magnifying glass in the top bar and type. Labels show when Record labels is on.
+Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's; tap a cover for the album's page, an artist for their albums.
 
 </details>
 
@@ -136,7 +136,7 @@ Any number of folders the server can see, added and removed in the app. Changes 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now.
+Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, where you are signed in with the import on.
 
 </details>
 
