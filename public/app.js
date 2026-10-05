@@ -14459,8 +14459,8 @@ function initServiceBrowser(cfg) {
     searchClear.addEventListener("click", clearSearch);
   }
 
-  if (tabsEl) {
-    tabsEl.querySelectorAll(".qobuz-tab").forEach(t => t.addEventListener("click", () => {
+  function bindTab(t) {
+    t.addEventListener("click", () => {
       const tab = t.dataset.qtab;
       if (!tab || !viewStack.length) return;
       activeTab = tab;
@@ -14468,7 +14468,31 @@ function initServiceBrowser(cfg) {
       const top = currentView();
       if (top.kind === "tab" && top.tab === tab) { updateTabActive(); return; }
       replaceTop({ kind: "tab", tab });
-    }));
+    });
+  }
+  if (tabsEl) tabsEl.querySelectorAll(".qobuz-tab").forEach(bindTab);
+
+  // The tabs after the first from the service itself (cfg.dynamicTabs: Tidal
+  // says which lists it features, and they change), asked for once per
+  // page load; the static ones stay if it can't be asked.
+  let tabsLoaded = false;
+  async function loadTabs() {
+    if (!cfg.dynamicTabs || tabsLoaded || !tabsEl) return;
+    try {
+      const j = await qFetch(cfg.apiBase + "/lists");
+      const lists = (j.lists || []).filter(l => l && l.id && l.label);
+      if (!lists.length) return;
+      tabsLoaded = true;
+      cfg.tabs = [cfg.tabs[0]].concat(lists.map(l => ({ id: l.id, label: l.label, kind: "featured" })));
+      tabsEl.querySelectorAll(".qobuz-tab").forEach((t, i) => { if (i) t.remove(); });
+      for (const l of lists) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "qobuz-tab"; b.setAttribute("role", "tab"); b.dataset.qtab = l.id; b.textContent = l.label;
+        bindTab(b);
+        tabsEl.appendChild(b);
+      }
+      updateTabActive();
+    } catch (e) { /* the static tabs */ }
   }
 
   btn.addEventListener("click", () => {
@@ -14479,6 +14503,7 @@ function initServiceBrowser(cfg) {
     history.pushState({ [cfg.historyKey]: 1 }, ""); // a back press from the root view closes the overlay
     overlay.classList.remove("hidden");
     render(currentView());
+    loadTabs();
   });
 }
 
@@ -14507,11 +14532,9 @@ initServiceBrowser({
   historyKey:  "td",
   closeAttr:   "data-tidal-close",
   notConnectedMsg: "Sign in to Tidal in Settings → Services to browse Tidal.",
+  dynamicTabs: true,   // the lists Tidal features, from /api/tidal/lists, after New Releases
   tabs: [
-    { id: "new-releases", label: "New Releases", kind: "new-releases" },
-    { id: "recommended",  label: "Recommended",  kind: "featured" },
-    { id: "top",          label: "Top",          kind: "featured" },
-    { id: "rising",       label: "Rising",       kind: "featured" }
+    { id: "new-releases", label: "New Releases", kind: "new-releases" }
   ]
 });
 

@@ -38,6 +38,7 @@ class FakeTidal {
     this.polls = 0;
     this.refreshes = 0;
     this.playbackCalls = [];           // { track_id, quality }
+    this.albumCalls = 0;               // albums/<id> asks
     this.fetches = [];                 // one-address stream fetches { id, range }
     this.dashFetches = [];             // { id, piece }
     this.dash = new Map();             // track id -> { init, segments }
@@ -173,7 +174,7 @@ class FakeTidal {
         let m;
         if (call === `users/${uid}`) return json(200, { id: this.user.userId, username: this.user.username, email: this.user.email, countryCode: this.user.countryCode, firstName: "Tess" });
         if (call === `users/${uid}/subscription`) return json(200, { subscription: { type: this.subscription.type }, highestSoundQuality: this.subscription.highestSoundQuality, validUntil: "2030-01-01" });
-        if ((m = /^albums\/(\d+)$/.exec(call))) { const a = find(m[1]); return a ? json(200, this.albumJson(a)) : json(404, { userMessage: "No such album" }); }
+        if ((m = /^albums\/(\d+)$/.exec(call))) { this.albumCalls++; const a = find(m[1]); return a ? json(200, this.albumJson(a)) : json(404, { userMessage: "No such album" }); }
         if ((m = /^albums\/(\d+)\/tracks$/.exec(call))) { const a = find(m[1]); return a ? json(200, this.paged(a.tracks.map((t, i) => this.trackJson(a, t, i)), q)) : json(404, { userMessage: "No such album" }); }
         if ((m = /^tracks\/(\d+)$/.exec(call))) { const f = this.trackOf(m[1]); return f ? json(200, this.trackJson(f.a, f.t, f.a.tracks.indexOf(f.t))) : json(404, { userMessage: "No such track" }); }
         if (call === "search") {

@@ -133,6 +133,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
           out.menu_item = !$("menu-item-tidal").classList.contains("hidden");
           $("tidal-toggle").click();
           await until(() => !$("tidal-overlay").classList.contains("hidden"));
+          await until(() => document.querySelector('#tidal-tabs [data-qtab="top"]'));
           document.querySelector('#tidal-tabs [data-qtab="top"]').click();
           const list = $("tidal-nr-list");
           await until(() => list.querySelectorAll(".album.qobuz-tile").length >= 3);
@@ -226,7 +227,12 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
     await t.test("the browser: search, the album's page, the favourite, Clean up", async () => {
       const s = await api("tidal/search?q=other");
       assert.equal(s.albums[0].favourited, false);
+      assert.deepEqual((await api("tidal/lists")).lists.map(l => l.id), ["recommended", "top", "rising"], "the tabs come from Tidal (New Releases is its own)");
       assert.equal((await api("tidal/featured?type=recommended")).albums.length, 3);
+      // An album a list gave is not asked for again when opened: its tracks only.
+      const before = tidal.albumCalls;
+      await api("tidal/open", { album_id: "2001" });
+      assert.equal(tidal.albumCalls, before, "albums/<id> not asked again");
       assert.equal((await api("tidal/featured?type=nothing")).status, 404);
       const o = await api("tidal/open", { album_id: "2003" });
       assert.equal(o.ok, true, JSON.stringify(o));
