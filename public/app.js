@@ -8350,6 +8350,7 @@ window.__afterStart = (fn) => {
       if (abort) { try { abort.abort(); } catch (e) {} abort = null; }
       clearTimeout(retryTimer);
       clearTimeout(extTimer);
+      if (extAbort) { try { extAbort.abort(); } catch (e) {} extAbort = null; }
       extWrap = null; extWrapSeq = -1;         // release the rendered external sections
       setStatus("");
       setBanner(null);
@@ -8370,7 +8371,10 @@ window.__afterStart = (fn) => {
       // before the library fetch so external results appear even when the
       // library search errors or has zero matches.
       clearTimeout(extTimer);
-      extTimer = setTimeout(() => runExternal(q, mySeq), 600);
+      // Close behind the library's own debounce (v0.6.24; it was 600 ms): the
+      // services' type-ahead is what their own apps do, and the server keeps
+      // each answer for an hour.
+      extTimer = setTimeout(() => runExternal(q, mySeq), 200);
       extAllowBannerClear = false;
       try {
         const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=60`,
@@ -8485,23 +8489,34 @@ window.__afterStart = (fn) => {
     let extWrapSeq = -1;
     let extAllowBannerClear = false; // only the "No matches" banner may be cleared
 
+    // The sections on screen put back after the grid is rebuilt — this query's,
+    // or the previous query's dimmed as stale (v0.6.24), so the services'
+    // results don't blink out on every keystroke the way the library's never
+    // do; the fresh ones take their place as they land.
     function extReappend(mySeq) {
-      if (extWrapSeq !== mySeq || !extWrap || !extWrap.childNodes.length) return false;
+      if (!extWrap || !extWrap.childNodes.length) return false;
+      extWrap.classList.toggle("is-stale", extWrapSeq !== mySeq);
       grid.appendChild(extWrap);     // appendChild MOVES it if already attached
       return true;
     }
+    let extAbort = null;
 
     // The services and Pitchfork are asked separately (v0.6.24), each
     // section landing as its answer comes: Qobuz and Tidal are no longer
     // held for a slow Pitchfork search. One wrapper, two slots in a fixed
     // order, so whichever answers first the services stay above the reviews.
     async function runExternal(q, mySeq) {
+      if (extAbort) { try { extAbort.abort(); } catch (e) {} }   // the previous keystroke's asks
+      const ctl = extAbort = new AbortController();
       const wrap = document.createElement("div");
       wrap.className = "ext-search-wrap";
-      const slots = { services: document.createElement("div"), pitchfork: document.createElement("div") };
+      const slots = { qobuz: document.createElement("div"), tidal: document.createElement("div"), pitchfork: document.createElement("div") };
       for (const el of Object.values(slots)) { el.className = "ext-search-slot"; wrap.appendChild(el); }
+      let added = 0;
       const landed = (n) => {
         if (mySeq !== seq || !n) return;
+        added += n;
+        if (extWrap && extWrap !== wrap) extWrap.remove();   // the previous query's, stale
         extWrap = wrap;
         extWrapSeq = mySeq;
         // Externals may arrive while a "No matches for X" banner shows —
@@ -8512,7 +8527,7 @@ window.__afterStart = (fn) => {
       };
       const ask = async (part, fill) => {
         try {
-          const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=${part}`, { cache: "no-store" });
+          const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=${part}`, { cache: "no-store", signal: ctl.signal });
           if (mySeq !== seq || !r.ok) return;
           const j = await r.json();
           if (mySeq !== seq) return;
@@ -8520,10 +8535,16 @@ window.__afterStart = (fn) => {
         } catch (e) { /* best-effort — that section just doesn't appear */ }
       };
       await Promise.all([
-        ask("services", (j) => extServiceSection(slots.services, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")
-          + extServiceSection(slots.services, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input")),
+        ask("qobuz", (j) => extServiceSection(slots.qobuz, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")),
+        ask("tidal", (j) => extServiceSection(slots.tidal, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input")),
         ask("pitchfork", (j) => extPitchforkSection(slots.pitchfork, j.pitchfork))
       ]);
+      // Nothing from anywhere for this query: the stale sections go, and the
+      // library's "No matches" stands if the library had nothing either.
+      if (mySeq === seq && !added) {
+        if (extWrap && extWrap !== wrap) { extWrap.remove(); extWrap = null; extWrapSeq = -1; }
+        if (extAllowBannerClear && !grid.querySelector(".album")) setBanner(`No matches for \u201C${q}\u201D.`, false);
+      }
     }
 
     function extHeader(frag, label) {

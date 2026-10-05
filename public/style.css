@@ -400,6 +400,8 @@ a.action-btn:active,
    as one node. (Pre-11.1 Safari treats it as a block: rows stack full-width
    inside one grid cell — acceptable degradation.) */
 .ext-search-wrap, .ext-search-slot { display: contents; }
+/* The previous query's sections, kept while this one's are fetched (v0.6.24). */
+.ext-search-wrap.is-stale > * > * { opacity: .45; transition: opacity .15s ease; }
 /* A service's artists on the search screen (v0.6.24): a strip of the browsers'
    chips across the grid, above the service's album tiles. */
 .ext-search-artists {

@@ -44,9 +44,11 @@ Versioning: each set of changes is a development build and takes the next third 
   artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
   an album from either opens and plays whether or not it is in your library, both versions shown
   where both have it; an artist opens their albums in the service's browser. The Library wall's
-  filter asks them for the letters typed too. The services answer as soon as they have, no longer
-  held for Pitchfork's review search; and a tap on a result no longer closes the search, so the
-  results are there when the album's page closes.
+  filter asks them for the letters typed too. Qobuz, Tidal and Pitchfork are each asked on their own and
+  land as they answer, close behind the library's own results (a 200 ms debounce, as the
+  services' own apps type ahead; the server keeps each answer an hour); the previous letters'
+  sections stay, dimmed, until the new ones land, so nothing blinks out as you type. A tap on a
+  result no longer closes the search, so the results are there when the album's page closes.
 - **Rescan library goes on to the services**: once the music folder is scanned, Qobuz and then
   Tidal are brought up to date, in that order, each where you are signed in with the import on.
   The toast says so.
