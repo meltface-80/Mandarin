@@ -2983,27 +2983,27 @@ input.vol-range::-moz-range-thumb {
 }
 /* The list as the side menu draws its rows: icon, then the title, flat on
    the sheet — no tile boxes, nothing stretched to fill the screen. */
-#settings-overlay .settings-view[data-view="home"] .settings-nav {
+#settings-overlay .settings-nav-list {
   flex: 0 0 auto; min-height: 0;
   grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: auto; align-content: start;
   gap: 2px; padding: 0 4px;
 }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item {
+#settings-overlay .settings-nav-list .settings-nav-item {
   flex-direction: row; justify-content: flex-start;
   min-height: 0; padding: 13px 12px; gap: 14px; border-radius: 10px;
   border: 0; background: transparent; text-align: left;
 }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item:hover { background: var(--bg-elev-2); border-color: transparent; }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-item:active { transform: scale(.99); }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-ico {
+#settings-overlay .settings-nav-list .settings-nav-item:hover { background: var(--bg-elev-2); border-color: transparent; }
+#settings-overlay .settings-nav-list .settings-nav-item:active { transform: scale(.99); }
+#settings-overlay .settings-nav-list .settings-nav-ico {
   width: 22px; height: 22px; border-radius: 0; background: none;
 }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-ico svg { width: 22px; height: 22px; }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-txt {
+#settings-overlay .settings-nav-list .settings-nav-ico svg { width: 22px; height: 22px; }
+#settings-overlay .settings-nav-list .settings-nav-txt {
   flex: 1 1 auto; align-items: flex-start; overflow: hidden;
 }
-#settings-overlay .settings-view[data-view="home"] .settings-nav-title {
+#settings-overlay .settings-nav-list .settings-nav-title {
   font-size: 15px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-wrap: nowrap;

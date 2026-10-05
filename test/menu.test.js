@@ -2,8 +2,10 @@
 /*
  * The side menu (v0.6.19), in a real browser, phone-sized: an item is its
  * icon and its words, no wider; a tap on a blank part of the menu does
- * nothing; the Offline switch (the app's) toggles without closing it;
- * choosing an item closes it; so does a tap on the page beside it.
+ * nothing; the Offline switch (the app's) toggles without closing it —
+ * the app reloads the page, and the menu is open again on the page that
+ * follows (v0.6.20); choosing an item closes it; so does a tap on the page
+ * beside it.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const test = require("node:test");
@@ -45,6 +47,7 @@ const DRIVER = `(async () => {
   await sleep(100);
   out.offline_set = settings.offlineMode;
   out.open_after_offline = open();
+  out.reopen_flagged = !!localStorage.getItem("rra-menu-reopen");
   // An item: chosen, and the menu closes.
   home.click(); await sleep(100);
   out.open_after_item = open();
@@ -68,6 +71,12 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
       const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
       r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
+      // The reload the app does on the switch: the menu is open on the page that follows, once.
+      const next = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+      r.open_after_reload = await next.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
+      r.flag_cleared = await next.eval(`!localStorage.getItem("rra-menu-reopen")`);
+      const later = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+      r.open_on_next_visit = await later.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
     } finally { await b.close(); }
     assert.equal(r.opened, true);
     assert.equal(r.item_text, "Home");
@@ -77,6 +86,10 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
     assert.equal(r.offline_shown, true);
     assert.equal(r.offline_set, "true", "the Offline switch toggled");
     assert.equal(r.open_after_offline, true, "and the menu stayed open");
+    assert.equal(r.reopen_flagged, true, "the page that follows the app's reload is told to open it");
+    assert.equal(r.open_after_reload, true, "and does");
+    assert.equal(r.flag_cleared, true);
+    assert.equal(r.open_on_next_visit, false, "once only");
     assert.equal(r.open_after_item, false, "an item closes it");
     assert.equal(r.open_after_outside, false, "so does the page beside it");
   } finally { await srv.stop(); }

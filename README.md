@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.19
+# Mandarin — v0.6.21
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -40,7 +40,7 @@ Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open **Settings → Home Screen**, hold a row's grip and drag it, or switch it off.
+Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open **Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off.
 
 </details>
 
@@ -76,7 +76,7 @@ Albums you haven't played in six months. The row stays hidden until Mandarin has
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-A Home row; tap its title for all of them. Move or hide it in **Settings → Home Screen**.
+A Home row; tap its title for all of them. Move or hide it in **Settings → Setup → Home Screen**.
 
 </details>
 
@@ -328,7 +328,7 @@ Five albums a day from your own library, by artists Deezer lists as related to t
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**☰ → Smart Picks**, or its Home row. **Settings → Smart Picks** switches it on or off and sets the hour each day's picks are made.
+**☰ → Smart Picks**, or its Home row. **Settings → Setup → Smart Picks** switches it on or off and sets the hour each day's picks are made.
 
 </details>
 
@@ -340,7 +340,7 @@ New albums by the artists you play, looked up on Deezer. Off until you switch it
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Switch it on in **Settings → Discover**, then open **☰ → Discover**.
+Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**.
 
 </details>
 
@@ -364,7 +364,7 @@ Labels from your files' tags or a folder level: a Labels screen, logos from Disc
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Switch it on in **Settings → Record labels**. Logos need a Discogs token or FanArt.tv key (**Settings → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile to select labels to merge.
+Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key (**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile to select labels to merge.
 
 </details>
 
@@ -376,7 +376,7 @@ With Record labels on, one label from your library on Home all week, with its al
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Switch on **Settings → Record labels**; the row then shows on Home.
+Switch on **Settings → Setup → Record labels**; the row then shows on Home.
 
 </details>
 
@@ -424,7 +424,7 @@ The album as a picture, with links to hear it and read about it on the services 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the share button on an album's page. Choose the services in **Settings → Share Card**. In the Android app, **Download** saves the card to Pictures/Mandarin.
+Tap the share button on an album's page. Choose the services in **Settings → Setup → Share Card**. In the Android app, **Download** saves the card to Pictures/Mandarin.
 
 </details>
 
@@ -520,7 +520,7 @@ On mobile data the app reaches the server through its own Tailscale, with no por
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the same page: **This phone**. Open the app once at home. Details under [Away from home](#away-from-home-tailscale).
+**Settings → Setup → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the same page: **This phone**. Open the app once at home. Details under [Away from home](#away-from-home-tailscale).
 
 </details>
 
@@ -532,7 +532,7 @@ Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → UI Settings** and pick from each list; it applies at once.
+Open **Settings → Setup → UI Settings** and pick from each list; it applies at once.
 
 </details>
 
@@ -846,7 +846,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
-| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Away from home*. |
+| `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
@@ -966,11 +966,11 @@ the original files instead. Albums you've downloaded play from the phone.
 
 **Set up once — Tailscale is built in:**
 
-1. On the server, open *Settings → Away from home* and tap **Sign in to Tailscale**. Sign in on
+1. On the server, open *Settings → Setup → Away from home* and tap **Sign in to Tailscale**. Sign in on
    Tailscale's page (a free account is enough). The server joins your tailnet by itself as
    **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
    server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
-2. On the phone, sign Mandarin's app in to the same account: *Settings → Away from home → This phone*. The
+2. On the phone, sign Mandarin's app in to the same account: *Settings → Setup → Away from home → This phone*. The
    app carries its own Tailscale too — no Tailscale app needed.
 3. Open Mandarin once at home: the app learns the server's tailnet address.
 

@@ -21,7 +21,7 @@ FEATURES = [
      "Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, "
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
-     "**Settings → Home Screen**, hold a row's grip and drag it, or switch it off."),
+     "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
     ("random-album", "🎲", "Random Album", True,
      "The first tile under the greeting plays a random album you haven't played in 12 months; until "
      "Mandarin has 12 months of history, any album.",
@@ -35,7 +35,7 @@ FEATURES = [
     ("unplayed", "⏳", "Not played in 6 months", True,
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
-     "A Home row; tap its title for all of them. Move or hide it in **Settings → Home Screen**."),
+     "A Home row; tap its title for all of them. Move or hide it in **Settings → Setup → Home Screen**."),
     ("library", "📚", "Library", False,
      "Every album, sorted by name, artist, release date, date added, plays, last played or random, "
      "and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.",
@@ -140,11 +140,11 @@ FEATURES = [
     ("picks", "⭐", "Smart Picks", False,
      "Five albums a day from your own library, by artists Deezer lists as related to the ones you've "
      "played, topped up from your least-played albums.",
-     "**☰ → Smart Picks**, or its Home row. **Settings → Smart Picks** switches it on or off and sets "
+     "**☰ → Smart Picks**, or its Home row. **Settings → Setup → Smart Picks** switches it on or off and sets "
      "the hour each day's picks are made."),
     ("discover", "🧭", "Discover", False,
      "New albums by the artists you play, looked up on Deezer. Off until you switch it on.",
-     "Switch it on in **Settings → Discover**, then open **☰ → Discover**."),
+     "Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**."),
     ("pitchfork", "📰", "Pitchfork", False,
      "Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album "
      "you own.",
@@ -152,13 +152,13 @@ FEATURES = [
     ("labels", "🏢", "Record labels", False,
      "Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and "
      "FanArt.tv, lookups for albums without a label, and merging of duplicate names.",
-     "Switch it on in **Settings → Record labels**. Logos need a Discogs token or FanArt.tv key "
-     "(**Settings → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile "
+     "Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key "
+     "(**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile "
      "to select labels to merge."),
     ("lotw", "📆", "Label of the week", False,
      "With Record labels on, one label from your library on Home all week, with its albums. A new "
      "one each Monday.",
-     "Switch on **Settings → Record labels**; the row then shows on Home."),
+     "Switch on **Settings → Setup → Record labels**; the row then shows on Home."),
     # ---- Your collections
     ("favourites", "❤️", "Favourites", False,
      "A heart on every album. Hearted albums gather on a Home row.",
@@ -176,7 +176,7 @@ FEATURES = [
     ("sharecard", "🖼️", "Share card", False,
      "The album as a picture, with links to hear it and read about it on the services you choose, "
      "and three related artists suggested beside it.",
-     "Tap the share button on an album's page. Choose the services in **Settings → Share "
+     "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet.",
@@ -213,14 +213,14 @@ FEATURES = [
     ("away", "🌍", "Away from home", False,
      "On mobile data the app reaches the server through its own Tailscale, with no ports opened. "
      "Away, only the phone plays: Opus 256 or the original files.",
-     "**Settings → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the "
+     "**Settings → Setup → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the "
      "same page: **This phone**. Open the app once at home. Details under "
      "[Away from home](#away-from-home-tailscale)."),
     # ---- Setup
     ("ui", "🎨", "UI Settings", True,
      "Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. "
      "On a desktop, text goes up to +100%.",
-     "Open **Settings → UI Settings** and pick from each list; it applies at once."),
+     "Open **Settings → Setup → UI Settings** and pick from each list; it applies at once."),
     ("account", "👤", "One account", False,
      "One username and password, kept on the server. Devices sign in with SRP, so the password "
      "itself is never sent, and every signed-in device is listed.",

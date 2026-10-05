@@ -335,7 +335,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v0.6.19</span>
+    <span class="badge">v0.6.21</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -376,7 +376,7 @@
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
-        <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
+        <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
       <div class="card is-new"><h3><span class="em">🎲</span>Random Album<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
         <p>The first tile under the greeting plays a random album you haven't played in 12 months; until Mandarin has 12 months of history, any album.</p>
         <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is found.</div></div>
@@ -385,7 +385,7 @@
         <div class="how" id="how-aotd" hidden><b>How to set it up and use it.</b> Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone (<code>TZ</code> in the Docker command).</div></div>
       <div class="card is-new"><h3><span class="em">⏳</span>Not played in 6 months<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-unplayed" aria-label="How to set up and use Not played in 6 months">i</button></h3>
         <p>Albums you haven't played in six months. The row stays hidden until Mandarin has six months of your listening.</p>
-        <div class="how" id="how-unplayed" hidden><b>How to set it up and use it.</b> A Home row; tap its title for all of them. Move or hide it in <b>Settings → Home Screen</b>.</div></div>
+        <div class="how" id="how-unplayed" hidden><b>How to set it up and use it.</b> A Home row; tap its title for all of them. Move or hide it in <b>Settings → Setup → Home Screen</b>.</div></div>
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home. <b>Sort</b> and <b>Focus</b> are in the top bar; Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
@@ -448,19 +448,19 @@
         <div class="how" id="how-dsp" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b>, tap a renderer or the phone, and switch on <b>DSP</b>. Sonos rooms have no DSP here.</div></div>
       <div class="card"><h3><span class="em">⭐</span>Smart Picks<button class="info" type="button" aria-expanded="false" aria-controls="how-picks" aria-label="How to set up and use Smart Picks">i</button></h3>
         <p>Five albums a day from your own library, by artists Deezer lists as related to the ones you've played, topped up from your least-played albums.</p>
-        <div class="how" id="how-picks" hidden><b>How to set it up and use it.</b> <b>☰ → Smart Picks</b>, or its Home row. <b>Settings → Smart Picks</b> switches it on or off and sets the hour each day's picks are made.</div></div>
+        <div class="how" id="how-picks" hidden><b>How to set it up and use it.</b> <b>☰ → Smart Picks</b>, or its Home row. <b>Settings → Setup → Smart Picks</b> switches it on or off and sets the hour each day's picks are made.</div></div>
       <div class="card"><h3><span class="em">🧭</span>Discover<button class="info" type="button" aria-expanded="false" aria-controls="how-discover" aria-label="How to set up and use Discover">i</button></h3>
         <p>New albums by the artists you play, looked up on Deezer. Off until you switch it on.</p>
-        <div class="how" id="how-discover" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Discover</b>, then open <b>☰ → Discover</b>.</div></div>
+        <div class="how" id="how-discover" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Setup → Discover</b>, then open <b>☰ → Discover</b>.</div></div>
       <div class="card"><h3><span class="em">📰</span>Pitchfork<button class="info" type="button" aria-expanded="false" aria-controls="how-pitchfork" aria-label="How to set up and use Pitchfork">i</button></h3>
         <p>Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album you own.</p>
         <div class="how" id="how-pitchfork" hidden><b>How to set it up and use it.</b> Open <b>☰ → Pitchfork</b>.</div></div>
       <div class="card"><h3><span class="em">🏢</span>Record labels<button class="info" type="button" aria-expanded="false" aria-controls="how-labels" aria-label="How to set up and use Record labels">i</button></h3>
         <p>Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and FanArt.tv, lookups for albums without a label, and merging of duplicate names.</p>
-        <div class="how" id="how-labels" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Record labels</b>. Logos need a Discogs token or FanArt.tv key (<b>Settings → API Keys</b>). On <b>☰ → Labels</b>, search and #–Z are in the top bar; hold a tile to select labels to merge.</div></div>
+        <div class="how" id="how-labels" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Setup → Record labels</b>. Logos need a Discogs token or FanArt.tv key (<b>Settings → Setup → API Keys</b>). On <b>☰ → Labels</b>, search and #–Z are in the top bar; hold a tile to select labels to merge.</div></div>
       <div class="card"><h3><span class="em">📆</span>Label of the week<button class="info" type="button" aria-expanded="false" aria-controls="how-lotw" aria-label="How to set up and use Label of the week">i</button></h3>
         <p>With Record labels on, one label from your library on Home all week, with its albums. A new one each Monday.</p>
-        <div class="how" id="how-lotw" hidden><b>How to set it up and use it.</b> Switch on <b>Settings → Record labels</b>; the row then shows on Home.</div></div>
+        <div class="how" id="how-lotw" hidden><b>How to set it up and use it.</b> Switch on <b>Settings → Setup → Record labels</b>; the row then shows on Home.</div></div>
       <div class="card"><h3><span class="em">❤️</span>Favourites<button class="info" type="button" aria-expanded="false" aria-controls="how-favourites" aria-label="How to set up and use Favourites">i</button></h3>
         <p>A heart on every album. Hearted albums gather on a Home row.</p>
         <div class="how" id="how-favourites" hidden><b>How to set it up and use it.</b> Tap the heart on an album's page. Tap the <b>Favourites</b> row's title for all of them.</div></div>
@@ -472,7 +472,7 @@
         <div class="how" id="how-playlists" hidden><b>How to set it up and use it.</b> <b>☰ → Playlists</b>, <b>☰ → Dynamic Playlists</b> and <b>☰ → Import a playlist</b>. A playlist's <b>Share</b> gives the text to send.</div></div>
       <div class="card"><h3><span class="em">🖼️</span>Share card<button class="info" type="button" aria-expanded="false" aria-controls="how-sharecard" aria-label="How to set up and use Share card">i</button></h3>
         <p>The album as a picture, with links to hear it and read about it on the services you choose, and three related artists suggested beside it.</p>
-        <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
+        <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its options are in <b>Settings → Wall Display</b>.</div></div>
@@ -496,10 +496,10 @@
         <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>.</div></div>
       <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
         <p>On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.</p>
-        <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
+        <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
       <div class="card is-new"><h3><span class="em">🎨</span>UI Settings<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-ui" aria-label="How to set up and use UI Settings">i</button></h3>
         <p>Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.</p>
-        <div class="how" id="how-ui" hidden><b>How to set it up and use it.</b> Open <b>Settings → UI Settings</b> and pick from each list; it applies at once.</div></div>
+        <div class="how" id="how-ui" hidden><b>How to set it up and use it.</b> Open <b>Settings → Setup → UI Settings</b> and pick from each list; it applies at once.</div></div>
       <div class="card"><h3><span class="em">👤</span>One account<button class="info" type="button" aria-expanded="false" aria-controls="how-account" aria-label="How to set up and use One account">i</button></h3>
         <p>One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.</p>
         <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
