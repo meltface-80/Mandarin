@@ -9,12 +9,15 @@
 
 # Mandarin — v0.6.11
 
-**Your own music files, played to Sonos rooms, to UPnP/DLNA renderers — a WiiM, a Chord Poly,
-a streamer, an AV receiver — and to the Mandarin app, designed for this server.**
+**Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
+a streamer, an AV receiver) and to the Mandarin Android app.**
 
-A small server on a machine you own scans your music folders. Every player in the house plays
-from it, controlled from a browser, an iPhone home-screen app, or the native Android app. No
-subscriptions, no streaming accounts, nothing of yours leaves the house.
+**📖 Install guide & command builder: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)**
+
+A server on a machine you own scans your music folders and plays them to the players in your
+house. You control it from a browser, an iPhone home-screen app or the Android app. No
+subscription or streaming account is needed. Album names are looked up online (MusicBrainz,
+Wikipedia, Deezer and others); your music files stay on your machine.
 
 ```
  browser / iPhone PWA / Android app ──HTTP──▶  Mandarin  ──Sonos UPnP──▶  Sonos rooms
@@ -25,108 +28,527 @@ subscriptions, no streaming accounts, nothing of yours leaves the house.
 
 ---
 
-## What it does
+## Features
 
-* **Home** — Random Album and the Album of the day under the greeting, then Not played in six
-  months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week,
-  Random albums, the Library and genres. Reorder the rows or switch them off.
-* **Album of the day** — the same album on every device, chosen by the server at 00:01; once
-  played, from anywhere, it's gone until the next 00:01.
-* **Library** — sort by title, artist, year, date added, plays or last played; focus by genre,
-  decade, format, sample rate, bit depth, label, starts-with and date added, from the top bar. A
-  Random albums wall turns over each visit.
-* **UI Settings** — text size (tile names, screen titles, and menu and Home text), grid layout
-  (Auto, 3 or 2 columns, or List) and tile size, on each device.
-* **Music folders** — any number of folders the server can see, added and removed in Settings,
-  watched so new and deleted albums show up by themselves.
-* **Search** — albums, artists and labels as you type. Typo-tolerant, any word order.
-* **Album pages** — tracks, year, label, write-ups from Wikipedia and Qobuz's editorial pages,
-  the Pitchfork score, favourite, listen later, download, share. Previous and next, or a swipe,
-  step through the albums of the row or wall you came from.
-* **Pitchfork** — the latest reviews and Best New Music to read in the app, with Play on any
-  record you own.
-* **Edit album** — correct the title, artist or year and find a cover. Edits live in the
-  database; your files stay exactly as they are.
-* **Every tag kept** — all of each file's tags and identifiers are read into the server's
-  database, and used to identify albums.
-* **Library Scanner** — albums identified by their files' identifiers first, then MusicBrainz by
-  tracks and lengths, with iTunes as a second opinion; ReplayGain measured for untagged files.
-* **Volume Levelling** — ReplayGain per device: Track, Album or Auto, a target from −14 to −25
-  LUFS, peaks respected. On every kind of device, the phone included.
-* **Now playing** — a waveform seek bar drawn from the audio, the queue, history, and a badge
-  saying what the device is being sent.
-* **Share card** — the record as an image, where to hear it, where to read about it, and three
-  acts worth hearing next.
-* **Wall display** — a full-screen now-playing page at `/display` for a TV or tablet.
-* **Random Album Radio** — when a device's queue runs out, another whole album you haven't heard
-  lately goes on. Per device.
-* **Smart Picks and Discover** — five records a day from your own library, by acts near the ones
-  you play; new releases by the artists you listen to.
-* **Playlists** — ones you make, Dynamic Playlists that follow a saved Library view, and sharing
-  and importing as a playlist file you can pass on.
-* **Favourites** — a heart on any album, gathered on a Home row of their own.
-* **Listen later** — albums put aside to hear, on a Home row and a wall of their own. Each comes
-  off by itself once every track has played.
-* **Label of the week** — with Record labels on, one label from your library on Home all week,
-  with its albums; a new one each Monday.
-* **Record labels** — from the files' tags or a folder level: a Labels screen, logos from Discogs
-  and FanArt.tv, lookups for untagged albums, merging of duplicates.
-* **Sonos** — play, queue, play next, shuffle, repeat, volume per speaker, and move what's
-  playing to another room, renderer or phone. Sonos rooms group and ungroup here too; Sonos keeps them in step.
-* **UPnP/DLNA renderers** — a WiiM, a Chord Poly, a streamer, an AV receiver, a TV: gapless,
-  with volume, radio and everything a Sonos room has; DSD sent as DSD where taken.
-* **Audio Devices** — every player with what it takes (rates, depths, formats), a name of your
-  own, a switch each, and Original or Upsample ×2, ×4 or Max output.
-* **DSP** — a parametric EQ of up to ten bands per renderer or phone, the curve drawn as you
-  edit, plus headphone profiles from AutoEq or a pasted ParametricEQ.txt.
-* **The Android app** — the same interface plus lock-screen controls, volume keys, a widget, a
-  Quick Settings tile, a share sheet, Android Auto, and updates of its own.
-* **This phone** — the phone is a room of its own: speaker, headphones or Bluetooth, with the
-  queue, history and radio like any other. At home your other devices can play to it too, under
-  its own name, while the app is running on it.
-* **USB DAC on the phone** — the app's own USB Audio driver feeds a DAC on the phone's port at
-  the file's rate and depth, DSD natively or as DoP, Android's mixer out of the way. The DAC's
-  volume starts low, with a limit, or fixed for a DAC without its own control.
-* **Downloads** — albums kept on the phone, in a folder you choose, as the files themselves or
-  as Opus 256, played with no server at all; today's picks kept automatically if you like.
-* **Music on this phone** — a folder of files already on the phone, watched for changes, shown
-  and played like the library.
-* **Offline mode** — one switch in the menu: only the music on the phone shows, and the server
-  isn't used. With no connection the app does the same by itself, and reconnects on its own.
-* **Away from home** — on mobile data the app reaches the server over its built-in Tailscale.
-  Tracks come as Opus 256; only the phone plays.
-* **One account** — a username and password kept on the server, SRP sign-in, every device listed
-  under Settings → Account.
-* **Updates** — the server updates itself from GitHub from Settings; the app offers each new
-  version when it opens.
+<!-- features:start -->
 
-## New since the last beta (v0.5.50)
+Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.
 
-* **A brass icon** — The duck in black on the app's brass, for the Android app and the home-screen app, turned round from the old dark badge.
-* **MusicBrainz pack** — Every MusicBrainz release with a barcode, kept on the server and refreshed weekly; barcoded albums match first, even while musicbrainz.org is down. Optional: an 845 MB download.
-* **UI Settings** — Album and artist text, grid screen titles, menu and Home text, grid layout (Auto, 3 or 2 columns, or List) and tile size, set on each device.
-* **Find a label** — Search from the Labels screen's top bar, and turn the order round, # to Z or Z to #.
-* **Library controls in the top bar** — Focus, Sort and search sit in the Library screen's top bar; the search opens over them, and × clears, then closes.
-* **Titles beside Back** — An artist's album count and name, and a label's name, sit beside Back at the top of the screen.
-* **Settings on a tablet or desktop** — Settings opens beside the page at the side menu's width, and each settings page only as wide as it needs.
-* **Multi-disc albums** — A two-disc symbol on the cover in every grid for an album of several discs, from disc folders or disc numbers.
-* **Random Album** — The first tile under Home's greeting, a brass disc turning in its middle: one tap plays a whole album you haven't heard lately.
-* **Album of the day, kept by the server** — One album for every device, chosen by the server at 00:01 and remembered through updates and restarts; once played, from anywhere, it's gone until the next 00:01.
-* **Not played in six months** — Hidden until Mandarin has six months of your listening, then offers the albums you haven't heard since.
-* **Now playing goes back** — Opened over an album, its corner button returns to that album. On large screens it can shrink to a card and be dragged.
-* **API keys checked** — The Discogs and FanArt.tv boxes show a ✓ when the service accepts the key, or ✕ when it refuses it.
-* **Untagged albums named from folders** — A file with no tags takes its artist, album, year, title and track from its folder and file names, then is identified on MusicBrainz; nothing is written to the files.
-* **One album per folder** — Two copies of a record in separate folders are two albums; disc folders such as Disc 1 or CD2 inside an album's folder are one album, shown disc by disc.
-* **Every tag kept** — All of each file's tags and identifiers — MusicBrainz IDs, barcode, catalogue number, ISRC, ReplayGain — read into the server's database.
-* **Library Scanner** — Albums identified by what their files carry first, then by MusicBrainz and iTunes; ReplayGain measured for files without it. Under Music Folders in Settings.
-* **Volume Levelling** — ReplayGain set per device — Off, Track, Album or Auto — with a target from −14 to −25 LUFS and a level for tracks of unknown loudness.
-* **DSD to renderers** — A renderer that takes DSD files, such as a Chord Poly, is sent the DSF or DFF itself, at the DSD rates switched on for it.
-* **Move to another device** — Moving what's playing to another room, renderer or phone carries the queue over and plays on from the same track and second.
-* **Play to another phone** — A phone running the app is a player for your other devices at home, under its own name, while the app runs.
-* **Offline mode** — One switch: only the music on the phone shows and the server isn't asked. The app also opens with no signal and finds the server again by itself.
-* **Share card saved** — In the app, Download saves the card to the phone's Pictures/Mandarin.
-* **Help behind ⓘ** — Every setting's longer explanation opens from an ⓘ after its name, with a short line left under it.
-* **Release candidates** — The app, its update check and the server's updater read 0.6.0-RC builds in order, so updates arrive one after another.
+🏠 **Home**
+
+Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open **Settings → Home Screen**, hold a row's grip and drag it, or switch it off.
+
+</details>
+
+⸻
+
+🎲 **Random Album** — *new since v0.5.50*
+
+The first tile under the greeting plays a random album you haven't played in 12 months; until Mandarin has 12 months of history, any album.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while an album is found.
+
+</details>
+
+⸻
+
+📅 **Album of the day** — *new since v0.5.50*
+
+One album, the same on every device, chosen by the server at 00:01. Once played from any device, it's gone until the next 00:01.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone (`TZ` in the Docker command).
+
+</details>
+
+⸻
+
+⏳ **Not played in 6 months** — *new since v0.5.50*
+
+Albums you haven't played in six months. The row stays hidden until Mandarin has six months of your listening.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+A Home row; tap its title for all of them. Move or hide it in **Settings → Home Screen**.
+
+</details>
+
+⸻
+
+📚 **Library**
+
+Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top bar; Focus also has *Added in the last* and *Listening* (never played, not in 6 or 12 months). **☰ → Random albums** opens a shuffled wall.
+
+</details>
+
+⸻
+
+🔍 **Search**
+
+Albums, artists and labels as you type. Words can come in any order, accents and capitals are ignored, and a title with letters left out is still found.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the magnifying glass in the top bar and type. Labels show when Record labels is on.
+
+</details>
+
+⸻
+
+💿 **Album pages**
+
+Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album.
+
+</details>
+
+⸻
+
+✏️ **Edit album**
+
+Correct an album's title, artist or year and choose its cover. Edits are kept in the server's database; your music files are not changed.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+On an album, tap **⋯ → Edit album**.
+
+</details>
+
+⸻
+
+🗂️ **Music folders**
+
+Any number of folders the server can see, added and removed in the app. Changes show by themselves where the file system reports them, otherwise at the next scan.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now.
+
+</details>
+
+⸻
+
+💽 **One album per folder** — *new since v0.5.50*
+
+Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown disc by disc, with a two-disc symbol on its cover.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up.
+
+</details>
+
+⸻
+
+📝 **Untagged files named from folders** — *new since v0.5.50*
+
+A file with no tags takes its artist, album, year, title and track number from its folder and file names. Nothing is written to your files.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up. Those albums are then looked up by the Library Scanner like any other.
+
+</details>
+
+⸻
+
+🏷️ **Every tag kept** — *new since v0.5.50*
+
+All of each file's tags are read into the server's database, including MusicBrainz IDs, barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up: tags are read with every scan.
+
+</details>
+
+⸻
+
+🔎 **Library Scanner** — *new since v0.5.50*
+
+Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Library Scanner**. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
+
+</details>
+
+⸻
+
+📦 **MusicBrainz pack** — *new since v0.5.50*
+
+An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums with a barcode are matched from it, also while musicbrainz.org is down.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** chooses where it's kept; in Docker that folder needs a writable mount (see Install).
+
+</details>
+
+⸻
+
+▶️ **Now playing**
+
+Cover, track, transport, volume, the queue and history, and a badge saying what the device is being sent. An optional waveform seek bar is drawn from the audio.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the bar at the bottom of the screen. The waveform is off until you switch on **Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card you drag around.
+
+</details>
+
+⸻
+
+↪️ **Move to another device** — *new since v0.5.50*
+
+Pick another room, renderer or phone while music plays and it moves there: the queue goes with it, from the same track and second.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the speaker button (on the bar or Now playing) and choose the device to move to.
+
+</details>
+
+⸻
+
+📻 **Random Album Radio**
+
+When a device's queue is running out, a random album you haven't played in 60 days goes on the end. Switched on per device.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. **⋯ → Radio** on an album plays it and switches radio on for that device.
+
+</details>
+
+⸻
+
+🔈 **Sonos**
+
+Play, queue, play next, shuffle, repeat and volume for each Sonos room, and grouping and ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick one with the speaker button; **Group zones…** in the same list groups them.
+
+</details>
+
+⸻
+
+📡 **UPnP/DLNA renderers**
+
+WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. Then pick it with the speaker button. **Look again** searches the network now.
+
+</details>
+
+⸻
+
+🎚️ **Audio Devices**
+
+Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker list and Now playing show. **Output** is on a renderer's page.
+
+</details>
+
+⸻
+
+💎 **DSD** — *new since v0.5.50*
+
+A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB DAC on the phone gets DSD natively or as DoP.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+On a renderer's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off.
+
+</details>
+
+⸻
+
+🔊 **Volume Levelling** — *new since v0.5.50*
+
+ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level for tracks with no loudness information.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Audio Devices**, tap the device, and set **Volume levelling** (above DSP). Auto plays albums at album level and mixed tracks at track level.
+
+</details>
+
+⸻
+
+🎛️ **DSP**
+
+A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you edit, plus headphone profiles from AutoEq or a pasted ParametricEQ.txt.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos rooms have no DSP here.
+
+</details>
+
+⸻
+
+⭐ **Smart Picks**
+
+Five albums a day from your own library, by artists Deezer lists as related to the ones you've played, topped up from your least-played albums.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**☰ → Smart Picks**, or its Home row. **Settings → Smart Picks** switches it on or off and sets the hour each day's picks are made.
+
+</details>
+
+⸻
+
+🧭 **Discover**
+
+New albums by the artists you play, looked up on Deezer. Off until you switch it on.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Switch it on in **Settings → Discover**, then open **☰ → Discover**.
+
+</details>
+
+⸻
+
+📰 **Pitchfork**
+
+Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album you own.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **☰ → Pitchfork**.
+
+</details>
+
+⸻
+
+🏢 **Record labels**
+
+Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and FanArt.tv, lookups for albums without a label, and merging of duplicate names.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Switch it on in **Settings → Record labels**. Logos need a Discogs token or FanArt.tv key (**Settings → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile to select labels to merge.
+
+</details>
+
+⸻
+
+📆 **Label of the week**
+
+With Record labels on, one label from your library on Home all week, with its albums. A new one each Monday.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Switch on **Settings → Record labels**; the row then shows on Home.
+
+</details>
+
+⸻
+
+❤️ **Favourites**
+
+A heart on every album. Hearted albums gather on a Home row.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the heart on an album's page. Tap the **Favourites** row's title for all of them.
+
+</details>
+
+⸻
+
+🕒 **Listen later**
+
+Albums put aside to play another time, on a Home row and a screen of their own. Each comes off by itself once every track has been played.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+On an album, **⋯ → Listen later**, or select several on a wall. Open the list from **☰ → Listen later**.
+
+</details>
+
+⸻
+
+🎵 **Playlists**
+
+Playlists you make, and Dynamic Playlists that follow a saved Library view. A playlist can be shared as text and imported, matched against the other library's tracks.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's **Share** gives the text to send.
+
+</details>
+
+⸻
+
+🖼️ **Share card**
+
+The album as a picture, with links to hear it and read about it on the services you choose, and three related artists suggested beside it.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap the share button on an album's page. Choose the services in **Settings → Share Card**. In the Android app, **Download** saves the card to Pictures/Mandarin.
+
+</details>
+
+⸻
+
+📺 **Wall display**
+
+A full-screen now playing page for a TV or tablet.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open `http://<server-ip>:3500/display` on the screen. Its options are in **Settings → Wall Display**.
+
+</details>
+
+⸻
+
+📱 **The Android app**
+
+The same interface, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.
+
+</details>
+
+⸻
+
+🎧 **This phone**
+
+The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and radio. At home, your other devices can play to it while the app runs.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+In the Android app, pick **This phone** with the speaker button.
+
+</details>
+
+⸻
+
+🔌 **USB DAC on the phone**
+
+The app's own USB Audio driver plays to a DAC on the phone's port at the file's rate and depth, without Android's mixer; DSD natively or as DoP.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on **USB direct** there.
+
+</details>
+
+⸻
+
+⬇️ **Downloads**
+
+Albums kept on the phone as the original files or Opus 256, played without the server. Smart Picks, the Album of the day and new albums can download by themselves.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic downloads are in **Settings → Downloads** in the app.
+
+</details>
+
+⸻
+
+📂 **Music on this phone**
+
+A folder of music already on the phone, watched for changes, shown on Home and played like the library. The server never sees these files.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+In the app, **Settings → Music Folders → On this phone** and choose the folder.
+
+</details>
+
+⸻
+
+✈️ **Offline mode** — *new since v0.5.50*
+
+One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+In the Android app, **☰ → Offline mode**.
+
+</details>
+
+⸻
+
+🌍 **Away from home**
+
+On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the same page: **This phone**. Open the app once at home. Details under [Away from home](#away-from-home-tailscale).
+
+</details>
+
+⸻
+
+🎨 **UI Settings** — *new since v0.5.50*
+
+Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → UI Settings** and pick from each list; it applies at once.
+
+</details>
+
+⸻
+
+👤 **One account**
+
+One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Create it on first visit from a device at home. **Settings → Account** lists devices, signs one out and changes the password. Forgotten: see [Your account](#your-account).
+
+</details>
+
+⸻
+
+🔄 **Updates**
+
+The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds.
+
+</details>
+
+<!-- features:end -->
 
 ## What each device is sent
 
@@ -135,13 +557,13 @@ Each track goes the way the device can take it. The Now playing badge says what 
 * **Sonos** plays up to 24-bit / 48 kHz. Within that, the file as stored. Above it, or in a
   format Sonos can't read, FLAC at 24/48.
 * **A UPnP/DLNA renderer** has its own ceiling, read from the device. Within it, the file as
-  stored; above it, FLAC at the best rate the device takes in the file's family; upsampled
+  stored; above it, FLAC at the highest rate the device takes in the file's family; upsampled
   ×2, ×4 or to the device's maximum if you choose. DSD goes as the DSF or DFF file itself to a
   device that says it takes DSD files (DSD rates switchable on its page), as PCM otherwise.
 * **The Android app** on the phone's own output: the file as stored within 24/48, FLAC 24/48
-  above it; Opus 256 away from home.
+  above it; away from home, Opus 256 by default.
 * **A USB DAC on the phone**, with USB direct on: the file at its own rate and depth where the
-  DAC takes it, DSD natively or as DoP, FLAC at the DAC's best rate otherwise.
+  DAC takes it, DSD natively or as DoP, FLAC at the DAC's highest rate otherwise.
 * **Formats nothing plays as they are** — APE, WavPack, WMA Lossless, 24-bit WAV, more than two
   channels — become FLAC, in stereo.
 
@@ -419,46 +841,9 @@ screen like an app, with the same interface as the Android app.
 
 ## Android
 
-A bespoke native app, designed from the ground up for the Mandarin server:
-**[android/](android/)**. Enter the port (3500 unless you changed it) and it
-finds the server on your Wi-Fi by itself — or type the address — then signs in (or creates the
-account on a new server) right in the app, no other device needed. It shows the server's own
-interface, and adds what a web page can't:
-
-* **Lock screen and notification controls**, which headset and Bluetooth buttons also reach
-* The phone's **volume keys** move the room's volume
-* A **home-screen widget** — now playing, transport, and a tap on the cover for a random album
-* A **Quick Settings tile** — a random album without opening anything
-* A proper **share sheet** for the share card
-* **This phone** — the phone itself is one of the rooms. Pick *This phone* in the room picker
-  and albums play through its speaker or headphones, with the queue, now playing, history and
-  Random Album Radio working as for any Sonos room, and *move what's playing* works between the
-  phone and any Sonos room. It's the Android app's own: only that phone sees it (the iPhone
-  home-screen app and browsers don't). It's there while the app is open or playing.
-* **Downloads** — on an album's page, *⋯ → Download to this phone*, as **Original** (the files
-  as they are; formats a phone can't play become lossless FLAC) or **Opus 256** (about a quarter
-  of a CD-quality FLAC's size). Saved to phone storage or an SD card, Wi-Fi only by default, with an optional
-  size limit — all under *Settings → Downloads*. Downloaded albums play with no
-  server at all (the same screen, or *Play downloads* when the server can't be reached), a
-  downloaded track is used instead of streaming it, and plays made offline join your history
-  when the phone is back. Downloads live in the app's own storage, so uninstalling the app
-  removes them (updates don't). A **Downloaded albums** row heads the Home screen once something is
-  downloaded (and stays while anything is).
-
-* **Away from home** — off your Wi-Fi the app carries on over Tailscale, as a player for the
-  phone only. See below.
-* **Automatic downloads** — today's Smart Picks, the Album of the day and the newest albums kept
-  on the phone by themselves (Downloads screen), and removed again when they drop off the list.
-* **Android Auto** — Downloaded albums, Smart Picks and Random albums in the car. Android Auto
-  lists a sideloaded app only with *Unknown sources* on in its developer settings (tap the
-  version number in Android Auto's settings ten times to reach them).
-* **Updates itself** — the app offers each new version when it opens (or *Settings → Updates →
-  Check for app update*) and installs it over the top; Android asks once to allow it.
-* **USB DAC** — plug a DAC into the phone's port and it appears on *This phone*'s page in Audio
-  Devices with what it takes. **USB direct** plays through the app's own USB Audio driver: the
-  file at its own rate and depth, DSD natively or as DoP, Android's mixer out of the way. A DAC
-  with its own volume control starts low and follows the slider and the volume buttons; the
-  rest are driven at full for the amplifier to set, with a volume limit if you want one.
+The app is in **[android/](android/)**. Enter the port (3500 unless you changed it) and it finds
+the server on your Wi-Fi, or type the address; then sign in, or create the account on a new
+server, in the app. Its features are listed under [Features](#features).
 
 **Download: [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk)**
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
@@ -478,198 +863,6 @@ the uninstall, so download them again. After that, never again.
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
 
-## Favourites
-
-Every album's page has a heart, first in its row of buttons: hollow, red once tapped. Hearted
-albums are a **Favourites** carousel on Home (newest first; tap its title for the full wall),
-kept on the server by the album's identity, so they survive a rescan.
-
-## Record labels
-
-Off by default; Settings → Record labels switches it on. Each album's label is its files'
-LABEL (or PUBLISHER) tag — read with the library, nothing looked up — with the company words
-and country folded away, so "Blue Note Records (UK)" and "BLUE NOTE" are one label, *Blue
-Note*. On: a **Labels** screen in the side menu (every label and its albums, alphabetical or
-shuffled), the label on the album page and the share card (tap it for the label's albums),
-labels among the search results, a *Record label* facet in Library Focus, and a **Label of the
-week** row on Home: one label with three albums or more, the same one all week. The Settings
-page says how many albums carry a label tag and how many don't. A library filed by label
-(`/music/Jazz/Blue Note/Album`) can take the label from the folder at a set depth instead.
-The Labels screen's top bar finds a label as you type, and turns the order round (# to Z,
-Z to #).
-
-Two names the files keep apart can be **merged**: hold a tile on the Labels screen, select
-the rest, Merge folds them into the first; the tile says "N merged", and tapping that undoes
-one at a time. **Logos** are found in the background for every label without one — Discogs
-first (your Discogs token, Settings → API Keys), then FanArt.tv by the label's MusicBrainz id
-(your FanArt.tv key) — kept in the data folder and served like covers, so the app caches
-them. The picture button on a label's page offers Discogs' candidates or takes a pasted
-address. A label no source has a logo for is asked about again after a week, or at once
-with Force rescan.
-
-An album whose files carry no label tag gets one **looked up**, in the background:
-MusicBrainz first (a release by that title and artist, and its label), then Discogs with your
-token. What's found is kept by the album's identity, so a library rebuild keeps it; a miss is
-asked about again after a month, or at once with Force rescan. The files' own tag always
-wins, and the scan log (on the Labels screen) says what each lookup found.
-
-## Library Scanner
-
-Some albums arrive with the wrong artist — a compilation's "Various Artists" on a record that
-isn't one, a blank, a typo — or with track titles like `Track 01`. Settings → **Library
-Scanner** (under Music Folders) holds **Identify albums**, a scan that finds each album's right names on
-[MusicBrainz](https://musicbrainz.org) (no key: the app names itself and asks at most once a
-second) from what the files already say: the title, the track count, the artist where the tag
-can be trusted, and each track's title and **length** — twelve tracks that match a release to
-the second are that release, whatever the artist tag claims.
-
-**What the files carry comes first.** The scanner reads every tag in every file into the
-database, and an album whose files name their release is matched by that before any search by
-name: a **MusicBrainz release ID** (as Picard writes it) is taken as it is; a **barcode** (UPC/EAN)
-finds the releases carrying it, and a **catalogue number** with its label the same; failing
-those, a few of the tracks' **ISRCs** find the releases those recordings share. A release found
-this way is applied when its tracks fit, and the Applied list says what matched it ("matched by
-barcode"). A barcode is asked of iTunes too, for what MusicBrainz doesn't know.
-
-**Files with no tags** are named from where they're filed: the artist from the folder above the
-album's (`808 State/10x10 (1993)`) or an `Artist - Album` folder, the album and year from the
-album's folder, and the title, track and disc from the file name (`1-01 - Pacific State`). Only
-what the tags leave empty is filled; folders such as `Music` or `4tb` are never taken for an
-artist, and nothing is written to the files. Those albums are then looked up like any other, and
-their page says the names come from their folders until a match or an edit replaces them.
-
-Each candidate release is scored the way [beets](https://beets.io) does it, and named by its
-release group: the album is the MusicBrainz *release group*, the copy you have is one *release* of
-it, so "Kid A (2015 Remaster)" tagged 2015 becomes **Kid A, 2000**, with the pressing noted
-beside it, and track titles lose their remaster tails. At **95 % alike or better** the match
-is applied — artist, title, year and track titles — to the same database overlay the album
-editor writes, so the files are never touched and a rescan changes nothing.
-What counts most is the track count and the lengths, then the track names (what's in
-brackets set aside, so "Live For (Album Version (Explicit))" is "Live For"), then the album's
-name and artist, and the year least; a release labelled live or remix when your files don't
-say so costs a little. Nothing else holds a match back — two releases that fit equally, or one MusicBrainz has
-without track lengths, are applied too, and Undo puts back the odd wrong one. Names are
-compared as spellings of the same word: "&", "+" and "and", "Kickin'" and "Kicking".
-A near miss is **proposed** on the page (Accept or Reject), saying what it's short of — the
-track lengths, a name, the year; anything further off is left **unidentified** for you: tap it, then
-⋯ → Edit album — or tap **Barcode…** and type the digits off the sleeve, or paste the
-release's musicbrainz.org address, and that release is applied. Applied names have **Undo**.
-Albums you edited by hand are never touched.
-
-An album MusicBrainz can't place is looked up in **Apple's iTunes catalogue** too (no account
-or key; a request every 3.2 seconds, well inside what Apple allows). What iTunes finds is
-applied by the same rule — 95 % alike or better — and proposed when it's near. Apple's release date is often a reissue's, so an
-album matched this way keeps the year its files carry. **Ask iTunes too** on the same page
-switches it off; `ITUNES_COUNTRY` picks Apple's store (US by default).
-
-**MusicBrainz pack** (optional, same page): every MusicBrainz release with a barcode, with its
-tracks, kept on the server — an 845 MB download, 2 GB on disk, in the data folder or any folder
-you choose (in Docker, a writable mount: see [Install](#install-docker)). Barcodes are then matched there, without asking
-musicbrainz.org; anything it lacks is asked for as before. It's built each week from
-MusicBrainz's data dump on GitHub and fetched again when a newer one is out. With it, the albums
-whose barcode it has are looked at first, and the scan carries on with them while
-musicbrainz.org isn't answering; a match from it says "matched by barcode (pack)".
-
-**Scheduling** is on by default: the scan runs between the start and end times you set each
-night (01:00–06:00 to begin with, on the server's clock). Off, it runs whenever the library
-isn't being scanned, about twelve albums a minute, until every album has been looked at; new
-albums are checked as they arrive. The design is in
-[docs/specs/album-identification.md](docs/specs/album-identification.md).
-
-## Volume Levelling
-
-Each device has its own **Volume levelling** (Settings → Audio Devices → the device, above DSP):
-Off, **Track** (each track at the same level), **Album** (each record at the same level, its quiet
-and loud songs as they were made) or **Auto** — Album while a record plays in order, Track when
-tracks from different records follow one another: a shuffle, a playlist, radio. With it on, two
-more settings show:
-
-* **Target volume level** — −14 LUFS (the default) down to −25 LUFS.
-* **Volume adjustment when loudness is unknown** — 0 to −12 dB (−5 by default), for a track with
-  no ReplayGain tags that hasn't been measured.
-
-The gains are the files' own ReplayGain tags (`REPLAYGAIN_TRACK_GAIN`, `REPLAYGAIN_ALBUM_GAIN` and
-their peaks, or Opus's R128 gains); a track's peak caps its gain so it is never turned up into
-clipping. On Sonos rooms and UPnP/DLNA renderers the gain goes into the stream: the track is sent
-as FLAC at its own rate with the gain applied. The Android app applies its own setting itself, to
-streams and downloads alike. A change is heard straight away, from where the music is.
-
-**Measure ReplayGain** (Settings → Library Scanner) fills in files without ReplayGain tags: the
-server measures each one (EBU R128 integrated loudness and true peak, with ffmpeg) one file at a
-time in the background, and works out an album's gain once all of its tracks are known. The files
-are never changed.
-
-Every setting's longer explanation sits behind the ⓘ after its name.
-
-## Audio Devices
-
-Settings → **Audio Devices** lists every player Mandarin can see: your Sonos rooms, phones
-running the app, and UPnP/DLNA renderers found on the network — a WiiM, a Chord Poly, a
-streamer, a receiver, a TV. Tap one for what it is and what it can take (sample rates, bit
-depths, formats) and to give it a name of your own, which is what the zone picker and Now
-playing then show. The name lives in Mandarin's database; the Sonos app keeps its own.
-
-A renderer's rates come in layers, and each chip says which: what the device advertises, what
-is known for its model (the WiiM range, the Chord Poly), what you tick, and what it was seen
-to play. Sonos rooms are read-only here (44.1/48 kHz, 16/24-bit — the 24/48 rule). The network
-is searched every minute; **Look again** searches now, and `UPNP_HOSTS` names renderers that
-multicast misses.
-
-Away from home, the Mandarin app sees the phone it is on here and nothing else: the one
-player there is away, with its own settings. The rooms, the streamers and the network search
-are for home.
-
-**DSP** (a renderer's page): a switch and a parametric EQ of up to ten bands — peak, shelves,
-pass filters — with the response drawn as you edit. On, every track is decoded to 64-bit
-float, the headroom taken (automatic: half a dB under the bands' combined peak, or set by
-hand), upsampled if Output says so, the bands run in double precision, then dithered once to
-24 bits (32 where the device takes it). Off, the file goes as stored. Sonos rooms are tuned
-with Trueplay and have no DSP here. A phone running the Mandarin app has the same page: its bands run in the app, on everything
-the phone plays, through Bluetooth, USB or the speaker. Either page also takes a **headphone profile**: pick a headphone by name from AutoEq (the index
-is fetched once a day and the profile kept once chosen) or paste a ParametricEQ.txt, and its
-bands run before the PEQ's, under the profile's own preamp where that covers the peak.
-
-**Music on this phone** (the Android app): Settings → Music Folders → On this phone takes a
-folder of your choosing — purchases waiting to go to the server. The app reads its tags and
-covers, shows the albums on Home as *Music on device*, and plays them on the phone through its
-DSP. The folder is watched: music added or taken away shows up or goes by itself. The server
-never sees these files. Downloads have a folder of their own: Settings → Downloads → Download
-folder (Android asks for all-files access once); downloads saved there outlive the app — a
-fresh install pointed at the same folder finds them again. *Move all here* carries existing
-downloads over.
-
-**Listen later**: on an album, *⋯ → Listen later* (or select several on a wall) puts it aside; a
-Home row and a wall list them, newest first, and an album comes off once every track has been
-played since, or by hand.
-
-**Each device has a switch.** A renderer found on the network is **off until you turn it on** —
-nothing new appears in the zone picker by itself; a Sonos room is on until you turn it off. The
-switch is on the device's row and on its page, and its state is kept in Mandarin's database.
-
-**Random album radio is per device.** Its switch is on each device's page: when that
-device's queue ends, whole random albums keep coming (ones you haven't played in two months).
-
-**A renderer is a zone.** Turn it on, pick it in the zone picker and everything a Sonos room has works
-on it: the queue, play next, the transport, seek, volume and mute (unless the device's volume
-is fixed, as a Chord Poly's is — then there is no slider), history, Random album radio, and
-moving what is playing between it and a room. The server keeps its queue and hands each track
-over ahead of time (`SetNextAVTransportURI`), so tracks join gaplessly on a device that
-honours it; one that does not is started on the next track by hand. In **Original** mode a
-file goes as stored wherever the device takes its rate, depth and format — the chips on its
-page — and above that ceiling as FLAC at the highest rate the device takes in the file's
-family (a 352.8 kHz file plays at 176.4 on a WiiM). The Now playing badge says exactly what
-was sent: *FLAC 24/96*.
-
-**Upsampling.** A renderer's page has an Output section: Original, Upsample ×2, ×4 or Max —
-in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), capped at the device's ceiling,
-processed in 64-bit float and sent at 24 bits, or 32 where the device takes it and the
-server's ffmpeg writes 32-bit FLAC. On a WiiM, what the decoder is really running is read back
-through its own API; when it matches, the rate gets its ✓ and the badge reads *FLAC 24/176.4 ↑×4 ✓*.
-The plan for the rest is [docs/specs/audio-devices-upnp.md](docs/specs/audio-devices-upnp.md).
-The next stages (the phone in Audio Devices away from home, the mobile-data stream, DSP
-with AutoEQ and PEQ, music on the phone, SD-card downloads, Listen later, record labels) are
-planned in [docs/specs/roadmap-stages.md](docs/specs/roadmap-stages.md).
-
 ## Away from home (Tailscale)
 
 Leave the house and the Android app keeps working over mobile data: the phone is
@@ -681,10 +874,10 @@ Tailscale included — is offered one room: the phone asking, as *This phone*. T
 aren't listed, and nothing away can play to them, pause, group or mute them, or reach another
 phone. The server decides this by where each request comes from, so it holds for any device:
 an iPhone or a laptop on Tailscale can browse the library but has nothing to play to. At home
-everything is as before. Away, tracks stream as **Opus 256 kbps** (about a quarter of a CD-quality FLAC's data), made
-through a 64-bit float resample to Opus's 48 kHz and decoded on the phone to float by the app's
-own libopus — 24/48 into the phone's audio path, no 16-bit step; albums you've downloaded play
-from the phone.
+everything is as before. Away, tracks stream as **Opus 256 kbps** by default (about a quarter
+of a CD-quality FLAC's data), made through a 64-bit float resample to Opus's 48 kHz and decoded
+on the phone by the app's own libopus; *Settings → Downloads → Stream as* in the app can send
+the original files instead. Albums you've downloaded play from the phone.
 
 **Set up once — Tailscale is built in:**
 
@@ -719,17 +912,16 @@ through a subnet router arrive from a home address, and the server can't tell th
 * **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —
-  the queue kept on the server, the next track handed over ahead of time for gapless
-  playback, changes arriving by UPnP events. `plan(track, target)` in `lib/stream.js` decides
-  what each device gets: the file itself within its ceiling, FLAC at its best rate or
+  the queue kept on the server, the next track handed over ahead of time (gapless on a
+  renderer that supports it), changes arriving by UPnP events. `plan(track, target)` in `lib/stream.js` decides
+  what each device gets: the file itself within its ceiling, FLAC at its highest rate or
   upsampled in 64-bit float otherwise.
 * **Sonos.** Ported from [Caldera Sonos Bridge](https://github.com/meltface-80/Caldera-Sonos-Bridge)
   and the [UPnP to Sonos bridge](https://github.com/meltface-80/UPnP-to-Sonos-UPnP-bridge): one
   speaker is found over SSDP and the whole household is read from `ZoneGroupTopology`. A Sonos
   *group* is a zone (its coordinator owns the queue) and each *room* is an output (volume and
   mute are per room). Tracks go into the coordinator's own **Sonos queue**, with the DIDL-Lite
-  metadata Sonos insists on, so playback is gapless and the speaker moves between tracks by
-  itself. The queue you see is read back from the speaker, so anything added from the Sonos
+  metadata Sonos insists on, so the speaker moves between tracks by itself. The queue you see is read back from the speaker, so anything added from the Sonos
   app appears too.
 * **Audio.** Each queued item is a URL on this server. Within 24/48 it serves the file as
   stored, with byte ranges; above that, ffmpeg writes FLAC 24/48 to the cache and the speaker
