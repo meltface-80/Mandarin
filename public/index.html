@@ -1060,6 +1060,14 @@
               <span class="settings-nav-title">Music Folders</span>
             </span>
           </button>
+          <button class="settings-nav-item" type="button" data-pane="streaming">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Services</span>
+            </span>
+          </button>
           <button class="settings-nav-item" type="button" data-pane="playback">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/></svg>
@@ -1108,14 +1116,7 @@
               <span class="settings-nav-title">Updates</span>
             </span>
           </button>
-          <button class="settings-nav-item hidden" type="button" data-pane="streaming">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Streaming accounts</span>
-            </span>
-          </button>
+          
           <button class="settings-nav-item hidden" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -1426,28 +1427,36 @@
           <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Streaming accounts</h2>
+          <h2>Services</h2>
         </div>
         <p class="settings-pane-desc">Qobuz</p>
 
         <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Qobuz account <button class="settings-info-btn" data-info="Signs in on Qobuz&#39;s own page — your password is never typed into or seen by Mandarin. One sign-in covers browsing and searching the Qobuz catalogue, adding albums to your Qobuz favourites, and waveforms for Qobuz tracks. This uses Qobuz&#39;s unofficial API, which is against their Terms of Service and may break at any time." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <button id="qobuz-connect" class="settings-update-btn" type="button">Connect</button>
+          <div class="settings-block-title">Qobuz <button class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div id="qobuz-signin-form">
+            <input id="qobuz-username" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input id="qobuz-password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
+            <div class="settings-token-row">
+              <button id="qobuz-signin" class="settings-update-btn" type="button">Sign in</button>
+            </div>
           </div>
           <div id="qobuz-status" class="settings-token-status"></div>
-          <!-- Only shown when the redirect cannot land back here — a sign-in
-               done on a device that is not on this network. -->
-          <div id="qobuz-signin-paste" class="settings-token-row" hidden>
-            <input id="qobuz-signin-url" class="settings-token-input" placeholder="Paste the address you were sent to…" autocomplete="off" spellcheck="false">
-            <button id="qobuz-signin-finish" class="settings-update-btn" type="button">Finish</button>
+          <div id="qobuz-signed" hidden>
+            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="qobuz-quality" class="settings-select">
+                <option value="cd">CD (16/44.1)</option>
+                <option value="hires96">Hi-Res up to 24/96</option>
+                <option value="hires192">Hi-Res up to 24/192</option>
+              </select></div></div>
+            <div class="settings-row"><span class="settings-label">Favourites and purchases in the library <button class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off: only what you play from the Qobuz browser is known here, and only for a month." aria-label="Info">&#9432;</button></span>
+              <label class="switch"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="qobuz-import-now" class="settings-update-btn" type="button">Update library now</button>
+              <button id="qobuz-disconnect" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="qobuz-import-status" class="settings-token-status"></div>
           </div>
-          <button id="qobuz-disconnect" class="settings-update-btn hidden" type="button">Disconnect</button>
-          <div class="settings-token-status" style="opacity:.6;font-size:11px;margin-top:6px;">Unofficial Qobuz API — against Qobuz ToS, may break, use at your own risk.</div>
         </div>
-
       </div>
 
       <!-- Share Card — the links under the card, grouped in one place -->
@@ -1824,7 +1833,7 @@
         </div>
         <p class="settings-pane-desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz sign-in. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
           <div class="backup-actions">
             <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.22
+# Mandarin — v0.6.23
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -574,6 +574,18 @@ Open **Settings → Backup & restore**, tick what to include, then **Back up to 
 
 ⸻
 
+🎼 **Qobuz** — *new since v0.5.50*
+
+Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** adds an album to your Qobuz favourites (a **✓** once added) and so to the library. Details under [Qobuz](#qobuz).
+
+</details>
+
+⸻
+
 🔄 **Updates**
 
 The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
@@ -916,6 +928,39 @@ the uninstall, so download them again. After that, never again.
 `MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
+
+## Qobuz
+
+Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music
+Server's Qobuz plugin does — the same API, the same credentials, the same rules:
+
+* **A subscriber signs in** (*Settings → Services → Qobuz*). Mandarin keeps the sign-in token, never
+  the password. Qobuz decides what the account may stream.
+* **Your favourites and purchases are albums here** — every one, brought up to date shortly after
+  signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks,
+  Listen later and playlists, with a Qobuz mark on the cover. *Favourites and purchases in the
+  library* on the Services page switches this off.
+* **The Qobuz browser** (*☰ → Qobuz*): search, new releases, best sellers, most streamed, press
+  awards, editor's picks, an artist's albums. An album's page there plays it (Play now, Play next,
+  Queue, or from a track) to the zone chosen, and its heart adds it to your Qobuz favourites and
+  so to the library. An album played without being kept is known here for a month (its page, Now
+  playing, history) and stays off the walls.
+* **Two favourites, kept apart.** The **+** on a Qobuz album (in the browser, and above the ⋯ on
+  the album's page here) is your *Qobuz* favourite: it becomes a **✓** once added, and that is what
+  puts the album in the library. The **heart** is Mandarin's own favourite, as on any album.
+* **Every track is streamed through the server**: when a player comes to fetch it, Mandarin asks
+  Qobuz for that one track (a signed request, as Qobuz requires) and feeds the player from its
+  transcode cache — a Sonos room gets 24/48 at most, a streamer or a USB DAC what it takes, the
+  phone what its DAC takes, with DSP and Volume Levelling as for a file. The next track is made
+  ready behind the one playing, so albums play gaplessly. *Stream quality* on the Services page
+  sets the most asked for (CD, Hi-Res 24/96, Hi-Res 24/192); the subscription sets the ceiling.
+* **Every play is reported to Qobuz** (its streaming start and end), as Qobuz's own apps report
+  them, so artists are paid. **Nothing is downloaded**: a Qobuz album has no *Download to this
+  phone*, no *Edit album*, no waveform, and is not in offline mode; the cache holds only what the
+  queue needs, pruned as the cache fills, and plays nothing once the account is signed out.
+
+The app id and secret are the ones the Lyrion plugin carries, as Qobuz answers no application
+requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin behaves the same.
 
 ## Sound devices on the server
 

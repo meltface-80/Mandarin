@@ -29,6 +29,7 @@ const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
 const { localIp } = require("./lib/sonos/topology");
 const STREAM = require("./lib/stream");
+const QOBUZ = require("./lib/qobuz");
 const DSP = require("./lib/dsp");
 const FF = require("./lib/ffmpeg");
 const shareLinks = require("./lib/share-links");
@@ -128,6 +129,23 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // Qobuz (v0.6.23): the account, its albums as library rows, the stream
+  // behind /stream for a Qobuz track, and the play reports. Tests bring a fake.
+  ctx.qobuz = new (require("./lib/qobuz").Qobuz)({
+    db, library, dataDir: config.dataDir, log, baseUrl: config.qobuzBaseUrl || undefined,
+    afterChange: () => { library.reload(); artwork.prewarm(100).catch(() => {}); }
+  });
+  // The transcoder asks it where a Qobuz track's audio is, when a device
+  // comes to fetch one (or the next is made ready behind it).
+  transcoder.resolve = {
+    wants: t => QOBUZ.isQobuzPath(t.path),
+    get: async (t, p) => {
+      const r = await ctx.qobuz.resolve(t, p);
+      // At the rate and depth wanted, nothing else to do: copied as it comes.
+      const copy = !p.dsp && !p.gain && r.rate === p.rate && r.bits === p.bits;
+      return { src: r.src, plan: copy ? Object.assign({}, p, { copy: true }) : p };
+    }
+  };
   // The MusicBrainz pack (v0.6.4): releases with a barcode kept on this
   // machine, asked before musicbrainz.org when downloaded.
   const MBPACK = require("./lib/identify/mbpack");
@@ -206,7 +224,8 @@ function createServer(overrides = {}) {
     // ?q=opus: the phone away from home, on mobile data — Opus 256 kbps, the
     // same files the Downloads screen makes, with the album's next tracks
     // made ready behind it so each one starts promptly.
-    if (req.query.q === "opus") return streamOpus(t, req, res);
+    // A Qobuz track away from home: the cached FLAC, not an Opus file made of it.
+    if (req.query.q === "opus" && !QOBUZ.isQobuzPath(t.path)) return streamOpus(t, req, res);
     // A renderer's URL says what it wants (lib/server/playback.js): the file
     // as stored, or a conversion to exactly this rate and depth. A Sonos URL
     // says nothing and gets the 24/48 rule, as ever.
@@ -227,6 +246,10 @@ function createServer(overrides = {}) {
         if (part) { p.dsp = part; p.inRate = Number(t.sample_rate) || 0; }
       }
     } else p = planFor(t);
+    // A Qobuz track (lib/qobuz): always from the transcode cache, fetched from
+    // Qobuz when the device asks — as it comes, or converted like a file.
+    const qobuz = QOBUZ.isQobuzPath(t.path);
+    if (qobuz && !p.transcode) p = { transcode: true, mime: "audio/flac", ext: "flac", rate: Number(t.sample_rate) || 44100, bits: Number(t.bits) || 16, reason: "from Qobuz, as it comes" };
     // ?g=<dB>: with this ReplayGain in it (lib/loudness.js).
     if (req.query.g != null) {
       const g = Number(req.query.g);
@@ -241,7 +264,11 @@ function createServer(overrides = {}) {
         if (err && !res.headersSent) res.status(err.statusCode || 404).end();
       });
     }
-    const job = transcoder.start(Object.assign({}, t), p);
+    // A Qobuz track fetched by a device is a play, reported to Qobuz — and
+    // nothing of Qobuz plays without the account, cached or not.
+    if (qobuz && !ctx.qobuz.connected()) return res.status(403).end();
+    if (qobuz && req.method === "GET") ctx.qobuz.played(t, p);
+    const job = transcoder.start(Object.assign({}, t, qobuz ? { mtime: ctx.qobuz.tier() } : {}), p);
     if (job.done && !job.failed) {
       res.set("Content-Type", p.mime);
       res.set("Cache-Control", "no-store");
@@ -284,6 +311,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-loudness")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
+  require("./lib/server/api-qobuz")(app, ctx);
   // Restart and Shut down (Settings → Restart & shut down). Tests hand in their own exit.
   // Restart: a clean stop, then 75 for launcher.js to start it again (a restore uses it).
   ctx.restartServer = () => Promise.resolve().then(() => stop()).catch(e => log(`[musicd] stopping: ${e.message}`))
@@ -392,10 +420,22 @@ function createServer(overrides = {}) {
     // read within a minute, without waiting for the timer.
     ctx.watcher = new LibraryWatcher({ roots: () => scanner.roots(), onChange: scan, log });
     ctx.watcher.refresh();
+    // Qobuz: your favourites and purchases brought up to date soon after the
+    // start and every six hours, while signed in with the import on; albums
+    // only ever played from the browser let go after a month.
+    const qobuzSync = () => {
+      if (!ctx.qobuz.connected() || !ctx.qobuz.settings().import) return;
+      ctx.qobuz.importLibrary().catch(e => log(`[qobuz] import: ${e.message}`));
+    };
+    for (const t of [setTimeout(qobuzSync, config.qobuzSyncDelayMs == null ? 20000 : config.qobuzSyncDelayMs),
+      setInterval(qobuzSync, 6 * 3600e3), setInterval(() => { try { ctx.qobuz.pruneTransient(); } catch (e) { /* next day */ } }, 24 * 3600e3)]) {
+      t.unref(); ctx.scanTimers.push(t);
+    }
     return ctx;
   }
 
   async function stop() {
+    await ctx.qobuz.stop().catch(() => {});
     zones.stop();
     ctx.devices.stop();
     ctx.identifier.stop();

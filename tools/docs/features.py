@@ -239,6 +239,11 @@ FEATURES = [
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),
+    ("qobuz", "🎼", "Qobuz", True,
+     "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
+     "the Qobuz browser plays anything in the catalogue, streamed through the server.",
+     "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** adds an "
+     "album to your Qobuz favourites (a **✓** once added) and so to the library. Details under [Qobuz](#qobuz)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

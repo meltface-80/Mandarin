@@ -1917,6 +1917,35 @@ window.__afterStart = (fn) => {
   const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
   // The heart on an album's page: hollow, red once tapped, kept on the server.
+  /* The Qobuz favourite of a Qobuz album (v0.6.23): + to add, ✓ once added, on Qobuz itself. */
+  function buildQobuzFavButton(qobuzId) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "overflow-btn qobuz-fav-btn";
+    let on = false;
+    const paint = () => {
+      b.textContent = on ? "✓" : "+";
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", String(on));
+      b.setAttribute("aria-label", on ? "In your Qobuz favourites — tap to remove" : "Add to your Qobuz favourites");
+      b.title = on ? "In your Qobuz favourites" : "Add to Qobuz favourites";
+    };
+    paint();
+    fetch("/api/qobuz/state?album_id=" + encodeURIComponent(qobuzId), { cache: "no-store" }).then(r => r.json()).then(s => { on = !!s.favourite; paint(); }).catch(() => {});
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        const r = await fetch("/api/qobuz/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: qobuzId }) });
+        const s = await r.json().catch(() => ({}));
+        if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
+        on = !on; paint();
+        showToast(on ? "Added to your Qobuz favourites" : "Removed from your Qobuz favourites");
+      } catch (e) { showToast(e.message, "error"); }
+      finally { b.disabled = false; }
+    });
+    return b;
+  }
+
   function buildFavButton(album, fresh) {
     const on0 = !!((fresh && fresh.favourite) || album.favourite);
     const b = document.createElement("button");
@@ -7580,6 +7609,8 @@ window.__afterStart = (fn) => {
   function downloadMenuItem(album) {
     const dl = window.MusicdDownloads;
     if (!dl || !album || typeof album.offset !== "number") return [];
+    // A Qobuz album is streamed, never kept on the phone (v0.6.23).
+    if (album.source === "qobuz") return [];
     let st = {};
     try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
     if (st.state === "done") return [{ label: "Remove from this phone", onClick: () => dl.remove(album.offset) }];
@@ -7736,12 +7767,21 @@ window.__afterStart = (fn) => {
     }
     const overflow = available.slice(ROW_ACTIONS);
     if (overflow.length) {
-      modalActs.appendChild(buildOverflowMenu(
+      const more = buildOverflowMenu(
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
           .concat(laterMenuItem(album, j))
-          .concat([{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
+          .concat(album.source === "qobuz" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
-        { label: "More actions" }));
+        { label: "More actions" });
+      // A Qobuz album (v0.6.23): its Qobuz favourite — a plus that becomes a
+      // tick — above the ⋯, apart from the heart, which is Mandarin's own.
+      if (j.album && j.album.source === "qobuz" && j.album.qobuz_id) {
+        const stack = document.createElement("div");
+        stack.className = "modal-actions-stack";
+        stack.appendChild(buildQobuzFavButton(j.album.qobuz_id));
+        stack.appendChild(more);
+        modalActs.appendChild(stack);
+      } else modalActs.appendChild(more);
     }
     if (!available.length) {
       // "No playback actions available" was true and useless — it described
@@ -12646,106 +12686,110 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  const qobuzPasteRow   = document.getElementById("qobuz-signin-paste");
-  const qobuzPasteUrl   = document.getElementById("qobuz-signin-url");
-  const qobuzPasteGo    = document.getElementById("qobuz-signin-finish");
-  const qobuzConnect    = document.getElementById("qobuz-connect");
+  // ----- Qobuz (v0.6.23): Settings → Services -------------------------------
+  const qobuzUser       = document.getElementById("qobuz-username");
+  const qobuzPass       = document.getElementById("qobuz-password");
+  const qobuzSignin     = document.getElementById("qobuz-signin");
+  const qobuzForm       = document.getElementById("qobuz-signin-form");
+  const qobuzSigned     = document.getElementById("qobuz-signed");
+  const qobuzQuality    = document.getElementById("qobuz-quality");
+  const qobuzImport     = document.getElementById("qobuz-import");
+  const qobuzImportNow  = document.getElementById("qobuz-import-now");
+  const qobuzImportSt   = document.getElementById("qobuz-import-status");
   const qobuzDisconnect = document.getElementById("qobuz-disconnect");
   const qobuzStatus     = document.getElementById("qobuz-status");
   const qobuzTopbarBtn  = document.getElementById("qobuz-toggle");
   const qobuzMenuItem   = document.getElementById("menu-item-qobuz");
 
-  // Gates the Qobuz controls on the connection, exactly as loadTidalStatus
-  // does. This used to toggle the Disconnect button ALONE, so the top-bar
-  // button and the side-menu entry stayed visible after logging out — the
-  // Qobuz browser remained one tap away from an account that no longer
-  // existed, and every catalogue call behind it threw "not connected".
+  function paintQobuz(j) {
+    const on = !!j.connected;
+    if (qobuzForm) qobuzForm.hidden = on;
+    if (qobuzSigned) qobuzSigned.hidden = !on;
+    if (qobuzStatus) qobuzStatus.textContent = on
+      ? ("Signed in as " + (j.user && (j.user.name || j.user.login) || "") + (j.subscription ? " · " + j.subscription : "") +
+         (j.hires ? " · Hi-Res" : j.lossless ? " · CD quality" : ""))
+      : "Not signed in.";
+    if (qobuzQuality && on) qobuzQuality.value = j.quality || "hires192";
+    if (qobuzImport && on) qobuzImport.checked = j.import !== false;
+    if (qobuzImportSt && on) {
+      const li = j.last_import;
+      qobuzImportSt.textContent = j.importing ? "Bringing your Qobuz favourites and purchases into the library…"
+        : li ? (li.albums + " Qobuz album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
+               (li.failed ? " · " + li.failed + " couldn't be read" : ""))
+        : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Qobuz browser is known here.");
+    }
+    // The browser's button and the menu's entry: only with an account to browse with.
+    if (qobuzTopbarBtn) qobuzTopbarBtn.classList.toggle("hidden", !on);
+    if (qobuzMenuItem)  qobuzMenuItem.classList.toggle("hidden", !on);
+  }
   async function loadQobuzStatus() {
     try {
-      const r = await fetch("/api/settings/qobuz");
-      const j = await r.json();
-      if (qobuzStatus) qobuzStatus.textContent = j.connected
-        ? ("Connected" + (j.displayName ? " as " + j.displayName : ""))
-        : "Not connected";
-      if (qobuzDisconnect) qobuzDisconnect.classList.toggle("hidden", !j.connected);
-      // The sign-in landed by itself; the recovery field has nothing left to do.
-      if (qobuzPasteRow && j.connected) qobuzPasteRow.hidden = true;
-      if (qobuzConnect) qobuzConnect.classList.toggle("hidden", !!j.connected);
-      if (qobuzTopbarBtn) qobuzTopbarBtn.classList.toggle("hidden", !j.connected);
-      if (qobuzMenuItem)  qobuzMenuItem.classList.toggle("hidden", !j.connected);
-      // Deliberately NOT force-closing an open Qobuz browser: hideOverlay() is
-      // reachable only from the popstate handler so viewStack and the history
-      // stack cannot drift, and the overlay already renders its own
-      // not-connected state on the next request.
+      const r = await fetch("/api/settings/qobuz", { cache: "no-store" });
+      paintQobuz(await r.json());
     } catch (_) { /* display-only status — stale on failure is fine */ }
   }
+  window.__qobuzStatus = loadQobuzStatus;
 
-  // One sign-in for everything Qobuz. It happens on Qobuz's own page, so no
-  // password is typed into this app, and the token it returns serves the
-  // catalogue, the favourites and the waveforms alike.
-  if (qobuzConnect) {
-    qobuzConnect.addEventListener("click", async () => {
-      qobuzConnect.disabled = true;
+  if (qobuzSignin) {
+    const go = async () => {
+      const username = qobuzUser ? qobuzUser.value.trim() : "", password = qobuzPass ? qobuzPass.value : "";
+      if (!username || !password) { showToast("Your Qobuz email and password", "error"); return; }
+      qobuzSignin.disabled = true;
+      if (qobuzStatus) qobuzStatus.textContent = "Signing in…";
       try {
-        const r = await fetch("/api/qobuz/oauth/start");
+        const r = await fetch("/api/settings/qobuz/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok || !j.url) throw new Error(j.error || "Couldn't start the Qobuz sign-in");
-        // Opened rather than navigated, so this page keeps its state; the tab
-        // that comes back carries the code straight to the server.
-        window.open(j.url, "_blank", "noopener");
-        if (qobuzPasteRow) qobuzPasteRow.hidden = false;
-        if (qobuzStatus) {
-          qobuzStatus.textContent = "Sign in on the Qobuz tab, then come back here. " +
-            "If it does not connect by itself, paste the address you landed on below.";
-        }
+        if (!r.ok || j.error) throw new Error(j.error || "Couldn't sign in");
+        if (qobuzPass) qobuzPass.value = "";
+        showToast("Signed in to Qobuz", "ok");
+        paintQobuz(j);
+        // The import's progress, while it runs.
+        const tick = setInterval(async () => { await loadQobuzStatus(); if (!(await (await fetch("/api/settings/qobuz")).json()).importing) clearInterval(tick); }, 4000);
       } catch (e) {
+        if (qobuzStatus) qobuzStatus.textContent = "";
         showToast(e.message, "error");
-      } finally {
-        qobuzConnect.disabled = false;
-      }
-    });
+      } finally { qobuzSignin.disabled = false; }
+    };
+    qobuzSignin.addEventListener("click", go);
+    if (qobuzPass) qobuzPass.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   }
-
-  if (qobuzPasteGo && qobuzPasteUrl) {
-    qobuzPasteGo.addEventListener("click", async () => {
-      qobuzPasteGo.disabled = true;
-      try {
-        const r = await fetch("/api/qobuz/oauth/paste", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: qobuzPasteUrl.value })
-        });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || j.error) throw new Error(j.error || "Couldn't finish signing in");
-        qobuzPasteUrl.value = "";
-        if (qobuzPasteRow) qobuzPasteRow.hidden = true;
-        showToast("Qobuz connected", "ok");
-        loadQobuzStatus();
-      } catch (e) {
-        showToast(e.message, "error");
-      } finally { qobuzPasteGo.disabled = false; }
-    });
-  }
-
+  if (qobuzQuality) qobuzQuality.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quality: qobuzQuality.value }) });
+      paintQobuz(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (qobuzImport) qobuzImport.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: qobuzImport.checked }) });
+      paintQobuz(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (qobuzImportNow) qobuzImportNow.addEventListener("click", async () => {
+    qobuzImportNow.disabled = true;
+    if (qobuzImportSt) qobuzImportSt.textContent = "Bringing your Qobuz favourites and purchases into the library…";
+    try {
+      const r = await fetch("/api/settings/qobuz/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) throw new Error(j.error || "Couldn't update");
+      showToast(j.result.albums + " Qobuz albums in the library", "ok");
+      loadQobuzStatus();
+    } catch (e) { showToast(e.message, "error"); loadQobuzStatus(); }
+    finally { qobuzImportNow.disabled = false; }
+  });
   if (qobuzDisconnect) {
     qobuzDisconnect.addEventListener("click", async () => {
       qobuzDisconnect.disabled = true;
       try {
-        await fetch("/api/settings/qobuz/disconnect", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
-        });
-        showToast("Qobuz disconnected", "ok");
+        await fetch("/api/settings/qobuz/signout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        showToast("Signed out of Qobuz", "ok");
         loadQobuzStatus();
-      } catch (e) {
-        showToast("Failed: " + e.message, "error");
-      } finally {
-        qobuzDisconnect.disabled = false;
-      }
+      } catch (e) { showToast("Failed: " + e.message, "error"); }
+      finally { qobuzDisconnect.disabled = false; }
     });
   }
-
-  // Boot-time gate: the topbar Qobuz button — and its side-menu entry — must
-  // reflect the connection without the user ever opening Settings.
   loadQobuzStatus();
+
 
   // ----- Share card: services and reviews -----
   //
@@ -13689,9 +13733,11 @@ function initServiceBrowser(cfg) {
   }
 
   // Reflect favourite state on a button (added = in the user's service library).
+  // The service's own favourite — a plus that becomes a tick — not Mandarin's
+  // heart, which an album keeps for itself once it is in the library.
   function setFavState(button, added) {
     button.dataset.fav = added ? "1" : "0";
-    button.textContent = added ? "✓ Added" : "♥ Favourite";
+    button.textContent = added ? ("✓ In " + cfg.serviceName + " favourites") : ("+ " + cfg.serviceName + " favourite");
     button.classList.toggle("is-done", added);
   }
 
@@ -13948,6 +13994,53 @@ function initServiceBrowser(cfg) {
     detailEl.appendChild(back);
     detailEl.appendChild(head);
     detailEl.appendChild(favBtn);
+    // Playing from here (v0.6.23): to the zone chosen, like an album of your own.
+    const acts = document.createElement("div");
+    acts.className = "qobuz-nr-actions";
+    const tracksEl = document.createElement("div");
+    tracksEl.className = "qobuz-nr-tracks";
+    if (cfg.service === "qobuz") {
+      const play = async (kind, btn, track) => {
+        const zone = window.__selectedZoneId ? window.__selectedZoneId() : null;
+        if (!zone) { toast("Pick a zone first", "error"); return; }
+        const was = btn.textContent; btn.disabled = true; btn.textContent = "…";
+        try {
+          const r = await fetch(cfg.apiBase + "/play", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.assign({ album_id: album.id, zone_or_output_id: zone, kind }, track == null ? {} : { track })) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || j.error) throw new Error(j.error || "Couldn't play");
+          toast((kind === "queue" ? "Queued" : kind === "play_next" ? "Playing next" : "Playing") + ": " + album.title);
+        } catch (e) { toast(e.message, "error"); }
+        finally { btn.disabled = false; btn.textContent = was; }
+      };
+      for (const [label, kind, primary] of [["Play now", "play_now", true], ["Play next", "play_next", false], ["Queue", "queue", false]]) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "action-btn" + (primary ? " primary" : ""); b.textContent = label;
+        b.addEventListener("click", () => play(kind, b, null));
+        acts.appendChild(b);
+      }
+      detailEl.appendChild(acts);
+      detailEl.appendChild(tracksEl);
+      tracksEl.textContent = "Loading tracks…";
+      qFetch(cfg.apiBase + "/album?id=" + encodeURIComponent(album.id)).then(j => {
+        if (detailEl.dataset.albumId !== String(album.id)) return;
+        tracksEl.innerHTML = "";
+        (j.tracks || []).forEach((t, i) => {
+          const row = document.createElement("button");
+          row.type = "button"; row.className = "qobuz-nr-track";
+          const m = Math.floor(t.duration / 60), sec = String(Math.round(t.duration % 60)).padStart(2, "0");
+          row.innerHTML = '<span class="qobuz-nr-track-no">' + (t.track_no || i + 1) + '</span><span class="qobuz-nr-track-title">' + esc(t.title) + '</span>' +
+            '<span class="qobuz-nr-track-len">' + m + ":" + sec + '</span>';
+          row.title = "Play from here";
+          row.addEventListener("click", () => play("play_now", row, i));
+          tracksEl.appendChild(row);
+        });
+        if (j.album && j.album.quality) {
+          const q = document.createElement("div"); q.className = "qobuz-nr-date"; q.textContent = "FLAC " + j.album.quality + (j.album.label ? " · " + j.album.label : "");
+          head.querySelector(".qobuz-nr-detail-meta").appendChild(q);
+        }
+      }).catch(e => { if (detailEl.dataset.albumId === String(album.id)) tracksEl.textContent = e.message; });
+    }
     detailEl.appendChild(review);
     detailEl.classList.remove("hidden");
 
@@ -17521,7 +17614,7 @@ initServiceBrowser({
     settings: "Only the ones you changed",
     devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
     collection: "Playlists, favourites, Listen later, album edits",
-    keys: "Discogs and FanArt.tv",
+    keys: "Discogs, FanArt.tv and the Qobuz sign-in",
     database: "Everything Mandarin knows, play history included",
     page: "Text sizes, layout, the chosen room",
     app: "Downloads, USB DAC, this phone's DSP and levelling"

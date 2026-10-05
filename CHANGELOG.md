@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.23
+- **Qobuz** (Settings → Services). Sign in with a Qobuz subscription; your favourites and purchases
+  become albums in the library (every one), and the Qobuz browser (☰ → Qobuz) searches the
+  catalogue and plays any album — to a Sonos room, a streamer, a USB DAC on the server or the
+  phone — streamed through the server one track at a time with Qobuz's signed requests, the next
+  track made ready behind the one playing. Every play is reported to Qobuz; nothing is downloaded.
+  The same API and credentials as the Lyrion Music Server's Qobuz plugin, used the same way.
+  - **Services** is the second item in Settings, as planned, with the Qobuz card: sign in, stream
+    quality (CD, Hi-Res 24/96, 24/192), favourites and purchases in the library on or off, Update
+    library now, Sign out.
+  - Two favourites, kept apart: the **+** on a Qobuz album (the browser, and above the ⋯ on its
+    page) is the Qobuz favourite and becomes a **✓**; the heart is Mandarin's, as on any album.
+  - A Qobuz album's page has no Download, Edit album or waveform; it isn't in offline mode.
+  - An album played from the browser without being favourited is kept for a month (its page, Now
+    playing, history) and left off the walls.
+
 ## v0.6.22
 - **Play next.** A track's buttons are now Play now, **Play next** and Queue; a selection of
   tracks or of albums has **Play next** under Play now; an album's ⋯ menu says **Play Next**
