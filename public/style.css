@@ -2877,10 +2877,11 @@ input.vol-range::-moz-range-thumb {
   font-size: 14px; color: var(--text-dim);
 }
 .content-count.hidden { display: none; }
-/* Import, at the top of the Playlists screen: a brass pill, the size of the
-   Library's Focus and Sort. */
+/* Import, in the top-right corner of the Playlists screen: a brass pill, the
+   size of the Library's Focus and Sort. */
 .playlists-import {
   display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px;
+  margin-left: auto;
   background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
   font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
 }

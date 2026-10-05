@@ -17,6 +17,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = 3632;
 const B = "http://127.0.0.1:" + PORT;
+const PORT2 = 3637, B2 = "http://127.0.0.1:" + PORT2; // the Playlists test's own, so the two never share a port
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -92,5 +93,39 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
     assert.equal(r.open_on_next_visit, false, "once only");
     assert.equal(r.open_after_item, false, "an item closes it");
     assert.equal(r.open_after_outside, false, "so does the page beside it");
+  } finally { await srv.stop(); }
+});
+
+// Playlists (v0.6.24): Import is a pill in the top-right corner of the
+// screen, above the grid.
+test("Playlists: Import sits in the top-right corner", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  await srv.start();
+  try {
+    const token = await signIn(B2);
+    const b = await Browser.launch({ width: 390, height: 844 });
+    let r;
+    try {
+      const page = await b.page(B2 + "/", { cookies: [{ name: "musicd_session", value: token, url: B2 }] });
+      r = await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        document.getElementById("menu-toggle").click(); await sleep(400);
+        document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click(); await sleep(600);
+        const btn = document.querySelector("#content-count .playlists-import");
+        if (!btn) return { shown: false };
+        const r = btn.getBoundingClientRect(), bar = document.getElementById("content-count").getBoundingClientRect();
+        const top = document.querySelector(".topbar").getBoundingClientRect();
+        return { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1, above_grid: r.bottom <= (document.querySelector("#playlists-grid, .playlists-grid, #content")?.getBoundingClientRect().top ?? Infinity) + 1 };
+      })()`);
+      assert.deepEqual(page.errors, []);
+    } finally { await b.close(); }
+    assert.equal(r.shown, true, "the Import pill is on the Playlists screen");
+    assert.equal(r.text, "Import");
+    assert.equal(r.height, 32);
+    assert.ok(r.right_gap <= 16, "it hugs the right edge: " + r.right_gap + " px");
+    assert.ok(r.left_gap > 100, "not the left: " + r.left_gap + " px");
+    assert.equal(r.below_bar, true, "just under the top bar");
   } finally { await srv.stop(); }
 });
