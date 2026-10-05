@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.13
+- **Not played in 6 months stays empty offline.** With the server out of reach, the Android app
+  answered that row (and its full screen) itself with a random handful of the albums on the
+  phone, an answer written before the six-month rule. It now gives the server's answer for a
+  library with under six months of listening: nothing, so the row stays hidden.
+
 ## v0.6.12
 - **A power button** at the top right of the side menu (☰) drops down **Restart** and **Shut down**. Restart stops Mandarin
   and starts it again. Shut down stops it until you start it again, so it no longer finds or

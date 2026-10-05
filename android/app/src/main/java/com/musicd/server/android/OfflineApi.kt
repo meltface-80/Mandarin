@@ -244,10 +244,13 @@ object OfflineApi {
                 val list = library(c).shuffled().take(q["count"]?.toIntOrNull() ?: 30)
                 return json(JSONObject().put("albums", albums(list)).put("total", list.size).put("filtered", false))
             }
-            "/api/home/unplayed" -> {
-                val list = library(c).shuffled().take(q["count"]?.toIntOrNull() ?: 12)
-                return json(JSONObject().put("albums", albums(list)).put("total", list.size).put("months", 6))
-            }
+            // Not played in 6 months: the server offers nothing until it has six
+            // months of listening (v0.6.0-RC4), and the phone keeps no history of
+            // its own to judge by, so offline it's empty too (v0.6.13). It was a
+            // random handful of the phone's albums, which filled the row and the
+            // wall with albums that had never been "not played" at all.
+            "/api/home/unplayed" -> return json(JSONObject().put("albums", JSONArray()).put("total", 0)
+                .put("months", 6).put("no_history", true).put("ready_at", JSONObject.NULL))
             "/api/home/history" -> return json(JSONObject().put("albums", JSONArray()).put("days", 30))
             "/api/home/album-of-the-day" -> return json(JSONObject().put("album", JSONObject.NULL))
             "/api/home/label-of-the-week" -> return json(JSONObject().put("label", JSONObject.NULL).put("albums", JSONArray()))
