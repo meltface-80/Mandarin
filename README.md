@@ -208,7 +208,7 @@ Cover, track, transport, volume, the queue and history, and a badge saying what 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the bar at the bottom of the screen. The waveform is off until you switch on **Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card you drag around.
+Tap the bar at the bottom of the screen. The waveform is off until you switch on **Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card you drag around. On the Queue tab, hold a track to select it and more; **⋯** plays the selection now or next, or removes it; **Clear all** empties the queue.
 
 </details>
 

@@ -100,6 +100,15 @@ class Room {
         if (at > 0 && at <= this.queue.length) this.queue.splice(at - 1, 0, ...items); else this.queue.push(...items);
         return { FirstTrackNumberEnqueued: String(at || this.queue.length - items.length + 1), NumTracksAdded: String(items.length), NewQueueLength: String(this.queue.length) };
       }
+      case "ReorderTracksInQueue": {
+        const start = Number(a.StartingIndex), count = Number(a.NumberOfTracks), before = Number(a.InsertBefore);
+        const items = this.queue.splice(start - 1, count);
+        const at = before > start ? before - count : before;
+        this.queue.splice(at - 1, 0, ...items);
+        if (this.track >= start && this.track < start + count) this.track = at + (this.track - start);
+        else { if (start < this.track && at > this.track - count) this.track -= count; else if (start > this.track && at <= this.track) this.track += count; }
+        return {};
+      }
       case "RemoveTrackFromQueue": {
         const n = Number(String(a.ObjectID).split("/")[1]);
         this.queue.splice(n - 1, 1);

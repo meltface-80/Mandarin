@@ -95,7 +95,8 @@ FEATURES = [
      "being sent. An optional waveform seek bar is drawn from the audio.",
      "Tap the bar at the bottom of the screen. The waveform is off until you switch on "
      "**Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card "
-     "you drag around."),
+     "you drag around. On the Queue tab, hold a track to select it and more; **⋯** plays the selection "
+     "now or next, or removes it; **Clear all** empties the queue."),
     ("move", "↪️", "Move to another device", True,
      "Pick another room, renderer or phone while music plays and it moves there: the queue goes "
      "with it, from the same track and second.",

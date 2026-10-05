@@ -871,7 +871,7 @@ window.__afterStart = (fn) => {
       activeFilter = null;
       try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
     }
-    updateCountReadout(null);   // hide the genre/label breadcrumb
+    updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
     setBanner(null);            // drop any error/empty banner left by a wall view
     if (homeView) homeView.classList.remove("hidden");
     if (homeSections) homeSections.classList.remove("hidden");  // in case a search hid them
@@ -5758,13 +5758,18 @@ window.__afterStart = (fn) => {
     el.classList.toggle("hidden", !text);
   }
   // Topbar context label: the active filter's value (genre/tag name) with NO
-  // count; hidden on the plain wall. Counts were removed from all screens.
-  function updateCountReadout(filteredTotal) {
+  // count, or "Random albums" on the plain wall (v0.6.24: a title, as every
+  // other grid screen has); hidden on Home (`hide`). Counts were removed
+  // from all screens.
+  function updateCountReadout(filteredTotal, hide) {
     const el = document.getElementById("album-count");
     if (!el) return;
     if (labelsActive) return;   // labels browser manages its own header text
     if (activeFilter) {
       el.textContent = activeFilter.label || activeFilter.value;   // group label (e.g. "Rock/Metal") if set
+      el.classList.remove("hidden");
+    } else if (!hide && !libraryWallActive && !unplayedWallActive && !grid.classList.contains("hidden")) {
+      el.textContent = "Random albums";
       el.classList.remove("hidden");
     } else {
       el.textContent = "";
@@ -6481,6 +6486,12 @@ window.__afterStart = (fn) => {
   // selection pointing at rows that no longer exist is worse than none.
   let historySelectMode = false;
   let historySelected = [];
+  // The queue's own selection (v0.6.24): a long press on a row starts it with
+  // that row picked; taps pick more, in order; the ⋯ beside the remaining
+  // time plays them now or next, or removes them. Reset with the rows.
+  let queueSelectMode = false;
+  let queueSelected = [];
+  let repaintQueueSelection = () => {};   // the bar and rows repainted after an action
   // Mirrors lib/queue-history.js. Each track is a full browse navigation, so a
   // large selection is minutes of Core traffic; the server enforces the same
   // number and this is only here to say so before the request is made.
@@ -6765,6 +6776,8 @@ window.__afterStart = (fn) => {
     // empty selection shows an action bar over rows nobody has picked yet.
     historySelectMode = false;
     historySelected = [];
+    queueSelectMode = false;
+    queueSelected = [];
     empty.classList.add("hidden");
     try {
       const r = await fetch(`/api/queue?zone=${encodeURIComponent(zoneId)}`);
@@ -6780,9 +6793,71 @@ window.__afterStart = (fn) => {
       }
       let totalSec = 0;
       for (const it of items) if (it.length) totalSec += it.length;
-      summary.textContent = items.length
+      // The bar: the count and time on the left; on the right Clear all, or,
+      // selecting, the ⋯ menu (Play now, Play next, Remove) and Done.
+      summary.innerHTML = "";
+      const sumText = document.createElement("span");
+      sumText.className = "queue-summary-text";
+      sumText.textContent = items.length
         ? `${items.length} track${items.length === 1 ? "" : "s"} · ${fmtDuration(totalSec)} remaining`
         : "Nothing more queued";
+      const tools = document.createElement("div");
+      tools.className = "queue-summary-tools";
+      const clearAll = document.createElement("button");
+      clearAll.type = "button"; clearAll.className = "q-tool"; clearAll.textContent = "Clear all";
+      clearAll.setAttribute("aria-label", "Clear the queue");
+      const menuWrap = document.createElement("div");
+      menuWrap.className = "sel-menu-wrap q-sel-menu-wrap hidden";
+      const menuBtn = document.createElement("button");
+      menuBtn.type = "button"; menuBtn.className = "q-tool q-tool-menu"; menuBtn.textContent = "⋯";
+      menuBtn.setAttribute("aria-label", "What to do with the selected tracks");
+      menuBtn.setAttribute("aria-haspopup", "menu"); menuBtn.setAttribute("aria-expanded", "false");
+      const menu = document.createElement("div");
+      menu.className = "sel-menu hidden"; menu.setAttribute("role", "menu");
+      const menuCount = document.createElement("div"); menuCount.className = "sel-menu-title";
+      menu.appendChild(menuCount);
+      const mkItem = (label, act, danger) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "sel-menu-item" + (danger ? " is-danger" : ""); b.setAttribute("role", "menuitem");
+        b.dataset.queueAct = act; b.textContent = label;
+        b.addEventListener("click", () => { closeMenu(); runQueueAction(act, items); });
+        menu.appendChild(b);
+        return b;
+      };
+      mkItem("Play now", "play_now"); mkItem("Play next", "play_next"); mkItem("Remove", "remove", true);
+      menuWrap.append(menuBtn, menu);
+      const done = document.createElement("button");
+      done.type = "button"; done.className = "q-tool hidden"; done.textContent = "Done";
+      tools.append(clearAll, menuWrap, done);
+      summary.append(sumText, tools);
+      const closeMenu = () => { menu.classList.add("hidden"); menuBtn.setAttribute("aria-expanded", "false"); };
+      menuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = menu.classList.toggle("hidden") === false;
+        menuBtn.setAttribute("aria-expanded", String(open));
+        if (open) setTimeout(() => document.addEventListener("click", closeMenu, { once: true }), 0);
+      });
+      clearAll.addEventListener("click", () => clearQueueAll());
+      done.addEventListener("click", () => { queueSelectMode = false; queueSelected = []; paintQueueSelection(); });
+      const itemRows = [];
+      // Which rows are picked and in what order; the tools for the mode.
+      const paintQueueSelection = () => {
+        itemRows.forEach(({ li, num, it }) => {
+          const at = queueSelected.indexOf(it.queue_item_id);
+          li.classList.toggle("is-picked", at !== -1);
+          li.classList.toggle("is-selecting", queueSelectMode);
+          num.textContent = at === -1 ? "" : String(at + 1);
+          num.classList.toggle("hidden", at === -1 || !queueSelectMode);   // unpicked: the outlined circle
+        });
+        const n = queueSelected.length;
+        menuCount.textContent = n ? `${n} selected` : "Tap tracks to select them";
+        for (const b of menu.querySelectorAll(".sel-menu-item")) b.disabled = n === 0;
+        clearAll.classList.toggle("hidden", queueSelectMode || !items.length);
+        menuWrap.classList.toggle("hidden", !queueSelectMode);
+        done.classList.toggle("hidden", !queueSelectMode);
+        if (!queueSelectMode) closeMenu();
+      };
+      repaintQueueSelection = paintQueueSelection;
 
       // Above the "Now playing" divider, because that is where it happened.
       renderQueueHistory(list, history);
@@ -6804,6 +6879,8 @@ window.__afterStart = (fn) => {
         if (i === 0) li.classList.add("is-now");
         else li.classList.add("is-tappable");
 
+        // The pick number, as the played-earlier rows carry it.
+        const num = document.createElement("span"); num.className = "q-hist-num hidden";
         const art = document.createElement("img"); art.className = "q-art";
         if (it.image_key) art.src = `/api/image/${encodeURIComponent(it.image_key)}?size=120`;
         else art.style.visibility = "hidden";
@@ -6813,7 +6890,21 @@ window.__afterStart = (fn) => {
         tx.appendChild(tt); tx.appendChild(ts);
         const len = document.createElement("span"); len.className = "q-len";
         if (it.length) len.textContent = fmtDuration(it.length);
-        li.appendChild(art); li.appendChild(tx); li.appendChild(len);
+        li.appendChild(num); li.appendChild(art); li.appendChild(tx); li.appendChild(len);
+        itemRows.push({ li, num, it });
+
+        // A long press starts selecting, with this row the first pick.
+        const pick = () => {
+          const at = queueSelected.indexOf(it.queue_item_id);
+          if (at === -1) queueSelected.push(it.queue_item_id); else queueSelected.splice(at, 1);
+          paintQueueSelection();
+        };
+        addLongPress(li, () => {
+          if (queueSelectMode) return;
+          queueSelectMode = true; queueSelected = [it.queue_item_id];
+          paintQueueSelection();
+        });
+        li.addEventListener("click", (e) => { if (queueSelectMode) { e.stopImmediatePropagation(); pick(); } });
 
         if (i !== 0) {
           li.addEventListener("click", async () => {
@@ -6859,8 +6950,47 @@ window.__afterStart = (fn) => {
 
         list.appendChild(li);
       }
+      paintQueueSelection();
     } catch (e) {
       summary.textContent = "Couldn't load queue: " + e.message;
+    }
+  }
+  // The picks played now (moved to after the track playing and the first of
+  // them played), played next (moved), or removed.
+  async function runQueueAction(kind, items) {
+    const picks = queueSelected.slice();
+    if (!picks.length) return;
+    const names = picks.map(id => { const it = items.find(x => x.queue_item_id === id); return it && it.title; }).filter(Boolean);
+    const what = picks.length === 1 ? `"${names[0] || "this track"}"` : `${picks.length} tracks`;
+    if (kind === "remove" && !await confirmDialog(`Remove ${what} from the queue?`)) return;
+    try {
+      const r = await fetch(kind === "remove" ? "/api/queue/remove" : "/api/queue/move", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_or_output_id: queueZoneId(), queue_item_ids: picks, kind })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast((j.error || `HTTP ${r.status}`), "error"); return; }
+      showToast(kind === "remove" ? `Removed ${what}` : kind === "play_now" ? `Playing ${what}` : `Playing ${what} next`);
+      queueSelectMode = false; queueSelected = [];
+      repaintQueueSelection();
+      setTimeout(loadQueue, 600);
+    } catch (e) {
+      showToast("Couldn't reach the server", "error");
+    }
+  }
+  async function clearQueueAll() {
+    if (!await confirmDialog("Clear the queue? Playback stops.")) return;
+    try {
+      const r = await fetch("/api/queue/clear", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_or_output_id: queueZoneId() })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast((j.error || `HTTP ${r.status}`), "error"); return; }
+      showToast("Queue cleared");
+      setTimeout(loadQueue, 600);
+    } catch (e) {
+      showToast("Couldn't reach the server", "error");
     }
   }
   function fmtDuration(secs) {

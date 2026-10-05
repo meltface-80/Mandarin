@@ -30,6 +30,11 @@ Versioning: each set of changes is a development build and takes the next third 
   gone altogether, its page in Settings → Setup with it.
 - **‹ from a record label's albums goes back to the album** you opened the label from, not to
   the list of all labels.
+- **The queue, edited.** On Now playing's Queue tab, hold a track to start selecting (it is the
+  first pick), tap more in the order you want them; **⋯** beside the remaining time plays the
+  selection now (moved to after the track playing, the first of them played) or next (moved), or
+  removes it; **Clear all** empties the queue. Sonos rooms, renderers and the phone alike.
+- **The Random albums wall is titled**, as every other grid screen is.
 - **The search asks Qobuz and Tidal too.** From Home or the Library, signed in, each service's
   artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
   an album from either opens and plays whether or not it is in your library, both versions shown

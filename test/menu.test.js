@@ -97,8 +97,8 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
 });
 
 // Playlists (v0.6.24): Import is a pill in the top-right corner of the
-// screen, above the grid.
-test("Playlists: Import sits in the top-right corner", { skip, timeout: 120000 }, async () => {
+// screen, above the grid. And the Random albums wall is titled (v0.6.24).
+test("Playlists: Import sits in the top-right corner; the Random albums wall has its title", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -117,7 +117,15 @@ test("Playlists: Import sits in the top-right corner", { skip, timeout: 120000 }
         if (!btn) return { shown: false };
         const r = btn.getBoundingClientRect(), bar = document.getElementById("content-count").getBoundingClientRect();
         const top = document.querySelector(".topbar").getBoundingClientRect();
-        return { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1, above_grid: r.bottom <= (document.querySelector("#playlists-grid, .playlists-grid, #content")?.getBoundingClientRect().top ?? Infinity) + 1 };
+        const out = { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1 };
+        // Home, then the Random albums wall from its row's heading: titled; Home again: no title.
+        document.getElementById("topbar-back").click(); await sleep(300);
+        document.getElementById("home-random-title").click(); await sleep(600);
+        const count = document.getElementById("album-count");
+        out.random_title = count.classList.contains("hidden") ? "" : count.textContent;
+        document.getElementById("topbar-back").click(); await sleep(300);
+        out.home_title_hidden = count.classList.contains("hidden");
+        return out;
       })()`);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
@@ -127,5 +135,7 @@ test("Playlists: Import sits in the top-right corner", { skip, timeout: 120000 }
     assert.ok(r.right_gap <= 16, "it hugs the right edge: " + r.right_gap + " px");
     assert.ok(r.left_gap > 100, "not the left: " + r.left_gap + " px");
     assert.equal(r.below_bar, true, "just under the top bar");
+    assert.equal(r.random_title, "Random albums", "the Random albums wall is titled");
+    assert.equal(r.home_title_hidden, true, "and Home is not");
   } finally { await srv.stop(); }
 });
