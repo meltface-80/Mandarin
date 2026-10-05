@@ -25,8 +25,8 @@ Versioning: each set of changes is a development build and takes the next third 
     albums, playlists import, Clean up, pruning, and one set of routes per service. A service's
     playlists carry which service they are from.
 - **The Library's Focus and Sort** sit in their own row under the top bar again, as smaller
-  pills — Focus on the left, Sort and the search glass on the right — and stay in view while
-  the grid scrolls. The title keeps its place in the bar at every width.
+  pills — Focus on the left, Sort on the right — and stay in view while the grid scrolls. The
+  search glass stays in the top bar at its size; the title keeps its place at every width.
 
 ## v0.6.23
 - **Qobuz** (Settings → Services). Sign in with a Qobuz subscription; your favourites and purchases

@@ -63,19 +63,20 @@ const DRIVER = `(async () => {
     libTitle.click();
     await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-ctl-sort"));
     const bar = $("library-controls");
-    const vis = sel => { const e = bar.querySelector(sel); return !!e && getComputedStyle(e).display !== "none"; };
+    const tb = document.querySelector(".topbar");
+    const vis = sel => { const e = tb.querySelector(sel); return !!e && getComputedStyle(e).display !== "none"; };
     out.lib = { in_topbar: !!bar.closest(".topbar"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), glass: vis(".lib-filter-btn"),
       brass: getComputedStyle(bar.querySelector(".lib-ctl-sort")).backgroundColor === getComputedStyle(document.querySelector("#menu-toggle")).backgroundColor,
-      glass_last: bar.lastElementChild.querySelector(".lib-filter-btn") !== null };
-    bar.querySelector(".lib-filter-btn").click(); await sleep(150);
-    const inp = bar.querySelector(".lib-filter-input");
+      glass_last: !!document.querySelector(".topbar-row .lib-filter-btn") };
+    tb.querySelector(".lib-filter-btn").click(); await sleep(150);
+    const inp = tb.querySelector(".lib-filter-input");
     inp.value = "Al"; inp.dispatchEvent(new Event("input")); await sleep(400);
     const bar2 = $("library-controls");
-    out.lib_open = { focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), title: getComputedStyle($("album-count")).display === "none", value: bar2.querySelector(".lib-filter-input").value };
-    bar2.querySelector(".lib-filter-clear").click(); await sleep(400);
-    out.lib_cleared = { open: !!$("library-controls").querySelector(".lib-filter-input"), value: ($("library-controls").querySelector(".lib-filter-input") || {}).value };
-    $("library-controls").querySelector(".lib-filter-clear").click(); await sleep(300);
-    out.lib_closed = { open: !!$("library-controls").querySelector(".lib-filter-input"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort") };
+    out.lib_open = { focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), title: getComputedStyle($("album-count")).display === "none", value: tb.querySelector(".lib-filter-input").value };
+    tb.querySelector(".lib-filter-clear").click(); await sleep(400);
+    out.lib_cleared = { open: !!tb.querySelector(".lib-filter-input"), value: (tb.querySelector(".lib-filter-input") || {}).value };
+    tb.querySelector(".lib-filter-clear").click(); await sleep(300);
+    out.lib_closed = { open: !!tb.querySelector(".lib-filter-input"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort") };
     window.__showArtistAlbums("Artist A");
     await until(() => / · /.test(title()));
     out.lib_in_artist = !$("library-controls").classList.contains("hidden");
@@ -152,7 +153,7 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.equal(r.home, true, "and ‹ there goes Home");
     assert.equal(r.has_library, true, "Home has its Library row");
     assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: true, brass: true, glass_last: true });
-    assert.deepEqual(r.lib_open, { focus: false, sort: false, title: false, value: "Al" }, "the field opens over Focus and Sort in their row; the title stays");
+    assert.deepEqual(r.lib_open, { focus: true, sort: true, title: true, value: "Al" }, "the field opens in the bar's row over the title; Focus and Sort stay in theirs");
     assert.deepEqual(r.lib_cleared, { open: true, value: "" }, "the first × clears the words");
     assert.deepEqual(r.lib_closed, { open: false, focus: true, sort: true }, "the second × closes it");
     assert.equal(r.lib_in_artist, false, "an artist page takes them out of the bar");
@@ -216,10 +217,11 @@ test("the Library's controls under the top bar on phones, tablets and desktops",
         assert.deepEqual(page.errors, []);
       } finally { await b.close(); }
       const at = size.width + "px";
-      assert.ok(r.focus.t >= r.back.b - 1, at + ": the controls sit in their own row under the bar's");
-      assert.ok(r.focus.r <= r.sort.l && r.sort.r <= r.glass.l, at + ": Focus, Sort, the glass, in order, none overlapping");
+      assert.ok(r.focus.t >= r.back.b - 1, at + ": Focus and Sort sit in their own row under the bar's");
+      assert.ok(r.focus.r <= r.sort.l, at + ": Focus then Sort, not overlapping");
+      assert.ok(r.back.r <= r.glass.l && r.glass.b <= r.focus.t + 1, at + ": the glass is in the bar's row, right of Back");
       assert.ok(r.glass.r <= r.vw, at + ": the glass is on the screen");
-      assert.ok(Math.abs(r.glass.w - r.glass.h) < 1, at + ": the glass is round");
+      assert.ok(Math.abs(r.glass.w - r.glass.h) < 1 && Math.abs(r.glass.h - r.back.h) < 1, at + ": the glass is round, the bar's size");
       assert.ok(r.focus.w > 50, at + ": Focus keeps its word");
       assert.ok(r.focus.h <= 36 && r.focus.h < r.back.h, at + ": the pills are smaller than the bar's buttons");
       assert.equal(r.title_shown, true, at + ": the title shows at every width");

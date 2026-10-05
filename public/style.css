@@ -5533,8 +5533,6 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   gap: 8px;
 }
 .library-controls.sub-bar .lib-ctl-sort { margin-left: auto; }
-.library-controls.sub-bar.is-filtering .lib-ctl-focus,
-.library-controls.sub-bar.is-filtering .lib-ctl-sort { display: none; }
 .library-controls.sub-bar .lib-ctl:not(.icon-btn) {
   min-height: 0; height: var(--lib-h);
   padding: 0 11px; border-radius: 999px;
@@ -5551,13 +5549,24 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .library-controls.sub-bar .lib-ctl-chevron { font-size: 16px; }
 /* The count of active facets: the pill is brass, so the badge inverts. */
 .library-controls.sub-bar .lib-ctl-badge { background: var(--on-accent); color: var(--accent); min-width: 16px; line-height: 16px; font-size: 10.5px; }
-/* The glass: a disc the row's height. */
-.library-controls.sub-bar .lib-filter-btn { flex: 0 0 auto; min-height: 0; width: var(--lib-h); height: var(--lib-h); aspect-ratio: 1 / 1; }
-.library-controls.sub-bar .lib-filter-btn svg { width: 16px; height: 16px; }
-.library-controls.sub-bar .lib-filter-btn.is-active { box-shadow: 0 0 0 2px var(--accent-soft); }
-.library-controls.sub-bar .lib-filter-wrap { min-width: 0; }
-.library-controls.sub-bar.is-filtering .lib-filter-wrap { flex: 1 1 auto; }
-.library-controls.sub-bar .lib-filter-box { height: var(--lib-h); box-sizing: border-box; }
+/* The search glass stays in the top bar's row (v0.6.5): the bar's brass disc
+   at the bar's size, at the right-hand end where Home keeps its search. Open,
+   the field takes that row and the title steps aside, as Home's does; the
+   Focus and Sort row beneath is untouched. */
+.library-filter.in-topbar { flex: 0 0 auto; min-width: 0; margin-left: auto; display: flex; align-items: center; }
+.library-filter.in-topbar.hidden { display: none; }
+.library-filter.in-topbar.is-filtering { flex: 1 1 auto; }
+.library-filter.in-topbar .lib-filter-wrap { min-width: 0; }
+.library-filter.in-topbar.is-filtering .lib-filter-wrap { flex: 1 1 auto; }
+.library-filter.in-topbar .lib-filter-btn { flex: 0 0 auto; min-height: 0; width: auto; aspect-ratio: 1 / 1; }
+.library-filter.in-topbar .lib-filter-btn.is-active { box-shadow: 0 0 0 2px var(--accent-soft); }
+.library-filter.in-topbar .lib-filter-box { height: var(--ctl-h); box-sizing: border-box; }
+.topbar.lib-filtering .album-count { display: none; }
+.sel-menu-wrap:not(.hidden) ~ .library-filter.in-topbar { margin-left: 8px; }
+/* The open field is the bar's button height at every width (the bar's buttons
+   shrink on small phones), so opening it never moves the page under the bar. */
+@media (max-width: 389px) { .library-filter.in-topbar .lib-filter-box { height: 37px; } }
+@media (max-width: 359px) { .library-filter.in-topbar .lib-filter-box { height: 33px; } }
 .lib-filter-box {
   flex: 1 1 auto; min-width: 0;
   padding: 0 4px 0 12px;

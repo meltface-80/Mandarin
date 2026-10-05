@@ -2688,6 +2688,8 @@ window.__afterStart = (fn) => {
   function hideLibraryControls() {
     const c = document.getElementById("library-controls");
     if (c) c.classList.add("hidden");
+    const f = document.getElementById("library-filter");
+    if (f) f.classList.add("hidden");
     if (libFilterOpen || libView.prefix) {
       if (libView.prefix) libPrefixDropped = true;
       libFilterOpen = false;
@@ -2811,6 +2813,18 @@ window.__afterStart = (fn) => {
       if (tb && row) row.insertAdjacentElement("afterend", bar);
       else grid.parentNode.insertBefore(bar, grid);
     }
+    // The search glass stays in the top bar's row, at its right-hand end and
+    // the bar's size (v0.6.5); open, the field takes that row as Home's does.
+    let filt = document.getElementById("library-filter");
+    if (!filt) {
+      filt = document.createElement("div");
+      filt.id = "library-filter";
+      filt.className = "library-filter in-topbar";
+      const row = document.querySelector(".topbar-row");
+      const before = document.getElementById("labels-tools");
+      if (row) row.insertBefore(filt, before && before.parentNode === row ? before : null);
+      else bar.appendChild(filt);
+    }
     // Both controls open a sheet rather than mutating the view in place, so a
     // rebuild can no longer land under the user's finger mid-interaction — but
     // applyLibView() still rebuilds this row while the sort sheet is open and
@@ -2821,23 +2835,25 @@ window.__afterStart = (fn) => {
     // here starts with `lib-ctl`, so splitting on the first token matched
     // whichever came first in the DOM — focus on Sort came back on Focus.
     const act = document.activeElement;
-    const refocus = act && bar.contains(act) && act.className
+    const refocus = act && (bar.contains(act) || filt.contains(act)) && act.className
       ? (String(act.className).split(" ").find(c => c !== "lib-ctl" && c) || "lib-ctl")
       : null;
     // Typing survives the rebuild applyLibView() does after every keystroke.
     // `libFilterOpen` is the truth; the live node is only consulted for where
     // the caret was.
-    const typing = bar.querySelector(".lib-filter-input");
+    const typing = filt.querySelector(".lib-filter-input");
     const caret = typing ? typing.selectionStart : 0;
 
     bar.innerHTML = "";
-    // Roon's own order on this screen: Focus left, Sort right, then the
-    // magnifier that narrows the list. Matching it means the row reads the
-    // same way in both apps rather than being a third arrangement to learn.
+    filt.innerHTML = "";
+    // Focus left, Sort right in their row; the magnifier that narrows the
+    // list in the bar's row above.
     bar.appendChild(buildLibFocusButton());
     bar.appendChild(buildLibSortButton());
-    bar.appendChild(buildLibFilterControl(libFilterOpen));
+    filt.appendChild(buildLibFilterControl(libFilterOpen));
     bar.classList.toggle("hidden", !libraryWallActive);
+    filt.classList.toggle("hidden", !libraryWallActive);
+    filt.classList.toggle("is-filtering", libFilterOpen);
     // Marks the bar as the Library wall's, for the phone rule that gives the
     // title's room to the controls.
     { const tb = document.querySelector(".topbar"); if (tb) tb.classList.toggle("lib-wall", libraryWallActive); }
@@ -2849,14 +2865,14 @@ window.__afterStart = (fn) => {
       if (tb) tb.classList.toggle("lib-filtering", libFilterOpen && libraryWallActive); }
 
     if (libFilterOpen) {
-      const again = bar.querySelector(".lib-filter-input");
+      const again = filt.querySelector(".lib-filter-input");
       if (again) {
         again.focus();
         try { again.setSelectionRange(caret, caret); }
         catch (e) { /* type="search" refuses setSelectionRange on some engines */ }
       }
     } else if (refocus) {
-      const again = bar.querySelector("." + refocus);
+      const again = bar.querySelector("." + refocus) || filt.querySelector("." + refocus);
       if (again) again.focus();
     }
   }
