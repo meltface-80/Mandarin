@@ -15222,7 +15222,11 @@ initServiceBrowser({
   const closeMenu = () => overlay.classList.add("hidden");
 
   toggle.addEventListener("click", openMenu);
+  // Closed by a tap on the page beside it (the backdrop) or Escape — never
+  // by anything in the menu itself (v0.6.18): not a toggle, not a blank
+  // part of it, not an item.
   overlay.addEventListener("click", (e) => {
+    if (e.target.closest && e.target.closest(".menu-drawer")) return;
     if (e.target.closest && e.target.closest("[data-menu-close]")) closeMenu();
   });
   document.addEventListener("keydown", (e) => {
@@ -15233,7 +15237,6 @@ initServiceBrowser({
     item.addEventListener("click", () => {
       const action = item.dataset.action;
       const target = item.dataset.target;
-      closeMenu();
 
       if (action === "offline-mode") {
         // The app reloads the page onto the phone's music, or back onto the server.
@@ -17546,20 +17549,37 @@ initServiceBrowser({
   }
   document.querySelectorAll('.settings-nav-item[data-pane="backup"]').forEach(b => b.addEventListener("click", load));
 
+  // The backup files this phone has saved (the app remembers them), v0.6.18.
+  function phoneFiles() {
+    if (!APP || typeof APP.files !== "function") return [];
+    try { return JSON.parse(APP.files()).map(f => Object.assign({ where: "phone" }, f)); } catch (e) { return []; }
+  }
+
+  /*
+   * One list, newest first: backups on the server and the files on this
+   * phone, each card saying where it is — what you want to know — with the
+   * device it was made from on the line below.
+   */
   function renderList() {
-    const items = (info && info.backups) || [];
-    if (!items.length) { listEl.innerHTML = '<div class="settings-note">No backups on the server yet.</div>'; return; }
-    listEl.innerHTML = items.map(b =>
-      '<div class="backup-item" data-id="' + esc(b.id) + '">' +
-        '<div class="backup-item-head"><b>' + esc(b.label) + '</b><span>' + esc(fmtDate(b.created)) + ' · v' + esc(b.version) + ' · ' + fmtBytes(b.bytes || 0) + '</span>' +
+    const items = ((info && info.backups) || []).map(b => Object.assign({ where: "server" }, b)).concat(phoneFiles())
+      .sort((a, b) => (b.created || 0) - (a.created || 0));
+    if (!items.length) { listEl.innerHTML = '<div class="settings-note">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
+    listEl.innerHTML = items.map(b => {
+      const title = b.where === "phone" ? "On this phone" : b.kind === "auto" ? "Before restore · on the server" : "On the server";
+      const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)];
+      if (b.where === "phone") meta.push(b.name || ""); else if (b.label) meta.push("from " + b.label);
+      const ref = b.where === "phone" ? ' data-uri="' + esc(b.uri) + '"' : ' data-id="' + esc(b.id) + '"';
+      return '<div class="backup-item" data-where="' + b.where + '"' + ref + '>' +
+        '<div class="backup-item-head"><b>' + esc(title) + '</b><span>' + esc(meta.filter(Boolean).join(" · ")) + '</span>' +
         '<small>' + esc((b.parts || []).map(p => NAMES[p] || p).join(", ")) + '</small></div>' +
         '<div class="backup-item-actions">' +
           '<button class="settings-update-btn" type="button" data-act="restore">Restore…</button>' +
-          '<a class="settings-update-btn" href="/api/backup/download/' + encodeURIComponent(b.id) + '" download>Download</a>' +
+          (b.where === "server" ? '<a class="settings-update-btn" href="/api/backup/download/' + encodeURIComponent(b.id) + '" download>Download</a>' : "") +
           '<button class="settings-update-btn" type="button" data-act="delete">Delete</button>' +
         '</div>' +
         '<div class="backup-restore hidden"></div>' +
-      '</div>').join("");
+      '</div>';
+    }).join("");
   }
 
   // A restore panel: the ticks for what's in it (on the phone, everything), and Restore.
@@ -17593,11 +17613,25 @@ initServiceBrowser({
     const btn = e.target.closest("button[data-act]");
     if (!btn) return;
     const item = btn.closest(".backup-item");
+    // A file on this phone: the app restores or deletes it.
+    if (item && item.dataset.where === "phone") {
+      const uri = item.dataset.uri;
+      const f = phoneFiles().find(x => x.uri === uri);
+      if (!f) return;
+      if (btn.dataset.act === "delete") {
+        if (!(await ask("Delete the backup file " + (f.name || "") + " of " + fmtDate(f.created) + " from this phone?"))) return;
+        try { APP.deleteFile(uri); } catch (e) { /* off the list anyway */ }
+        renderList();
+        return;
+      }
+      if (btn.dataset.act === "restore") openRestorePanel(item.querySelector(".backup-restore"), f.parts || backupParts(), (want) => APP.restoreFileAt(uri, want.join(",")), "Restore now");
+      return;
+    }
     const id = item && item.dataset.id;
     const b = ((info && info.backups) || []).find(x => x.id === id);
     if (!b) return;
     if (btn.dataset.act === "delete") {
-      if (!(await ask("Delete the backup “" + b.label + "” of " + fmtDate(b.created) + "?"))) return;
+      if (!(await ask("Delete the backup on the server of " + fmtDate(b.created) + "?"))) return;
       await fetch("/api/backup/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {});
       load();
       return;
@@ -17633,10 +17667,11 @@ initServiceBrowser({
   });
 
   // The Android app: Android's "save as", then the server's backup into the file.
+  window.__backupFileChosen = () => { noteEl.textContent = "Backing up…"; };
   window.__backupFileDone = (json) => {
     toFile.disabled = false;
     let j = {}; try { j = JSON.parse(json); } catch (e) { /* none */ }
-    if (j.ok) noteEl.textContent = "Saved to the file: " + fmtBytes(j.bytes || 0) + ".";
+    if (j.ok) { noteEl.textContent = "Backed up: " + fmtBytes(j.bytes || 0) + ", " + fmtDate(j.created || Date.now()) + "."; renderList(); }
     else { noteEl.textContent = ""; if (!j.cancelled) toast(j.error || "Backup failed", "error"); }
   };
   toFile.addEventListener("click", () => {

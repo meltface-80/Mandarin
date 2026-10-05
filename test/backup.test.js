@@ -211,6 +211,10 @@ test("away from home (over Tailscale): back up to a file, keep one here, restore
     ctx.db.setSetting("smartPicksHour", 8);
     const file = await fetch(BASE + "/api/backup/file", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true } }) });
     assert.equal(file.status, 200);
+    // What the file holds, said up front for the app's list (v0.6.18).
+    const said = JSON.parse(file.headers.get("x-mandarin-backup"));
+    assert.deepEqual(said.parts, ["settings"]);
+    assert.ok(said.created > 0 && /^\d+\.\d+\.\d+/.test(said.version) && said.from, JSON.stringify(said));
     const body = Buffer.from(await file.arrayBuffer());
     const s = await (await fetch(BASE + "/api/backup/save", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true }, page: { "rra-ui-cols": "3" } }) })).json();
     assert.equal(s.ok, true);
