@@ -13943,11 +13943,12 @@ function initServiceBrowser(cfg) {
       });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || "Couldn't open that album");
-      const al = await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json();
-      if (!al.album) throw new Error(al.error || "Couldn't open that album");
+      // The album comes back with the answer; an older server is asked once more.
+      const album = j.album || (await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json()).album;
+      if (!album) throw new Error("Couldn't open that album");
       if (!overlayVisible()) return;   // closed while the server was asked
       showUnder(a.id, favBtn);
-      window.__openAlbum(al.album, { source: cfg.service, filter: null });
+      window.__openAlbum(album, { source: cfg.service, filter: null });
     } catch (e) {
       toast(e.message || "Couldn't open that album", "error");
     }
