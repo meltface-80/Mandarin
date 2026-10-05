@@ -176,6 +176,9 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     location: "file:" + out, playable: true, caps: { advertised: { containers: ["flac"], rates: [44100, 48000, 96000], bits: [16, 24, 32] } }
   };
   const PORT = 3631, B = "http://127.0.0.1:" + PORT;
+  // The server's log, for what the player says of the device.
+  const logs = [], realLog = console.log;
+  console.log = (...a) => { logs.push(a.join(" ")); realLog(...a); };
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
     upnpMulticast: false, localAudio: { list: async () => ({ devices: [DAC], platform: "linux", hidden: 0 }) } });
@@ -212,11 +215,11 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     const v = await api("volume", { output_id: DAC.id, value: 30 });
     assert.equal(v.ok, true);
     // The next track follows by itself.
-    const s2 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
-    assert.equal(s2.state, "playing");
+    const s2 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
+    assert.ok(!logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + logs.filter(l => /Test DAC/.test(l)).join("; "));
     const p = await api("control", { zone_or_output_id: DAC.id, command: "pause" });
     assert.equal(p.ok, true, JSON.stringify(p));
     await until(async () => (await api("zone-state?zone=" + DAC.id)).zone.state === "paused");
     assert.equal(ctx.devices.registry.get(DAC.id).settings.local_volume, 30, "the volume is kept");
-  } finally { await srv.stop(); }
+  } finally { console.log = realLog; await srv.stop(); }
 });
