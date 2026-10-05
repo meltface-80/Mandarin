@@ -228,6 +228,12 @@ FEATURES = [
      "On a Mac, double-click **Mandarin** on the desktop to "
      "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
      "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
+    ("backup", "💾", "Backup and restore", True,
+     "Back up settings, players, collection, API keys and the whole database: to the server, or from "
+     "the Android app to a file on the phone, with the app's settings.",
+     "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
+     "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
+     "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

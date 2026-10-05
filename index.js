@@ -76,6 +76,8 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 function createServer(overrides = {}) {
   Object.assign(config, overrides);
+  // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
+  require("./lib/backup").swapStaged(config.dataDir, log);
   const db = DB.open(config.dataDir, { log });
   const library = new Library(db, { musicRoot: config.musicDir, log });
   // Where the music is: the folders chosen in Settings → Music folders, or —
@@ -282,6 +284,10 @@ function createServer(overrides = {}) {
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   // Restart and Shut down (Settings → Restart & shut down). Tests hand in their own exit.
+  // Restart: a clean stop, then 75 for launcher.js to start it again (a restore uses it).
+  ctx.restartServer = () => Promise.resolve().then(() => stop()).catch(e => log(`[musicd] stopping: ${e.message}`))
+    .finally(() => (config.exitProcess || (c => process.exit(c)))(75));
+  require("./lib/server/api-backup")(app, ctx);
   require("./lib/server/api-power")(app, ctx, {
     stop: () => stop(),
     exit: config.exitProcess,

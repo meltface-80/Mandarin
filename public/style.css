@@ -5679,3 +5679,21 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   background: #d32f2f; border-color: #d32f2f; color: #fff;
 }
 .menu-head .power-open:hover, .menu-head .power-open[aria-expanded="true"] { background: #b71c1c; border-color: #b71c1c; }
+
+/* Backup & restore (v0.6.14). */
+.backup-parts { display: grid; gap: 8px; margin: 6px 0 12px; }
+.backup-part { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.backup-part input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; flex: 0 0 auto; }
+.backup-part span { display: flex; flex-direction: column; }
+.backup-part b { font-weight: 600; color: var(--text); }
+.backup-part small, .backup-item small { color: var(--text-dim); font-size: 12.5px; line-height: 1.35; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-list { display: grid; gap: 10px; margin-top: 10px; }
+.backup-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.backup-item-head { display: flex; flex-direction: column; gap: 2px; }
+.backup-item-head span { color: var(--text-dim); font-size: 13px; }
+.backup-item-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.backup-item-actions a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.backup-restore { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.backup-restore.hidden { display: none; }
+.backup-file-restore { border-top: 0; padding-top: 0; }
