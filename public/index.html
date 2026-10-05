@@ -675,12 +675,20 @@
     <nav class="menu-drawer">
       <div class="menu-head">
         <span class="menu-brand"><img class="menu-brand-mark" src="/icons/icon-192.png?v=brassduck" alt="" width="30" height="30">Mandarin</span>
-        <button class="icon-btn" type="button" aria-label="Close menu" data-menu-close>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-        </button>
+        <!-- Power (v0.6.12): Restart or Shut down the server, from a drop-down. In
+             place of the ×: a tap outside the menu closes it. -->
+        <div class="power-menu" id="power-menu">
+          <button id="power-open" class="icon-btn power-open" type="button"
+                  aria-label="Restart or shut down Mandarin" aria-haspopup="menu" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+          </button>
+          <div class="power-pop hidden" id="power-pop" role="menu" aria-label="Mandarin server">
+            <button class="power-item" id="power-restart" type="button" role="menuitem">Restart</button>
+            <button class="power-item" id="power-shutdown" type="button" role="menuitem">Shut down</button>
+            <p class="power-pop-note" id="power-shutdown-note"></p>
+          </div>
+        </div>
       </div>
       <div class="menu-list">
         <!-- Offline mode (v0.5.58): only in the Android app, which shows it. -->

@@ -221,6 +221,13 @@ FEATURES = [
      "itself is never sent, and every signed-in device is listed.",
      "Create it on first visit from a device at home. **Settings → Account** lists devices, signs "
      "one out and changes the password. Forgotten: see [Your account](#your-account)."),
+    ("power", "⏻", "Restart and shut down", True,
+     "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
+     "start it again. In Docker, only Restart.",
+     "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
+     "On a Mac, double-click **Mandarin** on the desktop to "
+     "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
+     "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

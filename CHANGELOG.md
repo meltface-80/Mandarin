@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.12
+- **A power button** at the top right of the side menu (☰) drops down **Restart** and **Shut down**. Restart stops Mandarin
+  and starts it again. Shut down stops it until you start it again, so it no longer finds or
+  controls your speakers and renderers. On a Mac the login item is unloaded (macOS would
+  otherwise start it straight back) and a new **Mandarin** icon on the desktop and in
+  Applications starts it again; it also starts at the next login. In Docker only Restart is
+  offered: the container's restart policy brings any exit back, so `docker stop` is the way.
+  Neither works from away (over Tailscale).
+- **The Mac installer** adds that icon (re-run the install line once to get it).
+- **README and site**: every feature in 30 words or fewer, with how to switch it on and use it
+  behind an ⓘ (tools/docs/features.py writes both); claims made exact.
+
 ## v0.6.11
 - **Install on a Mac in one line** (README and site): `tools/mac/install.sh`, pasted into Terminal,
   installs Homebrew, Node.js 22 and ffmpeg, downloads Mandarin, asks with the Finder's own

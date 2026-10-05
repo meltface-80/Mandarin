@@ -82,6 +82,7 @@ fi
   echo "    <key>MUSIC_DIR</key><string>$(xml "$MUSIC")</string>"
   [ -n "$PACK" ] && echo "    <key>MBPACK_DIR</key><string>$(xml "$PACK")</string>"
   echo "    <key>PORT</key><string>$PORT</string>"
+  echo "    <key>MANDARIN_LAUNCHD</key><string>$LABEL</string>"
   echo "    <key>PATH</key><string>$(xml "$NODE_BIN:$BREW/bin:/usr/bin:/bin")</string>"
   echo '  </dict>'
   echo '  <key>RunAtLoad</key><true/>'
@@ -91,6 +92,41 @@ fi
   echo '</dict></plist>'
 } > "$PLIST"
 launchctl load "$PLIST"
+
+# 8. The Mandarin icon (v0.6.12), on the desktop and in Applications: it starts
+#    Mandarin again after the side menu's power button → Shut down (loading the
+#    login item), then opens it in the browser. Running already, it just opens it.
+say "Adding the Mandarin icon to your desktop…"
+ICON_APP="$HOME/Applications/Mandarin.app"
+mkdir -p "$HOME/Applications"
+rm -rf "$ICON_APP"
+SCRIPT="$(mktemp "${TMPDIR:-/tmp}/mandarin.XXXXXX")"
+cat > "$SCRIPT" <<APPLESCRIPT
+set plistPath to (POSIX path of (path to home folder)) & "Library/LaunchAgents/$LABEL.plist"
+try
+  do shell script "launchctl load -w " & quoted form of plistPath & " >/dev/null 2>&1; launchctl start $LABEL >/dev/null 2>&1; for i in \$(seq 1 60); do curl -fs http://localhost:$PORT/api/health >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1"
+  open location "http://localhost:$PORT"
+on error
+  display dialog "Mandarin didn't start. What it said is in ~/Mandarin/data/server.log" buttons {"OK"} default button "OK" with title "Mandarin"
+end try
+APPLESCRIPT
+if osacompile -o "$ICON_APP" "$SCRIPT" 2>/dev/null; then
+  # Mandarin's own icon on it, made from the app's 512px icon.
+  SET="$(mktemp -d)/Mandarin.iconset"
+  mkdir -p "$SET"
+  SRC="$APP_DIR/public/icons/icon-512.png"
+  for s in 16 32 128 256 512; do
+    sips -z "$s" "$s" "$SRC" --out "$SET/icon_${s}x${s}.png" >/dev/null 2>&1 || true
+    d=$((s * 2))
+    if [ "$d" -le 512 ]; then sips -z "$d" "$d" "$SRC" --out "$SET/icon_${s}x${s}@2x.png" >/dev/null 2>&1 || true; fi
+  done
+  iconutil -c icns "$SET" -o "$ICON_APP/Contents/Resources/applet.icns" 2>/dev/null || true
+  touch "$ICON_APP"
+  ln -sfn "$ICON_APP" "$HOME/Desktop/Mandarin" 2>/dev/null || echo "Couldn't put the icon on the desktop; it's in your Applications folder (Home → Applications)."
+else
+  echo "Couldn't make the Mandarin icon; Mandarin still starts when you log in."
+fi
+rm -f "$SCRIPT"
 
 say "Starting Mandarin…"
 up=""
@@ -112,5 +148,6 @@ echo "  Music folder:  $MUSIC  (add more in Settings → Music Folders)"
 [ -n "$PACK" ] && echo "  Pack folder:   $PACK"
 echo
 echo "Create your account in the browser window that opened. Mandarin starts by itself"
-echo "whenever you log in. Add or change music folders any time in Settings → Music Folders."
+echo "whenever you log in, and the Mandarin icon on your desktop starts it after a Shut down."
+echo "Add or change music folders any time in Settings → Music Folders."
 echo "If macOS asks to let \"node\" find devices on your network or open your files, choose Allow."
