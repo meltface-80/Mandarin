@@ -9762,6 +9762,16 @@ window.__afterStart = (fn) => {
       const artist     = np.line2 || "";
       if (!albumTitle) return;
       const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      // The album the playing track is actually from, by the track's own id
+      // (v0.6.24): a Qobuz or Tidal album you started opens as itself, not the
+      // copy of the same record on your drive that a search by name finds first.
+      try {
+        const r0 = await fetch("/api/album/now-playing?zone=" + encodeURIComponent(currentZone.zone_id), { cache: "no-store" });
+        if (r0.ok) {
+          const j0 = await r0.json();
+          if (j0.album && typeof j0.album.offset === "number") { window.__openAlbum(j0.album, { source: "search" }); return; }
+        }
+      } catch (e) { /* the search below */ }
       try {
         const r = await fetch("/api/search?q=" + encodeURIComponent(albumTitle) + "&limit=20");
         if (r.ok) {

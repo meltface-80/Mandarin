@@ -30,6 +30,8 @@ Versioning: each set of changes is a development build and takes the next third 
   gone altogether, its page in Settings → Setup with it.
 - **‹ from a record label's albums goes back to the album** you opened the label from, not to
   the list of all labels.
+- **Now playing's album name opens the album the track is from** — a Qobuz or Tidal album you
+  started opens as itself, not the copy of the same record on your drive.
 - **The Library's Focus and Sort** sit in their own row under the top bar again, as smaller
   pills — Focus on the left, Sort on the right — and stay in view while the grid scrolls. The
   search glass stays in the top bar at its size; the title keeps its place at every width.
