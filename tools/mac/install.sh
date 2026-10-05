@@ -94,7 +94,7 @@ fi
 launchctl load "$PLIST"
 
 # 8. The Mandarin icon (v0.6.12), on the desktop and in Applications: it starts
-#    Mandarin again after Settings → Restart & shut down → Shut down (loading the
+#    Mandarin again after the side menu's power button → Shut down (loading the
 #    login item), then opens it in the browser. Running already, it just opens it.
 say "Adding the Mandarin icon to your desktop…"
 ICON_APP="$HOME/Applications/Mandarin.app"

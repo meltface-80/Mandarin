@@ -224,7 +224,8 @@ FEATURES = [
     ("power", "⏻", "Restart and shut down", True,
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
-     "Open **Settings → Restart & shut down**. On a Mac, double-click **Mandarin** on the desktop to "
+     "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
+     "On a Mac, double-click **Mandarin** on the desktop to "
      "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
      "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("updates", "🔄", "Updates", False,

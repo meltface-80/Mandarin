@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Settings → Restart & shut down (v0.6.12):
+ * The side menu's power button: Restart and Shut down (v0.6.12):
  *   - Restart stops the server cleanly and leaves with 75, for launcher.js to
  *     start it again;
  *   - Shut down leaves with 0, or, on a Mac run by the installer's login item,

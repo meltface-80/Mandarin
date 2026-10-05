@@ -5643,7 +5643,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .status-banner { zoom: var(--ui-menu, 1); }
 
 
-/* Restart & shut down (v0.6.12): the screen over the page while the server is away. */
+/* Power (v0.6.12): the screen over the page while the server is away. */
 .power-cover {
   position: fixed; inset: 0; z-index: 10000;
   display: flex; align-items: center; justify-content: center; padding: 16px;
@@ -5652,3 +5652,23 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .power-card { max-width: 420px; text-align: center; }
 .power-title { font-size: 1.35rem; font-weight: 700; color: var(--accent-text); margin-bottom: 10px; }
 .power-text { color: var(--text-dim); line-height: 1.5; margin: 0; }
+
+/* Power (v0.6.12): the button in the side menu's top-right corner (where the
+   × was; a tap outside the menu closes it) and its drop-down. */
+.power-menu { position: relative; display: flex; align-items: center; margin-left: auto; }
+.power-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: 190px; padding: 6px;
+  background: var(--bg-elev, var(--bg)); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  display: flex; flex-direction: column;
+}
+.power-pop.hidden { display: none; }
+.power-item {
+  text-align: left; padding: 11px 12px; border-radius: 8px;
+  background: none; border: 0; color: var(--text); font: inherit; font-size: 15px; cursor: pointer;
+}
+.power-item:hover, .power-item:focus-visible { background: var(--accent-soft); color: var(--accent-text); outline: none; }
+.power-item.hidden { display: none; }
+.power-pop-note { margin: 4px 12px 6px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+.power-pop-note.hidden { display: none; }

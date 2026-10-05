@@ -544,7 +544,7 @@ Restart Mandarin, or shut it down so it stops finding and controlling your speak
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Restart & shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
 
 </details>
 
@@ -712,7 +712,8 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 
 **On a Mac:**
 * **Updates** come from the app, as on Linux (Settings → **Updates**).
-* **Shut down and start again:** Settings → **Restart & shut down** stops Mandarin; double-click
+* **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
+  **Shut down** stops Mandarin; double-click
   **Mandarin** on the desktop (or in your Applications folder) to start it again. It also starts
   when you log in. Installed before v0.6.12? Paste the install line once more to get the icon.
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.

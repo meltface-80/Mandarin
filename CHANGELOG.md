@@ -6,7 +6,7 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.6.12
-- **Restart and Shut down**, from Settings → **Restart & shut down**. Restart stops Mandarin
+- **A power button** at the top right of the side menu (☰) drops down **Restart** and **Shut down**. Restart stops Mandarin
   and starts it again. Shut down stops it until you start it again, so it no longer finds or
   controls your speakers and renderers. On a Mac the login item is unloaded (macOS would
   otherwise start it straight back) and a new **Mandarin** icon on the desktop and in
