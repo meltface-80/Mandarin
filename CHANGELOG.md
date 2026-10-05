@@ -5,6 +5,18 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.16
+- **Another VPN into your home network works with the app.** Off Wi-Fi, with a VPN up, the app
+  now tries the server's home address too and uses it when it answers. Before, off Wi-Fi it
+  only ever tried the Tailscale address, and with the phone's own Tailscale not signed in it
+  went Offline even though the VPN reached the server.
+- **Offline, the app's own page when it's newer.** The copy of the page saved from the server
+  was used even when it came from an older server, bringing back what the app had since fixed
+  (the Tailscale button). The saved copy now notes the server's version and is used only when
+  it's no older than the app.
+- **The app's backup carries the server's away-from-home address** too, so a reinstall restored
+  from it knows where to find the server away (the phone's Tailscale still needs one sign-in).
+
 ## v0.6.15
 - **The Tailscale button for this phone works again** (Settings → Away from home → This phone, in
   the Android app). The tap went to the ⓘ beside "Tailscale on this phone", which is a button too

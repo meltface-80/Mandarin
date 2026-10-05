@@ -17,6 +17,13 @@ class RouteTest {
         assertFalse(Route.away(onWifi = true, homeAnswers = true))
     }
 
+    @Test fun homeThroughAnotherVpnOffWifi() {
+        // Mobile data with a VPN into the home network: the home address answers, so home.
+        assertFalse(Route.away(onWifi = false, homeAnswers = true, onVpn = true))
+        // A VPN that doesn't reach home: away, as before.
+        assertTrue(Route.away(onWifi = false, homeAnswers = false, onVpn = true))
+    }
+
     @Test fun streamsGoAwayAsOpus() {
         val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
         assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(u, home, away, true))
