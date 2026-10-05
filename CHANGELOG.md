@@ -15,8 +15,11 @@ Versioning: each set of changes is a development build and takes the next third 
   - **Services** is the second item in Settings, as planned, with the Qobuz card: sign in, stream
     quality (CD, Hi-Res 24/96, 24/192), favourites and purchases in the library on or off, Update
     library now, Sign out.
-  - Two favourites, kept apart: the **+** on a Qobuz album (the browser, and above the ⋯ on its
-    page) is the Qobuz favourite and becomes a **✓**; the heart is Mandarin's, as on any album.
+  - The browser shows its albums as the album grid the rest of Mandarin draws, the Qobuz **+**
+    in the corner of each cover; tapping an album opens its page here, the same page as any album.
+  - Two favourites, kept apart: the **+** on a cover in the browser (a **✓** once added) and
+    **Add to / Remove from Qobuz favourites** in the ⋯ menu on an album's page are the Qobuz
+    favourite; the heart is Mandarin's, as on any album.
   - Your Qobuz playlists and favourite tracks are playlists here (each by its name, and "Qobuz
     favourite tracks"); the albums their tracks come from are known but off the walls.
   - Signed out, Qobuz albums and playlists leave the walls and the Playlists screen; their rows stay

@@ -580,7 +580,7 @@ Sign in with your Qobuz subscription: your favourites and purchases become album
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** adds an album to your Qobuz favourites (a **✓** once added) and so to the library. Details under [Qobuz](#qobuz).
+**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does **⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz).
 
 </details>
 
@@ -941,10 +941,11 @@ Server's Qobuz plugin does — the same API, the same credentials, the same rule
   Listen later and playlists, with a Qobuz mark on the cover. *Favourites and purchases in the
   library* on the Services page switches this off.
 * **The Qobuz browser** (*☰ → Qobuz*): search, new releases, best sellers, most streamed, press
-  awards, editor's picks, an artist's albums. An album's page there plays it (Play now, Play next,
-  Queue, or from a track) to the zone chosen, and its heart adds it to your Qobuz favourites and
-  so to the library. An album played without being kept is known here for a month (its page, Now
-  playing, history) and stays off the walls.
+  awards, editor's picks, an artist's albums, as the album grid the rest of Mandarin draws, each
+  cover with its **+** for your Qobuz favourites. Tapping an album opens its page here, the same
+  page as any album: Play now, Play next, Queue, or from a track, to the zone chosen. An album
+  played without being kept is known here for a month (its page, Now playing, history) and stays
+  off the walls.
 * **Your Qobuz playlists and favourite tracks are playlists here**: each playlist by its Qobuz name,
   and *Qobuz favourite tracks*, on the Playlists screen, brought up to date with the library. The
   albums their tracks come from are known (the tracks play, Now playing has the cover) but stay
@@ -954,9 +955,10 @@ Server's Qobuz plugin does — the same API, the same credentials, the same rule
   Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites,
   purchases or playlists (all of them while signed out), and, separately, albums whose files are
   gone from the server — after showing you the counts; plays stay in history.
-* **Two favourites, kept apart.** The **+** on a Qobuz album (in the browser, and above the ⋯ on
-  the album's page here) is your *Qobuz* favourite: it becomes a **✓** once added, and that is what
-  puts the album in the library. The **heart** is Mandarin's own favourite, as on any album.
+* **Two favourites, kept apart.** The **+** on a Qobuz album's cover in the browser (a **✓** once
+  added), and **Add to Qobuz favourites** / **Remove from Qobuz favourites** in the ⋯ menu on the
+  album's page here, are your *Qobuz* favourite, and that is what puts the album in the library.
+  The **heart** is Mandarin's own favourite, as on any album.
 * **Every track is streamed through the server**: when a player comes to fetch it, Mandarin asks
   Qobuz for that one track (a signed request, as Qobuz requires) and feeds the player from its
   transcode cache — a Sonos room gets 24/48 at most, a streamer or a USB DAC what it takes, the

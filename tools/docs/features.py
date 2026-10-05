@@ -242,8 +242,9 @@ FEATURES = [
     ("qobuz", "🎼", "Qobuz", True,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
-     "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** adds an "
-     "album to your Qobuz favourites (a **✓** once added) and so to the library. Details under [Qobuz](#qobuz)."),
+     "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
+     "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
+     "**⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

@@ -1917,33 +1917,25 @@ window.__afterStart = (fn) => {
   const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
   // The heart on an album's page: hollow, red once tapped, kept on the server.
-  /* The Qobuz favourite of a Qobuz album (v0.6.23): + to add, ✓ once added, on Qobuz itself. */
-  function buildQobuzFavButton(qobuzId) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "overflow-btn qobuz-fav-btn";
-    let on = false;
-    const paint = () => {
-      b.textContent = on ? "✓" : "+";
-      b.classList.toggle("is-on", on);
-      b.setAttribute("aria-pressed", String(on));
-      b.setAttribute("aria-label", on ? "In your Qobuz favourites — tap to remove" : "Add to your Qobuz favourites");
-      b.title = on ? "In your Qobuz favourites" : "Add to Qobuz favourites";
-    };
-    paint();
-    fetch("/api/qobuz/state?album_id=" + encodeURIComponent(qobuzId), { cache: "no-store" }).then(r => r.json()).then(s => { on = !!s.favourite; paint(); }).catch(() => {});
-    b.addEventListener("click", async () => {
+  // A Qobuz album's Qobuz favourite (v0.6.23), in the ⋯ menu — Add to Qobuz
+  // favourites, or Remove from — apart from the heart, which is Mandarin's
+  // own. Only while signed in: the page says whether it is one.
+  function qobuzMenuItem(page) {
+    const a = page && page.album;
+    if (!a || a.source !== "qobuz" || !a.qobuz_id || typeof a.qobuz_favourite !== "boolean") return [];
+    let on = a.qobuz_favourite;
+    const label = () => on ? "Remove from Qobuz favourites" : "Add to Qobuz favourites";
+    return [{ label: label(), onClick: async (b) => {
       b.disabled = true;
       try {
-        const r = await fetch("/api/qobuz/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: qobuzId }) });
+        const r = await fetch("/api/qobuz/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.qobuz_id }) });
         const s = await r.json().catch(() => ({}));
         if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
-        on = !on; paint();
+        on = !on; a.qobuz_favourite = on; b.textContent = label();
         showToast(on ? "Added to your Qobuz favourites" : "Removed from your Qobuz favourites");
       } catch (e) { showToast(e.message, "error"); }
       finally { b.disabled = false; }
-    });
-    return b;
+    } }];
   }
 
   function buildFavButton(album, fresh) {
@@ -7769,19 +7761,12 @@ window.__afterStart = (fn) => {
     if (overflow.length) {
       const more = buildOverflowMenu(
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
+          .concat(qobuzMenuItem(j))
           .concat(laterMenuItem(album, j))
           .concat(album.source === "qobuz" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
         { label: "More actions" });
-      // A Qobuz album (v0.6.23): its Qobuz favourite — a plus that becomes a
-      // tick — above the ⋯, apart from the heart, which is Mandarin's own.
-      if (j.album && j.album.source === "qobuz" && j.album.qobuz_id) {
-        const stack = document.createElement("div");
-        stack.className = "modal-actions-stack";
-        stack.appendChild(buildQobuzFavButton(j.album.qobuz_id));
-        stack.appendChild(more);
-        modalActs.appendChild(stack);
-      } else modalActs.appendChild(more);
+      modalActs.appendChild(more);
     }
     if (!available.length) {
       // "No playback actions available" was true and useless — it described
@@ -13640,6 +13625,7 @@ function initServiceBrowser(cfg) {
   // so viewStack and the history stack can never get out of step.
   function hideOverlay() {
     overlay.classList.add("hidden");
+    leaveUnder(false);
     viewStack = [];
     reqSeq++; // orphan any in-flight fetch — a late response must not repopulate the hidden overlay
     clearSearchTimer();
@@ -13688,6 +13674,7 @@ function initServiceBrowser(cfg) {
   // root — where closing is the correct response).
   window.addEventListener("popstate", (e) => {
     if (!overlayVisible()) return;
+    if (backClosesAlbumPage()) return;
     const depth = (e.state && Number.isFinite(e.state[cfg.historyKey])) ? e.state[cfg.historyKey] : 0;
     if (depth >= viewStack.length) {
       // Forward into a history entry whose view we already discarded — bounce
@@ -13737,7 +13724,13 @@ function initServiceBrowser(cfg) {
   // heart, which an album keeps for itself once it is in the library.
   function setFavState(button, added) {
     button.dataset.fav = added ? "1" : "0";
-    button.textContent = added ? ("✓ In " + cfg.serviceName + " favourites") : ("+ " + cfg.serviceName + " favourite");
+    const words = added ? ("✓ In " + cfg.serviceName + " favourites") : ("+ " + cfg.serviceName + " favourite");
+    // On a tile only the sign fits; the words are its label.
+    if (button.classList.contains("qobuz-tile-fav")) {
+      button.textContent = added ? "✓" : "+";
+      button.title = words.slice(2);
+      button.setAttribute("aria-label", words.slice(2));
+    } else button.textContent = words;
     button.classList.toggle("is-done", added);
   }
 
@@ -13787,32 +13780,95 @@ function initServiceBrowser(cfg) {
   const versionHtml = (a) =>
     a.version ? ' <span class="qobuz-nr-version">' + esc(a.version) + '</span>' : '';
 
-  // Build one album row (art, title [+ version], artist, date, favourite button;
-  // row tap → detail). Shared by every list-type view.
+  // One album as a tile of the same album grid the rest of the UI draws
+  // (.album / .album-art-wrap / .album-meta, so the columns, text sizes and
+  // the Grid columns setting all apply), the service favourite as a + / ✓
+  // in the corner of the cover. A tap opens the album's own page, as any
+  // album here. Shared by every list-type view.
   function buildAlbumRow(a) {
-    const row = document.createElement("div");
-    row.className = "qobuz-nr-row";
-    const art = a.image
-      ? '<img class="qobuz-nr-art" loading="lazy" alt="" src="' + esc(a.image) + '">'
-      : '<div class="qobuz-nr-art"></div>';
-    const date = a.release_date ? '<div class="qobuz-nr-date">' + esc(a.release_date) + '</div>' : '';
-    row.innerHTML = art +
-      '<div class="qobuz-nr-meta">' +
-        '<div class="qobuz-nr-title">'  + esc(a.title) + versionHtml(a) + '</div>' +
-        '<div class="qobuz-nr-artist">' + esc(a.artist) + '</div>' +
-        date +
-      '</div>';
+    const tile = document.createElement("div");
+    tile.className = "album qobuz-tile";
+    tile.setAttribute("role", "button");
+    tile.tabIndex = 0;
+    tile.setAttribute("aria-label", a.title + (a.artist ? " by " + a.artist : ""));
+    const art = document.createElement("div");
+    art.className = "album-art-wrap" + (a.image ? "" : " no-image");
+    if (a.image) {
+      const img = document.createElement("img");
+      img.loading = "lazy"; img.alt = ""; img.src = a.image;
+      img.addEventListener("error", () => { art.classList.add("no-image"); img.remove(); });
+      art.appendChild(img);
+    }
     const fav = document.createElement("button");
     fav.type = "button";
-    fav.className = "qobuz-nr-fav";
-    // Tappable toggle: "✓ Added" (in library) ⇄ "♥ Favourite". Initial state
-    // reflects the user's current service favourites (added here or elsewhere).
+    fav.className = "qobuz-nr-fav qobuz-tile-fav";
+    // + ⇄ ✓: the user's service favourites as they are now (added here or elsewhere).
     setFavState(fav, !!a.favourited);
     fav.addEventListener("click", (e) => { e.stopPropagation(); toggleFavourite(a.id, fav); });
-    row.appendChild(fav);
-    // Tapping the row (anywhere but the favourite button) opens the detail view.
-    row.addEventListener("click", () => pushView({ kind: "detail", album: a, rowFavBtn: fav }));
-    return row;
+    art.appendChild(fav);
+    const meta = document.createElement("div");
+    meta.className = "album-meta";
+    meta.innerHTML = '<div class="album-title">' + esc(a.title) + versionHtml(a) + '</div>' +
+      '<div class="album-artist">' + esc(a.artist) + '</div>';
+    tile.appendChild(art);
+    tile.appendChild(meta);
+    tile.addEventListener("click", () => openAlbumPage(a, fav));
+    tile.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAlbumPage(a, fav); } });
+    return tile;
+  }
+
+  // The album's own page — the one every album here has, with Play now, Play
+  // next, Queue, the tracks, and the service favourite above the ⋯ — instead
+  // of a page of this overlay's own. The server makes the album library rows
+  // first (/open; transient until favourited), then the page opens over this
+  // overlay, which drops beneath it until the page closes. The browse list is
+  // kept as it was, so closing the page lands back on it.
+  const albumModal = document.getElementById("album-modal");
+  let under = null;   // { favBtn, albumId, observer } while the album page is over the overlay
+  async function openAlbumPage(a, favBtn) {
+    if (typeof window.__openAlbum !== "function" || !albumModal) { pushView({ kind: "detail", album: a, rowFavBtn: favBtn }); return; }
+    try {
+      const r = await fetch(cfg.apiBase + "/open", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.id })
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Couldn't open that album");
+      const al = await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json();
+      if (!al.album) throw new Error(al.error || "Couldn't open that album");
+      if (!overlayVisible()) return;   // closed while the server was asked
+      showUnder(a.id, favBtn);
+      window.__openAlbum(al.album, { source: "qobuz", filter: null });
+    } catch (e) {
+      toast(e.message || "Couldn't open that album", "error");
+    }
+  }
+  function showUnder(albumId, favBtn) {
+    leaveUnder(false);
+    overlay.classList.add("is-under");
+    const observer = new MutationObserver(() => { if (albumModal.classList.contains("hidden")) leaveUnder(true); });
+    observer.observe(albumModal, { attributes: true, attributeFilter: ["class"] });
+    under = { favBtn, albumId, observer };
+  }
+  // The page has closed: the overlay comes back on top, and the tile's + / ✓
+  // is read again, since the page has the same favourite above its ⋯.
+  function leaveUnder(refresh) {
+    if (!under) return;
+    const u = under; under = null;
+    u.observer.disconnect();
+    overlay.classList.remove("is-under");
+    if (!refresh || !u.favBtn || !overlayVisible()) return;
+    fetch(cfg.apiBase + "/state?album_id=" + encodeURIComponent(u.albumId)).then(r => r.json())
+      .then(j => { if (j && j.connected && u.favBtn.isConnected) setFavState(u.favBtn, !!j.favourite); })
+      .catch(() => {});
+  }
+  // The album page is closed by the back button too (Android's, the browser's):
+  // the page goes, the overlay's history entry is put back, the list stays.
+  function backClosesAlbumPage() {
+    if (!under) return false;
+    const closer = albumModal.querySelector("[data-close]");
+    if (closer) closer.click(); else leaveUnder(true);
+    history.pushState({ [cfg.historyKey]: viewStack.length }, "");
+    return true;
   }
 
   function appendAlbumRows(albums) {

@@ -22,6 +22,7 @@ const { haveFfmpeg, makeLibrary, probe } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeQobuz } = require("./fake-qobuz");
 const { signIn } = require("./auth-helper");
+const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = 3634, B = "http://127.0.0.1:" + PORT;
@@ -188,9 +189,60 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.ok(qobuz.favourites.has("1003"));
       assert.equal((await api("qobuz/state?album_id=1003")).favourite, true);
       assert.equal((await api("album?offset=" + p.offset)).album.qobuz_id, "1003");
+      assert.equal((await api("album?offset=" + p.offset)).album.qobuz_favourite, true, "the page knows it is a favourite");
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), true);
       await api("qobuz/unfavorite", { album_id: "1003" });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false);
+    });
+
+    await t.test("the browser on the page: an album grid, + / ✓ on the covers, a tap opens the album's page", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)" }, async () => {
+      const b = await Browser.launch({ width: 390, height: 844 });
+      let r;
+      try {
+        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+        r = await page.eval(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const $ = id => document.getElementById(id);
+          const until = async (f, ms = 8000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
+          const out = {};
+          await until(() => !$("qobuz-toggle").classList.contains("hidden"));
+          $("qobuz-toggle").click();
+          await until(() => !$("qobuz-overlay").classList.contains("hidden"));
+          document.querySelector('#qobuz-tabs [data-qtab="best-sellers"]').click();
+          const list = $("qobuz-nr-list");
+          await until(() => list.querySelectorAll(".album.qobuz-tile").length >= 3);
+          out.grid = list.classList.contains("album-grid");
+          const tiles = [...list.querySelectorAll(".album.qobuz-tile")];
+          out.tiles = tiles.map(t => t.querySelector(".album-title").textContent + " | " + t.querySelector(".album-artist").textContent + " | " + t.querySelector(".qobuz-tile-fav").textContent);
+          out.art = tiles.every(t => t.querySelector(".album-art-wrap img"));
+          out.columns = getComputedStyle(list).gridTemplateColumns.split(" ").length;
+          const other = tiles.find(t => t.querySelector(".album-title").textContent === "Q Other");
+          other.click();
+          const modal = $("album-modal");
+          await until(() => !modal.classList.contains("hidden") && $("modal-title").textContent === "Q Other");
+          out.page_title = $("modal-title").textContent;
+          out.under = $("qobuz-overlay").classList.contains("is-under");
+          out.page_above = parseInt(getComputedStyle(modal).zIndex) > parseInt(getComputedStyle($("qobuz-overlay")).zIndex);
+          await until(() => modal.querySelectorAll(".overflow-menu .sel-menu-item").length);
+          out.page_menu = [...modal.querySelectorAll(".overflow-menu .sel-menu-item")].map(b => b.textContent);
+          modal.querySelector("[data-close]").click();
+          await until(() => modal.classList.contains("hidden"));
+          await sleep(200);
+          out.back_on_top = !$("qobuz-overlay").classList.contains("is-under") && !$("qobuz-overlay").classList.contains("hidden");
+          out.tiles_kept = list.querySelectorAll(".album.qobuz-tile").length;
+          return out;
+        })()`);
+        assert.deepEqual(page.errors, []);
+      } finally { await b.close(); }
+      assert.equal(r.grid, true, "the album grid the rest of the UI draws");
+      assert.equal(r.columns, 3, "three columns on a phone");
+      assert.deepEqual(r.tiles.sort(), ["Q Album | Q Artist | ✓", "Q Hi-Res | Q Artist | +", "Q Other | Someone Else | +"]);
+      assert.equal(r.art, true);
+      assert.equal(r.page_title, "Q Other", "a tap opens the album's own page");
+      assert.equal(r.under, true); assert.equal(r.page_above, true, "over the browser");
+      assert.ok(r.page_menu.includes("Add to Qobuz favourites"), "the ⋯ menu offers the Qobuz favourite: " + r.page_menu.join(", "));
+      assert.equal(r.back_on_top, true, "closed, the browser is back where it was");
+      assert.equal(r.tiles_kept, 3);
     });
 
     await t.test("signed out: nothing streams, the walls keep nothing of Qobuz", async () => {
