@@ -2612,10 +2612,23 @@ window.__afterStart = (fn) => {
       // and a view change during it would otherwise get tiles appended into it.
       if (!libraryWallActive || mySeq !== libWall.seq) return;
       const albums = (j && j.albums) || [];
-      if (firstPage) { grid.innerHTML = ""; setBanner(null); }
+      if (firstPage) { grid.innerHTML = ""; setBanner(null); libWall.ext = null; }
       const frag = document.createDocumentFragment();
       for (const a of albums) frag.appendChild(homeTile(a));   // filter:null → offsets resolve
       grid.appendChild(frag);
+      // The letters typed asked of Qobuz and Tidal too (v0.6.24): their
+      // artists and albums under the library's rows, kept at the end as
+      // more pages come, gone with the filter.
+      if (libWall.ext) grid.appendChild(libWall.ext);
+      else if (firstPage && libView.prefix && window.__serviceSearchSections) {
+        const q = libView.prefix;
+        window.__serviceSearchSections(q).then(w => {
+          if (!w || !libraryWallActive || mySeq !== libWall.seq || libView.prefix !== q) return;
+          libWall.ext = w;
+          grid.appendChild(w);
+          if (!libWall.offset) setBanner(null);   // the library had nothing; the services have
+        }).catch(() => {});
+      }
       libWall.offset += albums.length;
       // End of library = a short (or empty) page; no separate total bookkeeping.
       libWall.done = albums.length < LIB_PAGE;
@@ -8478,27 +8491,39 @@ window.__afterStart = (fn) => {
       return true;
     }
 
+    // The services and Pitchfork are asked separately (v0.6.24), each
+    // section landing as its answer comes: Qobuz and Tidal are no longer
+    // held for a slow Pitchfork search. One wrapper, two slots in a fixed
+    // order, so whichever answers first the services stay above the reviews.
     async function runExternal(q, mySeq) {
-      try {
-        const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}`, { cache: "no-store" });
-        if (mySeq !== seq || !r.ok) return;
-        const j = await r.json();
-        if (mySeq !== seq) return;
-        const wrap = document.createElement("div");
-        wrap.className = "ext-search-wrap";
-        let added = 0;
-        added += extServiceSection(wrap, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input");
-        added += extServiceSection(wrap, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input");
-        added += extPitchforkSection(wrap, j.pitchfork);
-        if (!added) return;
+      const wrap = document.createElement("div");
+      wrap.className = "ext-search-wrap";
+      const slots = { services: document.createElement("div"), pitchfork: document.createElement("div") };
+      for (const el of Object.values(slots)) { el.className = "ext-search-slot"; wrap.appendChild(el); }
+      const landed = (n) => {
+        if (mySeq !== seq || !n) return;
         extWrap = wrap;
         extWrapSeq = mySeq;
         // Externals may arrive while a "No matches for X" banner shows —
         // clear THAT banner (there are matches after all), but never the
         // Roon-disconnect/error banners, which explain the missing library rows.
         if (extAllowBannerClear) setBanner(null);
-        grid.appendChild(wrap);
-      } catch (e) { /* best-effort — external sections just don't appear */ }
+        grid.appendChild(wrap);     // appendChild MOVES it if already attached
+      };
+      const ask = async (part, fill) => {
+        try {
+          const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=${part}`, { cache: "no-store" });
+          if (mySeq !== seq || !r.ok) return;
+          const j = await r.json();
+          if (mySeq !== seq) return;
+          landed(fill(j));
+        } catch (e) { /* best-effort — that section just doesn't appear */ }
+      };
+      await Promise.all([
+        ask("services", (j) => extServiceSection(slots.services, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")
+          + extServiceSection(slots.services, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input")),
+        ask("pitchfork", (j) => extPitchforkSection(slots.pitchfork, j.pitchfork))
+      ]);
     }
 
     function extHeader(frag, label) {
@@ -8669,12 +8694,27 @@ window.__afterStart = (fn) => {
     // Tap anywhere outside the search container closes it. `closest()` on the
     // container, not `contains()` on the input, so a tap on the X or the
     // status text is inside rather than a dismissal.
+    // A tap on a result, or in the album page, a sheet or a menu opened over
+    // the results, is not a tap away (v0.6.24): the results stay for when
+    // the page closes.
     document.addEventListener("click", (e) => {
       if (!row.classList.contains("open")) return;
-      if (e.target.closest && e.target.closest("#topbar-search")) return;
+      if (e.target.closest && e.target.closest("#topbar-search, #album-grid, #album-modal, .settings-overlay, #menu-overlay, .sel-menu, .confirm-overlay, .sheet-overlay")) return;
       closeSearch();
     });
 
+    // The services' sections alone, for the Library wall's filter (v0.6.24):
+    // Qobuz's and Tidal's artists and albums for the letters typed, or null.
+    window.__serviceSearchSections = async (q) => {
+      const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=services`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const wrap = document.createElement("div");
+      wrap.className = "ext-search-wrap";
+      const n = extServiceSection(wrap, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")
+        + extServiceSection(wrap, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input");
+      return n ? wrap : null;
+    };
     // Seed and open in one step. Used by anything that wants to hand the user
     // a started search rather than an empty box.
     window.__runSearch = (q) => { openSearch(); input.value = q; onInput(); };

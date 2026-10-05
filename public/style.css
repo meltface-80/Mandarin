@@ -399,7 +399,7 @@ a.action-btn:active,
    it exists only so a slow library render can re-attach all external sections
    as one node. (Pre-11.1 Safari treats it as a block: rows stack full-width
    inside one grid cell — acceptable degradation.) */
-.ext-search-wrap { display: contents; }
+.ext-search-wrap, .ext-search-slot { display: contents; }
 /* A service's artists on the search screen (v0.6.24): a strip of the browsers'
    chips across the grid, above the service's album tiles. */
 .ext-search-artists {

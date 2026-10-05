@@ -43,7 +43,10 @@ Versioning: each set of changes is a development build and takes the next third 
 - **The search asks Qobuz and Tidal too.** From Home or the Library, signed in, each service's
   artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
   an album from either opens and plays whether or not it is in your library, both versions shown
-  where both have it; an artist opens their albums in the service's browser.
+  where both have it; an artist opens their albums in the service's browser. The Library wall's
+  filter asks them for the letters typed too. The services answer as soon as they have, no longer
+  held for Pitchfork's review search; and a tap on a result no longer closes the search, so the
+  results are there when the album's page closes.
 - **Rescan library goes on to the services**: once the music folder is scanned, Qobuz and then
   Tidal are brought up to date, in that order, each where you are signed in with the import on.
   The toast says so.

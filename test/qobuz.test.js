@@ -44,7 +44,9 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
   const qobuz = new FakeQobuz({ art: path.join(lib.music, "Artist A", "Album One", "cover.jpg"), albums: [
     { id: 1001, title: "Q Album", artist: "Q Artist", year: 2021, rate: 44100, bits: 16, tracks: cdFiles.map((f, i) => ({ id: 5001 + i, title: "Q Song " + (i + 1), file: f, duration: 3 })) },
     { id: 1002, title: "Q Hi-Res", artist: "Q Artist", year: 2022, rate: 96000, bits: 24, tracks: hiFiles.map((f, i) => ({ id: 6001 + i, title: "Q Hi " + (i + 1), file: f, duration: 4 })) },
-    { id: 1003, title: "Q Other", artist: "Someone Else", year: 2020, rate: 44100, bits: 16, tracks: [{ id: 7001, title: "Q Other 1", file: cdFiles[0], duration: 3 }] }
+    { id: 1003, title: "Q Other", artist: "Someone Else", year: 2020, rate: 44100, bits: 16, tracks: [{ id: 7001, title: "Q Other 1", file: cdFiles[0], duration: 3 }] },
+    // Never favourited, never played: only the catalogue knows it (the search from Home finds it).
+    { id: 1004, title: "Whitney", artist: "Whitney Houston", year: 1987, rate: 44100, bits: 16, tracks: [{ id: 8001, title: "W 1", file: cdFiles[1], duration: 3 }] }
   ], playlists: [{ id: 9001, name: "Road trip", tracks: [5002, 7001] }] });
   await qobuz.start();
   qobuz.favourites.add("1001");
@@ -236,13 +238,13 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       } finally { await b.close(); }
       assert.equal(r.grid, true, "the album grid the rest of the UI draws");
       assert.equal(r.columns, 3, "three columns on a phone");
-      assert.deepEqual(r.tiles.sort(), ["Q Album | Q Artist | ✓", "Q Hi-Res | Q Artist | +", "Q Other | Someone Else | +"]);
+      assert.deepEqual(r.tiles.sort(), ["Q Album | Q Artist | ✓", "Q Hi-Res | Q Artist | +", "Q Other | Someone Else | +", "Whitney | Whitney Houston | +"]);
       assert.equal(r.art, true);
       assert.equal(r.page_title, "Q Other", "a tap opens the album's own page");
       assert.equal(r.under, true); assert.equal(r.page_above, true, "over the browser");
       assert.ok(r.page_menu.includes("Add to Qobuz favourites"), "the ⋯ menu offers the Qobuz favourite: " + r.page_menu.join(", "));
       assert.equal(r.back_on_top, true, "closed, the browser is back where it was");
-      assert.equal(r.tiles_kept, 3);
+      assert.equal(r.tiles_kept, 4);
     });
 
     // The search from Home (v0.6.24): Qobuz's albums as tiles of the results,
@@ -259,8 +261,17 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           const until = async (f, ms = 10000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
           const out = {};
           await until(() => typeof window.__runSearch === "function" && window.__serviceBrowsers && window.__serviceBrowsers.qobuz);
+          await until(() => document.querySelector("#home-random .album, #home-today .album"));   // Home painted, as a person finds it
+          // First an artist nowhere in the library: Qobuz alone answers, under no "No matches" banner.
+          window.__runSearch("Whitney");
+          const w0 = await until(() => document.querySelector(".ext-search-wrap"));
+          out.catalogue_only = w0 ? [...w0.querySelectorAll(".album.qobuz-tile .album-title")].map(t => t.textContent) : null;
+          out.catalogue_banner = !$("banner") || $("banner").classList.contains("hidden") ? "" : $("banner").textContent;
+          out.catalogue_grid_shown = !!(w0 && w0.querySelector(".album.qobuz-tile") && w0.querySelector(".album.qobuz-tile").offsetParent);   // on screen
+          { const tile = w0 && w0.querySelector(".album.qobuz-tile"); const g = w0 && w0.parentElement;
+            out.dbg = tile ? { gridId: g.id, gridClass: g.className, gridDisp: getComputedStyle(g).display, tileDisp: getComputedStyle(tile).display, tileRect: tile.getBoundingClientRect().height, hiddenAncestor: (() => { let e = tile; while (e) { if (getComputedStyle(e).display === "none") return e.id || e.className; e = e.parentElement; } return null; })() } : null; }
           window.__runSearch("Someone Else");
-          const wrap = await until(() => document.querySelector(".ext-search-wrap"));
+          const wrap = await until(() => document.querySelector(".ext-search-wrap") && document.querySelector(".ext-search-wrap .qobuz-artist-chip") && [...document.querySelectorAll(".ext-search-wrap .qobuz-artist-chip")].some(c => c.textContent === "Someone Else") && document.querySelector(".ext-search-wrap"));
           if (!wrap) return { no_wrap: true };
           out.headers = [...wrap.querySelectorAll(".search-section-header")].map(h => h.textContent);
           out.tiles = [...wrap.querySelectorAll(".album.qobuz-tile")].map(t => t.querySelector(".album-title").textContent + " | " + t.querySelector(".qobuz-tile-fav").textContent);
@@ -273,21 +284,35 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           modal.querySelector("[data-close]").click();
           await until(() => modal.classList.contains("hidden"));
           out.results_kept = !!document.querySelector(".ext-search-wrap .album.qobuz-tile");
+          out.kept_dbg = { wraps: document.querySelectorAll(".ext-search-wrap").length, grid_kids: document.getElementById("album-grid").children.length, grid_hidden: document.getElementById("album-grid").classList.contains("hidden"), active: window.__searchActive && window.__searchActive(), home: !document.getElementById("home-view").classList.contains("hidden"), input: document.getElementById("search-input").value };
           wrap.querySelector(".ext-search-artists .qobuz-artist-chip").click();
           await until(() => !$("qobuz-overlay").classList.contains("hidden") && !$("qobuz-artist-head").classList.contains("hidden"));
           out.artist_head = ($("qobuz-artist-head").textContent || "").includes("Artist A");   // the fake's artist page
+          // The Library wall's filter asks the services too: letters no album here starts with.
+          $("qobuz-overlay-close").click(); await sleep(300);
+          $("topbar-back").click(); await sleep(300);
+          $("home-library-title").click(); await sleep(500);
+          document.querySelector(".topbar .lib-filter-btn").click(); await sleep(200);
+          const lf = document.querySelector(".topbar .lib-filter-input");
+          lf.value = "Whit"; lf.dispatchEvent(new Event("input", { bubbles: true }));
+          const lw = await until(() => document.querySelector("#album-grid .ext-search-wrap .album.qobuz-tile"));
+          out.library_filter = lw ? { title: lw.querySelector(".album-title").textContent, library_rows: document.querySelectorAll("#album-grid > .album").length } : null;
           return out;
         })()`);
         assert.deepEqual(page.errors, []);
       } finally { await b.close(); }
+      assert.deepEqual(r.catalogue_only, ["Whitney"], "an album only the catalogue has is found from Home");
+      assert.equal(r.catalogue_banner, "", "and no 'No matches' banner stays");
+      assert.equal(r.catalogue_grid_shown, true, JSON.stringify(r.dbg));
       assert.ok(!r.no_wrap, "Qobuz answered the search");
       assert.ok(r.headers.includes("Qobuz"), r.headers.join(", "));
       assert.deepEqual(r.tiles, ["Q Other | +"], "its album as a tile, the favourite as +");
       assert.deepEqual(r.chips, ["Someone Else"], "its artist as a chip");
       assert.equal(r.page_title, "Q Other", "a tap opens the album's own page");
       assert.equal(r.overlay_hidden, true, "over the results, not the Qobuz browser");
-      assert.equal(r.results_kept, true, "closed, the results are still there");
+      assert.equal(r.results_kept, true, "closed, the results are still there: " + JSON.stringify(r.kept_dbg));
       assert.equal(r.artist_head, true, "the chip opens the artist's albums in the Qobuz browser");
+      assert.deepEqual(r.library_filter, { title: "Whitney", library_rows: 0 }, "the Library wall's filter brings the services' albums too");
     });
 
     // Rescan library (v0.6.24): the folder, then the services signed in with

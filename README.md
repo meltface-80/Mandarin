@@ -100,7 +100,7 @@ Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues besid
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's; tap a cover for the album's page, an artist for their albums.
+Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.
 
 </details>
 

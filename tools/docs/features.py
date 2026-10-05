@@ -46,8 +46,8 @@ FEATURES = [
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
      "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in "
-     "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's; "
-     "tap a cover for the album's page, an artist for their albums."),
+     "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
+     "from the Library wall's filter too; tap a cover for the album's page, an artist for their albums."),
     ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
