@@ -31,7 +31,7 @@ const DRIVER = `(async () => {
   $("menu-toggle").click(); await sleep(400);
   out.opened = open();
   const d = drawer.getBoundingClientRect();
-  const home = overlay.querySelector('.menu-item[data-action="home"]');
+  const home = overlay.querySelector('.menu-item[data-action="later"]');
   const h = home.getBoundingClientRect();
   out.item_hugs = Math.round(h.width) < Math.round(d.width) * 0.75;
   out.item_text = home.textContent.trim();
@@ -79,7 +79,7 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
       r.open_on_next_visit = await later.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
     } finally { await b.close(); }
     assert.equal(r.opened, true);
-    assert.equal(r.item_text, "Home");
+    assert.equal(r.item_text, "Listen later");
     assert.equal(r.item_hugs, true, "an item is no wider than its icon and words");
     assert.equal(r.beside_was, "blank", "beside the words is nothing");
     assert.equal(r.open_after_blank, true, "a blank part of the menu doesn't close it");

@@ -332,8 +332,6 @@ window.__afterStart = (fn) => {
   let playlistSeq = 0;              // orphans in-flight playlist fetches
   let smartPicksActive = false;     // viewing the Smart Picks screen?
   let smartPicksSeq = 0;            // orphans in-flight Smart Picks fetches
-  let discoverActive = false;       // viewing the Discover screen?
-  let discoverSeq = 0;              // orphans in-flight Discover fetches
   // How long a report about a long-running queue fill stays up (vs showToast's
   // 2.4s default). Declared here rather than beside showToast() for the same
   // reason as the flags above — a `const` further down the file is a TDZ
@@ -1640,148 +1638,6 @@ window.__afterStart = (fn) => {
     grid.appendChild(wrap);
   }
 
-  /*
-   * DISCOVER — new records by the acts you play.
-   *
-   * The screen this app did not have. Smart Picks is LATERAL (acts next to
-   * your library that you do not own) and the Pitchfork and service screens
-   * are EDITORIAL (what somebody else rates this week); neither can answer
-   * "has anyone I actually listen to put something out", because that question
-   * needs your listening history and nobody outside this box has it.
-   *
-   * The rows are the same KIND of answer the share card's suggestions give —
-   * a record that is either in your library or on a service — so they are
-   * built by the same goRow() and go to the same places. What differs is the
-   * emphasis: here the RECORD is the headline and the act is the quiet line,
-   * because you already know the act. That is the whole point of the screen.
-   */
-  async function showDiscover() {
-    enterFullWall("Discover");
-    discoverActive = true;
-    const mySeq = ++discoverSeq;
-    let j = null;
-    try {
-      const r = await fetch("/api/discover");
-      j = await r.json();
-      // A 503 while pairing carries a real explanation. Dropping it for the
-      // generic message throws away the one thing that says what to do.
-      if (!r.ok && !(j && j.error)) j = { error: "HTTP " + r.status };
-    } catch (e) {
-      j = null;
-    }
-    if (!discoverActive || mySeq !== discoverSeq) return;   // the user moved on
-    grid.innerHTML = "";
-    if (!j || j.error) {
-      setBanner(j && j.error
-        ? ("Couldn't load Discover — " + j.error)
-        : "Couldn't load Discover — the extension didn't answer. Try again.", true);
-      return;
-    }
-    if (!j.enabled) {
-      setBanner("Discover is switched off. Turn it on in Settings \u2192 Setup \u2192 Discover and " +
-                "it will look for new records by the artists you play.", false);
-      return;
-    }
-    const releases = j.releases || [];
-    if (!releases.length) {
-      // "Building" and "found nothing" are different answers and the screen
-      // says which: the first is worth coming back to in a minute, the second
-      // is not.
-      setBanner(j.building
-        ? "Looking for new records by the artists you play \u2014 come back shortly."
-        : "Nothing new from the artists you play in the last " +
-          (j.window_days || 60) + " days. This rebuilds every day.", false);
-      return;
-    }
-    setBanner(null, false);
-
-    if (!window.__goRow) {
-      // The share overlay's closure owns the row builder and publishes it at
-      // load. Nothing can reach this screen before that has run, so this is a
-      // guard against a future reordering rather than a live case — and a
-      // silent empty screen would be a worse way to find out.
-      setBanner("Couldn't draw the list — reload the app.", true);
-      return;
-    }
-    const wrap = document.createElement("div");
-    wrap.className = "discover-list";
-    for (const rel of releases) {
-      if (!rel || !rel.album) continue;
-      wrap.appendChild(window.__goRow(rel, rel.album, discoverSubLine(rel),
-                                      discoverArt(rel)));
-    }
-    grid.appendChild(wrap);
-
-    // The Qobuz links upgraded AFTER the rows are on screen and never before
-    // them — a page read per row, and a failure leaves the search link that is
-    // already there. Not awaited, for the same reason.
-    if (window.__upgradeQobuzLinks) {
-      window.__upgradeQobuzLinks(releases, {
-        container: wrap, current: () => discoverActive && mySeq === discoverSeq,
-        album: r => r.album, artist: r => r.artist,
-      });
-    }
-  }
-  window.__showDiscover = showDiscover;
-
-  /*
-   * Where a release's cover comes from, or "" for none.
-   *
-   * ROON'S OWN ART WINS WHENEVER THERE IS ANY. A record the library already
-   * holds has an image_key, and that art is served from this box, is already
-   * cached, and is the same picture the album shows everywhere else in the
-   * app — using Deezer's copy for it would put two different covers on the
-   * same record on two different screens.
-   *
-   * Everything else falls back to the cover Deezer named during the build,
-   * loaded straight from their CDN. That is what the Smart Picks cards and the
-   * Pitchfork grid already do with their services' images, so it introduces no
-   * new kind of request; rowArt() handles the ones that never arrive.
-   */
-  function discoverArt(rel) {
-    if (rel.image_key) {
-      return "/api/image/" + encodeURIComponent(rel.image_key) + "?size=160";
-    }
-    return rel.cover || "";
-  }
-
-  /*
-   * The quiet line under a release: who made it, and when it came out.
-   *
-   * The DATE and not the year. A screen whose whole subject is what is new has
-   * to distinguish last week from ten months ago, and "2026" cannot — every
-   * row would read the same for the first eleven months of a year.
-   */
-  function discoverSubLine(rel) {
-    const when = discoverWhen(rel.release_date);
-    return when ? (rel.artist + " \u00b7 " + when) : rel.artist;
-  }
-
-  /*
-   * A release date as a human distance: "today", "3 days ago", "2 weeks ago",
-   * then the date itself.
-   *
-   * Compared in whole DAYS, from the local midnight of each — not by
-   * subtracting timestamps. A release dated yesterday afternoon is one day
-   * old at any hour of today, and an hours-based rule calls it "today" all
-   * morning and "yesterday" all evening for the same record.
-   */
-  function discoverWhen(dateStr) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || ""));
-    if (!m) return "";
-    const then = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    const now = new Date();
-    const midnight = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const days = Math.round((midnight(now) - midnight(then)) / 86400000);
-    if (!Number.isFinite(days) || days < 0) return "";
-    if (days === 0) return "today";
-    if (days === 1) return "yesterday";
-    if (days < 7) return days + " days ago";
-    if (days < 14) return "last week";
-    if (days < 60) return Math.floor(days / 7) + " weeks ago";
-    return then.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  }
-
   // Label of the week — one label featured for the whole ISO week (backend
   // picks deterministically). Retried each Home visit until it populates (the
   // labels scan runs in the background), then left alone. Tapping the header
@@ -2372,6 +2228,17 @@ window.__afterStart = (fn) => {
     playlistsActive = true;
     const mySeq = ++playlistSeq;
     grid.innerHTML = "";
+    // Import, at the top of the screen (v0.6.24; it was a side-menu item).
+    { const pc = document.getElementById("content-count");
+      if (pc) {
+        pc.innerHTML = "";
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "playlists-import"; b.textContent = "Import";
+        b.setAttribute("aria-label", "Import a playlist");
+        b.addEventListener("click", () => { if (window.__openImportSheet) window.__openImportSheet(); });
+        pc.appendChild(b);
+        pc.classList.remove("hidden");
+      } }
 
     // `null` means "this source did not answer", which is distinct from a
     // source that answered with an empty list — one is a warning, the other is
@@ -2667,15 +2534,12 @@ window.__afterStart = (fn) => {
     // next. enterFullWall and showHome both call this, so adding it here covers
     // every route out of the screen at once.
     smartPicksActive = false;
-    // Discover joins the same ritual, and for the same reason: its fetch is
-    // slower than most (the server resolves every row against the library), so
-    // it is the likeliest of all of them to land after the user has moved on.
-    discoverActive = false;
+    // The Playlists screen's Import button goes with the screen.
+    if (playlistsActive) { const pc = document.getElementById("content-count"); if (pc) { pc.innerHTML = ""; pc.classList.add("hidden"); } }
     playlistSeq++;
     smartSeq++;
     userPlSeq++;
     smartPicksSeq++;
-    discoverSeq++;
   }
   window.__leavePlaylistScreens = leavePlaylistScreens;
 
@@ -8128,8 +7992,10 @@ window.__afterStart = (fn) => {
       labelBtn.className = "modal-artist-link";
       labelBtn.textContent = extras.album.label;
       labelBtn.addEventListener("click", () => {
+        // Back from the label's albums returns to this page (v0.6.24).
+        const back = { album, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } };
         closeModal();
-        if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label);
+        if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label, false, back);
       });
       modalSub.appendChild(labelBtn);
     }
@@ -9368,9 +9234,13 @@ window.__afterStart = (fn) => {
       if (logoCandidatesEl) logoCandidatesEl.innerHTML = "";
     }
 
-    async function showLabelAlbums(name, fromLabelsList = false) {
+    // Where ‹ goes from one label's albums when they were opened from an
+    // album's page: back to that page, not to the list of all labels (v0.6.24).
+    let _labelsReturn = null;
+    async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
       if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
       if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
+      _labelsReturn = returnTo && returnTo.album ? returnTo : null;
       if (fromLabelsList) {
         // Came from a tap on the Labels grid — remember the grid scroll position.
         _labelsScrollSaved = mainEl ? mainEl.scrollTop : 0;
@@ -9436,6 +9306,13 @@ window.__afterStart = (fn) => {
       if (tb) tb.addEventListener("click", (e) => {
         if (!(labelsActive && mode === "albums")) return;
         if (window.__artistViewActive && window.__artistViewActive()) return;
+        // Opened from an album's page: the usual ‹ (Home) runs, and the album's
+        // page comes back over it.
+        if (_labelsReturn) {
+          const r = _labelsReturn; _labelsReturn = null;
+          if (window.__openAlbum) setTimeout(() => window.__openAlbum(r.album, r.opts), 0);
+          return;
+        }
         e.stopImmediatePropagation();
         showLabelsList();
       }, true);
@@ -9609,10 +9486,6 @@ window.__afterStart = (fn) => {
     if (picksItem && typeof state.picks === "boolean") {
       picksItem.classList.toggle("hidden", !state.picks);
     }
-    const discoverItem = document.getElementById("menu-item-discover");
-    if (discoverItem && typeof state.discover === "boolean") {
-      discoverItem.classList.toggle("hidden", !state.discover);
-    }
   };
 
   // Ask at boot. Two independent calls, so an older server or a transient
@@ -9621,16 +9494,10 @@ window.__afterStart = (fn) => {
   async function applyFeatureMenuFromServer() {
     const state = {};
     const ask = async (url) => { try { const r = await fetch(url); return r.ok ? !!(await r.json()).enabled : null; } catch (e) { return null; } };
-    const [labels, picks, discover] = await Promise.all([
-      ask("/api/settings/labels"), ask("/api/settings/smart-picks"), ask("/api/settings/discover")
-    ]);
-    // A failed lookup leaves the entry as the markup has it — which for
-    // Discover is HIDDEN: unlike the other two it is off for everyone until
-    // asked for, so a failed lookup must not offer a menu entry that leads to
-    // an empty screen.
+    const [labels, picks] = await Promise.all([ask("/api/settings/labels"), ask("/api/settings/smart-picks")]);
+    // A failed lookup leaves the entry as the markup has it.
     if (labels !== null) state.labels = labels;
     if (picks !== null) state.picks = picks;
-    if (discover !== null) state.discover = discover;
     window.__applyFeatureMenu(state);
   }
 
@@ -13222,106 +13089,6 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  // ----- Discover --------------------------------------------------------
-  // Up to eighty Deezer reads in a row, once a day. The hour matters for the
-  // same reason Smart Picks' does — not because it competes with Roon (nothing
-  // here touches the Core) but because a burst of outbound calls belongs at an
-  // hour nobody is listening.
-  const discEnabled = document.getElementById("discover-enabled");
-  const discHour    = document.getElementById("discover-hour");
-  const discRebuild = document.getElementById("discover-rebuild");
-  const discNote    = document.getElementById("discover-note");
-
-  if (discHour && !discHour.options.length) {
-    for (let h = 0; h < 24; h++) {
-      const o = document.createElement("option");
-      o.value = String(h);
-      o.textContent = (h < 10 ? "0" + h : String(h)) + ":00";
-      discHour.appendChild(o);
-    }
-  }
-
-  async function saveDiscoverSettings(patch) {
-    try {
-      const r = await fetch("/api/settings/discover", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch)
-      });
-      const j = await r.json();
-      if (!r.ok || j.error) { showToast(j.error || "Couldn't save", "error"); return false; }
-      return true;
-    } catch (e) {
-      showToast("Couldn't save: " + e.message, "error");
-      return false;
-    }
-  }
-
-  async function loadDiscoverSettings() {
-    if (!discEnabled && !discHour) return;
-    try {
-      const r = await fetch("/api/settings/discover");
-      if (!r.ok) return;
-      const j = await r.json();
-      if (discEnabled) discEnabled.checked = !!j.enabled;
-      // A device that was not the one that flipped the switch catches up here.
-      if (window.__applyFeatureMenu) window.__applyFeatureMenu({ discover: !!j.enabled });
-      if (discHour && Number.isFinite(j.hour)) discHour.value = String(j.hour);
-      if (discNote) {
-        // The numbers come from the SERVER rather than being written into the
-        // copy, so the sentence cannot end up describing a window or a seed
-        // count that the build no longer uses.
-        discNote.textContent = "Reads your play history for the " +
-          (j.seed_count || 40) + " artists you return to most, and looks for " +
-          "records they have released in the last " + (j.window_days || 60) +
-          " days. Only the lookups leave your network.";
-      }
-    } catch (e) {
-      // Settings show their last values; the pane is not the place to report a
-      // transient fetch failure.
-    }
-  }
-
-  if (discEnabled) {
-    discEnabled.addEventListener("change", async () => {
-      const on = discEnabled.checked;
-      if (await saveDiscoverSettings({ enabled: on })) {
-        showToast(on ? "Discover on — the first list builds at the scheduled hour"
-                     : "Discover off — nothing runs in the background");
-        if (window.__applyFeatureMenu) window.__applyFeatureMenu({ discover: on });
-      } else {
-        discEnabled.checked = !on;   // the server refused — do not lie about it
-      }
-    });
-  }
-
-  if (discHour) {
-    discHour.addEventListener("change", async () => {
-      const h = parseInt(discHour.value, 10);
-      if (await saveDiscoverSettings({ hour: h })) {
-        showToast("Discover will look at " + (h < 10 ? "0" + h : h) + ":00");
-      }
-    });
-  }
-
-  if (discRebuild) {
-    discRebuild.addEventListener("click", async () => {
-      discRebuild.disabled = true;
-      const orig = discRebuild.textContent;
-      discRebuild.textContent = "\u2026";
-      try {
-        const r = await fetch("/api/discover/rebuild", { method: "POST" });
-        const j = await r.json().catch(() => ({}));
-        showToast(r.ok ? "Looking for new records — check back in a minute"
-                       : (j.error || "Couldn't refresh"), r.ok ? "ok" : "error");
-      } catch (e) {
-        showToast("Couldn't refresh: " + e.message, "error");
-      } finally {
-        discRebuild.disabled = false;
-        discRebuild.textContent = orig;
-      }
-    });
-  }
-
   // ----- Waveform on/off -----
   const waveEnabledEl = document.getElementById("waveform-enabled");
   const waveEnabledNote = document.getElementById("waveform-enabled-note");
@@ -13596,7 +13363,7 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
   const close = () => { overlay.classList.add("hidden"); };
 
   openBtn.addEventListener("click", open);
@@ -15599,10 +15366,6 @@ initServiceBrowser({
       }
       if (action === "smart-picks") {
         if (window.__showSmartPicks) window.__showSmartPicks();
-        return;
-      }
-      if (action === "discover") {
-        if (window.__showDiscover) window.__showDiscover();
         return;
       }
       if (action === "smart-playlists") {

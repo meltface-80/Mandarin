@@ -142,9 +142,6 @@ FEATURES = [
      "played, topped up from your least-played albums.",
      "**☰ → Smart Picks**, or its Home row. **Settings → Setup → Smart Picks** switches it on or off and sets "
      "the hour each day's picks are made."),
-    ("discover", "🧭", "Discover", False,
-     "New albums by the artists you play, looked up on Deezer. Off until you switch it on.",
-     "Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**."),
     ("pitchfork", "📰", "Pitchfork", False,
      "Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album "
      "you own.",

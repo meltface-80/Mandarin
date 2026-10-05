@@ -24,6 +24,12 @@ Versioning: each set of changes is a development build and takes the next third 
   - Under the hood the two services share one library side (lib/services): rows, kept and held
     albums, playlists import, Clean up, pruning, and one set of routes per service. A service's
     playlists carry which service they are from.
+- **The side menu, shorter**: Pitchfork, Labels, Qobuz, Tidal, Listen later, Dynamic Playlists,
+  Playlists. Home, Random albums and Smart Picks leave it (Home's rows are where they live; ‹
+  goes Home), **Import** is a button at the top of the Playlists screen, and **Discover** is
+  gone altogether, its page in Settings → Setup with it.
+- **‹ from a record label's albums goes back to the album** you opened the label from, not to
+  the list of all labels.
 - **The Library's Focus and Sort** sit in their own row under the top bar again, as smaller
   pills — Focus on the left, Sort on the right — and stay in view while the grid scrolls. The
   search glass stays in the top bar at its size; the title keeps its place at every width.

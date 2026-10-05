@@ -334,18 +334,6 @@ Five albums a day from your own library, by artists Deezer lists as related to t
 
 ⸻
 
-🧭 **Discover**
-
-New albums by the artists you play, looked up on Deezer. Off until you switch it on.
-
-<details><summary><b>ⓘ</b> How to set it up and use it</summary>
-
-Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**.
-
-</details>
-
-⸻
-
 📰 **Pitchfork**
 
 Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album you own.
@@ -882,7 +870,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
 | `DEBUG` | — | Log every API call. |
 
-Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks, Discover,
+Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks,
 the wall display and the Home rows are in the app's Settings and are saved in the data volume.
 
 ## Your account

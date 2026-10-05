@@ -707,19 +707,10 @@
           <span class="switch menu-switch" aria-hidden="true"><span class="switch-track"><span class="switch-thumb"></span></span></span>
         </button>
         <div class="menu-sep menu-toggle-sep"></div>
-        <button class="menu-item" type="button" data-action="home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-          <span>Home</span>
+        <button class="menu-item" type="button" data-target="pitchfork-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
+          <span>Pitchfork</span>
         </button>
-        <button class="menu-item" type="button" data-action="later">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span>Listen later</span>
-        </button>
-        <button class="menu-item" type="button" data-action="shuffle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
-          <span>Random albums</span>
-        </button>
-        <div class="menu-sep"></div>
         <button class="menu-item" type="button" data-target="labels-toggle" id="menu-item-labels">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           <span>Labels</span>
@@ -732,17 +723,9 @@
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
           <span>Tidal</span>
         </button>
-        <button class="menu-item" type="button" data-target="pitchfork-toggle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
-          <span>Pitchfork</span>
-        </button>
-        <button class="menu-item hidden" type="button" data-action="discover" id="menu-item-discover">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
-          <span>Discover</span>
-        </button>
-        <button class="menu-item" type="button" data-action="smart-picks" id="menu-item-picks">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-          <span>Smart Picks</span>
+        <button class="menu-item" type="button" data-action="later">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Listen later</span>
         </button>
         <button class="menu-item" type="button" data-action="smart-playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.1 4.6 5 .6-3.7 3.4 1 4.9L12 14.1 7.6 16.5l1-4.9L4.9 8.2l5-.6z"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
@@ -751,10 +734,6 @@
         <button class="menu-item" type="button" data-action="playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M20 16.5V8l-3 1"/></svg>
           <span>Playlists</span>
-        </button>
-        <button class="menu-item" type="button" data-action="import-playlist">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          <span>Import a playlist</span>
         </button>
         <div class="menu-sep"></div>
         <button class="menu-item" type="button" data-action="rescan-library">
@@ -1189,7 +1168,7 @@
           </button>
           <h2>Setup</h2>
         </div>
-        <p class="settings-pane-desc">Smart Picks, Discover, record labels, the Home screen, the look, sharing, away from home, API keys</p>
+        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
           <button class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1197,14 +1176,6 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Smart Picks</span>
-            </span>
-          </button>
-          <button class="settings-nav-item" type="button" data-pane="discover">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Discover</span>
             </span>
           </button>
           <button class="settings-nav-item" type="button" data-pane="labels">
@@ -1734,44 +1705,6 @@
         <div class="settings-block">
           <div class="settings-note">Hold the handle to drag a row into a new position. A row switched off is not fetched at all — it does no work in the background.</div>
           <ul class="home-rows-list" id="home-rows-list"></ul>
-        </div>
-      </div>
-
-      <!-- Discover -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="discover" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2>Discover</h2>
-        </div>
-        <p class="settings-pane-desc">New records by the artists you play</p>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Discover <button class="settings-info-btn" data-info="Off by default. When on, Mandarin looks once a day for records released in the last two months by the artists you actually listen to — read from your own play history, not your whole library. It asks Deezer and nothing else. When off it does nothing at all: no daily build, no timer, no requests to anybody." aria-label="Info">&#9432;</button></span>
-            <label class="switch">
-              <input type="checkbox" id="discover-enabled" aria-label="Discover">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-          <div class="settings-note">Off by default. Everything below applies only while this is on.</div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Look for new records at <button class="settings-info-btn" data-info="The hour the daily check runs, in this server&#39;s local time. If the server is off at that hour, it runs the next time it starts." aria-label="Info">&#9432;</button></span>
-            <select id="discover-hour" class="settings-select" aria-label="Discover build hour"></select>
-          </div>
-          <div class="settings-note" id="discover-note"></div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Look again now</span>
-            <button id="discover-rebuild" class="settings-update-btn" type="button">Refresh</button>
-          </div>
-          <div class="settings-note">Discards today&#39;s list and looks again. Takes a minute or two.</div>
         </div>
       </div>
 
