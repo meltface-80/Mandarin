@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 124
-        versionName = "0.6.14"
+        versionCode = 125
+        versionName = "0.6.15"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }

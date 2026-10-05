@@ -15953,9 +15953,11 @@ initServiceBrowser({
     blk.className = "settings-block away-phone";
     blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead">This phone</div>' +
       '<div class="settings-row"><span class="settings-label">Tailscale on this phone' + settingsInfo("The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.") + "</span>" +
-      '<button type="button" class="settings-update-btn">Tailscale</button></div>' +
+      '<button type="button" class="settings-update-btn away-phone-open">Tailscale</button></div>' +
       '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
-    blk.querySelector("button").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
+    // The Tailscale button itself: the first button in the row is the ⓘ (v0.6.15 — until
+    // then the tap went to the ⓘ, and Tailscale did nothing).
+    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
     awayPane.appendChild(blk);
   }
 })();

@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.15
+- **The Tailscale button for this phone works again** (Settings → Away from home → This phone, in
+  the Android app). The tap went to the ⓘ beside "Tailscale on this phone", which is a button too
+  and came first, so Tailscale did nothing. It now opens the phone's Tailscale screen, to sign in.
+
 ## v0.6.14
 - **Backup & restore** (Settings → Backup & restore). Tick what goes in: the settings you
   changed, every player's own settings (Sonos rooms, renderers and phones: names, output, DSP,
