@@ -12930,9 +12930,8 @@ window.__musicdAppUpd = (function () {
     const home = sheet && sheet.querySelector('.settings-view[data-view="home"]');
     return !home || !home.classList.contains("hidden");
   };
-  // One level up: a pane that names its parent (data-parent) goes there,
-  // anything else to the Settings list (one list since v0.5.54; Setup's
-  // pages are on it).
+  // One level up: a pane that names its parent (data-parent) goes there —
+  // Setup's pages back to Setup (v0.6.21) — anything else to the Settings list.
   const stepBack = () => {
     const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
     const parent = open && open.getAttribute("data-parent");
@@ -13245,7 +13244,7 @@ window.__musicdAppUpd = (function () {
         const logos = j.count
           ? (j.scanning ? " Looking up labels and logos now…"
              : (j.discogs || j.fanart) ? " " + (j.logos || 0) + " logo" + (j.logos === 1 ? "" : "s") + "."
-             : " Logos need a Discogs token or a FanArt.tv key (Settings → API Keys).")
+             : " Logos need a Discogs token or a FanArt.tv key (Settings → Setup → API Keys).")
           : "";
         labelsEnabledNote.textContent = j.enabled
           ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have + logos
@@ -15554,13 +15553,13 @@ initServiceBrowser({
   const json = (f, fallback) => { try { return JSON.parse(f()) || fallback; } catch (e) { return fallback; } };
   const has = (name) => typeof dl[name] === "function";
 
-  // The tile, after Wall display (just before Away from home).
+  // The tile, after Audio Devices (just before Wall Display), v0.6.21.
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
-  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="away"]'));
+  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="display"]'));
 
   // An app from before this pane existed: its own screen, as it was.
   if (!has("settings")) { tile.addEventListener("click", () => dl.open()); return; }
@@ -17322,7 +17321,7 @@ initServiceBrowser({
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
       html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">On your tailnet as “' + esc(st.hostname) + '”' + settingsInfo("The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale " + (window.MusicdApp ? "under This phone below" : "in the app, under Settings → Away from home") + ". Anything else with Tailscale — an iPhone, a laptop — opens " + (st.address || "the address above") + ".") + "</div>";
+      html += '<div class="settings-note">On your tailnet as “' + esc(st.hostname) + '”' + settingsInfo("The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale " + (window.MusicdApp ? "under This phone below" : "in the app, under Settings → Setup → Away from home") + ". Anything else with Tailscale — an iPhone, a laptop — opens " + (st.address || "the address above") + ".") + "</div>";
     } else if (st.enabled) {
       const link = st.auth_url
         ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'

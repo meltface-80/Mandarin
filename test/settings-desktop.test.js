@@ -28,18 +28,31 @@ const DRIVER = `(async () => {
   document.getElementById("settings-toggle").click(); await sleep(400);
   out.list = { w: width(), left: Math.round(sheet().getBoundingClientRect().left) };
   out.panes = {};
+  // The list's order (v0.6.21), and Setup's.
+  const titles = sel => [...document.querySelectorAll(sel + ' .settings-nav-item:not(.hidden) .settings-nav-title')].map(t => t.textContent);
+  out.order = titles('#settings-overlay .settings-view[data-view="home"]');
+  out.setup_order = titles('#settings-overlay .settings-pane[data-pane="setup"]');
+  const SETUP = ["ui", "homescreen"];
   for (const p of ["ui", "identify", "homescreen", "system"]) {
+    if (SETUP.includes(p)) { document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await sleep(300); }
     document.querySelector('#settings-overlay .settings-nav-item[data-pane="' + p + '"]').click(); await sleep(500);
     out.panes[p] = { w: width(), overflow: sheet().scrollWidth > sheet().clientWidth + 1 };
     document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
+    if (SETUP.includes(p)) {
+      // Back from one of Setup's pages is Setup, then the list.
+      out["back_from_" + p] = !document.querySelector('#settings-overlay .settings-pane[data-pane="setup"]').classList.contains("hidden");
+      document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
+    }
   }
   out.back_to_list = width();
   // +75% and +100% text: offered on a desktop only, and +50% anywhere else.
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await sleep(200);
   document.querySelector('#settings-overlay .settings-nav-item[data-pane="ui"]').click(); await sleep(300);
   out.text_options = [...document.querySelectorAll("#ui-text-select option")].filter(o => !o.hidden).map(o => o.textContent);
   window.__uiPrefs.set("text", "2");
   out.text_2 = window.__uiPrefs.get("text");
   window.__uiPrefs.set("text", "1");
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
   document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
   document.querySelector("#settings-overlay .settings-backdrop").click(); await sleep(300);
   out.closed = document.getElementById("settings-overlay").classList.contains("hidden");
@@ -71,6 +84,10 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
     for (const size of [{ width: 1440, height: 900, mouse: true }, { width: 1180, height: 820 }, { width: 820, height: 1180 }]) {
     const desk = await run(size);
     assert.equal(desk.list.w, desk.menu, size.width + "px: the list is the side menu's width");
+    assert.deepEqual(desk.order, ["Account", "Music Folders", "Audio Devices", "Wall Display", "Library Scanner", "Setup", "Backup & restore", "Updates"]);
+    assert.deepEqual(desk.setup_order, ["Smart Picks", "Discover", "Record labels", "Home Screen", "UI Settings", "Share Card", "Away from home", "API Keys"]);
+    assert.equal(desk.back_from_ui, true, "Back from UI Settings is Setup");
+    assert.equal(desk.back_from_homescreen, true);
     assert.equal(desk.list.left, 0, "from the left, as the menu");
     for (const [p, v] of Object.entries(desk.panes)) {
       assert.ok(v.w >= 360 && v.w <= 680, p + " is " + v.w + "px");
