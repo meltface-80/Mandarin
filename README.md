@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.17
+# Mandarin — v0.6.18
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -257,6 +257,18 @@ WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. Then pick it with the speaker button. **Look again** searches the network now.
+
+</details>
+
+⸻
+
+🖥️ **Sound devices on the server** — *new since v0.5.50*
+
+A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd`. On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -649,6 +661,16 @@ then choose `/packs` under **Folder** on that page. Keep the line in every futur
 (an update included): without it `/packs` isn't there, and the page says so. A folder reached
 through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
 
+**A USB DAC or speakers on this machine (optional).** To play through sound devices plugged into
+the machine Docker runs on, add this line to the command above:
+
+```bash
+  --device /dev/snd \
+```
+
+They then appear in **Settings → Audio Devices**. See
+[Sound devices on the server](#sound-devices-on-the-server).
+
 **Music folders, chosen in the app.** Mount your drives or shares into the
 container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
 **Settings → Music Folders**, as many as you like, and remove them there too. The folder
@@ -731,6 +753,8 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
+* **A USB DAC or the Mac's speakers:** they're in **Settings → Audio Devices**, off until you switch
+  them on. See [Sound devices on the server](#sound-devices-on-the-server).
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
@@ -825,6 +849,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
+| `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
@@ -891,6 +916,37 @@ the uninstall, so download them again. After that, never again.
 `MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
+
+## Sound devices on the server
+
+A USB DAC, the speakers or HDMI on the computer Mandarin runs on can be played to like a Sonos
+room (v0.6.18).
+
+1. Plug the DAC in. Within 30 seconds (or after **Look again**) it is listed in
+   *Settings → Audio Devices*, off. Switch it on; it is then in the speaker list.
+2. On its page: the rates it takes (a USB DAC on Linux lists its own; tap to change), **Output**
+   (Original, ×2, ×4, Max), **Fixed volume**, **Volume levelling** and **DSP**, as for a renderer.
+
+How it plays: ffmpeg decodes each track and a second ffmpeg holds the device open. The next track
+at the same rate goes into the open device with nothing between them; a track at another rate
+reopens it. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
+with **Fixed volume** on they are never scaled and the volume is the DAC's or amplifier's.
+
+* **Linux:** ALSA, opened as `plughw:CARD=<name>,DEV=<n>`, so a DAC on another USB port is the
+  same device. ALSA converts the 32-bit samples to the depth the device takes. While a track
+  plays, ALSA's own report of the rate is compared with what was sent; a match is marked ✓.
+  The user Mandarin runs as must be in the `audio` group. A device another program (PipeWire,
+  PulseAudio) holds is reported as in use.
+* **Docker:** add `--device /dev/snd` to `docker run` (in `docker-compose.yml`, the commented
+  `devices:` lines).
+* **Mac:** Core Audio, through ffmpeg's `audiotoolbox` output (Homebrew's ffmpeg has it). The Mac
+  plays at the rate set for the device in **Audio MIDI Setup** (Applications → Utilities) and
+  converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless
+  you tick others on the device's page.
+* DSD files go to these devices as PCM.
+
+From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
+taken from the device's name, and a device that fails being reported and let go.
 
 ## Away from home (Tailscale)
 

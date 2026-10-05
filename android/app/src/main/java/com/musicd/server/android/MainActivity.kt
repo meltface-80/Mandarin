@@ -186,7 +186,10 @@ class MainActivity : Activity() {
         if (requestCode == REQ_BACKUP_SAVE || requestCode == REQ_BACKUP_OPEN) {
             val then = if (requestCode == REQ_BACKUP_SAVE) backupSave else backupOpen
             backupSave = null; backupOpen = null
-            then?.invoke(if (resultCode == Activity.RESULT_OK) data?.data else null)
+            val uri = if (resultCode == Activity.RESULT_OK) data?.data else null
+            // Kept readable after this: a saved backup is restored or deleted from the page's list (v0.6.18).
+            if (uri != null) runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+            then?.invoke(uri)
             return
         }
         if (resultCode != Activity.RESULT_OK) return

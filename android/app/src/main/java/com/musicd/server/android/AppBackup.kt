@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
@@ -93,6 +95,51 @@ object AppBackup {
 
     fun fileName(): String = "mandarin-backup-" + SimpleDateFormat("yyyy-MM-dd-HHmm", Locale.ROOT).format(Date()) + ".tar.gz"
 
+    /*
+     * The backup files this install has saved (v0.6.18), listed on the page
+     * beside the server's own, with Restore and Delete: where each is and
+     * what it holds. One that has gone (deleted outside the app, the card
+     * removed) drops off the list when it is read.
+     */
+    private const val FILES_PREFS = "backups"
+    private fun saveFiles(c: Context, arr: JSONArray) { c.getSharedPreferences(FILES_PREFS, Context.MODE_PRIVATE).edit().putString("files", arr.toString()).apply() }
+    fun files(c: Context, prune: Boolean = true): JSONArray {
+        val all = runCatching { JSONArray(c.getSharedPreferences(FILES_PREFS, Context.MODE_PRIVATE).getString("files", "[]")) }.getOrDefault(JSONArray())
+        if (!prune) return all
+        val kept = JSONArray()
+        for (i in 0 until all.length()) {
+            val f = all.getJSONObject(i)
+            if (displayName(c, Uri.parse(f.optString("uri"))) != null) kept.put(f)
+        }
+        if (kept.length() != all.length()) saveFiles(c, kept)
+        return kept
+    }
+    fun remember(c: Context, uri: Uri, meta: JSONObject) {
+        val arr = files(c, prune = false)
+        val out = JSONArray()
+        for (i in 0 until arr.length()) { val f = arr.getJSONObject(i); if (f.optString("uri") != uri.toString()) out.put(f) }
+        out.put(meta.put("uri", uri.toString()).put("name", displayName(c, uri) ?: fileName()))
+        saveFiles(c, out)
+    }
+    fun forget(c: Context, uri: Uri) {
+        val arr = files(c, prune = false)
+        val out = JSONArray()
+        for (i in 0 until arr.length()) { val f = arr.getJSONObject(i); if (f.optString("uri") != uri.toString()) out.put(f) }
+        saveFiles(c, out)
+    }
+    /** The file's name as Android shows it; null when it can't be reached any more. */
+    fun displayName(c: Context, uri: Uri): String? = runCatching {
+        c.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cur ->
+            if (cur.moveToFirst()) cur.getString(0) else null
+        }
+    }.getOrNull()
+    /** The file deleted (where its folder lets us) and off the list either way. */
+    fun deleteFile(c: Context, uri: Uri): Boolean {
+        val gone = runCatching { DocumentsContract.deleteDocument(c.contentResolver, uri) }.getOrDefault(false)
+        forget(c, uri)
+        return gone
+    }
+
     private fun connect(c: Context, path: String): HttpURLConnection {
         val base = Store.active(c)?.baseUrl ?: throw IOException("No server")
         val token = Store.token(c) ?: throw IOException("Not signed in")
@@ -120,10 +167,14 @@ object AppBackup {
             conn.setRequestProperty("Content-Type", "application/json")
             conn.outputStream.use { it.write(request.toString().toByteArray()) }
             if (conn.responseCode != 200) return JSONObject().put("ok", false).put("error", errorOf(conn))
+            // What the file holds, as the server says up front (v0.6.18).
+            val meta = runCatching { JSONObject(conn.getHeaderField("X-Mandarin-Backup") ?: "{}") }.getOrDefault(JSONObject())
             var bytes = 0L
             val out = c.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Couldn't write the file")
             out.use { o -> conn.inputStream.use { i -> bytes = i.copyTo(o, 64 * 1024) } }
-            return JSONObject().put("ok", true).put("bytes", bytes)
+            if (!meta.has("created")) meta.put("created", System.currentTimeMillis())
+            remember(c, uri, JSONObject(meta.toString()).put("bytes", bytes))
+            return JSONObject().put("ok", true).put("bytes", bytes).put("created", meta.optLong("created"))
         } finally { conn.disconnect() }
     }
 
@@ -157,6 +208,24 @@ class BackupBridge(private val activity: Activity) {
     @JavascriptInterface
     fun appSettings(): String = AppBackup.export(activity).toString()
 
+    /** The backup files this install has saved, for the page's list (v0.6.18). */
+    @JavascriptInterface
+    fun files(): String = AppBackup.files(activity).toString()
+
+    /** Restore from one of those files. Answers window.__backupRestoreDone. */
+    @JavascriptInterface
+    fun restoreFileAt(uri: String, parts: String) {
+        work.execute {
+            val r = runCatching { AppBackup.restoreFrom(activity, Uri.parse(uri), parts) }
+                .getOrElse { Log.w("AppBackup", "restore: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") }
+            tell("__backupRestoreDone", r)
+        }
+    }
+
+    /** One of those files deleted, and off the list. */
+    @JavascriptInterface
+    fun deleteFile(uri: String): Boolean = AppBackup.deleteFile(activity, Uri.parse(uri))
+
     /** The app's part of a backup restored from the server's list. */
     @JavascriptInterface
     fun applyApp(json: String): String =
@@ -167,6 +236,8 @@ class BackupBridge(private val activity: Activity) {
     fun toFile(requestJson: String) {
         (activity as? MainActivity)?.chooseBackupFile(AppBackup.fileName()) { uri ->
             if (uri == null) { tell("__backupFileDone", JSONObject().put("ok", false).put("cancelled", true)); return@chooseBackupFile }
+            // Chosen: the page says it is backing up now, not still choosing.
+            tell("__backupFileChosen", JSONObject().put("ok", true))
             work.execute {
                 val r = runCatching { AppBackup.saveTo(activity, uri, JSONObject(requestJson)) }
                     .getOrElse { Log.w("AppBackup", "backup: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Backup failed") }

@@ -31,7 +31,8 @@ const DRIVER = `(async () => {
   document.querySelector('#backup-parts input[data-part="database"]').click();
   $("backup-to-server").click();
   await until(() => document.querySelector(".backup-item"));
-  out.listed = document.querySelector(".backup-item b").textContent.length > 0;
+  out.listed = document.querySelector(".backup-item b").textContent;
+  out.listed_meta = document.querySelector(".backup-item span").textContent;
   out.listed_parts = document.querySelector(".backup-item small").textContent;
   localStorage.setItem("rra-ui-text", "1");
   out.changed = (await (await fetch("/api/settings/smart-picks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hour: 1 }) })).json()).hour;
@@ -71,7 +72,8 @@ test("Backup & restore in a browser: back up to the server, restore settings and
     } finally { await b.close(); }
     assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "page"], "no app part in a browser");
     assert.equal(r.file_buttons, false, "the file buttons are the Android app's");
-    assert.equal(r.listed, true);
+    assert.equal(r.listed, "On the server", "the card says where the backup is");
+    assert.match(r.listed_meta, /v0\.6\.\d+ · \d+ KB · from /, "and what it was made from");
     assert.match(r.listed_parts, /Settings.*This device's screen settings/);
     assert.doesNotMatch(r.listed_parts, /database/i, "the database was left out");
     assert.equal(r.changed, 1, "changed after the backup");

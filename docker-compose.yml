@@ -19,6 +19,9 @@ services:
       # INCLUDE_ZONES: "Kitchen,Study"
       # EXCLUDE_ZONES: "Bathroom"
       # TRANSCODE_CACHE_GB: "4"
+    # A USB DAC or speakers on this machine, for Settings → Audio Devices:
+    # devices:
+    #   - /dev/snd:/dev/snd
     volumes:
       # KEEP THIS VOLUME — library database, play history, settings and caches.
       - musicd-server-data:/app/data
