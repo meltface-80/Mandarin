@@ -49,7 +49,7 @@ FEATURES = [
     ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
-     "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Next, Shuffle, Radio, "
+     "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
      "press ← → for the previous or next album."),
     ("edit", "✏️", "Edit album", False,

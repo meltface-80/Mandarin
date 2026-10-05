@@ -3308,7 +3308,7 @@ window.__afterStart = (fn) => {
       btn.disabled = false;
     }
     if (!queued) { showToast(firstError || "Sonos refused those tracks", "error", TOAST_REPORT_MS); return; }
-    const verb = kind === "queue" ? "Queued" : "Playing";
+    const verb = kind === "queue" ? "Queued" : kind === "play_next" ? "Playing next:" : "Playing";
     let msg = `${verb} ${queued} track${queued === 1 ? "" : "s"}`;
     if (failed) msg += ` (${failed} couldn't be found: ${firstError})`;
     showToast(msg, failed ? "error" : null, TOAST_REPORT_MS);
@@ -7706,7 +7706,7 @@ window.__afterStart = (fn) => {
     const labels = {
       play_now:  "Play Now",
       queue:     "Queue",
-      play_next: "Next",
+      play_next: "Play Next",
       shuffle:   "Shuffle",
       radio:     "Radio"
     };
@@ -7896,8 +7896,11 @@ window.__afterStart = (fn) => {
     if (!currentAlbum) { showToast("No album open", "error"); return; }
     const picks = trackSelected.slice().sort((a, b) => a.index - b.index);
     if (!picks.length) return;
+    // Play next, several at once (v0.6.22): each goes in straight after the
+    // track playing, so they are sent last to first and end up in order.
+    if (kind === "play_next") picks.reverse();
     if (isPhoneAlbum(currentAlbum)) {
-      picks.forEach((p, i) => invokePhone(currentAlbum, p.index, i === 0 ? kind : "queue"));
+      picks.forEach((p, i) => invokePhone(currentAlbum, p.index, kind === "play_next" ? kind : i === 0 ? kind : "queue"));
       exitTrackSelectMode();
       return;
     }
@@ -7916,10 +7919,11 @@ window.__afterStart = (fn) => {
             track: p.index,
             title: p.title,
             zone_or_output_id: zone,
-            // Only the FIRST track honours the requested kind; the rest queue
-            // behind it. Sending play_now for each would leave the last track
-            // playing alone, having wiped the ones before it.
-            kind: (i === 0 ? kind : "queue"),
+            // Only the FIRST track honours Play now; the rest queue behind it
+            // (play_now for each would leave the last track playing alone,
+            // having wiped the ones before it). Play next is every one, last
+            // to first (above).
+            kind: (kind === "play_next" || i === 0 ? kind : "queue"),
             album_title: currentAlbum.title || "",
             album_subtitle: currentAlbum.subtitle || "",
             filter_type:   currentDetailFilter ? currentDetailFilter.type   : "",
@@ -7940,7 +7944,7 @@ window.__afterStart = (fn) => {
       showToast(firstError || "Sonos refused those tracks", "error", TOAST_REPORT_MS);
       return;
     }
-    const verb = kind === "queue" ? "Queued" : "Playing";
+    const verb = kind === "queue" ? "Queued" : kind === "play_next" ? "Playing next:" : "Playing";
     let msg = `${verb} ${queued} track${queued === 1 ? "" : "s"}`;
     if (failed) msg += ` (${failed} failed: ${firstError})`;
     showToast(msg, failed ? "error" : null, TOAST_REPORT_MS);
@@ -7971,6 +7975,8 @@ window.__afterStart = (fn) => {
       return b;
     };
     row.appendChild(mk("Play now", "play_now", true));
+    // Play next (v0.6.22): after the track playing, the rest of the queue moved down.
+    row.appendChild(mk("Play next", "play_next", false));
     row.appendChild(mk("Queue", "queue", false));
     li.appendChild(row);
   }
@@ -8003,7 +8009,8 @@ window.__afterStart = (fn) => {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
-      showToast(`${j.action || orig}: ${track.title} → ${zoneName(selectedZoneId)}`);
+      const said = { play_now: "Playing", play_next: "Playing next", queue: "Queued" }[j.action || kind] || orig;
+      showToast(`${said}: ${track.title} → ${zoneName(selectedZoneId)}`);
       // Success — collapse the action row; the user stays on the album.
       closeTrackRow(li);
     } catch (e) {
@@ -8214,7 +8221,8 @@ window.__afterStart = (fn) => {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
       if (typeof j.offset === "number" && j.offset >= 0) currentAlbum.offset = j.offset;
-      showToast(`${j.action || orig} → ${zoneName(selectedZoneId)}`);
+      const said = { play_now: "Playing", play_next: "Playing next", queue: "Queued", shuffle: "Shuffling", radio: "Radio" }[j.action || kind] || orig;
+      showToast(`${said} → ${zoneName(selectedZoneId)}`);
       // Keep the album view open after playing so the user stays on the album.
     } catch (e) {
       showToast(e.message, "error");
@@ -9454,7 +9462,7 @@ window.__afterStart = (fn) => {
       // play-multi now answers 200 with counts when some albums failed, so the
       // count reported has to come from the response, not from what was asked.
       // `total` is omitted — a hand-picked selection is never capped.
-      showToast(multiOutcome(kind === "play_now" ? "Playing" : "Queued",
+      showToast(multiOutcome(kind === "play_now" ? "Playing" : kind === "play_next" ? "Playing next:" : "Queued",
                              j, albumSelected.length, null) +
                 " → " + zoneName(selectedZoneId));
       exitAlbumSelectMode();

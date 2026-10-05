@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.21
+# Mandarin — v0.6.22
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -112,7 +112,7 @@ Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's scor
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album.
+Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album.
 
 </details>
 

@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.6.22
+- **Play next.** A track's buttons are now Play now, **Play next** and Queue; a selection of
+  tracks or of albums has **Play next** under Play now; an album's ⋯ menu says **Play Next**
+  (it said Next). Play next puts what you chose straight after the track playing, in the order
+  you chose it, and the rest of the queue follows on after it.
+
 ## v0.6.21
 - **Settings, rearranged** (every screen and the app). The list is now Account, Music Folders,
   Audio Devices, Downloads (the app), Wall Display, Library Scanner, **Setup**, Backup & restore,
