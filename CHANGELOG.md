@@ -6,6 +6,16 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.7.6
+- **The three acts under the share card are chosen for you.** Still from Deezer's related
+  acts, but weighted by what you play: a taste graph is built once a day from the related lists
+  of your most-played acts, and an act near nothing you play scores next to nothing — so a
+  children's act or a wrong-genre act stays off the row without any genre to filter on. Two of
+  the three are acts you have not heard of (not in the library, never played); the third is an
+  act you know with a record you don't own, never one you play heavily. Each names the act's
+  best-known record (from their top tracks) rather than their debut, with a line saying why it is
+  there ("Near Steely Dan and Boz Scaggs, which you play"). The draw is weighted random among the
+  best and remembers what it showed for a month, so the same record shared twice gives a
+  different three. With no listening history yet, Deezer's own order stands.
 - **The share card comes up at once, on Now playing and on the album page.** It is drawn from
   what the page already has, and the three acts are asked for only once it is on screen. What
   used to hold it up: it asked for the cover at a size nothing else used (1000 px, rounded up to

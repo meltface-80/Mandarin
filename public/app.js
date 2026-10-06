@@ -12337,7 +12337,16 @@ function settingsInfo(text) {
       // record line is optional rather than the row being dropped.
       const sub = act.album
         ? (act.year ? act.album + " \u00b7 " + act.year : act.album) : "";
-      similarLs.appendChild(goRow(act, act.name, sub));
+      const row = goRow(act, act.name, sub);
+      // Why it is here (v0.7.6): near which of your acts, or one you know
+      // with a record you don't have.
+      if (act.reason) {
+        const why = document.createElement("span");
+        why.className = "share-similar-why";
+        why.textContent = act.reason;
+        row.appendChild(why);
+      }
+      similarLs.appendChild(row);
     }
     similarEl.classList.toggle("hidden", !similarLs.children.length);
   }

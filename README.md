@@ -421,7 +421,7 @@ Playlists you make, and Dynamic Playlists that follow a saved Library view. A pl
 
 🖼️ **Share card**
 
-The album as a picture, the duck in its corner, links to hear and read about it on the services you choose, and three related artists beside it.
+The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 

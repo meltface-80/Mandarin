@@ -1678,6 +1678,16 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
   padding: 3px 8px; border-radius: 999px;
   background: var(--bg-elev); color: var(--text-dim);
 }
+/* Why this act is on the row (v0.7.6): a second line under the first, the
+   row's full width — "Near X and Y, which you play". */
+#share-similar-list .share-similar-act { flex-wrap: wrap; }
+/* The record gives way (basis 0) so the tag stays on the first line. */
+#share-similar-list .share-similar-rec { flex-basis: 0; }
+.share-similar-why {
+  flex: 1 0 100%; order: 9;
+  font-size: 11.5px; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .share-similar-act.is-library .share-similar-tag { background: var(--accent); color: var(--on-accent, #fff); }
 
 /* The default service carries a tick. Held, not tapped — see holdToPrefer. */
