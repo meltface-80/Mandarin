@@ -106,8 +106,12 @@ class Browser {
     });
   }
 
-  /* A tab at url, sized like the window, with the given cookies. */
-  async page(url, { cookies = [] } = {}) {
+  /*
+   * A tab at url, sized like the window, with the given cookies. `init` is
+   * script run in the page before any of its own (a stand-in for the Android
+   * app's bridges, say), on every load of the tab.
+   */
+  async page(url, { cookies = [], init = null } = {}) {
     const { targetId } = await this.send("Target.createTarget", { url: "about:blank" });
     const { sessionId } = await this.send("Target.attachToTarget", { targetId, flatten: true });
     const s = (m, p) => this.send(m, p, sessionId);
@@ -123,6 +127,7 @@ class Browser {
     await s("Page.enable");
     await s("Emulation.setDeviceMetricsOverride", { width: this.size.width, height: this.size.height, deviceScaleFactor: 1, mobile: false });
     for (const c of cookies) await s("Network.setCookie", c);
+    if (init) await s("Page.addScriptToEvaluateOnNewDocument", { source: init });
     const loaded = new Promise((resolve) => this.listeners.push((msg) => {
       if (msg.sessionId === sessionId && msg.method === "Page.loadEventFired") resolve();
     }));

@@ -5,6 +5,35 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.3
+- **Qobuz and Tidal favourites follow both ways, by themselves.** Remove an album from your
+  Qobuz or Tidal favourites on its page (⋯ → Remove from … favourites) and it is gone from the
+  service, its page closes and its tile is off the wall at once — no rescan, no import. Add one
+  and the walls take it in. A favourite added or removed in the Qobuz or Tidal app follows here
+  on the next look: the server compares the service's favourites (and Qobuz purchases) with what
+  it keeps every two minutes, and the page asks for that check when you come back to Home or the
+  Library wall. The six-hourly import still brings the playlists. The page of an album is
+  itself a look: opened, what the service says of its favourite is what the library goes by —
+  no longer a favourite there, it is off the walls from the next draw, never "not in your
+  favourites" on a page the walls still keep. Rescan library and the import let go by the
+  service's id lists asked for now, so a listing that lags a removal (or a page of it cached
+  within the minute) can no longer keep an album in.
+- **One Update, the server first, the app after.** In the Android app the Update button used to
+  start both at once; installing the app replaces the page, so the server's update ran unseen — a
+  failure never shown, the offer back on the next open. Now the server updates first and, once it
+  is back, the app's download and Android's installer follow; a server failure is shown and
+  retryable, the app's update waiting on it. With the server on offer the page asks the app
+  afresh, not from its hour's cache (the app's build lands minutes after the server's release,
+  and the cache was what kept the banner saying "server only"), says "the app's vX follows in a
+  few minutes" meanwhile, and asks again after the restart. The banner also sees the server back
+  by its version, so a quick restart no longer leaves it on "Restarting…".
+- **An album's page says why it is in the library.** A streamed album's page reads "In your
+  library as a Qobuz favourite since 3 Oct 2026", "… as a Qobuz purchase", "Here for a Tidal
+  playlist or favourite track" or "Played from Qobuz — not in your favourites", and "not out
+  until 16 Oct 2026" for one not released yet. An album that appeared unasked — Qobuz lists a
+  pre-release in the favourites its own app keeps out of sight, or a favourite another app
+  linked to the account added — can be read off its page and removed there.
+
 ## v0.7.2
 - **Hide / unhide on Audio Devices.** Devices you can't forget (a computer's HDMI outputs, say)
   can be hidden: tap **Hide / unhide**, tick them, tap **OK**. Hidden ones leave the list, and one

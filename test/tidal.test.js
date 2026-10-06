@@ -246,6 +246,15 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), true);
       await api("tidal/unfavorite", { album_id: "2003" });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false);
+      // The favourites watched (v0.7.3): a change made in the Tidal app follows here on the next look.
+      tidal.favourites.add("2003");
+      assert.deepEqual(await ctx.services.tidal.watch(), { added: 1, dropped: 0, failed: 0, changed: true });
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), true, "added on Tidal: on the walls");
+      const why = (await api("album?offset=" + o.offset)).album.service_why;
+      assert.equal(why.kept, "favourite", JSON.stringify(why));
+      tidal.favourites.delete("2003");
+      assert.deepEqual(await ctx.services.tidal.watch(), { added: 0, dropped: 1, failed: 0, changed: true });
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false, "removed on Tidal: off the walls");
       const ext = await api("search/external?q=T+Album");
       assert.equal(ext.tidal.length, 1, "beside the library's search");
       assert.ok(Array.isArray(ext.tidal_artists), "and Tidal's artists");

@@ -14,6 +14,7 @@ const http = require("http");
 const { spawn, execFileSync } = require("child_process");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { Browser, findBrowser } = require("./browser-harness");
 
 const ROOT = path.join(__dirname, "..");
 const APP_FILES = ["index.js", "launcher.js", "package.json", "package-lock.json", "lib", "public"];
@@ -99,8 +100,46 @@ test("Check for updates installs the newer release and restarts into it, library
     assert.equal(st.viaLauncher, true);
     assert.equal(st.notes, "Notes for 9.9.9");
 
-    const applied = await api("update/apply", true);
-    assert.equal(applied.ok, true);
+    // Through the page where a browser is at hand (v0.7.3): one Update for
+    // the server and the Android app, the server first and the app once the
+    // server is back — a stand-in for the app's bridge records when its
+    // install was asked for, and what the server answered to at that moment.
+    if (findBrowser() || process.env.CI) {
+      const b = await Browser.launch({ width: 390, height: 844 });
+      try {
+        const init = `window.MusicdApp = {
+          version: () => "0.0.1", pageHandlesUpdates() {}, tailscaleTest() {},
+          appUpdateStatus: () => JSON.stringify({ current: "0.0.1", latest: "9.9.9", available: true, installing: false }),
+          lookForAppUpdate(force) { localStorage.setItem("fake-looks", (localStorage.getItem("fake-looks") || "") + (force ? "F" : "c")); setTimeout(() => window.__musicdAppUpdateChanged && window.__musicdAppUpdateChanged(), 10); },
+          installAppUpdate() { const x = new XMLHttpRequest(); x.open("GET", "/api/health", false); x.send(); localStorage.setItem("fake-install-version", JSON.parse(x.responseText).version); },
+          checkUpdate() {}
+        };`;
+        const page = await b.page(`http://127.0.0.1:${port}/`, { cookies: [{ name: "musicd_session", value: auth.Authorization.slice(7), url: `http://127.0.0.1:${port}` }], init });
+        const r = await page.eval(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const until = async (f, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
+          const out = {};
+          out.offered = await until(() => document.getElementById("update-toast").classList.contains("open") && document.getElementById("update-text").textContent);
+          out.looks = localStorage.getItem("fake-looks");
+          document.getElementById("update-now").click();
+          await sleep(300);
+          out.installed_early = localStorage.getItem("fake-install-version");
+          return out;
+        })()`);
+        assert.equal(r.offered, "v9.9.9 available for the server and this app (you have v" + cur + ")");
+        assert.equal(r.looks, "F", "the app asked afresh, not from its hour's cache, with the server on offer");
+        assert.equal(r.installed_early, null, "the app's install waits for the server");
+        const h = await until(async () => { const x = await api("health"); return x.version === "9.9.9" && x; });
+        assert.equal(h.ok, true);
+        const got = await until(() => page.eval(`localStorage.getItem("fake-install-version")`), 30000);
+        assert.equal(got, "9.9.9", "the app's install asked for once the server was back on the new version");
+        const looks = await until(() => page.eval(`(localStorage.getItem("fake-looks") || "").length > 1 && localStorage.getItem("fake-looks")`), 30000);
+        assert.equal(looks, "FF", "and asked afresh again after the restart: " + looks);
+      } finally { await b.close(); }
+    } else {
+      const applied = await api("update/apply", true);
+      assert.equal(applied.ok, true);
+    }
     const h = await until(async () => { const x = await api("health"); return x.version === "9.9.9" && x; });
     assert.equal(h.ok, true);
     // Straight back with the whole library — no scan from scratch, nothing

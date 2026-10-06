@@ -898,6 +898,7 @@ window.__afterStart = (fn) => {
     // The unplayed and random rows share one TTL, so mark it before the loop
     // rather than once per row.
     refreshHomeRows();
+    if (window.__watchServices) window.__watchServices();
   }
   // Decided BEFORE the clock is marked (v0.6.0-RC4): marking first made the
   // unplayed row read as fresh, so once it held tiles it was never fetched
@@ -1802,6 +1803,11 @@ window.__afterStart = (fn) => {
         if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
         on = !on; a.service_favourite = on; b.textContent = label();
         showToast(on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
+        // Off the walls at once (v0.7.3): removed, the album is no longer in
+        // the library, so its page closes and the wall under it is redrawn
+        // without it; added, the walls take it in.
+        if (!on) closeModal();
+        if (window.__libraryChanged) window.__libraryChanged(on ? {} : { gone: a.offset });
       } catch (e) { showToast(e.message, "error"); }
       finally { b.disabled = false; }
     } }];
@@ -5104,6 +5110,7 @@ window.__afterStart = (fn) => {
     const m = enterFullWall("Library", true);
     libraryWallActive = true;
     renderLibraryControls();
+    if (window.__watchServices) window.__watchServices();
     libWall.seq++;
     const mySeq = libWall.seq;
     libWall.offset = 0; libWall.loading = false; libWall.done = false;
@@ -7755,6 +7762,31 @@ window.__afterStart = (fn) => {
         if (note) note.textContent = "Names from its folders — the files carry no tags";
       } else if (note) note.remove();
     }
+    // A streamed album, signed in (v0.7.3): why it is in the library — a
+    // favourite or a purchase on the service, and since when; held by a
+    // playlist or favourite track; or only played — and, for one not out
+    // yet, its release date. So an album that appeared unasked explains
+    // itself on its page.
+    {
+      let why = document.getElementById("modal-why-note");
+      const w = j.album && j.album.service_why;
+      if (w && modalSub && modalSub.parentNode) {
+        if (!why) {
+          why = document.createElement("div");
+          why.id = "modal-why-note";
+          why.className = "modal-names-note";
+        }
+        const anchor = document.getElementById("modal-names-note") || modalSub;
+        anchor.parentNode.insertBefore(why, anchor.nextSibling);
+        const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+        let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
+          : w.kept ? "In your library as a " + w.name + " favourite" + when
+          : w.held ? "Here for a " + w.name + " playlist or favourite track — not in your favourites"
+          : "Played from " + w.name + " — not in your favourites";
+        if (w.releases) text += " · not out until " + formatReleaseDate(w.releases);
+        why.textContent = text;
+      } else if (why) why.remove();
+    }
 
     // A disc of a box set filed as albums of their own (v0.6.3): which box,
     // which disc, and the other discs a tap away — stepping through the box
@@ -9758,6 +9790,43 @@ window.__afterStart = (fn) => {
 
   window.__buildAlbumTile = (a) => buildAlbumTile(a);
   window.__loadRandom = loadRandom;
+  window.__showLibraryWall = showLibraryWall;
+
+  // The library changed under the page (v0.7.3): a streamed album favourited
+  // or removed — here, or in the service's own app and found by the watch.
+  // Whatever is on screen is redrawn, within the moment: the tile of an
+  // album gone (`gone`, its offset) is taken off every wall and row at once,
+  // the Home rows are marked stale and reloaded if Home is showing, and the
+  // Library wall or the random wall is read again.
+  window.__libraryChanged = (opts) => {
+    const gone = opts && opts.gone != null ? String(opts.gone) : null;
+    if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
+    homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
+    homeHistoryLoaded = false; homeLibraryKey = ""; homePlaylistsLoaded = false;
+    if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
+    if (window.__searchActive && window.__searchActive()) return;
+    if (window.__artistViewActive && window.__artistViewActive()) return;
+    if (labelsActive || favouritesWallActive || laterWallActive) return;
+    if (libraryWallActive) { showLibraryWall(); return; }
+    if (unplayedWallActive) return;   // a fixed wall: the tile is gone, the rest stands
+    if (!grid.classList.contains("hidden") && !gone) loadRandom();
+  };
+
+  // The services' favourites checked when the page comes back to Home or to
+  // the Library wall (v0.7.3), not only on the server's two-minute clock:
+  // an album favourited in the Qobuz or Tidal app on the way home is on the
+  // wall by the time it is looked at. Not more than once a half-minute.
+  let servicesWatchedAt = 0;
+  window.__watchServices = async () => {
+    if (window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;
+    servicesWatchedAt = Date.now();
+    try {
+      const r = await fetch("/api/services/watch", { method: "POST" });
+      const j = r.ok ? await r.json() : null;
+      if (j && j.changed) window.__libraryChanged();
+    } catch (e) { /* next time */ }
+  };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") window.__watchServices(); });
   window.__showToast = (msg, kind) => showToast(msg, kind);
 
   async function bootstrap() {
@@ -12285,11 +12354,43 @@ window.__musicdAppUpd = (function () {
     restarting: "Restarting\u2026"
   };
   const DISMISS_KEY = "rra-update-dismissed";
+  // Set before the page reloads on a new server (v0.7.3): the app is asked
+  // afresh on the next check, in case its build landed meanwhile.
+  const RESTARTED_KEY = "rra-update-restarted";
   const appUpd = window.__musicdAppUpd;
   let applying = false;
   let pollTimer = null;
   // What the banner is offering right now.
   let offer = { server: false, app: false, sig: "" };
+  // The app's update, held back while the server's runs (v0.7.3): installing
+  // the app replaces this page, so it goes last, once the server is back —
+  // the server's outcome is seen, and a failure is shown and retryable.
+  let appAfterServer = false;
+  // The app last asked afresh (not its hour's cache) for this server version.
+  let appForcedFor = "";
+
+  // "0.3.20" newer than "0.3.19", part by part; a pre-release before its
+  // release, and RC2 before RC10 (0.6.0-RC1 < 0.6.0-RC2 < 0.6.0).
+  window.__verNewer = (x, y) => {
+    const parse = v => {
+      const s = String(v).trim().replace(/^v/i, "");
+      const i = s.indexOf("-");
+      return { core: (i < 0 ? s : s.slice(0, i)).split(".").map(n => parseInt(n, 10) || 0), pre: i < 0 ? null : s.slice(i + 1).toLowerCase() };
+    };
+    const a = parse(x), b = parse(y);
+    for (let i = 0; i < Math.max(a.core.length, b.core.length); i++) {
+      if ((a.core[i] || 0) !== (b.core[i] || 0)) return (a.core[i] || 0) > (b.core[i] || 0);
+    }
+    if (!a.pre || !b.pre) return !a.pre && !!b.pre;
+    const pa = a.pre.match(/\d+|\D+/g) || [], pb = b.pre.match(/\d+|\D+/g) || [];
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      if (pa[i] === undefined || pb[i] === undefined) return pb[i] === undefined && pa[i] !== undefined;
+      const na = /^\d+$/.test(pa[i]) && /^\d+$/.test(pb[i]);
+      if (pa[i] !== pb[i]) return na ? Number(pa[i]) > Number(pb[i]) : pa[i] > pb[i];
+    }
+    return false;
+  };
+  const verNewer = window.__verNewer;
 
   const dismissedVer = () => { try { return sessionStorage.getItem(DISMISS_KEY) || ""; } catch (e) { return ""; } };
   const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) {} };
@@ -12319,7 +12420,11 @@ window.__musicdAppUpd = (function () {
         : "Server v" + s.latest + " and app v" + a.latest + " available";
     }
     if (app) return "App v" + a.latest + " available (you have v" + a.current + ")";
-    return (s.isDowngrade ? "Rollback to v" : "v") + s.latest + " available (you have v" + s.current + ")";
+    let line = (s.isDowngrade ? "Rollback to v" : "v") + s.latest + " available (you have v" + s.current + ")";
+    // In the Android app, the server ahead of the app with no newer app on
+    // GitHub yet: its build follows the release by a few minutes.
+    if (a && a.current && verNewer(s.latest, a.current) && !(a.latest && verNewer(a.latest, a.current))) line += " · the app's v" + s.latest + " follows in a few minutes";
+    return line;
   }
 
   async function check() {
@@ -12335,9 +12440,18 @@ window.__musicdAppUpd = (function () {
         showProgress(ph); startPoll(s.latest); return;
       }
     }
-    const a = appUpd ? await appUpd.look(false) : null;
-    if (applying) return;
     const server = !!(s && s.available && s.latest);
+    // The app asked afresh, not from its hour's cache (v0.7.3), once per
+    // server version on offer and once after a restart on a new server: the
+    // app's build lands minutes after the server's release, and the cache
+    // was what kept the banner saying "server only" for up to an hour.
+    let restarted = false;
+    try { restarted = sessionStorage.getItem(RESTARTED_KEY) === "1"; if (restarted) sessionStorage.removeItem(RESTARTED_KEY); } catch (e) {}
+    const want = server ? "s" + s.latest : restarted ? "r" + (s && s.current) : "";
+    const force = !!want && want !== appForcedFor;
+    if (force) appForcedFor = want;
+    const a = appUpd ? await appUpd.look(force) : null;
+    if (applying) return;
     const app = !!(a && a.available && a.latest && !a.installing);
     const sig = (server ? "s" + s.latest : "") + (app ? "a" + a.latest : "");
     if ((server || app) && sig !== dismissedVer()) {
@@ -12360,15 +12474,24 @@ window.__musicdAppUpd = (function () {
         const r = await fetch("/api/update/status", { cache: "no-store" });
         if (!r.ok) throw new Error("bad");
         const s = await r.json();
-        if (wasDown && ((targetVer && s.current === targetVer) || !s.available)) {
-          clearInterval(pollTimer); location.reload(); return;
+        // Back on the new version — seen as the version itself, not only as a
+        // failed fetch while it restarted (a quick restart can fall between
+        // two polls, which left the banner on "Restarting…" for good).
+        if ((targetVer && s.current === targetVer) || (wasDown && !s.available)) {
+          clearInterval(pollTimer);
+          // The server is back on the new version: now the app's turn (its
+          // download, then Android's installer), and the page reloaded
+          // under it, to ask the app afresh if its build was not there yet.
+          try { sessionStorage.setItem(RESTARTED_KEY, "1"); } catch (e) {}
+          if (appAfterServer && appUpd) { appAfterServer = false; appUpd.install(); }
+          location.reload(); return;
         }
         const ph = s.apply && s.apply.phase;
         if (ph === "error") {
           clearInterval(pollTimer); applying = false;
           actions.classList.remove("busy"); btnNow.disabled = false;
           toast.classList.add("is-error");
-          show("Update failed: " + ((s.apply && s.apply.error) || "unknown") + ". Tap Update to retry.");
+          show("Update failed: " + ((s.apply && s.apply.error) || "unknown") + ". Tap Update to retry" + (appAfterServer ? " (the app's update waits for it)" : "") + ".");
           return;
         }
         if (PHASE[ph]) show(PHASE[ph]);
@@ -12387,10 +12510,13 @@ window.__musicdAppUpd = (function () {
 
   btnNow.addEventListener("click", async () => {
     if (applying) return;
-    // The app's update starts alongside: it downloads with its own progress
-    // and then Android's installer asks (an app not from a store always
-    // does). The server's update carries on by itself meanwhile.
-    if (offer.app && appUpd) appUpd.install();
+    // The server first, the app after (v0.7.3). Installing the app replaces
+    // this page, so started together the server's update ran unseen — a
+    // failure never shown, the offer back on the next open. Now the app's
+    // download and Android's installer (an app not from a store always
+    // asks) follow once the server is back; the app alone goes at once.
+    if (offer.app && appUpd && !offer.server) { appUpd.install(); hide(); return; }
+    appAfterServer = !!(offer.app && appUpd);
     if (!offer.server) { hide(); return; }
     btnNow.disabled = true;
     showProgress("checking");
@@ -13925,6 +14051,8 @@ function initServiceBrowser(cfg) {
         toast(wasAdded
           ? ("Removed from " + cfg.serviceName + " favourites")
           : ("Added to " + cfg.serviceName + " favourites"), "ok");
+        // The walls under the browser follow (v0.7.3).
+        if (window.__libraryChanged) window.__libraryChanged({});
       } else {
         btns.forEach((b, i) => { b.textContent = prev[i]; });
         toast(j.error || "Couldn't update favourite", "error");
@@ -15005,27 +15133,8 @@ initServiceBrowser({
   // BEHIND the Settings sheet — there was no visible button to tap).
   let pendingUpdate = false;
   const appUpd = window.__musicdAppUpd;
-  // "0.3.20" newer than "0.3.19", part by part; a pre-release before its
-  // release, and RC2 before RC10 (0.6.0-RC1 < 0.6.0-RC2 < 0.6.0).
-  const verNewer = (x, y) => {
-    const parse = v => {
-      const s = String(v).trim().replace(/^v/i, "");
-      const i = s.indexOf("-");
-      return { core: (i < 0 ? s : s.slice(0, i)).split(".").map(n => parseInt(n, 10) || 0), pre: i < 0 ? null : s.slice(i + 1).toLowerCase() };
-    };
-    const a = parse(x), b = parse(y);
-    for (let i = 0; i < Math.max(a.core.length, b.core.length); i++) {
-      if ((a.core[i] || 0) !== (b.core[i] || 0)) return (a.core[i] || 0) > (b.core[i] || 0);
-    }
-    if (!a.pre || !b.pre) return !a.pre && !!b.pre;
-    const pa = a.pre.match(/\d+|\D+/g) || [], pb = b.pre.match(/\d+|\D+/g) || [];
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      if (pa[i] === undefined || pb[i] === undefined) return pb[i] === undefined && pa[i] !== undefined;
-      const na = /^\d+$/.test(pa[i]) && /^\d+$/.test(pb[i]);
-      if (pa[i] !== pb[i]) return na ? Number(pa[i]) > Number(pb[i]) : pa[i] > pb[i];
-    }
-    return false;
-  };
+  // Shared with the update banner (v0.7.3).
+  const verNewer = window.__verNewer;
   let pendingWhat = null;          // { server, app } in the Android app
 
   btn.addEventListener("click", async () => {
