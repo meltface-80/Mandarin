@@ -5,6 +5,33 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.2
+- **Hide / unhide on Audio Devices.** Devices you can't forget (a computer's HDMI outputs, say)
+  can be hidden: tap **Hide / unhide**, tick them, tap **OK**. Hidden ones leave the list, and one
+  that can be switched off is, so it leaves the zone picker too. Tap Hide / unhide again and the
+  hidden ones are listed under Hidden: tick one and OK to bring it back. A note after OK says so.
+
+- **The server's Tailscale identity travels with a backup's keys.** Restored onto a fresh install
+  (a rollback, a rebuilt data folder), the server is the same node on your tailnet: the same
+  address and name, no signing in again, and the phone's learnt address still right. Before,
+  every reinstall was a new node, which is why away from home kept needing Tailscale set up
+  afresh. The built-in Tailscale also now reports whether its node is online and any warning
+  Tailscale raises, and rebinds, then restarts itself, when it has said Running but not online
+  for a minute.
+- **Leaving the Wi-Fi, the app follows at once.** The Wi-Fi gone with mobile data still up: the
+  page's connections over it would hang rather than fail, and the page with them, until the
+  app was closed and opened again. They are dropped at once, the way to the server looked at,
+  and the server asked for within seconds; with no way to it, the app's own copy takes over.
+  The page's own asks give up on a dead connection after 25 s too.
+- **A fresh look at matching.** A copy that is the whole of itself on a bigger pressing (every
+  track there, to the name and the second) is the same record: one edition difference, not a
+  penalty a track, so a ten-track original on a twenty-track anniversary pressing now applies
+  and the page says "the same record; this pressing has 10 more tracks". The pressings of a
+  record with your track count or within one of it are fetched (eight, not three) before the
+  best is chosen. Spaces are not a difference ("LateNightTales" is "Late Night Tales"). A
+  folder that is one disc of a set ("CD2", "Disc 2") is scored against that disc of the
+  release alone.
+
 ## v0.7.1
 - **"UPnP error 501: … is not responding: socket hang up" on a renderer** (Audirvana's UPnP
   renderer on a Mac, among others): the player had closed the kept-alive connection the control

@@ -649,3 +649,39 @@ test("what a real library taught (v0.6.3): bracketed names, lengths first, Roman
   assert.equal(SCORE.decide(Object.assign({}, tales, { context: "" }), [live, orig]).best.candidate.mbid, "orig");
   assert.ok(SCORE.why(SCORE.distance(Object.assign({}, tales, { context: "" }), live).parts).includes("MusicBrainz marks it as another version"));
 });
+
+test("a fresh look at matching (v0.7.2): a bigger pressing, spaces, a disc of a set", () => {
+  // The whole of a ten-track copy on a twenty-track anniversary pressing,
+  // every track there to the name and the second: the same record, applied.
+  const ten = [["Be All, End All", 361], ["Out of Sight, Out of Mind", 260], ["Make Me Laugh", 324], ["Antisocial", 266], ["Who Cares Wins", 445],
+    ["Now It's Dark", 331], ["Schism", 324], ["Misery Loves Company", 325], ["13", 48], ["Finale", 350]].map(([title, length]) => ({ title, length }));
+  const copy = { title: "State Of Euphoria", artist: "Anthrax", year: 1988, tracks: ten };
+  const anniversary = { mbid: "b", group_mbid: "g", title: "State of Euphoria", artist: "Anthrax", year: 1988,
+    release_title: "State of Euphoria (30th Anniversary Edition)", edition: "30th anniversary", tracks: ten.concat(Array.from({ length: 10 }, (_, i) => ({ title: "Bonus " + i, length: 200 }))) };
+  const d = SCORE.distance(copy, anniversary);
+  assert.ok(SCORE.similarity(d.distance) >= 95, "applied: " + SCORE.similarity(d.distance) + " %");
+  assert.equal(d.parts.edition, true); assert.equal(d.parts.missing_tracks, 10);
+  assert.ok(SCORE.why(d.parts).includes("a bigger pressing of the same record"));
+  // Not when a track of the copy is another song: then the bonus tracks are missing tracks as before.
+  const other = SCORE.distance(Object.assign({}, copy, { tracks: ten.slice(0, 9).concat([{ title: "Another Song", length: 350 }]) }), anniversary);
+  assert.equal(other.parts.edition, false);
+  assert.ok(SCORE.similarity(other.distance) < 95);
+  // Nor when the copy has only a couple of the pressing's tracks: cautious, proposed at best.
+  const two = SCORE.distance(Object.assign({}, copy, { tracks: ten.slice(0, 2) }), anniversary);
+  assert.ok(two.parts.edition && SCORE.similarity(two.distance) < 95, "two tracks of twenty: " + SCORE.similarity(two.distance) + " %");
+  // Spaces are not a difference.
+  assert.equal(SCORE.titleDist("LateNightTales: Belle and Sebastian, Volume 2", "Late Night Tales: Belle and Sebastian, Volume 2"), 0);
+  assert.equal(SCORE.stringDist("LateNightTales", "Late Night Tales"), 0);
+  // A folder that is disc 2 of a set is scored against disc 2 alone.
+  const disc2 = [["A", 180], ["B", 240], ["C", 300], ["D", 360]].map(([title, length]) => ({ title, length }));
+  const set = { mbid: "s", title: "Days of Future Passed", artist: "The Moody Blues", year: 1967,
+    tracks: [{ title: "X", length: 100, disc: 1 }, { title: "Y", length: 120, disc: 1 }].concat(disc2.map(t => Object.assign({ disc: 2 }, t))) };
+  const e = SCORE.distance({ title: "Days Of Future Passed CD2", artist: "The Moody Blues", year: 1967, tracks: disc2 }, set);
+  assert.equal(e.parts.disc, 2); assert.equal(e.parts.missing_tracks, 0);
+  assert.equal(SCORE.similarity(e.distance), 100);
+  assert.equal(SCORE.discOf("Days Of Future Passed CD2"), 2); assert.equal(SCORE.discOf("Album (Disc 02)"), 2); assert.equal(SCORE.discOf("Album"), null);
+  assert.equal(SCORE.bare("Days Of Future Passed CD2"), "Days Of Future Passed");
+  // The context names the disc when the title doesn't.
+  const f = SCORE.distance({ title: "Days Of Future Passed", artist: "The Moody Blues", year: 1967, context: "CD2 · Days Of Future Passed", tracks: disc2 }, set);
+  assert.equal(f.parts.disc, 2);
+});

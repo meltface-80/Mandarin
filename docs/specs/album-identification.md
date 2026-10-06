@@ -121,6 +121,16 @@ Distance = weighted sum ÷ sum of weights, 0..1. **Applied automatically at ≤ 
 **unidentified** above that or when the top two candidates are within 0.02 of each other
 (an ambiguous match is never applied).
 
+*As built, v0.7.2 (lib/identify/score.js has the live weights):* the count is not scored as such —
+tracks of the release missing from the copy cost 0.9 each and tracks the release hasn't 0.6 —
+**except** when the whole of the copy is on the release, every track to the name and within the
+length grace: then the bonus tracks are one edition difference (1.5), so a ten-track original on a
+twenty-track anniversary pressing is applied, and the page says "the same record; this pressing has
+10 more tracks". Spaces are not a difference in any name. A folder that is one disc of a set ("CD2",
+"Disc 2", in its title or its folder name) is scored against that disc of the release alone. The
+pressings of the best fit's release group with the copy's count or within one of it are fetched
+(eight at most) before the choice is made.
+
 Track lengths carry the identification for the cases the owner has: a compilation tagged
 "Various Artists" whose twelve tracks of 4:12, 3:58, 5:31… match one release to the second is
 that release, whatever the artist tag says. Titles alone are not trusted at that level: two

@@ -38,7 +38,8 @@ const srv = http.createServer((req, res) => {
     if (u.pathname === "/status") return reply(st);
     if (u.pathname === "/login") return reply(Object.assign(st, { auth_url: "https://login.tailscale.com/a/new456" }));
     if (u.pathname === "/logout") { st = { state: "NeedsLogin", ips: [], serving: "" }; return reply(st); }
-    if (u.pathname === "/serve") { st.serving = "100.90.1.2:" + u.searchParams.get("port"); return reply({ addr: st.serving }); }
+    if (u.pathname === "/serve") { st.serving = "100.90.1.2:" + u.searchParams.get("port"); if (process.env.TS_STUB_STALE) st.online = false; return reply({ addr: st.serving }); }
+    if (u.pathname === "/rebind") return reply({ ok: true });
     reply({ error: "no" }, 404);
   });
 });
@@ -64,13 +65,13 @@ function stubEngine() {
   return { dir, bin, calls: () => { try { return fs.readFileSync(path.join(dir, "calls.log"), "utf8"); } catch (e) { return ""; } } };
 }
 
-function server(bin, extraEnv = {}) {
+function server(bin, extraEnv = {}, extraConfig = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-tsd-"));
   fs.mkdirSync(path.join(dir, "music"));
   for (const k of Object.keys(extraEnv)) process.env[k] = extraEnv[k];
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  return createServer({ port: PORT, musicDir: path.join(dir, "music"), dataDir: path.join(dir, "data"), serverIp: "127.0.0.1", sonosHosts: [], tailscaleBin: bin });
+  return createServer(Object.assign({ port: PORT, musicDir: path.join(dir, "music"), dataDir: path.join(dir, "data"), serverIp: "127.0.0.1", sonosHosts: [], tailscaleBin: bin }, extraConfig));
 }
 
 test("signing the server in to Tailscale from Settings", async () => {
@@ -195,5 +196,28 @@ test("an install updated in place downloads the engine, checked, once per server
   } finally {
     for (const n of running) n.stop();
     site.close();
+  }
+});
+
+// The watchdog (v0.7.2): an engine that says Running but isn't online on the
+// tailnet is asked to rebind, and started afresh when that doesn't help.
+test("a node that is Running but not online is rebound, then started afresh", { timeout: 120000 }, async () => {
+  const eng = stubEngine();
+  const srv = server(eng.bin, { TS_AUTHKEY: "tskey-auth-test", TS_STUB_STALE: "1" }, { tailscaleWatchdog: { rebindMs: 400, restartMs: 1500 } });
+  const ctx = await srv.start();
+  try {
+    const st = await until(async () => { const s = ctx.tailscale.status(); return s.serving && s; });
+    assert.equal(st.online, false, "the status says it isn't online");
+    // The engine is asked every 5 s: the rebind within three asks, the fresh start a few after.
+    await until(async () => /POST \/rebind/.test(eng.calls()), 40000);
+    // Still not online after the rebind: the engine is started afresh (a second /start).
+    await until(async () => (eng.calls().match(/POST \/start/g) || []).length >= 2, 40000);
+    await until(async () => (eng.calls().match(/POST \/serve/g) || []).length >= 2, 40000);
+  } catch (e) {
+    console.log("CALLS:\n" + eng.calls() + "\nSTATUS: " + JSON.stringify(ctx.tailscale.status()));
+    throw e;
+  } finally {
+    await srv.stop();
+    delete process.env.TS_AUTHKEY; delete process.env.TS_STUB_STALE;
   }
 });

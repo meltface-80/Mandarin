@@ -81,6 +81,11 @@ type statusJSON struct {
 	Serving string   `json:"serving"`
 	Error   string   `json:"error"`
 	Version string   `json:"version"`
+	// Online: this node is reachable on the tailnet as the control plane sees
+	// it — false while a tunnel has gone stale though the state says Running.
+	// Health: Tailscale's own warnings, empty when all is well.
+	Online bool     `json:"online"`
+	Health []string `json:"health"`
 }
 
 func (e *engine) status(ctx context.Context) statusJSON {
@@ -117,7 +122,9 @@ func (e *engine) status(ctx context.Context) statusJSON {
 	}
 	if st.Self != nil {
 		out.DNSName = st.Self.DNSName
+		out.Online = st.Self.Online
 	}
+	out.Health = append([]string{}, st.Health...)
 	return out
 }
 

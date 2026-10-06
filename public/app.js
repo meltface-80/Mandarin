@@ -5867,6 +5867,35 @@ window.__afterStart = (fn) => {
     } catch (e) { /* status banner handles */ }
   }
   // Styled yes/no confirm. Resolves true/false. Falls back to native confirm.
+  // A notice with one OK (v0.7.2): the confirm box with its No put away.
+  function noticeDialog(message, okLabel) {
+    return new Promise((resolve) => {
+      const ov  = document.getElementById("confirm-overlay");
+      const msg = document.getElementById("confirm-msg");
+      const yes = document.getElementById("confirm-yes");
+      const no  = document.getElementById("confirm-no");
+      if (!ov || !msg || !yes || !no) { window.alert(message); resolve(); return; }
+      msg.textContent = message;
+      msg.classList.add("is-notice");
+      no.classList.add("hidden");
+      const was = yes.textContent; yes.textContent = okLabel || "OK";
+      let done = false;
+      const close = () => {
+        if (done) return; done = true;
+        ov.classList.add("hidden");
+        no.classList.remove("hidden"); msg.classList.remove("is-notice"); yes.textContent = was;
+        yes.removeEventListener("click", close);
+        ov.removeEventListener("click", onBackdrop);
+        resolve();
+      };
+      const onBackdrop = (e) => { if (e.target.classList.contains("confirm-backdrop")) close(); };
+      yes.addEventListener("click", close);
+      ov.addEventListener("click", onBackdrop);
+      ov.classList.remove("hidden");
+      yes.focus();
+    });
+  }
+  window.__noticeDialog = noticeDialog;
   function confirmDialog(message) {
     return new Promise((resolve) => {
       const ov  = document.getElementById("confirm-overlay");
@@ -11223,8 +11252,16 @@ window.__afterStart = (fn) => {
       const zid = selectedZoneId();
       if (!zid) { renderZone(null); await new Promise(r => setTimeout(r, 1500)); continue; }
       const wait = zid === stateZone && stateRev >= 0 ? "&wait_for=" + stateRev + "&timeout=10000" : "";
+      // A connection that has silently died (the phone left its Wi-Fi with
+      // mobile data up: the relayed socket to the home address hangs rather
+      // than fails) would hold this ask for minutes and the bar with it
+      // (v0.7.2). The server answers within 10 s; 25 s and it is given up.
+      const one = new AbortController();
+      const onCtl = () => one.abort();
+      ctl.signal.addEventListener("abort", onCtl, { once: true });
+      const timer = setTimeout(() => one.abort(), 25000);
       try {
-        const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid) + wait, { cache: "no-store", signal: ctl.signal });
+        const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid) + wait, { cache: "no-store", signal: one.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json();
         if (pollTimer !== ctl) return;
@@ -11237,6 +11274,9 @@ window.__afterStart = (fn) => {
         // Server or network trouble: back off (1.5s, 3s … 15s) and keep what we have.
         fails++;
         await new Promise(r => setTimeout(r, Math.min(15000, 1500 * fails)));
+      } finally {
+        clearTimeout(timer);
+        ctl.signal.removeEventListener("abort", onCtl);
       }
     }
   }
@@ -16545,7 +16585,14 @@ initServiceBrowser({
   const title = document.getElementById("device-pane-title");
   const desc = document.getElementById("device-pane-desc");
   const rescan = document.getElementById("devices-rescan");
+  const hideBtn = document.getElementById("devices-hide");
+  const hideNote = document.getElementById("devices-hide-note");
   if (!list || !pane || !navItem || !detail || !body) return;
+  // Hide / unhide (v0.7.2): a select mode over the list, every row with a
+  // tick circle; hidden devices listed again under Hidden, where a tick
+  // brings one back. OK applies both ways; Cancel (no ticks) leaves it.
+  let hideMode = false;
+  let picks = new Set();
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
@@ -16614,12 +16661,24 @@ initServiceBrowser({
     // can't be searched from there, so Look again goes.
     if (rescan) rescan.classList.toggle("hidden", away);
     if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; return; }
+    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; paintHideTools(); return; }
     let html = "";
-    for (const d of devices) {
-      const sub = [d.model || (d.profile && d.profile.label) || "", d.renamed ? d.network_name : ""].filter(Boolean).join(" · ");
+    const shown = devices.filter(d => !d.hidden);
+    const hidden = devices.filter(d => d.hidden);
+    const row = (d) => {
+      const sub = [d.model || (d.profile && d.profile.label) || "", d.renamed ? d.network_name : "", d.hidden ? "hidden" : ""].filter(Boolean).join(" · ");
       const off = d.can_toggle && !d.enabled;
-      html += '<div class="dev-row' + (d.online ? "" : " is-off") + (off ? " is-disabled" : "") + '">' +
+      if (hideMode) {
+        const picked = picks.has(d.id);
+        return '<div class="dev-row is-selecting' + (picked ? " is-picked" : "") + (d.hidden ? " is-hidden" : "") + '">' +
+          '<button type="button" class="dev-open dev-pickrow" data-pick="' + esc(d.id) + '" aria-pressed="' + (picked ? "true" : "false") + '">' +
+          '<span class="dev-pick" aria-hidden="true">' + (picked ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : "") + "</span>" +
+          '<span class="dev-ico">' + (ICONS[d.kind] || ICONS.upnp) + "</span>" +
+          '<span class="dev-txt"><span class="dev-name">' + esc(d.name) + "</span>" + (sub ? '<span class="dev-sub">' + esc(sub) + "</span>" : "") + "</span>" +
+          (d.hidden ? "" : '<span class="dev-state' + (d.state === "playing" ? " is-playing" : "") + '">' + (off ? "Off" : stateWord(d)) + "</span>") +
+          "</button></div>";
+      }
+      return '<div class="dev-row' + (d.online ? "" : " is-off") + (off ? " is-disabled" : "") + '">' +
         '<button type="button" class="dev-open" data-dev="' + esc(d.id) + '">' +
         '<span class="dev-ico">' + (ICONS[d.kind] || ICONS.upnp) + "</span>" +
         '<span class="dev-txt"><span class="dev-name">' + esc(d.name) + "</span>" + (sub ? '<span class="dev-sub">' + esc(sub) + "</span>" : "") + "</span>" +
@@ -16629,6 +16688,13 @@ initServiceBrowser({
           '<input type="checkbox" data-dev-enable="' + esc(d.id) + '"' + (d.enabled ? " checked" : "") + ' aria-label="' + esc(d.name) + ' on">' +
           '<span class="switch-track"><span class="switch-thumb"></span></span></label>' : "") +
         "</div>";
+    };
+    for (const d of shown) html += row(d);
+    if (hideMode && hidden.length) {
+      html += '<div class="dev-rule" aria-hidden="true"><span>Hidden</span></div>';
+      for (const d of hidden) html += row(d);
+    } else if (!hideMode && hidden.length) {
+      html += '<div class="settings-note dev-hidden-count">' + hidden.length + (hidden.length === 1 ? " device hidden" : " devices hidden") + "</div>";
     }
     // Sound devices on the server's computer that it can't open (v0.6.18).
     if (!away && local && !local.off && local.platform === "linux" && !local.count && (local.hidden || local.docker)) {
@@ -16641,6 +16707,41 @@ initServiceBrowser({
       : "Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.") + "</div>";
     if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
     list.innerHTML = html;
+    paintHideTools();
+  }
+  // The buttons for the mode: Hide / unhide beside Look again; selecting,
+  // Cancel until something is ticked, then OK, and Look again steps aside.
+  function paintHideTools() {
+    if (!hideBtn) return;
+    hideBtn.classList.toggle("hidden", away || !devices.length);
+    hideBtn.textContent = !hideMode ? "Hide / unhide" : picks.size ? "OK" : "Cancel";
+    hideBtn.classList.toggle("is-primary", hideMode && picks.size > 0);
+    hideBtn.setAttribute("aria-pressed", String(hideMode));
+    if (rescan) rescan.classList.toggle("hidden", away || hideMode);
+    if (hideNote) hideNote.classList.toggle("hidden", !hideMode);
+  }
+  async function applyHide() {
+    const chosen = devices.filter(d => picks.has(d.id));
+    hideMode = false; picks = new Set();
+    if (!chosen.length) { renderList(); return; }
+    let hid = 0, shown = 0;
+    hideBtn.disabled = true;
+    try {
+      for (const d of chosen) {
+        await api("/api/audio-devices/" + encodeURIComponent(d.id), "PATCH", { hidden: !d.hidden });
+        if (d.hidden) shown++; else hid++;
+      }
+      err = "";
+    } catch (e) { err = e.message; }
+    hideBtn.disabled = false;
+    await load();
+    const parts = [];
+    if (hid) parts.push(hid + (hid === 1 ? " device hidden" : " devices hidden"));
+    if (shown) parts.push(shown + (shown === 1 ? " device shown again" : " devices shown again"));
+    const notice = window.__noticeDialog || (m => Promise.resolve(window.alert(m)));
+    await notice(parts.join(", ") + ".\n\n" + (hid
+      ? "A hidden device stays off this list; one that can be switched off has been, so it leaves the zone picker too. To bring one back, tap Hide / unhide again: hidden devices are listed at the bottom under Hidden. Tick the one you want and tap OK."
+      : "They are back on the list, switched off until you switch them on."), "OK");
   }
 
   function chip(kind, v, label, on, source, editable) {
@@ -17143,6 +17244,19 @@ initServiceBrowser({
     const inp = e.target.closest("[data-dev-enable]");
     if (inp) setEnabled(inp.getAttribute("data-dev-enable"), inp.checked, inp);
   });
+  if (hideBtn) {
+    hideBtn.addEventListener("click", () => {
+      if (!hideMode) { hideMode = true; picks = new Set(); renderList(); return; }
+      applyHide();
+    });
+  }
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pick]");
+    if (!b || !hideMode) return;
+    const id = b.getAttribute("data-pick");
+    if (picks.has(id)) picks.delete(id); else picks.add(id);
+    renderList();
+  });
   if (rescan) {
     rescan.addEventListener("click", async () => {
       rescan.disabled = true; rescan.textContent = "Looking…";
@@ -17453,7 +17567,8 @@ initServiceBrowser({
     if (c.edition) bits.push(c.edition);
     if (c.release_year && c.year && c.release_year !== c.year) bits.push("released " + c.release_year);
     const p = c.parts || {};
-    if (p.missing_tracks) bits.push(p.missing_tracks === 1 ? "1 track of the release missing here" : p.missing_tracks + " tracks of the release missing here");
+    if (p.edition) bits.push("the same record; this pressing has " + (p.missing_tracks === 1 ? "1 more track" : p.missing_tracks + " more tracks"));
+    else if (p.missing_tracks) bits.push(p.missing_tracks === 1 ? "1 track of the release missing here" : p.missing_tracks + " tracks of the release missing here");
     if (p.extra_tracks) bits.push(p.extra_tracks === 1 ? "1 track the release hasn't" : p.extra_tracks + " tracks the release hasn't");
     return bits.length ? " · " + esc(bits.join(", ")) : "";
   };
@@ -17709,6 +17824,11 @@ initServiceBrowser({
       Running: st.serving ? "Connected" : "Connecting…"
     };
     html += line("Status", esc(words[state] || state));
+    // The engine says Running but the tailnet doesn't see it, or Tailscale
+    // warns (v0.7.2): said here, while the server rebinds and restarts it.
+    if (state === "Running" && (st.online === false || (st.health && st.health.length))) {
+      html += '<div class="settings-note away-error">' + esc(st.online === false ? "Running, but not online on the tailnet — the server is rebinding it, then starting it afresh" : "Tailscale warns: " + st.health.join("; ")) + "</div>";
+    }
     if (state === "Running") {
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));

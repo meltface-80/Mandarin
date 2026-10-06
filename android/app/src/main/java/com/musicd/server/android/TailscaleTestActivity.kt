@@ -140,6 +140,8 @@ class TailscaleTestActivity : Activity() {
             if (ips.isNotEmpty()) append("\nThis phone: ").append(ips)
             st.optString("dns_name").takeIf { it.isNotEmpty() }?.let { append("\nName: ").append(it.trimEnd('.')) }
             st.optString("forward").takeIf { it.isNotEmpty() }?.let { append("\nForwarding ").append(it).append(" → ").append(st.optString("target")) }
+            if (s == "Running" && st.has("online") && !st.optBoolean("online", true)) append("\nNot online on the tailnet (the tunnel may be stale — Test connection rebinds it)")
+            st.optJSONArray("health")?.let { a -> if (a.length() > 0) append("\nTailscale warns: ").append((0 until a.length()).joinToString("; ") { a.getString(it) }) }
             st.optString("error").takeIf { it.isNotEmpty() }?.let { append("\nError: ").append(it) }
             append("\nEngine ").append(st.optString("version"))
         }

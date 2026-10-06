@@ -1257,9 +1257,13 @@
              in app.js from /api/audio-devices; a row opens the "device" pane. -->
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now." aria-label="Info">ⓘ</button></span>
-            <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
+            <span class="dev-tools">
+              <button type="button" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
+              <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+            </span>
           </div>
+          <div id="devices-hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
           <div id="devices-list" class="dev-list"></div>
         </div>
 

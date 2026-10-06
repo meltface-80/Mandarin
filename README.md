@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.7.1
+# Mandarin — v0.7.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -191,7 +191,7 @@ Names albums from their files' identifiers first, then from MusicBrainz by track
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
+Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
 
 </details>
 
@@ -287,7 +287,7 @@ Every room, renderer and phone with the rates, depths and formats it takes, your
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker list and Now playing show. **Output** is on a renderer's page.
+Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker list and Now playing show. **Output** is on a renderer's page. **Hide / unhide** takes devices you don't use off the list; tap it again and tick one under Hidden to bring it back.
 
 </details>
 

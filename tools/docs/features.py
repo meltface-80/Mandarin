@@ -82,7 +82,7 @@ FEATURES = [
      "Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, "
      "with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.",
      "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near "
-     "ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and "
+     "ones wait for **Accept** or **Reject**; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. **Ask iTunes too** and "
      "**Measure ReplayGain** are on the same page."),
     ("mbpack", "📦", "MusicBrainz pack", True,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "
@@ -125,7 +125,8 @@ FEATURES = [
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
      "Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker "
-     "list and Now playing show. **Output** is on a renderer's page."),
+     "list and Now playing show. **Output** is on a renderer's page. **Hide / unhide** takes devices "
+     "you don't use off the list; tap it again and tick one under Hidden to bring it back."),
     ("dsd", "💎", "DSD", True,
      "A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB "
      "DAC on the phone gets DSD natively or as DoP.",
