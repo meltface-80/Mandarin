@@ -84,10 +84,11 @@ const ShareCard = (() => {
   const CONTENT_W = PANE_W - PANE_PAD * 2;
   const WORDMARK_W = 110;
   const WORDMARK_PAD = 34;
-  // The duck as a round black disc (v0.7.4; icons/duck-disc.png, drawn
-  // ready-cut), pinned inside the pane's bottom-right corner — the corner the
-  // wordmark had, inside the glass, never on the border — when a logoUrl is
-  // supplied.
+  // The duck as a rounded-square brass tile (v0.7.5; icons/duck-tile.png,
+  // drawn ready-cut with its outline; a round disc in v0.7.4), pinned inside
+  // the pane's bottom-right corner — the corner the wordmark had, inside the
+  // glass, never on the border — when a logoUrl is supplied. Its corners are
+  // in the pane's own proportion.
   const LOGO_D    = 96;
   const LOGO_PAD  = 24;
 
@@ -518,18 +519,18 @@ const ShareCard = (() => {
     });
   }
 
-  // The logo disc of diameter d at (x, y): a soft shadow under it, the
-  // ready-cut round image over that, and a hairline so it holds on a
-  // near-white pane.
+  // The logo tile of side d at (x, y): a soft shadow under it, the ready-cut
+  // rounded square over that (it carries its own brass outline).
   function drawLogoDisc(ctx, img, x, y, d) {
-    const cx = x + d / 2, cy = y + d / 2, r = d / 2;
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill();
+    ctx.shadowColor = 'rgba(0,0,0,.45)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    roundRectPath(ctx, x, y, d, d, d * 0.2);
+    ctx.fillStyle = '#17181b';
+    ctx.fill();
     ctx.restore();
     ctx.drawImage(img, x, y, d, d);
-    ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; ctx.stroke();
   }
 
   // The ground. Draw the cover into a tiny offscreen canvas and scale it back

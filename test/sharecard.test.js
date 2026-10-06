@@ -1,8 +1,8 @@
 "use strict";
 /*
  * The share card (public/sharecard.js), drawn in a browser: the duck as a
- * round black disc inside the pane's bottom-right corner (v0.7.4) — on the
- * glass, not on the card's border — and nothing there without a logo.
+ * rounded-square brass tile inside the pane's bottom-right corner (v0.7.5)
+ * — on the glass, not on the card's border — and nothing there without a logo.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -14,7 +14,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const PUBLIC = path.join(__dirname, "..", "public");
 const PAGE = `<!doctype html><meta charset="utf-8"><body><script src="/sharecard.js"></script></body>`;
 
-test("the share card carries the duck disc inside its bottom-right corner", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)", timeout: 60000 }, async () => {
+test("the share card carries the duck tile inside its bottom-right corner", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)", timeout: 60000 }, async () => {
   const srv = http.createServer((req, res) => {
     const p = req.url.split("?")[0];
     if (p === "/") { res.setHeader("Content-Type", "text/html"); return res.end(PAGE); }
@@ -37,20 +37,25 @@ test("the share card carries the duck disc inside its bottom-right corner", { sk
         const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
         const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0);
         const px = (x, y) => [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3);
-        // The disc: 96 px, 24 px in from the pane's bottom-right (the pane is 48 px in from the card's edge).
+        // The tile: 96 px, 24 px in from the pane's bottom-right (the pane is 48 px in from the card's edge).
         const cx = img.width - 48 - 24 - 48, cy = img.height - 48 - 24 - 48;
-        return { w: img.width, h: img.height, ground: px(cx - 30, cy - 30), duck: px(cx - 4, cy + 6), outside: px(cx + 56, cy + 56), border: px(img.width - 20, img.height - 20) };
+        // Its ground near the top-left, clear of the drawing; the duck's bill; the outline at the left edge; the corner cut off.
+        return { w: img.width, h: img.height, ground: px(cx - 34, cy - 34), duck: px(cx - 18, cy + 12), edge: px(cx - 47, cy), corner: px(cx - 47, cy - 47), outside: px(cx + 56, cy + 56), border: px(img.width - 20, img.height - 20) };
       };
-      return { with: await draw("/icons/duck-disc.png"), without: await draw(null) };
+      return { with: await draw("/icons/duck-tile.png"), without: await draw(null) };
     })()`);
     assert.deepEqual(page.errors, []);
     assert.equal(r.with.w, 1200); assert.equal(r.with.h, 600);
-    const black = ([R, G, B]) => R < 24 && G < 24 && B < 24;
-    const white = ([R, G, B]) => R > 200 && G > 200 && B > 200;
-    assert.ok(black(r.with.ground), "the disc's ground is black at its top-left, where the drawing is not: " + r.with.ground);
-    assert.ok(white(r.with.duck), "the duck is white at its beak: " + r.with.duck);
-    assert.ok(!black(r.with.outside), "just outside the disc is the pane, not the disc: " + r.with.outside);
-    assert.ok(!black(r.with.border), "nothing on the card's border: " + r.with.border);
-    assert.ok(!black(r.without.ground), "no logo given, no disc: " + r.without.ground);
+    const dark = ([R, G, B]) => R < 40 && G < 40 && B < 40;
+    const brass = ([R, G, B]) => R > 140 && G > 110 && B < 130 && R > B + 40;
+    assert.ok(dark(r.with.ground), "the tile's ground is dark at its top-left, where the drawing is not: " + r.with.ground);
+    assert.ok(brass(r.with.duck), "the duck is brass at its bill: " + r.with.duck);
+    // The outline is a pixel and a half wide and blends with the pane at its edge: a brass tint is enough.
+    const brassish = ([R, G, B]) => R > 110 && R > B + 30 && G > B;
+    assert.ok(brassish(r.with.edge), "the outline is brass: " + r.with.edge);
+    assert.ok(!dark(r.with.corner) && !brass(r.with.corner), "the corner is rounded off: the pane shows there: " + r.with.corner);
+    assert.ok(!dark(r.with.outside), "just outside the tile is the pane, not the tile: " + r.with.outside);
+    assert.ok(!dark(r.with.border), "nothing on the card's border: " + r.with.border);
+    assert.ok(!dark(r.without.ground), "no logo given, no tile: " + r.without.ground);
   } finally { await b.close(); srv.close(); }
 });

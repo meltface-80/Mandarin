@@ -27,7 +27,7 @@ object OfflineSite {
         "/" to "index.html", "/style.css" to "style.css", "/app.js" to "app.js",
         "/sharecard.js" to "sharecard.js", "/srp.js" to "srp.js", "/biquad.js" to "biquad.js", "/manifest.json" to "manifest.json",
         "/icons/icon-192.png" to "icon-192.png", "/icons/apple-touch-icon.png" to "apple-touch-icon.png",
-        "/icons/favicon.ico" to "favicon.ico", "/icons/duck-disc.png" to "duck-disc.png",
+        "/icons/favicon.ico" to "favicon.ico", "/icons/duck-tile.png" to "duck-tile.png",
         "/fonts/manrope.woff2" to "manrope.woff2", "/fonts/young-serif.woff2" to "young-serif.woff2"
     )
 

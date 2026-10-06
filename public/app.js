@@ -11857,8 +11857,8 @@ function settingsInfo(text) {
   let cardUrl = null;
   async function paintCard(f, coverUrl, title, artist, seq) {
     const blob = await ShareCard.render({
-      // The duck disc in the card's bottom-right corner (v0.7.4).
-      coverUrl, wordmarkUrl: null, logoUrl: "/icons/duck-disc.png", title, artist,
+      // The duck tile in the card's bottom-right corner (v0.7.5).
+      coverUrl, wordmarkUrl: null, logoUrl: "/icons/duck-tile.png", title, artist,
       releaseRaw: f.releaseRaw, label: f.labelText, review: f.reviewText,
       reviewSource: f.reviewSource, score: f.score, bestNewMusic: f.bestNew
     });
