@@ -79,6 +79,9 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('album-a', 1)").run();
     db.raw.prepare(`INSERT INTO audio_devices(id, kind, network_name, name, settings, first_seen, last_seen)
       VALUES('uuid:wiim', 'upnp', 'WiiM Pro', 'Lounge', '{"mode":"x2"}', 1, 1)`).run();
+    // The server's Tailscale identity, as the engine keeps it (v0.7.2).
+    fs.mkdirSync(path.join(lib.data, "tailscale"), { recursive: true });
+    fs.writeFileSync(path.join(lib.data, "tailscale", "tailscaled.state"), "node-key-of-this-server");
 
     const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H,
       body: JSON.stringify({ include: ["settings", "devices", "collection", "keys"], page: { "rra-ui-text": "1.25" } }) });
@@ -93,12 +96,14 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     db.setSetting("userPlaylists", []);
     db.raw.prepare("DELETE FROM favourites").run();
     db.raw.prepare("UPDATE audio_devices SET name = 'Changed', settings = '{}' WHERE id = 'uuid:wiim'").run();
+    fs.rmSync(path.join(lib.data, "tailscale"), { recursive: true, force: true });   // a rebuilt data folder: a new node, unless restored
 
     const back = await fetch(BASE + "/api/backup/restore?parts=settings,devices,collection,keys,page", {
       method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
     const j = await back.json();
     assert.equal(back.status, 200, JSON.stringify(j));
-    assert.deepEqual(j.restored.sort(), ["collection", "devices", "keys", "page", "settings"]);
+    assert.deepEqual(j.restored.sort(), ["collection", "devices", "keys", "page", "settings", "tailscale"], "the Tailscale identity came with the keys (v0.7.2)");
+    assert.equal(fs.readFileSync(path.join(lib.data, "tailscale", "tailscaled.state"), "utf8"), "node-key-of-this-server", "the same node again");
     assert.deepEqual(j.page, { "rra-ui-text": "1.25" });
     assert.equal(j.restarting, true);
     assert.equal(db.setting("smartPicksHour"), 7);

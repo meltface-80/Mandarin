@@ -17824,6 +17824,11 @@ initServiceBrowser({
       Running: st.serving ? "Connected" : "Connecting…"
     };
     html += line("Status", esc(words[state] || state));
+    // The engine says Running but the tailnet doesn't see it, or Tailscale
+    // warns (v0.7.2): said here, while the server rebinds and restarts it.
+    if (state === "Running" && (st.online === false || (st.health && st.health.length))) {
+      html += '<div class="settings-note away-error">' + esc(st.online === false ? "Running, but not online on the tailnet — the server is rebinding it, then starting it afresh" : "Tailscale warns: " + st.health.join("; ")) + "</div>";
+    }
     if (state === "Running") {
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));

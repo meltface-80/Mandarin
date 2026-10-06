@@ -11,6 +11,13 @@ Versioning: each set of changes is a development build and takes the next third 
   that can be switched off is, so it leaves the zone picker too. Tap Hide / unhide again and the
   hidden ones are listed under Hidden: tick one and OK to bring it back. A note after OK says so.
 
+- **The server's Tailscale identity travels with a backup's keys.** Restored onto a fresh install
+  (a rollback, a rebuilt data folder), the server is the same node on your tailnet: the same
+  address and name, no signing in again, and the phone's learnt address still right. Before,
+  every reinstall was a new node, which is why away from home kept needing Tailscale set up
+  afresh. The built-in Tailscale also now reports whether its node is online and any warning
+  Tailscale raises, and rebinds, then restarts itself, when it has said Running but not online
+  for a minute.
 - **Leaving the Wi-Fi, the app follows at once.** The Wi-Fi gone with mobile data still up: the
   page's connections over it would hang rather than fail, and the page with them, until the
   app was closed and opened again. They are dropped at once, the way to the server looked at,
