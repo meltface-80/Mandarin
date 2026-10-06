@@ -5,6 +5,29 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.6
+- **The three acts under the share card are chosen for you.** Still from Deezer's related
+  acts, but weighted by what you play: a taste graph is built once a day from the related lists
+  of your most-played acts, and an act near nothing you play scores next to nothing — so a
+  children's act or a wrong-genre act stays off the row without any genre to filter on. Two of
+  the three are acts you have not heard of (not in the library, never played); the third is an
+  act you know with a record you don't own, never one you play heavily. Each names the act's
+  best-known record (from their top tracks) rather than their debut, with a line saying why it is
+  there ("Near Steely Dan and Boz Scaggs, which you play"). The draw is weighted random among the
+  best and remembers what it showed for a month, so the same record shared twice gives a
+  different three. With no listening history yet, Deezer's own order stands.
+- **The share card comes up at once, on Now playing and on the album page.** It is drawn from
+  what the page already has, and the three acts are asked for only once it is on screen. What
+  used to hold it up: it asked for the cover at a size nothing else used (1000 px, rounded up to
+  the server's 1200 px step), so every first share of a record meant the server decoding and
+  re-encoding the full cover and the phone downloading it — now it asks for the 800 px picture
+  Now playing and the album page already show, the browser's own copy; the duck tile was a
+  900 KB PNG for a 96 px drawing — now 30 KB; a wordmark the card doesn't carry was still
+  requested as "/null", which came back as the whole app page on every draw; and the pictures
+  were fetched one after another — now together. Measured in the browser: a cold share went
+  from about 1.1 MB over the wire to nothing, and from 335 ms to 130 ms on a fast link (far
+  more on a phone away from home).
+
 ## v0.7.5
 - **The share card's duck is a rounded-square brass tile.** The app icon's shape — the duck in brass
   on a dark ground with a brass outline, corners in the card's own proportion — at the size and

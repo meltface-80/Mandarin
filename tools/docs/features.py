@@ -176,8 +176,8 @@ FEATURES = [
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
     ("sharecard", "🖼️", "Share card", False,
-     "The album as a picture, the duck in its corner, links to hear and read about it on the "
-     "services you choose, and three related artists beside it.",
+     "The album as a picture, the duck in its corner, links to hear and read about it, and three "
+     "acts near what you play, two of them new to you.",
      "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,

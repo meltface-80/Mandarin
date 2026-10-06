@@ -143,6 +143,11 @@ class Browser {
           throw new Error((d.exception && d.exception.description) || d.text);
         }
         return r.result.value;
+      },
+      /* The tab as a PNG, written to `file` (a look at the page while writing a test). */
+      async screenshot(file) {
+        const r = await s("Page.captureScreenshot", { format: "png" });
+        require("fs").writeFileSync(file, Buffer.from(r.data, "base64"));
       }
     };
   }
