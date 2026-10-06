@@ -682,12 +682,214 @@ window.__afterStart = (fn) => {
   }
   function renderLocalWall() {
     grid.dataset.wall = "local";
-    const list = localList();
-    if (!list.length) { grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Music Folders.", false); return; }
-    setBanner(null);
+    const all = localList();
+    if (!all.length) { hideLocalControls(); grid.innerHTML = ""; setBanner("Nothing on this phone yet — choose a folder in Settings → Music Folders.", false); return; }
+    // Focus and Sort, as the Library wall has them (v0.7.4), worked out here
+    // on the phone: the server never sees these albums.
+    const list = localSorted(all.filter(localPasses));
+    renderLocalControls();
+    setCountText("Music on device · " + list.length.toLocaleString() +
+                 (localFocusCount() ? " matching" : "") + (list.length === 1 ? " album" : " albums"));
     grid.innerHTML = "";
+    if (!list.length) { setBanner("Nothing matches this focus — try clearing a filter.", false); return; }
+    setBanner(null);
     grid.appendChild(localTiles(list));
   }
+
+  // ----- Music on device: Focus and Sort (v0.7.4) --------------------------
+  // The Library wall's controls, for the phone's own albums: the same row,
+  // the same sheets and chips, with what the phone's index knows — the
+  // artist, the year, the files' quality. Kept per device, like the
+  // Library's view.
+  const LOCAL_VIEW_KEY = "rra-local-view";
+  const LOCAL_SORTS = [
+    { id: "album",  label: "Album name",   dir: "asc",  asc: "A → Z", desc: "Z → A" },
+    { id: "artist", label: "Artist",       dir: "asc",  asc: "A → Z", desc: "Z → A" },
+    { id: "year",   label: "Release date", dir: "desc", asc: "Oldest first", desc: "Newest first", note: "from the files' tags" },
+    { id: "random", label: "Random",       dir: "asc" }
+  ];
+  const LOCAL_FACETS = [["artist", "Artist"], ["decade", "Decade"], ["quality", "Quality"]];
+  let localView = { sort: "album", dir: "asc", seed: 1, artist: [], decade: [], quality: [] };
+  try {
+    const s = JSON.parse(localStorage.getItem(LOCAL_VIEW_KEY) || "null");
+    if (s && typeof s === "object") {
+      localView = Object.assign(localView, s);
+      for (const [id] of LOCAL_FACETS) localView[id] = Array.isArray(localView[id]) ? localView[id].map(String) : [];
+      if (!LOCAL_SORTS.some(o => o.id === localView.sort)) localView.sort = "album";
+      if (localView.dir !== "asc" && localView.dir !== "desc") localView.dir = "asc";
+      if (!Number.isFinite(localView.seed)) localView.seed = 1;
+    }
+  } catch (e) { /* the defaults stand */ }
+  const saveLocalView = () => { try { localStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(localView)); } catch (e) { /* localStorage optional */ } };
+  const localFacetOf = {
+    artist:  a => a.subtitle || "Unknown artist",
+    decade:  a => a.year ? String(Math.floor(Number(a.year) / 10) * 10) + "s" : "Undated",
+    quality: a => a.hires ? "Hi-Res" : (typeof a.quality === "string" && a.quality.includes("/")) ? "Lossless" : "Lossy"
+  };
+  const localFocusCount = () => LOCAL_FACETS.reduce((n, [id]) => n + localView[id].length, 0);
+  // The Library's chip rule: a value included, or excluded with a "!" in front.
+  function localPasses(a) {
+    for (const [id] of LOCAL_FACETS) {
+      const sel = localView[id];
+      if (!sel.length) continue;
+      const v = localFacetOf[id](a);
+      if (sel.includes("!" + v)) return false;
+      const on = sel.filter(x => !x.startsWith("!"));
+      if (on.length && !on.includes(v)) return false;
+    }
+    return true;
+  }
+  function localSorted(list) {
+    const cmp = new Intl.Collator(undefined, { sensitivity: "base", numeric: true }).compare;
+    const out = list.slice();
+    if (localView.sort === "random") {
+      // The seed fixes which shuffle, so the wall stays put until ⟳.
+      let s = (localView.seed || 1) >>> 0;
+      const rnd = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return s / 4294967296; };
+      for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+      return out;
+    }
+    const key = {
+      album:  a => a.title || "",
+      artist: a => (a.subtitle || "") + "\u0001" + (a.title || ""),
+      year:   a => Number(a.year) || 0
+    }[localView.sort] || (a => a.title || "");
+    out.sort((x, y) => {
+      const a = key(x), b = key(y);
+      const d = typeof a === "number" ? a - b : cmp(a, b);
+      return d || cmp(x.title || "", y.title || "");
+    });
+    if (localView.dir === "desc") out.reverse();
+    return out;
+  }
+  function renderLocalControls() {
+    let bar = document.getElementById("local-controls");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "local-controls";
+      bar.className = "library-controls sub-bar";
+      const row = document.querySelector(".topbar-row");
+      if (row) row.insertAdjacentElement("afterend", bar);
+      else grid.parentNode.insertBefore(bar, grid);
+    }
+    bar.innerHTML = "";
+    bar.appendChild(buildFocusCtl(localFocusCount(), openLocalFocusSheet));
+    const o = LOCAL_SORTS.find(x => x.id === localView.sort) || LOCAL_SORTS[0];
+    const dirless = o.id === "random";
+    bar.appendChild(buildSortCtl(o.label, dirless ? "⟳" : (localView.dir === "desc" ? "↓" : "↑"),
+      dirless ? "Sort — Random" : "Sort — " + o.label + ", " + (localView.dir === "desc" ? o.desc : o.asc), openLocalSortSheet));
+    bar.classList.remove("hidden");
+  }
+  function hideLocalControls() {
+    const bar = document.getElementById("local-controls");
+    if (bar) bar.classList.add("hidden");
+  }
+  // The artist view borrows the grid and puts it back: the row with it.
+  window.__restoreLocalControls = () => { if (localWallOpen()) renderLocalControls(); };
+  function openLocalSortSheet() {
+    openLibSheet("Sort by", (body, close) => {
+      const paint = () => {
+        body.innerHTML = "";
+        for (const opt of LOCAL_SORTS) {
+          const on = localView.sort === opt.id, hasDir = opt.id !== "random";
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "lib-sort-row" + (on ? " is-on" : "");
+          const arrow = document.createElement("span");
+          arrow.className = "lib-sort-arrow";
+          arrow.setAttribute("aria-hidden", "true");
+          arrow.textContent = on && hasDir ? (localView.dir === "desc" ? "↓" : "↑") : "";
+          row.appendChild(arrow);
+          const text = document.createElement("span");
+          text.className = "lib-sort-text";
+          const main = document.createElement("span");
+          main.className = "lib-sort-label";
+          main.textContent = opt.label;
+          text.appendChild(main);
+          if (opt.note) { const sub = document.createElement("span"); sub.className = "lib-sort-note"; sub.textContent = opt.note; text.appendChild(sub); }
+          row.appendChild(text);
+          if (on && hasDir) row.setAttribute("aria-label", opt.label + " — " + (localView.dir === "desc" ? opt.desc : opt.asc) + ", tap to reverse");
+          row.addEventListener("click", () => {
+            if (on) {
+              if (hasDir) localView.dir = localView.dir === "desc" ? "asc" : "desc";
+              else { localView.seed = libNextSeed(localView.seed); close(); }
+            } else {
+              localView.sort = opt.id;
+              localView.dir = opt.dir;
+              if (!hasDir) localView.seed = libNextSeed(localView.seed);
+              close();
+            }
+            saveLocalView();
+            if (document.body.contains(body)) paint();
+            renderLocalWall();
+          });
+          body.appendChild(row);
+        }
+      };
+      paint();
+    });
+  }
+  function openLocalFocusSheet() {
+    const all = localList();
+    const openSections = {};
+    openLibSheet("Focus", (body) => {
+      const render = () => {
+        body.innerHTML = "";
+        for (const [id, label] of LOCAL_FACETS) {
+          const sel = localView[id];
+          if (openSections[id] === undefined && sel.length) openSections[id] = true;
+          const expanded = !!openSections[id];
+          const s = document.createElement("div");
+          s.className = "lib-sheet-section" + (expanded ? " is-open" : "");
+          const head = document.createElement("button");
+          head.type = "button";
+          head.className = "lib-sheet-section-head";
+          head.setAttribute("aria-expanded", expanded ? "true" : "false");
+          const t = document.createElement("span"); t.className = "lib-sheet-section-label"; t.textContent = label; head.appendChild(t);
+          if (sel.length) { const n = document.createElement("span"); n.className = "lib-sheet-section-count"; n.textContent = String(sel.length); head.appendChild(n); }
+          const car = document.createElement("span"); car.className = "lib-sheet-section-caret"; car.setAttribute("aria-hidden", "true"); car.textContent = expanded ? "⌃" : "⌄"; head.appendChild(car);
+          head.addEventListener("click", () => { openSections[id] = !expanded; render(); });
+          s.appendChild(head);
+          body.appendChild(s);
+          if (!expanded) continue;
+          const wrap = document.createElement("div");
+          wrap.className = "lib-chips";
+          s.appendChild(wrap);
+          const counts = new Map();
+          for (const a of all) { const v = localFacetOf[id](a); counts.set(v, (counts.get(v) || 0) + 1); }
+          const values = [...counts.keys()].sort((a, b) => id === "decade" ? String(b).localeCompare(String(a)) : String(a).localeCompare(String(b), undefined, { sensitivity: "base" }));
+          for (const v of values) {
+            const state = facetState(sel, v);
+            const c = document.createElement("button");
+            c.type = "button";
+            c.className = "lib-chip" + (state === "on" ? " is-on" : state === "not" ? " is-not" : "");
+            c.textContent = v + " (" + counts.get(v) + ")";
+            if (state === "not") c.setAttribute("aria-label", "Excluding " + v);
+            c.addEventListener("click", () => { facetCycle(sel, v); saveLocalView(); render(); renderLocalWall(); });
+            wrap.appendChild(c);
+          }
+        }
+      };
+      render();
+    }, (foot, close) => {
+      const clear = document.createElement("button");
+      clear.type = "button"; clear.className = "action-btn"; clear.textContent = "Clear";
+      clear.addEventListener("click", () => { for (const [id] of LOCAL_FACETS) localView[id] = []; saveLocalView(); renderLocalWall(); close(); });
+      const show = document.createElement("button");
+      show.type = "button"; show.className = "action-btn primary"; show.textContent = "Show albums";
+      show.addEventListener("click", close);
+      foot.appendChild(clear); foot.appendChild(show);
+    });
+  }
+  // A name as the artist view compares it: case, accents and punctuation aside.
+  const foldName = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+  // The phone's own albums by an artist (v0.7.4), for the artist view — the
+  // server never sees them, so the page brings them to that screen itself.
+  window.__phoneAlbumsByArtist = (name) => {
+    const k = foldName(name);
+    return k ? localList().filter(a => foldName(a.subtitle) === k) : [];
+  };
   // The wall open now, still showing the phone's albums (another wall may
   // have taken the grid since)?
   const localWallOpen = () => grid.dataset.wall === "local" && !grid.classList.contains("hidden") &&
@@ -2569,6 +2771,7 @@ window.__afterStart = (fn) => {
   function hideLibraryControls() {
     const c = document.getElementById("library-controls");
     if (c) c.classList.add("hidden");
+    hideLocalControls();   // the Music on device wall's row goes the same way (v0.7.4)
     const f = document.getElementById("library-filter");
     if (f) f.classList.add("hidden");
     if (libFilterOpen || libView.prefix) {
@@ -2866,8 +3069,10 @@ window.__afterStart = (fn) => {
   // is the only state this control carries — what those facets ARE is the
   // sheet's job, and spelling them out here would wrap onto three lines on a
   // phone the moment more than one is on.
-  function buildLibFocusButton() {
-    const n = libFocusCount();
+  function buildLibFocusButton() { return buildFocusCtl(libFocusCount(), () => openLibFocusSheet(null)); }
+  // The control itself, for any wall with a Focus (the Library's; Music on
+  // device's since v0.7.4): `n` active filters, `onClick` opens its sheet.
+  function buildFocusCtl(n, onClick) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "lib-ctl lib-ctl-focus" + (n ? " is-active" : "");
@@ -2895,7 +3100,7 @@ window.__afterStart = (fn) => {
     // Wrapped, not passed by reference: the listener hands its callback an
     // event, which would arrive as editTarget and be treated as a playlist to
     // save over.
-    b.addEventListener("click", () => openLibFocusSheet(null));
+    b.addEventListener("click", () => onClick());
     return b;
   }
 
@@ -2903,22 +3108,26 @@ window.__afterStart = (fn) => {
   // way the current sort runs, and tapping anywhere on the button opens the
   // sheet where it can be changed.
   function buildLibSortButton() {
+    // Random has no direction to show, so the slot carries the reshuffle glyph
+    // instead — the same symbol the sort sheet's Random row re-taps to.
+    return buildSortCtl(libSortLabel(), libSortHasDir(libView.sort) ? (libView.dir === "desc" ? "↓" : "↑") : "⟳",
+      libSortHasDir(libView.sort) ? "Sort — " + libSortLabel() + ", " + libDirLabel() : "Sort — " + libSortLabel(),
+      openLibSortSheet);
+  }
+  function buildSortCtl(label, arrowText, aria, onClick) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "lib-ctl lib-ctl-sort";
 
     const text = document.createElement("span");
     text.className = "lib-ctl-text";
-    text.textContent = libSortLabel();
+    text.textContent = label;
     b.appendChild(text);
 
     const arrow = document.createElement("span");
     arrow.className = "lib-ctl-arrow";
     arrow.setAttribute("aria-hidden", "true");
-    // Random has no direction to show, so the slot carries the reshuffle glyph
-    // instead — the same symbol the sort sheet's Random row re-taps to.
-    arrow.textContent = libSortHasDir(libView.sort)
-      ? (libView.dir === "desc" ? "↓" : "↑") : "⟳";
+    arrow.textContent = arrowText;
     b.appendChild(arrow);
 
     const caret = document.createElement("span");
@@ -2927,10 +3136,8 @@ window.__afterStart = (fn) => {
     caret.textContent = "⌄";
     b.appendChild(caret);
 
-    b.setAttribute("aria-label", libSortHasDir(libView.sort)
-      ? "Sort — " + libSortLabel() + ", " + libDirLabel()
-      : "Sort — " + libSortLabel());
-    b.addEventListener("click", openLibSortSheet);
+    b.setAttribute("aria-label", aria);
+    b.addEventListener("click", () => onClick());
     return b;
   }
 
@@ -5735,6 +5942,7 @@ window.__afterStart = (fn) => {
             .forEach(b => b.classList.remove("is-selected"));
   }
   window.__exitAlbumSelectMode = exitAlbumSelectMode;
+  window.__enterAlbumSelectMode = enterAlbumSelectMode;   // the tests' long press
 
   // The bottom bar is kept as the "you are in select mode, nothing chosen yet"
   // hint — without it, long-pressing produces no visible change at all until
@@ -9648,33 +9856,57 @@ window.__afterStart = (fn) => {
 
 
 
+  // A selection of albums from anywhere (v0.7.4): the server's — your files,
+  // Qobuz, Tidal — go to the zone in one ask, and the phone's own go to the
+  // phone's player, as one of them does from its page. Before, the phone's
+  // were sent to the server with the rest, which knows nothing of them and
+  // refused the lot ("offsets required").
   async function invokeAlbumMulti(kind) {
     if (!albumSelected.length) return;
-    if (!selectedZoneId) { showToast("Pick a zone first", "error"); return; }
+    const phone = albumSelected.filter(isPhoneAlbum);
+    const server = albumSelected.filter(a => !isPhoneAlbum(a));
+    if (server.length && !selectedZoneId) { showToast("Pick a zone first", "error"); return; }
+    const verb = kind === "play_now" ? "Playing" : kind === "play_next" ? "Playing next:" : "Queued";
+    const said = [];
     try {
-      const r = await fetch("/api/play-multi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          offsets: albumSelected.map(a => a.offset),
-          // Identity per album so a mid-scan stale offset is relocated or
-          // refused server-side instead of queueing the wrong records.
-          items: albumSelected.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "" })),
-          zone_or_output_id: selectedZoneId,
-          kind,
-          filter_type:   activeFilter ? activeFilter.type   : "",
-          filter_value:  activeFilter ? activeFilter.value  : "",
-          filter_parent: activeFilter && activeFilter.parent ? activeFilter.parent : ""
-        })
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
-      // play-multi now answers 200 with counts when some albums failed, so the
-      // count reported has to come from the response, not from what was asked.
-      // `total` is omitted — a hand-picked selection is never capped.
-      showToast(multiOutcome(kind === "play_now" ? "Playing" : kind === "play_next" ? "Playing next:" : "Queued",
-                             j, albumSelected.length, null) +
-                " → " + zoneName(selectedZoneId));
+      if (server.length) {
+        const r = await fetch("/api/play-multi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            offsets: server.map(a => a.offset),
+            // Identity per album so a mid-scan stale offset is relocated or
+            // refused server-side instead of queueing the wrong records.
+            items: server.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "" })),
+            zone_or_output_id: selectedZoneId,
+            kind,
+            filter_type:   activeFilter ? activeFilter.type   : "",
+            filter_value:  activeFilter ? activeFilter.value  : "",
+            filter_parent: activeFilter && activeFilter.parent ? activeFilter.parent : ""
+          })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+        // play-multi now answers 200 with counts when some albums failed, so the
+        // count reported has to come from the response, not from what was asked.
+        // `total` is omitted — a hand-picked selection is never capped.
+        said.push(multiOutcome(verb, j, server.length, null) + " → " + zoneName(selectedZoneId));
+      }
+      if (phone.length) {
+        const dl = window.MusicdDownloads;
+        if (!dl || typeof dl.playLocal !== "function") throw new Error("Only the Mandarin app plays music on this phone");
+        // Play now: the first plays now and the rest follow it; Play next: in
+        // order, so each goes in behind the last (the app inserts after the
+        // playing track); Queue: at the end, in order.
+        const want = kind === "play_next" || kind === "add_next" ? "play_next" : kind === "play_now" ? "play_now" : "queue";
+        phone.forEach((a, i) => {
+          const k = want === "play_now" ? (i === 0 && !server.length ? "play_now" : "queue")
+            : want === "play_next" ? "play_next" : "queue";
+          dl.playLocal(phoneKey(a), -1, k);
+        });
+        said.push(`${server.length ? "Queued" : verb} ${phone.length} album${phone.length === 1 ? "" : "s"} on this phone → This phone`);
+      }
+      showToast(said.join(" · "));
       exitAlbumSelectMode();
     } catch (e) {
       showToast(e.message, "error");
@@ -15366,6 +15598,8 @@ initServiceBrowser({
         window.__restoreLibraryWall(saved.libraryWallWasActive);
       }
       if (window.__unparkLabels) window.__unparkLabels(saved.labels);
+      // The Music on device wall's Focus / Sort row, if that is what came back (v0.7.4).
+      if (window.__restoreLocalControls) window.__restoreLocalControls();
       // Land back where the user was, not at the top of the wall.
       const mainEl = document.querySelector("main");
       if (mainEl && typeof saved.scrollTop === "number") mainEl.scrollTop = saved.scrollTop;
@@ -15467,31 +15701,48 @@ initServiceBrowser({
     if (countBar) { countBar.innerHTML = ""; countBar.classList.add("hidden"); }
     grid.innerHTML = "";
 
+    // Everything of theirs in your library (v0.7.4): the server's albums —
+    // your files and the Qobuz and Tidal ones — and the music on this phone,
+    // which the server never sees, under its own heading. The phone's part
+    // stands even when the server can't be asked.
+    const mine = window.__phoneAlbumsByArtist ? window.__phoneAlbumsByArtist(artistName) : [];
+    let j = { primary: [], featured: [] }, failed = null;
     try {
       const r = await fetch("/api/artist-albums?artist=" + encodeURIComponent(artistName));
       if (!r.ok) throw new Error("HTTP " + r.status);
-      const j = await r.json();
-      const total = j.primary.length + j.featured.length;
+      j = await r.json();
+      j.primary = j.primary || []; j.featured = j.featured || [];
+    } catch (e) { failed = e; }
+    if (!artistViewActive) return;
+    try {
+      const total = j.primary.length + j.featured.length + mine.length;
 
-      if (artistViewActive) setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName);
+      setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName);
 
       if (!total) {
+        if (failed) throw failed;
         grid.innerHTML = `<div class="artist-view-empty">No albums found for "${artistName}"</div>`;
         return;
       }
 
       const frag = document.createDocumentFragment();
+      const header = (text) => {
+        const hdr = document.createElement("div");
+        hdr.className = "artist-section-header";
+        hdr.textContent = text;
+        frag.appendChild(hdr);
+      };
 
       if (j.primary.length) {
-        if (j.featured.length) {
-          const hdr = document.createElement("div");
-          hdr.className = "artist-section-header";
-          hdr.textContent = "Albums";
-          frag.appendChild(hdr);
-        }
+        if (j.featured.length || mine.length) header("Albums");
         for (const a of j.primary) {
           frag.appendChild(window.__buildAlbumTile(a));
         }
+      }
+
+      if (mine.length) {
+        if (j.primary.length || j.featured.length) header("On this phone");
+        for (const a of mine) frag.appendChild(window.__buildAlbumTile(a));
       }
 
       if (j.featured.length) {
@@ -15510,8 +15761,9 @@ initServiceBrowser({
       // grid is never blocked on external services. One of the artist's own
       // album titles pins their identity for the lookup (see /api/artist-bio).
       const bioAlbum = (j.primary[0] && j.primary[0].title) ||
-                       (j.featured[0] && j.featured[0].title) || "";
+                       (j.featured[0] && j.featured[0].title) || (mine[0] && mine[0].title) || "";
       renderArtistBioHead(artistName, bioAlbum);
+      if (failed) throw failed;   // the phone's albums are up; the server's absence is still said
     } catch (e) {
       if (countBar) {
         countBar.classList.remove("hidden");

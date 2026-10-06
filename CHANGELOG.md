@@ -15,6 +15,19 @@ Versioning: each set of changes is a development build and takes the next third 
   list are fetched ahead while the phone's music plays, tried again on an error, picked up when
   the server answers again, and Now playing has their cover and album by their id or, failing
   that, by the cover address the server gave them.
+- **Music on device has Focus and Sort**, as the Library wall does, in the Android app: sort by
+  album name, artist, release date or random; focus by artist, decade or quality (Hi-Res,
+  lossless, lossy), each chip tapped once to include and again to exclude. Worked out on the
+  phone, where that music lives, and remembered per device.
+- **An artist's page shows everything of theirs in your library.** Tapping an artist's name used
+  to ask the server alone, so an artist whose albums are on the phone came back as "0 albums".
+  Now the page lists the server's albums (your files, Qobuz, Tidal) and the phone's own under
+  "On this phone", and the phone's part stands even when the server can't be reached.
+- **Albums from anywhere can be multi-selected together and played.** A selection of your files,
+  Qobuz, Tidal and the phone's own albums works as one: the server's go to the zone in one ask,
+  the phone's to the phone's player, with Play now, Play next and Queue meaning the same for
+  both. Before, the phone's albums went to the server with the rest, which knows nothing of them
+  and refused the lot ("offsets required").
 - **The share card carries the duck.** The duck, as a round black disc, sits inside the card's
   bottom-right corner, on the glass beside the album details, never on the border; with a review
   on the card it shares the foot with the review's source.
