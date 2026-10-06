@@ -176,8 +176,8 @@ FEATURES = [
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
     ("sharecard", "🖼️", "Share card", False,
-     "The album as a picture, with links to hear it and read about it on the services you choose, "
-     "and three related artists suggested beside it.",
+     "The album as a picture, the duck in its corner, links to hear and read about it on the "
+     "services you choose, and three related artists beside it.",
      "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,
@@ -205,9 +205,10 @@ FEATURES = [
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
      "downloads are in **Settings → Downloads** in the app."),
     ("onphone", "📂", "Music on this phone", False,
-     "A folder of music already on the phone, watched for changes, shown on Home and played like the "
-     "library. The server never sees these files.",
-     "In the app, **Settings → Music Folders → On this phone** and choose the folder."),
+     "A folder of music already on the phone, watched for changes, on Home with Focus and Sort "
+     "and on artists' pages, played like the library. The server never sees it.",
+     "In the app, **Settings → Music Folders → On this phone** and choose the folder. Selected with "
+     "other albums and played on **This phone**, they go into the one queue."),
     ("offline", "✈️", "Offline mode", True,
      "One switch: only the music on the phone shows, and the server isn't used. With no connection "
      "the app does the same by itself, and reconnects when it can.",
@@ -236,8 +237,8 @@ FEATURES = [
      "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
      "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", True,
-     "Back up settings, players, collection, API keys and the whole database, at home or away: to the "
-     "server, or from the Android app to a file with its settings.",
+     "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
+     "database, at home or away: to the server, or from the app to a file.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),
@@ -255,10 +256,10 @@ FEATURES = [
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
     ("updates", "🔄", "Updates", False,
-     "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
-     "offers each new version when it opens.",
+     "The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app "
+     "one Update does the server first, then the app.",
      "**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts "
-     "itself in a few seconds."),
+     "itself in a few seconds; in the app, Android's installer then asks."),
 ]
 
 MAX_WORDS = 30

@@ -26,12 +26,18 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v0.7.0**
-* **Qobuz and Tidal**, experimentally: sign in with a subscription and stream from either, used in
-  line with each service's terms of service; those who use them do so at their own risk.
+**New in v0.7.4** (since v0.7.0)
+* **Qobuz and Tidal favourites follow both ways, by themselves**: remove an album from your
+  favourites here and it is gone within the moment; add or remove one in the service's own app and
+  it follows here on the next look. An album's page says why it is in the library.
+* **Music on device, in the Android app**: Focus and Sort on its wall, the phone's albums on an
+  artist's page beside the server's, and a selection of albums from anywhere played as one queue
+  on This phone. A Qobuz or Tidal album queued after the phone's own music plays when reached.
+* **One Update** does the server first and then the app. **Hide / unhide** on Audio Devices. A fresh
+  look at matching. The server's Tailscale identity travels with a backup's keys. The share card
+  carries the duck.
 * **Mac users with a USB DAC** connected to the Mac may have trouble with it; a fix is being
   worked on.
-* Various UI and UX improvements.
 
 ---
 
@@ -415,7 +421,7 @@ Playlists you make, and Dynamic Playlists that follow a saved Library view. A pl
 
 🖼️ **Share card**
 
-The album as a picture, with links to hear it and read about it on the services you choose, and three related artists suggested beside it.
+The album as a picture, the duck in its corner, links to hear and read about it on the services you choose, and three related artists beside it.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -487,11 +493,11 @@ On an album, **⋯ → Download to this phone**. Quality, the download folder, W
 
 📂 **Music on this phone**
 
-A folder of music already on the phone, watched for changes, shown on Home and played like the library. The server never sees these files.
+A folder of music already on the phone, watched for changes, on Home with Focus and Sort and on artists' pages, played like the library. The server never sees it.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the app, **Settings → Music Folders → On this phone** and choose the folder.
+In the app, **Settings → Music Folders → On this phone** and choose the folder. Selected with other albums and played on **This phone**, they go into the one queue.
 
 </details>
 
@@ -559,7 +565,7 @@ Open the side menu (☰) and tap the **power button** in its top-right corner, t
 
 💾 **Backup and restore** — *new since v0.5.50*
 
-Back up settings, players, collection, API keys and the whole database, at home or away: to the server, or from the Android app to a file with its settings.
+Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -595,11 +601,11 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 
 🔄 **Updates**
 
-The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
+The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app one Update does the server first, then the app.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds.
+**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds; in the app, Android's installer then asks.
 
 </details>
 
@@ -724,7 +730,8 @@ docker build -t musicd-server:local .
 
 **In the app:** Settings → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
 downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
-the page reloads on its own. It also checks twice a day and shows a banner when a new
+the page reloads on its own. In the Android app the same button then updates the app, once
+the server is back (v0.7.3). It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, Node):
