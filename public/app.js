@@ -9857,10 +9857,14 @@ window.__afterStart = (fn) => {
 
 
   // A selection of albums from anywhere (v0.7.4): the server's — your files,
-  // Qobuz, Tidal — go to the zone in one ask, and the phone's own go to the
-  // phone's player, as one of them does from its page. Before, the phone's
+  // Qobuz, Tidal — go to the zone in one ask; the phone's own go to the
+  // phone's player when that is the zone (one queue of everything), and are
+  // left out, with a word, when a room or a device is. Before, the phone's
   // were sent to the server with the rest, which knows nothing of them and
   // refused the lot ("offsets required").
+  // The zone chosen is this phone's own player ("This phone", as the server
+  // names it to the app that owns it).
+  const playingOnThisPhone = () => { const z = zones.find(z => z.zone_id === selectedZoneId); return !!(z && z.is_phone && z.display_name === "This phone"); };
   async function invokeAlbumMulti(kind) {
     if (!albumSelected.length) return;
     const phone = albumSelected.filter(isPhoneAlbum);
@@ -9892,7 +9896,12 @@ window.__afterStart = (fn) => {
         // `total` is omitted — a hand-picked selection is never capped.
         said.push(multiOutcome(verb, j, server.length, null) + " → " + zoneName(selectedZoneId));
       }
-      if (phone.length) {
+      if (phone.length && server.length && !playingOnThisPhone()) {
+        // A room or a device is the zone: the server's albums went there, and
+        // the phone's can't follow (the server has no copy of them). Said, and
+        // left out, rather than played on the phone beside the room.
+        said.push("Unable to add music on this phone to queue");
+      } else if (phone.length) {
         const dl = window.MusicdDownloads;
         if (!dl || typeof dl.playLocal !== "function") throw new Error("Only the Mandarin app plays music on this phone");
         // Play now: the first plays now and the rest follow it; Queue: at the

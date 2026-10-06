@@ -10,6 +10,7 @@ const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
+const { FakeHousehold } = require("./fake-sonos");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = 3639, B = "http://127.0.0.1:" + PORT;
@@ -98,13 +99,30 @@ const DRIVER = `(async () => {
   await until(() => titles().length === 2);
   out.phone_only = titles();
   out.phone_only_heads = [...document.querySelectorAll("#album-grid .artist-section-header")].map(e => e.textContent);
+  // At home with a room chosen: a mixed selection sends the server's album to
+  // the room and leaves the phone's out, with a word.
+  window.__showArtistAlbums("Artist A");
+  await until(() => document.querySelectorAll("#album-grid .album").length === 2);
+  const sel = $("zone-select");
+  const kitchen = [...sel.options].find(o => o.textContent.trim() === "Kitchen");
+  sel.value = kitchen.value; sel.dispatchEvent(new Event("change"));
+  await sleep(100);
+  window.__playLocalCalls = [];
+  window.__enterAlbumSelectMode();
+  for (const t of document.querySelectorAll("#album-grid .album")) t.click();
+  document.querySelector('[data-sel-act="queue"]').click();
+  await until(() => $("toast").textContent.includes("Unable"), 8000);
+  out.mixed_toast = $("toast").textContent;
+  out.mixed_play_local = window.__playLocalCalls;
   return out;
 })()`;
 
 test("Music on device: Focus and Sort on the wall; an artist's page shows the server's and the phone's albums", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
+  const house = new FakeHousehold();
+  await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);
@@ -137,5 +155,8 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
     assert.deepEqual(r.artist_tiles, ["Album One", "Zebra Crossing"], "the server's album and the phone's, under their headings");
     assert.deepEqual(r.phone_only.slice().sort(), ["Abandoned Locations", "Shore Ghosts"], "an artist only on the phone is found too");
     assert.deepEqual(r.phone_only_heads, [], "no heading when the phone is all there is");
-  } finally { await srv.stop(); }
+    assert.match(r.mixed_toast, /Queued 1 album → Kitchen · Unable to add music on this phone to queue/, r.mixed_toast);
+    assert.deepEqual(r.mixed_play_local, [], "the phone's album is left out, not played on the phone beside the room");
+    assert.equal(house.room("Kitchen").queue.length, 3, "Album One's three tracks reached the room");
+  } finally { await srv.stop(); await house.stop(); }
 });

@@ -23,10 +23,11 @@ Versioning: each set of changes is a development build and takes the next third 
   to ask the server alone, so an artist whose albums are on the phone came back as "0 albums".
   Now the page lists the server's albums (your files, Qobuz, Tidal) and the phone's own under
   "On this phone", and the phone's part stands even when the server can't be reached.
-- **Albums from anywhere can be multi-selected together and played.** A selection of your files,
-  Qobuz, Tidal and the phone's own albums works as one: the server's go to the zone in one ask,
-  the phone's to the phone's player, with Play now, Play next and Queue meaning the same for
-  both. Before, the phone's albums went to the server with the rest, which knows nothing of them
+- **Albums from anywhere can be multi-selected together and played** in the Android app. Playing
+  on This phone, a selection of your files, Qobuz, Tidal and the phone's own albums is one queue,
+  with Play now, Play next and Queue meaning the same for all. With a room or a device as the
+  zone, the server's albums go there and the phone's are left out, with the word "Unable to add
+  music on this phone to queue". Before, the phone's albums went to the server with the rest, which knows nothing of them
   and refused the lot ("offsets required").
 - **The share card carries the duck.** The duck, as a round black disc, sits inside the card's
   bottom-right corner, on the glass beside the album details, never on the border; with a review
