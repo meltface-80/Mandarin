@@ -120,6 +120,7 @@ class FakeQobuz {
             return json(200, { albums: { total: list.length, items: list.map(a => this.albumJson(a, false)) } });
           }
           case "favorite/getUserFavoriteIds": return json(200, { albums: [...this.favourites], tracks: [], artists: [] });
+          case "purchase/getUserPurchasesIds": return json(200, { albums: { total: this.purchases.size, items: [...this.purchases].map(id => ({ id })) }, tracks: { total: 0, items: [] } });
           case "favorite/create": for (const id of String(q.album_ids || "").split(",")) if (find(id)) this.favourites.add(String(id)); return json(200, { status: "success" });
           case "favorite/delete": for (const id of String(q.album_ids || "").split(",")) this.favourites.delete(String(id)); return json(200, { status: "success" });
           case "track/getFileUrl": {

@@ -464,8 +464,19 @@ function createServer(overrides = {}) {
         s.importLibrary().catch(e => log(`[${id}] import: ${e.message}`));
       }
     };
+    // And the favourites watched between imports (v0.7.3): every two minutes
+    // the ids the account wants are compared with what is kept, so an album
+    // favourited or removed in the service's own app follows here unasked.
+    const serviceWatch = () => {
+      for (const id of SERVICES.IDS) {
+        const s = ctx.services[id];
+        if (!s.connected() || !s.settings().import) continue;
+        s.watch().catch(e => log(`[${id}] watch: ${e.message}`));
+      }
+    };
     for (const t of [setTimeout(serviceSync, config.qobuzSyncDelayMs == null ? 20000 : config.qobuzSyncDelayMs),
-      setInterval(serviceSync, 6 * 3600e3), setInterval(() => { for (const id of SERVICES.IDS) { try { ctx.services[id].pruneTransient(); } catch (e) { /* next day */ } } }, 24 * 3600e3)]) {
+      setInterval(serviceSync, 6 * 3600e3), setInterval(serviceWatch, config.serviceWatchMs || 120000),
+      setInterval(() => { for (const id of SERVICES.IDS) { try { ctx.services[id].pruneTransient(); } catch (e) { /* next day */ } } }, 24 * 3600e3)]) {
       t.unref(); ctx.scanTimers.push(t);
     }
     return ctx;

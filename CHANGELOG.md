@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.3
+- **Qobuz and Tidal favourites follow both ways, by themselves.** Remove an album from your
+  Qobuz or Tidal favourites on its page (⋯ → Remove from … favourites) and it is gone from the
+  service, its page closes and its tile is off the wall at once — no rescan, no import. Add one
+  and the walls take it in. A favourite added or removed in the Qobuz or Tidal app follows here
+  on the next look: the server compares the service's favourites (and Qobuz purchases) with what
+  it keeps every two minutes, and the page asks for that check when you come back to Home or the
+  Library wall. The six-hourly import still brings the playlists.
+- **An album's page says why it is in the library.** A streamed album's page reads "In your
+  library as a Qobuz favourite since 3 Oct 2026", "… as a Qobuz purchase", "Here for a Tidal
+  playlist or favourite track" or "Played from Qobuz — not in your favourites", and "not out
+  until 16 Oct 2026" for one not released yet. An album that appeared unasked — Qobuz lists a
+  pre-release in the favourites its own app keeps out of sight, or a favourite another app
+  linked to the account added — can be read off its page and removed there.
+
 ## v0.7.2
 - **Hide / unhide on Audio Devices.** Devices you can't forget (a computer's HDMI outputs, say)
   can be hidden: tap **Hide / unhide**, tick them, tap **OK**. Hidden ones leave the list, and one

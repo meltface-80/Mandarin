@@ -898,6 +898,7 @@ window.__afterStart = (fn) => {
     // The unplayed and random rows share one TTL, so mark it before the loop
     // rather than once per row.
     refreshHomeRows();
+    if (window.__watchServices) window.__watchServices();
   }
   // Decided BEFORE the clock is marked (v0.6.0-RC4): marking first made the
   // unplayed row read as fresh, so once it held tiles it was never fetched
@@ -1802,6 +1803,11 @@ window.__afterStart = (fn) => {
         if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
         on = !on; a.service_favourite = on; b.textContent = label();
         showToast(on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
+        // Off the walls at once (v0.7.3): removed, the album is no longer in
+        // the library, so its page closes and the wall under it is redrawn
+        // without it; added, the walls take it in.
+        if (!on) closeModal();
+        if (window.__libraryChanged) window.__libraryChanged(on ? {} : { gone: a.offset });
       } catch (e) { showToast(e.message, "error"); }
       finally { b.disabled = false; }
     } }];
@@ -5104,6 +5110,7 @@ window.__afterStart = (fn) => {
     const m = enterFullWall("Library", true);
     libraryWallActive = true;
     renderLibraryControls();
+    if (window.__watchServices) window.__watchServices();
     libWall.seq++;
     const mySeq = libWall.seq;
     libWall.offset = 0; libWall.loading = false; libWall.done = false;
@@ -7755,6 +7762,31 @@ window.__afterStart = (fn) => {
         if (note) note.textContent = "Names from its folders — the files carry no tags";
       } else if (note) note.remove();
     }
+    // A streamed album, signed in (v0.7.3): why it is in the library — a
+    // favourite or a purchase on the service, and since when; held by a
+    // playlist or favourite track; or only played — and, for one not out
+    // yet, its release date. So an album that appeared unasked explains
+    // itself on its page.
+    {
+      let why = document.getElementById("modal-why-note");
+      const w = j.album && j.album.service_why;
+      if (w && modalSub && modalSub.parentNode) {
+        if (!why) {
+          why = document.createElement("div");
+          why.id = "modal-why-note";
+          why.className = "modal-names-note";
+        }
+        const anchor = document.getElementById("modal-names-note") || modalSub;
+        anchor.parentNode.insertBefore(why, anchor.nextSibling);
+        const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+        let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
+          : w.kept ? "In your library as a " + w.name + " favourite" + when
+          : w.held ? "Here for a " + w.name + " playlist or favourite track — not in your favourites"
+          : "Played from " + w.name + " — not in your favourites";
+        if (w.releases) text += " · not out until " + formatReleaseDate(w.releases);
+        why.textContent = text;
+      } else if (why) why.remove();
+    }
 
     // A disc of a box set filed as albums of their own (v0.6.3): which box,
     // which disc, and the other discs a tap away — stepping through the box
@@ -9758,6 +9790,43 @@ window.__afterStart = (fn) => {
 
   window.__buildAlbumTile = (a) => buildAlbumTile(a);
   window.__loadRandom = loadRandom;
+  window.__showLibraryWall = showLibraryWall;
+
+  // The library changed under the page (v0.7.3): a streamed album favourited
+  // or removed — here, or in the service's own app and found by the watch.
+  // Whatever is on screen is redrawn, within the moment: the tile of an
+  // album gone (`gone`, its offset) is taken off every wall and row at once,
+  // the Home rows are marked stale and reloaded if Home is showing, and the
+  // Library wall or the random wall is read again.
+  window.__libraryChanged = (opts) => {
+    const gone = opts && opts.gone != null ? String(opts.gone) : null;
+    if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
+    homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
+    homeHistoryLoaded = false; homeLibraryKey = ""; homePlaylistsLoaded = false;
+    if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
+    if (window.__searchActive && window.__searchActive()) return;
+    if (window.__artistViewActive && window.__artistViewActive()) return;
+    if (labelsActive || favouritesWallActive || laterWallActive) return;
+    if (libraryWallActive) { showLibraryWall(); return; }
+    if (unplayedWallActive) return;   // a fixed wall: the tile is gone, the rest stands
+    if (!grid.classList.contains("hidden") && !gone) loadRandom();
+  };
+
+  // The services' favourites checked when the page comes back to Home or to
+  // the Library wall (v0.7.3), not only on the server's two-minute clock:
+  // an album favourited in the Qobuz or Tidal app on the way home is on the
+  // wall by the time it is looked at. Not more than once a half-minute.
+  let servicesWatchedAt = 0;
+  window.__watchServices = async () => {
+    if (window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;
+    servicesWatchedAt = Date.now();
+    try {
+      const r = await fetch("/api/services/watch", { method: "POST" });
+      const j = r.ok ? await r.json() : null;
+      if (j && j.changed) window.__libraryChanged();
+    } catch (e) { /* next time */ }
+  };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") window.__watchServices(); });
   window.__showToast = (msg, kind) => showToast(msg, kind);
 
   async function bootstrap() {
@@ -13925,6 +13994,8 @@ function initServiceBrowser(cfg) {
         toast(wasAdded
           ? ("Removed from " + cfg.serviceName + " favourites")
           : ("Added to " + cfg.serviceName + " favourites"), "ok");
+        // The walls under the browser follow (v0.7.3).
+        if (window.__libraryChanged) window.__libraryChanged({});
       } else {
         btns.forEach((b, i) => { b.textContent = prev[i]; });
         toast(j.error || "Couldn't update favourite", "error");

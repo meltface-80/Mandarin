@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.7.2
+# Mandarin — v0.7.3
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -960,6 +960,12 @@ in line with Qobuz's terms of service; those who use it do so at their own risk.
   signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks,
   Listen later and playlists, with a Qobuz mark on the cover. *Favourites and purchases in the
   library* on the Services page switches this off.
+* **Favourites follow both ways, by themselves** (v0.7.3). Remove an album from your Qobuz
+  favourites here and it is gone from Qobuz and off the walls within the moment; add one and it
+  is on them. A favourite added or removed in the Qobuz app follows here on the next look: the
+  server checks every two minutes, and the page checks when you come back to Home or the Library
+  wall. An album's page says why it is in the library — a favourite or a purchase since a date, a
+  playlist's, or only played — and its release date when it is not out yet.
 * **The Qobuz browser** (*☰ → Qobuz*): search, new releases, best sellers, most streamed, press
   awards, editor's picks, an artist's albums, as the album grid the rest of Mandarin draws, each
   cover with its **+** for your Qobuz favourites. Tapping an album opens its page here, the same
@@ -1006,7 +1012,9 @@ line with Tidal's terms of service; those who use it do so at their own risk.
   itself. It keeps the sign-in token, renewed as Tidal requires, never a password.
 * **Your favourite albums are albums here**, every one, with a Tidal mark on the cover;
   *Favourites in the library* on the Services page switches this off. **Your Tidal playlists and
-  favourite tracks are playlists here**, as with Qobuz.
+  favourite tracks are playlists here**, as with Qobuz. **Favourites follow both ways, by
+  themselves** (v0.7.3), as with Qobuz: removed here, gone from Tidal and the walls at once;
+  changed in the Tidal app, here on the next look (two minutes, or when you come back to Home).
 * **The Tidal browser** (*☰ → Tidal*): search, new releases, recommended, top, rising, an
   artist's albums, as the album grid, each cover with its **+** for your Tidal favourites; an
   album opens on its page here. The ⋯ menu on a Tidal album's page has **Add to Tidal

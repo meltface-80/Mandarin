@@ -197,6 +197,76 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false);
     });
 
+    // The favourites watched (v0.7.3): a change made in the Qobuz app — a
+    // favourite added or removed there — follows here on the next look,
+    // without an import; and the page says why an album is in the library.
+    await t.test("the watch: favourites changed on Qobuz follow here; the page says why an album is here", async () => {
+      const q1 = (await api("library/albums?sort=album")).albums.find(a => a.title === "Q Album");
+      const q2 = (await api("library/albums?sort=album")).albums.find(a => a.title === "Q Hi-Res");
+      const why1 = (await api("album?offset=" + q1.offset)).album.service_why, why2 = (await api("album?offset=" + q2.offset)).album.service_why;
+      assert.equal(why1.kept, "favourite", JSON.stringify(why1));
+      assert.equal(why2.kept, "purchase", JSON.stringify(why2));
+      // Added in the Qobuz app: the watch brings it in, kept as a favourite.
+      qobuz.favourites.add("1003");
+      const w = await api("services/watch", {});
+      assert.equal(w.changed, true, JSON.stringify(w));
+      assert.deepEqual(w.services.qobuz, { added: 1, dropped: 0, failed: 0, changed: true });
+      const other = (await api("library/albums?sort=album")).albums.find(a => a.title === "Q Other");
+      assert.ok(other, "on the walls after the watch");
+      assert.equal((await api("album?offset=" + other.offset)).album.service_why.kept, "favourite");
+      assert.equal((await api("services/watch", {})).changed, false, "looked at within 15 s: nothing to do");
+      // Removed in the Qobuz app: off the walls on the next look, its page still reachable.
+      qobuz.favourites.delete("1003");
+      const w2 = await ctx.services.qobuz.watch();
+      assert.deepEqual(w2, { added: 0, dropped: 1, failed: 0, changed: true });
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false);
+      const whyGone = (await api("album?offset=" + other.offset)).album.service_why;
+      assert.equal(whyGone.kept, null); assert.equal(whyGone.held, true, "a playlist holds one of its tracks: " + JSON.stringify(whyGone));
+      // Nothing changed: the watch says so and touches nothing.
+      assert.deepEqual(await ctx.services.qobuz.watch(), { added: 0, dropped: 0, failed: 0, changed: false });
+    });
+
+    // Removed from the favourites on the album's page (v0.7.3): the page
+    // closes and the tile is off the Library wall at once.
+    await t.test("the page: Remove from Qobuz favourites closes the album and takes its tile off the wall", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)" }, async () => {
+      await api("qobuz/favorite", { album_id: "1003" });
+      const b = await Browser.launch({ width: 390, height: 844 });
+      let r;
+      try {
+        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+        r = await page.eval(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const $ = id => document.getElementById(id);
+          const until = async (f, ms = 8000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
+          const out = {};
+          await until(() => document.querySelector("#home-view .album"));
+          window.__showLibraryWall();
+          const tile = await until(() => [...document.querySelectorAll("#album-grid .album")].find(t => t.querySelector(".album-title").textContent === "Q Other"));
+          out.on_wall = !!tile;
+          tile.click();
+          const modal = $("album-modal");
+          await until(() => !modal.classList.contains("hidden") && $("modal-title").textContent === "Q Other");
+          const item = await until(() => [...modal.querySelectorAll(".overflow-menu .sel-menu-item")].find(x => x.textContent === "Remove from Qobuz favourites"));
+          out.why = await until(() => $("modal-why-note") && $("modal-why-note").textContent);
+          const t0 = Date.now();
+          item.click();
+          await until(() => modal.classList.contains("hidden"));
+          out.closed_in_ms = Date.now() - t0;
+          await until(() => ![...document.querySelectorAll("#album-grid .album")].some(t => t.querySelector(".album-title").textContent === "Q Other"));
+          out.gone_in_ms = Date.now() - t0;
+          out.wall_shown = !$("album-grid").classList.contains("hidden");
+          return out;
+        })()`);
+        assert.deepEqual(page.errors, []);
+      } finally { await b.close(); }
+      assert.equal(r.on_wall, true, "a favourite is on the Library wall");
+      assert.match(r.why, /^In your library as a Qobuz favourite/, r.why);
+      assert.ok(r.closed_in_ms < 2000, "the page closed in " + r.closed_in_ms + " ms");
+      assert.ok(r.gone_in_ms < 2000, "the tile was gone in " + r.gone_in_ms + " ms");
+      assert.equal(r.wall_shown, true);
+      assert.equal(qobuz.favourites.has("1003"), false, "and it is gone from Qobuz itself");
+    });
+
     await t.test("the browser on the page: an album grid, + / ✓ on the covers, a tap opens the album's page", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)" }, async () => {
       const b = await Browser.launch({ width: 390, height: 844 });
       let r;
