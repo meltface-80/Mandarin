@@ -76,6 +76,17 @@ const DRIVER = `(async () => {
   out.play_local = window.__playLocalCalls || [];
   out.toast = (document.querySelector(".toast, #toast") || {}).textContent || "";
   out.select_left = document.querySelectorAll("#album-grid .album.is-selected").length;
+  // Play next and Play now, the same way: in order, and the first plays now.
+  for (const act of ["play_next", "play_now"]) {
+    window.__playLocalCalls = [];
+    window.__enterAlbumSelectMode();
+    const ts = [...document.querySelectorAll("#album-grid .album")];
+    ts.find(t => t.querySelector(".album-title").textContent === "Shore Ghosts").click();
+    ts.find(t => t.querySelector(".album-title").textContent === "Zebra Crossing").click();
+    document.querySelector('[data-sel-act="' + act + '"]').click();
+    await sleep(200);
+    out[act] = window.__playLocalCalls;
+  }
   // The artist view: the server's album by Artist A and the phone's, together.
   window.__showArtistAlbums("Artist A");
   await until(() => document.querySelector("#album-grid .artist-section-header"));
@@ -120,6 +131,8 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
     assert.deepEqual(r.play_local, [["p1", -1, "queue"], ["p3", -1, "queue"]], "both phone albums to the phone's player, in order");
     assert.match(r.toast, /Queued 2 albums on this phone/, r.toast);
     assert.equal(r.select_left, 0, "the selection is cleared");
+    assert.deepEqual(r.play_next, [["p3", -1, "play_next"], ["p1", -1, "play_next"]], "Play next: sent last to first, since the app puts each straight after the playing track");
+    assert.deepEqual(r.play_now, [["p1", -1, "play_now"], ["p3", -1, "queue"]], "Play now: the first now, the rest after it");
     assert.deepEqual(r.artist_heads, ["Albums", "On this phone"]);
     assert.deepEqual(r.artist_tiles, ["Album One", "Zebra Crossing"], "the server's album and the phone's, under their headings");
     assert.deepEqual(r.phone_only.slice().sort(), ["Abandoned Locations", "Shore Ghosts"], "an artist only on the phone is found too");

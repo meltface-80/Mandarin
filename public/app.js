@@ -9895,13 +9895,13 @@ window.__afterStart = (fn) => {
       if (phone.length) {
         const dl = window.MusicdDownloads;
         if (!dl || typeof dl.playLocal !== "function") throw new Error("Only the Mandarin app plays music on this phone");
-        // Play now: the first plays now and the rest follow it; Play next: in
-        // order, so each goes in behind the last (the app inserts after the
-        // playing track); Queue: at the end, in order.
+        // Play now: the first plays now and the rest follow it; Queue: at the
+        // end, in order; Play next: the app puts each one straight after the
+        // playing track, so they are sent last to first and land in order.
         const want = kind === "play_next" || kind === "add_next" ? "play_next" : kind === "play_now" ? "play_now" : "queue";
-        phone.forEach((a, i) => {
-          const k = want === "play_now" ? (i === 0 && !server.length ? "play_now" : "queue")
-            : want === "play_next" ? "play_next" : "queue";
+        const order = want === "play_next" ? phone.slice().reverse() : phone;
+        order.forEach((a, i) => {
+          const k = want === "play_now" ? (i === 0 && !server.length ? "play_now" : "queue") : want;
           dl.playLocal(phoneKey(a), -1, k);
         });
         said.push(`${server.length ? "Queued" : verb} ${phone.length} album${phone.length === 1 ? "" : "s"} on this phone → This phone`);
