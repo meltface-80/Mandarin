@@ -104,3 +104,55 @@ test("24-bit WAV is repacked as FLAC, same rate", () => {
   assert.equal(p.rate, 44100);
   assert.equal(p.bits, 24);
 });
+
+/*
+ * A repack is sample for sample (v0.7.6). A WAV a device won't take goes as
+ * FLAC at its own rate and depth, and the samples must come out exactly as
+ * they went in: dither at the 32-bit output, cut to 24 bits by the encoder,
+ * took one 24-bit LSB off an eighth of the samples. Found by a bit-for-bit
+ * capture of the server's own output against Roon's.
+ */
+test("a container-only conversion is marked exact and gets no dither; a gain or a resample is not", () => {
+  const S = require("../lib/stream");
+  const wav = { path: "/m/a.wav", codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
+  const dac = { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] };
+  const p = S.plan(wav, dac);
+  assert.equal(p.transcode, true); assert.equal(p.rate, 96000); assert.equal(p.bits, 24);
+  assert.equal(p.exact, true, "a WAV repacked at its own rate and depth");
+  assert.match(S.ffmpegArgs("/m/a.wav", p, "/t/x.flac").join(" "), /dither_method=0/);
+  // 16-bit too, where the output stays 16.
+  const cd = S.plan({ path: "/m/b.wav", codec: "pcm_s16le", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, dac);
+  assert.equal(cd.bits, 16); assert.equal(cd.exact, true);
+  // Sonos: a 24-bit WAV is repacked exactly too (WAV above 16 bits is not sent as it is).
+  const sonos = S.plan({ path: "/m/c.wav", codec: "PCM", sampleRate: 44100, bitsPerSample: 24, channels: 2 });
+  if (sonos.transcode) assert.equal(sonos.exact, true);
+  // Not exact: a gain, a resample, DSP, a lossy source, more than two channels.
+  assert.equal(S.withGain(p, wav, dac, -3).exact, undefined, "a gain changes the samples");
+  assert.equal(S.plan(wav, { name: "DAC", rates: [44100, 48000], maxBits: 24, containers: ["flac"] }).exact, undefined, "resampled to 48 kHz");
+  assert.equal(S.plan({ path: "/m/a.ape", codec: "Monkey's Audio", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, dac).exact, true, "a lossless codec decodes to integers: exact");
+  assert.equal(S.plan({ path: "/m/a.mp3", codec: "mp3", sampleRate: 44100, bitsPerSample: 0, channels: 2 }, { name: "DAC", rates: [44100], maxBits: 24, containers: ["flac"] }).exact, undefined, "a lossy source decodes to float: dithered");
+});
+
+test("the repack really is bit for bit: a 24/96 WAV through the conversion comes back sample for sample", { skip: !require("./fixtures").haveFfmpeg() && "ffmpeg is not installed" }, () => {
+  const S = require("../lib/stream");
+  const fs = require("fs"), os = require("os"), path = require("path");
+  const { execFileSync } = require("child_process");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-exact-"));
+  const wav = path.join(dir, "ref.wav"), flac = path.join(dir, "out.flac");
+  // A tone, pink noise and silence, as a test file would be; 24-bit, 96 kHz.
+  execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=1000:duration=1:sample_rate=96000",
+    "-f", "lavfi", "-i", "anoisesrc=d=1:c=pink:r=96000:a=0.3", "-filter_complex", "[0][1]concat=n=2:v=0:a=1,adelay=200|200,apad=pad_dur=0.2,volume=0.5,aformat=channel_layouts=stereo",
+    "-ar", "96000", "-c:a", "pcm_s24le", wav]);
+  const t = { path: wav, codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
+  const p = S.plan(t, { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] });
+  assert.equal(p.exact, true);
+  execFileSync("ffmpeg", S.ffmpegArgs(wav, p, flac), { stdio: ["ignore", "ignore", "pipe"] });
+  // Decoded the way the local output decodes (32-bit PCM), both of them.
+  const pcm = f => execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", f, "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "s32le", "pipe:1"], { maxBuffer: 64 << 20 });
+  const a = pcm(wav), b = pcm(flac);
+  assert.equal(b.length, a.length, "the same number of samples");
+  assert.ok(a.equals(b), "every sample identical");
+  let low = 0; for (let i = 0; i < b.length; i += 4) if (b[i] !== 0) low++;
+  assert.equal(low, 0, "24-bit samples in a 32-bit container: the low byte is zero");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
