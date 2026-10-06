@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.1
+- **"UPnP error 501: … is not responding: socket hang up" on a renderer** (Audirvana's UPnP
+  renderer on a Mac, among others): the player had closed the kept-alive connection the control
+  request went out on. The request is now sent once more on a fresh connection, as Node's own
+  guidance has it; a request that fails on a fresh one is still a failure.
+- **Settings' × is the brass disc** it was meant to be in v0.7.0 (an older rule outweighed it),
+  at the top bar's button size, as every page's ‹ already was.
+
 ## v0.7.0
 - **Qobuz and Tidal are supported, experimentally.** Used the way their own apps and the Lyrion
   Music Server plugins use them, in line with each service's terms of service; those who use them

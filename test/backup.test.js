@@ -137,7 +137,9 @@ test("the whole database: restored at the next start, today's account and sign-i
   try {
     const keys = ctx.db.raw.prepare("SELECT key FROM favourites ORDER BY key").all().map(x => x.key);
     assert.deepEqual(keys, ["then"], "the database as it was at the backup");
-    const st = await fetch(BASE + "/api/backup", { headers: H });
+    // The first ask of the new server: fetch may try a kept-alive connection
+    // to the old one first, which is gone — once more then.
+    const st = await fetch(BASE + "/api/backup", { headers: H }).catch(() => fetch(BASE + "/api/backup", { headers: H }));
     assert.equal(st.status, 200, "the same sign-in still works");
     assert.ok(fs.readdirSync(path.join(lib.data, "backups")).some(n => /^before-restore-.*\.db$/.test(n)), "the replaced one kept");
   } finally { await srv.stop(); }
