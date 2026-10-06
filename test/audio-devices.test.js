@@ -303,6 +303,22 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
     assert.equal(r.j.radio, false);
     assert.equal((await call("GET", "/api/radio?zone=RINCON_KITCHEN01400")).j.enabled, false);
 
+    // Hidden (v0.7.2): off the list's way, switched off with it; shown again, still off.
+    const telly1 = (await call("GET", "/api/audio-devices/" + tv.id)).j;
+    await call("PATCH", "/api/audio-devices/" + tv.id, { enabled: true });
+    r = await call("PATCH", "/api/audio-devices/" + tv.id, { hidden: true });
+    assert.equal(r.j.hidden, true, "hidden");
+    assert.equal(r.j.enabled, false, "and switched off, so it leaves the zone picker");
+    assert.equal((await list()).find(d => d.id === tv.id).hidden, true, "the list says so");
+    r = await call("PATCH", "/api/audio-devices/" + tv.id, { hidden: false });
+    assert.equal(r.j.hidden, false);
+    assert.equal(r.j.enabled, false, "back on the list, off until switched on");
+    assert.equal(telly1.hidden, false, "it was not hidden before");
+    // A room can be hidden too (it only leaves the list).
+    r = await call("PATCH", "/api/audio-devices/RINCON_STUDY001400", { hidden: true });
+    assert.equal(r.j.hidden, true);
+    await call("PATCH", "/api/audio-devices/RINCON_STUDY001400", { hidden: false });
+
     // Forget is for a device that has gone.
     await call("POST", "/api/audio-devices/rescan");
     assert.equal((await call("POST", "/api/audio-devices/" + w.id + "/forget")).status, 409);

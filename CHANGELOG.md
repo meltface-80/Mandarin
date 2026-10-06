@@ -5,6 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.2
+- **Hide / unhide on Audio Devices.** Devices you can't forget (a computer's HDMI outputs, say)
+  can be hidden: tap **Hide / unhide**, tick them, tap **OK**. Hidden ones leave the list, and one
+  that can be switched off is, so it leaves the zone picker too. Tap Hide / unhide again and the
+  hidden ones are listed under Hidden: tick one and OK to bring it back. A note after OK says so.
+
 ## v0.7.1
 - **"UPnP error 501: … is not responding: socket hang up" on a renderer** (Audirvana's UPnP
   renderer on a Mac, among others): the player had closed the kept-alive connection the control

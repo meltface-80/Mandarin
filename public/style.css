@@ -5033,6 +5033,25 @@ input.vol-range::-moz-range-thumb {
 .dev-open:active { transform: scale(.99); }
 .dev-row.is-disabled .dev-ico, .dev-row.is-disabled .dev-name, .dev-row.is-disabled .dev-sub { opacity: .5; }
 .dev-switch { margin-left: 4px; }
+/* Hide / unhide (v0.7.2): the tools beside each other; selecting, a tick
+   circle on every row (the pick circle of the album grid), the hidden ones
+   under a rule, the OK in brass. */
+.dev-tools { display: flex; gap: 8px; flex: 0 0 auto; }
+.dev-tools .settings-update-btn.is-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); font-weight: 700; }
+.dev-row.is-selecting { cursor: pointer; }
+.dev-row.is-selecting .dev-open { cursor: pointer; }
+.dev-pick {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--text-faint); display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-accent, #fff);
+}
+.dev-row.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+.dev-row.is-picked .dev-pick { background: var(--accent); border-color: var(--accent); }
+.dev-row.is-hidden { border-style: dashed; opacity: .8; }
+.dev-rule { display: flex; align-items: center; gap: 10px; padding: 6px 0 0; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); }
+.dev-rule::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.dev-hidden-count { padding: 2px 4px; }
+.confirm-msg.is-notice { text-align: left; white-space: pre-line; }
 .dev-ico {
   flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center;

@@ -125,7 +125,8 @@ FEATURES = [
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
      "Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker "
-     "list and Now playing show. **Output** is on a renderer's page."),
+     "list and Now playing show. **Output** is on a renderer's page. **Hide / unhide** takes devices "
+     "you don't use off the list; tap it again and tick one under Hidden to bring it back."),
     ("dsd", "💎", "DSD", True,
      "A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB "
      "DAC on the phone gets DSD natively or as DoP.",
