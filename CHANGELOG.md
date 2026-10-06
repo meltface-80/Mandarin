@@ -11,6 +11,11 @@ Versioning: each set of changes is a development build and takes the next third 
   that can be switched off is, so it leaves the zone picker too. Tap Hide / unhide again and the
   hidden ones are listed under Hidden: tick one and OK to bring it back. A note after OK says so.
 
+- **Leaving the Wi-Fi, the app follows at once.** The Wi-Fi gone with mobile data still up: the
+  page's connections over it would hang rather than fail, and the page with them, until the
+  app was closed and opened again. They are dropped at once, the way to the server looked at,
+  and the server asked for within seconds; with no way to it, the app's own copy takes over.
+  The page's own asks give up on a dead connection after 25 s too.
 - **A fresh look at matching.** A copy that is the whole of itself on a bigger pressing (every
   track there, to the name and the second) is the same record: one edition difference, not a
   penalty a track, so a ten-track original on a twenty-track anniversary pressing now applies

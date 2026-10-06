@@ -320,7 +320,19 @@ class MainActivity : Activity() {
     private val netWatch = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onLost(network: android.net.Network) {
             web.postDelayed({
-                if (isFinishing || offline || hasNetwork()) return@postDelayed
+                if (isFinishing || offline) return@postDelayed
+                if (hasNetwork()) {
+                    // Another network is still up (the Wi-Fi went, mobile data
+                    // stayed): the relay's connections over the one that went
+                    // would hang, not fail, and the page with them — dropped
+                    // (v0.7.2), the way to the server looked at now, and the
+                    // server asked for soon rather than at the next quarter minute.
+                    PageRelay.dropAll()
+                    Away.recheck(this@MainActivity, soon = true)
+                    web.removeCallbacks(liveWatch)
+                    web.postDelayed(liveWatch, 2_000)
+                    return@postDelayed
+                }
                 PageRelay.dropAll()
                 if (OfflineSite.has(this@MainActivity)) goOffline()
             }, 300)
@@ -494,7 +506,14 @@ class MainActivity : Activity() {
             // Asked of the server where it's reached now (the page's address may be the relayed home one).
             val base = Store.active(this@MainActivity)?.baseUrl
             val page = loadedBase
-            if (offline || !pageLoaded || base == null) { web.postDelayed(this, 15_000); return }
+            if (offline || !pageLoaded) { web.postDelayed(this, 15_000); return }
+            // No address to reach the server on at all (away, with no way
+            // there): that is offline, not a wait (v0.7.2; before, the watch
+            // idled and the page stayed up, dead).
+            if (base == null) {
+                if (OfflineSite.has(this@MainActivity)) { Away.recheck(this@MainActivity); goOffline() } else web.postDelayed(this, 15_000)
+                return
+            }
             checks.execute {
                 val ok = runCatching {
                     val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection

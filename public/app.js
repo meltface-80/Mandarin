@@ -11252,8 +11252,16 @@ window.__afterStart = (fn) => {
       const zid = selectedZoneId();
       if (!zid) { renderZone(null); await new Promise(r => setTimeout(r, 1500)); continue; }
       const wait = zid === stateZone && stateRev >= 0 ? "&wait_for=" + stateRev + "&timeout=10000" : "";
+      // A connection that has silently died (the phone left its Wi-Fi with
+      // mobile data up: the relayed socket to the home address hangs rather
+      // than fails) would hold this ask for minutes and the bar with it
+      // (v0.7.2). The server answers within 10 s; 25 s and it is given up.
+      const one = new AbortController();
+      const onCtl = () => one.abort();
+      ctl.signal.addEventListener("abort", onCtl, { once: true });
+      const timer = setTimeout(() => one.abort(), 25000);
       try {
-        const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid) + wait, { cache: "no-store", signal: ctl.signal });
+        const r = await fetch("/api/zone-state?zone=" + encodeURIComponent(zid) + wait, { cache: "no-store", signal: one.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json();
         if (pollTimer !== ctl) return;
@@ -11266,6 +11274,9 @@ window.__afterStart = (fn) => {
         // Server or network trouble: back off (1.5s, 3s … 15s) and keep what we have.
         fails++;
         await new Promise(r => setTimeout(r, Math.min(15000, 1500 * fails)));
+      } finally {
+        clearTimeout(timer);
+        ctl.signal.removeEventListener("abort", onCtl);
       }
     }
   }
