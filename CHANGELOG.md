@@ -18,6 +18,15 @@ Versioning: each set of changes is a development build and takes the next third 
   favourites" on a page the walls still keep. Rescan library and the import let go by the
   service's id lists asked for now, so a listing that lags a removal (or a page of it cached
   within the minute) can no longer keep an album in.
+- **One Update, the server first, the app after.** In the Android app the Update button used to
+  start both at once; installing the app replaces the page, so the server's update ran unseen — a
+  failure never shown, the offer back on the next open. Now the server updates first and, once it
+  is back, the app's download and Android's installer follow; a server failure is shown and
+  retryable, the app's update waiting on it. With the server on offer the page asks the app
+  afresh, not from its hour's cache (the app's build lands minutes after the server's release,
+  and the cache was what kept the banner saying "server only"), says "the app's vX follows in a
+  few minutes" meanwhile, and asks again after the restart. The banner also sees the server back
+  by its version, so a quick restart no longer leaves it on "Restarting…".
 - **An album's page says why it is in the library.** A streamed album's page reads "In your
   library as a Qobuz favourite since 3 Oct 2026", "… as a Qobuz purchase", "Here for a Tidal
   playlist or favourite track" or "Played from Qobuz — not in your favourites", and "not out
