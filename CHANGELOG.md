@@ -5,6 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.5
+- **The share card's duck is a rounded-square brass tile.** The app icon's shape — the duck in brass
+  on a dark ground with a brass outline, corners in the card's own proportion — at the size and
+  place the round disc had.
+
 ## v0.7.4
 - **A Qobuz or Tidal album queued after the phone's own music plays when it is reached.** Playing
   music stored on the phone, the app's player holds the list itself, and a server album queued
