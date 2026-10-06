@@ -551,7 +551,7 @@ class PhonePlayerService : MediaLibraryService() {
     private fun serverBack() {
         if (!resumeWanted) return
         main.post {
-            if (!resumeWanted || localMode || player.mediaItemCount == 0) return@post
+            if (!resumeWanted || player.mediaItemCount == 0 || (localMode && !serverUri(player.currentMediaItem?.localConfiguration?.uri))) return@post
             resumeWanted = false
             retries = 0
             if (player.playbackState == Player.STATE_IDLE || player.playerError != null) player.prepare()
@@ -802,9 +802,29 @@ class PhonePlayerService : MediaLibraryService() {
             i = t.getNextWindowIndex(i, player.repeatMode, player.shuffleModeEnabled)
             if (i == C.INDEX_UNSET || !seen.add(i) || i !in 0 until player.mediaItemCount) break
             val uri = player.getMediaItemAt(i).localConfiguration?.uri
-            out += if (uri == null || uri.scheme == "file") null else uri.toString()
+            // A file on the phone (a download, its own music by content://): nothing to fetch.
+            out += if (uri == null || !serverUri(uri)) null else uri.toString()
         }
         return out
+    }
+
+    /** A server stream, as against a downloaded file or the phone's own music (content://). */
+    private fun serverUri(uri: Uri?): Boolean = uri != null && (uri.scheme == "http" || uri.scheme == "https")
+
+    /**
+     * The player holds a list of its own (local mode) but what plays, or what
+     * comes next, is the server's: a Qobuz or Tidal album queued after the
+     * phone's own music (v0.7.4). The server's safeguards then apply to it —
+     * fetched ahead, an error tried again, carried on when the server is back
+     * — as they do for the server's queue; before, a server track reached in
+     * the phone's list was fetched cold and any failure stopped the player
+     * without a word.
+     */
+    private fun serverItemsAhead(): Boolean {
+        if (player.mediaItemCount == 0) return false
+        if (serverUri(player.currentMediaItem?.localConfiguration?.uri)) return true
+        val next = player.nextMediaItemIndex
+        return next != C.INDEX_UNSET && next in 0 until player.mediaItemCount && serverUri(player.getMediaItemAt(next).localConfiguration?.uri)
     }
 
     /**
@@ -820,7 +840,8 @@ class PhonePlayerService : MediaLibraryService() {
         val isMetered = metered()
         val s = DownloadStore.settings(this)
         val count = if (isMetered) s.cacheMobile else s.cacheWifi
-        val live = !localMode && player.mediaItemCount > 0
+        // The server's queue, or the server's tracks in the phone's own list (v0.7.4).
+        val live = player.mediaItemCount > 0 && (!localMode || serverItemsAhead())
         val next = if (live) upcoming(count) else emptyList()
         // The playing track and the ones ahead keep their formats; the rest start afresh.
         val keep = HashSet<String>()
@@ -898,7 +919,9 @@ class PhonePlayerService : MediaLibraryService() {
             reportSoon()
             return
         }
-        if (localMode || player.mediaItemCount == 0) return
+        // The phone's own file failing is not the network; a server track in the
+        // phone's list (v0.7.4) is tried again like any of the server's.
+        if (player.mediaItemCount == 0 || (localMode && !serverUri(player.currentMediaItem?.localConfiguration?.uri))) return
         if (retries >= 4) {
             // Given up for now: the server is away longer than that (an update
             // is being applied, say). When it answers again, carry on from here.
@@ -1039,7 +1062,10 @@ class PhonePlayerService : MediaLibraryService() {
                 .put("album", md.albumTitle?.toString() ?: "").put("image_key", x?.getString("image_key") ?: JSONObject.NULL)
                 .put("album_key", x?.getString("album_key") ?: JSONObject.NULL).put("duration", x?.getDouble("duration", 0.0) ?: 0.0)
                 .put("ext", x?.getString("ext") ?: JSONObject.NULL)
-                .put("track_id", if (x != null && x.containsKey("track_id")) x.getLong("track_id") else JSONObject.NULL))
+                .put("track_id", if (x != null && x.containsKey("track_id")) x.getLong("track_id") else JSONObject.NULL)
+                // A server track's cover as the server named it (v0.7.4): its
+                // art even if the id did not travel.
+                .put("art_url", md.artworkUri?.takeIf { serverUri(it) }?.toString() ?: JSONObject.NULL))
         }
         return a
     }

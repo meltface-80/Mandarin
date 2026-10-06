@@ -5,6 +5,36 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.4
+- **A Qobuz or Tidal album queued after the phone's own music plays when it is reached.** Playing
+  music stored on the phone, the app's player holds the list itself, and a server album queued
+  after it goes into that list. Until now a server track reached there was fetched cold, with
+  none of the care the server's own queue gets: not fetched ahead, an error never tried again,
+  nothing carried on when the server was back — so the page showed it about to play, without its
+  cover, and the player stayed silent until Play now. Now the server's tracks in the phone's
+  list are fetched ahead while the phone's music plays, tried again on an error, picked up when
+  the server answers again, and Now playing has their cover and album by their id or, failing
+  that, by the cover address the server gave them.
+- **Music on device has Focus and Sort**, as the Library wall does, in the Android app: sort by
+  album name, artist, release date or random; focus by artist, decade or quality (Hi-Res,
+  lossless, lossy), each chip tapped once to include and again to exclude. Worked out on the
+  phone, where that music lives, and remembered per device.
+- **An artist's page shows everything of theirs in your library.** Tapping an artist's name used
+  to ask the server alone, so an artist whose albums are on the phone came back as "0 albums".
+  Now the page lists the server's albums (your files, Qobuz, Tidal) and the phone's own under
+  "On this phone", and the phone's part stands even when the server can't be reached.
+- **Albums from anywhere can be multi-selected together and played** in the Android app. Playing
+  on This phone, a selection of your files, Qobuz, Tidal and the phone's own albums is one queue,
+  with Play now, Play next and Queue meaning the same for all. With a room or a device as the
+  zone, the server's albums go there and the phone's are left out, with the word "Unable to add
+  music on this phone to queue". Before, the phone's albums went to the server with the rest, which knows nothing of them
+  and refused the lot ("offsets required").
+- **The share card carries the duck.** The duck, as a round black disc, sits inside the card's
+  bottom-right corner, on the glass beside the album details, never on the border; with a review
+  on the card it shares the foot with the review's source.
+- **The Backup page says the API keys part carries the server's Tailscale identity**, so a
+  restore onto a fresh install is the same node on your tailnet (it has since v0.7.2).
+
 ## v0.7.3
 - **Qobuz and Tidal favourites follow both ways, by themselves.** Remove an album from your
   Qobuz or Tidal favourites on its page (⋯ → Remove from … favourites) and it is gone from the
