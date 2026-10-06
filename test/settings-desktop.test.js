@@ -27,6 +27,13 @@ const DRIVER = `(async () => {
   document.querySelector(".menu-backdrop").click(); await sleep(400);
   document.getElementById("settings-toggle").click(); await sleep(400);
   out.list = { w: width(), left: Math.round(sheet().getBoundingClientRect().left) };
+  // Settings' × and every page's ‹: the brass disc the top bar's buttons have, at their size (v0.7.1).
+  const disc = el => { const r = el.getBoundingClientRect(); const c = getComputedStyle(el); return { w: Math.round(r.width), h: Math.round(r.height), bg: c.backgroundColor, radius: c.borderRadius }; };
+  out.bar_disc = disc(document.getElementById("menu-toggle"));
+  out.close_disc = disc(document.querySelector("#settings-overlay .settings-app-close"));
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="account"]').click(); await sleep(300);
+  out.back_disc = disc(document.querySelector('#settings-overlay .settings-pane:not(.hidden) .settings-back'));
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
   out.panes = {};
   // The list's order (v0.6.21), and Setup's.
   const titles = sel => [...document.querySelectorAll(sel + ' .settings-nav-item:not(.hidden) .settings-nav-title')].map(t => t.textContent);
@@ -103,6 +110,7 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
 
     const phone = await run({ width: 390, height: 844 });
     assert.equal(phone.list.w, 390, "a phone keeps the full screen");
+    assert.ok(phone.bar_disc && phone.bar_disc.w === 40 && phone.bar_disc.bg !== "rgba(0, 0, 0, 0)", "the top bar's disc was measured: " + JSON.stringify(phone.bar_disc));
     for (const k of ["close_disc", "back_disc"]) assert.deepEqual(phone[k], phone.bar_disc, k + " is the top bar's brass disc");
     assert.deepEqual(phone.text_options, ["Normal", "+10%", "+25%", "+50%"], "a phone stops at +50%");
     assert.equal(phone.text_2, "1.5");

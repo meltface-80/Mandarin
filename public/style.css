@@ -3084,13 +3084,9 @@ input.vol-range::-moz-range-thumb {
   text-wrap: nowrap;
 }
 #settings-overlay .settings-view[data-view="home"] .settings-foot { margin-top: auto; padding-top: 14px; }
-#settings-overlay .settings-app-close {
-  display: inline-flex; align-items: center; justify-content: center;
-  flex: 0 0 auto; width: 36px; height: 36px; margin-left: -6px;
-  border: none; border-radius: 999px; background: none;
-  color: var(--text-dim); cursor: pointer;
-}
-#settings-overlay .settings-app-close:active { background: var(--bg-elev-2); }
+/* Settings' × is styled with .settings-back below (v0.7.1: this rule carried
+   an id, which outweighed the brass disc and the top bar's size). */
+.settings-app-close:active { background: var(--bg-elev-2); }
 .settings-pane-head h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
 .settings-back {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
