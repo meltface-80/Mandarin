@@ -5,7 +5,12 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
-## v0.6.24
+## v0.7.0
+- **Qobuz and Tidal are supported, experimentally.** Used the way their own apps and the Lyrion
+  Music Server plugins use them, in line with each service's terms of service; those who use them
+  do so at their own risk.
+- **A USB DAC on a Mac** may give trouble for some; a fix is being worked on.
+- **Various UI and UX improvements** across the app.
 - **Tidal** (Settings → Services). Sign in with a Tidal subscription on tidal.com — Mandarin shows
   a link and a code, and notices by itself when the sign-in lands; the token is kept and renewed,
   never a password. Then everything Qobuz has (v0.6.23), the same way: your favourite albums as

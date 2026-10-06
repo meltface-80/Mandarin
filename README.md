@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.24
+# Mandarin — v0.7.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -25,6 +25,13 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
+
+**New in v0.7.0**
+* **Qobuz and Tidal**, experimentally: sign in with a subscription and stream from either, used in
+  line with each service's terms of service; those who use them do so at their own risk.
+* **Mac users with a USB DAC** connected to the Mac may have trouble with it; a fix is being
+  worked on.
+* Various UI and UX improvements.
 
 ---
 
@@ -777,7 +784,8 @@ install anything, just open the server's IP address with port `:3500` in Safari 
   DAC and switch it on. It is then a zone like a Sonos room. Mandarin sends at the rate set in
   Audio MIDI Setup, or 44.1 or 48 kHz; tick other rates on the device's page if you want them sent
   too. An existing install needs no re-run. See
-  [Sound devices on the server](#sound-devices-on-the-server).
+  [Sound devices on the server](#sound-devices-on-the-server). **Known trouble (v0.7.0):** some
+  Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is being worked on.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
@@ -943,7 +951,8 @@ published app, nor the published app it.
 ## Qobuz
 
 Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music
-Server's Qobuz plugin does — the same API, the same credentials, the same rules:
+Server's Qobuz plugin does — the same API, the same credentials, the same rules. Experimental,
+in line with Qobuz's terms of service; those who use it do so at their own risk.
 
 * **A subscriber signs in** (*Settings → Services → Qobuz*). Mandarin keeps the sign-in token, never
   the password. Qobuz decides what the account may stream.
@@ -989,7 +998,8 @@ requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin be
 Mandarin streams from Tidal with a Tidal subscription (v0.6.24), the way the Lyrion Music
 Server's Tidal plugin does — the same API, the same credentials, the same rules — and Tidal
 albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser, playlists,
-Clean up, the two favourites, the server's transcode cache, nothing downloaded.
+Clean up, the two favourites, the server's transcode cache, nothing downloaded. Experimental, in
+line with Tidal's terms of service; those who use it do so at their own risk.
 
 * **A subscriber signs in on tidal.com** (*Settings → Services → Tidal → Sign in on tidal.com*):
   Mandarin shows a link and a code, you sign in there on any device, and Mandarin notices by

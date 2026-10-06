@@ -106,6 +106,7 @@
 
   /* ---------- sections ---------- */
   section { padding: 52px 0 8px; scroll-margin-top: 56px; }
+  section#new { padding: 28px 0 0; }   /* the version's note, close under the header */
   section > .wrap > h2 {
     font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 6px;
   }
@@ -337,7 +338,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v0.6.24</span>
+    <span class="badge">v0.7.0</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -346,6 +347,15 @@
     <span class="badge plain">USB DAC</span>
   </div>
 </header>
+
+<section id="new">
+  <div class="wrap">
+    <div class="note"><b>New in v0.7.0.</b> <b>Qobuz and Tidal</b>, experimentally: sign in with a subscription and
+      stream from either, used in line with each service's terms of service; those who use them do so at their own
+      risk. <b>Mac users with a USB DAC</b> connected to the Mac may have trouble with it; a fix is being worked on.
+      And various UI and UX improvements.</div>
+  </div>
+</section>
 
 <section id="how">
   <div class="wrap">
@@ -676,7 +686,9 @@
         Utilities), click the DAC on the left and set <b>Format</b> to the rate and depth you want it to run at
         (its highest, say 24-bit 96 kHz); macOS plays at that rate and converts anything else, so this is where
         the rate is decided. <b>2.</b> In Mandarin, <b>Settings &rarr; Audio Devices</b>, tap the DAC and switch it
-        on. It is then a zone like a Sonos room. An existing install needs no re-run.</div>
+        on. It is then a zone like a Sonos room. An existing install needs no re-run. <b>Known trouble
+        (v0.7.0):</b> some Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is
+        being worked on.</div>
       <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
         is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
         Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security
