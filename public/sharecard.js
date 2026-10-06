@@ -168,6 +168,7 @@ const ShareCard = (() => {
   }
 
   function loadImage(src) {
+    if (!src) return Promise.resolve(null);
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -297,9 +298,15 @@ const ShareCard = (() => {
   }
 
   async function render(data) {
-    const cover = await loadImage(data.coverUrl).catch(() => null);
-    const wm    = await loadImage(data.wordmarkUrl).catch(() => null);
-    const logo  = await loadImage(data.logoUrl).catch(() => null);
+    // The pictures together, not one after another (v0.7.6): the card waited
+    // for the cover, then the wordmark, then the logo. And none at all for a
+    // picture there isn't — loadImage(null) used to ask the server for "/null",
+    // which answered with the whole app page, every time a card was drawn.
+    const [cover, wm, logo] = await Promise.all([
+      loadImage(data.coverUrl).catch(() => null),
+      loadImage(data.wordmarkUrl).catch(() => null),
+      loadImage(data.logoUrl).catch(() => null)
+    ]);
 
     // MEASURE FIRST, THEN SIZE, THEN DRAW. The height depends on how much
     // description there is, and measuring needs a context with fonts — so the

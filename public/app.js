@@ -11858,7 +11858,7 @@ function settingsInfo(text) {
   async function paintCard(f, coverUrl, title, artist, seq) {
     const blob = await ShareCard.render({
       // The duck tile in the card's bottom-right corner (v0.7.5).
-      coverUrl, wordmarkUrl: null, logoUrl: "/icons/duck-tile.png", title, artist,
+      coverUrl, wordmarkUrl: null, logoUrl: LOGO_URL, title, artist,
       releaseRaw: f.releaseRaw, label: f.labelText, review: f.reviewText,
       reviewSource: f.reviewSource, score: f.score, bestNewMusic: f.bestNew
     });
@@ -11871,11 +11871,28 @@ function settingsInfo(text) {
     frame.appendChild(img);
     buildActions(blob, title, artist);
   }
-  // Called when an album opens: fetch its big cover now, so a share is instant.
+  /*
+   * THE COVER THE CARD DRAWS IS THE ONE ALREADY ON SCREEN (v0.7.6). The card
+   * asked for the cover at 1000 px, which the server rounds up to its 1200 px
+   * step: a size nothing else on the page uses, so every first share of a
+   * record meant the server decoding the full cover and encoding it again
+   * (seconds on a small server) and the phone downloading it. The album page
+   * and Now playing both show the cover at 800 px — and the card's own cover
+   * pane is 424 px — so the card now asks for exactly that address and gets
+   * the browser's copy back: nothing rendered, nothing downloaded.
+   */
+  const COVER_SIZE = 800;
+  const coverUrlOf = (imageKey) => imageKey ? `/api/image/${encodeURIComponent(imageKey)}?size=${COVER_SIZE}` : "";
+  // Called when an album opens: fetch its cover now, so a share is instant.
   window.__prewarmShareCard = (imageKey) => {
     if (!imageKey) return;
-    try { const im = new Image(); im.src = `/api/image/${encodeURIComponent(imageKey)}?size=1000`; } catch (e) { /* only a head start */ }
+    try { const im = new Image(); im.src = coverUrlOf(imageKey); } catch (e) { /* only a head start */ }
   };
+  // The duck tile, fetched once the page is idle, so the first card never
+  // waits for it (it is small — 256 px — since v0.7.6; it was a 900 KB PNG).
+  const LOGO_URL = "/icons/duck-tile.png";
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
+  idle(() => { try { const im = new Image(); im.src = LOGO_URL; } catch (e) { /* only a head start */ } });
 
   // Public entry point — called from album modal share button + mini transport
   async function open(input) {
@@ -11913,23 +11930,26 @@ function settingsInfo(text) {
     overlay.classList.remove("hidden");
 
     try {
-      // NEAR-INSTANT: the card is drawn from what the server already knows
-      // (fast=1: its cache, no lookups) — the album is the one on screen, so
-      // title, artist, cover and, almost always, year and review are known.
-      // The full lookup runs alongside; only if it brings something the card
-      // lacked (a review found for the first time) is the card drawn again.
+      // THE CARD FIRST, THEN THE SUGGESTIONS. The card is drawn from what is
+      // already to hand — the record is the one on screen, so title, artist
+      // and cover are known, and the server's cache (fast=1: no lookups)
+      // almost always has the year and the review. The full lookup runs
+      // alongside; only if it brings something the card lacked (a review
+      // found for the first time) is the card drawn again. The three acts
+      // (loadSimilar, below) are asked for only once the card is on screen.
+      //
+      // The cover as the page already has it: the same address as the album
+      // page's and Now playing's picture, which the server sends immutable,
+      // so it is the browser's copy, not a download or a render. Asked for
+      // here, before the extras come back, so the two overlap.
+      const coverUrl = coverUrlOf(input.image_key);
+      window.__prewarmShareCard(input.image_key);
       const params = new URLSearchParams({ title, artist });
       const getExtras = (fast) => fetch("/api/album/extras?" + params + (fast ? "&fast=1" : ""), { cache: "no-store" })
         .then(r => r.ok ? r.json() : null).catch(() => null);
       const full = getExtras(false);
       const [, quick] = await Promise.all([ensureFont(), getExtras(true)]);
       if (mySeq !== shareSeq) return;
-
-      // The cover as the page already has it (the server sends covers
-      // immutable, so it's the browser's cached copy, not a new download).
-      const coverUrl = input.image_key
-        ? `/api/image/${encodeURIComponent(input.image_key)}?size=1000`
-        : "";
 
       const first = cardFields(quick);
       await paintCard(first, coverUrl, title, artist, mySeq);
