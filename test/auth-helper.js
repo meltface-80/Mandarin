@@ -7,17 +7,25 @@ const SRP = require("../public/srp");
 
 const USER = "tester", PASS = "correct horse battery staple", ITER = 1000;
 
+// Tests start one server after another on the same port: fetch may first try
+// a kept-alive connection to the one that has gone ("fetch failed") — once
+// more on a fresh one then. Node never retries a request by itself.
+async function fetchAgain(url, opts) {
+  try { return await fetch(url, opts); }
+  catch (e) { await new Promise(r => setTimeout(r, 150)); return fetch(url, opts); }
+}
+
 async function post(base, path, body, token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = "Bearer " + token;
-  const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body) });
+  const r = await fetchAgain(base + path, { method: "POST", headers, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
   return Object.assign({ status: r.status }, j);
 }
 
 /* Create the account (or sign in if it exists) → a bearer token. */
 async function signIn(base, { username = USER, password = PASS, iterations = ITER, create = true } = {}) {
-  const st = await fetch(base + "/api/auth/status").then(r => r.json());
+  const st = await fetchAgain(base + "/api/auth/status").then(r => r.json());
   if (st.setup_required) {
     if (!create) throw new Error("no account");
     const v = SRP.makeVerifier(username, password, iterations);
@@ -34,4 +42,4 @@ async function signIn(base, { username = USER, password = PASS, iterations = ITE
   return r.token;
 }
 
-module.exports = { signIn, post, USER, PASS, ITER };
+module.exports = { signIn, post, fetchAgain, USER, PASS, ITER };

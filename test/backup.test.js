@@ -124,7 +124,8 @@ test("the whole database: restored at the next start, today's account and sign-i
   const lib = makeLibrary();
   const exits = [];
   let { srv, ctx } = await server(lib, exits);
-  const token = await signIn(BASE);
+  let token;
+  try { token = await signIn(BASE); } catch (e) { await srv.stop().catch(() => {}); throw e; }
   const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
   ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('then', 1)").run();
   const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H, body: JSON.stringify({ include: { database: true } }) });
