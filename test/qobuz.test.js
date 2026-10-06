@@ -224,6 +224,25 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(whyGone.kept, null); assert.equal(whyGone.held, true, "a playlist holds one of its tracks: " + JSON.stringify(whyGone));
       // Nothing changed: the watch says so and touches nothing.
       assert.deepEqual(await ctx.services.qobuz.watch(), { added: 0, dropped: 0, failed: 0, changed: false });
+      // Removed in the Qobuz app and its page opened here before any look: the
+      // page's "not in your favourites" is what the library goes by, at once.
+      qobuz.favourites.add("1003");
+      await ctx.services.qobuz.watch();
+      assert.ok((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"));
+      qobuz.favourites.delete("1003");
+      ctx.services.qobuz.api.cache.clear();   // the minute's cache of the ids gone, as a minute passing would
+      const pg = await api("album?offset=" + other.offset);
+      assert.equal(pg.album.service_favourite, false);
+      assert.equal(pg.album.service_why.kept, null, "no longer kept: " + JSON.stringify(pg.album.service_why));
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false, "off the walls as the page says");
+      // An import while the listing still has it (a cached page, a lagging
+      // service) goes by the ids asked for now: still let go.
+      qobuz.favourites.add("1003");
+      await ctx.services.qobuz.api.favouriteAlbums();   // the listing cached with it in
+      qobuz.favourites.delete("1003");
+      const imp = await api("settings/qobuz/import", {});
+      assert.equal(imp.result.dropped, 1, "the listing's page still lists it, so it is imported again, and the ids let it go: " + JSON.stringify(imp.result));
+      assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false, "…but the ids say it is gone, and it is off the walls");
     });
 
     // Removed from the favourites on the album's page (v0.7.3): the page

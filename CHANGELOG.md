@@ -12,7 +12,12 @@ Versioning: each set of changes is a development build and takes the next third 
   and the walls take it in. A favourite added or removed in the Qobuz or Tidal app follows here
   on the next look: the server compares the service's favourites (and Qobuz purchases) with what
   it keeps every two minutes, and the page asks for that check when you come back to Home or the
-  Library wall. The six-hourly import still brings the playlists.
+  Library wall. The six-hourly import still brings the playlists. The page of an album is
+  itself a look: opened, what the service says of its favourite is what the library goes by —
+  no longer a favourite there, it is off the walls from the next draw, never "not in your
+  favourites" on a page the walls still keep. Rescan library and the import let go by the
+  service's id lists asked for now, so a listing that lags a removal (or a page of it cached
+  within the minute) can no longer keep an album in.
 - **An album's page says why it is in the library.** A streamed album's page reads "In your
   library as a Qobuz favourite since 3 Oct 2026", "… as a Qobuz purchase", "Here for a Tidal
   playlist or favourite track" or "Played from Qobuz — not in your favourites", and "not out
