@@ -350,10 +350,14 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v0.7.0.</b> <b>Qobuz and Tidal</b>, experimentally: sign in with a subscription and
-      stream from either, used in line with each service's terms of service; those who use them do so at their own
-      risk. <b>Mac users with a USB DAC</b> connected to the Mac may have trouble with it; a fix is being worked on.
-      And various UI and UX improvements.</div>
+    <div class="note"><b>New in v0.7.4</b> (since v0.7.0). <b>Qobuz and Tidal favourites follow both ways, by
+      themselves</b>: remove an album from your favourites here and it is gone within the moment; add or remove one
+      in the service's own app and it follows here on the next look. <b>Music on device</b>, in the Android app:
+      Focus and Sort on its wall, the phone's albums on an artist's page beside the server's, and a selection of
+      albums from anywhere played as one queue on This phone. <b>One Update</b> does the server first and then the
+      app. <b>Hide / unhide</b> on Audio Devices, a fresh look at matching, the server's Tailscale identity in a
+      backup's keys, and the duck on the share card. <b>Mac users with a USB DAC</b> connected to the Mac may have
+      trouble with it; a fix is being worked on.</div>
   </div>
 </section>
 
@@ -480,7 +484,7 @@
         <p>Playlists you make, and Dynamic Playlists that follow a saved Library view. A playlist can be shared as text and imported, matched against the other library's tracks.</p>
         <div class="how" id="how-playlists" hidden><b>How to set it up and use it.</b> <b>☰ → Playlists</b>, <b>☰ → Dynamic Playlists</b> and <b>☰ → Import a playlist</b>. A playlist's <b>Share</b> gives the text to send.</div></div>
       <div class="card"><h3><span class="em">🖼️</span>Share card<button class="info" type="button" aria-expanded="false" aria-controls="how-sharecard" aria-label="How to set up and use Share card">i</button></h3>
-        <p>The album as a picture, with links to hear it and read about it on the services you choose, and three related artists suggested beside it.</p>
+        <p>The album as a picture, the duck in its corner, links to hear and read about it on the services you choose, and three related artists beside it.</p>
         <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet.</p>
@@ -498,8 +502,8 @@
         <p>Albums kept on the phone as the original files or Opus 256, played without the server. Smart Picks, the Album of the day and new albums can download by themselves.</p>
         <div class="how" id="how-downloads" hidden><b>How to set it up and use it.</b> On an album, <b>⋯ → Download to this phone</b>. Quality, the download folder, Wi-Fi only and automatic downloads are in <b>Settings → Downloads</b> in the app.</div></div>
       <div class="card"><h3><span class="em">📂</span>Music on this phone<button class="info" type="button" aria-expanded="false" aria-controls="how-onphone" aria-label="How to set up and use Music on this phone">i</button></h3>
-        <p>A folder of music already on the phone, watched for changes, shown on Home and played like the library. The server never sees these files.</p>
-        <div class="how" id="how-onphone" hidden><b>How to set it up and use it.</b> In the app, <b>Settings → Music Folders → On this phone</b> and choose the folder.</div></div>
+        <p>A folder of music already on the phone, watched for changes, on Home with Focus and Sort and on artists' pages, played like the library. The server never sees it.</p>
+        <div class="how" id="how-onphone" hidden><b>How to set it up and use it.</b> In the app, <b>Settings → Music Folders → On this phone</b> and choose the folder. Selected with other albums and played on <b>This phone</b>, they go into the one queue.</div></div>
       <div class="card is-new"><h3><span class="em">✈️</span>Offline mode<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
         <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>.</div></div>
@@ -516,7 +520,7 @@
         <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
         <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
       <div class="card is-new"><h3><span class="em">💾</span>Backup and restore<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
-        <p>Back up settings, players, collection, API keys and the whole database, at home or away: to the server, or from the Android app to a file with its settings.</p>
+        <p>Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.</p>
         <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts.</div></div>
       <div class="card is-new"><h3><span class="em">🎼</span>Qobuz<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-qobuz" aria-label="How to set up and use Qobuz">i</button></h3>
         <p>Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.</p>
@@ -525,8 +529,8 @@
         <p>Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.</p>
         <div class="how" id="how-tidal" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Tidal → Sign in on tidal.com</b>: open the link, sign in there, come back. Then <b>☰ → Tidal</b> to search and play; <b>+</b> on a cover adds an album to your Tidal favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Tidal favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#tidal">Tidal</a>.</div></div>
       <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
-        <p>The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.</p>
-        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server restarts itself in a few seconds.</div></div>
+        <p>The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app one Update does the server first, then the app.</p>
+        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server restarts itself in a few seconds; in the app, Android's installer then asks.</div></div>
       <!-- features:end -->
     </div>
   </div>
