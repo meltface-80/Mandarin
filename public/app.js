@@ -11616,7 +11616,8 @@ function settingsInfo(text) {
   let cardUrl = null;
   async function paintCard(f, coverUrl, title, artist, seq) {
     const blob = await ShareCard.render({
-      coverUrl, wordmarkUrl: null, title, artist,
+      // The app's icon as a brass disc in the card's bottom-right corner (v0.7.4).
+      coverUrl, wordmarkUrl: null, logoUrl: "/icons/icon-192.png", title, artist,
       releaseRaw: f.releaseRaw, label: f.labelText, review: f.reviewText,
       reviewSource: f.reviewSource, score: f.score, bestNewMusic: f.bestNew
     });

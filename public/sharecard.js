@@ -84,6 +84,12 @@ const ShareCard = (() => {
   const CONTENT_W = PANE_W - PANE_PAD * 2;
   const WORDMARK_W = 110;
   const WORDMARK_PAD = 34;
+  // The app's icon as a brass disc (v0.7.4), pinned inside the pane's
+  // bottom-right corner — the same corner the wordmark had, inside the glass,
+  // never on the border — when a logoUrl is supplied.
+  const LOGO_D    = 72;
+  const LOGO_PAD  = 34;
+  const BRASS     = '#c9a45c';
 
   // The dark the card is built on, and the pane drawn over the softened cover.
   // The score badge sits INSIDE the cover's top-right corner, so the surface
@@ -292,6 +298,7 @@ const ShareCard = (() => {
   async function render(data) {
     const cover = await loadImage(data.coverUrl).catch(() => null);
     const wm    = await loadImage(data.wordmarkUrl).catch(() => null);
+    const logo  = await loadImage(data.logoUrl).catch(() => null);
 
     // MEASURE FIRST, THEN SIZE, THEN DRAW. The height depends on how much
     // description there is, and measuring needs a context with fonts — so the
@@ -487,6 +494,9 @@ const ShareCard = (() => {
       }
     }
 
+    // --- The logo disc, inside the pane's bottom-right corner (v0.7.4) ---
+    if (logo) drawLogoDisc(ctx, logo, PANE_X + PANE_W - LOGO_PAD - LOGO_D, PANE_Y + PANE_H - LOGO_PAD - LOGO_D, LOGO_D);
+
     // --- Wordmark pinned bottom-right (only if a wordmark image was supplied) ---
     if (wm) {
       const wmH = Math.round(WORDMARK_W * (wm.height / wm.width));
@@ -506,6 +516,29 @@ const ShareCard = (() => {
         'image/png'
       );
     });
+  }
+
+  // The app's icon (a brass rounded square with the duck) as a brass disc of
+  // diameter d at (x, y): a soft shadow under it, the icon clipped to the circle
+  // and drawn a little over size so its rounded corners fall outside, and a
+  // hairline so it holds on a near-white pane.
+  function drawLogoDisc(ctx, img, x, y, d) {
+    const cx = x + d / 2, cy = y + d / 2, r = d / 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.45)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = BRASS; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(img, x - d * 0.06, y - d * 0.06, d * 1.12, d * 1.12);
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 
   // The ground. Draw the cover into a tiny offscreen canvas and scale it back
