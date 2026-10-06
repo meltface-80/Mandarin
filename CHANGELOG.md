@@ -6,6 +6,13 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.7.6
+- **A WAV or AIFF played to a sound device on the server, or to a renderer that won't take it,
+  is now bit-perfect.** It goes as FLAC at its own rate and depth, and the conversion dithered at
+  its 32-bit output before the encoder cut the samples to 24 bits — which took one 24-bit LSB off
+  an eighth of the samples, always downwards. Found by a bit-for-bit capture of the server's
+  output against Roon's. A conversion that changes only the container (same rate, same or deeper
+  bits, an integer lossless source) now has no dither, and a test decodes the result and compares
+  every sample. Dither stays where it belongs: a resample, a gain, DSP, or a lossy source.
 - **The three acts under the share card are chosen for you.** Still from Deezer's related
   acts, but weighted by what you play: a taste graph is built once a day from the related lists
   of your most-played acts, and an act near nothing you play scores next to nothing — so a
