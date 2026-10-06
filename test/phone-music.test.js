@@ -104,7 +104,8 @@ const DRIVER = `(async () => {
   window.__showArtistAlbums("Artist A");
   await until(() => document.querySelectorAll("#album-grid .album").length === 2);
   const sel = $("zone-select");
-  const kitchen = [...sel.options].find(o => o.textContent.trim() === "Kitchen");
+  // The room is listed once the page has heard of it (zones are read at start and every 15 s).
+  const kitchen = await until(() => [...sel.options].find(o => o.textContent.trim() === "Kitchen"), 20000);
   sel.value = kitchen.value; sel.dispatchEvent(new Event("change"));
   await sleep(100);
   window.__playLocalCalls = [];
@@ -127,6 +128,8 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
   try {
     const token = await signIn(B);
     for (let i = 0; i < 100; i++) { const st = await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json(); if (st.index_count === 3) break; await new Promise(r => setTimeout(r, 100)); }
+    // And the room found, so the page lists it from its first look at the zones.
+    for (let i = 0; i < 150; i++) { const z = await (await fetch(B + "/api/zones", { headers: { Authorization: "Bearer " + token } })).json(); if ((z.zones || []).some(x => x.display_name === "Kitchen")) break; await new Promise(r => setTimeout(r, 100)); }
     const b = await Browser.launch({ width: 390, height: 844 });
     let r;
     try {
