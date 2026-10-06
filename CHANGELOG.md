@@ -15,8 +15,9 @@ Versioning: each set of changes is a development build and takes the next third 
   list are fetched ahead while the phone's music plays, tried again on an error, picked up when
   the server answers again, and Now playing has their cover and album by their id or, failing
   that, by the cover address the server gave them.
-- **The share card carries the duck.** The app's icon, as a brass disc, sits inside the card's
-  bottom-right corner, on the glass beside the album details, never on the border.
+- **The share card carries the duck.** The duck, as a round black disc, sits inside the card's
+  bottom-right corner, on the glass beside the album details, never on the border; with a review
+  on the card it shares the foot with the review's source.
 - **The Backup page says the API keys part carries the server's Tailscale identity**, so a
   restore onto a fresh install is the same node on your tailnet (it has since v0.7.2).
 
