@@ -17556,7 +17556,8 @@ initServiceBrowser({
     if (c.edition) bits.push(c.edition);
     if (c.release_year && c.year && c.release_year !== c.year) bits.push("released " + c.release_year);
     const p = c.parts || {};
-    if (p.missing_tracks) bits.push(p.missing_tracks === 1 ? "1 track of the release missing here" : p.missing_tracks + " tracks of the release missing here");
+    if (p.edition) bits.push("the same record; this pressing has " + (p.missing_tracks === 1 ? "1 more track" : p.missing_tracks + " more tracks"));
+    else if (p.missing_tracks) bits.push(p.missing_tracks === 1 ? "1 track of the release missing here" : p.missing_tracks + " tracks of the release missing here");
     if (p.extra_tracks) bits.push(p.extra_tracks === 1 ? "1 track the release hasn't" : p.extra_tracks + " tracks the release hasn't");
     return bits.length ? " · " + esc(bits.join(", ")) : "";
   };

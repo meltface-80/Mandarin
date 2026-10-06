@@ -11,6 +11,15 @@ Versioning: each set of changes is a development build and takes the next third 
   that can be switched off is, so it leaves the zone picker too. Tap Hide / unhide again and the
   hidden ones are listed under Hidden: tick one and OK to bring it back. A note after OK says so.
 
+- **A fresh look at matching.** A copy that is the whole of itself on a bigger pressing (every
+  track there, to the name and the second) is the same record: one edition difference, not a
+  penalty a track, so a ten-track original on a twenty-track anniversary pressing now applies
+  and the page says "the same record; this pressing has 10 more tracks". The pressings of a
+  record with your track count or within one of it are fetched (eight, not three) before the
+  best is chosen. Spaces are not a difference ("LateNightTales" is "Late Night Tales"). A
+  folder that is one disc of a set ("CD2", "Disc 2") is scored against that disc of the
+  release alone.
+
 ## v0.7.1
 - **"UPnP error 501: … is not responding: socket hang up" on a renderer** (Audirvana's UPnP
   renderer on a Mac, among others): the player had closed the kept-alive connection the control
