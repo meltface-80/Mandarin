@@ -5,6 +5,96 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.0
+- **Qobuz and Tidal are supported, experimentally.** Used the way their own apps and the Lyrion
+  Music Server plugins use them, in line with each service's terms of service; those who use them
+  do so at their own risk.
+- **A USB DAC on a Mac** may give trouble for some; a fix is being worked on.
+- **Various UI and UX improvements** across the app.
+- **Tidal** (Settings → Services). Sign in with a Tidal subscription on tidal.com — Mandarin shows
+  a link and a code, and notices by itself when the sign-in lands; the token is kept and renewed,
+  never a password. Then everything Qobuz has (v0.6.23), the same way: your favourite albums as
+  albums in the library (every one, a Tidal mark on the cover), your Tidal playlists and
+  favourite tracks as playlists here, the Tidal browser (☰ → Tidal: search, new releases,
+  recommended, top, rising, an artist's albums) as the album grid with **+** / **✓** on each
+  cover and the album's own page on a tap, **Add to / Remove from Tidal favourites** in the ⋯
+  menu, Clean up on the Library Scanner page, signed out it all steps aside. The same API and
+  credentials as the Lyrion Music Server's Tidal plugin, used the same way.
+  - Streamed through the server's transcode cache like a file, the next track ready behind the
+    one playing. CD quality comes as one address; Tidal's hi-res FLAC (up to 24/192) comes as
+    MPEG-DASH, which the server joins into one stream for ffmpeg on its own loopback. *Stream
+    quality*: CD, or Hi-Res where Tidal has it (CD asked for instead where Tidal answers a hi-res
+    ask with anything else). What Tidal streams a track at is learnt on the first play and the
+    rows corrected.
+  - Under the hood the two services share one library side (lib/services): rows, kept and held
+    albums, playlists import, Clean up, pruning, and one set of routes per service. A service's
+    playlists carry which service they are from.
+- **The side menu, shorter**: Pitchfork, Labels, Qobuz, Tidal, Listen later, Dynamic Playlists,
+  Playlists. Home, Random albums and Smart Picks leave it (Home's rows are where they live; ‹
+  goes Home), **Import** is a button in the top-right corner of the Playlists screen, and **Discover** is
+  gone altogether, its page in Settings → Setup with it.
+- **‹ from a record label's albums goes back to the album** you opened the label from, not to
+  the list of all labels.
+- **The queue, edited.** On Now playing's Queue tab, hold a track to start selecting (it is the
+  first pick), tap more in the order you want them; **⋯** beside the remaining time plays the
+  selection now (moved to after the track playing, the first of them played) or next (moved), or
+  removes it; **Clear all** empties the queue. Sonos rooms, renderers and the phone alike.
+- **The Random albums wall is titled**, as every other grid screen is.
+- **A long press selects what it is on**, everywhere there is a selection: album grids, an album's
+  tracks, the labels grid and the queue all start with that tile or row as the first pick.
+- **Settings' ‹ and × are brass discs**, as every ‹ and × in the app, at the top bar's size.
+- **The menu button is Home's alone**: on the album grids, Labels, Listen later, the playlists
+  and an artist's page, the brass ‹ stands in its place.
+- **The search asks Qobuz and Tidal too.** From Home or the Library, signed in, each service's
+  artists (chips) and albums (tiles, **+** / **✓** on the cover) follow the library's results —
+  an album from either opens and plays whether or not it is in your library, both versions shown
+  where both have it; an artist opens their albums in the service's browser. The Library wall's
+  filter asks them for the letters typed too. Qobuz, Tidal and Pitchfork are each asked on their own and
+  land as they answer, close behind the library's own results (a 200 ms debounce, as the
+  services' own apps type ahead; the server keeps each answer an hour); the previous letters'
+  sections stay, dimmed, until the new ones land, so nothing blinks out as you type. A tap on a
+  result no longer closes the search, so the results are there when the album's page closes.
+- **Rescan library goes on to the services**: once the music folder is scanned, Qobuz and then
+  Tidal are brought up to date, in that order, each where you are signed in with the import on.
+  The toast says so.
+- **The Qobuz, Tidal and Pitchfork pages have a top bar** like every other screen: the name at the
+  bar's height in the display face, the close disc in brass at the top bar's size, the bar's
+  rule beneath, no grip.
+- **Settings → Services, uniform**: the Qobuz and Tidal blocks the same — one width for the two
+  quality selects, the same words on the signed-in line (Hi-Res or CD quality after the
+  subscription), the same spacing.
+- **Now playing's album name opens the album the track is from** — a Qobuz or Tidal album you
+  started opens as itself, not the copy of the same record on your drive.
+- **The Library's Focus and Sort** sit in their own row under the top bar again, as smaller
+  pills — Focus on the left, Sort on the right — and stay in view while the grid scrolls. The
+  search glass stays in the top bar at its size; the title keeps its place at every width.
+
+## v0.6.23
+- **Qobuz** (Settings → Services). Sign in with a Qobuz subscription; your favourites and purchases
+  become albums in the library (every one), and the Qobuz browser (☰ → Qobuz) searches the
+  catalogue and plays any album — to a Sonos room, a streamer, a USB DAC on the server or the
+  phone — streamed through the server one track at a time with Qobuz's signed requests, the next
+  track made ready behind the one playing. Every play is reported to Qobuz; nothing is downloaded.
+  The same API and credentials as the Lyrion Music Server's Qobuz plugin, used the same way.
+  - **Services** is the second item in Settings, as planned, with the Qobuz card: sign in, stream
+    quality (CD, Hi-Res 24/96, 24/192), favourites and purchases in the library on or off, Update
+    library now, Sign out.
+  - The browser shows its albums as the album grid the rest of Mandarin draws, the Qobuz **+**
+    in the corner of each cover; tapping an album opens its page here, the same page as any album.
+  - Two favourites, kept apart: the **+** on a cover in the browser (a **✓** once added) and
+    **Add to / Remove from Qobuz favourites** in the ⋯ menu on an album's page are the Qobuz
+    favourite; the heart is Mandarin's, as on any album.
+  - Your Qobuz playlists and favourite tracks are playlists here (each by its name, and "Qobuz
+    favourite tracks"); the albums their tracks come from are known but off the walls.
+  - Signed out, Qobuz albums and playlists leave the walls and the Playlists screen; their rows stay
+    for the next sign-in.
+  - A Qobuz album's page has no Download, Edit album or waveform; it isn't in offline mode.
+- **Clean up** (Settings → Library Scanner): albums whose files are gone from the server, and
+  Qobuz albums no longer wanted, each counted, each removed only when you press. Plays stay in
+  history; an album's edits, heart and Listen later go with it.
+  - An album played from the browser without being favourited is kept for a month (its page, Now
+    playing, history) and left off the walls.
+
 ## v0.6.22
 - **Play next.** A track's buttons are now Play now, **Play next** and Queue; a selection of
   tracks or of albums has **Play next** under Play now; an album's ⋯ menu says **Play Next**

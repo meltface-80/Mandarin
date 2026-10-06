@@ -399,7 +399,19 @@ a.action-btn:active,
    it exists only so a slow library render can re-attach all external sections
    as one node. (Pre-11.1 Safari treats it as a block: rows stack full-width
    inside one grid cell — acceptable degradation.) */
-.ext-search-wrap { display: contents; }
+.ext-search-wrap, .ext-search-slot { display: contents; }
+/* The previous query's sections, kept while this one's are fetched (v0.6.24). */
+.ext-search-wrap.is-stale > * > * { opacity: .45; transition: opacity .15s ease; }
+/* A service's artists on the search screen (v0.6.24): a strip of the browsers'
+   chips across the grid, above the service's album tiles. */
+.ext-search-artists {
+  grid-column: 1 / -1;
+  display: flex; gap: 12px; overflow-x: auto;
+  padding: 4px 0 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ext-search-artists::-webkit-scrollbar { display: none; }
 .ext-search-row {
   grid-column: 1 / -1;
   display: flex; align-items: center; gap: 12px;
@@ -1751,7 +1763,32 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
   font-size: 13px;
   color: var(--text-dim);
   margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px; min-height: 28px;
 }
+.queue-summary-text { flex: 1 1 auto; min-width: 0; }
+/* The queue's tools, at the right end of the bar (v0.6.24): Clear all, or,
+   selecting, the ⋯ menu and Done. The same pill as the played-earlier Select. */
+.queue-summary-tools { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.q-tool {
+  appearance: none; background: none;
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 3px 12px; font: inherit; font-size: 12px; color: var(--text-dim);
+  cursor: pointer; transition: color .12s ease, border-color .12s ease;
+}
+.q-tool:hover { color: var(--text); border-color: var(--text-dim); }
+.q-tool.hidden { display: none; }
+.q-tool-menu {
+  width: 28px; height: 28px; padding: 0; font-size: 18px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-accent, #fff); background: var(--accent); border-color: var(--accent);
+}
+.q-sel-menu-wrap { margin-left: 0; }
+.queue-list li.is-selecting .q-hist-num.hidden {
+  display: flex !important;
+  background: none;
+  border: 1px solid var(--border);
+}
+.queue-list li.is-picked { background: var(--accent-soft); }
 .queue-list {
   list-style: none; margin: 0; padding: 0;
 }
@@ -2802,13 +2839,42 @@ input.vol-range::-moz-range-thumb {
 .settings-grip { width: 40px; height: 4px; border-radius: 999px; background: var(--border); margin: 4px auto 14px; }
 .settings-head { margin-bottom: 18px; }
 .settings-head h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
-/* Full-page browser overlays (Qobuz/Tidal/Pitchfork) put the close button on
-   the same row as the title, pinned top-right. Scoped to these overlays so the
+/* Full-page browser overlays (Qobuz/Tidal/Pitchfork): their head is a top
+   bar like every other screen's (v0.6.24) — the name on the left at the bar's
+   height, the close disc on the right at the top bar's button size, the bar's
+   padding and its rule beneath; no grip. Scoped to these overlays so the
    plain Settings/Filter heads (title only, no button) are unaffected. */
+#qobuz-overlay .settings-grip,
+#tidal-overlay .settings-grip,
+#pitchfork-overlay .settings-grip { display: none; }
 #qobuz-overlay .settings-head,
 #tidal-overlay .settings-head,
 #pitchfork-overlay .settings-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: var(--ctl-h); margin: 0 -6px 10px; padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+#qobuz-overlay .settings-head h2,
+#tidal-overlay .settings-head h2,
+#pitchfork-overlay .settings-head h2 { font-size: 24px; line-height: 1; }
+#qobuz-overlay .settings-head .icon-btn,
+#tidal-overlay .settings-head .icon-btn,
+#pitchfork-overlay .settings-head .icon-btn { flex: 0 0 auto; width: 40px; height: 40px; }
+@media (max-width: 389px) {
+  #qobuz-overlay .settings-head .icon-btn,
+  #tidal-overlay .settings-head .icon-btn,
+  #pitchfork-overlay .settings-head .icon-btn { width: 37px; height: 37px; }
+  #qobuz-overlay .settings-head .icon-btn svg,
+  #tidal-overlay .settings-head .icon-btn svg,
+  #pitchfork-overlay .settings-head .icon-btn svg { width: 19px; height: 19px; }
+}
+@media (max-width: 359px) {
+  #qobuz-overlay .settings-head .icon-btn,
+  #tidal-overlay .settings-head .icon-btn,
+  #pitchfork-overlay .settings-head .icon-btn { width: 33px; height: 33px; }
+  #qobuz-overlay .settings-head .icon-btn svg,
+  #tidal-overlay .settings-head .icon-btn svg,
+  #pitchfork-overlay .settings-head .icon-btn svg { width: 18px; height: 18px; }
 }
 .settings-sub { font-size: 13px; color: var(--text-faint); }
 .settings-block { padding: 4px 0; }
@@ -2877,6 +2943,15 @@ input.vol-range::-moz-range-thumb {
   font-size: 14px; color: var(--text-dim);
 }
 .content-count.hidden { display: none; }
+/* Import, in the top-right corner of the Playlists screen: a brass pill, the
+   size of the Library's Focus and Sort. */
+.playlists-import {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px;
+  margin-left: auto;
+  background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
+  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.playlists-import:hover { filter: brightness(1.08); }
 
 .settings-info-btn {
   /*  Was 18x14 — the smallest tap target in the app by a wide margin. The glyph
@@ -3025,6 +3100,23 @@ input.vol-range::-moz-range-thumb {
   transition: color .15s ease, background .15s ease;
 }
 .settings-back:hover { color: var(--text); background: var(--bg-elev-2); }
+/* Settings' ‹ and × (v0.6.24): the brass disc every ‹ and × has, at the top
+   bar's button size, the glyph sized as the top bar's. */
+.settings-app-close {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: none; border-radius: 999px; background: none;
+  color: var(--text-dim); cursor: pointer;
+}
+.settings-back, .settings-app-close { width: 40px; height: 40px; margin-left: 0; border: 1px solid transparent; }
+.settings-back svg, .settings-app-close svg { width: 20px; height: 20px; }
+@media (max-width: 389px) {
+  .settings-back, .settings-app-close { width: 37px; height: 37px; }
+  .settings-back svg, .settings-app-close svg { width: 19px; height: 19px; }
+}
+@media (max-width: 359px) {
+  .settings-back, .settings-app-close { width: 33px; height: 33px; }
+  .settings-back svg, .settings-app-close svg { width: 18px; height: 18px; }
+}
 .settings-back:active { transform: scale(.94); }
 
 .settings-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
@@ -3063,6 +3155,12 @@ input.vol-range::-moz-range-thumb {
 }
 .settings-token-input:focus { outline: none; border-color: var(--accent); }
 .settings-token-status { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+/* Services: the Qobuz and Tidal blocks the same — the quality selects one
+   width, the signed-in line clear of the rows, the rows one height. */
+#qobuz-quality, #tidal-quality { width: 12.5em; }
+#qobuz-signed, #tidal-signed { margin-top: 8px; }
+#qobuz-signed .settings-row, #tidal-signed .settings-row { min-height: 44px; }
+#qobuz-signed .settings-row + .settings-row, #tidal-signed .settings-row + .settings-row { margin-top: 6px; }
 /* Explanatory line under a settings row — the sentence that says why the
    control above it exists, rather than what it is called. */
 .settings-note { font-size: 12px; color: var(--text-faint); margin-top: 6px; line-height: 1.45; }
@@ -3523,18 +3621,27 @@ input.vol-range::-moz-range-thumb {
   top: 0;
   z-index: 5;
   background: var(--bg-elev);
-  padding-top: calc(10px + env(safe-area-inset-top));
+  padding-top: calc(12px + env(safe-area-inset-top)); /* the top bar's */
   padding-bottom: 2px;
 }
 
-/* Qobuz New Releases overlay list */
-.qobuz-nr-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding: 4px 0 8px; }
-.qobuz-nr-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px; border-radius: 10px; background: var(--bg-elev-2);
-  cursor: pointer;
+/* The Qobuz browser's albums: the album grid the rest of the UI draws
+   (.album-grid sets the columns, .album the tile), each cover with the Qobuz
+   favourite as a + / ✓ in its corner. */
+.qobuz-nr-list.album-grid { padding: 4px 0 8px; }
+.qobuz-tile:focus-visible .album-art-wrap { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qobuz-tile-fav.qobuz-nr-fav {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  width: 26px; height: 26px; padding: 0; border-radius: 50%;
+  border: 0; background: rgba(10, 14, 20, .62);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  color: rgba(255,255,255,.92); font-size: 17px; font-weight: 600; line-height: 26px; text-align: center;
 }
-.qobuz-nr-row:active { background: var(--bg-elev); }
+.qobuz-tile-fav.qobuz-nr-fav.is-done { background: var(--accent); color: #1a1a1a; opacity: 1; font-size: 14px; }
+/* While an album's own page is open from the browser, the overlay sits beneath
+   it (the page is z-index 50) and comes back on top when the page closes. */
+#qobuz-overlay.is-under, #tidal-overlay.is-under { z-index: 40; }
 
 /* Qobuz album detail (review) view */
 .qobuz-nr-detail { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px 0 8px; }
@@ -3555,13 +3662,6 @@ input.vol-range::-moz-range-thumb {
 .qobuz-nr-review { font-size: 14px; line-height: 1.5; }
 .qobuz-nr-review-text { white-space: pre-wrap; }
 .qobuz-nr-review-src { display: inline-block; margin-top: 10px; color: var(--accent-text); }
-.qobuz-nr-art {
-  flex-shrink: 0; width: 56px; height: 56px; border-radius: 6px;
-  object-fit: cover; background: var(--bg-elev);
-}
-.qobuz-nr-meta { flex: 1; min-width: 0; }
-.qobuz-nr-title  { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qobuz-nr-artist { font-size: 13px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qobuz-nr-date   { font-size: 11px; opacity: 0.5; margin-top: 2px; }
 .qobuz-nr-fav {
   flex-shrink: 0; cursor: pointer; white-space: nowrap;
@@ -4788,62 +4888,6 @@ input.vol-range::-moz-range-thumb {
 }
 .lib-filter-input::placeholder { color: var(--text-faint); }
 
-/* ---------------------------------------------------------------------------
-   Discover — new records by the acts you play.
-
-   The rows are the share card's suggestion rows (same element, same builder,
-   same rules about where a tap goes), laid out for a full screen rather than a
-   sheet. One difference matters: in the sheet the ACT is the subject and its
-   name never truncates, while here the RECORD is the subject — so the album
-   takes a line of its own and is allowed to WRAP. A nowrap headline on a phone
-   either overflows the card or pushes the artist off the end, and a title you
-   cannot read is not a discovery.
---------------------------------------------------------------------------- */
-.discover-list {
-  grid-column: 1 / -1;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.discover-list .share-similar-act {
-  align-items: center; flex-wrap: wrap; row-gap: 4px;
-  padding: 10px 12px; border-radius: 12px;
-}
-/* flex-basis 100% is what puts the record on its own line — the artist and the
-   date then share the second line with the tag pushed to its end. Only for a
-   row WITHOUT artwork; with a cover the two lines are a column beside it. */
-.discover-list .share-similar-act:not(.has-art) .share-similar-name {
-  flex: 1 1 100%; min-width: 0;
-  white-space: normal; font-size: 15px; line-height: 1.3;
-}
-.discover-list .share-similar-rec { font-size: 12.5px; }
-
-/* ── A row with a cover ────────────────────────────────────────────────
-   [ art ][ record / artist · when ][ tag ]
-
-   The art is a fixed square, the text column takes what is left, and the tag
-   keeps its place at the end. nowrap is CANCELLED on both lines here: the
-   record is the headline and it is the thing people are reading, and a title
-   like "Destroys Anaheim '76 (Live At Anaheim Stadium, Anaheim, California -
-   August 20, 1976)" is not rare enough to truncate on a phone. */
-.share-similar-act.has-art { flex-wrap: nowrap; gap: 12px; }
-.row-art {
-  flex: 0 0 56px; width: 56px; height: 56px;
-  border-radius: 4px; overflow: hidden;
-  /* The tile is what holds the row's shape when an image never arrives, so it
-     has a surface of its own rather than being a transparent gap. */
-  background: var(--bg-elev);
-  align-self: center;
-}
-.row-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.row-text {
-  display: flex; flex-direction: column; gap: 2px;
-  flex: 1 1 auto; min-width: 0;
-}
-.has-art .share-similar-name {
-  flex: 0 1 auto; white-space: normal;
-  font-size: 15px; line-height: 1.3;
-}
-.has-art .share-similar-rec { white-space: normal; }
-.discover-list .share-similar-act.has-art { align-items: center; padding: 10px; }
 
 /* ---- Edit album sheet ----------------------------------------------------
    Above the album modal (z 50) like every sheet; inputs at 16px so iOS
@@ -5206,10 +5250,18 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .settings-head h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
 
 /* The top bar's rule, faint and warm. */
-[data-palette="hifi"] .topbar { border-bottom-color: rgba(201,164,92,.12); }
+[data-palette="hifi"] .topbar,
+[data-palette="hifi"] #qobuz-overlay .settings-head,
+[data-palette="hifi"] #tidal-overlay .settings-head,
+[data-palette="hifi"] #pitchfork-overlay .settings-head { border-bottom-color: rgba(201,164,92,.12); }
 /* Buttons with a disc — the top bar's menu, search and settings, the album
    view's back, home and share: a brass disc, the glyph in the charcoal. */
 [data-palette="hifi"] .topbar .icon-btn,
+[data-palette="hifi"] .settings-back,
+[data-palette="hifi"] .settings-app-close,
+[data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn,
+[data-palette="hifi"] #tidal-overlay .settings-head .icon-btn,
+[data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn,
 [data-palette="hifi"] .modal .modal-close,
 [data-palette="hifi"] .modal .modal-home,
 [data-palette="hifi"] .modal .modal-nav-btn,
@@ -5217,6 +5269,11 @@ button.cap-chip:active { transform: scale(.96); }
   border-radius: 50%; border-color: var(--plum); background: var(--plum); color: var(--plum-pale);
 }
 [data-palette="hifi"] .topbar .icon-btn:hover,
+[data-palette="hifi"] .settings-back:hover,
+[data-palette="hifi"] .settings-app-close:hover,
+[data-palette="hifi"] #qobuz-overlay .settings-head .icon-btn:hover,
+[data-palette="hifi"] #tidal-overlay .settings-head .icon-btn:hover,
+[data-palette="hifi"] #pitchfork-overlay .settings-head .icon-btn:hover,
 [data-palette="hifi"] .modal .modal-close:hover,
 [data-palette="hifi"] .modal .modal-home:hover,
 [data-palette="hifi"] .modal .modal-share:hover,
@@ -5518,49 +5575,53 @@ button.cap-chip:active { transform: scale(.96); }
    after the palette's round discs so it keeps its shape. */
 html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 0 10px; border-radius: 999px; }
 
-/* The Library wall's Focus, Sort and search, in the TOP BAR (v0.6.5, as Rouen
-   v1.8.78), at its right-hand end — Focus and Sort as brass pills, the
-   magnifier as the brass disc in the corner. Open, the field takes the place
-   of Focus and Sort (and the title steps aside for it, as it does for Home's
-   and Labels' search). At the end of the file so the bar's own rules, and the
-   palette's brass disc, are already in place for these to refine. */
-.library-controls.in-topbar {
-  flex: 0 1 auto; min-width: 0;
-  margin: 0 0 0 auto; padding: 0; border: 0;
-  gap: 6px;
+/* The Library wall's controls (v0.6.24): their own row under the top bar's,
+   smaller than the bar's buttons — Focus on the left, Sort and the magnifier
+   on the right, the pills in brass. The row is inside .topbar, so it stays
+   while the grid scrolls, and the bar's measured height keeps the grid clear
+   of it. Open, the field takes the row in place of Focus and Sort, at the
+   same height, so nothing under the bar moves. */
+.library-controls.sub-bar {
+  --lib-h: 32px;
+  flex: 0 0 auto; min-width: 0;
+  margin: 0; padding: 0; border: 0;
+  gap: 8px;
 }
-.library-controls.in-topbar .lib-ctl-sort { margin-left: 0; }
-.library-controls.in-topbar.is-filtering { flex: 1 1 auto; }
-.library-controls.in-topbar.is-filtering .lib-ctl-focus,
-.library-controls.in-topbar.is-filtering .lib-ctl-sort { display: none; }
-.topbar.lib-filtering .album-count { display: none; }
-.library-controls.in-topbar .lib-ctl:not(.icon-btn) {
-  min-height: 0; height: var(--ctl-h);
-  padding: 0 12px; border-radius: 999px;
+.library-controls.sub-bar .lib-ctl-sort { margin-left: auto; }
+.library-controls.sub-bar .lib-ctl:not(.icon-btn) {
+  min-height: 0; height: var(--lib-h);
+  padding: 0 11px; border-radius: 999px;
   background: var(--accent); color: var(--on-accent);
   border: 1px solid var(--accent);
-  font-size: 13px;
+  font-size: 12.5px; gap: 5px;
 }
-.library-controls.in-topbar .lib-ctl:not(.icon-btn):hover { color: var(--on-accent); filter: brightness(1.08); }
-.library-controls.in-topbar .lib-ctl-chevron,
-.library-controls.in-topbar .lib-ctl-arrow,
-.library-controls.in-topbar .lib-ctl-caret,
-.library-controls.in-topbar .lib-ctl-focus.is-active,
-.library-controls.in-topbar .lib-ctl-focus.is-active .lib-ctl-chevron { color: var(--on-accent); }
+.library-controls.sub-bar .lib-ctl:not(.icon-btn):hover { color: var(--on-accent); filter: brightness(1.08); }
+.library-controls.sub-bar .lib-ctl-chevron,
+.library-controls.sub-bar .lib-ctl-arrow,
+.library-controls.sub-bar .lib-ctl-caret,
+.library-controls.sub-bar .lib-ctl-focus.is-active,
+.library-controls.sub-bar .lib-ctl-focus.is-active .lib-ctl-chevron { color: var(--on-accent); }
+.library-controls.sub-bar .lib-ctl-chevron { font-size: 16px; }
 /* The count of active facets: the pill is brass, so the badge inverts. */
-.library-controls.in-topbar .lib-ctl-badge { background: var(--on-accent); color: var(--accent); }
-/* The glass is the bar's disc, at the bar's size: .lib-filter-btn's own tap
-   minimum would otherwise beat .topbar .icon-btn's height (min-height wins
-   over height), drawing an oval and making the bar taller on this wall. */
-.library-controls.in-topbar .lib-filter-btn { flex: 0 0 auto; min-height: 0; width: auto; aspect-ratio: 1 / 1; }
-.library-controls.in-topbar .lib-filter-btn.is-active { box-shadow: 0 0 0 2px var(--accent-soft); }
-.library-controls.in-topbar .lib-filter-wrap { min-width: 0; }
-.library-controls.in-topbar.is-filtering .lib-filter-wrap { flex: 1 1 auto; }
-/* One height for everything in the bar — pills, the open field and the disc
-   are the bar's own control height at every width, so neither entering the
-   wall nor opening the field moves the page under it. */
-.library-controls.in-topbar .lib-ctl:not(.icon-btn),
-.library-controls.in-topbar .lib-filter-box { height: var(--ctl-h); box-sizing: border-box; }
+.library-controls.sub-bar .lib-ctl-badge { background: var(--on-accent); color: var(--accent); min-width: 16px; line-height: 16px; font-size: 10.5px; }
+/* The search glass stays in the top bar's row (v0.6.5): the bar's brass disc
+   at the bar's size, at the right-hand end where Home keeps its search. Open,
+   the field takes that row and the title steps aside, as Home's does; the
+   Focus and Sort row beneath is untouched. */
+.library-filter.in-topbar { flex: 0 0 auto; min-width: 0; margin-left: auto; display: flex; align-items: center; }
+.library-filter.in-topbar.hidden { display: none; }
+.library-filter.in-topbar.is-filtering { flex: 1 1 auto; }
+.library-filter.in-topbar .lib-filter-wrap { min-width: 0; }
+.library-filter.in-topbar.is-filtering .lib-filter-wrap { flex: 1 1 auto; }
+.library-filter.in-topbar .lib-filter-btn { flex: 0 0 auto; min-height: 0; width: auto; aspect-ratio: 1 / 1; }
+.library-filter.in-topbar .lib-filter-btn.is-active { box-shadow: 0 0 0 2px var(--accent-soft); }
+.library-filter.in-topbar .lib-filter-box { height: var(--ctl-h); box-sizing: border-box; }
+.topbar.lib-filtering .album-count { display: none; }
+.sel-menu-wrap:not(.hidden) ~ .library-filter.in-topbar { margin-left: 8px; }
+/* The open field is the bar's button height at every width (the bar's buttons
+   shrink on small phones), so opening it never moves the page under the bar. */
+@media (max-width: 389px) { .library-filter.in-topbar .lib-filter-box { height: 37px; } }
+@media (max-width: 359px) { .library-filter.in-topbar .lib-filter-box { height: 33px; } }
 .lib-filter-box {
   flex: 1 1 auto; min-width: 0;
   padding: 0 4px 0 12px;
@@ -5570,35 +5631,9 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 }
 .lib-filter-box .lib-filter-clear { width: 28px; height: 28px; }
 /* Focus keeps its word; Sort's label is what gives way when room runs out. */
-.library-controls.in-topbar .lib-ctl-focus { flex: 0 0 auto; }
+.library-controls.sub-bar .lib-ctl-focus { flex: 0 0 auto; }
 /* The menu and Back never shrink to make room — they are the way out. */
 .topbar-row > .icon-btn { flex-shrink: 0; }
-/* With albums selected the ⋯ menu sits beside the controls rather than the
-   two auto margins splitting the bar between them. */
-.sel-menu-wrap:not(.hidden) ~ .library-controls.in-topbar { margin-left: 8px; }
-/* From 480px the title shows again, and it is the title that gives way when
-   room runs short — not the Sort label, which says how the wall is ordered. */
-@media (min-width: 480px) {
-  .library-controls.in-topbar .lib-ctl-sort { flex-shrink: 0; }
-}
-/* Phones: the bar is the width of a hamburger, Back, two pills and a disc, and
-   there is no room left for a title — so on this wall the title gives way
-   below 480px (from 480px up it shows in full). */
-@media (max-width: 479px) {
-  .topbar.lib-wall .album-count { display: none; }
-  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
-  .library-controls.in-topbar .lib-filter-box { height: 40px; }
-  .library-controls.in-topbar .lib-ctl:not(.icon-btn) { padding: 0 10px; font-size: 12.5px; }
-}
-@media (max-width: 389px) {
-  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
-  .library-controls.in-topbar .lib-filter-box { height: 37px; }
-  .library-controls.in-topbar .lib-ctl:not(.icon-btn) { padding: 0 8px; }
-}
-@media (max-width: 359px) {
-  .library-controls.in-topbar .lib-ctl:not(.icon-btn),
-  .library-controls.in-topbar .lib-filter-box { height: 33px; }
-}
 /* Inside the pill the input is bare — the pill is the field's edge. */
 .lib-filter-box .lib-filter-input {
   min-height: 0; padding: 2px 0; border: 0; border-radius: 0;
@@ -5701,3 +5736,20 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .backup-restore { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .backup-restore.hidden { display: none; }
 .backup-file-restore { border-top: 0; padding-top: 0; }
+
+/* The Qobuz browser's album page (v0.6.23): playing from it, and its tracks. */
+.qobuz-nr-actions { display: flex; gap: 8px; }
+.qobuz-nr-actions .action-btn { flex: 1 1 0; }
+.qobuz-nr-tracks { display: flex; flex-direction: column; }
+.qobuz-nr-track {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 6px;
+  border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text);
+  font-size: 14px; text-align: left; cursor: pointer; font-family: inherit;
+}
+.qobuz-nr-track:active { background: var(--bg-elev); }
+.qobuz-nr-track-no { width: 22px; color: var(--text-dim); font-size: 12.5px; text-align: right; flex: 0 0 auto; }
+.qobuz-nr-track-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qobuz-nr-track-len { color: var(--text-dim); font-size: 12.5px; flex: 0 0 auto; }
+#qobuz-signin-form .settings-token-input { display: block; width: 100%; margin-bottom: 8px; }
+
+/* A Qobuz album's page (v0.6.23): its Qobuz favourite (+ → ✓) above the ⋯. */

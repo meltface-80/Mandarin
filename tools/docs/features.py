@@ -43,9 +43,11 @@ FEATURES = [
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("search", "🔍", "Search", False,
-     "Albums, artists and labels as you type. Words can come in any order, accents and capitals are "
-     "ignored, and a title with letters left out is still found.",
-     "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on."),
+     "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
+     "album from either opens and plays whether or not it is in your library.",
+     "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in "
+     "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
+     "from the Library wall's filter too; tap a cover for the album's page, an artist for their albums."),
     ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
@@ -62,7 +64,8 @@ FEATURES = [
      "themselves where the file system reports them, otherwise at the next scan.",
      "Open **Settings → Music Folders** and add a folder from the list of drives and folders the "
      "server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
-     "**☰ → Rescan library** runs one now."),
+     "**☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, "
+     "where you are signed in with the import on."),
     ("folder-albums", "💽", "One album per folder", True,
      "Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown "
      "disc by disc, with a two-disc symbol on its cover.",
@@ -78,7 +81,7 @@ FEATURES = [
     ("scanner", "🔎", "Library Scanner", True,
      "Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, "
      "with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.",
-     "Open **Settings → Library Scanner**. Matches of 95% or better are applied (with Undo); near "
+     "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near "
      "ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and "
      "**Measure ReplayGain** are on the same page."),
     ("mbpack", "📦", "MusicBrainz pack", True,
@@ -92,7 +95,8 @@ FEATURES = [
      "being sent. An optional waveform seek bar is drawn from the audio.",
      "Tap the bar at the bottom of the screen. The waveform is off until you switch on "
      "**Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card "
-     "you drag around."),
+     "you drag around. On the Queue tab, hold a track to select it and more; **⋯** plays the selection "
+     "now or next, or removes it; **Clear all** empties the queue."),
     ("move", "↪️", "Move to another device", True,
      "Pick another room, renderer or phone while music plays and it moves there: the queue goes "
      "with it, from the same track and second.",
@@ -142,9 +146,6 @@ FEATURES = [
      "played, topped up from your least-played albums.",
      "**☰ → Smart Picks**, or its Home row. **Settings → Setup → Smart Picks** switches it on or off and sets "
      "the hour each day's picks are made."),
-    ("discover", "🧭", "Discover", False,
-     "New albums by the artists you play, looked up on Deezer. Off until you switch it on.",
-     "Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**."),
     ("pitchfork", "📰", "Pitchfork", False,
      "Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album "
      "you own.",
@@ -239,6 +240,19 @@ FEATURES = [
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),
+    ("qobuz", "🎼", "Qobuz", True,
+     "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
+     "the Qobuz browser plays anything in the catalogue, streamed through the server.",
+     "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
+     "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
+     "**⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz)."),
+    ("tidal", "🎵", "Tidal", True,
+     "Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, "
+     "and the Tidal browser plays anything in the catalogue, streamed through the server.",
+     "**Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. "
+     "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
+     "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
+     "Details under [Tidal](#tidal)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. The Android app "
      "offers each new version when it opens.",

@@ -259,7 +259,7 @@ window.__afterStart = (fn) => {
   function setModalSource(album) {
     if (!modalSource) return;
     const kind = album && (album.source || (album.local ? "local" : null));
-    const label = { local: "Local albums", qobuz: "Qobuz" }[kind];
+    const label = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" }[kind];
     modalSource.className = "album-source" + (label ? " " + kind : " hidden");
     if (label) { modalSource.title = label; modalSource.setAttribute("aria-label", label); }
     // Same badge as the tiles, on the album's own artwork. Cleared on every
@@ -332,8 +332,6 @@ window.__afterStart = (fn) => {
   let playlistSeq = 0;              // orphans in-flight playlist fetches
   let smartPicksActive = false;     // viewing the Smart Picks screen?
   let smartPicksSeq = 0;            // orphans in-flight Smart Picks fetches
-  let discoverActive = false;       // viewing the Discover screen?
-  let discoverSeq = 0;              // orphans in-flight Discover fetches
   // How long a report about a long-running queue fill stays up (vs showToast's
   // 2.4s default). Declared here rather than beside showToast() for the same
   // reason as the flags above — a `const` further down the file is a TDZ
@@ -849,6 +847,17 @@ window.__afterStart = (fn) => {
 
   // `view` (whether the screen shows album tiles) is kept for the callers'
   // sake; nothing in the bar depends on it since the list button went.
+  // The menu button is Home's alone (v0.6.24): on every other screen — the
+  // album grids, Labels, Listen later, the playlists, an artist — the brass ‹
+  // stands where it was. Followed from the ‹ itself, wherever it is toggled.
+  {
+    const menuBtn = document.getElementById("menu-toggle");
+    if (menuBtn && topbarBack) {
+      const sync = () => menuBtn.classList.toggle("hidden", !topbarBack.classList.contains("hidden"));
+      new MutationObserver(sync).observe(topbarBack, { attributes: true, attributeFilter: ["class"] });
+      sync();
+    }
+  }
   function setTopbarNav(back, refresh, search, view) {
     if (topbarBack)    topbarBack.classList.toggle("hidden", !back);
     if (topbarRefresh) topbarRefresh.classList.toggle("hidden", !refresh);
@@ -873,7 +882,7 @@ window.__afterStart = (fn) => {
       activeFilter = null;
       try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
     }
-    updateCountReadout(null);   // hide the genre/label breadcrumb
+    updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
     setBanner(null);            // drop any error/empty banner left by a wall view
     if (homeView) homeView.classList.remove("hidden");
     if (homeSections) homeSections.classList.remove("hidden");  // in case a search hid them
@@ -1640,148 +1649,6 @@ window.__afterStart = (fn) => {
     grid.appendChild(wrap);
   }
 
-  /*
-   * DISCOVER — new records by the acts you play.
-   *
-   * The screen this app did not have. Smart Picks is LATERAL (acts next to
-   * your library that you do not own) and the Pitchfork and service screens
-   * are EDITORIAL (what somebody else rates this week); neither can answer
-   * "has anyone I actually listen to put something out", because that question
-   * needs your listening history and nobody outside this box has it.
-   *
-   * The rows are the same KIND of answer the share card's suggestions give —
-   * a record that is either in your library or on a service — so they are
-   * built by the same goRow() and go to the same places. What differs is the
-   * emphasis: here the RECORD is the headline and the act is the quiet line,
-   * because you already know the act. That is the whole point of the screen.
-   */
-  async function showDiscover() {
-    enterFullWall("Discover");
-    discoverActive = true;
-    const mySeq = ++discoverSeq;
-    let j = null;
-    try {
-      const r = await fetch("/api/discover");
-      j = await r.json();
-      // A 503 while pairing carries a real explanation. Dropping it for the
-      // generic message throws away the one thing that says what to do.
-      if (!r.ok && !(j && j.error)) j = { error: "HTTP " + r.status };
-    } catch (e) {
-      j = null;
-    }
-    if (!discoverActive || mySeq !== discoverSeq) return;   // the user moved on
-    grid.innerHTML = "";
-    if (!j || j.error) {
-      setBanner(j && j.error
-        ? ("Couldn't load Discover — " + j.error)
-        : "Couldn't load Discover — the extension didn't answer. Try again.", true);
-      return;
-    }
-    if (!j.enabled) {
-      setBanner("Discover is switched off. Turn it on in Settings \u2192 Setup \u2192 Discover and " +
-                "it will look for new records by the artists you play.", false);
-      return;
-    }
-    const releases = j.releases || [];
-    if (!releases.length) {
-      // "Building" and "found nothing" are different answers and the screen
-      // says which: the first is worth coming back to in a minute, the second
-      // is not.
-      setBanner(j.building
-        ? "Looking for new records by the artists you play \u2014 come back shortly."
-        : "Nothing new from the artists you play in the last " +
-          (j.window_days || 60) + " days. This rebuilds every day.", false);
-      return;
-    }
-    setBanner(null, false);
-
-    if (!window.__goRow) {
-      // The share overlay's closure owns the row builder and publishes it at
-      // load. Nothing can reach this screen before that has run, so this is a
-      // guard against a future reordering rather than a live case — and a
-      // silent empty screen would be a worse way to find out.
-      setBanner("Couldn't draw the list — reload the app.", true);
-      return;
-    }
-    const wrap = document.createElement("div");
-    wrap.className = "discover-list";
-    for (const rel of releases) {
-      if (!rel || !rel.album) continue;
-      wrap.appendChild(window.__goRow(rel, rel.album, discoverSubLine(rel),
-                                      discoverArt(rel)));
-    }
-    grid.appendChild(wrap);
-
-    // The Qobuz links upgraded AFTER the rows are on screen and never before
-    // them — a page read per row, and a failure leaves the search link that is
-    // already there. Not awaited, for the same reason.
-    if (window.__upgradeQobuzLinks) {
-      window.__upgradeQobuzLinks(releases, {
-        container: wrap, current: () => discoverActive && mySeq === discoverSeq,
-        album: r => r.album, artist: r => r.artist,
-      });
-    }
-  }
-  window.__showDiscover = showDiscover;
-
-  /*
-   * Where a release's cover comes from, or "" for none.
-   *
-   * ROON'S OWN ART WINS WHENEVER THERE IS ANY. A record the library already
-   * holds has an image_key, and that art is served from this box, is already
-   * cached, and is the same picture the album shows everywhere else in the
-   * app — using Deezer's copy for it would put two different covers on the
-   * same record on two different screens.
-   *
-   * Everything else falls back to the cover Deezer named during the build,
-   * loaded straight from their CDN. That is what the Smart Picks cards and the
-   * Pitchfork grid already do with their services' images, so it introduces no
-   * new kind of request; rowArt() handles the ones that never arrive.
-   */
-  function discoverArt(rel) {
-    if (rel.image_key) {
-      return "/api/image/" + encodeURIComponent(rel.image_key) + "?size=160";
-    }
-    return rel.cover || "";
-  }
-
-  /*
-   * The quiet line under a release: who made it, and when it came out.
-   *
-   * The DATE and not the year. A screen whose whole subject is what is new has
-   * to distinguish last week from ten months ago, and "2026" cannot — every
-   * row would read the same for the first eleven months of a year.
-   */
-  function discoverSubLine(rel) {
-    const when = discoverWhen(rel.release_date);
-    return when ? (rel.artist + " \u00b7 " + when) : rel.artist;
-  }
-
-  /*
-   * A release date as a human distance: "today", "3 days ago", "2 weeks ago",
-   * then the date itself.
-   *
-   * Compared in whole DAYS, from the local midnight of each — not by
-   * subtracting timestamps. A release dated yesterday afternoon is one day
-   * old at any hour of today, and an hours-based rule calls it "today" all
-   * morning and "yesterday" all evening for the same record.
-   */
-  function discoverWhen(dateStr) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || ""));
-    if (!m) return "";
-    const then = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    const now = new Date();
-    const midnight = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const days = Math.round((midnight(now) - midnight(then)) / 86400000);
-    if (!Number.isFinite(days) || days < 0) return "";
-    if (days === 0) return "today";
-    if (days === 1) return "yesterday";
-    if (days < 7) return days + " days ago";
-    if (days < 14) return "last week";
-    if (days < 60) return Math.floor(days / 7) + " weeks ago";
-    return then.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  }
-
   // Label of the week — one label featured for the whole ISO week (backend
   // picks deterministically). Retried each Home visit until it populates (the
   // labels scan runs in the background), then left alone. Tapping the header
@@ -1917,6 +1784,29 @@ window.__afterStart = (fn) => {
   const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
   // The heart on an album's page: hollow, red once tapped, kept on the server.
+  // A streamed album's favourite on its service (Qobuz v0.6.23, Tidal
+  // v0.6.24), in the ⋯ menu — Add to Qobuz favourites, or Remove from —
+  // apart from the heart, which is Mandarin's own. Only while signed in: the
+  // page says whether it is one.
+  function serviceMenuItem(page) {
+    const a = page && page.album;
+    const name = a && SOURCE_LABEL[a.source];
+    if (!a || !a.source || a.source === "local" || !a.service_id || typeof a.service_favourite !== "boolean") return [];
+    let on = a.service_favourite;
+    const label = () => on ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
+    return [{ label: label(), onClick: async (b) => {
+      b.disabled = true;
+      try {
+        const r = await fetch("/api/" + a.source + "/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.service_id }) });
+        const s = await r.json().catch(() => ({}));
+        if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
+        on = !on; a.service_favourite = on; b.textContent = label();
+        showToast(on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
+      } catch (e) { showToast(e.message, "error"); }
+      finally { b.disabled = false; }
+    } }];
+  }
+
   function buildFavButton(album, fresh) {
     const on0 = !!((fresh && fresh.favourite) || album.favourite);
     const b = document.createElement("button");
@@ -2349,6 +2239,17 @@ window.__afterStart = (fn) => {
     playlistsActive = true;
     const mySeq = ++playlistSeq;
     grid.innerHTML = "";
+    // Import, at the top of the screen (v0.6.24; it was a side-menu item).
+    { const pc = document.getElementById("content-count");
+      if (pc) {
+        pc.innerHTML = "";
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "playlists-import"; b.textContent = "Import";
+        b.setAttribute("aria-label", "Import a playlist");
+        b.addEventListener("click", () => { if (window.__openImportSheet) window.__openImportSheet(); });
+        pc.appendChild(b);
+        pc.classList.remove("hidden");
+      } }
 
     // `null` means "this source did not answer", which is distinct from a
     // source that answered with an empty list — one is a warning, the other is
@@ -2644,15 +2545,12 @@ window.__afterStart = (fn) => {
     // next. enterFullWall and showHome both call this, so adding it here covers
     // every route out of the screen at once.
     smartPicksActive = false;
-    // Discover joins the same ritual, and for the same reason: its fetch is
-    // slower than most (the server resolves every row against the library), so
-    // it is the likeliest of all of them to land after the user has moved on.
-    discoverActive = false;
+    // The Playlists screen's Import button goes with the screen.
+    if (playlistsActive) { const pc = document.getElementById("content-count"); if (pc) { pc.innerHTML = ""; pc.classList.add("hidden"); } }
     playlistSeq++;
     smartSeq++;
     userPlSeq++;
     smartPicksSeq++;
-    discoverSeq++;
   }
   window.__leavePlaylistScreens = leavePlaylistScreens;
 
@@ -2665,6 +2563,8 @@ window.__afterStart = (fn) => {
   function hideLibraryControls() {
     const c = document.getElementById("library-controls");
     if (c) c.classList.add("hidden");
+    const f = document.getElementById("library-filter");
+    if (f) f.classList.add("hidden");
     if (libFilterOpen || libView.prefix) {
       if (libView.prefix) libPrefixDropped = true;
       libFilterOpen = false;
@@ -2712,10 +2612,23 @@ window.__afterStart = (fn) => {
       // and a view change during it would otherwise get tiles appended into it.
       if (!libraryWallActive || mySeq !== libWall.seq) return;
       const albums = (j && j.albums) || [];
-      if (firstPage) { grid.innerHTML = ""; setBanner(null); }
+      if (firstPage) { grid.innerHTML = ""; setBanner(null); libWall.ext = null; }
       const frag = document.createDocumentFragment();
       for (const a of albums) frag.appendChild(homeTile(a));   // filter:null → offsets resolve
       grid.appendChild(frag);
+      // The letters typed asked of Qobuz and Tidal too (v0.6.24): their
+      // artists and albums under the library's rows, kept at the end as
+      // more pages come, gone with the filter.
+      if (libWall.ext) grid.appendChild(libWall.ext);
+      else if (firstPage && libView.prefix && window.__serviceSearchSections) {
+        const q = libView.prefix;
+        window.__serviceSearchSections(q).then(w => {
+          if (!w || !libraryWallActive || mySeq !== libWall.seq || libView.prefix !== q) return;
+          libWall.ext = w;
+          grid.appendChild(w);
+          if (!libWall.offset) setBanner(null);   // the library had nothing; the services have
+        }).catch(() => {});
+      }
       libWall.offset += albums.length;
       // End of library = a short (or empty) page; no separate total bookkeeping.
       libWall.done = albums.length < LIB_PAGE;
@@ -2778,13 +2691,27 @@ window.__afterStart = (fn) => {
     if (!bar) {
       bar = document.createElement("div");
       bar.id = "library-controls";
-      // In the top bar (v0.6.5, as Rouen v1.8.78), at its right-hand end where
-      // Home keeps its search: Focus, Sort, then the magnifier in the corner.
-      bar.className = "library-controls in-topbar";
+      // Its own row under the top bar's (v0.6.24): smaller pills, Focus on
+      // the left, Sort and the magnifier on the right. Inside .topbar, which
+      // lies over the scroller, so the row stays put while the grid scrolls,
+      // and the bar's measured height reserves its room.
+      bar.className = "library-controls sub-bar";
+      const tb = document.querySelector(".topbar");
+      const row = document.querySelector(".topbar-row");
+      if (tb && row) row.insertAdjacentElement("afterend", bar);
+      else grid.parentNode.insertBefore(bar, grid);
+    }
+    // The search glass stays in the top bar's row, at its right-hand end and
+    // the bar's size (v0.6.5); open, the field takes that row as Home's does.
+    let filt = document.getElementById("library-filter");
+    if (!filt) {
+      filt = document.createElement("div");
+      filt.id = "library-filter";
+      filt.className = "library-filter in-topbar";
       const row = document.querySelector(".topbar-row");
       const before = document.getElementById("labels-tools");
-      if (row) row.insertBefore(bar, before && before.parentNode === row ? before : null);
-      else grid.parentNode.insertBefore(bar, grid);
+      if (row) row.insertBefore(filt, before && before.parentNode === row ? before : null);
+      else bar.appendChild(filt);
     }
     // Both controls open a sheet rather than mutating the view in place, so a
     // rebuild can no longer land under the user's finger mid-interaction — but
@@ -2796,23 +2723,25 @@ window.__afterStart = (fn) => {
     // here starts with `lib-ctl`, so splitting on the first token matched
     // whichever came first in the DOM — focus on Sort came back on Focus.
     const act = document.activeElement;
-    const refocus = act && bar.contains(act) && act.className
+    const refocus = act && (bar.contains(act) || filt.contains(act)) && act.className
       ? (String(act.className).split(" ").find(c => c !== "lib-ctl" && c) || "lib-ctl")
       : null;
     // Typing survives the rebuild applyLibView() does after every keystroke.
     // `libFilterOpen` is the truth; the live node is only consulted for where
     // the caret was.
-    const typing = bar.querySelector(".lib-filter-input");
+    const typing = filt.querySelector(".lib-filter-input");
     const caret = typing ? typing.selectionStart : 0;
 
     bar.innerHTML = "";
-    // Roon's own order on this screen: Focus left, Sort right, then the
-    // magnifier that narrows the list. Matching it means the row reads the
-    // same way in both apps rather than being a third arrangement to learn.
+    filt.innerHTML = "";
+    // Focus left, Sort right in their row; the magnifier that narrows the
+    // list in the bar's row above.
     bar.appendChild(buildLibFocusButton());
     bar.appendChild(buildLibSortButton());
-    bar.appendChild(buildLibFilterControl(libFilterOpen));
+    filt.appendChild(buildLibFilterControl(libFilterOpen));
     bar.classList.toggle("hidden", !libraryWallActive);
+    filt.classList.toggle("hidden", !libraryWallActive);
+    filt.classList.toggle("is-filtering", libFilterOpen);
     // Marks the bar as the Library wall's, for the phone rule that gives the
     // title's room to the controls.
     { const tb = document.querySelector(".topbar"); if (tb) tb.classList.toggle("lib-wall", libraryWallActive); }
@@ -2824,14 +2753,14 @@ window.__afterStart = (fn) => {
       if (tb) tb.classList.toggle("lib-filtering", libFilterOpen && libraryWallActive); }
 
     if (libFilterOpen) {
-      const again = bar.querySelector(".lib-filter-input");
+      const again = filt.querySelector(".lib-filter-input");
       if (again) {
         again.focus();
         try { again.setSelectionRange(caret, caret); }
         catch (e) { /* type="search" refuses setSelectionRange on some engines */ }
       }
     } else if (refocus) {
-      const again = bar.querySelector("." + refocus);
+      const again = bar.querySelector("." + refocus) || filt.querySelector("." + refocus);
       if (again) again.focus();
     }
   }
@@ -5551,7 +5480,7 @@ window.__afterStart = (fn) => {
     return el;
   }
 
-  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz" };
+  const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" };
   function sourceBadge(a) {
     const kind = a.source || (a.local ? "local" : null);
     if (!kind || !SOURCE_LABEL[kind]) return null;
@@ -5710,11 +5639,13 @@ window.__afterStart = (fn) => {
       btn.__open();
     });
     if (selectable) {
-      // Long press ARMS selection without selecting the tile under the finger.
-      // Pressing something and having it become selected is how you end up
-      // with a selection you didn't ask for when you only wanted the mode.
+      // A long press starts selecting, with the tile under the finger the
+      // first pick (v0.6.24: as the labels grid and the queue; the release
+      // click is eaten, so it stays picked).
       addLongPress(btn, () => {
-        if (!albumSelectMode) enterAlbumSelectMode();
+        if (albumSelectMode) return;
+        enterAlbumSelectMode();
+        handleAlbumTileSelect(btn, a);
       });
     }
     return btn;
@@ -5853,13 +5784,18 @@ window.__afterStart = (fn) => {
     el.classList.toggle("hidden", !text);
   }
   // Topbar context label: the active filter's value (genre/tag name) with NO
-  // count; hidden on the plain wall. Counts were removed from all screens.
-  function updateCountReadout(filteredTotal) {
+  // count, or "Random albums" on the plain wall (v0.6.24: a title, as every
+  // other grid screen has); hidden on Home (`hide`). Counts were removed
+  // from all screens.
+  function updateCountReadout(filteredTotal, hide) {
     const el = document.getElementById("album-count");
     if (!el) return;
     if (labelsActive) return;   // labels browser manages its own header text
     if (activeFilter) {
       el.textContent = activeFilter.label || activeFilter.value;   // group label (e.g. "Rock/Metal") if set
+      el.classList.remove("hidden");
+    } else if (!hide && !libraryWallActive && !unplayedWallActive && !grid.classList.contains("hidden")) {
+      el.textContent = "Random albums";
       el.classList.remove("hidden");
     } else {
       el.textContent = "";
@@ -6576,6 +6512,12 @@ window.__afterStart = (fn) => {
   // selection pointing at rows that no longer exist is worse than none.
   let historySelectMode = false;
   let historySelected = [];
+  // The queue's own selection (v0.6.24): a long press on a row starts it with
+  // that row picked; taps pick more, in order; the ⋯ beside the remaining
+  // time plays them now or next, or removes them. Reset with the rows.
+  let queueSelectMode = false;
+  let queueSelected = [];
+  let repaintQueueSelection = () => {};   // the bar and rows repainted after an action
   // Mirrors lib/queue-history.js. Each track is a full browse navigation, so a
   // large selection is minutes of Core traffic; the server enforces the same
   // number and this is only here to say so before the request is made.
@@ -6860,6 +6802,8 @@ window.__afterStart = (fn) => {
     // empty selection shows an action bar over rows nobody has picked yet.
     historySelectMode = false;
     historySelected = [];
+    queueSelectMode = false;
+    queueSelected = [];
     empty.classList.add("hidden");
     try {
       const r = await fetch(`/api/queue?zone=${encodeURIComponent(zoneId)}`);
@@ -6875,9 +6819,71 @@ window.__afterStart = (fn) => {
       }
       let totalSec = 0;
       for (const it of items) if (it.length) totalSec += it.length;
-      summary.textContent = items.length
+      // The bar: the count and time on the left; on the right Clear all, or,
+      // selecting, the ⋯ menu (Play now, Play next, Remove) and Done.
+      summary.innerHTML = "";
+      const sumText = document.createElement("span");
+      sumText.className = "queue-summary-text";
+      sumText.textContent = items.length
         ? `${items.length} track${items.length === 1 ? "" : "s"} · ${fmtDuration(totalSec)} remaining`
         : "Nothing more queued";
+      const tools = document.createElement("div");
+      tools.className = "queue-summary-tools";
+      const clearAll = document.createElement("button");
+      clearAll.type = "button"; clearAll.className = "q-tool"; clearAll.textContent = "Clear all";
+      clearAll.setAttribute("aria-label", "Clear the queue");
+      const menuWrap = document.createElement("div");
+      menuWrap.className = "sel-menu-wrap q-sel-menu-wrap hidden";
+      const menuBtn = document.createElement("button");
+      menuBtn.type = "button"; menuBtn.className = "q-tool q-tool-menu"; menuBtn.textContent = "⋯";
+      menuBtn.setAttribute("aria-label", "What to do with the selected tracks");
+      menuBtn.setAttribute("aria-haspopup", "menu"); menuBtn.setAttribute("aria-expanded", "false");
+      const menu = document.createElement("div");
+      menu.className = "sel-menu hidden"; menu.setAttribute("role", "menu");
+      const menuCount = document.createElement("div"); menuCount.className = "sel-menu-title";
+      menu.appendChild(menuCount);
+      const mkItem = (label, act, danger) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "sel-menu-item" + (danger ? " is-danger" : ""); b.setAttribute("role", "menuitem");
+        b.dataset.queueAct = act; b.textContent = label;
+        b.addEventListener("click", () => { closeMenu(); runQueueAction(act, items); });
+        menu.appendChild(b);
+        return b;
+      };
+      mkItem("Play now", "play_now"); mkItem("Play next", "play_next"); mkItem("Remove", "remove", true);
+      menuWrap.append(menuBtn, menu);
+      const done = document.createElement("button");
+      done.type = "button"; done.className = "q-tool hidden"; done.textContent = "Done";
+      tools.append(clearAll, menuWrap, done);
+      summary.append(sumText, tools);
+      const closeMenu = () => { menu.classList.add("hidden"); menuBtn.setAttribute("aria-expanded", "false"); };
+      menuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = menu.classList.toggle("hidden") === false;
+        menuBtn.setAttribute("aria-expanded", String(open));
+        if (open) setTimeout(() => document.addEventListener("click", closeMenu, { once: true }), 0);
+      });
+      clearAll.addEventListener("click", () => clearQueueAll());
+      done.addEventListener("click", () => { queueSelectMode = false; queueSelected = []; paintQueueSelection(); });
+      const itemRows = [];
+      // Which rows are picked and in what order; the tools for the mode.
+      const paintQueueSelection = () => {
+        itemRows.forEach(({ li, num, it }) => {
+          const at = queueSelected.indexOf(it.queue_item_id);
+          li.classList.toggle("is-picked", at !== -1);
+          li.classList.toggle("is-selecting", queueSelectMode);
+          num.textContent = at === -1 ? "" : String(at + 1);
+          num.classList.toggle("hidden", at === -1 || !queueSelectMode);   // unpicked: the outlined circle
+        });
+        const n = queueSelected.length;
+        menuCount.textContent = n ? `${n} selected` : "Tap tracks to select them";
+        for (const b of menu.querySelectorAll(".sel-menu-item")) b.disabled = n === 0;
+        clearAll.classList.toggle("hidden", queueSelectMode || !items.length);
+        menuWrap.classList.toggle("hidden", !queueSelectMode);
+        done.classList.toggle("hidden", !queueSelectMode);
+        if (!queueSelectMode) closeMenu();
+      };
+      repaintQueueSelection = paintQueueSelection;
 
       // Above the "Now playing" divider, because that is where it happened.
       renderQueueHistory(list, history);
@@ -6899,6 +6905,8 @@ window.__afterStart = (fn) => {
         if (i === 0) li.classList.add("is-now");
         else li.classList.add("is-tappable");
 
+        // The pick number, as the played-earlier rows carry it.
+        const num = document.createElement("span"); num.className = "q-hist-num hidden";
         const art = document.createElement("img"); art.className = "q-art";
         if (it.image_key) art.src = `/api/image/${encodeURIComponent(it.image_key)}?size=120`;
         else art.style.visibility = "hidden";
@@ -6908,7 +6916,21 @@ window.__afterStart = (fn) => {
         tx.appendChild(tt); tx.appendChild(ts);
         const len = document.createElement("span"); len.className = "q-len";
         if (it.length) len.textContent = fmtDuration(it.length);
-        li.appendChild(art); li.appendChild(tx); li.appendChild(len);
+        li.appendChild(num); li.appendChild(art); li.appendChild(tx); li.appendChild(len);
+        itemRows.push({ li, num, it });
+
+        // A long press starts selecting, with this row the first pick.
+        const pick = () => {
+          const at = queueSelected.indexOf(it.queue_item_id);
+          if (at === -1) queueSelected.push(it.queue_item_id); else queueSelected.splice(at, 1);
+          paintQueueSelection();
+        };
+        addLongPress(li, () => {
+          if (queueSelectMode) return;
+          queueSelectMode = true; queueSelected = [it.queue_item_id];
+          paintQueueSelection();
+        });
+        li.addEventListener("click", (e) => { if (queueSelectMode) { e.stopImmediatePropagation(); pick(); } });
 
         if (i !== 0) {
           li.addEventListener("click", async () => {
@@ -6954,8 +6976,47 @@ window.__afterStart = (fn) => {
 
         list.appendChild(li);
       }
+      paintQueueSelection();
     } catch (e) {
       summary.textContent = "Couldn't load queue: " + e.message;
+    }
+  }
+  // The picks played now (moved to after the track playing and the first of
+  // them played), played next (moved), or removed.
+  async function runQueueAction(kind, items) {
+    const picks = queueSelected.slice();
+    if (!picks.length) return;
+    const names = picks.map(id => { const it = items.find(x => x.queue_item_id === id); return it && it.title; }).filter(Boolean);
+    const what = picks.length === 1 ? `"${names[0] || "this track"}"` : `${picks.length} tracks`;
+    if (kind === "remove" && !await confirmDialog(`Remove ${what} from the queue?`)) return;
+    try {
+      const r = await fetch(kind === "remove" ? "/api/queue/remove" : "/api/queue/move", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_or_output_id: queueZoneId(), queue_item_ids: picks, kind })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast((j.error || `HTTP ${r.status}`), "error"); return; }
+      showToast(kind === "remove" ? `Removed ${what}` : kind === "play_now" ? `Playing ${what}` : `Playing ${what} next`);
+      queueSelectMode = false; queueSelected = [];
+      repaintQueueSelection();
+      setTimeout(loadQueue, 600);
+    } catch (e) {
+      showToast("Couldn't reach the server", "error");
+    }
+  }
+  async function clearQueueAll() {
+    if (!await confirmDialog("Clear the queue? Playback stops.")) return;
+    try {
+      const r = await fetch("/api/queue/clear", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_or_output_id: queueZoneId() })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast((j.error || `HTTP ${r.status}`), "error"); return; }
+      showToast("Queue cleared");
+      setTimeout(loadQueue, 600);
+    } catch (e) {
+      showToast("Couldn't reach the server", "error");
     }
   }
   function fmtDuration(secs) {
@@ -7580,6 +7641,8 @@ window.__afterStart = (fn) => {
   function downloadMenuItem(album) {
     const dl = window.MusicdDownloads;
     if (!dl || !album || typeof album.offset !== "number") return [];
+    // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23).
+    if (album.source && album.source !== "local") return [];
     let st = {};
     try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
     if (st.state === "done") return [{ label: "Remove from this phone", onClick: () => dl.remove(album.offset) }];
@@ -7736,12 +7799,14 @@ window.__afterStart = (fn) => {
     }
     const overflow = available.slice(ROW_ACTIONS);
     if (overflow.length) {
-      modalActs.appendChild(buildOverflowMenu(
+      const more = buildOverflowMenu(
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
+          .concat(serviceMenuItem(j))
           .concat(laterMenuItem(album, j))
-          .concat([{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
+          .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
-        { label: "More actions" }));
+        { label: "More actions" });
+      modalActs.appendChild(more);
     }
     if (!available.length) {
       // "No playback actions available" was true and useless — it described
@@ -7834,9 +7899,9 @@ window.__afterStart = (fn) => {
           toggleTrackActions(li, t, idx);
         });
 
-        // Long press ARMS selection without selecting this track — same rule
-        // as the album grid.
-        addLongPress(li, () => { if (!trackSelectMode) enterTrackSelectMode(); });
+        // A long press starts selecting, with this track the first pick —
+        // the same rule as the album grid (v0.6.24).
+        addLongPress(li, () => { if (trackSelectMode) return; enterTrackSelectMode(); toggleTrackSelected(li, t, idx); });
         modalTracks.appendChild(li);
       });
     }
@@ -8083,8 +8148,10 @@ window.__afterStart = (fn) => {
       labelBtn.className = "modal-artist-link";
       labelBtn.textContent = extras.album.label;
       labelBtn.addEventListener("click", () => {
+        // Back from the label's albums returns to this page (v0.6.24).
+        const back = { album, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } };
         closeModal();
-        if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label);
+        if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label, false, back);
       });
       modalSub.appendChild(labelBtn);
     }
@@ -8283,6 +8350,7 @@ window.__afterStart = (fn) => {
       if (abort) { try { abort.abort(); } catch (e) {} abort = null; }
       clearTimeout(retryTimer);
       clearTimeout(extTimer);
+      if (extAbort) { try { extAbort.abort(); } catch (e) {} extAbort = null; }
       extWrap = null; extWrapSeq = -1;         // release the rendered external sections
       setStatus("");
       setBanner(null);
@@ -8303,7 +8371,10 @@ window.__afterStart = (fn) => {
       // before the library fetch so external results appear even when the
       // library search errors or has zero matches.
       clearTimeout(extTimer);
-      extTimer = setTimeout(() => runExternal(q, mySeq), 600);
+      // Close behind the library's own debounce (v0.6.24; it was 600 ms): the
+      // services' type-ahead is what their own apps do, and the server keeps
+      // each answer for an hour.
+      extTimer = setTimeout(() => runExternal(q, mySeq), 200);
       extAllowBannerClear = false;
       try {
         const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=60`,
@@ -8418,32 +8489,62 @@ window.__afterStart = (fn) => {
     let extWrapSeq = -1;
     let extAllowBannerClear = false; // only the "No matches" banner may be cleared
 
+    // The sections on screen put back after the grid is rebuilt — this query's,
+    // or the previous query's dimmed as stale (v0.6.24), so the services'
+    // results don't blink out on every keystroke the way the library's never
+    // do; the fresh ones take their place as they land.
     function extReappend(mySeq) {
-      if (extWrapSeq !== mySeq || !extWrap || !extWrap.childNodes.length) return false;
+      if (!extWrap || !extWrap.childNodes.length) return false;
+      extWrap.classList.toggle("is-stale", extWrapSeq !== mySeq);
       grid.appendChild(extWrap);     // appendChild MOVES it if already attached
       return true;
     }
+    let extAbort = null;
 
+    // The services and Pitchfork are asked separately (v0.6.24), each
+    // section landing as its answer comes: Qobuz and Tidal are no longer
+    // held for a slow Pitchfork search. One wrapper, two slots in a fixed
+    // order, so whichever answers first the services stay above the reviews.
     async function runExternal(q, mySeq) {
-      try {
-        const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}`, { cache: "no-store" });
-        if (mySeq !== seq || !r.ok) return;
-        const j = await r.json();
-        if (mySeq !== seq) return;
-        const wrap = document.createElement("div");
-        wrap.className = "ext-search-wrap";
-        let added = 0;
-        added += extServiceSection(wrap, "Qobuz", j.qobuz, "qobuz-toggle", "qobuz-search-input");
-        added += extPitchforkSection(wrap, j.pitchfork);
-        if (!added) return;
+      if (extAbort) { try { extAbort.abort(); } catch (e) {} }   // the previous keystroke's asks
+      const ctl = extAbort = new AbortController();
+      const wrap = document.createElement("div");
+      wrap.className = "ext-search-wrap";
+      const slots = { qobuz: document.createElement("div"), tidal: document.createElement("div"), pitchfork: document.createElement("div") };
+      for (const el of Object.values(slots)) { el.className = "ext-search-slot"; wrap.appendChild(el); }
+      let added = 0;
+      const landed = (n) => {
+        if (mySeq !== seq || !n) return;
+        added += n;
+        if (extWrap && extWrap !== wrap) extWrap.remove();   // the previous query's, stale
         extWrap = wrap;
         extWrapSeq = mySeq;
         // Externals may arrive while a "No matches for X" banner shows —
         // clear THAT banner (there are matches after all), but never the
         // Roon-disconnect/error banners, which explain the missing library rows.
         if (extAllowBannerClear) setBanner(null);
-        grid.appendChild(wrap);
-      } catch (e) { /* best-effort — external sections just don't appear */ }
+        grid.appendChild(wrap);     // appendChild MOVES it if already attached
+      };
+      const ask = async (part, fill) => {
+        try {
+          const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=${part}`, { cache: "no-store", signal: ctl.signal });
+          if (mySeq !== seq || !r.ok) return;
+          const j = await r.json();
+          if (mySeq !== seq) return;
+          landed(fill(j));
+        } catch (e) { /* best-effort — that section just doesn't appear */ }
+      };
+      await Promise.all([
+        ask("qobuz", (j) => extServiceSection(slots.qobuz, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")),
+        ask("tidal", (j) => extServiceSection(slots.tidal, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input")),
+        ask("pitchfork", (j) => extPitchforkSection(slots.pitchfork, j.pitchfork))
+      ]);
+      // Nothing from anywhere for this query: the stale sections go, and the
+      // library's "No matches" stands if the library had nothing either.
+      if (mySeq === seq && !added) {
+        if (extWrap && extWrap !== wrap) { extWrap.remove(); extWrap = null; extWrapSeq = -1; }
+        if (extAllowBannerClear && !grid.querySelector(".album")) setBanner(`No matches for \u201C${q}\u201D.`, false);
+      }
     }
 
     function extHeader(frag, label) {
@@ -8475,12 +8576,34 @@ window.__afterStart = (fn) => {
       return btn;
     }
 
-    // Qobuz/Tidal section: tapping a result opens that service's browser seeded
-    // with a search for the album (same hand-off the Pitchfork detail uses) —
-    // favourite it there to make it appear in Roon.
-    function extServiceSection(frag, label, albums, toggleId, inputId) {
-      if (!albums || !albums.length) return 0;
+    // Qobuz / Tidal (v0.6.24): the service's artists as a strip of chips (a
+    // tap: the artist's albums in the service's browser) and its albums as
+    // tiles of this grid, + / ✓ on each cover, a tap opening the album's own
+    // page over the results — in the library or not, from either service.
+    // Without the service's browser on the page, the rows of before.
+    function extServiceSection(frag, service, label, albums, artists, toggleId, inputId) {
+      const sb = window.__serviceBrowsers && window.__serviceBrowsers[service];
+      const nA = (albums && albums.length) || 0, nR = (sb && artists && artists.length) || 0;
+      if (!nA && !nR) return 0;
       extHeader(frag, label);
+      if (nR) {
+        const strip = document.createElement("div");
+        strip.className = "ext-search-artists";
+        for (const ar of artists) {
+          const chip = document.createElement("button");
+          chip.type = "button"; chip.className = "qobuz-artist-chip";
+          const img = document.createElement(ar.image ? "img" : "div");
+          img.className = "qobuz-artist-thumb";
+          if (ar.image) { img.loading = "lazy"; img.alt = ""; img.src = ar.image; }
+          const name = document.createElement("span"); name.className = "qobuz-artist-name"; name.textContent = ar.name;
+          chip.appendChild(img); chip.appendChild(name);
+          chip.addEventListener("click", () => sb.openArtist(ar));
+          strip.appendChild(chip);
+        }
+        frag.appendChild(strip);
+      }
+      if (!nA) return nR;
+      if (sb) { for (const a of albums) frag.appendChild(sb.tile(a)); return nA + nR; }
       for (const a of albums) {
         frag.appendChild(extRow(a.image, a.title, a.artist, () => {
           stopSearch();
@@ -8492,7 +8615,7 @@ window.__afterStart = (fn) => {
           if (si && seedQ) { si.value = seedQ; si.dispatchEvent(new Event("input", { bubbles: true })); }
         }));
       }
-      return albums.length;
+      return nA;
     }
 
     // Pitchfork section: tapping a review deep-links to its detail view.
@@ -8592,12 +8715,27 @@ window.__afterStart = (fn) => {
     // Tap anywhere outside the search container closes it. `closest()` on the
     // container, not `contains()` on the input, so a tap on the X or the
     // status text is inside rather than a dismissal.
+    // A tap on a result, or in the album page, a sheet or a menu opened over
+    // the results, is not a tap away (v0.6.24): the results stay for when
+    // the page closes.
     document.addEventListener("click", (e) => {
       if (!row.classList.contains("open")) return;
-      if (e.target.closest && e.target.closest("#topbar-search")) return;
+      if (e.target.closest && e.target.closest("#topbar-search, #album-grid, #album-modal, .settings-overlay, #menu-overlay, .sel-menu, .confirm-overlay, .sheet-overlay")) return;
       closeSearch();
     });
 
+    // The services' sections alone, for the Library wall's filter (v0.6.24):
+    // Qobuz's and Tidal's artists and albums for the letters typed, or null.
+    window.__serviceSearchSections = async (q) => {
+      const r = await fetch(`/api/search/external?q=${encodeURIComponent(q)}&parts=services`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const wrap = document.createElement("div");
+      wrap.className = "ext-search-wrap";
+      const n = extServiceSection(wrap, "qobuz", "Qobuz", j.qobuz, j.qobuz_artists, "qobuz-toggle", "qobuz-search-input")
+        + extServiceSection(wrap, "tidal", "Tidal", j.tidal, j.tidal_artists, "tidal-toggle", "tidal-search-input");
+      return n ? wrap : null;
+    };
     // Seed and open in one step. Used by anything that wants to hand the user
     // a started search rather than an empty box.
     window.__runSearch = (q) => { openSearch(); input.value = q; onInput(); };
@@ -9322,9 +9460,13 @@ window.__afterStart = (fn) => {
       if (logoCandidatesEl) logoCandidatesEl.innerHTML = "";
     }
 
-    async function showLabelAlbums(name, fromLabelsList = false) {
+    // Where ‹ goes from one label's albums when they were opened from an
+    // album's page: back to that page, not to the list of all labels (v0.6.24).
+    let _labelsReturn = null;
+    async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
       if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
       if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
+      _labelsReturn = returnTo && returnTo.album ? returnTo : null;
       if (fromLabelsList) {
         // Came from a tap on the Labels grid — remember the grid scroll position.
         _labelsScrollSaved = mainEl ? mainEl.scrollTop : 0;
@@ -9390,6 +9532,13 @@ window.__afterStart = (fn) => {
       if (tb) tb.addEventListener("click", (e) => {
         if (!(labelsActive && mode === "albums")) return;
         if (window.__artistViewActive && window.__artistViewActive()) return;
+        // Opened from an album's page: the usual ‹ (Home) runs, and the album's
+        // page comes back over it.
+        if (_labelsReturn) {
+          const r = _labelsReturn; _labelsReturn = null;
+          if (window.__openAlbum) setTimeout(() => window.__openAlbum(r.album, r.opts), 0);
+          return;
+        }
         e.stopImmediatePropagation();
         showLabelsList();
       }, true);
@@ -9563,10 +9712,6 @@ window.__afterStart = (fn) => {
     if (picksItem && typeof state.picks === "boolean") {
       picksItem.classList.toggle("hidden", !state.picks);
     }
-    const discoverItem = document.getElementById("menu-item-discover");
-    if (discoverItem && typeof state.discover === "boolean") {
-      discoverItem.classList.toggle("hidden", !state.discover);
-    }
   };
 
   // Ask at boot. Two independent calls, so an older server or a transient
@@ -9575,16 +9720,10 @@ window.__afterStart = (fn) => {
   async function applyFeatureMenuFromServer() {
     const state = {};
     const ask = async (url) => { try { const r = await fetch(url); return r.ok ? !!(await r.json()).enabled : null; } catch (e) { return null; } };
-    const [labels, picks, discover] = await Promise.all([
-      ask("/api/settings/labels"), ask("/api/settings/smart-picks"), ask("/api/settings/discover")
-    ]);
-    // A failed lookup leaves the entry as the markup has it — which for
-    // Discover is HIDDEN: unlike the other two it is off for everyone until
-    // asked for, so a failed lookup must not offer a menu entry that leads to
-    // an empty screen.
+    const [labels, picks] = await Promise.all([ask("/api/settings/labels"), ask("/api/settings/smart-picks")]);
+    // A failed lookup leaves the entry as the markup has it.
     if (labels !== null) state.labels = labels;
     if (picks !== null) state.picks = picks;
-    if (discover !== null) state.discover = discover;
     window.__applyFeatureMenu(state);
   }
 
@@ -9849,6 +9988,16 @@ window.__afterStart = (fn) => {
       const artist     = np.line2 || "";
       if (!albumTitle) return;
       const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      // The album the playing track is actually from, by the track's own id
+      // (v0.6.24): a Qobuz or Tidal album you started opens as itself, not the
+      // copy of the same record on your drive that a search by name finds first.
+      try {
+        const r0 = await fetch("/api/album/now-playing?zone=" + encodeURIComponent(currentZone.zone_id), { cache: "no-store" });
+        if (r0.ok) {
+          const j0 = await r0.json();
+          if (j0.album && typeof j0.album.offset === "number") { window.__openAlbum(j0.album, { source: "search" }); return; }
+        }
+      } catch (e) { /* the search below */ }
       try {
         const r = await fetch("/api/search?q=" + encodeURIComponent(albumTitle) + "&limit=20");
         if (r.ok) {
@@ -12646,106 +12795,217 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  const qobuzPasteRow   = document.getElementById("qobuz-signin-paste");
-  const qobuzPasteUrl   = document.getElementById("qobuz-signin-url");
-  const qobuzPasteGo    = document.getElementById("qobuz-signin-finish");
-  const qobuzConnect    = document.getElementById("qobuz-connect");
+  // ----- Qobuz (v0.6.23): Settings → Services -------------------------------
+  const qobuzUser       = document.getElementById("qobuz-username");
+  const qobuzPass       = document.getElementById("qobuz-password");
+  const qobuzSignin     = document.getElementById("qobuz-signin");
+  const qobuzForm       = document.getElementById("qobuz-signin-form");
+  const qobuzSigned     = document.getElementById("qobuz-signed");
+  const qobuzQuality    = document.getElementById("qobuz-quality");
+  const qobuzImport     = document.getElementById("qobuz-import");
+  const qobuzImportNow  = document.getElementById("qobuz-import-now");
+  const qobuzImportSt   = document.getElementById("qobuz-import-status");
   const qobuzDisconnect = document.getElementById("qobuz-disconnect");
   const qobuzStatus     = document.getElementById("qobuz-status");
   const qobuzTopbarBtn  = document.getElementById("qobuz-toggle");
   const qobuzMenuItem   = document.getElementById("menu-item-qobuz");
 
-  // Gates the Qobuz controls on the connection, exactly as loadTidalStatus
-  // does. This used to toggle the Disconnect button ALONE, so the top-bar
-  // button and the side-menu entry stayed visible after logging out — the
-  // Qobuz browser remained one tap away from an account that no longer
-  // existed, and every catalogue call behind it threw "not connected".
+  function paintQobuz(j) {
+    const on = !!j.connected;
+    if (qobuzForm) qobuzForm.hidden = on;
+    if (qobuzSigned) qobuzSigned.hidden = !on;
+    if (qobuzStatus) qobuzStatus.textContent = on
+      ? ("Signed in as " + (j.user && (j.user.name || j.user.login) || "") + (j.subscription ? " · " + j.subscription : "") +
+         (j.hires ? " · Hi-Res" : j.lossless ? " · CD quality" : ""))
+      : "Not signed in.";
+    if (qobuzQuality && on) qobuzQuality.value = j.quality || "hires192";
+    if (qobuzImport && on) qobuzImport.checked = j.import !== false;
+    if (qobuzImportSt && on) {
+      const li = j.last_import;
+      qobuzImportSt.textContent = j.importing ? "Bringing your Qobuz favourites and purchases into the library…"
+        : li ? (li.albums + " Qobuz album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
+               (li.failed ? " · " + li.failed + " couldn't be read" : ""))
+        : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Qobuz browser is known here.");
+    }
+    // The browser's button and the menu's entry: only with an account to browse with.
+    if (qobuzTopbarBtn) qobuzTopbarBtn.classList.toggle("hidden", !on);
+    if (qobuzMenuItem)  qobuzMenuItem.classList.toggle("hidden", !on);
+  }
   async function loadQobuzStatus() {
     try {
-      const r = await fetch("/api/settings/qobuz");
-      const j = await r.json();
-      if (qobuzStatus) qobuzStatus.textContent = j.connected
-        ? ("Connected" + (j.displayName ? " as " + j.displayName : ""))
-        : "Not connected";
-      if (qobuzDisconnect) qobuzDisconnect.classList.toggle("hidden", !j.connected);
-      // The sign-in landed by itself; the recovery field has nothing left to do.
-      if (qobuzPasteRow && j.connected) qobuzPasteRow.hidden = true;
-      if (qobuzConnect) qobuzConnect.classList.toggle("hidden", !!j.connected);
-      if (qobuzTopbarBtn) qobuzTopbarBtn.classList.toggle("hidden", !j.connected);
-      if (qobuzMenuItem)  qobuzMenuItem.classList.toggle("hidden", !j.connected);
-      // Deliberately NOT force-closing an open Qobuz browser: hideOverlay() is
-      // reachable only from the popstate handler so viewStack and the history
-      // stack cannot drift, and the overlay already renders its own
-      // not-connected state on the next request.
+      const r = await fetch("/api/settings/qobuz", { cache: "no-store" });
+      paintQobuz(await r.json());
     } catch (_) { /* display-only status — stale on failure is fine */ }
   }
+  window.__qobuzStatus = loadQobuzStatus;
 
-  // One sign-in for everything Qobuz. It happens on Qobuz's own page, so no
-  // password is typed into this app, and the token it returns serves the
-  // catalogue, the favourites and the waveforms alike.
-  if (qobuzConnect) {
-    qobuzConnect.addEventListener("click", async () => {
-      qobuzConnect.disabled = true;
+  if (qobuzSignin) {
+    const go = async () => {
+      const username = qobuzUser ? qobuzUser.value.trim() : "", password = qobuzPass ? qobuzPass.value : "";
+      if (!username || !password) { showToast("Your Qobuz email and password", "error"); return; }
+      qobuzSignin.disabled = true;
+      if (qobuzStatus) qobuzStatus.textContent = "Signing in…";
       try {
-        const r = await fetch("/api/qobuz/oauth/start");
+        const r = await fetch("/api/settings/qobuz/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok || !j.url) throw new Error(j.error || "Couldn't start the Qobuz sign-in");
-        // Opened rather than navigated, so this page keeps its state; the tab
-        // that comes back carries the code straight to the server.
-        window.open(j.url, "_blank", "noopener");
-        if (qobuzPasteRow) qobuzPasteRow.hidden = false;
-        if (qobuzStatus) {
-          qobuzStatus.textContent = "Sign in on the Qobuz tab, then come back here. " +
-            "If it does not connect by itself, paste the address you landed on below.";
-        }
+        if (!r.ok || j.error) throw new Error(j.error || "Couldn't sign in");
+        if (qobuzPass) qobuzPass.value = "";
+        showToast("Signed in to Qobuz", "ok");
+        paintQobuz(j);
+        // The import's progress, while it runs.
+        const tick = setInterval(async () => { await loadQobuzStatus(); if (!(await (await fetch("/api/settings/qobuz")).json()).importing) clearInterval(tick); }, 4000);
       } catch (e) {
+        if (qobuzStatus) qobuzStatus.textContent = "";
         showToast(e.message, "error");
-      } finally {
-        qobuzConnect.disabled = false;
-      }
-    });
+      } finally { qobuzSignin.disabled = false; }
+    };
+    qobuzSignin.addEventListener("click", go);
+    if (qobuzPass) qobuzPass.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   }
-
-  if (qobuzPasteGo && qobuzPasteUrl) {
-    qobuzPasteGo.addEventListener("click", async () => {
-      qobuzPasteGo.disabled = true;
-      try {
-        const r = await fetch("/api/qobuz/oauth/paste", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: qobuzPasteUrl.value })
-        });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || j.error) throw new Error(j.error || "Couldn't finish signing in");
-        qobuzPasteUrl.value = "";
-        if (qobuzPasteRow) qobuzPasteRow.hidden = true;
-        showToast("Qobuz connected", "ok");
-        loadQobuzStatus();
-      } catch (e) {
-        showToast(e.message, "error");
-      } finally { qobuzPasteGo.disabled = false; }
-    });
-  }
-
+  if (qobuzQuality) qobuzQuality.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quality: qobuzQuality.value }) });
+      paintQobuz(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (qobuzImport) qobuzImport.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: qobuzImport.checked }) });
+      paintQobuz(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (qobuzImportNow) qobuzImportNow.addEventListener("click", async () => {
+    qobuzImportNow.disabled = true;
+    if (qobuzImportSt) qobuzImportSt.textContent = "Bringing your Qobuz favourites and purchases into the library…";
+    try {
+      const r = await fetch("/api/settings/qobuz/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) throw new Error(j.error || "Couldn't update");
+      showToast(j.result.albums + " Qobuz albums in the library", "ok");
+      loadQobuzStatus();
+    } catch (e) { showToast(e.message, "error"); loadQobuzStatus(); }
+    finally { qobuzImportNow.disabled = false; }
+  });
   if (qobuzDisconnect) {
     qobuzDisconnect.addEventListener("click", async () => {
       qobuzDisconnect.disabled = true;
       try {
-        await fetch("/api/settings/qobuz/disconnect", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
-        });
-        showToast("Qobuz disconnected", "ok");
+        await fetch("/api/settings/qobuz/signout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        showToast("Signed out of Qobuz", "ok");
         loadQobuzStatus();
-      } catch (e) {
-        showToast("Failed: " + e.message, "error");
-      } finally {
-        qobuzDisconnect.disabled = false;
-      }
+      } catch (e) { showToast("Failed: " + e.message, "error"); }
+      finally { qobuzDisconnect.disabled = false; }
     });
   }
-
-  // Boot-time gate: the topbar Qobuz button — and its side-menu entry — must
-  // reflect the connection without the user ever opening Settings.
   loadQobuzStatus();
+
+  // ----- Tidal (v0.6.24): Settings → Services -------------------------------
+  // Signed in on tidal.com: Mandarin shows a link and a code, and asks the
+  // server every two seconds whether the sign-in has landed.
+  const tidalSignin     = document.getElementById("tidal-signin");
+  const tidalForm       = document.getElementById("tidal-signin-form");
+  const tidalPending    = document.getElementById("tidal-pending");
+  const tidalAuthLink   = document.getElementById("tidal-auth-link");
+  const tidalAuthCode   = document.getElementById("tidal-auth-code");
+  const tidalCancel     = document.getElementById("tidal-signin-cancel");
+  const tidalSigned     = document.getElementById("tidal-signed");
+  const tidalQuality    = document.getElementById("tidal-quality");
+  const tidalImport     = document.getElementById("tidal-import");
+  const tidalImportNow  = document.getElementById("tidal-import-now");
+  const tidalImportSt   = document.getElementById("tidal-import-status");
+  const tidalDisconnect = document.getElementById("tidal-disconnect");
+  const tidalStatus     = document.getElementById("tidal-status");
+  const tidalTopbarBtn  = document.getElementById("tidal-toggle");
+  const tidalMenuItem   = document.getElementById("menu-item-tidal");
+  let tidalPoll = null;
+
+  function paintTidal(j) {
+    const on = !!(j && j.connected);
+    const pending = !on && j && j.pending;
+    if (tidalForm) tidalForm.hidden = on;
+    if (tidalSignin) tidalSignin.hidden = !!pending;
+    if (tidalPending) tidalPending.hidden = !pending;
+    if (pending) {
+      if (tidalAuthLink) { tidalAuthLink.href = pending.url; tidalAuthLink.textContent = pending.url.replace(/^https?:\/\//, ""); }
+      if (tidalAuthCode) tidalAuthCode.textContent = pending.code || "";
+    }
+    if (tidalSigned) tidalSigned.hidden = !on;
+    if (tidalStatus) tidalStatus.textContent = on
+      ? ("Signed in as " + ((j.user && (j.user.name || j.user.login)) || "your account") + (j.subscription ? " · " + j.subscription.replace(/_/g, " ").toLowerCase() : "") + (j.hires ? " · Hi-Res" : j.lossless ? " · CD quality" : ""))
+      : pending ? (pending.error ? pending.error : "Waiting for the sign-in on tidal.com…") : "";
+    if (tidalQuality && on) tidalQuality.value = j.quality || "hires";
+    if (tidalImport && on) tidalImport.checked = j.import !== false;
+    if (tidalImportSt && on) {
+      const li = j.last_import;
+      tidalImportSt.textContent = j.importing ? "Bringing your Tidal favourites into the library…"
+        : li ? (li.albums + " Tidal album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
+          (li.playlists ? " · " + li.playlists + " playlist" + (li.playlists === 1 ? "" : "s") : ""))
+        : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Tidal browser is known here.");
+    }
+    if (tidalTopbarBtn) tidalTopbarBtn.classList.toggle("hidden", !on);
+    if (tidalMenuItem)  tidalMenuItem.classList.toggle("hidden", !on);
+    // While a sign-in is pending, or an import runs, look again shortly.
+    const again = (pending && !pending.error) || (on && j.importing);
+    clearTimeout(tidalPoll);
+    if (again) tidalPoll = setTimeout(loadTidalStatus, 2000);
+  }
+  async function loadTidalStatus() {
+    try {
+      const r = await fetch("/api/settings/tidal", { cache: "no-store" });
+      paintTidal(await r.json());
+    } catch (e) { /* the page shows the last state */ }
+  }
+  window.__tidalStatus = loadTidalStatus;
+  if (tidalSignin) tidalSignin.addEventListener("click", async () => {
+    tidalSignin.disabled = true;
+    try {
+      const r = await fetch("/api/settings/tidal/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't start the sign-in");
+      paintTidal(j);
+      if (j.pending && j.pending.url) window.open(j.pending.url, "_blank", "noopener");
+    } catch (e) { showToast(e.message, "error"); }
+    finally { tidalSignin.disabled = false; }
+  });
+  if (tidalCancel) tidalCancel.addEventListener("click", async () => {
+    await fetch("/api/settings/tidal/signin/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
+    loadTidalStatus();
+  });
+  if (tidalQuality) tidalQuality.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quality: tidalQuality.value }) });
+      paintTidal(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (tidalImport) tidalImport.addEventListener("change", async () => {
+    try {
+      const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: tidalImport.checked }) });
+      paintTidal(await r.json());
+    } catch (e) { showToast(e.message, "error"); }
+  });
+  if (tidalImportNow) tidalImportNow.addEventListener("click", async () => {
+    tidalImportNow.disabled = true;
+    if (tidalImportSt) tidalImportSt.textContent = "Bringing your Tidal favourites into the library…";
+    try {
+      const r = await fetch("/api/settings/tidal/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't update the library");
+      showToast(j.result.albums + " Tidal albums in the library", "ok");
+      loadTidalStatus();
+    } catch (e) { showToast(e.message, "error"); loadTidalStatus(); }
+    finally { tidalImportNow.disabled = false; }
+  });
+  if (tidalDisconnect) tidalDisconnect.addEventListener("click", async () => {
+    tidalDisconnect.disabled = true;
+    try {
+      await fetch("/api/settings/tidal/signout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      showToast("Signed out of Tidal", "ok");
+      loadTidalStatus();
+    } catch (e) { showToast(e.message, "error"); }
+    finally { tidalDisconnect.disabled = false; }
+  });
+  loadTidalStatus();
+
 
   // ----- Share card: services and reviews -----
   //
@@ -13065,106 +13325,6 @@ window.__musicdAppUpd = (function () {
     });
   }
 
-  // ----- Discover --------------------------------------------------------
-  // Up to eighty Deezer reads in a row, once a day. The hour matters for the
-  // same reason Smart Picks' does — not because it competes with Roon (nothing
-  // here touches the Core) but because a burst of outbound calls belongs at an
-  // hour nobody is listening.
-  const discEnabled = document.getElementById("discover-enabled");
-  const discHour    = document.getElementById("discover-hour");
-  const discRebuild = document.getElementById("discover-rebuild");
-  const discNote    = document.getElementById("discover-note");
-
-  if (discHour && !discHour.options.length) {
-    for (let h = 0; h < 24; h++) {
-      const o = document.createElement("option");
-      o.value = String(h);
-      o.textContent = (h < 10 ? "0" + h : String(h)) + ":00";
-      discHour.appendChild(o);
-    }
-  }
-
-  async function saveDiscoverSettings(patch) {
-    try {
-      const r = await fetch("/api/settings/discover", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch)
-      });
-      const j = await r.json();
-      if (!r.ok || j.error) { showToast(j.error || "Couldn't save", "error"); return false; }
-      return true;
-    } catch (e) {
-      showToast("Couldn't save: " + e.message, "error");
-      return false;
-    }
-  }
-
-  async function loadDiscoverSettings() {
-    if (!discEnabled && !discHour) return;
-    try {
-      const r = await fetch("/api/settings/discover");
-      if (!r.ok) return;
-      const j = await r.json();
-      if (discEnabled) discEnabled.checked = !!j.enabled;
-      // A device that was not the one that flipped the switch catches up here.
-      if (window.__applyFeatureMenu) window.__applyFeatureMenu({ discover: !!j.enabled });
-      if (discHour && Number.isFinite(j.hour)) discHour.value = String(j.hour);
-      if (discNote) {
-        // The numbers come from the SERVER rather than being written into the
-        // copy, so the sentence cannot end up describing a window or a seed
-        // count that the build no longer uses.
-        discNote.textContent = "Reads your play history for the " +
-          (j.seed_count || 40) + " artists you return to most, and looks for " +
-          "records they have released in the last " + (j.window_days || 60) +
-          " days. Only the lookups leave your network.";
-      }
-    } catch (e) {
-      // Settings show their last values; the pane is not the place to report a
-      // transient fetch failure.
-    }
-  }
-
-  if (discEnabled) {
-    discEnabled.addEventListener("change", async () => {
-      const on = discEnabled.checked;
-      if (await saveDiscoverSettings({ enabled: on })) {
-        showToast(on ? "Discover on — the first list builds at the scheduled hour"
-                     : "Discover off — nothing runs in the background");
-        if (window.__applyFeatureMenu) window.__applyFeatureMenu({ discover: on });
-      } else {
-        discEnabled.checked = !on;   // the server refused — do not lie about it
-      }
-    });
-  }
-
-  if (discHour) {
-    discHour.addEventListener("change", async () => {
-      const h = parseInt(discHour.value, 10);
-      if (await saveDiscoverSettings({ hour: h })) {
-        showToast("Discover will look at " + (h < 10 ? "0" + h : h) + ":00");
-      }
-    });
-  }
-
-  if (discRebuild) {
-    discRebuild.addEventListener("click", async () => {
-      discRebuild.disabled = true;
-      const orig = discRebuild.textContent;
-      discRebuild.textContent = "\u2026";
-      try {
-        const r = await fetch("/api/discover/rebuild", { method: "POST" });
-        const j = await r.json().catch(() => ({}));
-        showToast(r.ok ? "Looking for new records — check back in a minute"
-                       : (j.error || "Couldn't refresh"), r.ok ? "ok" : "error");
-      } catch (e) {
-        showToast("Couldn't refresh: " + e.message, "error");
-      } finally {
-        discRebuild.disabled = false;
-        discRebuild.textContent = orig;
-      }
-    });
-  }
-
   // ----- Waveform on/off -----
   const waveEnabledEl = document.getElementById("waveform-enabled");
   const waveEnabledNote = document.getElementById("waveform-enabled-note");
@@ -13439,7 +13599,7 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadSmartPicksSettings(); loadDiscoverSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
   const close = () => { overlay.classList.add("hidden"); };
 
   openBtn.addEventListener("click", open);
@@ -13596,6 +13756,7 @@ function initServiceBrowser(cfg) {
   // so viewStack and the history stack can never get out of step.
   function hideOverlay() {
     overlay.classList.add("hidden");
+    leaveUnder(false);
     viewStack = [];
     reqSeq++; // orphan any in-flight fetch — a late response must not repopulate the hidden overlay
     clearSearchTimer();
@@ -13644,6 +13805,7 @@ function initServiceBrowser(cfg) {
   // root — where closing is the correct response).
   window.addEventListener("popstate", (e) => {
     if (!overlayVisible()) return;
+    if (backClosesAlbumPage()) return;
     const depth = (e.state && Number.isFinite(e.state[cfg.historyKey])) ? e.state[cfg.historyKey] : 0;
     if (depth >= viewStack.length) {
       // Forward into a history entry whose view we already discarded — bounce
@@ -13689,9 +13851,17 @@ function initServiceBrowser(cfg) {
   }
 
   // Reflect favourite state on a button (added = in the user's service library).
+  // The service's own favourite — a plus that becomes a tick — not Mandarin's
+  // heart, which an album keeps for itself once it is in the library.
   function setFavState(button, added) {
     button.dataset.fav = added ? "1" : "0";
-    button.textContent = added ? "✓ Added" : "♥ Favourite";
+    const words = added ? ("✓ In " + cfg.serviceName + " favourites") : ("+ " + cfg.serviceName + " favourite");
+    // On a tile only the sign fits; the words are its label.
+    if (button.classList.contains("qobuz-tile-fav")) {
+      button.textContent = added ? "✓" : "+";
+      button.title = words.slice(2);
+      button.setAttribute("aria-label", words.slice(2));
+    } else button.textContent = words;
     button.classList.toggle("is-done", added);
   }
 
@@ -13741,32 +13911,124 @@ function initServiceBrowser(cfg) {
   const versionHtml = (a) =>
     a.version ? ' <span class="qobuz-nr-version">' + esc(a.version) + '</span>' : '';
 
-  // Build one album row (art, title [+ version], artist, date, favourite button;
-  // row tap → detail). Shared by every list-type view.
-  function buildAlbumRow(a) {
-    const row = document.createElement("div");
-    row.className = "qobuz-nr-row";
-    const art = a.image
-      ? '<img class="qobuz-nr-art" loading="lazy" alt="" src="' + esc(a.image) + '">'
-      : '<div class="qobuz-nr-art"></div>';
-    const date = a.release_date ? '<div class="qobuz-nr-date">' + esc(a.release_date) + '</div>' : '';
-    row.innerHTML = art +
-      '<div class="qobuz-nr-meta">' +
-        '<div class="qobuz-nr-title">'  + esc(a.title) + versionHtml(a) + '</div>' +
-        '<div class="qobuz-nr-artist">' + esc(a.artist) + '</div>' +
-        date +
-      '</div>';
+  // One album as a tile of the same album grid the rest of the UI draws
+  // (.album / .album-art-wrap / .album-meta, so the columns, text sizes and
+  // the Grid columns setting all apply), the service favourite as a + / ✓
+  // in the corner of the cover. A tap opens the album's own page, as any
+  // album here. Shared by every list-type view.
+  function buildAlbumRow(a, opts) {
+    const outside = !!(opts && opts.outside);   // on the search screen, not in this overlay
+    const tile = document.createElement("div");
+    tile.className = "album qobuz-tile";
+    tile.setAttribute("role", "button");
+    tile.tabIndex = 0;
+    tile.setAttribute("aria-label", a.title + (a.artist ? " by " + a.artist : ""));
+    const art = document.createElement("div");
+    art.className = "album-art-wrap" + (a.image ? "" : " no-image");
+    if (a.image) {
+      const img = document.createElement("img");
+      img.loading = "lazy"; img.alt = ""; img.src = a.image;
+      img.addEventListener("error", () => { art.classList.add("no-image"); img.remove(); });
+      art.appendChild(img);
+    }
     const fav = document.createElement("button");
     fav.type = "button";
-    fav.className = "qobuz-nr-fav";
-    // Tappable toggle: "✓ Added" (in library) ⇄ "♥ Favourite". Initial state
-    // reflects the user's current service favourites (added here or elsewhere).
+    fav.className = "qobuz-nr-fav qobuz-tile-fav";
+    // + ⇄ ✓: the user's service favourites as they are now (added here or elsewhere).
     setFavState(fav, !!a.favourited);
     fav.addEventListener("click", (e) => { e.stopPropagation(); toggleFavourite(a.id, fav); });
-    row.appendChild(fav);
-    // Tapping the row (anywhere but the favourite button) opens the detail view.
-    row.addEventListener("click", () => pushView({ kind: "detail", album: a, rowFavBtn: fav }));
-    return row;
+    art.appendChild(fav);
+    const meta = document.createElement("div");
+    meta.className = "album-meta";
+    meta.innerHTML = '<div class="album-title">' + esc(a.title) + versionHtml(a) + '</div>' +
+      '<div class="album-artist">' + esc(a.artist) + '</div>';
+    tile.appendChild(art);
+    tile.appendChild(meta);
+    const open = () => outside ? openAlbumOutside(a, fav) : openAlbumPage(a, fav);
+    tile.addEventListener("click", open);
+    tile.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    return tile;
+  }
+
+  // The album's own page — the one every album here has, with Play now, Play
+  // next, Queue, the tracks, and the service favourite above the ⋯ — instead
+  // of a page of this overlay's own. The server makes the album library rows
+  // first (/open; transient until favourited), then the page opens over this
+  // overlay, which drops beneath it until the page closes. The browse list is
+  // kept as it was, so closing the page lands back on it.
+  const albumModal = document.getElementById("album-modal");
+  let under = null;   // { favBtn, albumId, observer } while the album page is over the overlay
+  async function openAlbumPage(a, favBtn) {
+    if (typeof window.__openAlbum !== "function" || !albumModal) { pushView({ kind: "detail", album: a, rowFavBtn: favBtn }); return; }
+    try {
+      const { album } = await askOpen(a.id);
+      if (!overlayVisible()) return;   // closed while the server was asked
+      showUnder(a.id, favBtn);
+      window.__openAlbum(album, { source: cfg.service, filter: null });
+    } catch (e) {
+      toast(e.message || "Couldn't open that album", "error");
+    }
+  }
+  function showUnder(albumId, favBtn) {
+    leaveUnder(false);
+    overlay.classList.add("is-under");
+    const observer = new MutationObserver(() => { if (albumModal.classList.contains("hidden")) leaveUnder(true); });
+    observer.observe(albumModal, { attributes: true, attributeFilter: ["class"] });
+    under = { favBtn, albumId, observer };
+  }
+  // The page has closed: the overlay comes back on top, and the tile's + / ✓
+  // is read again, since the page has the same favourite above its ⋯.
+  function leaveUnder(refresh) {
+    if (!under) return;
+    const u = under; under = null;
+    u.observer.disconnect();
+    overlay.classList.remove("is-under");
+    if (!refresh || !u.favBtn || !overlayVisible()) return;
+    fetch(cfg.apiBase + "/state?album_id=" + encodeURIComponent(u.albumId)).then(r => r.json())
+      .then(j => { if (j && j.connected && u.favBtn.isConnected) setFavState(u.favBtn, !!j.favourite); })
+      .catch(() => {});
+  }
+  // The album page is closed by the back button too (Android's, the browser's):
+  // the page goes, the overlay's history entry is put back, the list stays.
+  function backClosesAlbumPage() {
+    if (!under) return false;
+    const closer = albumModal.querySelector("[data-close]");
+    if (closer) closer.click(); else leaveUnder(true);
+    history.pushState({ [cfg.historyKey]: viewStack.length }, "");
+    return true;
+  }
+
+  // The album's rows made and its page opened from the search screen
+  // (v0.6.24), where this overlay is not showing: the page opens over the
+  // results, and the tile's + / ✓ is read again once it closes.
+  async function openAlbumOutside(a, favBtn) {
+    try {
+      const j = await askOpen(a.id);
+      if (typeof window.__openAlbum !== "function") throw new Error("Couldn't open that album");
+      const observer = new MutationObserver(() => {
+        if (!albumModal.classList.contains("hidden")) return;
+        observer.disconnect();
+        if (!favBtn || !favBtn.isConnected) return;
+        fetch(cfg.apiBase + "/state?album_id=" + encodeURIComponent(a.id)).then(r => r.json())
+          .then(st => { if (st && st.connected && favBtn.isConnected) setFavState(favBtn, !!st.favourite); }).catch(() => {});
+      });
+      window.__openAlbum(j.album, { source: cfg.service, filter: null });
+      if (albumModal) observer.observe(albumModal, { attributes: true, attributeFilter: ["class"] });
+    } catch (e) {
+      toast(e.message || "Couldn't open that album", "error");
+    }
+  }
+  // /open: the album's library rows (transient until favourited) and the
+  // album as the page's tiles carry it; an older server is asked once more.
+  async function askOpen(albumId) {
+    const r = await fetch(cfg.apiBase + "/open", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: albumId })
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "Couldn't open that album");
+    const album = j.album || (await (await fetch("/api/album?offset=" + encodeURIComponent(j.offset))).json()).album;
+    if (!album) throw new Error("Couldn't open that album");
+    return { offset: j.offset, album };
   }
 
   function appendAlbumRows(albums) {
@@ -13948,6 +14210,53 @@ function initServiceBrowser(cfg) {
     detailEl.appendChild(back);
     detailEl.appendChild(head);
     detailEl.appendChild(favBtn);
+    // Playing from here (v0.6.23): to the zone chosen, like an album of your own.
+    const acts = document.createElement("div");
+    acts.className = "qobuz-nr-actions";
+    const tracksEl = document.createElement("div");
+    tracksEl.className = "qobuz-nr-tracks";
+    if (cfg.service === "qobuz") {
+      const play = async (kind, btn, track) => {
+        const zone = window.__selectedZoneId ? window.__selectedZoneId() : null;
+        if (!zone) { toast("Pick a zone first", "error"); return; }
+        const was = btn.textContent; btn.disabled = true; btn.textContent = "…";
+        try {
+          const r = await fetch(cfg.apiBase + "/play", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.assign({ album_id: album.id, zone_or_output_id: zone, kind }, track == null ? {} : { track })) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || j.error) throw new Error(j.error || "Couldn't play");
+          toast((kind === "queue" ? "Queued" : kind === "play_next" ? "Playing next" : "Playing") + ": " + album.title);
+        } catch (e) { toast(e.message, "error"); }
+        finally { btn.disabled = false; btn.textContent = was; }
+      };
+      for (const [label, kind, primary] of [["Play now", "play_now", true], ["Play next", "play_next", false], ["Queue", "queue", false]]) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "action-btn" + (primary ? " primary" : ""); b.textContent = label;
+        b.addEventListener("click", () => play(kind, b, null));
+        acts.appendChild(b);
+      }
+      detailEl.appendChild(acts);
+      detailEl.appendChild(tracksEl);
+      tracksEl.textContent = "Loading tracks…";
+      qFetch(cfg.apiBase + "/album?id=" + encodeURIComponent(album.id)).then(j => {
+        if (detailEl.dataset.albumId !== String(album.id)) return;
+        tracksEl.innerHTML = "";
+        (j.tracks || []).forEach((t, i) => {
+          const row = document.createElement("button");
+          row.type = "button"; row.className = "qobuz-nr-track";
+          const m = Math.floor(t.duration / 60), sec = String(Math.round(t.duration % 60)).padStart(2, "0");
+          row.innerHTML = '<span class="qobuz-nr-track-no">' + (t.track_no || i + 1) + '</span><span class="qobuz-nr-track-title">' + esc(t.title) + '</span>' +
+            '<span class="qobuz-nr-track-len">' + m + ":" + sec + '</span>';
+          row.title = "Play from here";
+          row.addEventListener("click", () => play("play_now", row, i));
+          tracksEl.appendChild(row);
+        });
+        if (j.album && j.album.quality) {
+          const q = document.createElement("div"); q.className = "qobuz-nr-date"; q.textContent = "FLAC " + j.album.quality + (j.album.label ? " · " + j.album.label : "");
+          head.querySelector(".qobuz-nr-detail-meta").appendChild(q);
+        }
+      }).catch(e => { if (detailEl.dataset.albumId === String(album.id)) tracksEl.textContent = e.message; });
+    }
     detailEl.appendChild(review);
     detailEl.classList.remove("hidden");
 
@@ -14200,8 +14509,8 @@ function initServiceBrowser(cfg) {
     searchClear.addEventListener("click", clearSearch);
   }
 
-  if (tabsEl) {
-    tabsEl.querySelectorAll(".qobuz-tab").forEach(t => t.addEventListener("click", () => {
+  function bindTab(t) {
+    t.addEventListener("click", () => {
       const tab = t.dataset.qtab;
       if (!tab || !viewStack.length) return;
       activeTab = tab;
@@ -14209,10 +14518,34 @@ function initServiceBrowser(cfg) {
       const top = currentView();
       if (top.kind === "tab" && top.tab === tab) { updateTabActive(); return; }
       replaceTop({ kind: "tab", tab });
-    }));
+    });
+  }
+  if (tabsEl) tabsEl.querySelectorAll(".qobuz-tab").forEach(bindTab);
+
+  // The tabs after the first from the service itself (cfg.dynamicTabs: Tidal
+  // says which lists it features, and they change), asked for once per
+  // page load; the static ones stay if it can't be asked.
+  let tabsLoaded = false;
+  async function loadTabs() {
+    if (!cfg.dynamicTabs || tabsLoaded || !tabsEl) return;
+    try {
+      const j = await qFetch(cfg.apiBase + "/lists");
+      const lists = (j.lists || []).filter(l => l && l.id && l.label);
+      if (!lists.length) return;
+      tabsLoaded = true;
+      cfg.tabs = [cfg.tabs[0]].concat(lists.map(l => ({ id: l.id, label: l.label, kind: "featured" })));
+      tabsEl.querySelectorAll(".qobuz-tab").forEach((t, i) => { if (i) t.remove(); });
+      for (const l of lists) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "qobuz-tab"; b.setAttribute("role", "tab"); b.dataset.qtab = l.id; b.textContent = l.label;
+        bindTab(b);
+        tabsEl.appendChild(b);
+      }
+      updateTabActive();
+    } catch (e) { /* the static tabs */ }
   }
 
-  btn.addEventListener("click", () => {
+  function openOverlay() {
     if (overlayVisible()) return;
     activeTab = defaultTab;
     resetSearchBox();
@@ -14220,7 +14553,18 @@ function initServiceBrowser(cfg) {
     history.pushState({ [cfg.historyKey]: 1 }, ""); // a back press from the root view closes the overlay
     overlay.classList.remove("hidden");
     render(currentView());
-  });
+    loadTabs();
+  }
+  btn.addEventListener("click", openOverlay);
+
+  // For the search screen (v0.6.24): this service's album tile, and an
+  // artist's albums in this browser (‹ Back goes to its first tab, × closes
+  // it, the search still there beneath).
+  window.__serviceBrowsers = window.__serviceBrowsers || {};
+  window.__serviceBrowsers[cfg.service] = {
+    tile: (a) => buildAlbumRow(a, { outside: true }),
+    openArtist: (ar) => { openOverlay(); pushView({ kind: "artist", artistId: ar.id, artistName: ar.name }); }
+  };
 }
 
 initServiceBrowser({
@@ -14237,6 +14581,20 @@ initServiceBrowser({
     { id: "most-streamed", label: "Most Streamed", kind: "featured" },
     { id: "press-awards",  label: "Press Awards",  kind: "featured" },
     { id: "editor-picks",  label: "Editor's Picks", kind: "featured" }
+  ]
+});
+
+initServiceBrowser({
+  service:     "tidal",
+  serviceName: "Tidal",
+  idPrefix:    "tidal",
+  apiBase:     "/api/tidal",
+  historyKey:  "td",
+  closeAttr:   "data-tidal-close",
+  notConnectedMsg: "Sign in to Tidal in Settings → Services to browse Tidal.",
+  dynamicTabs: true,   // the lists Tidal features, from /api/tidal/lists, after New Releases
+  tabs: [
+    { id: "new-releases", label: "New Releases", kind: "new-releases" }
   ]
 });
 
@@ -15087,8 +15445,13 @@ initServiceBrowser({
   function scanDoneText(j) {
     const albums = j.count != null ? j.count : j.albums;
     const added = Number(j.added) || 0;
-    if (j.status === "fresh" || j.status === "unchanged") return "Library already up to date" + (albums ? " — " + albums + " albums" : "");
-    return "Library rescanned — " + (albums || 0) + " albums" + (added ? " (" + added + " new " + (added === 1 ? "track" : "tracks") + ")" : "");
+    if (j.status === "fresh" || j.status === "unchanged") return "Library already up to date" + (albums ? " — " + albums + " albums" : "") + servicesNext(j);
+    return "Library rescanned — " + (albums || 0) + " albums" + (added ? " (" + added + " new " + (added === 1 ? "track" : "tracks") + ")" : "") + servicesNext(j);
+  }
+  // The streaming services the server goes on to, in order: "· now Qobuz, then Tidal".
+  function servicesNext(j) {
+    const s = Array.isArray(j.services) ? j.services : [];
+    return s.length ? " · now " + s[0] + s.slice(1).map(n => ", then " + n).join("") : "";
   }
 
   // A scan still going when the server answered: wait for it here, then say
@@ -15282,10 +15645,6 @@ initServiceBrowser({
       }
       if (action === "smart-picks") {
         if (window.__showSmartPicks) window.__showSmartPicks();
-        return;
-      }
-      if (action === "discover") {
-        if (window.__showDiscover) window.__showDiscover();
         return;
       }
       if (action === "smart-playlists") {
@@ -16928,6 +17287,7 @@ initServiceBrowser({
  * — and Measure ReplayGain, the loudness of files without ReplayGain tags. */
 (function initIdentifyPane() {
   const body = document.getElementById("identify-pane-body");
+  let cleanup = null;   // Clean up: what could go (v0.6.23)
   const pane = document.querySelector('.settings-pane[data-pane="identify"]');
   const navItem = document.querySelector('.settings-nav-item[data-pane="identify"]');
   if (!body || !pane || !navItem) return;
@@ -16949,8 +17309,9 @@ initServiceBrowser({
   async function load() {
     if (busy) return;
     try {
-      const [a, b, c] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
-        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null)]);
+      const [a, b, c, d] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
+        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null), api("/api/library/cleanup").catch(() => null)]);
+      cleanup = d;
       st = a; loud = b; pack = c; packChecked = true; err = "";
       if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
     } catch (e) { err = e.message; }
@@ -17171,6 +17532,17 @@ initServiceBrowser({
       '<div class="settings-note">' + status() + "</div>" +
       ((p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +
       "</div>";
+    // Clean up (v0.6.23): what could go, counted; only what you press goes.
+    if (cleanup) {
+      const f = cleanup.files || {}, qz = cleanup.qobuz || {}, td = cleanup.tidal || {};
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Clean up' +
+        info("Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it.") + "</div>" +
+        row("Files gone from the server", (f.albums ? '<button type="button" class="settings-update-btn" data-cleanup="files"' + (busy ? " disabled" : "") + ">Remove " + num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        '<div class="settings-note">' + (f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
+        row("Qobuz albums no longer wanted", (qz.albums ? '<button type="button" class="settings-update-btn" data-cleanup="qobuz"' + (busy ? " disabled" : "") + ">Remove " + num(qz.albums) + " album" + (qz.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        row("Tidal albums no longer wanted", (td.albums ? '<button type="button" class="settings-update-btn" data-cleanup="tidal"' + (busy ? " disabled" : "") + ">Remove " + num(td.albums) + " album" + (td.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
+        '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
+    }
     html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
     html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
     html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
@@ -17202,6 +17574,18 @@ initServiceBrowser({
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
+    const cu = e.target.closest("[data-cleanup]");
+    if (cu) {
+      const kind = cu.getAttribute("data-cleanup");
+      const n = (cleanup[kind] || {}).albums || 0;
+      (async () => {
+        const q = kind === "files" ? "Remove " + num(n) + " album" + (n === 1 ? "" : "s") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
+          : "Remove " + num(n) + " Qobuz album" + (n === 1 ? "" : "s") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back.";
+        if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
+        act("/api/library/cleanup", { kind }, "Removed");
+      })();
+      return;
+    }
     const mb = e.target.closest("[data-id-match]");
     if (mb) {
       const off = Number(mb.getAttribute("data-id-match"));
@@ -17521,7 +17905,7 @@ initServiceBrowser({
     settings: "Only the ones you changed",
     devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
     collection: "Playlists, favourites, Listen later, album edits",
-    keys: "Discogs and FanArt.tv",
+    keys: "Discogs, FanArt.tv and the Qobuz sign-in",
     database: "Everything Mandarin knows, play history included",
     page: "Text sizes, layout, the chosen room",
     app: "Downloads, USB DAC, this phone's DSP and levelling"

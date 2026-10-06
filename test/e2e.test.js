@@ -123,6 +123,32 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.deepEqual(titles, ["Song 1", "Hi 2", "Song 2", "Song 3", "Hi 1", "Hi 2"]);
     });
 
+    // The queue's own actions (v0.6.24): picks played next (moved to after
+    // the track playing, in the order picked), played now, removed, the
+    // queue cleared. The queue from the test above: Song 1 playing, then
+    // Hi 2, Song 2, Song 3, Hi 1, Hi 2.
+    await t.test("the queue's Play next, Remove, Play now and Clear all", async () => {
+      const room = house.room("Kitchen");
+      const titles = () => room.queue.map(q => /<dc:title>([^<]*)/.exec(q.meta)[1]);
+      assert.equal(room.track, 1);
+      const m = await api("queue/move", { zone_or_output_id: kitchen.zone_id, queue_item_ids: [5, 4], kind: "play_next" });
+      assert.equal(m.moved, 2);
+      assert.deepEqual(titles(), ["Song 1", "Hi 1", "Song 3", "Hi 2", "Song 2", "Hi 2"]);
+      assert.equal(room.track, 1, "the track playing stays");
+      await api("queue/remove", { zone_or_output_id: kitchen.zone_id, queue_item_ids: [2, 3] });
+      assert.deepEqual(titles(), ["Song 1", "Hi 2", "Song 2", "Hi 2"]);
+      const n = await api("queue/move", { zone_or_output_id: kitchen.zone_id, queue_item_ids: [3], kind: "play_now" });
+      assert.deepEqual(titles(), ["Song 1", "Song 2", "Hi 2", "Hi 2"]);
+      assert.equal(n.first, 2);
+      await until(() => room.track === 2);
+      // The server's own view of the track playing follows at its next poll.
+      await until(async () => (await api("queue?zone=" + kitchen.zone_id)).items[0].title === "Song 2");
+      await api("queue/clear", { zone_or_output_id: kitchen.zone_id });
+      assert.equal(room.queue.length, 0);
+      assert.deepEqual((await api("queue?zone=" + kitchen.zone_id)).items, []);
+      // The next test starts a queue of its own.
+    });
+
     await t.test("volume, mute and play modes", async () => {
       const out = kitchen.outputs[0].output_id;
       await api("volume", { output_id: out, how: "absolute", value: 33 });

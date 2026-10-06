@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.6.22
+# Mandarin — v0.7.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -25,6 +25,13 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
+
+**New in v0.7.0**
+* **Qobuz and Tidal**, experimentally: sign in with a subscription and stream from either, used in
+  line with each service's terms of service; those who use them do so at their own risk.
+* **Mac users with a USB DAC** connected to the Mac may have trouble with it; a fix is being
+  worked on.
+* Various UI and UX improvements.
 
 ---
 
@@ -96,11 +103,11 @@ Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top b
 
 🔍 **Search**
 
-Albums, artists and labels as you type. Words can come in any order, accents and capitals are ignored, and a title with letters left out is still found.
+Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the magnifying glass in the top bar and type. Labels show when Record labels is on.
+Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.
 
 </details>
 
@@ -136,7 +143,7 @@ Any number of folders the server can see, added and removed in the app. Changes 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now.
+Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, where you are signed in with the import on.
 
 </details>
 
@@ -184,7 +191,7 @@ Names albums from their files' identifiers first, then from MusicBrainz by track
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Library Scanner**. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
+Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near ones wait for **Accept** or **Reject**. Your files are not changed. **Ask iTunes too** and **Measure ReplayGain** are on the same page.
 
 </details>
 
@@ -208,7 +215,7 @@ Cover, track, transport, volume, the queue and history, and a badge saying what 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the bar at the bottom of the screen. The waveform is off until you switch on **Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card you drag around.
+Tap the bar at the bottom of the screen. The waveform is off until you switch on **Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card you drag around. On the Queue tab, hold a track to select it and more; **⋯** plays the selection now or next, or removes it; **Clear all** empties the queue.
 
 </details>
 
@@ -329,18 +336,6 @@ Five albums a day from your own library, by artists Deezer lists as related to t
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 **☰ → Smart Picks**, or its Home row. **Settings → Setup → Smart Picks** switches it on or off and sets the hour each day's picks are made.
-
-</details>
-
-⸻
-
-🧭 **Discover**
-
-New albums by the artists you play, looked up on Deezer. Off until you switch it on.
-
-<details><summary><b>ⓘ</b> How to set it up and use it</summary>
-
-Switch it on in **Settings → Setup → Discover**, then open **☰ → Discover**.
 
 </details>
 
@@ -574,6 +569,30 @@ Open **Settings → Backup & restore**, tick what to include, then **Back up to 
 
 ⸻
 
+🎼 **Qobuz** — *new since v0.5.50*
+
+Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does **⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz).
+
+</details>
+
+⸻
+
+🎵 **Tidal** — *new since v0.5.50*
+
+Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+**Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites (a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. Details under [Tidal](#tidal).
+
+</details>
+
+⸻
+
 🔄 **Updates**
 
 The server updates itself from GitHub from Settings and checks every 12 hours. The Android app offers each new version when it opens.
@@ -765,7 +784,8 @@ install anything, just open the server's IP address with port `:3500` in Safari 
   DAC and switch it on. It is then a zone like a Sonos room. Mandarin sends at the rate set in
   Audio MIDI Setup, or 44.1 or 48 kHz; tick other rates on the device's page if you want them sent
   too. An existing install needs no re-run. See
-  [Sound devices on the server](#sound-devices-on-the-server).
+  [Sound devices on the server](#sound-devices-on-the-server). **Known trouble (v0.7.0):** some
+  Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is being worked on.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
@@ -869,7 +889,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
 | `DEBUG` | — | Log every API call. |
 
-Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks, Discover,
+Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks,
 the wall display and the Home rows are in the app's Settings and are saved in the data volume.
 
 ## Your account
@@ -927,6 +947,80 @@ the uninstall, so download them again. After that, never again.
 `MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
+
+## Qobuz
+
+Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music
+Server's Qobuz plugin does — the same API, the same credentials, the same rules. Experimental,
+in line with Qobuz's terms of service; those who use it do so at their own risk.
+
+* **A subscriber signs in** (*Settings → Services → Qobuz*). Mandarin keeps the sign-in token, never
+  the password. Qobuz decides what the account may stream.
+* **Your favourites and purchases are albums here** — every one, brought up to date shortly after
+  signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks,
+  Listen later and playlists, with a Qobuz mark on the cover. *Favourites and purchases in the
+  library* on the Services page switches this off.
+* **The Qobuz browser** (*☰ → Qobuz*): search, new releases, best sellers, most streamed, press
+  awards, editor's picks, an artist's albums, as the album grid the rest of Mandarin draws, each
+  cover with its **+** for your Qobuz favourites. Tapping an album opens its page here, the same
+  page as any album: Play now, Play next, Queue, or from a track, to the zone chosen. An album
+  played without being kept is known here for a month (its page, Now playing, history) and stays
+  off the walls.
+* **Your Qobuz playlists and favourite tracks are playlists here**: each playlist by its Qobuz name,
+  and *Qobuz favourite tracks*, on the Playlists screen, brought up to date with the library. The
+  albums their tracks come from are known (the tracks play, Now playing has the cover) but stay
+  off the walls unless they're favourites.
+* **Signed out, it all steps aside**: Qobuz albums and playlists leave the walls and the Playlists
+  screen while their rows stay, so signing in puts everything straight back. **Clean up** on the
+  Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites,
+  purchases or playlists (all of them while signed out), and, separately, albums whose files are
+  gone from the server — after showing you the counts; plays stay in history.
+* **Two favourites, kept apart.** The **+** on a Qobuz album's cover in the browser (a **✓** once
+  added), and **Add to Qobuz favourites** / **Remove from Qobuz favourites** in the ⋯ menu on the
+  album's page here, are your *Qobuz* favourite, and that is what puts the album in the library.
+  The **heart** is Mandarin's own favourite, as on any album.
+* **Every track is streamed through the server**: when a player comes to fetch it, Mandarin asks
+  Qobuz for that one track (a signed request, as Qobuz requires) and feeds the player from its
+  transcode cache — a Sonos room gets 24/48 at most, a streamer or a USB DAC what it takes, the
+  phone what its DAC takes, with DSP and Volume Levelling as for a file. The next track is made
+  ready behind the one playing, so albums play gaplessly. *Stream quality* on the Services page
+  sets the most asked for (CD, Hi-Res 24/96, Hi-Res 24/192); the subscription sets the ceiling.
+* **Every play is reported to Qobuz** (its streaming start and end), as Qobuz's own apps report
+  them, so artists are paid. **Nothing is downloaded**: a Qobuz album has no *Download to this
+  phone*, no *Edit album*, no waveform, and is not in offline mode; the cache holds only what the
+  queue needs, pruned as the cache fills, and plays nothing once the account is signed out.
+
+The app id and secret are the ones the Lyrion plugin carries, as Qobuz answers no application
+requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin behaves the same.
+
+## Tidal
+
+Mandarin streams from Tidal with a Tidal subscription (v0.6.24), the way the Lyrion Music
+Server's Tidal plugin does — the same API, the same credentials, the same rules — and Tidal
+albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser, playlists,
+Clean up, the two favourites, the server's transcode cache, nothing downloaded. Experimental, in
+line with Tidal's terms of service; those who use it do so at their own risk.
+
+* **A subscriber signs in on tidal.com** (*Settings → Services → Tidal → Sign in on tidal.com*):
+  Mandarin shows a link and a code, you sign in there on any device, and Mandarin notices by
+  itself. It keeps the sign-in token, renewed as Tidal requires, never a password.
+* **Your favourite albums are albums here**, every one, with a Tidal mark on the cover;
+  *Favourites in the library* on the Services page switches this off. **Your Tidal playlists and
+  favourite tracks are playlists here**, as with Qobuz.
+* **The Tidal browser** (*☰ → Tidal*): search, new releases, recommended, top, rising, an
+  artist's albums, as the album grid, each cover with its **+** for your Tidal favourites; an
+  album opens on its page here. The ⋯ menu on a Tidal album's page has **Add to Tidal
+  favourites** / **Remove from Tidal favourites**.
+* **The stream.** *Stream quality* on the Services page is CD (FLAC 16/44.1) or Hi-Res: Tidal's
+  hi-res FLAC, up to 24/192, where an album has it and the subscription allows. Tidal sends
+  hi-res as MPEG-DASH (an initialisation piece and numbered segments), which the server joins
+  into one stream for ffmpeg on its own loopback; where Tidal answers a hi-res ask with anything
+  else, CD quality is asked for instead. What Tidal actually streams a track at is learnt the
+  first time it is played and the album's badge corrected. Tidal has no play reports.
+
+The client id and secret are the ones the Lyrion plugin carries, as Tidal's developer programme
+answers no streaming requests; Tidal leaves that plugin be because of how it behaves, and
+Mandarin behaves the same.
 
 ## Sound devices on the server
 

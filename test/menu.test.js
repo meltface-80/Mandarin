@@ -17,6 +17,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = 3632;
 const B = "http://127.0.0.1:" + PORT;
+const PORT2 = 3637, B2 = "http://127.0.0.1:" + PORT2; // the Playlists test's own, so the two never share a port
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -31,7 +32,7 @@ const DRIVER = `(async () => {
   $("menu-toggle").click(); await sleep(400);
   out.opened = open();
   const d = drawer.getBoundingClientRect();
-  const home = overlay.querySelector('.menu-item[data-action="home"]');
+  const home = overlay.querySelector('.menu-item[data-action="later"]');
   const h = home.getBoundingClientRect();
   out.item_hugs = Math.round(h.width) < Math.round(d.width) * 0.75;
   out.item_text = home.textContent.trim();
@@ -79,7 +80,7 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
       r.open_on_next_visit = await later.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
     } finally { await b.close(); }
     assert.equal(r.opened, true);
-    assert.equal(r.item_text, "Home");
+    assert.equal(r.item_text, "Listen later");
     assert.equal(r.item_hugs, true, "an item is no wider than its icon and words");
     assert.equal(r.beside_was, "blank", "beside the words is nothing");
     assert.equal(r.open_after_blank, true, "a blank part of the menu doesn't close it");
@@ -92,5 +93,67 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
     assert.equal(r.open_on_next_visit, false, "once only");
     assert.equal(r.open_after_item, false, "an item closes it");
     assert.equal(r.open_after_outside, false, "so does the page beside it");
+  } finally { await srv.stop(); }
+});
+
+// Playlists (v0.6.24): Import is a pill in the top-right corner of the
+// screen, above the grid. And the Random albums wall is titled (v0.6.24).
+test("Playlists: Import sits in the top-right corner; the Random albums wall has its title", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  await srv.start();
+  try {
+    const token = await signIn(B2);
+    // The first scan done before the page opens: the app reloads itself when it lands.
+    for (let i = 0; i < 100; i++) { const st = await (await fetch(B2 + "/api/status", { headers: { Authorization: "Bearer " + token } })).json(); if (st.index_count === 3) break; await new Promise(r => setTimeout(r, 100)); }
+    const b = await Browser.launch({ width: 390, height: 844 });
+    let r;
+    try {
+      const page = await b.page(B2 + "/", { cookies: [{ name: "musicd_session", value: token, url: B2 }] });
+      r = await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        document.getElementById("menu-toggle").click(); await sleep(400);
+        document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click(); await sleep(600);
+        const btn = document.querySelector("#content-count .playlists-import");
+        if (!btn) return { shown: false };
+        const r = btn.getBoundingClientRect(), bar = document.getElementById("content-count").getBoundingClientRect();
+        const top = document.querySelector(".topbar").getBoundingClientRect();
+        const out = { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1 };
+        // Home, then the Random albums wall from its row's heading: titled; Home again: no title.
+        document.getElementById("topbar-back").click(); await sleep(300);
+        document.getElementById("home-random-title").click(); await sleep(600);
+        const count = document.getElementById("album-count");
+        out.random_title = count.classList.contains("hidden") ? "" : count.textContent;
+        document.getElementById("topbar-back").click(); await sleep(300);
+        out.home_title_hidden = count.classList.contains("hidden");
+        // The menu button is Home's alone: every other screen shows ‹ in its place.
+        const $ = id => document.getElementById(id);
+        const menuShown = () => !$("menu-toggle").classList.contains("hidden"), backShown = () => !$("topbar-back").classList.contains("hidden");
+        out.home_buttons = [menuShown(), backShown()];
+        const screens = {};
+        for (const [name, open] of [["random", () => $("home-random-title").click()], ["library", () => $("home-library-title").click()],
+                                    ["later", () => window.__showListenLater()], ["playlists", () => window.__showPlaylists()], ["wall", () => window.__showWall()]]) {
+          open(); await sleep(400);
+          screens[name] = [menuShown(), backShown()];
+          $("topbar-back").click(); await sleep(300);
+        }
+        out.screens = screens;
+        out.home_after = [menuShown(), backShown()];
+        return out;
+      })()`);
+      assert.deepEqual(page.errors, []);
+    } finally { await b.close(); }
+    assert.equal(r.shown, true, "the Import pill is on the Playlists screen");
+    assert.equal(r.text, "Import");
+    assert.equal(r.height, 32);
+    assert.ok(r.right_gap <= 16, "it hugs the right edge: " + r.right_gap + " px");
+    assert.ok(r.left_gap > 100, "not the left: " + r.left_gap + " px");
+    assert.equal(r.below_bar, true, "just under the top bar");
+    assert.equal(r.random_title, "Random albums", "the Random albums wall is titled");
+    assert.equal(r.home_title_hidden, true, "and Home is not");
+    assert.deepEqual(r.home_buttons, [true, false], "Home: the menu button, no ‹");
+    for (const [name, v] of Object.entries(r.screens)) assert.deepEqual(v, [false, true], name + ": ‹ in the menu button's place");
+    assert.deepEqual(r.home_after, [true, false]);
   } finally { await srv.stop(); }
 });

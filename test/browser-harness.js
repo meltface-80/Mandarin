@@ -76,16 +76,24 @@ class Browser {
       "--user-data-dir=" + dir, `--window-size=${width},${height}`].concat(mouse ? [MOUSE] : [], ["about:blank"]);
     // Its own process group, so close() ends Chrome and every process it
     // started (a wrapper script's child included), not only the first.
-    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"], detached: true });
-    const b = new Browser(proc, dir, { width, height });
-    let timer;
-    const started = await Promise.race([
-      b.send("Browser.getVersion").then(() => true),
-      new Promise(r => { timer = setTimeout(() => r(false), 20000); })
-    ]);
-    clearTimeout(timer);
-    if (!started) { await b.close(); throw new Error("the browser didn't answer: " + bin); }
-    return b;
+    // A starved CI runner can take Chrome a long while to come up, or lose
+    // it on the way: a minute's allowance, and a second launch before giving up.
+    let last = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"], detached: true });
+      const b = new Browser(proc, dir, { width, height });
+      let timer;
+      const started = await Promise.race([
+        b.send("Browser.getVersion").then(() => true, () => false),
+        new Promise(r => { timer = setTimeout(() => r(false), 60000); })
+      ]);
+      clearTimeout(timer);
+      if (started) return b;
+      await b.close().catch(() => {});
+      last = new Error("the browser didn't answer: " + bin + (attempt < 2 ? " (launching it again)" : ""));
+      if (attempt < 2) console.log("# " + last.message);
+    }
+    throw last;
   }
 
   send(method, params = {}, sessionId) {

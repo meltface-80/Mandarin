@@ -145,6 +145,11 @@
           </svg>
         </button>
 
+        <!-- Tidal's mark: three diamonds (v0.6.24). Shown once signed in. -->
+        <button id="tidal-toggle" class="icon-btn hidden" aria-label="Tidal" title="Tidal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
+        </button>
+
         <!-- Hidden trigger for the side-menu "Pitchfork" item (topbar-controls is display:none) -->
         <button id="pitchfork-toggle" class="icon-btn" aria-label="Pitchfork" title="Pitchfork">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -702,19 +707,10 @@
           <span class="switch menu-switch" aria-hidden="true"><span class="switch-track"><span class="switch-thumb"></span></span></span>
         </button>
         <div class="menu-sep menu-toggle-sep"></div>
-        <button class="menu-item" type="button" data-action="home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-          <span>Home</span>
+        <button class="menu-item" type="button" data-target="pitchfork-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
+          <span>Pitchfork</span>
         </button>
-        <button class="menu-item" type="button" data-action="later">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span>Listen later</span>
-        </button>
-        <button class="menu-item" type="button" data-action="shuffle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
-          <span>Random albums</span>
-        </button>
-        <div class="menu-sep"></div>
         <button class="menu-item" type="button" data-target="labels-toggle" id="menu-item-labels">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           <span>Labels</span>
@@ -723,17 +719,13 @@
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M39.203 39.203A21.43 21.43 0 0 0 45.5 24c0-11.874-9.626-21.5-21.5-21.5S2.5 12.126 2.5 24S12.126 45.5 24 45.5c4.89 0 9.4-1.633 13.012-4.383"/><circle cx="24" cy="24" r="4.873"/><path d="M32.944 32.944L45.5 45.5"/></svg>
           <span>Qobuz</span>
         </button>
-        <button class="menu-item" type="button" data-target="pitchfork-toggle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
-          <span>Pitchfork</span>
+        <button class="menu-item hidden" type="button" data-target="tidal-toggle" id="menu-item-tidal">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
+          <span>Tidal</span>
         </button>
-        <button class="menu-item hidden" type="button" data-action="discover" id="menu-item-discover">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
-          <span>Discover</span>
-        </button>
-        <button class="menu-item" type="button" data-action="smart-picks" id="menu-item-picks">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-          <span>Smart Picks</span>
+        <button class="menu-item" type="button" data-action="later">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Listen later</span>
         </button>
         <button class="menu-item" type="button" data-action="smart-playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.1 4.6 5 .6-3.7 3.4 1 4.9L12 14.1 7.6 16.5l1-4.9L4.9 8.2l5-.6z"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
@@ -742,10 +734,6 @@
         <button class="menu-item" type="button" data-action="playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M20 16.5V8l-3 1"/></svg>
           <span>Playlists</span>
-        </button>
-        <button class="menu-item" type="button" data-action="import-playlist">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          <span>Import a playlist</span>
         </button>
         <div class="menu-sep"></div>
         <button class="menu-item" type="button" data-action="rescan-library">
@@ -908,9 +896,40 @@
       <div id="qobuz-nr-status" class="settings-token-status"></div>
       <div id="qobuz-artist-head" class="hidden"></div>
       <div id="qobuz-artists" class="hidden"></div>
-      <div id="qobuz-nr-list" class="qobuz-nr-list"></div>
+      <div id="qobuz-nr-list" class="qobuz-nr-list album-grid"></div>
       <button id="qobuz-load-more" class="hidden" type="button">Load more</button>
       <div id="qobuz-nr-detail" class="qobuz-nr-detail hidden"></div>
+    </div>
+  </div>
+
+  <!-- Tidal browser overlay (v0.6.24): the same browser as Qobuz's, its own ids -->
+  <div id="tidal-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Tidal">
+    <div class="settings-backdrop" data-tidal-close></div>
+    <div class="settings-sheet qobuz-sheet">
+      <div class="qobuz-pin">
+        <div class="settings-grip" aria-hidden="true"></div>
+        <div class="settings-head">
+          <h2>Tidal</h2>
+          <button id="tidal-overlay-close" class="icon-btn" type="button" aria-label="Close" data-tidal-close>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="qobuz-search-row">
+          <input id="tidal-search-input" type="search" placeholder="Search the Tidal catalogue…"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+          <button id="tidal-search-clear" class="hidden" type="button" aria-label="Clear search">×</button>
+        </div>
+        <div id="tidal-tabs" role="tablist" aria-label="Tidal sections">
+          <button class="qobuz-tab is-active" type="button" role="tab" data-qtab="new-releases">New Releases</button>
+          <!-- the lists Tidal features follow, from /api/tidal/lists (app.js) -->
+        </div>
+      </div>
+      <div id="tidal-nr-status" class="settings-token-status"></div>
+      <div id="tidal-artist-head" class="hidden"></div>
+      <div id="tidal-artists" class="hidden"></div>
+      <div id="tidal-nr-list" class="qobuz-nr-list album-grid"></div>
+      <button id="tidal-load-more" class="hidden" type="button">Load more</button>
+      <div id="tidal-nr-detail" class="qobuz-nr-detail hidden"></div>
     </div>
   </div>
 
@@ -1060,6 +1079,14 @@
               <span class="settings-nav-title">Music Folders</span>
             </span>
           </button>
+          <button class="settings-nav-item" type="button" data-pane="streaming">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Services</span>
+            </span>
+          </button>
           <button class="settings-nav-item" type="button" data-pane="playback">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/></svg>
@@ -1108,14 +1135,7 @@
               <span class="settings-nav-title">Updates</span>
             </span>
           </button>
-          <button class="settings-nav-item hidden" type="button" data-pane="streaming">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Streaming accounts</span>
-            </span>
-          </button>
+          
           <button class="settings-nav-item hidden" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -1148,7 +1168,7 @@
           </button>
           <h2>Setup</h2>
         </div>
-        <p class="settings-pane-desc">Smart Picks, Discover, record labels, the Home screen, the look, sharing, away from home, API keys</p>
+        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
           <button class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1156,14 +1176,6 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Smart Picks</span>
-            </span>
-          </button>
-          <button class="settings-nav-item" type="button" data-pane="discover">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Discover</span>
             </span>
           </button>
           <button class="settings-nav-item" type="button" data-pane="labels">
@@ -1426,28 +1438,66 @@
           <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Streaming accounts</h2>
+          <h2>Services</h2>
         </div>
-        <p class="settings-pane-desc">Qobuz</p>
+        <p class="settings-pane-desc">Qobuz and Tidal</p>
 
         <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Qobuz account <button class="settings-info-btn" data-info="Signs in on Qobuz&#39;s own page — your password is never typed into or seen by Mandarin. One sign-in covers browsing and searching the Qobuz catalogue, adding albums to your Qobuz favourites, and waveforms for Qobuz tracks. This uses Qobuz&#39;s unofficial API, which is against their Terms of Service and may break at any time." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <button id="qobuz-connect" class="settings-update-btn" type="button">Connect</button>
+          <div class="settings-block-title">Qobuz <button class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div id="qobuz-signin-form">
+            <input id="qobuz-username" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input id="qobuz-password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
+            <div class="settings-token-row">
+              <button id="qobuz-signin" class="settings-update-btn" type="button">Sign in</button>
+            </div>
           </div>
           <div id="qobuz-status" class="settings-token-status"></div>
-          <!-- Only shown when the redirect cannot land back here — a sign-in
-               done on a device that is not on this network. -->
-          <div id="qobuz-signin-paste" class="settings-token-row" hidden>
-            <input id="qobuz-signin-url" class="settings-token-input" placeholder="Paste the address you were sent to…" autocomplete="off" spellcheck="false">
-            <button id="qobuz-signin-finish" class="settings-update-btn" type="button">Finish</button>
+          <div id="qobuz-signed" hidden>
+            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="qobuz-quality" class="settings-select">
+                <option value="cd">CD (16/44.1)</option>
+                <option value="hires96">Hi-Res up to 24/96</option>
+                <option value="hires192">Hi-Res up to 24/192</option>
+              </select></div></div>
+            <div class="settings-row"><span class="settings-label">Favourites and purchases in the library <button class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off: only what you play from the Qobuz browser is known here, and only for a month." aria-label="Info">&#9432;</button></span>
+              <label class="switch"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="qobuz-import-now" class="settings-update-btn" type="button">Update library now</button>
+              <button id="qobuz-disconnect" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="qobuz-import-status" class="settings-token-status"></div>
           </div>
-          <button id="qobuz-disconnect" class="settings-update-btn hidden" type="button">Disconnect</button>
-          <div class="settings-token-status" style="opacity:.6;font-size:11px;margin-top:6px;">Unofficial Qobuz API — against Qobuz ToS, may break, use at your own risk.</div>
         </div>
 
+        <div class="settings-block">
+          <div class="settings-block-title">Tidal <button class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div id="tidal-signin-form">
+            <div class="settings-token-row">
+              <button id="tidal-signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
+            </div>
+            <div id="tidal-pending" class="tidal-auth-pending" hidden>
+              <div class="settings-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
+              <a id="tidal-auth-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="tidal-auth-code" class="tidal-auth-code"></div>
+              <button id="tidal-signin-cancel" class="settings-update-btn" type="button">Cancel</button>
+            </div>
+          </div>
+          <div id="tidal-status" class="settings-token-status"></div>
+          <div id="tidal-signed" hidden>
+            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="tidal-quality" class="settings-select">
+                <option value="cd">CD (16/44.1)</option>
+                <option value="hires">Hi-Res up to 24/192</option>
+              </select></div></div>
+            <div class="settings-row"><span class="settings-label">Favourites in the library <button class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off: only what you play from the Tidal browser is known here, and only for a month." aria-label="Info">&#9432;</button></span>
+              <label class="switch"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="tidal-import-now" class="settings-update-btn" type="button">Update library now</button>
+              <button id="tidal-disconnect" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="tidal-import-status" class="settings-token-status"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Share Card — the links under the card, grouped in one place -->
@@ -1658,44 +1708,6 @@
         </div>
       </div>
 
-      <!-- Discover -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="discover" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2>Discover</h2>
-        </div>
-        <p class="settings-pane-desc">New records by the artists you play</p>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Discover <button class="settings-info-btn" data-info="Off by default. When on, Mandarin looks once a day for records released in the last two months by the artists you actually listen to — read from your own play history, not your whole library. It asks Deezer and nothing else. When off it does nothing at all: no daily build, no timer, no requests to anybody." aria-label="Info">&#9432;</button></span>
-            <label class="switch">
-              <input type="checkbox" id="discover-enabled" aria-label="Discover">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-          <div class="settings-note">Off by default. Everything below applies only while this is on.</div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Look for new records at <button class="settings-info-btn" data-info="The hour the daily check runs, in this server&#39;s local time. If the server is off at that hour, it runs the next time it starts." aria-label="Info">&#9432;</button></span>
-            <select id="discover-hour" class="settings-select" aria-label="Discover build hour"></select>
-          </div>
-          <div class="settings-note" id="discover-note"></div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">Look again now</span>
-            <button id="discover-rebuild" class="settings-update-btn" type="button">Refresh</button>
-          </div>
-          <div class="settings-note">Discards today&#39;s list and looks again. Takes a minute or two.</div>
-        </div>
-      </div>
-
       <!-- Smart Picks -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="smartpicks" data-parent="setup">
         <div class="settings-pane-head">
@@ -1824,7 +1836,7 @@
         </div>
         <p class="settings-pane-desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
           <div class="backup-actions">
             <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>

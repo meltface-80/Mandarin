@@ -73,7 +73,7 @@ test("Backup & restore in a browser: back up to the server, restore settings and
     assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "page"], "no app part in a browser");
     assert.equal(r.file_buttons, false, "the file buttons are the Android app's");
     assert.equal(r.listed, "On the server", "the card says where the backup is");
-    assert.match(r.listed_meta, /v0\.6\.\d+ · \d+ KB · from /, "and what it was made from");
+    assert.match(r.listed_meta, /v\d+\.\d+\.\d+ · \d+ KB · from /, "and what it was made from");
     assert.match(r.listed_parts, /Settings.*This device's screen settings/);
     assert.doesNotMatch(r.listed_parts, /database/i, "the database was left out");
     assert.equal(r.changed, 1, "changed after the backup");

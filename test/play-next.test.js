@@ -41,11 +41,10 @@ const DRIVER = (album) => `(async () => {
   out.track_buttons = [...document.querySelectorAll("#modal-tracks .t-actions button")].map(b => b.textContent);
   const next = [...document.querySelectorAll("#modal-tracks .t-actions button")].find(b => b.textContent === "Play next");
   next.click(); await sleep(800);
-  // A selection: held to arm it, two tracks picked, the menu's Play next.
+  // A selection: held on a track, which is the first pick (v0.6.24), one more tapped, the menu's Play next.
   li(1).dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); await sleep(700);
   li(1).dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-  li(1).click(); await sleep(50);         // the tap that ends a long press picks nothing
-  li(1).click(); await sleep(50);
+  li(1).click(); await sleep(50);         // the tap that ends a long press changes nothing
   li(2).click(); await sleep(50);
   document.getElementById("select-menu-btn").click(); await sleep(100);
   out.menu = [...document.querySelectorAll("#select-menu .sel-menu-item")].map(b => b.textContent);

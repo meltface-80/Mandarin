@@ -29,6 +29,7 @@ const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
 const { localIp } = require("./lib/sonos/topology");
 const STREAM = require("./lib/stream");
+const SERVICES = require("./lib/services");
 const DSP = require("./lib/dsp");
 const FF = require("./lib/ffmpeg");
 const shareLinks = require("./lib/share-links");
@@ -128,6 +129,31 @@ function createServer(overrides = {}) {
     }
   };
   ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // The streaming services (lib/services): Qobuz (v0.6.23) and Tidal
+  // (v0.6.24) — the account, its albums as library rows, the stream behind
+  // /stream for a streamed track, Qobuz's play reports. Tests bring fakes.
+  const afterChange = () => { library.reload(); artwork.prewarm(100).catch(() => {}); };
+  ctx.qobuz = new (require("./lib/qobuz").Qobuz)({ db, library, dataDir: config.dataDir, log, baseUrl: config.qobuzBaseUrl || undefined, afterChange });
+  ctx.tidal = new (require("./lib/tidal").Tidal)({ db, library, dataDir: config.dataDir, log, baseUrl: config.tidalBaseUrl || undefined,
+    authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => "http://127.0.0.1:" + config.port, afterChange });
+  ctx.services = { qobuz: ctx.qobuz, tidal: ctx.tidal, of: p => { const id = SERVICES.ofPath(p); return id ? ctx.services[id] : null; } };
+  // The transcoder asks the service where a streamed track's audio is, when
+  // a device comes to fetch one (or the next is made ready behind it).
+  transcoder.resolve = {
+    wants: t => SERVICES.isStreamed(t.path),
+    get: async (t, p) => {
+      const r = await ctx.services.of(t.path).resolve(t, p);
+      // FLAC at the rate and depth wanted, nothing else to do: copied as it
+      // comes. Below what was planned (a track listed as hi-res that the
+      // account gets at CD), copied too, at what it is — never upsampled —
+      // unless a renderer was promised a rate (p.hq) or DSP or gain is in it.
+      const flac = /flac/.test(String(r.mime || "audio/flac"));
+      const same = r.rate === p.rate && r.bits === p.bits;
+      const below = !p.hq && r.rate <= p.rate && r.bits <= p.bits;
+      const copy = !p.dsp && !p.gain && flac && (same || below);
+      return { src: r.src, plan: copy ? Object.assign({}, p, { copy: true, rate: r.rate, bits: r.bits }) : p };
+    }
+  };
   // The MusicBrainz pack (v0.6.4): releases with a barcode kept on this
   // machine, asked before musicbrainz.org when downloaded.
   const MBPACK = require("./lib/identify/mbpack");
@@ -194,6 +220,30 @@ function createServer(overrides = {}) {
       res.statusCode = 200; res.end();
     });
   });
+  // A Tidal hi-res stream (lib/tidal): MPEG-DASH pieces fed to ffmpeg as one
+  // stream, from this machine only, under a key the resolve just made.
+  app.get("/internal/dash/:key", async (req, res) => {
+    const from = String(req.socket.remoteAddress || "");
+    if (!/^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from)) return res.status(403).end();
+    const d = ctx.tidal.dashPieces(req.params.key);
+    if (!d) return res.status(404).end();
+    res.set("Content-Type", d.mime || "audio/mp4");
+    res.set("Cache-Control", "no-store");
+    const { pipeline } = require("stream/promises");
+    const { Readable } = require("stream");
+    try {
+      for (const url of [d.init].concat(d.segments)) {
+        if (res.destroyed) return;
+        const r = await ctx.tidal.fetch(url, { signal: AbortSignal.timeout(60000) });
+        if (!r.ok) throw new Error("segment HTTP " + r.status);
+        await pipeline(Readable.fromWeb(r.body), res, { end: false });
+      }
+      res.end();
+    } catch (e) {
+      log(`[tidal] dash: ${e.message}`);
+      if (!res.headersSent) res.status(502); res.end();
+    }
+  });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);
   auth.mount(app);
@@ -206,7 +256,8 @@ function createServer(overrides = {}) {
     // ?q=opus: the phone away from home, on mobile data — Opus 256 kbps, the
     // same files the Downloads screen makes, with the album's next tracks
     // made ready behind it so each one starts promptly.
-    if (req.query.q === "opus") return streamOpus(t, req, res);
+    // A streamed track away from home: the cached FLAC, not an Opus file made of it.
+    if (req.query.q === "opus" && !SERVICES.isStreamed(t.path)) return streamOpus(t, req, res);
     // A renderer's URL says what it wants (lib/server/playback.js): the file
     // as stored, or a conversion to exactly this rate and depth. A Sonos URL
     // says nothing and gets the 24/48 rule, as ever.
@@ -227,6 +278,11 @@ function createServer(overrides = {}) {
         if (part) { p.dsp = part; p.inRate = Number(t.sample_rate) || 0; }
       }
     } else p = planFor(t);
+    // A streamed track (lib/services): always from the transcode cache,
+    // fetched from the service when the device asks — as it comes, or
+    // converted like a file.
+    const svc = ctx.services.of(t.path);
+    if (svc && !p.transcode) p = { transcode: true, mime: "audio/flac", ext: "flac", rate: Number(t.sample_rate) || 44100, bits: Number(t.bits) || 16, reason: "from " + svc.name + ", as it comes" };
     // ?g=<dB>: with this ReplayGain in it (lib/loudness.js).
     if (req.query.g != null) {
       const g = Number(req.query.g);
@@ -241,7 +297,11 @@ function createServer(overrides = {}) {
         if (err && !res.headersSent) res.status(err.statusCode || 404).end();
       });
     }
-    const job = transcoder.start(Object.assign({}, t), p);
+    // A streamed track fetched by a device is a play (reported, on Qobuz) —
+    // and nothing of a service plays without the account, cached or not.
+    if (svc && !svc.connected()) return res.status(403).end();
+    if (svc && req.method === "GET") svc.played(t, p);
+    const job = transcoder.start(Object.assign({}, t, svc ? { mtime: svc.tier() } : {}), p);
     if (job.done && !job.failed) {
       res.set("Content-Type", p.mime);
       res.set("Cache-Control", "no-store");
@@ -284,6 +344,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-loudness")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
+  for (const id of SERVICES.IDS) require("./lib/server/api-service")(app, ctx, id);
   // Restart and Shut down (Settings → Restart & shut down). Tests hand in their own exit.
   // Restart: a clean stop, then 75 for launcher.js to start it again (a restore uses it).
   ctx.restartServer = () => Promise.resolve().then(() => stop()).catch(e => log(`[musicd] stopping: ${e.message}`))
@@ -392,10 +453,26 @@ function createServer(overrides = {}) {
     // read within a minute, without waiting for the timer.
     ctx.watcher = new LibraryWatcher({ roots: () => scanner.roots(), onChange: scan, log });
     ctx.watcher.refresh();
+    // The streaming services: your favourites (and purchases) brought up to
+    // date soon after the start and every six hours, while signed in with
+    // the import on; albums only ever played from the browser let go after
+    // a month.
+    const serviceSync = () => {
+      for (const id of SERVICES.IDS) {
+        const s = ctx.services[id];
+        if (!s.connected() || !s.settings().import) continue;
+        s.importLibrary().catch(e => log(`[${id}] import: ${e.message}`));
+      }
+    };
+    for (const t of [setTimeout(serviceSync, config.qobuzSyncDelayMs == null ? 20000 : config.qobuzSyncDelayMs),
+      setInterval(serviceSync, 6 * 3600e3), setInterval(() => { for (const id of SERVICES.IDS) { try { ctx.services[id].pruneTransient(); } catch (e) { /* next day */ } } }, 24 * 3600e3)]) {
+      t.unref(); ctx.scanTimers.push(t);
+    }
     return ctx;
   }
 
   async function stop() {
+    for (const id of SERVICES.IDS) await ctx.services[id].stop().catch(() => {});
     zones.stop();
     ctx.devices.stop();
     ctx.identifier.stop();
