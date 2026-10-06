@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.4
+- **A Qobuz or Tidal album queued after the phone's own music plays when it is reached.** Playing
+  music stored on the phone, the app's player holds the list itself, and a server album queued
+  after it goes into that list. Until now a server track reached there was fetched cold, with
+  none of the care the server's own queue gets: not fetched ahead, an error never tried again,
+  nothing carried on when the server was back — so the page showed it about to play, without its
+  cover, and the player stayed silent until Play now. Now the server's tracks in the phone's
+  list are fetched ahead while the phone's music plays, tried again on an error, picked up when
+  the server answers again, and Now playing has their cover and album by their id or, failing
+  that, by the cover address the server gave them.
+
 ## v0.7.3
 - **Qobuz and Tidal favourites follow both ways, by themselves.** Remove an album from your
   Qobuz or Tidal favourites on its page (⋯ → Remove from … favourites) and it is gone from the

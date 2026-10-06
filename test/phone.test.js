@@ -283,6 +283,18 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       lq = await phone("GET", "/api/queue?zone=" + zoneId);
       assert.deepEqual(lq.items.map(i => i.title), ["Closing", "Song 1"]);
       assert.ok(lq.items[1].image_key, "a reported server track keeps its cover");
+      // The server's track reached in the phone's own list (v0.7.4): Now
+      // playing has its cover and its album, by its id — or, the id not
+      // reported, by the cover address the server gave the track.
+      await phone("POST", "/api/phone/state", { index: 2, position: 1, duration: 3, state: "playing", volume: 40, local: true, local_rev: 4 });
+      let np = (await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing;
+      assert.equal(np.line1, "Song 1");
+      assert.equal(np.image_key, cd.image_key, "its cover, by its id");
+      assert.equal(np.album_offset, cd.offset, "its album, by its id");
+      await phone("POST", "/api/phone/state", { index: 2, position: 2, duration: 3, state: "playing", volume: 40, local: true, local_rev: 5,
+        local_items: items.concat([{ title: "Song 1", artist: "Artist A", album: "Album One", duration: 3, art_url: ins.items[0].art_url }]) });
+      np = (await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.now_playing;
+      assert.equal(np.image_key, cd.image_key, "its cover, by the address the server gave it: " + ins.items[0].art_url);
       // Play Now leaves the phone's list at once: an album queued straight after,
       // before the phone has reported, goes to the server's queue.
       await phone("POST", "/api/play", { offset: cd.offset, zone_or_output_id: zoneId, kind: "play_now" });

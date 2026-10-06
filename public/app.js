@@ -18134,7 +18134,7 @@ initServiceBrowser({
     settings: "Only the ones you changed",
     devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
     collection: "Playlists, favourites, Listen later, album edits",
-    keys: "Discogs, FanArt.tv and the Qobuz sign-in",
+    keys: "Discogs, FanArt.tv, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
     database: "Everything Mandarin knows, play history included",
     page: "Text sizes, layout, the chosen room",
     app: "Downloads, USB DAC, this phone's DSP and levelling"
