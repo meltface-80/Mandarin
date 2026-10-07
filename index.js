@@ -13,6 +13,7 @@
  * is above that.
  */
 const path = require("path");
+const crypto = require("crypto");
 const fs = require("fs");
 const express = require("express");
 const compression = require("compression");
@@ -118,6 +119,9 @@ function createServer(overrides = {}) {
 
   const ctx = {
     config, db, library, scanner, artwork, transcoder, zones, log, version: pkg.version,
+    // This run of the server, and the key the C# server in front asks with (v0.8.4).
+    bootId: crypto.randomBytes(8).toString("hex"),
+    frontKey: process.env.MANDARIN_FRONT_KEY || crypto.randomBytes(24).toString("hex"),
     baseUrl: () => `http://${advertisedIp()}:${config.port}`,
     // This server as it fetches from itself: where it listens (behind the C#
     // server, its own port on 127.0.0.1).
@@ -264,6 +268,22 @@ function createServer(overrides = {}) {
       log(`[tidal] dash: ${e.message}`);
       if (!res.headersSent) res.status(502); res.end();
     }
+  });
+  // The library's state, for Mandarin's C# server in front (v0.8.4): which
+  // copy of the library this is, so it rebuilds its own when this one changes
+  // (server/Mandarin.Server/Library.cs). From this machine only, with the key
+  // the C# server started this one with (MANDARIN_FRONT_KEY).
+  app.get("/internal/library", (req, res) => {
+    const from = String(req.socket.remoteAddress || "");
+    const key = Buffer.from(String(req.get("x-mandarin-front-key") || ""));
+    const want = Buffer.from(ctx.frontKey);
+    if (!/^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from) || key.length !== want.length || !crypto.timingSafeEqual(key, want)) return res.status(403).end();
+    res.set("Cache-Control", "no-store");
+    res.json({
+      boot: ctx.bootId, version: library.version, marks: library.marks,
+      building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
+      labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() }
+    });
   });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);

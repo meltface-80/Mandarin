@@ -19,6 +19,13 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
 - Every response says which server it came through (`X-Mandarin-Server: C# <version>`), and one
   C# wrote itself says so (`X-Mandarin-Answered: C#`). `GET /server-info` answers from C# itself.
   `test/front.test.js` pins which server answers what.
+- **The library** is read here from a copy in memory, as the Node server keeps one. Which copy is
+  current is the Node server's to say (it still scans and takes edits): each library request asks
+  it first, on a private address with a key this server gave it (`/internal/library`), and the
+  copy here is rebuilt from the database when it changed. Names sort as JavaScript sorts them
+  (ICU's collation, so the image carries libicu), and `test/library-front.test.js` asks both
+  servers the same questions and checks the answers are the same.
+- **Compression:** what C# answers itself goes out gzipped, as the Node server's did.
 - **The database** is the Node server's (`<data>/musicd.db`), shared: the Node server makes it and
   brings its tables up to date first; C# opens it afresh for each request, so a database put back
   from a backup is the one read next.
@@ -32,6 +39,7 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | The port, who is asking, the Node server's start and stop | C# (v0.8.1) |
 | Signing in, signed-in devices, the gate (`Auth.cs`, `Srp.cs`) | C# (v0.8.2); streams and covers still gated by Node |
 | The page and its files, `public/` (`Pages.cs`) | C# (v0.8.3); deep links, `/login`, `/display` still Node's |
+| Reading the library: the Library wall and its Focus sheet, search, artists, an album's page, genres, decades, the random wall, Favourites, Listen later (`Library.cs`, `LibraryRoutes.cs`, `Names.cs`) | C# (v0.8.4); scans, edits, hearts, labels, Home's rows and a streamed album's page still Node's |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |
 

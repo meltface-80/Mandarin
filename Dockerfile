@@ -71,8 +71,9 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # ffmpeg converts anything above 24-bit/48 kHz (and formats Sonos cannot
 # read) to FLAC 24/48. Debian's build includes libsoxr, the better resampler.
 # tini reaps ffmpeg children and passes SIGTERM on, so a stop is immediate.
+# libicu: the C# server sorts names as the Node server does (server/).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates \
+    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 \
     && rm -rf /var/lib/apt/lists/*
 
 # Tailscale built in: signed in once from Settings → Away from home (or with

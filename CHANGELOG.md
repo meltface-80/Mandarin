@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.4
+A test build, from the `claude/v0.8.4` branch: the fourth step in moving Mandarin's server to C#.
+
+- **Reading the library is now Mandarin's C# server's job:** the Library wall with every sort and
+  Focus filter, search, the artists list and an artist's albums, an album's page, genres and
+  decades, the random wall, Favourites, Listen later and Home's genre row.
+  - The same answers as before, field for field and in the same order: a new test asks both
+    servers the same questions, then changes the library (a heart, Listen later, an edit, labels
+    switched on, a merge, plays) and asks again.
+  - The Node server still scans, takes edits, hearts and label changes; the C# server keeps its
+    copy of the library in step with the Node server's, so a change shows at once.
+  - A streamed album's page (Qobuz, Tidal) still comes from the Node server, which asks the service.
+- **Pages and lists are compressed again.** Since v0.8.3 the page's own files went out without
+  compression; what the C# server answers is gzipped now, as before.
+- The Docker image now includes libicu, so names sort the same way in both servers.
+- The Android app for this branch is at the same test address (0.8.4, version code 204).
+
 ## v0.8.3
 A test build, from the `claude/v0.8.3` branch: the third step in moving Mandarin's server to C#.
 

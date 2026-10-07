@@ -34,12 +34,16 @@ if (args.Length == 2 && args[0] == "--srp-vector")
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 
+// The key this server asks the Node server's private addresses with
+// (/internal/library): given to the Node server it starts, or by the tests.
+string frontKey = Environment.GetEnvironmentVariable("MANDARIN_FRONT_KEY") is { Length: > 0 } fk ? fk
+    : Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
 Process? node = null;
 if (string.IsNullOrEmpty(upstream))
 {
     int internalPort = Front.FreeLoopbackPort();
     string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
-    node = Front.StartNode(appDir, internalPort);
+    node = Front.StartNode(appDir, internalPort, frontKey);
     upstream = $"http://127.0.0.1:{internalPort}";
 }
 var upstreamUri = new Uri(upstream);
@@ -48,6 +52,7 @@ var upstreamUri = new Uri(upstream);
 string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
     : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
 Db.File = Path.Combine(dataDir, "musicd.db");
+Library.Init(upstreamUri, frontKey);
 Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
 
 // Nothing is answered until the Node server is: a request that arrived first
@@ -76,6 +81,14 @@ builder.WebHost.ConfigureKestrel(k =>
     k.Listen(IPAddress.Any, port);
 });
 builder.Services.AddHttpForwarder();
+// gzip, as the Node server's compression() did for everything it answered:
+// what the Node server answers comes through already compressed, and only
+// text is (never audio, never a stream of events).
+builder.Services.AddResponseCompression(o =>
+{
+    o.EnableForHttps = true;
+    o.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
 // Stopping (the Node server gone, or asked to): within two seconds, not the
 // usual thirty; with nothing behind it, every request held open is a 502.
 builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(2));
@@ -86,6 +99,7 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers["X-Mandarin-Server"] = "C# " + version;
     await next();
 });
+app.UseResponseCompression();
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
@@ -93,6 +107,8 @@ app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 
 // The page and its files (Pages.cs), behind the gate as before.
 Pages.Use(app, Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "public"));
+// The library (Library.cs): read here, from the copy the Node server holds.
+Library.Use(app);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();

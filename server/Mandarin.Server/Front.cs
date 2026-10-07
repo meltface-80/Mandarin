@@ -43,7 +43,7 @@ internal static partial class Front
      * across a restart, as before): on 127.0.0.1 only, at this port, its own
      * output straight through to ours.
      */
-    public static Process StartNode(string appDir, int internalPort)
+    public static Process StartNode(string appDir, int internalPort, string frontKey)
     {
         var psi = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE_BIN") ?? "node")
         {
@@ -53,6 +53,7 @@ internal static partial class Front
         psi.ArgumentList.Add(Path.Combine(appDir, "launcher.js"));
         psi.Environment["INTERNAL_PORT"] = internalPort.ToString();
         psi.Environment["MANDARIN_FRONT"] = "csharp";
+        psi.Environment["MANDARIN_FRONT_KEY"] = frontKey;
         var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start node");
         Log($"[server] started the Node server (pid {proc.Id}) from {appDir}");
         return proc;

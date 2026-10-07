@@ -12,7 +12,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>mandarin-server</AssemblyName>
     <RootNamespace>Mandarin.Server</RootNamespace>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- ICU's collation, as JavaScript's localeCompare (Library.cs): libicu where it runs. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NuGetAudit>false</NuGetAudit>
     <ServerGarbageCollector>false</ServerGarbageCollector>

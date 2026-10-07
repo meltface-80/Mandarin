@@ -7,7 +7,9 @@
  *   - v0.8.1: everything is passed on, through C#;
  *   - v0.8.2: sign-in, devices and the gate are answered by C#; a streamer's
  *     NOTIFY still reaches the Node server unsigned; /internal/ stops at the door;
- *   - v0.8.3: the page and its files (public/) are served by C#.
+ *   - v0.8.3: the page and its files (public/) are served by C#;
+ *   - v0.8.4: the library's screens are read by C# (test/library-front.test.js
+ *     checks they say what the Node server says).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -16,12 +18,12 @@ const { signIn } = require("./auth-helper");
 
 const skip = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)";
 
-test("which server answers: sign-in and the gate in C#, the library passed on", { skip, timeout: 60000 }, async () => {
+test("which server answers: sign-in, the gate, the page and the library in C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = 3695, B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
-  await srv.start();
+  const ctx = await srv.start();
   try {
     const by = async (p, init) => { const r = await fetch(B + p, init); return { status: r.status, by: r.headers.get("x-mandarin-answered") || "Node", via: r.headers.get("x-mandarin-server") || "", r }; };
     const info = await (await fetch(B + "/server-info")).json();
@@ -46,7 +48,14 @@ test("which server answers: sign-in and the gate in C#, the library passed on", 
     // The library read on first start (a 503 until then, from the Node server).
     for (let i = 0; i < 150; i++) { if ((await (await fetch(B + "/api/status", { headers: H })).json()).index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
     x = await by("/api/library/albums", { headers: H });
-    assert.deepEqual([x.status, x.by], [200, "Node"], "the library: passed on, signed in by C#'s token " + JSON.stringify([x.status, x.by]));
+    assert.deepEqual([x.status, x.by], [200, "C#"], "the library: read by C# " + JSON.stringify([x.status, x.by]));
+    assert.equal((await x.r.json()).total, 3);
+    x = await by("/api/status", { headers: H });
+    assert.deepEqual([x.status, x.by], [200, "Node"], "the server's state: passed on, signed in by C#'s token");
+    // The Node server's private address for the C# server: not from outside, and not without its key.
+    x = await by("/internal/library", { headers: H });
+    assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/library answered 404 at the door");
+    assert.equal((await fetch("http://127.0.0.1:" + ctx.listeningOn + "/internal/library", { headers: H })).status, 403, "the key, or nothing");
     x = await by("/api/library/albums", { headers: { Authorization: "Bearer not-a-token" } });
     assert.deepEqual([x.status, x.by], [401, "C#"], "a bad token stops at C#");
     // A streamer's NOTIFY (it can't sign in): passed on, as the Node server takes it before its gate.
