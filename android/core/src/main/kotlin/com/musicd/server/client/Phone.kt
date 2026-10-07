@@ -72,6 +72,9 @@ object Phone {
         val loop: String,
         val volume: Int,
         val muted: Boolean,
+        /** How many steps the phone's volume really has (Android's music stream: often 15;
+         *  the USB driver's: 100), so the server and the page step by one of them (v0.8.11). */
+        val volumeSteps: Int = 100,
         /** How the track is being played: "opus" (the server's Opus 256, or an Opus download) or "original". */
         val format: String = "original",
         /** The DSP engine is changing the sound. */
@@ -89,7 +92,7 @@ object Phone {
         fun toJson(): JSONObject = JSONObject()
             .put("index", index).put("position", positionSeconds).put("duration", durationSeconds)
             .put("state", state).put("shuffle", shuffle).put("loop", loop)
-            .put("volume", volume).put("muted", muted).put("format", format).put("dsp", dsp).put("usb", usb ?: JSONObject.NULL)
+            .put("volume", volume).put("volume_steps", volumeSteps).put("muted", muted).put("format", format).put("dsp", dsp).put("usb", usb ?: JSONObject.NULL)
             .put("usb_caps", usbCaps ?: JSONObject.NULL)
             .apply { if (local) { put("local", true).put("local_rev", localRev); localItems?.let { put("local_items", it) } } }
     }

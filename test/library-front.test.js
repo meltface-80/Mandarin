@@ -242,7 +242,9 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
         for (const addr of ["/stream/t" + tr.track_id + "." + ext, "/stream/t" + tr.track_id + ".orig." + ext, "/stream/t" + tr.track_id + ".orig.dsf?m=audio/x-dsf"]) {
           const plain = await fetch(B + addr, { headers: H });
           const body = Buffer.from(await plain.arrayBuffer());
-          if (plain.headers.get("x-mandarin-answered") !== "C#") { converted++; assert.ok(/\.(flac|mp3|wav)$/.test(addr) && !addr.includes(".orig."), addr + ": only a conversion is passed on"); continue; }
+          assert.equal(plain.headers.get("x-mandarin-answered"), "C#", addr + ": sent by C#, as it is or converted");
+          // A conversion, made as it is sent (no length yet): checked on its own below.
+          if (!plain.headers.get("content-length")) { converted++; assert.ok(/\.(flac|mp3|wav)$/.test(addr) && !addr.includes(".orig."), addr + ": only a Sonos address is converted"); continue; }
           sentByCsharp++;
           if (!addr.includes(".dsf")) assert.deepEqual(body, fs.readFileSync(row.path), addr + ": the file itself");
           for (const range of [null, "bytes=0-99", "bytes=100-199", "bytes=-50", "bytes=1000-", "bytes=99999999-", "bytes=5-2"]) {
@@ -266,7 +268,7 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
         }
       }
     }
-    assert.ok(sentByCsharp >= 20 && converted >= 1, `files sent by C# (${sentByCsharp}) and conversions passed on (${converted})`);
+    assert.ok(sentByCsharp >= 20 && converted >= 1, `files sent by C# (${sentByCsharp}) and conversions made by C# (${converted})`);
     const tid = (await (await fetch(N + "/api/album?offset=" + ids[0], { headers: H })).json()).tracks[0].track_id;
     const tpath = ctx.db.raw.prepare("SELECT path FROM tracks WHERE id = ?").get(tid).path;
     const s1 = ctx.auth.signUrl("/stream/t" + tid + ".orig" + path.extname(tpath));
@@ -275,14 +277,31 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     await x.arrayBuffer();
     x = await fetch(B + "/stream/t" + tid + ".orig" + path.extname(tpath));
     assert.equal(x.status, 401, "neither signed nor signed in: refused");
-    for (const conv of ["/stream/t" + tid + ".44100-16.flac", "/stream/t" + tid + ".flac?g=-3", "/stream/t999999.flac"]) {
+    for (const conv of ["/stream/t" + tid + ".flac?g=-3", "/stream/t999999.flac"]) {
       x = await fetch(B + conv, { headers: H });
       assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
       await x.arrayBuffer();
     }
 
-    // Conversions (v0.8.10): made by the Node server the first time; once
-    // made, sent by C# from the cache, byte for byte and range for range.
+    // Conversions (v0.8.11): made by C# as they are sent, then from the cache,
+    // range for range; and the very file ffmpeg makes with the Node server's
+    // own settings (lib/stream.js), byte for byte.
+    const STREAM = require("../lib/stream");
+    const { spawnSync } = require("child_process");
+    const nodeMade = (t, plan) => {
+      const out = path.join(lib.root, "node-made-" + t.id + "-" + plan.rate + "-" + plan.bits + ".flac");
+      const r = spawnSync(require("../lib/ffmpeg").info().bin, STREAM.ffmpegArgs(t.path, plan, out));
+      assert.equal(r.status, 0, String(r.stderr));
+      return fs.readFileSync(out);
+    };
+    const planOf = t => STREAM.plan({ path: t.path, codec: t.codec, sampleRate: t.sample_rate, bitsPerSample: t.bits, channels: t.channels });
+    const rowOf = title => ctx.db.raw.prepare("SELECT * FROM tracks WHERE title = ?").get(title);
+    const expected = {
+      ["/stream/t" + rowOf("So What").id + ".flac"]: nodeMade(rowOf("So What"), planOf(rowOf("So What"))),
+      ["/stream/t" + rowOf("Take").id + ".wav"]: nodeMade(rowOf("Take"), planOf(rowOf("Take"))),
+      ["/stream/t" + rowOf("Something").id + ".44100-24.flac"]: nodeMade(rowOf("Something"), { transcode: true, hq: true, rate: 44100, bits: 24 }),
+    };
+    assert.equal(planOf(rowOf("Take")).exact, true, "the WAV is a repack, the same samples");
     const trackOf = title => ctx.db.raw.prepare("SELECT id, path FROM tracks WHERE title = ?").get(title);
     const conversions = [
       "/stream/t" + trackOf("So What").id + ".flac",            // 24/96: the 24/48 rule
@@ -292,7 +311,9 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     for (const addr of conversions) {
       let r = await fetch(B + addr, { headers: H });
       assert.equal(r.status, 200, addr);
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", addr + ": converted by C#");
       const first = Buffer.from(await r.arrayBuffer());
+      assert.deepEqual(first, expected[addr], addr + ": the same file ffmpeg makes with the Node server's settings");
       for (let i = 0; i < 100 && r.headers.get("x-mandarin-answered") !== "C#"; i++) {
         await new Promise(res => setTimeout(res, 100));
         r = await fetch(B + addr, { headers: H });
@@ -311,6 +332,18 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
         if (!range) assert.deepEqual(cb, first, what + ": what was made the first time");
       }
     }
+    // The Node server's "make these next" (a queue being played): made by C#, not there.
+    const ahead = rowOf("Hunter");
+    const aheadPlan = { transcode: true, hq: true, rate: 48000, bits: 24, reason: "made ahead" };
+    const aheadFile = ctx.transcoder.finalPath(ctx.transcoder.keyFor(ahead, aheadPlan));
+    assert.equal(ctx.transcoder.status(ahead, aheadPlan), "none");
+    ctx.transcoder.prefetch([{ track: ahead, plan: aheadPlan }]);
+    assert.equal(ctx.transcoder.jobs.size, 0, "nothing made by the Node server");
+    assert.equal(ctx.transcoder.status(ahead, aheadPlan), "running", "handed over: on its way");
+    for (let i = 0; i < 100 && !fs.existsSync(aheadFile); i++) await new Promise(res => setTimeout(res, 100));
+    assert.ok(fs.existsSync(aheadFile), "made by C# in the cache");
+    assert.equal(ctx.transcoder.status(ahead, aheadPlan), "ready");
+    assert.deepEqual(fs.readFileSync(aheadFile), nodeMade(ahead, aheadPlan), "as the Node server would have made it");
     // Not made yet, or not this side's: the Node server's.
     for (const conv of ["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "/stream/t" + trackOf("Something").id + ".44100-32.flac"]) {
       x = await fetch(B + conv, { headers: H });

@@ -5,6 +5,25 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.11
+A test build, from the `claude/v0.8.11` branch: the eleventh step in moving Mandarin's server to C#.
+
+- **Conversions are now made by Mandarin's C# server.** A file a device can't take as it is
+  (24/96 to Sonos, a 24-bit WAV, a streamer's own rate and depth) is converted with ffmpeg by the
+  C# server and sent as it is made; the next tracks of what's playing are made ahead there too,
+  and the cache kept under its size. The same settings to the letter: a new test checks each kind
+  of conversion is the very file the Node server's settings make, byte for byte.
+  - The Node server still makes what only it can: a zone's DSP, a ReplayGain level, 32-bit
+    output, Opus for the phone away from home, and Qobuz and Tidal. Each file is made by one.
+- **Fixed: the phone's volume away from home.** The phone's volume has only a few real steps
+  (often 15), so a level set from the page came back slightly different, and the slider jumped
+  back and forth while the phone caught up — worst away from home — and + or − could get stuck.
+  The app now says how many steps it has; the page moves one step at a time and shows each
+  change as the phone will set it.
+- **Fixed: signed in to Tailscale again, the app stayed offline** until the network changed. It
+  now looks for the server again as soon as the Tailscale screen says connected.
+- The Android app for this branch is at the same test address (0.8.11, version code 211).
+
 ## v0.8.10
 A test build, from the `claude/v0.8.10` branch: the tenth step in moving Mandarin's server to C#.
 

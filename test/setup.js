@@ -69,6 +69,8 @@ if (process.env.MANDARIN_FRONT === "1") {
       const mine = front;
       ctx.httpServer.once("close", () => { if (mine.exitCode == null) mine.kill("SIGKILL"); });
       await listening(port, 30000);
+      // As in the image: the conversions of the music folders' own files are made by C#.
+      ctx.useFront("http://127.0.0.1:" + port);
       return ctx;
     };
     s.stop = async () => {

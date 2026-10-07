@@ -17,6 +17,7 @@
 // Opus for the phone away (?q=opus), and a track streamed from Qobuz or Tidal.
 // So is a request this side can't vouch for (a speaker asking by its own
 // address: the Node server knows the speakers).
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Net.Http.Headers;
 
@@ -159,8 +160,8 @@ internal static partial class Streams
         if (t.Path.Contains("://", StringComparison.Ordinal)) return false;   // Qobuz or Tidal: fetched by the Node server
 
         string mime = "audio/flac";
-        string? converted = null;
-        if (segRate != 0) converted = $"{id}-{t.Mtime}-{segRate}-{segBits}-hq";
+        ConvPlan? conv = null;
+        if (segRate != 0) conv = new ConvPlan(segRate, (int)segBits, true, false, "what the renderer was promised");
         else if (seg == "orig")
         {
             mime = MimeForExt(a.Groups[3].Value);
@@ -184,18 +185,26 @@ internal static partial class Streams
                 var codec = t.Codec.ToLowerInvariant();
                 var exact = t.Rate != 0 && t.Bits != 0 && outRate == t.Rate && outBits >= t.Bits && channels <= 2
                     && (IntegerCodec().IsMatch(codec) || (codec.Length == 0 && Uncompressed().IsMatch(t.Path)));
-                converted = $"{id}-{t.Mtime}-{outRate}-{outBits}{(exact ? "-x" : "")}";
+                string reason;
+                if (dsd) reason = "DSD, which Sonos does not play";
+                else if (tooHigh) reason = $"{(t.Bits != 0 ? t.Bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit/{(t.Rate != 0 ? (t.Rate / 1000.0).ToString(CultureInfo.InvariantCulture) : "?")} kHz is above what Sonos takes";
+                else if (channels > 2) reason = $"{channels} channels, folded down to stereo";
+                else if (Uncompressed().IsMatch(t.Path)) reason = $"{(t.Bits != 0 ? t.Bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit uncompressed, repacked as FLAC with the same samples";
+                else reason = $"a {(t.Codec.Length > 0 ? t.Codec : "file")} Sonos cannot read";
+                conv = new ConvPlan(outRate, (int)outBits, false, exact, reason);
             }
             mime = native ?? "audio/flac";
         }
-        if (converted != null)
+        if (conv != null)
         {
-            // Made already: sent from the cache, and marked as used (the cache keeps the most recently used).
-            var made = Path.Combine(cacheDir, converted + ".flac");
-            if (!File.Exists(made)) return false;   // still to make: the Node server makes it
-            var now = DateTime.UtcNow;
-            try { File.SetLastWriteTimeUtc(made, now); File.SetLastAccessTimeUtc(made, now); } catch (IOException) { /* best effort, as there */ }
-            return await SendFile(ctx, made, "audio/flac");
+            // Made already: sent from the cache, marked as used. Not yet: made
+            // now, and sent as it is made (v0.8.11; before, the Node server's).
+            if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
+            var job = Transcoder.Start(new ConvTrack(id, t.Path, t.Mtime), conv);
+            if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, "audio/flac");
+            if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
+            await Transcoder.TailFollow(ctx, job, "audio/flac");
+            return true;
         }
 
         if (!File.Exists(t.Path)) return false;   // the Node server says so, as before

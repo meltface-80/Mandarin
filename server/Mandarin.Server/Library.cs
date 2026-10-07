@@ -202,6 +202,7 @@ internal static partial class Library
 
     private static Uri? upstream;
     private static string frontKey = "";
+    public static string FrontKey => frontKey;
     private static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30) }) { Timeout = TimeSpan.FromSeconds(10) };
     private static volatile Snapshot? current;
     private static readonly SemaphoreSlim Building = new(1, 1);

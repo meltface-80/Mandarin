@@ -1101,6 +1101,7 @@ class PhonePlayerService : MediaLibraryService() {
             },
             volume = if (usbVolume()) UsbDriver.volume() else (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             muted = if (usbVolume()) UsbDriver.isMuted() else muted,
+            volumeSteps = if (usbVolume()) 100 else max,
             format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
             dsp = dsp.active,
             usb = usbNow(),

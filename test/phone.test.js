@@ -181,6 +181,34 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       assert.equal((await phone("GET", "/api/zone-state?zone=" + zoneId)).zone.state, "paused");
     });
 
+    await t.test("volume in the phone's own steps (v0.8.11): shown as it will be set, a nudge moves a step", async () => {
+      // Android's music stream with 15 steps: 51 is set as step 8, read back as 53.
+      await phone("POST", "/api/phone/state", { index: 1, position: 40, duration: 60, state: "paused", volume: 40, volume_steps: 15 });
+      let st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.ok(Math.abs(st.zone.outputs[0].volume.step - 100 / 15) < 1e-9, "the page steps by one of the phone's steps");
+      await phone("POST", "/api/volume", { output_id: zoneId, how: "absolute", value: 51 });
+      let got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.deepEqual(got.commands.map(c => [c.op, c.value]), [["volume", 53]], "sent as the step it will be");
+      seq = got.seq;
+      st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.equal(st.zone.outputs[0].volume.value, 53, "and shown so, before the phone reports it");
+      // The phone reports what it set: the same number, so nothing jumps.
+      await phone("POST", "/api/phone/state", { index: 1, position: 40, duration: 60, state: "paused", volume: 53, volume_steps: 15 });
+      // A nudge of one that would round back to where it is moves a whole step.
+      await phone("POST", "/api/volume", { output_id: zoneId, how: "relative", value: 1 });
+      got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.deepEqual(got.commands.map(c => [c.op, c.value]), [["volume", 60]]);
+      seq = got.seq;
+      // An app from before: no steps reported, every whole number as before.
+      await phone("POST", "/api/phone/state", { index: 1, position: 40, duration: 60, state: "paused", volume: 60 });
+      st = await phone("GET", "/api/zone-state?zone=" + zoneId);
+      assert.equal(st.zone.outputs[0].volume.step, 1);
+      await phone("POST", "/api/volume", { output_id: zoneId, how: "absolute", value: 51 });
+      got = await phone("GET", `/api/phone/commands?after=${seq}`);
+      assert.deepEqual(got.commands.map(c => [c.op, c.value]), [["volume", 51]]);
+      seq = got.seq;
+    });
+
     await t.test("the phone's DSP: saved on its page, sent to the app, shown on the badge", async () => {
       // The register learns of the phone within ten seconds of its hello;
       // its page in Audio Devices takes the setting like a renderer's.

@@ -102,6 +102,22 @@ function createServer(overrides = {}) {
     maxBytes: config.transcodeCacheGb * 1024 ** 3,
     log
   });
+  // Behind Mandarin's C# server (v0.8.11): it makes the conversions of the
+  // music folders' own files; this one hands it its "make these next". Called
+  // with where it listens (MANDARIN_FRONT_URL, or the tests'). A zone's DSP, a
+  // ReplayGain, 32-bit output and the services' tracks are still made here.
+  const useFront = (url) => {
+    transcoder.delegate = !url ? null : {
+      owns: (t, p) => !SERVICES.isStreamed(t.path) && !!p.transcode && !p.dsp && !p.gain && !p.copy &&
+        (p.bits === 16 || p.bits === 24) && p.rate >= 8000 && p.rate <= 768000,
+      prefetch: (items) => {
+        fetch(url + "/internal/transcode/prefetch", {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Mandarin-Front-Key": ctx.frontKey }, body: JSON.stringify(items)
+        }).then(r => { if (!r.ok) log(`[stream] the C# server didn't take the conversions (HTTP ${r.status})`); })
+          .catch(e => log(`[stream] the C# server didn't take the conversions: ${e.message}`));
+      }
+    };
+  };
   const advertisedIp = () => config.serverIp || localIp();
   // The speakers found last time are asked first, so after a restart or an
   // update the rooms are back in a second or two instead of after discovery.
@@ -121,6 +137,7 @@ function createServer(overrides = {}) {
     config, db, library, scanner, artwork, transcoder, zones, log, version: pkg.version,
     // This run of the server, and the key the C# server in front asks with (v0.8.4).
     bootId: crypto.randomBytes(8).toString("hex"),
+    useFront,
     frontKey: process.env.MANDARIN_FRONT_KEY || crypto.randomBytes(24).toString("hex"),
     baseUrl: () => `http://${advertisedIp()}:${config.port}`,
     // This server as it fetches from itself: where it listens (behind the C#
@@ -142,6 +159,9 @@ function createServer(overrides = {}) {
       features.kickSmartPicks();
     }
   };
+  // Started by the C# server: its conversions are made there (useFront, above).
+  if (process.env.MANDARIN_FRONT_URL) useFront(process.env.MANDARIN_FRONT_URL);
+
   ctx.releaseDays = new ReleaseDays({ db, library, log });
   // The streaming services (lib/services): Qobuz (v0.6.23) and Tidal
   // (v0.6.24) — the account, its albums as library rows, the stream behind

@@ -43,7 +43,7 @@ if (string.IsNullOrEmpty(upstream))
 {
     int internalPort = Front.FreeLoopbackPort();
     string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
-    node = Front.StartNode(appDir, internalPort, frontKey);
+    node = Front.StartNode(appDir, internalPort, frontKey, port);
     upstream = $"http://127.0.0.1:{internalPort}";
 }
 var upstreamUri = new Uri(upstream);
@@ -53,6 +53,7 @@ string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0
     : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
 Db.File = Path.Combine(dataDir, "musicd.db");
 Library.Init(upstreamUri, frontKey);
+Transcoder.Init(dataDir);
 Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
 
 // Nothing is answered until the Node server is: a request that arrived first
@@ -100,6 +101,9 @@ app.Use(async (ctx, next) =>
     await next();
 });
 app.UseResponseCompression();
+
+// The Node server's "make these next" for the conversions made here (Transcoder.cs).
+Transcoder.UseInternal(app);
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
