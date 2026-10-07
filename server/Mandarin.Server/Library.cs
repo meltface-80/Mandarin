@@ -34,6 +34,9 @@ internal sealed class Album
     public string NTitle = "", NArtist = "", JTitle = "", JArtist = "";
     public string[] TTitle = [], TArtist = [];
     public string SortTitle = "", SortArtist = "";
+    // ICU's sort keys for the names lists are sorted by: compared byte for
+    // byte, the same order as comparing the names, many times faster.
+    public byte[] SortTitleKey = [], SortArtistKey = [], NArtistKey = [];
     public (string Name, string N)[] ArtistNames = [];
     public long? Year;
     public string? Date;
@@ -100,6 +103,9 @@ internal static partial class Library
     private static readonly CompareInfo Collation = CultureInfo.InvariantCulture.CompareInfo;
     /* a.localeCompare(b) */
     public static int Lc(string a, string b) => Math.Sign(Collation.Compare(a, b, CompareOptions.None));
+    public static byte[] SortKey(string s) => Collation.GetSortKey(s, CompareOptions.None).KeyData;
+    /* Lc, by sort keys. */
+    public static int Kc(byte[] a, byte[] b) => Math.Sign(a.AsSpan().SequenceCompareTo(b));
     private static int LcBase(string a, string b) => Math.Sign(Collation.Compare(a, b, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreKanaType | CompareOptions.IgnoreWidth));
 
     private static readonly string[] Services = ["qobuz", "tidal"];
@@ -195,7 +201,22 @@ internal static partial class Library
     private static volatile Snapshot? current;
     private static readonly SemaphoreSlim Building = new(1, 1);
 
-    public static void Init(Uri node, string key) { upstream = node; frontKey = key; }
+    public static void Init(Uri node, string key)
+    {
+        upstream = node;
+        frontKey = key;
+        // Kept current in the background too (every five seconds at most), so
+        // the next screen after a scan or an edit seldom waits for the rebuild.
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                try { await Current(); }
+                catch (Exception e) { Front.Log($"[library] {e.GetType().Name}: {e.Message}"); }
+            }
+        });
+    }
 
     private static async Task<LibState?> State()
     {
@@ -306,7 +327,9 @@ internal static partial class Library
     private static Snapshot Build(LibState st)
     {
         using var c = Db.Open();
-        const string sql = @"SELECT a.*, e.title AS e_title, e.artist AS e_artist, e.year AS e_year,
+        const string sql = @"SELECT a.id, a.key, a.title, a.artist, a.sort_title, a.sort_artist, a.year, a.date, a.label, a.genres, a.dir,
+                                    a.art_hash, a.max_rate, a.max_bits, a.lossless, a.container, a.added_at, a.compilation,
+                                    e.title AS e_title, e.artist AS e_artist, e.year AS e_year,
                                     e.art_hash AS e_art_hash, e.art_source AS e_art_source, d.value AS mb_day
                                FROM albums a LEFT JOIN album_edits e ON e.key = a.key
                                LEFT JOIN cache d ON d.ns = 'mbday' AND d.key = a.key
@@ -388,6 +411,12 @@ internal static partial class Library
             var best = list[0];
             foreach (var x in list.Skip(1)) if (x.N > best.N) best = x;
             genreAs[k] = best.G;
+        }
+        foreach (var al in all)
+        {
+            al.SortTitleKey = SortKey(al.SortTitle);
+            al.SortArtistKey = SortKey(al.SortArtist);
+            al.NArtistKey = SortKey(al.NArtist);
         }
         foreach (var al in all)
             al.Genres = al.Genres.Select(g => genreAs.TryGetValue(Names.Fold(g), out var to) ? to : g).Distinct().ToList();
@@ -509,7 +538,7 @@ internal static partial class Library
         foreach (var g in order)
         {
             g.Title = g.OwnNames.Count > 0 ? Pick(g.OwnNames) : Pick(g.Names);
-            g.Albums = Sorted(g.Albums, (a, b) => Or(Lc(a.SortTitle, b.SortTitle), () => Lc(a.NArtist, b.NArtist)));
+            g.Albums = Sorted(g.Albums, (a, b) => Or(Kc(a.SortTitleKey, b.SortTitleKey), () => Kc(a.NArtistKey, b.NArtistKey)));
             g.MergedFrom = Sorted(g.MergedFrom, (a, b) => Lc(a.Display, b.Display));
         }
         // Kept in the order first seen, as a Map is.

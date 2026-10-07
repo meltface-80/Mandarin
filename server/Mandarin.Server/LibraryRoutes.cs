@@ -337,13 +337,13 @@ internal static partial class Library
         var useed = ToUint32(seed);
         Comparison<Album> cmp = sort switch
         {
-            "artist" => (a, b) => Or(Lc(a.SortArtist, b.SortArtist), () => Or(Math.Sign((a.Year ?? 0) - (b.Year ?? 0)), () => Lc(a.SortTitle, b.SortTitle))),
-            "year" => (a, b) => Or(Math.Sign(string.CompareOrdinal(a.DateKey, b.DateKey)), () => Lc(a.SortTitle, b.SortTitle)),
-            "added" => (a, b) => Or(Math.Sign(a.Added!.Value - b.Added!.Value), () => Lc(a.SortTitle, b.SortTitle)),
-            "plays" => (a, b) => Or(Math.Sign((stats!.TryGetValue(a.Id, out var x) ? x.N : 0) - (stats.TryGetValue(b.Id, out var y) ? y.N : 0)), () => Lc(a.SortTitle, b.SortTitle)),
-            "lastplayed" => (a, b) => Or(Math.Sign((stats!.TryGetValue(a.Id, out var x) ? x.T : 0) - (stats.TryGetValue(b.Id, out var y) ? y.T : 0)), () => Lc(a.SortTitle, b.SortTitle)),
+            "artist" => (a, b) => Or(Kc(a.SortArtistKey, b.SortArtistKey), () => Or(Math.Sign((a.Year ?? 0) - (b.Year ?? 0)), () => Kc(a.SortTitleKey, b.SortTitleKey))),
+            "year" => (a, b) => Or(Math.Sign(string.CompareOrdinal(a.DateKey, b.DateKey)), () => Kc(a.SortTitleKey, b.SortTitleKey)),
+            "added" => (a, b) => Or(Math.Sign(a.Added!.Value - b.Added!.Value), () => Kc(a.SortTitleKey, b.SortTitleKey)),
+            "plays" => (a, b) => Or(Math.Sign((stats!.TryGetValue(a.Id, out var x) ? x.N : 0) - (stats.TryGetValue(b.Id, out var y) ? y.N : 0)), () => Kc(a.SortTitleKey, b.SortTitleKey)),
+            "lastplayed" => (a, b) => Or(Math.Sign((stats!.TryGetValue(a.Id, out var x) ? x.T : 0) - (stats.TryGetValue(b.Id, out var y) ? y.T : 0)), () => Kc(a.SortTitleKey, b.SortTitleKey)),
             "random" => (a, b) => Math.Sign((long)SeededRank(a.NTitle + a.NArtist, useed) - SeededRank(b.NTitle + b.NArtist, useed)),
-            _ => (a, b) => Or(Lc(a.SortTitle, b.SortTitle), () => Lc(a.NArtist, b.NArtist)),
+            _ => (a, b) => Or(Kc(a.SortTitleKey, b.SortTitleKey), () => Kc(a.NArtistKey, b.NArtistKey)),
         };
         List<Album> outList;
         if (sort is "year" or "added")
@@ -353,7 +353,7 @@ internal static partial class Library
             foreach (var al in list) ((sort == "year" ? al.Year != null : al.Added != null) ? known : unknown).Add(al);
             known = Sorted(known, cmp);
             if (desc) known.Reverse();
-            outList = Sorted(unknown, (a, b) => Lc(a.SortTitle, b.SortTitle));
+            outList = Sorted(unknown, (a, b) => Kc(a.SortTitleKey, b.SortTitleKey));
             outList.InsertRange(0, known);
         }
         else
@@ -589,7 +589,7 @@ internal static partial class Library
             var single = qj.Length <= 1;
             var hits = new List<(Album Al, int Score)>();
             foreach (var al in s.Albums) { var sc = ScoreAlbum(al, q, qt, qj, single); if (sc > 0) hits.Add((al, sc)); }
-            hits = Sorted(hits, (a, b) => Or(b.Score - a.Score, () => Or(Lc(a.Al.NTitle, b.Al.NTitle), () => Lc(a.Al.NArtist, b.Al.NArtist))));
+            hits = Sorted(hits, (a, b) => Or(b.Score - a.Score, () => Or(Lc(a.Al.NTitle, b.Al.NTitle), () => Kc(a.Al.NArtistKey, b.Al.NArtistKey))));
             foreach (var h in hits.Take(limit)) results.Add(AlbumJson(s, h.Al, new JsonObject { ["score"] = h.Score }));
         }
 
@@ -643,11 +643,12 @@ internal static partial class Library
                 else { m[n] = (name, 1, al.ImageKey, Names.SortName(name)); order.Add(n); }
             }
         }
+        var keys = sort == "random" ? null : order.ToDictionary(n => n, n => SortKey(m[n].SortName));
         var list = sort switch
         {
             "random" => Sorted(order, (a, b) => Math.Sign((long)SeededRank(a, seed) - SeededRank(b, seed))),
-            "albums" => Sorted(order, (a, b) => Or(m[b].Count - m[a].Count, () => Lc(m[a].SortName, m[b].SortName))),
-            _ => Sorted(order, (a, b) => Lc(m[a].SortName, m[b].SortName)),
+            "albums" => Sorted(order, (a, b) => Or(m[b].Count - m[a].Count, () => Kc(keys![a], keys[b]))),
+            _ => Sorted(order, (a, b) => Kc(keys![a], keys[b])),
         };
         var offset = (int)Math.Min(int.MaxValue, Math.Max(0, IntOr(Q(ctx, "offset"), 0)));
         var limit = (int)Math.Max(1, Math.Min(500, IntOr(Q(ctx, "limit"), 120)));
@@ -681,7 +682,7 @@ internal static partial class Library
             foreach (var r in Rows(c, "SELECT DISTINCT album_id FROM tracks WHERE lower(artist) IN (lower($1), lower($2), lower($3)) LIMIT 200",
                          artist, ThePrefix().Replace(artist, "", 1), TheStart().IsMatch(artist) ? artist : "The " + artist))
                 if (s.ById.TryGetValue((long)r[0]!, out var al) && !primary.Contains(al) && !featured.Contains(al)) featured.Add(al);
-            int ByYear(Album a, Album b) => Or(Math.Sign((a.Year ?? 9999) - (b.Year ?? 9999)), () => Lc(a.SortTitle, b.SortTitle));
+            int ByYear(Album a, Album b) => Or(Math.Sign((a.Year ?? 9999) - (b.Year ?? 9999)), () => Kc(a.SortTitleKey, b.SortTitleKey));
             primary = Sorted(primary, ByYear);
             featured = Sorted(featured, ByYear);
         }

@@ -22,7 +22,9 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
 - **The library** is read here from a copy in memory, as the Node server keeps one. Which copy is
   current is the Node server's to say (it still scans and takes edits): each library request asks
   it first, on a private address with a key this server gave it (`/internal/library`), and the
-  copy here is rebuilt from the database when it changed. Names sort as JavaScript sorts them
+  copy here is rebuilt from the database when it changed, and checked every five seconds besides,
+  so a screen seldom waits for the rebuild. On 20,000 albums a rebuild takes about half a second,
+  as the Node server's own does; lists are sorted with ICU sort keys, computed once per rebuild. Names sort as JavaScript sorts them
   (ICU's collation, so the image carries libicu), and `test/library-front.test.js` asks both
   servers the same questions and checks the answers are the same.
 - **Compression:** what C# answers itself goes out gzipped, as the Node server's did.

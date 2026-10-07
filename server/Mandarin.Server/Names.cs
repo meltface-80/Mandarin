@@ -21,6 +21,7 @@ internal static partial class Names
     public static string Fold(string? s)
     {
         if (string.IsNullOrEmpty(s)) return "";
+        if (Ascii.IsValid(s)) return FoldAscii(s);
         var d = s.Normalize(NormalizationForm.FormKD);
         var sb = new StringBuilder(d.Length);
         bool gap = false;
@@ -34,6 +35,25 @@ internal static partial class Names
                 if (gap && sb.Length > 0) sb.Append(' ');
                 gap = false;
                 sb.Append(lower.ToString());
+            }
+            else gap = true;
+        }
+        return sb.ToString();
+    }
+
+    // Plain ASCII, most names: already in its decomposed form, so nothing to normalise.
+    private static string FoldAscii(string s)
+    {
+        var sb = new StringBuilder(s.Length + 8);
+        bool gap = false;
+        foreach (var ch in s)
+        {
+            if (ch == '&') { if (sb.Length > 0) sb.Append(' '); sb.Append("and"); gap = true; continue; }
+            if (char.IsAsciiLetterOrDigit(ch))
+            {
+                if (gap && sb.Length > 0) sb.Append(' ');
+                gap = false;
+                sb.Append(char.ToLowerInvariant(ch));
             }
             else gap = true;
         }
