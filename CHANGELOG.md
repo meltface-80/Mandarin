@@ -5,6 +5,32 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.9
+A full review of the server, the page, the Android app and the network engine.
+
+- **Speakers and streamers are found more reliably.** Every search goes out from each of the
+  machine's LAN addresses, worked out at the search: a server started before its network was up,
+  or whose address changed, used to search from an address it no longer had and find nothing
+  until restarted. VPN, Docker and VM interfaces are never used, and the server's own address is
+  a private LAN one (it could be a VPN's). A Sonos household whose addresses had all changed is
+  read in seconds (the old addresses were tried one by one, ten seconds each). A streamer that
+  misses a search round, as multicast often does on Wi-Fi, is checked directly and stays listed.
+  A Sonos player's model is retried when it failed to load.
+- **Leaks fixed.** The Sonos and streamer loops kept every timer they made (some 98,000 a day);
+  the album lookup caches grew without limit (their cap was never applied).
+- **In-app updates work from a folder with a space in its path** (a home folder named "John
+  Smith"): the download was unpacked through a shell, unquoted.
+- **One stray error in background work no longer stops the server**; it is logged.
+- **Share card.** The popup ends under its last line on Now playing (a 106px reserve for the
+  transport bar was there even where the bar is hidden), and the × sits closer into the corner.
+  Suggestions near what you play always come before an act near nothing you play.
+- **The Library's Sort sheet keeps keyboard focus** on the row you pressed.
+- **Dead code removed**: an unused New Releases picker, a Roon-era queue function, unused helpers,
+  a pasted-eight-times block, and a 32 MB build of the network engine committed by mistake.
+- **Checked and sound:** sign-in and the media gate, backup ids, the Android app's network
+  timeouts, local ports (127.0.0.1 only) and service teardown, and the network engine (go vet and
+  its tests clean; the Android core module's 47 tests pass).
+
 ## v0.7.8
 - **An album's ⋯ menu is all on screen on a tablet.** From 720px up (an iPad either way round,
   a laptop) the menu opens upwards from the button row, and with only the title and the artist

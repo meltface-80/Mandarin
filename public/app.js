@@ -4003,6 +4003,9 @@ window.__afterStart = (fn) => {
           });
           body.appendChild(row);
         }
+        // Focus back on the row in the same place (v0.7.9: worked out above
+        // and then never applied, so a keyboard user lost their place).
+        if (focused >= 0) { const again = body.querySelectorAll(".lib-sort-row")[focused]; if (again) again.focus(); }
       };
       paint();
     });
@@ -4872,63 +4875,6 @@ window.__afterStart = (fn) => {
       // The fetch died, but the server keeps going — it has no way to hear
       // that we left. Saying "couldn't reach" would invite a retry that
       // restarts the queue from scratch on top of the run still in progress.
-      showToast("Lost contact while filling the queue — check the queue before trying again",
-                "error", TOAST_REPORT_MS);
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  // Turn a smart playlist into a real Roon playlist.
-  //
-  // Roon's extension API has NO playlist write of any kind — no create, add,
-  // remove or reorder, and no "Add to Playlist" action anywhere in the browse
-  // tree. Roon has left that request unanswered since 2017. What Roon DOES
-  // offer is saving the current queue as a playlist from its own remote, so the
-  // extension does the half it can (assembling the queue in the right order)
-  // and then says exactly which two taps finish the job.
-  async function sendSmartPlaylistToQueue(sp, btn) {
-    const zsel = document.getElementById("zone-select");
-    const zone = (zsel && zsel.value) || selectedZoneId;
-    if (!zone) { showToast("Choose a zone first", "error"); return; }
-
-    // Disclose the cap BEFORE asking, not after: the confirm destroys the
-    // existing queue, and a user agreeing to "send 1,179 albums" would not
-    // necessarily agree to "destroy the queue to send 400 of them".
-    const capNote = (typeof sp.album_total === "number" && sp.album_total > SMART_SEND_MAX)
-      ? `\n\nOnly the first ${SMART_SEND_MAX} of ${sp.album_total} albums fit in one go.`
-      : "";
-    const ok = await confirmDialog(
-      `Queue "${sp.name}" to ${(zsel && zsel.selectedOptions[0] && zsel.selectedOptions[0].textContent) || "this zone"}?\n\n` +
-      "This replaces what's in the queue now." +
-      capNote);
-    if (!ok) return;
-
-    btn.disabled = true;
-    try {
-      const r = await fetch(`/api/smart-playlist/albums?id=${encodeURIComponent(sp.id)}&max=${SMART_SEND_MAX}`,
-                            { cache: "no-store" });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { showToast(j.error || "Couldn't read this playlist", "error"); return; }
-      const albums = j.albums || [];
-      if (!albums.length) { showToast("Nothing matches this Dynamic Playlist", "error"); return; }
-
-      const pr = await fetch("/api/play-multi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: albums.map(a => ({ offset: a.offset, title: a.title, subtitle: a.subtitle })),
-          zone_or_output_id: zone,
-          // play_now on the first album, queue for the rest — that is what
-          // play-multi does, and it is what builds an ordered queue.
-          kind: "play_now"
-        })
-      });
-      const pj = await pr.json().catch(() => ({}));
-      if (!pr.ok) { showToast(pj.error || "Sonos refused that", "error"); return; }
-      showToast(multiOutcome("Queued", pj, albums.length, smartMatched(j)), null, TOAST_REPORT_MS);
-    } catch (e) {
-      // Same reasoning as playSmartPlaylist: the server run outlives our fetch.
       showToast("Lost contact while filling the queue — check the queue before trying again",
                 "error", TOAST_REPORT_MS);
     } finally {
@@ -6764,46 +6710,6 @@ window.__afterStart = (fn) => {
     b.addEventListener("click", () => showTab(b.dataset.tab));
   });
 
-  async function fetchNowPlayingDetail(zoneId) {
-    const r = await fetch(`/api/album/now-playing?zone=${encodeURIComponent(zoneId)}`);
-    if (!r.ok) {
-      const j = await r.json().catch(() => ({}));
-      throw new Error(j.error || `HTTP ${r.status}`);
-    }
-    const j = await r.json();
-    if (j.album) {
-      setModalSource(j.album);   // authoritative: the server resolved this album
-      if (j.album.title)    modalTitle.textContent = j.album.title;
-      if (j.album.subtitle) setModalArtist(j.album.subtitle);
-      if (j.album.image_key) {
-        modalImg.src = `/api/image/${encodeURIComponent(j.album.image_key)}?size=800`;
-        setModalAmbient(modalImg.src);
-      }
-    }
-    const wrap = document.querySelector(".track-list-wrap");
-    if ((j.tracks || []).length) {
-      wrap.classList.remove("hidden");
-      modalTracks.innerHTML = "";
-      for (const t of j.tracks) {
-        const li = document.createElement("li");
-        // Two-line rows (queue-tab style): title over the FULL artist credit,
-        // stacked in a .t-text column so multi-artist tracks aren't clipped.
-        const tx = document.createElement("div"); tx.className = "t-text";
-        const ti = document.createElement("span"); ti.className = "t-title";
-        ti.textContent = t.title || "";
-        const su = document.createElement("span"); su.className = "t-sub";
-        const [subText, len] = splitTrackLength(t.subtitle);
-        su.textContent = subText;
-        tx.appendChild(ti); tx.appendChild(su);
-        li.appendChild(tx);
-        if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
-        modalTracks.appendChild(li);
-      }
-    } else {
-      wrap.classList.add("hidden");
-    }
-  }
-
   // A queue belongs to a ZONE, and the zone the user is pointed at can change
   // while this screen stays open. currentSourceZoneId is a snapshot taken in
   // openAlbum(), so reading it here showed the queue of whichever zone happened
@@ -7642,7 +7548,6 @@ window.__afterStart = (fn) => {
   function aeMatchLine(c) {
     const m = c.match || {};
     if (m.tracks != null) {
-      const n = c.tracks || 0;
       return m.tracks >= 0.999 ? "All tracks match" : `${Math.round(m.tracks * 100)}% tracks match`;
     }
     return [c.year, c.tracks ? c.tracks + " tracks" : ""].filter(Boolean).join(" · ");
@@ -9346,12 +9251,6 @@ window.__afterStart = (fn) => {
     let _labelsScrollSaved = 0;    // restores position when returning from a label's album view
     let _labelsScrollTarget = null; // label name to scroll into view when arriving via a deep-link (album/search)
     const mainEl = document.querySelector("main");
-
-    const TAG_SVG =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" ' +
-      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>' +
-      '<line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
 
     let mode = null;           // null | "list" | "albums"
     let _lastLabelCount = -1;  // track last rendered count to avoid flicker on re-poll
@@ -11969,6 +11868,22 @@ function settingsInfo(text) {
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
   idle(() => { try { const im = new Image(); im.src = LOGO_URL; } catch (e) { /* only a head start */ } });
 
+  /*
+   * The pill's room under the sheet (v0.7.9), only while the pill is on
+   * screen: it floats over the overlay, so the panel is centred above it.
+   * On Now playing it is hidden, and the sheet takes the full height.
+   */
+  function fitShareReserve() {
+    const mt = document.getElementById("mini-transport");
+    let reserve = 0;
+    if (mt) {
+      const r = mt.getBoundingClientRect();
+      if (r.height > 0 && r.top < window.innerHeight) reserve = Math.max(0, Math.ceil(window.innerHeight - r.top - 20 + 8));
+    }
+    overlay.style.setProperty("--share-reserve", reserve + "px");
+  }
+  window.addEventListener("resize", () => { if (!overlay.classList.contains("hidden")) fitShareReserve(); });
+
   // Public entry point — called from album modal share button + mini transport
   async function open(input) {
     const title  = input.title  || "";
@@ -12003,6 +11918,7 @@ function settingsInfo(text) {
     frame.innerHTML =
       `<div class="share-placeholder"><div class="share-spinner"></div><div>Generating card…</div></div>`;
     overlay.classList.remove("hidden");
+    fitShareReserve();
 
     try {
       // THE CARD FIRST, THEN THE SUGGESTIONS. The card is drawn from what is
@@ -17105,8 +17021,6 @@ initServiceBrowser({
   const allBands = dr => (dr.headphone && dr.headphone.bands ? dr.headphone.bands : []).concat(dr.bands);
   const autoHeadroom = dr => window.Biquad ? window.Biquad.headroom(dspSetting(Object.assign({}, dr, { headroom: "auto" }), true), 48000) : 0;
   const fmtDb = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + " dB";
-  const fmtHz = v => v >= 1000 ? (Math.round(v / 100) / 10) + " kHz" : Math.round(v) + " Hz";
-
   async function api(url, method, payload) {
     const r = await fetch(url, method ? { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}) } : { cache: "no-store" });
     const j = await r.json().catch(() => ({}));
@@ -17759,7 +17673,6 @@ initServiceBrowser({
     const hr = e.target.closest("[data-dsp-headroom]");
     if (hr) {
       const dr = dspOf(current);
-      const B = window.Biquad;
       dr.headroom = hr.getAttribute("data-dsp-headroom") === "auto" ? "auto" : autoHeadroom(dr);
       dr.dirty = true; renderDetail(); return;
     }
@@ -17807,7 +17720,7 @@ initServiceBrowser({
     if (lv) {
       const key = lv.getAttribute("data-lv");
       await patch({ levelling: { [key]: key === "mode" ? lv.value : Number(lv.value) } });
-      if (!err && key === "mode") toast("Volume levelling: " + (LV_MODES.find(m => m[0] === lv.value) || [, ""])[1]);
+      if (!err && key === "mode") toast("Volume levelling: " + (LV_MODES.find(m => m[0] === lv.value) || [null, ""])[1]);
       return;
     }
     const bandType = e.target.closest("select[data-dsp-f='type']");

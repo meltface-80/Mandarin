@@ -1508,6 +1508,13 @@ body.settings-open main { overflow-y: hidden; }
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 60; /* inset longhands: old Safari */
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
+  /* Room for the now-playing pill, when it is showing: the pill floats over
+     this overlay (z-index 70 against 60), so the panel is centred in the
+     space above it. app.js (fitShareReserve) measures the pill as the sheet
+     opens and sets --share-reserve; on Now playing, where the pill is
+     hidden, it is 0. (v0.7.9: it was 106px of padding inside the panel,
+     always, which was dead space at the foot of the card on Now playing.) */
+  padding-bottom: calc(20px + var(--share-reserve, 0px));
   font-family: "Manrope", var(--font-sans);
 }
 .share-backdrop {
@@ -1519,8 +1526,7 @@ body.settings-open main { overflow-y: hidden; }
 .share-panel {
   position: relative;
   width: min(560px, 100%);
-  max-height: calc(100vh - 40px);
-  max-height: calc(100dvh - 40px);
+  max-height: 100%;          /* of the overlay's box: inside its padding and the pill's room */
   overflow-y: auto;
   /* The app's own material (v1.7.89): --bg-veil and the lit edge, like the
      transport pill and the volume sheets. The backdrop-filter below stays —
@@ -1531,17 +1537,10 @@ body.settings-open main { overflow-y: hidden; }
   border-radius: 20px;
   box-shadow: var(--shadow-modal);
   padding: 24px 18px 18px;
-  /* THE RESERVE, and it is a longhand AFTER the shorthand on purpose.
-     The now-playing pill floats over this overlay (it is z-index 70 against
-     the overlay's 60), so without room reserved here the last rows of the
-     suggestions sit underneath it with no way to scroll them clear — the panel
-     has already reached the end of its own scroll. Same reserve .modal-body
-     carries, and the same trap: writing it into the shorthand above means the
-     next person to touch that line silently deletes it. */
-  padding-bottom: calc(106px + env(safe-area-inset-bottom));
   animation: modal-in .18s ease-out;
 }
-.share-close { position: absolute; top: 12px; right: 12px; }
+/* Close, into the corner (v0.7.9: 6px from the edges, was 12). */
+.share-close { position: absolute; top: 6px; right: 6px; }
 .share-frame {
   margin-top: 26px;
   border: 1px solid var(--glass-edge);
@@ -1736,7 +1735,8 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
    tests; it no longer changes how anything looks. */
 
 .share-hint { color: var(--text-faint); font-size: 13px; margin: 10px 4px 0; }
-.share-err  { color: var(--danger);     font-size: 13px; margin: 10px 4px 0; min-height: 1em; }
+.share-err  { color: var(--danger);     font-size: 13px; margin: 10px 4px 0; }
+.share-err:empty { display: none; }   /* no line held for an error there isn't */
 
 /* ------------------------------------------------------------------ */
 /*  Modal tabs (Now playing / Queue)                                   */

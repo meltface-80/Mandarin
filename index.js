@@ -101,7 +101,7 @@ function createServer(overrides = {}) {
   // update the rooms are back in a second or two instead of after discovery.
   const knownHosts = (db.setting("sonosKnownHosts", []) || []).filter(h => !config.sonosHosts.includes(h));
   const zones = new ZoneManager({
-    seedHosts: config.sonosHosts.concat(knownHosts), bindIp: config.serverIp || localIp(),
+    seedHosts: config.sonosHosts.concat(knownHosts), bindIp: config.serverIp || null,
     include: config.include, exclude: config.exclude, log, trackIdFromUri
   });
   // The phones' and renderers' queues, kept across a restart (an update ends in one).
@@ -184,7 +184,7 @@ function createServer(overrides = {}) {
   // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({
-    db, zones, bindIp: config.serverIp || localIp(), seedHosts: config.upnpHosts,
+    db, zones, bindIp: config.serverIp || null, seedHosts: config.upnpHosts,
     multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log, local: config.localAudio
   });
   // The renderers as zones, beside the Sonos rooms and the phones.
@@ -513,6 +513,13 @@ function createServer(overrides = {}) {
 module.exports = { createServer, config };
 
 if (require.main === module) {
+  // A promise rejected with nothing to catch it — a background lookup, a
+  // device that hung up mid-answer — is logged, not fatal (v0.7.9). Node
+  // ends the process on one by default, and the launcher (rightly) doesn't
+  // restart after an unexpected exit, so one stray error in background work
+  // took the server down until someone restarted it. Here only, not in
+  // createServer: the tests should still fail on one.
+  process.on("unhandledRejection", (e) => log("[musicd] unhandled: " + ((e && e.stack) || e)));
   const s = createServer();
   s.start().catch(e => { console.error(e); process.exit(1); });
   const bye = () => { s.stop().finally(() => process.exit(0)); };
