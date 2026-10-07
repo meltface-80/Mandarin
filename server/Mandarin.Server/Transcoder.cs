@@ -74,6 +74,9 @@ internal static partial class Transcoder
         catch (Exception) { return (bin, false, false); }
     }
 
+    public static bool Soxr => Ff.Value.Soxr;
+    public static string Bin => Ff.Value.Bin;
+
     public static string KeyFor(ConvTrack t, ConvPlan p) => $"{t.Id}-{t.Mtime}-{p.Rate}-{p.Bits}{(p.Hq ? "-hq" : "")}{(p.Exact ? "-x" : "")}";
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
 

@@ -54,6 +54,7 @@ string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0
 Db.File = Path.Combine(dataDir, "musicd.db");
 Library.Init(upstreamUri, frontKey);
 Transcoder.Init(dataDir);
+Downloads.Init(dataDir);
 Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
 
 // Nothing is answered until the Node server is: a request that arrived first
@@ -117,6 +118,8 @@ Library.Use(app);
 Images.Use(app, dataDir);
 // Music files sent as they are (Streams.cs); conversions are the Node server's.
 Streams.Use(app, dataDir);
+// The phone's downloads and its Opus away from home (Downloads.cs).
+Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();

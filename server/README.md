@@ -44,7 +44,8 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Reading the library: the Library wall and its Focus sheet, search, artists, an album's page, genres, decades, the random wall, Favourites, Listen later (`Library.cs`, `LibraryRoutes.cs`, `Names.cs`) | C# (v0.8.4); scans, edits, hearts, labels, Home's rows and a streamed album's page still Node's |
 | Music files sent as they are, with ranges, to signed-in devices and signed addresses (speakers) (`Streams.cs`) | C# (v0.8.9) |
 | Conversions already made, from the cache (the 24/48 rule and a streamer's rate and depth) (`Streams.cs`) | C# (v0.8.10) |
-| Making conversions with ffmpeg, sent as they're made; the next tracks made ahead, handed over by the Node server; the cache kept under its size (`Transcoder.cs`) | C# (v0.8.11); DSP, ReplayGain, 32-bit, Opus for the phone away, Qobuz and Tidal still Node's |
+| Making conversions with ffmpeg, sent as they're made; the next tracks made ahead, handed over by the Node server; the cache kept under its size (`Transcoder.cs`) | C# (v0.8.11); DSP, ReplayGain, 32-bit, Qobuz and Tidal still Node's |
+| The phone's downloads (Original or Opus 256) and its Opus stream away from home, the album's next tracks made ready (`Downloads.cs`) | C# (v0.8.12); the album's download list (with ReplayGain) and automatic downloads still Node's |
 | Your own playlists: the list, one, making, renaming, deleting, adding tracks or albums (`PlaylistRoutes.cs`) | C# (v0.8.8); sharing a playlist (the MDRP1 text) still Node's |
 | Settings only kept and read: the wall display, Smart Picks' switch and hour, Home's rows; dynamic playlists (`SettingsRoutes.cs`) | C# (v0.8.7); share links and the waveform switch still Node's |
 | Home's rows: Album of the day, Label of the week, Recently played, Not played lately (`HomeRoutes.cs`) | C# (v0.8.6); the day and week are the Node server's clock's, told with the library's state; Smart picks still Node's |

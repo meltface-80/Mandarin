@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.12
+A test build, from the `claude/v0.8.12` branch: the twelfth step in moving Mandarin's server to C#.
+
+- **The phone's downloads and its music away from home are now made and sent by Mandarin's C#
+  server:** a download at Original or Opus 256 quality, and the Opus stream the phone plays away
+  from home, with the album's next two tracks made ready behind it.
+  - The same audio as before: a new test checks each FLAC is the very file the Node server's
+    settings make, and each Opus file decodes to the very same sound.
+  - Kept in the same place under the same names, so downloads and Opus already made are used as
+    they are.
+- The album's download list (with its ReplayGain numbers) and automatic downloads still come
+  from the Node server; neither makes a file.
+- The Android app for this branch is at the same test address (0.8.12, version code 212).
+
 ## v0.8.11
 A test build, from the `claude/v0.8.11` branch: the eleventh step in moving Mandarin's server to C#.
 

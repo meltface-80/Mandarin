@@ -344,6 +344,59 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.ok(fs.existsSync(aheadFile), "made by C# in the cache");
     assert.equal(ctx.transcoder.status(ahead, aheadPlan), "ready");
     assert.deepEqual(fs.readFileSync(aheadFile), nodeMade(ahead, aheadPlan), "as the Node server would have made it");
+    // The phone's downloads and its Opus away (v0.8.12): made by C#, the
+    // same audio as ffmpeg makes with the Node server's settings (Opus is
+    // compared decoded: its Ogg wrapper is numbered afresh each time).
+    const DL = require("../lib/server/downloads").Downloads;
+    const decodedBuf = buf => { const f = path.join(lib.root, "decode-" + Date.now() + ".opus"); fs.writeFileSync(f, buf); return decoded(f); };
+    const decoded = file => spawnSync(require("../lib/ffmpeg").info().bin, ["-v", "error", "-i", file, "-f", "f32le", "-"], { maxBuffer: 1 << 28 }).stdout;
+    const nodeDownload = (t, quality) => {
+      const p = ctx.downloads.plan(t, quality);
+      const out = path.join(lib.root, "node-dl-" + t.id + "." + p.ext);
+      const r = spawnSync(require("../lib/ffmpeg").info().bin, ctx.downloads.args(t, p, out));
+      assert.equal(r.status, 0, String(r.stderr));
+      return out;
+    };
+    for (const title of ["So What", "Take", "Hunter", "A"]) {
+      const t = rowOf(title);
+      for (const quality of ["original", "opus"]) {
+        const addr = "/api/download/t" + t.id + "?quality=" + quality;
+        const c = await fetch(B + addr, { headers: H });
+        const body = Buffer.from(await c.arrayBuffer());
+        assert.equal(c.status, 200, addr);
+        assert.equal(c.headers.get("x-mandarin-answered"), "C#", addr + ": made and sent by C#");
+        const p = ctx.downloads.plan(t, quality);
+        assert.equal(c.headers.get("x-download-ext"), p.ext, addr);
+        assert.equal(c.headers.get("content-type"), p.mime, addr);
+        if (p.file) { assert.deepEqual(body, fs.readFileSync(t.path), addr + ": the file itself"); continue; }
+        // Kept under the Node server's own name for it: the Node server finds it, makes nothing.
+        const kept = path.join(lib.data, "download-cache", ctx.downloads.keyFor(t, p) + "." + p.ext);
+        assert.deepEqual(body, fs.readFileSync(kept), addr + ": kept under the Node server's name");
+        const n = await fetch(N + addr, { headers: H });
+        assert.deepEqual(Buffer.from(await n.arrayBuffer()), body, addr + ": the Node server sends the same, made once");
+        assert.equal(ctx.downloads.jobs.size, 0);
+        const theirs = nodeDownload(t, quality);
+        if (quality === "opus") assert.deepEqual(decoded(kept), decoded(theirs), addr + ": the same Opus audio");
+        else assert.deepEqual(body, fs.readFileSync(theirs), addr + ": the same FLAC, byte for byte");
+        // A range of it.
+        const rc = await fetch(B + addr, { headers: Object.assign({ Range: "bytes=100-299" }, H) });
+        assert.equal(rc.status, 206);
+        assert.deepEqual(Buffer.from(await rc.arrayBuffer()), body.subarray(100, 300));
+      }
+    }
+    // Away from home: the track as Opus, from the same cache, the album's next ones made ready.
+    const away = rowOf("Come Together"), awayNext = rowOf("Something");
+    let o = await fetch(B + "/stream/t" + away.id + ".flac?q=opus", { headers: H });
+    assert.deepEqual([o.status, o.headers.get("x-mandarin-answered"), o.headers.get("content-type")], [200, "C#", "audio/ogg"]);
+    const opusBody = Buffer.from(await o.arrayBuffer());
+    assert.deepEqual(decoded(path.join(lib.data, "download-cache", ctx.downloads.keyFor(away, ctx.downloads.plan(away, "opus")) + ".opus")).length > 0, true);
+    assert.deepEqual(decoded(nodeDownload(away, "opus")), decodedBuf(opusBody), "the same Opus audio as the Node server's settings make");
+    const nextFile = path.join(lib.data, "download-cache", ctx.downloads.keyFor(awayNext, ctx.downloads.plan(awayNext, "opus")) + ".opus");
+    for (let i = 0; i < 100 && !fs.existsSync(nextFile); i++) await new Promise(res => setTimeout(res, 100));
+    assert.ok(fs.existsSync(nextFile), "the album's next track made ready behind it");
+    o = await fetch(B + "/api/download/t999999", { headers: H });
+    assert.deepEqual([o.status, (await o.json()).error], [404, "That track is no longer in the library"]);
+
     // Not made yet, or not this side's: the Node server's.
     for (const conv of ["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "/stream/t" + trackOf("Something").id + ".44100-32.flac"]) {
       x = await fetch(B + conv, { headers: H });

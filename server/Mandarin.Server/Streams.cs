@@ -127,8 +127,9 @@ internal static partial class Streams
         var a = Address().Match(path);
         if (!a.Success) return false;
         var q = ctx.Request.Query;
-        // Converted, levelled or made Opus: the Node server's (ffmpeg).
-        if (q.ContainsKey("g") || q["q"].ToString() == "opus") return false;
+        var opus = q["q"].ToString() == "opus";
+        // Levelled (ReplayGain): the Node server's.
+        if (q.ContainsKey("g") && !opus) return false;
         var seg = a.Groups[2].Value;
         if (!long.TryParse(a.Groups[1].Value, out var id)) return false;
         // A rate and depth a streamer was promised: made with the high-quality settings.
@@ -158,6 +159,8 @@ internal static partial class Streams
         }
         if (t == null) return false;
         if (t.Path.Contains("://", StringComparison.Ordinal)) return false;   // Qobuz or Tidal: fetched by the Node server
+        // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12).
+        if (opus) return await Downloads.StreamOpus(ctx, id);
 
         string mime = "audio/flac";
         ConvPlan? conv = null;
@@ -211,7 +214,7 @@ internal static partial class Streams
         return await SendFile(ctx, t.Path, mime);
     }
 
-    private static async Task<bool> SendFile(HttpContext ctx, string file, string mime)
+    public static async Task<bool> SendFile(HttpContext ctx, string file, string mime)
     {
         var info = new FileInfo(file);
         var ms = (long)Math.Floor((info.LastWriteTimeUtc.Ticks - DateTime.UnixEpoch.Ticks) / 10000.0 + 0.5);
