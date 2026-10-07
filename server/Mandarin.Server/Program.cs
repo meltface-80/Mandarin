@@ -112,7 +112,7 @@ Library.Use(app);
 // Covers and label logos already drawn (Images.cs); the rest are drawn by the Node server.
 Images.Use(app, dataDir);
 // Music files sent as they are (Streams.cs); conversions are the Node server's.
-Streams.Use(app);
+Streams.Use(app, dataDir);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();

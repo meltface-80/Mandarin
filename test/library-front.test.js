@@ -35,6 +35,8 @@ function library() {
   one("Box/Yes - The Remixes (2018)/Disc 2 - Fragile (1971)", "01 Roundabout.flac", { title: "Roundabout", artist: "Yes", album: "Fragile", track: 1, date: "1971", genre: "Prog Rock" });
   one("Comp/Now 1", "01 A.mp3", { title: "A", artist: "Daft Punk", album: "Now 1", album_artist: "Various Artists", track: 1, compilation: 1, date: "2001", genre: "Pop" }, { fmt: null, codecArgs: ["-b:a", "192k"] });
   one("Comp/Now 1", "02 B.mp3", { title: "B", artist: "Björk", album: "Now 1", album_artist: "Various Artists", track: 2, compilation: 1, date: "2001", genre: "Pop" }, { fmt: null, codecArgs: ["-b:a", "192k"] });
+  // 24-bit WAV: repacked as FLAC, the samples exactly as they are (a cache name of its own).
+  one("Misc/Studio", "01 Take.wav", { title: "Take", artist: "Studio", album: "Studio", track: 1, date: "2015" }, { fmt: null, codecArgs: ["-c:a", "pcm_s24le"] });
   one("Misc/Untitled", "01 x.flac", { title: "x", artist: "anonymous", album: "( )", track: 1 });
   return { root, music, data: path.join(root, "data") };
 }
@@ -57,7 +59,7 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     const post = async (p, body) => { const r = await fetch(B + p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) }); assert.equal(r.status, 200, p); return r.json(); };
 
     const ids = (await (await fetch(N + "/api/library/albums?count=200", { headers: H })).json()).albums.map(a => a.offset);
-    assert.equal(ids.length, 11, "the library read");
+    assert.equal(ids.length, 12, "the library read");
     const same = async (p, label) => {
       const [c, n] = await Promise.all([fetch(B + p, { headers: H }), fetch(N + p, { headers: H })]);
       const cj = await c.json(), nj = await n.json();
@@ -240,7 +242,7 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
         for (const addr of ["/stream/t" + tr.track_id + "." + ext, "/stream/t" + tr.track_id + ".orig." + ext, "/stream/t" + tr.track_id + ".orig.dsf?m=audio/x-dsf"]) {
           const plain = await fetch(B + addr, { headers: H });
           const body = Buffer.from(await plain.arrayBuffer());
-          if (plain.headers.get("x-mandarin-answered") !== "C#") { converted++; assert.ok(/\.(flac|mp3)$/.test(addr) && !addr.includes(".orig."), addr + ": only a conversion is passed on"); continue; }
+          if (plain.headers.get("x-mandarin-answered") !== "C#") { converted++; assert.ok(/\.(flac|mp3|wav)$/.test(addr) && !addr.includes(".orig."), addr + ": only a conversion is passed on"); continue; }
           sentByCsharp++;
           if (!addr.includes(".dsf")) assert.deepEqual(body, fs.readFileSync(row.path), addr + ": the file itself");
           for (const range of [null, "bytes=0-99", "bytes=100-199", "bytes=-50", "bytes=1000-", "bytes=99999999-", "bytes=5-2"]) {
@@ -274,6 +276,43 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     x = await fetch(B + "/stream/t" + tid + ".orig" + path.extname(tpath));
     assert.equal(x.status, 401, "neither signed nor signed in: refused");
     for (const conv of ["/stream/t" + tid + ".44100-16.flac", "/stream/t" + tid + ".flac?g=-3", "/stream/t999999.flac"]) {
+      x = await fetch(B + conv, { headers: H });
+      assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
+      await x.arrayBuffer();
+    }
+
+    // Conversions (v0.8.10): made by the Node server the first time; once
+    // made, sent by C# from the cache, byte for byte and range for range.
+    const trackOf = title => ctx.db.raw.prepare("SELECT id, path FROM tracks WHERE title = ?").get(title);
+    const conversions = [
+      "/stream/t" + trackOf("So What").id + ".flac",            // 24/96: the 24/48 rule
+      "/stream/t" + trackOf("Take").id + ".wav",                // 24-bit WAV: repacked, the same samples
+      "/stream/t" + trackOf("Something").id + ".44100-24.flac", // what a streamer was promised
+    ];
+    for (const addr of conversions) {
+      let r = await fetch(B + addr, { headers: H });
+      assert.equal(r.status, 200, addr);
+      const first = Buffer.from(await r.arrayBuffer());
+      for (let i = 0; i < 100 && r.headers.get("x-mandarin-answered") !== "C#"; i++) {
+        await new Promise(res => setTimeout(res, 100));
+        r = await fetch(B + addr, { headers: H });
+        await r.arrayBuffer();
+      }
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", addr + ": once made, sent by C# from the cache");
+      for (const range of [null, "bytes=0-99", "bytes=500-1499", "bytes=-64"]) {
+        const h = Object.assign(range ? { Range: range } : {}, H);
+        const c = await fetch(B + addr, { headers: h }), cb = Buffer.from(await c.arrayBuffer());
+        const n = await fetch(N + addr, { headers: h }), nb = Buffer.from(await n.arrayBuffer());
+        const what = addr + " " + (range || "whole");
+        assert.equal(c.headers.get("x-mandarin-answered"), "C#", what);
+        assert.equal(c.status, n.status, what);
+        for (const k of ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"]) assert.equal(c.headers.get(k), n.headers.get(k), what + ": " + k);
+        assert.deepEqual(cb, nb, what + ": the same bytes");
+        if (!range) assert.deepEqual(cb, first, what + ": what was made the first time");
+      }
+    }
+    // Not made yet, or not this side's: the Node server's.
+    for (const conv of ["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "/stream/t" + trackOf("Something").id + ".44100-32.flac"]) {
       x = await fetch(B + conv, { headers: H });
       assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
       await x.arrayBuffer();

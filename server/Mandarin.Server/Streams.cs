@@ -8,11 +8,15 @@
 //     streamer's own word for DSD, from a short list);
 //   - no segment (Sonos): the file as stored when Sonos can take it: a type
 //     it reads, at most 48 kHz and 24 bits, stereo, not DSD.
-// Everything else is passed to the Node server, which converts it with ffmpeg:
-// a conversion (a rate and depth in the address, or the 24/48 rule), a
-// ReplayGain (?g=), Opus for the phone away (?q=opus), and a track streamed from
-// Qobuz or Tidal. So is a request this side can't vouch for (a speaker asking
-// by its own address: the Node server knows the speakers).
+// A conversion (a rate and depth in the address, or the 24/48 rule) is made by
+// the Node server with ffmpeg and kept in <data>/transcode, named for the track,
+// its file's time and the conversion; the next tracks are made ahead of play.
+// One already made is sent from here too (v0.8.10), and marked as used, as the
+// Node server does, so the cache keeps it. One still to make is passed on, as
+// is a conversion with a zone's DSP (?o=) or a ReplayGain (?g=), 32-bit output,
+// Opus for the phone away (?q=opus), and a track streamed from Qobuz or Tidal.
+// So is a request this side can't vouch for (a speaker asking by its own
+// address: the Node server knows the speakers).
 using System.Text.RegularExpressions;
 using Microsoft.Net.Http.Headers;
 
@@ -72,8 +76,16 @@ internal static partial class Streams
         return i <= 0 ? "" : name[i..].ToLowerInvariant();
     }
 
-    public static void Use(WebApplication app)
+    private static string cacheDir = "";
+
+    [GeneratedRegex(@"flac|alac|pcm|65534|monkey|\bape\b|wavpack|\bwv\b|\btta\b|\btak\b|shorten|\bshn\b")]
+    private static partial Regex IntegerCodec();
+    [GeneratedRegex(@"\.(wave?|aif[fc]?)\z", RegexOptions.IgnoreCase)]
+    private static partial Regex Uncompressed();
+
+    public static void Use(WebApplication app, string dataDir)
     {
+        cacheDir = Path.Combine(dataDir, "transcode");
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
@@ -107,7 +119,7 @@ internal static partial class Streams
         return true;
     }
 
-    private sealed record Track(string Path, string Codec, long Rate, long Bits, long Channels);
+    private sealed record Track(string Path, string Codec, long Rate, long Bits, long Channels, long Mtime);
 
     private static async Task<bool> Answer(HttpContext ctx, string path)
     {
@@ -117,28 +129,39 @@ internal static partial class Streams
         // Converted, levelled or made Opus: the Node server's (ffmpeg).
         if (q.ContainsKey("g") || q["q"].ToString() == "opus") return false;
         var seg = a.Groups[2].Value;
-        if (seg.Length > 0 && seg != "orig") return false;
         if (!long.TryParse(a.Groups[1].Value, out var id)) return false;
+        // A rate and depth a streamer was promised: made with the high-quality settings.
+        long segRate = 0, segBits = 0;
+        if (seg.Length > 0 && seg != "orig")
+        {
+            var rb = seg.Split('-');
+            if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return false;
+            if (segRate < 8000 || segRate > 768000 || segBits is not (16 or 24)) return false;   // a 400, or 32-bit: the Node server's
+            if (q.ContainsKey("o")) return false;   // with the zone's DSP
+        }
 
         Track? t = null;
         using (var c = Db.Open())
         {
             if (!Images.Signed(ctx, c, path) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels FROM tracks WHERE id = $id";
+            cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime FROM tracks WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);
             using var r = cmd.ExecuteReader();
             if (r.Read())
             {
                 long N(int i) => r.IsDBNull(i) ? 0 : Convert.ToInt64(r.GetValue(i), System.Globalization.CultureInfo.InvariantCulture);
-                t = new Track(r.GetString(0), r.IsDBNull(1) ? "" : Convert.ToString(r.GetValue(1), System.Globalization.CultureInfo.InvariantCulture) ?? "", N(2), N(3), N(4));
+                t = new Track(r.GetString(0), r.IsDBNull(1) ? "" : Convert.ToString(r.GetValue(1), System.Globalization.CultureInfo.InvariantCulture) ?? "", N(2), N(3), N(4),
+                    r.IsDBNull(5) ? 0 : (long)Math.Floor(Convert.ToDouble(r.GetValue(5), System.Globalization.CultureInfo.InvariantCulture)));
             }
         }
         if (t == null) return false;
         if (t.Path.Contains("://", StringComparison.Ordinal)) return false;   // Qobuz or Tidal: fetched by the Node server
 
-        string mime;
-        if (seg == "orig")
+        string mime = "audio/flac";
+        string? converted = null;
+        if (segRate != 0) converted = $"{id}-{t.Mtime}-{segRate}-{segBits}-hq";
+        else if (seg == "orig")
         {
             mime = MimeForExt(a.Groups[3].Value);
             var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
@@ -151,12 +174,37 @@ internal static partial class Streams
             var tooHigh = t.Rate > MaxRate || t.Bits > MaxBits;
             var dsd = DsdCodec().IsMatch(t.Codec) || DsdExt().IsMatch(t.Path);
             var channels = t.Channels != 0 ? t.Channels : 2;
-            if (native == null || tooHigh || channels > 2 || dsd) return false;
-            mime = native;
+            if (native == null || tooHigh || channels > 2 || dsd)
+            {
+                // The 24/48 rule's conversion: 48 kHz at most (DSD at 48), 24 bits
+                // for anything resampled or deeper than 16, else the file's own.
+                var outRate = dsd ? MaxRate : (t.Rate > MaxRate || t.Rate == 0 ? MaxRate : t.Rate);
+                var outBits = dsd || t.Rate > MaxRate || t.Bits > 16 || t.Bits == 0 ? 24 : 16;
+                // stream.js repack: only the container changes, the samples exactly as they were.
+                var codec = t.Codec.ToLowerInvariant();
+                var exact = t.Rate != 0 && t.Bits != 0 && outRate == t.Rate && outBits >= t.Bits && channels <= 2
+                    && (IntegerCodec().IsMatch(codec) || (codec.Length == 0 && Uncompressed().IsMatch(t.Path)));
+                converted = $"{id}-{t.Mtime}-{outRate}-{outBits}{(exact ? "-x" : "")}";
+            }
+            mime = native ?? "audio/flac";
+        }
+        if (converted != null)
+        {
+            // Made already: sent from the cache, and marked as used (the cache keeps the most recently used).
+            var made = Path.Combine(cacheDir, converted + ".flac");
+            if (!File.Exists(made)) return false;   // still to make: the Node server makes it
+            var now = DateTime.UtcNow;
+            try { File.SetLastWriteTimeUtc(made, now); File.SetLastAccessTimeUtc(made, now); } catch (IOException) { /* best effort, as there */ }
+            return await SendFile(ctx, made, "audio/flac");
         }
 
-        var info = new FileInfo(t.Path);
-        if (!info.Exists) return false;   // the Node server says so, as before
+        if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
+        return await SendFile(ctx, t.Path, mime);
+    }
+
+    private static async Task<bool> SendFile(HttpContext ctx, string file, string mime)
+    {
+        var info = new FileInfo(file);
         var ms = (long)Math.Floor((info.LastWriteTimeUtc.Ticks - DateTime.UnixEpoch.Ticks) / 10000.0 + 0.5);
         // Ranges none of which can be served ("bytes=5-2"): "not satisfiable", as the
         // Node server's range-parser has it, where ASP.NET would send the whole file.
@@ -164,7 +212,7 @@ internal static partial class Streams
             ctx.Request.Headers.Range = $"bytes={info.Length}-";
         ctx.Response.Headers.CacheControl = "no-store";
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        var result = Results.File(t.Path, mime,
+        var result = Results.File(file, mime,
             lastModified: DateTimeOffset.FromUnixTimeMilliseconds(ms),
             entityTag: new EntityTagHeaderValue($"\"{info.Length:x}-{ms:x}\"", isWeak: true),
             enableRangeProcessing: true);

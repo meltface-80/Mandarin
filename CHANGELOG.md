@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.10
+A test build, from the `claude/v0.8.10` branch: the tenth step in moving Mandarin's server to C#.
+
+- **Converted audio, once made, is now sent by Mandarin's C# server.** A file a device can't take
+  as it is (24/96 to Sonos, a 24-bit WAV, a streamer's own rate and depth) is converted once by
+  the Node server with ffmpeg and kept; the next tracks are made ahead of play. From then on the
+  C# server sends the kept file, with seeking, and marks it as used so the cache keeps it.
+  - The same bytes and headers, range for range: a new test converts each kind once, then checks
+    the C# server's copy against the Node server's.
+- Still the Node server's: making a conversion the first time, a conversion with a zone's DSP or
+  a ReplayGain level, 32-bit output, Opus for the phone away from home, and Qobuz and Tidal.
+- The Android app for this branch is at the same test address (0.8.10, version code 210).
+
 ## v0.8.9
 A test build, from the `claude/v0.8.9` branch: the ninth step in moving Mandarin's server to C#.
 
