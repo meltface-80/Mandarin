@@ -215,7 +215,7 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     const v = await api("volume", { output_id: DAC.id, value: 30 });
     assert.equal(v.ok, true);
     // The next track follows by itself.
-    const s2 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
+    await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
     assert.ok(!logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + logs.filter(l => /Test DAC/.test(l)).join("; "));
     const p = await api("control", { zone_or_output_id: DAC.id, command: "pause" });
     assert.equal(p.ok, true, JSON.stringify(p));

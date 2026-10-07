@@ -77,7 +77,7 @@ function server(bin, extraEnv = {}, extraConfig = {}) {
 test("signing the server in to Tailscale from Settings", async () => {
   const eng = stubEngine();
   const srv = server(eng.bin);
-  const ctx = await srv.start();
+  await srv.start();
   try {
     const token = await signIn(B);
     const auth = { Authorization: "Bearer " + token, "Content-Type": "application/json" };

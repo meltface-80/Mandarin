@@ -68,7 +68,6 @@ class Room {
 
   handle(action, a) {
     this.log.push(action);
-    const S = "urn:schemas-upnp-org:service:";
     switch (action) {
       case "GetZoneGroupState": return { ZoneGroupState: this.house.zgs() };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
