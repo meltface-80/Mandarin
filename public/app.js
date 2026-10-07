@@ -2782,8 +2782,11 @@ window.__afterStart = (fn) => {
     // next. enterFullWall and showHome both call this, so adding it here covers
     // every route out of the screen at once.
     smartPicksActive = false;
-    // The Playlists screen's Import button goes with the screen.
-    if (playlistsActive) { const pc = document.getElementById("content-count"); if (pc) { pc.innerHTML = ""; pc.classList.add("hidden"); } }
+    // The Playlists screen's Import button goes with the screen. Looked for
+    // rather than asked of playlistsActive, which is already false here: the
+    // button was left on Home whenever the way out didn't clear the bar itself.
+    { const pc = document.getElementById("content-count");
+      if (pc && pc.querySelector(".playlists-import")) { pc.innerHTML = ""; pc.classList.add("hidden"); } }
     playlistSeq++;
     smartSeq++;
     userPlSeq++;

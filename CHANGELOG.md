@@ -5,6 +5,22 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.9
+A test build, from the `claude/v0.8.9` branch: the ninth step in moving Mandarin's server to C#.
+
+- **Music files are now sent by Mandarin's C# server** whenever a track goes out as it is stored:
+  to Sonos when it can play the file (its format, at most 24-bit/48 kHz, stereo, not DSD), and to
+  a streamer that was promised the file itself. Straight from the disk, with seeking as before;
+  before, the Node server read the file and the C# server passed every byte along.
+  - The same bytes, the same headers, the same answer to every kind of range a player asks for:
+    a new test checks each track against the Node server's.
+  - A speaker's address carries a signature, which the C# server checks.
+- Anything converted still goes through the Node server and ffmpeg: a file above what the device
+  takes, a ReplayGain level, Opus for the phone away from home, and Qobuz and Tidal tracks.
+- **Fixed: the Playlists screen's Import button no longer stays on Home** after going back from
+  Playlists. It only went when the way out happened to clear it; it now always goes with the screen.
+- The Android app for this branch is at the same test address (0.8.9, version code 209).
+
 ## v0.8.8
 A test build, from the `claude/v0.8.8` branch: the eighth step in moving Mandarin's server to C#.
 

@@ -49,7 +49,7 @@ internal static class Images
     }
 
     // HMAC-SHA256 of the path under the install's secret, base64url, 22 characters (auth.js, sig).
-    private static bool Signed(HttpContext ctx, SqliteConnection c, string path)
+    public static bool Signed(HttpContext ctx, SqliteConnection c, string path)
     {
         var s = ctx.Request.Query["s"].ToString();
         if (s.Length != 22 || !s.All(ch => char.IsAsciiLetterOrDigit(ch) || ch == '-' || ch == '_')) return false;

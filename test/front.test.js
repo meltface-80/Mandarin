@@ -13,7 +13,8 @@
  *   - v0.8.5: covers already drawn, and label logos, are sent by C# (the same test);
  *   - v0.8.6: Home's rows are read by C# (the same test);
  *   - v0.8.7: settings only kept and read, and dynamic playlists, by C# (the same test);
- *   - v0.8.8: your own playlists, made and changed by C# (the same test).
+ *   - v0.8.8: your own playlists, made and changed by C# (the same test);
+ *   - v0.8.9: music files sent as they are, by C# (the same test); conversions still Node's.
  */
 const test = require("node:test");
 const assert = require("node:assert");

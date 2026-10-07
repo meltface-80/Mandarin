@@ -229,6 +229,56 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.equal(lc.headers.get("cache-control"), ln.headers.get("cache-control"));
     assert.equal((await fetch(B + "/api/image/label-nobody", { headers: H })).status, 404, "no such logo");
 
+    // Music files sent as they are (v0.8.9): byte for byte and range for range
+    // the Node server's; a conversion still the Node server's.
+    let sentByCsharp = 0, converted = 0;
+    for (const id of ids) {
+      const page = await (await fetch(N + "/api/album?offset=" + id, { headers: H })).json();
+      for (const tr of page.tracks) {
+        const row = ctx.db.raw.prepare("SELECT path FROM tracks WHERE id = ?").get(tr.track_id);
+        const ext = path.extname(row.path).slice(1).toLowerCase();
+        for (const addr of ["/stream/t" + tr.track_id + "." + ext, "/stream/t" + tr.track_id + ".orig." + ext, "/stream/t" + tr.track_id + ".orig.dsf?m=audio/x-dsf"]) {
+          const plain = await fetch(B + addr, { headers: H });
+          const body = Buffer.from(await plain.arrayBuffer());
+          if (plain.headers.get("x-mandarin-answered") !== "C#") { converted++; assert.ok(/\.(flac|mp3)$/.test(addr) && !addr.includes(".orig."), addr + ": only a conversion is passed on"); continue; }
+          sentByCsharp++;
+          if (!addr.includes(".dsf")) assert.deepEqual(body, fs.readFileSync(row.path), addr + ": the file itself");
+          for (const range of [null, "bytes=0-99", "bytes=100-199", "bytes=-50", "bytes=1000-", "bytes=99999999-", "bytes=5-2"]) {
+            for (const method of ["GET", "HEAD"]) {
+              const h = Object.assign(range ? { Range: range } : {}, H);
+              const [c, n] = await Promise.all([fetch(B + addr, { method, headers: h }), fetch(N + addr, { method, headers: h })]);
+              const what = method + " " + addr + " " + (range || "whole");
+              assert.equal(c.headers.get("x-mandarin-answered"), "C#", what);
+              assert.equal(c.status, n.status, what + ": status");
+              for (const k of ["content-type", "content-length", "content-range", "accept-ranges", "cache-control", "etag", "last-modified"]) {
+                // Past the end of the file: no content either way (C# says length 0 to a HEAD, the Node server says nothing).
+                if (c.status === 416 && (k === "content-type" || (k === "content-length" && method === "HEAD"))) continue;
+                assert.equal(c.headers.get(k), n.headers.get(k), what + ": " + k);
+              }
+              if (c.status < 300) assert.deepEqual(Buffer.from(await c.arrayBuffer()), Buffer.from(await n.arrayBuffer()), what + ": the same bytes");
+              else { await c.arrayBuffer(); await n.arrayBuffer(); }
+            }
+          }
+          const tag = plain.headers.get("etag");
+          assert.equal((await fetch(B + addr, { headers: Object.assign({ "If-None-Match": tag }, H) })).status, 304);
+        }
+      }
+    }
+    assert.ok(sentByCsharp >= 20 && converted >= 1, `files sent by C# (${sentByCsharp}) and conversions passed on (${converted})`);
+    const tid = (await (await fetch(N + "/api/album?offset=" + ids[0], { headers: H })).json()).tracks[0].track_id;
+    const tpath = ctx.db.raw.prepare("SELECT path FROM tracks WHERE id = ?").get(tid).path;
+    const s1 = ctx.auth.signUrl("/stream/t" + tid + ".orig" + path.extname(tpath));
+    x = await fetch(B + s1);
+    assert.deepEqual([x.status, x.headers.get("x-mandarin-answered")], [200, "C#"], "a signed address, no sign-in (a speaker)");
+    await x.arrayBuffer();
+    x = await fetch(B + "/stream/t" + tid + ".orig" + path.extname(tpath));
+    assert.equal(x.status, 401, "neither signed nor signed in: refused");
+    for (const conv of ["/stream/t" + tid + ".44100-16.flac", "/stream/t" + tid + ".flac?g=-3", "/stream/t999999.flac"]) {
+      x = await fetch(B + conv, { headers: H });
+      assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
+      await x.arrayBuffer();
+    }
+
     // What hasn't moved is still passed on.
     const st = await fetch(B + "/api/status", { headers: H });
     assert.equal(st.headers.get("x-mandarin-answered"), null, "the status: still the Node server's");
