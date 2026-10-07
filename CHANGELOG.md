@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.3
+A test build, from the `claude/v0.8.3` branch: the third step in moving Mandarin's server to C#.
+
+- **The page and its files are now served by Mandarin's C# server:** the page itself, its script
+  and stylesheets, the icons and the fonts, everything in `public/`. Behind the sign-in as before,
+  with the same caching: an hour for icons and fonts, while the page, its script, stylesheets and
+  JSON are checked each time, so an update is seen at once. A copy still current is answered "not
+  modified", the Android app's offline copy included.
+- The Android app still gets its own page (without `viewport-fit=cover`) and its own stylesheet
+  (every safe-area allowance at zero, plus the app's rules), as before.
+- Every address that isn't a file in `public/` still goes to the Node server: its routes outside
+  `/api` (`/login`, `/display`, the streams), and the page it opens for a deep link.
+- The Android app for this branch is at the same test address (0.8.3, version code 203).
+
 ## v0.8.2
 A test build, from the `claude/v0.8.2` branch: the second step in moving Mandarin's server to C#.
 

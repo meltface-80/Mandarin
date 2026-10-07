@@ -31,6 +31,7 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 |---|---|
 | The port, who is asking, the Node server's start and stop | C# (v0.8.1) |
 | Signing in, signed-in devices, the gate (`Auth.cs`, `Srp.cs`) | C# (v0.8.2); streams and covers still gated by Node |
+| The page and its files, `public/` (`Pages.cs`) | C# (v0.8.3); deep links, `/login`, `/display` still Node's |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |
 

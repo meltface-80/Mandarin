@@ -6,7 +6,8 @@
  * quietly fall back to the Node server behind it.
  *   - v0.8.1: everything is passed on, through C#;
  *   - v0.8.2: sign-in, devices and the gate are answered by C#; a streamer's
- *     NOTIFY still reaches the Node server unsigned; /internal/ stops at the door.
+ *     NOTIFY still reaches the Node server unsigned; /internal/ stops at the door;
+ *   - v0.8.3: the page and its files (public/) are served by C#.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -54,6 +55,25 @@ test("which server answers: sign-in and the gate in C#, the library passed on", 
     // The Node server's loopback-only routes: never through the front door.
     x = await by("/internal/dash/nope", { redirect: "manual" });
     assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/ answered 404 at the door");
+    // The page and its files (v0.8.3): C#, behind the gate; everything outside public/ passed on.
+    for (const p of ["/", "/index.html", "/app.js", "/style.css", "/srp.js", "/manifest.json"]) {
+      x = await by(p, { headers: H });
+      assert.deepEqual([x.status, x.by], [200, "C#"], "the page's file " + p);
+    }
+    const page = await by("/", { headers: H });
+    const again = await by("/", { headers: Object.assign({ "If-None-Match": page.r.headers.get("etag") }, H) });
+    assert.equal(again.status, 304, "a copy still current: not modified");
+    const app = { "User-Agent": "Mozilla/5.0 (Linux; Android 15; wv) MusicDAndroid/0.8.3", Authorization: H.Authorization };
+    x = await by("/style.css", { headers: app });
+    assert.deepEqual([x.status, x.by], [200, "C#"], "the app's stylesheet");
+    const tag = x.r.headers.get("etag");
+    assert.equal((await by("/style.css", { headers: Object.assign({ "If-None-Match": tag }, app) })).status, 304, "the app's offline copy, still current");
+    x = await by("/app.js");
+    assert.equal(x.status, 401, "the page's files still behind the gate");
+    for (const p of ["/login", "/display", "/library"]) {
+      x = await by(p, { headers: H, redirect: "manual" });
+      assert.equal(x.by, "Node", p + ": a Node route or the page for a deep link, passed on");
+    }
     x = await by("/api/health");
     assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
   } finally { await srv.stop(); }

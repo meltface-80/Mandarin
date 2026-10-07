@@ -91,6 +91,12 @@ app.Use(async (ctx, next) =>
 // account exists and the device has signed in.
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 
+// The page and its files (Pages.cs), behind the gate as before.
+Pages.Use(app, Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "public"));
+// Routes are chosen only after that: the static files step aside for any
+// request a route has already matched, and the catch-all below matches all.
+app.UseRouting();
+
 // What C# answers itself. Everything else goes to the Node server.
 Routes.Map(app, version);
 Auth.Map(app);
