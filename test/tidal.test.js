@@ -260,6 +260,24 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.ok(Array.isArray(ext.tidal_artists), "and Tidal's artists");
     });
 
+    await t.test("the import switched off: the favourites and playlists leave the library; on again, they are back", async () => {
+      const before = (await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal");
+      assert.ok(before.length >= 1, "Tidal albums on the walls to begin with");
+      const off = await api("settings/tidal", { import: false });
+      assert.equal(off.import, false);
+      assert.equal(off.kept, 0, "nothing kept any more");
+      await until(async () => (await api("library/albums?sort=album")).albums.every(a => a.source !== "tidal"));
+      assert.ok(!(await api("user-playlists")).playlists.some(x => x.service === "tidal"), "the Tidal playlists went with them");
+      // A rescan doesn't bring them back while the switch is off.
+      await api("library/rescan", {});
+      await until(async () => !(await api("status")).library_importing);
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "still off after a rescan");
+      // On again: brought back in.
+      await api("settings/tidal", { import: true });
+      await until(async () => { const s = await api("settings/tidal"); return !s.importing && s.kept >= 2; }, 30000);
+      await until(async () => (await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length >= 2);
+    });
+
     await t.test("signed out: nothing streams, the walls keep nothing of Tidal", async () => {
       const r = await api("settings/tidal/signout", {});
       assert.equal(r.connected, false);

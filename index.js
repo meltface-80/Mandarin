@@ -462,6 +462,8 @@ function createServer(overrides = {}) {
     const serviceSync = () => {
       for (const id of SERVICES.IDS) {
         const s = ctx.services[id];
+        // Switched off before v0.7.10, when that let nothing go: let go now.
+        if (s.connected() && !s.settings().import && (s.keptSet().size || s.heldSet().size)) { s.releaseImported(); continue; }
         if (!s.connected() || !s.settings().import) continue;
         s.importLibrary().catch(e => log(`[${id}] import: ${e.message}`));
       }

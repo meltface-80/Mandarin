@@ -419,6 +419,17 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       await api("settings/qobuz/import", {});
     });
 
+    await t.test("the import switched off: favourites and purchases leave the library; on again, they are back", async () => {
+      assert.ok((await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"), "Qobuz albums on the walls to begin with");
+      const off = await api("settings/qobuz", { import: false });
+      assert.equal(off.import, false);
+      assert.equal(off.kept, 0);
+      await until(async () => (await api("library/albums?sort=album")).albums.every(a => a.source !== "qobuz"));
+      await api("settings/qobuz", { import: true });
+      await until(async () => { const s = await api("settings/qobuz"); return !s.importing && s.kept >= 1; }, 30000);
+      await until(async () => (await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"));
+    });
+
     await t.test("signed out: nothing streams, the walls keep nothing of Qobuz", async () => {
       const r = await api("settings/qobuz/signout", {});
       assert.equal(r.connected, false);
