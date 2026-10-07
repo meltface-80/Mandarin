@@ -10,7 +10,8 @@
  *   - v0.8.3: the page and its files (public/) are served by C#;
  *   - v0.8.4: the library's screens are read by C# (test/library-front.test.js
  *     checks they say what the Node server says);
- *   - v0.8.5: covers already drawn, and label logos, are sent by C# (the same test).
+ *   - v0.8.5: covers already drawn, and label logos, are sent by C# (the same test);
+ *   - v0.8.6: Home's rows are read by C# (the same test).
  */
 const test = require("node:test");
 const assert = require("node:assert");

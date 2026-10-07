@@ -83,6 +83,13 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
       for (const p of ["/api/filters/genres", "/api/filters/decades", "/api/favourites", "/api/listen-later", "/api/home/genre-groups", "/api/library-stats",
         "/api/random-albums?seed=3&count=5", "/api/random-albums?seed=3&filter_type=genre&filter_value=rock", "/api/random-albums?seed=1&filter_type=decade&filter_value=1960"])
         await same(p, label);
+      // Home's rows (v0.8.6).
+      for (const p of ["/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
+      for (const q of ["", "?months=1&count=3", "?months=0", "?months=99&count=500"]) {
+        const [c, n] = await Promise.all([B, N].map(async b => (await fetch(b + "/api/home/unplayed" + q, { headers: H })).json()));
+        const shape = j => ({ n: j.albums.length, total: j.total, months: j.months, no_history: j.no_history, ready_at: j.ready_at });
+        assert.deepStrictEqual(shape(c), shape(n), label + "/api/home/unplayed" + q);
+      }
       // Drawn at random: the same pool, whichever answers.
       const r = await (await fetch(B + "/api/random-albums?count=4", { headers: H })).json();
       assert.equal(r.albums.length, 4);
@@ -101,6 +108,14 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     const ins = ctx.db.raw.prepare("INSERT INTO plays(album_id, track_id, ts) VALUES(?, NULL, ?)");
     ins.run(ids[5], now - 1000); ins.run(ids[5], now - 2000); ins.run(ids[6], now - 400 * 86400000);
     await battery("after changes: ");
+    // Album of the day, played today: gone from Home on both.
+    const today = await same("/api/home/album-of-the-day");
+    assert.ok(today.album, "an album of the day");
+    ins.run(today.album.offset, Date.now());
+    const after = await same("/api/home/album-of-the-day");
+    assert.deepEqual([after.album, after.played], [null, true]);
+    const week = await same("/api/home/label-of-the-week");
+    assert.ok(week.label && week.albums.length >= 3, "a label of the week, labels on");
     const fav = await same("/api/favourites");
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");

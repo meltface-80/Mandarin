@@ -282,7 +282,9 @@ function createServer(overrides = {}) {
     res.json({
       boot: ctx.bootId, version: library.version, marks: library.marks,
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
-      labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() }
+      labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() },
+      // The day and week on this server's clock (its time zone): Home's rows turn over with them.
+      day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey()
     });
   });
   app.use(express.json({ limit: "2mb" }));

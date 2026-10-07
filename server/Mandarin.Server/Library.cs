@@ -57,6 +57,11 @@ internal sealed record Box(string Name, long Disc, long Of, List<long> Ids);
 
 internal sealed record LibState(string Boot, long Version, long Marks, bool Building, JsonNode? Progress, bool LabelsOn, int Depth, List<string> Roots)
 {
+    // The day ("2026-10-7"), when it began, and the ISO week, on the Node server's clock.
+    public string Day { get; init; } = "";
+    public long DayStart { get; init; }
+    public string Week { get; init; } = "";
+
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
 }
 
@@ -233,7 +238,10 @@ internal static partial class Library
             return new LibState(JsString(j["boot"]) ?? "", (long)(j["version"]?.GetValue<double>() ?? 0), (long)(j["marks"]?.GetValue<double>() ?? 0),
                 j["building"]?.GetValue<bool>() == true, j["progress"]?.DeepClone(),
                 labels?["enabled"]?.GetValue<bool>() == true, (int)(labels?["depth"]?.GetValue<double>() ?? 0),
-                (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? []);
+                (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? [])
+            {
+                Day = JsString(j["day"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? ""
+            };
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException)
         {

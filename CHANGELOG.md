@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.6
+A test build, from the `claude/v0.8.6` branch: the sixth step in moving Mandarin's server to C#.
+
+- **Home's rows are now read by Mandarin's C# server:** Album of the day, Label of the week,
+  Recently played and Not played lately.
+  - Album of the day is still chosen once a day, at 00:01 on the server's clock, and kept through
+    scans and restarts; both servers read and keep the same choice, and it still leaves Home once
+    played. The day and the week come from the Node server, so a time zone set for the container
+    is followed exactly as before.
+  - The same answers as the Node server's, checked by the test that compares the two.
+- Smart picks, radio and the server's status still come from the Node server.
+- The Android app for this branch is at the same test address (0.8.6, version code 206).
+
 ## v0.8.5
 A test build, from the `claude/v0.8.5` branch: the fifth step in moving Mandarin's server to C#.
 

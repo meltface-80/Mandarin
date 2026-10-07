@@ -33,6 +33,10 @@ internal static partial class Library
         ["/api/favourites"] = Favourites,
         ["/api/listen-later"] = ListenLater,
         ["/api/home/genre-groups"] = GenreGroups,
+        ["/api/home/album-of-the-day"] = AlbumOfTheDay,
+        ["/api/home/label-of-the-week"] = LabelOfTheWeek,
+        ["/api/home/history"] = History,
+        ["/api/home/unplayed"] = Unplayed,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
