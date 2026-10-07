@@ -101,7 +101,7 @@ function createServer(overrides = {}) {
   // update the rooms are back in a second or two instead of after discovery.
   const knownHosts = (db.setting("sonosKnownHosts", []) || []).filter(h => !config.sonosHosts.includes(h));
   const zones = new ZoneManager({
-    seedHosts: config.sonosHosts.concat(knownHosts), bindIp: config.serverIp || localIp(),
+    seedHosts: config.sonosHosts.concat(knownHosts), bindIp: config.serverIp || null,
     include: config.include, exclude: config.exclude, log, trackIdFromUri
   });
   // The phones' and renderers' queues, kept across a restart (an update ends in one).
@@ -184,7 +184,7 @@ function createServer(overrides = {}) {
   // Every player as one list — Sonos rooms, phones, UPnP renderers — with the
   // names you give them (Settings → Audio Devices).
   ctx.devices = new (require("./lib/renderers/devices").AudioDevices)({
-    db, zones, bindIp: config.serverIp || localIp(), seedHosts: config.upnpHosts,
+    db, zones, bindIp: config.serverIp || null, seedHosts: config.upnpHosts,
     multicast: config.upnpMulticast, offlineMs: config.upnpOfflineMs, log, local: config.localAudio
   });
   // The renderers as zones, beside the Sonos rooms and the phones.
