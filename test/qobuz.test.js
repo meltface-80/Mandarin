@@ -434,15 +434,27 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       } finally { qobuz.server.off("request", count); }
     });
 
-    await t.test("the import switched off: favourites and purchases leave the library; on again, they are back", async () => {
-      assert.ok((await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"), "Qobuz albums on the walls to begin with");
+    await t.test("the import switched off: favourites and purchases leave the library at once; on again, they are back at once", async () => {
+      const shown = async () => (await api("library/albums?sort=album")).albums.filter(a => a.source === "qobuz").length;
+      const before = await shown();
+      assert.ok(before >= 1, "Qobuz albums on the walls to begin with");
+      const one = (await api("library/albums?sort=album")).albums.find(a => a.source === "qobuz");
+      const found = async () => ((await api("search?q=" + encodeURIComponent(one.title))).results || []).filter(a => a.source === "qobuz").length;
+      assert.ok(await found() >= 1, "found by search while on");
       const off = await api("settings/qobuz", { import: false });
       assert.equal(off.import, false);
-      assert.equal(off.kept, 0);
-      await until(async () => (await api("library/albums?sort=album")).albums.every(a => a.source !== "qobuz"));
+      assert.equal(await shown(), 0, "off: none on the walls, straight away");
+      assert.equal(await found(), 0, "nor in search");
+      // Update library now brings nothing in while the switch is off.
+      const now = await api("settings/qobuz/import", {});
+      assert.equal(now.status, 409, "no import while off");
+      assert.equal(await shown(), 0, "still none");
+      // Clean up leaves them: hidden, not stale.
+      assert.equal((await api("library/cleanup")).qobuz.albums, 0, "hidden albums aren't stale");
+      // On again: back straight away, every one, before any import.
       await api("settings/qobuz", { import: true });
-      await until(async () => { const s = await api("settings/qobuz"); return !s.importing && s.kept >= 1; }, 30000);
-      await until(async () => (await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"));
+      assert.equal(await shown(), before, "on: all back at once");
+      await until(async () => !(await api("settings/qobuz")).importing, 30000);
     });
 
     await t.test("signed out: nothing streams, the walls keep nothing of Qobuz", async () => {

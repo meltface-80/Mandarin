@@ -5893,6 +5893,13 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   /* The sheets it opens sit over it, at its width. */
   .mt-vol-popover { left: auto; right: 16px; width: max(25vw, 400px); margin: 0; bottom: 184px; box-sizing: border-box; }
   .mt-zone-popover { right: 14px; }
+  /* Movable (v0.7.11): it can be picked up by anything but its buttons. */
+  .mini-transport { cursor: grab; touch-action: none; }
+  .mini-transport .mt-btn, .mini-transport .mt-info { cursor: pointer; }
+  .mini-transport.is-dragging, .mini-transport.is-dragging * { cursor: grabbing; user-select: none; }
+  .mini-transport.is-dragging { box-shadow: 0 26px 60px -14px rgba(0,0,0,.8); }
+  /* Near the top of the screen: the room list opens under it instead. */
+  .mini-transport.mt-drop-down .mt-zone-popover { bottom: auto; top: calc(100% + 4px); }
 }
 
 /* ------------------------------------------------------------------ */

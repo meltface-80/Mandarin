@@ -146,6 +146,13 @@ class Browser {
         }
         return r.result.value;
       },
+      /*
+       * A real mouse: type is "mousePressed", "mouseMoved" or "mouseReleased",
+       * at x, y in the page; the left button (clickCount 2 for a double-click).
+       */
+      async mouse(type, x, y, { clickCount = 1 } = {}) {
+        await s("Input.dispatchMouseEvent", { type, x, y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount });
+      },
       /* The tab as a PNG, written to `file` (a look at the page while writing a test). */
       async screenshot(file) {
         const r = await s("Page.captureScreenshot", { format: "png" });
