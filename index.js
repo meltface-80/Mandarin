@@ -513,6 +513,13 @@ function createServer(overrides = {}) {
 module.exports = { createServer, config };
 
 if (require.main === module) {
+  // A promise rejected with nothing to catch it — a background lookup, a
+  // device that hung up mid-answer — is logged, not fatal (v0.7.9). Node
+  // ends the process on one by default, and the launcher (rightly) doesn't
+  // restart after an unexpected exit, so one stray error in background work
+  // took the server down until someone restarted it. Here only, not in
+  // createServer: the tests should still fail on one.
+  process.on("unhandledRejection", (e) => log("[musicd] unhandled: " + ((e && e.stack) || e)));
   const s = createServer();
   s.start().catch(e => { console.error(e); process.exit(1); });
   const bye = () => { s.stop().finally(() => process.exit(0)); };
