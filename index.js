@@ -87,7 +87,9 @@ function createServer(overrides = {}) {
     const v = db.setting("music_folders", null);
     return Array.isArray(v) && v.length ? v : [config.musicDir];
   };
-  const scanner = new Scanner({ db, root: config.musicDir, roots: musicFolders, log });
+  // The scan on a thread of its own (lib/library/scan-worker.js), so its
+  // reads never hold up a sound device on the server.
+  const scanner = new Scanner({ db, root: config.musicDir, roots: musicFolders, log, worker: true });
   const artwork = new Artwork({ library, cacheDir: path.join(config.dataDir, "art"), log });
   const transcoder = new STREAM.Transcoder({
     cacheDir: path.join(config.dataDir, "transcode"),
@@ -494,6 +496,7 @@ function createServer(overrides = {}) {
     for (const t of ctx.scanTimers || []) clearTimeout(t);
     if (ctx.watcher) ctx.watcher.stop();
     scanner.onProgress = null;
+    scanner.stop();
     if (ctx.httpServer) {
       const closed = new Promise(r => ctx.httpServer.close(r));
       // Kept-alive connections too, or a client (or the next server on this

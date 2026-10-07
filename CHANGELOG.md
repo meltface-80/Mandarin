@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.7
+- **Playback on the server keeps clear of the server's other work.** A scheduled library scan
+  during playback was found to run a sound device dry (the scan's reads held up the thread that
+  feeds the device). Now the scan runs on a thread of its own, at a lower priority, with its own
+  database connection; the page follows its progress as before. Conversions prepared ahead run
+  below playback. On a Linux machine with four cores or more, the last core is kept for the
+  decoder and the device sink and the server runs on the others (`PLAYBACK_CORE=0` turns this
+  off, `PLAYBACK_CORE=<n>` picks the core); with `--privileged` the pair also runs at a higher
+  priority. Measured: a full scan of 3,000 tracks used to hold the server's thread for seconds;
+  now its longest hold is a millisecond.
+
 ## v0.7.6
 - **A sound device on the server no longer runs dry when the feed pauses.** A bit-for-bit
   capture showed the device playing its whole buffer again — 131,072 frames, three seconds,
