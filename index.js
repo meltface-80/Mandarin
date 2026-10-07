@@ -40,6 +40,11 @@ const list = v => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
 
 const config = {
   port: Number(process.env.PORT) || 3500,
+  // Behind Mandarin's C# server (v0.8.1, server/): it listens on PORT and
+  // passes on what it doesn't answer itself to this one, which listens on
+  // 127.0.0.1 at INTERNAL_PORT, out of reach of anything else. Links and
+  // addresses given out still name PORT.
+  listenPort: process.env.INTERNAL_PORT != null && process.env.INTERNAL_PORT !== "" ? Number(process.env.INTERNAL_PORT) : null,
   musicDir: process.env.MUSIC_DIR || "/music",
   dataDir: process.env.DATA_DIR || path.join(__dirname, "data"),
   serverIp: process.env.SERVER_IP || process.env.BRIDGE_IP || "",
@@ -114,6 +119,9 @@ function createServer(overrides = {}) {
   const ctx = {
     config, db, library, scanner, artwork, transcoder, zones, log, version: pkg.version,
     baseUrl: () => `http://${advertisedIp()}:${config.port}`,
+    // This server as it fetches from itself: where it listens (behind the C#
+    // server, its own port on 127.0.0.1).
+    localBase: () => "http://127.0.0.1:" + (ctx.listeningOn || config.port),
     shareServices: () => {
       const v = db.setting("shareServices", null);
       return v === null ? shareLinks.defaultServiceIds() : shareLinks.sanitiseIds(v, shareLinks.knownServiceIds());
@@ -137,7 +145,7 @@ function createServer(overrides = {}) {
   const afterChange = () => { library.reload(); artwork.prewarm(100).catch(() => {}); };
   ctx.qobuz = new (require("./lib/qobuz").Qobuz)({ db, library, dataDir: config.dataDir, log, baseUrl: config.qobuzBaseUrl || undefined, afterChange });
   ctx.tidal = new (require("./lib/tidal").Tidal)({ db, library, dataDir: config.dataDir, log, baseUrl: config.tidalBaseUrl || undefined,
-    authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => "http://127.0.0.1:" + config.port, afterChange });
+    authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => ctx.localBase(), afterChange });
   ctx.services = { qobuz: ctx.qobuz, tidal: ctx.tidal, of: p => { const id = SERVICES.ofPath(p); return id ? ctx.services[id] : null; } };
   // The transcoder asks the service where a streamed track's audio is, when
   // a device comes to fetch one (or the next is made ready behind it).
@@ -190,7 +198,7 @@ function createServer(overrides = {}) {
   // The renderers as zones, beside the Sonos rooms and the phones.
   zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
   zones.upnp.callbackBase = () => ctx.baseUrl();
-  zones.upnp.localBase = () => "http://127.0.0.1:" + config.port;
+  zones.upnp.localBase = () => ctx.localBase();
   zones.upnp.dataDir = config.dataDir;
   // Mandarin's audio engine for sound devices on this computer (v0.8.0): the
   // image's, else (in Docker, or asked for) downloaded once in the background.
@@ -444,10 +452,16 @@ function createServer(overrides = {}) {
           try { const u = new URL(req.url); req.url = u.pathname + u.search; } catch (e) { /* left as it is */ }
         }
         app(req, res);
-      }).listen(config.port, "0.0.0.0", resolve);
+      });
+      const behind = config.listenPort != null;
+      srv.listen(behind ? config.listenPort : config.port, behind ? "127.0.0.1" : "0.0.0.0", () => {
+        ctx.listeningOn = srv.address().port;
+        resolve();
+      });
       srv.on("error", reject);
       ctx.httpServer = srv;
     });
+    if (config.listenPort != null) log(`[musicd] behind Mandarin's C# server: this one on 127.0.0.1:${ctx.listeningOn}`);
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
     ctx.devices.start();

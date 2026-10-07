@@ -38,6 +38,21 @@ RUN set -e; cd engine; \
     fi; \
     rm -f /out/*.dbg /out/*.pdb; ls -la /out
 
+# Mandarin's server in C# (v0.8.1): the front door, which starts the Node
+# server behind it and passes on what it doesn't answer itself, as more of
+# the server moves to C#. One self-contained file: no .NET in the image.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot AS server
+ARG TARGETARCH
+WORKDIR /src
+COPY package.json ./
+COPY server/Mandarin.Server/*.csproj server/Mandarin.Server/*.cs ./server/
+RUN set -e; cd server; \
+    V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
+    RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \
+    dotnet publish -c Release -r $RID -p:Version=$V -p:SelfContained=true -p:PublishSingleFile=true \
+      -p:EnableCompressionInSingleFile=true -o /out --nologo; \
+    rm -f /out/*.pdb /out/*.dbg; ls -la /out
+
 FROM node:22-bookworm-slim AS deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
@@ -67,6 +82,8 @@ COPY --from=tsnet /out/musicdnet /usr/local/bin/musicdnet
 WORKDIR /app
 # Mandarin's audio engine: sound devices on this computer (lib/local/engine.js).
 COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
+# Mandarin's server in C#, the front door (server/).
+COPY --from=server /out/mandarin-server /app/server/bin/mandarin-server
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json index.js launcher.js reset-password.js ./
 COPY lib ./lib
@@ -90,8 +107,9 @@ EXPOSE 3500
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3500)+'/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-# launcher.js runs the server and, when Settings → Check for updates installs
-# a new release, swaps the files in while the server is stopped and starts it
+# The C# server takes the port and starts the Node server behind it through
+# launcher.js, which, when Settings → Check for updates installs a new
+# release, swaps the files in while the Node server is stopped and starts it
 # again — the container keeps running throughout.
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["node", "launcher.js"]
+CMD ["/app/server/bin/mandarin-server"]

@@ -11,3 +11,6 @@ test
 engine/bin
 engine/**/obj
 engine/**/bin
+server/bin
+server/**/obj
+server/**/bin

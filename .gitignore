@@ -17,3 +17,6 @@ android/musicdnet/musicdnet
 engine/bin/
 engine/**/obj/
 engine/Mandarin.Audio/bin/
+server/bin/
+server/**/obj/
+server/Mandarin.Server/bin/

@@ -26,3 +26,61 @@ if (!process.env.ALLOW_NETWORK && typeof globalThis.fetch === "function") {
     return real(input, init);
   };
 }
+
+/*
+ * MANDARIN_FRONT=1 (v0.8.1): every server a test starts sits behind
+ * Mandarin's C# server (server/), as it does in the image. The Node server
+ * runs here as before (so a test can still look inside it) on a free port on
+ * 127.0.0.1, and the C# server takes the port the test asked for, passing on
+ * what it doesn't answer itself. Every request the suite makes then goes
+ * through C# first. MANDARIN_SERVER_BIN names the program; else server/bin.
+ */
+if (process.env.MANDARIN_FRONT === "1") {
+  const path = require("path");
+  const fs = require("fs");
+  const net = require("net");
+  const { spawn } = require("child_process");
+  const bin = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
+  if (!fs.existsSync(bin)) throw new Error("MANDARIN_FRONT=1 needs the C# server built (server/build.sh): " + bin);
+  const index = require("../index.js");
+  const real = index.createServer;
+  const listening = (port, ms) => new Promise((resolve, reject) => {
+    const until = Date.now() + ms;
+    const tryOnce = () => {
+      const s = net.connect(port, "127.0.0.1", () => { s.destroy(); resolve(); });
+      s.on("error", () => { s.destroy(); if (Date.now() > until) reject(new Error("the C# server didn't start on " + port)); else setTimeout(tryOnce, 50); });
+    };
+    tryOnce();
+  });
+  index.createServer = (overrides = {}) => {
+    const port = overrides.port != null ? overrides.port : index.config.port;
+    const s = real(Object.assign({}, overrides, { listenPort: 0 }));
+    const start = s.start, stop = s.stop;
+    let front = null;
+    s.start = async () => {
+      const ctx = await start();
+      front = spawn(bin, [], {
+        env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn }),
+        stdio: ["ignore", "inherit", "inherit"]
+      });
+      front.on("exit", (code) => { if (code && front) console.log(`# the C# server exited (${code})`); });
+      // The Node server stopping stops the C# server too, as in the image
+      // (Restart, Shut down): the port goes quiet, not "bad gateway".
+      const mine = front;
+      ctx.httpServer.once("close", () => { if (mine.exitCode == null) mine.kill("SIGKILL"); });
+      await listening(port, 30000);
+      return ctx;
+    };
+    s.stop = async () => {
+      const f = front; front = null;
+      if (f && f.exitCode == null) {
+        const gone = new Promise(r => f.once("exit", r));
+        f.kill("SIGTERM");
+        await Promise.race([gone, new Promise(r => setTimeout(r, 5000))]);
+        if (f.exitCode == null) f.kill("SIGKILL");
+      }
+      return stop();
+    };
+    return s;
+  };
+}

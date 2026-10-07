@@ -5,6 +5,29 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.1
+A test build, from the `claude/v0.8.1` branch: the first step in moving Mandarin's server from
+Node.js to C#.
+
+- **Mandarin's server in C# is the front door.** A new program (`server/`, .NET 10) takes
+  Mandarin's port and starts the Node server behind it, on a port on `127.0.0.1` that nothing else
+  can reach. It answers the parts already moved to C# and passes everything else on as it came.
+  Each part of the server moves to C# in a later build, behind the same tests. When nothing is
+  passed on any more, Node leaves the image. `server/README.md` keeps the list of what has moved.
+  - Who is asking goes through unchanged. Home and away are told apart as before, the built-in
+    Tailscale included, and no device can claim to be at home by sending a forwarded address of
+    its own.
+  - Streams to a room or a renderer, held requests and backup uploads pass straight through, as
+    long as they take.
+  - In-app updates work as before: the Node server still runs through `launcher.js`. Restart and
+    Shut down stop the C# server with it, so Docker's restart policy acts as before.
+  - Every response says which server it came through (`X-Mandarin-Server: C# 0.8.1`).
+- **Tested both ways.** The whole suite runs with every test's server behind the C# server
+  (`MANDARIN_FRONT=1`, as CI does on Node 22) and directly (as on Node 20). Both must pass.
+- The Docker image starts the C# server, which starts the Node server. Nothing to change in
+  `docker run`.
+- The Android app for this branch is at the same test address as v0.8.0's (0.8.1, version code 201).
+
 ## v0.8.0
 A test build, from the `claude/v0.8.0-csharp` branch. v0.7.x carries on beside it until this one
 has proved itself.

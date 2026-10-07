@@ -49,12 +49,19 @@ jobs:
           dotnet-version: "10.0.x"
       - name: Build the audio engine
         run: ./engine/build.sh
+      # Mandarin's server in C# (server/, v0.8.1): on Node 22 every test's
+      # server sits behind it, as in the image (test/setup.js, MANDARIN_FRONT);
+      # on Node 20 the suite talks to the Node server directly. Both must pass.
+      - name: Build the C# server
+        run: ./server/build.sh
       - name: Syntax check
         run: |
           node --check index.js
           node --check public/app.js
           for f in lib/*.js lib/*/*.js; do node --check "$f"; done
       - name: Tests (including the end-to-end run against a fake Sonos household)
+        env:
+          MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
         run: npm test
 
   docker:
@@ -80,6 +87,9 @@ jobs:
           V=$(node -p "require('./package.json').version")
           curl -fs localhost:3500/api/health | grep -q "\"audio_engine\":\"$V\""
           docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
+          # The C# server answers on the port, with the Node server behind it.
+          curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
+          curl -fs localhost:3500/server-info | grep -q '"server":"C#"'
           # A new install asks for its account first: the page is the sign-in page,
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"
