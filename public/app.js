@@ -6552,6 +6552,13 @@ window.__afterStart = (fn) => {
     }
   }
 
+  /* An album's length: 52:41, or 1:02:15 past the hour. */
+  function fmtTotal(secs) {
+    const s = Math.round(secs), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const pad = n => String(n).padStart(2, "0");
+    return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
+  }
+
   function openAlbum(album, opts) {
     opts = opts || {};
     if (opts.source === "now-playing") {
@@ -6611,6 +6618,7 @@ window.__afterStart = (fn) => {
     setModalArtist(album.subtitle);
     modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading">Loading…</div>`;
     modalTracks.innerHTML  = "";
+    { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
 
     // Reset bio sections
     document.getElementById("album-bio-section").classList.add("hidden");
@@ -8079,6 +8087,12 @@ window.__afterStart = (fn) => {
     const trackWrap = document.querySelector(".track-list-wrap");
     modalTracks.innerHTML = "";
     const trackList = j.tracks || [];
+    // The album's total time (v0.7.10), beside the Tracks heading.
+    const totalEl = document.getElementById("modal-total");
+    if (totalEl) {
+      const secs = trackList.reduce((s, t) => s + (Number(t.length) || 0), 0);
+      totalEl.textContent = secs > 0 ? fmtTotal(secs) : "";
+    }
     // A thin or empty answer is now distinguishable from an album that really
     // has no tracks: Roon declares how many rows the level holds, so we know
     // when it sent fewer. Previously the whole section was hidden and an album
@@ -12569,6 +12583,126 @@ function settingsInfo(text) {
 })();
 
 /* ------------------------------------------------------------------ */
+/*  The mini player, moved about on a desktop (v0.7.11)                */
+/* ------------------------------------------------------------------ */
+/*
+ * Press anywhere on the bar but a button and drag: it goes where it is put,
+ * kept wholly on screen, and stays there (this browser remembers it). A
+ * press that hardly moves is a click as before — the cover and the title
+ * still open Now playing. Double-click the bar to send it back to its
+ * corner. Desktops only (a mouse, 1024px and wider, as the stylesheet's
+ * desktop size): on a phone or a tablet it stays put. The sheets it opens
+ * go with it: the volume sheet beside it, the room list above it, or under
+ * it when it is near the top of the screen.
+ */
+(function movableMiniPlayer() {
+  const bar = document.getElementById("mini-transport");
+  const volPop = document.getElementById("mt-vol-popover");
+  if (!bar || !window.matchMedia) return;
+  const desk = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)");
+  const KEY = "rra-mini-pos";
+  const MARGIN = 8, THRESHOLD = 5;
+  let pos = null;            // { left, top } in px, or null: the corner
+  try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && Number.isFinite(v.left) && Number.isFinite(v.top)) pos = v; } catch (e) { /* storage blocked */ }
+
+  const clamp = (p) => {
+    const r = bar.getBoundingClientRect();
+    return {
+      left: Math.max(MARGIN, Math.min(window.innerWidth - r.width - MARGIN, p.left)),
+      top: Math.max(MARGIN, Math.min(window.innerHeight - r.height - MARGIN, p.top))
+    };
+  };
+  function place() {
+    if (!desk.matches || !pos) {
+      bar.style.left = bar.style.top = bar.style.right = bar.style.bottom = "";
+      bar.classList.remove("mt-moved", "mt-drop-down");
+      placeSheets();
+      return;
+    }
+    // Hidden, it has no size to keep on screen: that waits till it shows.
+    if (bar.offsetWidth) pos = clamp(pos);
+    bar.style.left = pos.left + "px"; bar.style.top = pos.top + "px";
+    bar.style.right = "auto"; bar.style.bottom = "auto";
+    bar.classList.add("mt-moved");
+    placeSheets();
+  }
+  // The sheets it opens, beside it wherever it is.
+  function placeSheets() {
+    const moved = desk.matches && !!pos;
+    const r = bar.getBoundingClientRect();
+    // Room above for the room list (it opens upwards): else under the bar.
+    bar.classList.toggle("mt-drop-down", moved && r.top < 360);
+    if (!volPop) return;
+    if (!moved) { volPop.style.left = volPop.style.top = volPop.style.right = volPop.style.bottom = ""; return; }
+    const h = volPop.offsetHeight || 96;
+    const above = r.top - h - 8 >= MARGIN;
+    volPop.style.left = r.left + "px"; volPop.style.right = "auto";
+    volPop.style.top = (above ? r.top - h - 8 : r.bottom + 8) + "px"; volPop.style.bottom = "auto";
+  }
+  function save() { try { if (pos) localStorage.setItem(KEY, JSON.stringify(pos)); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ } }
+
+  let drag = null, dragged = false;
+  // The moves and the release followed on the window: a quick flick leaves
+  // the bar before the first move is seen.
+  const move = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moving) {
+      if (Math.hypot(dx, dy) < THRESHOLD) return;
+      drag.moving = true;
+      bar.classList.add("is-dragging");
+    }
+    pos = { left: drag.left + dx, top: drag.top + dy };
+    place();
+    e.preventDefault();
+  };
+  const end = (e) => {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    // The click that may follow this release is swallowed, and only that
+    // one: released off the bar there is none, and the next is a click.
+    if (drag.moving) { dragged = true; save(); setTimeout(() => { dragged = false; }, 0); }
+    drag = null;
+    bar.classList.remove("is-dragging");
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+  };
+  bar.addEventListener("pointerdown", (e) => {
+    if (!desk.matches || e.button !== 0 || drag) return;
+    if (e.target.closest("button, a, input, select, .mt-zone-popover, .mt-vol-popover")) return;
+    const r = bar.getBoundingClientRect();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: r.left, top: r.top, moving: false };
+    dragged = false;
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  });
+  // A drag is not a click: the cover and the title don't open Now playing
+  // at the end of one.
+  bar.addEventListener("click", (e) => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  // Back to its corner.
+  bar.addEventListener("dblclick", (e) => {
+    if (!desk.matches || e.target.closest("button, a, input, select, .mt-zone-popover, .mt-vol-popover")) return;
+    pos = null; save(); place();
+  });
+  window.addEventListener("resize", () => place());
+  if (desk.addEventListener) desk.addEventListener("change", place); else if (desk.addListener) desk.addListener(place);
+  // The volume sheet placed as it opens (its height is known then).
+  if (volPop) new MutationObserver(() => { if (!volPop.classList.contains("hidden")) placeSheets(); })
+    .observe(volPop, { attributes: true, attributeFilter: ["class"] });
+  // Shown again (it is hidden on Now playing): kept on screen. Only the
+  // change from hidden to shown: place() sets the bar's own classes too.
+  let shown = !bar.classList.contains("hidden");
+  new MutationObserver(() => {
+    const now = !bar.classList.contains("hidden");
+    if (now && !shown) requestAnimationFrame(place);
+    shown = now;
+  }).observe(bar, { attributes: true, attributeFilter: ["class"] });
+  place();
+  window.__miniPlayerPos = () => pos;
+})();
+
+/* ------------------------------------------------------------------ */
 /*  Android app only: the app's own update, looked for by the app on   */
 /*  GitHub, so one Update button can do the server and the app. Null   */
 /*  anywhere else (browsers, the iPhone home-screen app, older apps).  */
@@ -13250,7 +13384,11 @@ window.__musicdAppUpd = (function () {
     if (qobuzImport && on) qobuzImport.checked = j.import !== false;
     if (qobuzImportSt && on) {
       const li = j.last_import;
-      qobuzImportSt.textContent = j.importing ? "Bringing your Qobuz favourites and purchases into the library…"
+      // Off (v0.7.10): none of the service's albums in the library, and
+      // nothing to update until it is on again.
+      if (qobuzImportNow) qobuzImportNow.classList.toggle("hidden", j.import === false);
+      qobuzImportSt.textContent = j.import === false ? "Off: your Qobuz albums and playlists are not in the library. Switch on to show them."
+        : j.importing ? "Bringing your Qobuz favourites and purchases into the library…"
         : li ? (li.albums + " Qobuz album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
                (li.failed ? " · " + li.failed + " couldn't be read" : ""))
         : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Qobuz browser is known here.");
@@ -13300,6 +13438,8 @@ window.__musicdAppUpd = (function () {
     try {
       const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: qobuzImport.checked }) });
       paintQobuz(await r.json());
+      // The walls, Home and Playlists drawn again: the albums are in or out at once.
+      if (typeof window.__libraryChanged === "function") window.__libraryChanged();
     } catch (e) { showToast(e.message, "error"); }
   });
   if (qobuzImportNow) qobuzImportNow.addEventListener("click", async () => {
@@ -13365,7 +13505,11 @@ window.__musicdAppUpd = (function () {
     if (tidalImport && on) tidalImport.checked = j.import !== false;
     if (tidalImportSt && on) {
       const li = j.last_import;
-      tidalImportSt.textContent = j.importing ? "Bringing your Tidal favourites into the library…"
+      // Off (v0.7.10): none of the service's albums in the library, and
+      // nothing to update until it is on again.
+      if (tidalImportNow) tidalImportNow.classList.toggle("hidden", j.import === false);
+      tidalImportSt.textContent = j.import === false ? "Off: your Tidal albums and playlists are not in the library. Switch on to show them."
+        : j.importing ? "Bringing your Tidal favourites into the library…"
         : li ? (li.albums + " Tidal album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
           (li.playlists ? " · " + li.playlists + " playlist" + (li.playlists === 1 ? "" : "s") : ""))
         : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Tidal browser is known here.");
@@ -13409,6 +13553,8 @@ window.__musicdAppUpd = (function () {
     try {
       const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: tidalImport.checked }) });
       paintTidal(await r.json());
+      // The walls, Home and Playlists drawn again: the albums are in or out at once.
+      if (typeof window.__libraryChanged === "function") window.__libraryChanged();
     } catch (e) { showToast(e.message, "error"); }
   });
   if (tidalImportNow) tidalImportNow.addEventListener("click", async () => {

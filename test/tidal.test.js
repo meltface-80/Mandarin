@@ -73,7 +73,9 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.ok(tidal.polls >= 1, "asked Tidal whether it has happened");
       // The person signs in on tidal.com.
       tidal.approve();
-      const ok = await until(async () => { const s = await api("settings/tidal"); return s.connected && s; });
+      // Signed in first, the name and the subscription asked of Tidal a moment
+      // after: waited for, not read in between (a race CI's runners lost).
+      const ok = await until(async () => { const s = await api("settings/tidal"); return s.connected && s.subscription && s; });
       assert.equal(ok.user.login, "tester@example.com");
       assert.equal(ok.user.name, "Tess");
       assert.equal(ok.subscription, "HIFI_PLUS");
@@ -86,7 +88,13 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
     });
 
     await t.test("favourites, playlists and favourite tracks into the library", async () => {
-      // The sign-in started the import by itself (the import switch is on).
+      // Off until switched on (v0.7.10): signing in brought nothing in.
+      const st = await api("settings/tidal");
+      assert.equal(st.import, false, "the switch starts off");
+      assert.equal(st.last_import, null, "no import on signing in");
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "nothing of Tidal on the walls");
+      // Switched on: the import starts by itself.
+      assert.equal((await api("settings/tidal", { import: true })).import, true);
       const r = await until(async () => { const s = await api("settings/tidal"); return !s.importing && s.last_import && s; });
       assert.equal(r.last_import.albums, 2);
       assert.equal(r.last_import.playlists, 2);
@@ -258,6 +266,30 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       const ext = await api("search/external?q=T+Album");
       assert.equal(ext.tidal.length, 1, "beside the library's search");
       assert.ok(Array.isArray(ext.tidal_artists), "and Tidal's artists");
+    });
+
+    await t.test("the import switched off: the favourites and playlists leave the library; on again, they are back", async () => {
+      const before = (await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal");
+      assert.ok(before.length >= 1, "Tidal albums on the walls to begin with");
+      const lists = (await api("user-playlists")).playlists.filter(x => x.service === "tidal").length;
+      assert.ok(lists >= 1, "Tidal playlists to begin with");
+      const off = await api("settings/tidal", { import: false });
+      assert.equal(off.import, false);
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "off: none on the walls, straight away");
+      assert.ok(!(await api("user-playlists")).playlists.some(x => x.service === "tidal"), "the Tidal playlists went with them");
+      // A playlist of your own made meanwhile: the hidden Tidal ones are kept through the save.
+      const mine = await api("user-playlists", { name: "Mine while off" });
+      assert.equal(mine.ok, true, "a playlist of your own: " + JSON.stringify(mine));
+      assert.equal((await api("settings/tidal/import", {})).status, 409, "Update library now brings nothing in while off");
+      // A rescan doesn't bring them back while the switch is off.
+      await api("library/rescan", {});
+      await until(async () => !(await api("status")).library_importing);
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "still off after a rescan");
+      // On again: back straight away, the playlists with them.
+      await api("settings/tidal", { import: true });
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, before.length, "on: all back at once");
+      assert.equal((await api("user-playlists")).playlists.filter(x => x.service === "tidal").length, lists, "and the Tidal playlists");
+      await until(async () => !(await api("settings/tidal")).importing, 30000);
     });
 
     await t.test("signed out: nothing streams, the walls keep nothing of Tidal", async () => {

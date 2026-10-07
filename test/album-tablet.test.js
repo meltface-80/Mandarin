@@ -36,7 +36,9 @@ const DRIVER = `(async () => {
   const ol = $("modal-tracks"), row = ol.querySelector("li");
   for (let i = 0; i < 8; i++) ol.appendChild(row.cloneNode(true));
   $("album-bio-section").classList.remove("hidden");
-  $("album-bio-text").textContent = "Late Developers is the twelfth studio album by the Scottish indie pop band Belle and Sebastian. ".repeat(5);
+  // Expanded (Show more): long, and it must grow downwards from under the cover.
+  $("album-bio-text").textContent = "Late Developers is the twelfth studio album by the Scottish indie pop band Belle and Sebastian. ".repeat(12);
+  $("album-bio-text").dataset.clipped = "false";
   await sleep(300);
   const body = document.querySelector("#album-modal .modal-body");
   const box = el => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
@@ -61,6 +63,14 @@ const DRIVER = `(async () => {
   out.title = box($("modal-title"));
   out.tracks = box(document.querySelector(".track-list-wrap"));
   out.hscroll = body.scrollWidth > body.clientWidth;
+  out.viewport = [innerWidth, innerHeight];
+  // The album's total time: on the Tracks line, centred under Play Now and Queue.
+  const tot = $("modal-total"), btns = [...document.querySelectorAll("#modal-actions .action-btn")];
+  const tb = tot.getBoundingClientRect();
+  out.total = tot.textContent;
+  out.totalMid = Math.round((tb.left + tb.right) / 2);
+  out.buttonsMid = Math.round((btns[0].getBoundingClientRect().left + btns[btns.length - 1].getBoundingClientRect().right) / 2);
+  out.totalOnTracksLine = Math.abs(tb.top - document.querySelector(".tracks-head").getBoundingClientRect().top) < 4;
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
   body.scrollTop = Math.max(0, rowTop - 60); await sleep(100);
@@ -82,7 +92,8 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
       const b = await Browser.launch({ width: w, height: h });
       let r;
       try {
-        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+        // A touch screen, as a tablet or a phone is.
+        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true });
         r = await page.eval(DRIVER);
         assert.deepEqual(page.errors, [], size);
       } finally { await b.close(); }
@@ -91,6 +102,10 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
       assert.ok(r.rest.menu.t >= r.panel.t, `${size}: the menu's top (${r.rest.menu.t}) is inside the panel (${r.panel.t})`);
       assert.equal(r.rest.down, false, size + ": at rest it opens upwards, as before");
       assert.equal(r.hscroll, false, size + ": no sideways scroll");
+      assert.match(r.total, /^\d+:\d\d$/, size + ": the album's total time is shown: " + r.total);
+      assert.ok(Math.abs(r.totalMid - r.buttonsMid) <= 1, `${size}: centred under Play Now and Queue (${r.totalMid} vs ${r.buttonsMid})`);
+      assert.ok(r.totalOnTracksLine, size + ": on the Tracks line");
+      assert.ok(r.panel.l <= 0 && r.panel.t <= 0 && r.panel.r >= r.viewport[0] && r.panel.b >= r.viewport[1], `${size}: the album view fills the screen, not a card (${JSON.stringify(r.panel)})`);
       if (tablet) {
         assert.ok(r.rest.menu.t >= r.share.b, `${size}: the menu (${r.rest.menu.t}) stays clear of Share (${r.share.b})`);
         assert.ok(Math.abs(r.bio.l - r.art.l) < 1 && r.bio.t > r.art.b, `${size}: About this album is under the cover (art ${JSON.stringify(r.art)}, review ${JSON.stringify(r.bio)})`);

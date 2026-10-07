@@ -87,6 +87,14 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
     });
 
     await t.test("favourites and purchases into the library", async () => {
+      // Off until switched on (v0.7.10): signing in brings nothing in.
+      const st = await api("settings/qobuz");
+      assert.equal(st.import, false, "the switch starts off");
+      assert.equal(st.last_import, null, "no import on signing in");
+      assert.equal((await api("settings/qobuz/import", {})).status, 409, "nor Update library now while off");
+      const on = await api("settings/qobuz", { import: true });
+      assert.equal(on.import, true);
+      await until(async () => !(await api("settings/qobuz")).importing, 30000);
       const r = await api("settings/qobuz/import", {});
       assert.equal(r.status, 200, JSON.stringify(r));
       assert.equal(r.result.albums, 2);
@@ -417,6 +425,44 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("settings/qobuz")).kept, 3, "the new favourite is kept after the rescan");
       qobuz.favourites.delete("1003");
       await api("settings/qobuz/import", {});
+    });
+
+    await t.test("an import after a restart fetches only what is new (v0.7.10)", async () => {
+      // The answers cached in memory are gone after a restart; the albums kept are still here.
+      ctx.services.qobuz.api.cache.clear();
+      const asked = [];
+      const count = (req) => asked.push(req.url.split("?")[0]);
+      qobuz.server.on("request", count);
+      try {
+        const r = await api("settings/qobuz/import", {});
+        assert.equal(r.ok, true);
+        assert.equal(r.result.fetched, 0, "every album already here and read this week: none fetched again");
+        assert.ok(!asked.some(u => /album\/get$/.test(u)), "no album asked for: " + asked.join(" "));
+        assert.ok(r.result.albums >= 1, "still every favourite and purchase kept");
+      } finally { qobuz.server.off("request", count); }
+    });
+
+    await t.test("the import switched off: favourites and purchases leave the library at once; on again, they are back at once", async () => {
+      const shown = async () => (await api("library/albums?sort=album")).albums.filter(a => a.source === "qobuz").length;
+      const before = await shown();
+      assert.ok(before >= 1, "Qobuz albums on the walls to begin with");
+      const one = (await api("library/albums?sort=album")).albums.find(a => a.source === "qobuz");
+      const found = async () => ((await api("search?q=" + encodeURIComponent(one.title))).results || []).filter(a => a.source === "qobuz").length;
+      assert.ok(await found() >= 1, "found by search while on");
+      const off = await api("settings/qobuz", { import: false });
+      assert.equal(off.import, false);
+      assert.equal(await shown(), 0, "off: none on the walls, straight away");
+      assert.equal(await found(), 0, "nor in search");
+      // Update library now brings nothing in while the switch is off.
+      const now = await api("settings/qobuz/import", {});
+      assert.equal(now.status, 409, "no import while off");
+      assert.equal(await shown(), 0, "still none");
+      // Clean up leaves them: hidden, not stale.
+      assert.equal((await api("library/cleanup")).qobuz.albums, 0, "hidden albums aren't stale");
+      // On again: back straight away, every one, before any import.
+      await api("settings/qobuz", { import: true });
+      assert.equal(await shown(), before, "on: all back at once");
+      await until(async () => !(await api("settings/qobuz")).importing, 30000);
     });
 
     await t.test("signed out: nothing streams, the walls keep nothing of Qobuz", async () => {

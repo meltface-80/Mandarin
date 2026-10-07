@@ -5,6 +5,40 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.10
+- **A service's import switch now decides what is in the library** (Tidal and Qobuz). Off: none of
+  its albums are on the walls, in search or on Home, and none of its playlists show, straight away.
+  On: all back straight away, then brought up to date. Before, off only stopped further imports, so
+  everything already brought in stayed. Update library now could also run an import with the switch
+  off, and an import still running when it was switched off finished anyway. Update library now is
+  hidden while the switch is off. Nothing is deleted either way, and Clean up leaves hidden albums alone.
+- **Both switches start off.** Signing in to Qobuz or Tidal brings nothing into the library until you
+  switch it on. A switch you have already set keeps its setting; one never touched is now off.
+- Your own playlists saved while signed out of a service, or with its switch off, no longer drop that
+  service's hidden playlists.
+- **A signed-in Qobuz or Tidal account no longer weighs on the server.** Every import (20 s after
+  each start, every six hours, after every rescan) fetched every favourite, purchase and playlist
+  album again and rewrote all its tracks, changed or not — after a restart, one request per album,
+  one after another, while the app waited on the same server (measured: 300 favourites, 306 calls,
+  32 s). Albums already here and read within the week are kept as they are (6 calls, 0.6 s).
+  The cover warm-up runs one pass at a time instead of one per library change.
+- **The mini player, on touch screens** (the Android app, the iPhone and iPad home-screen app,
+  tablets), is 15% taller, with a larger cover, buttons and text. **On a desktop** it is a quarter
+  of the screen wide in the bottom-right corner, twice the height: a cover twice the size, the
+  title beside it and the controls under the title.
+- **On a tablet the album view fills the screen**, as on a phone, instead of a card over the page.
+- **About this album grows downwards** under the cover when expanded; it had risen over the
+  bottom of the cover.
+- **Every album view shows the album's total time**, on the Tracks line, centred under Play Now
+  and Queue.
+- **The mini player can be moved on a desktop.** Press anywhere on the bar but a button and drag
+  it: it goes where it is dropped, kept wholly on screen, and is there again next time (this
+  browser remembers it). A click on the cover or the title still opens Now playing; the end of a
+  drag doesn't. Double-click the bar to send it back to its corner. The volume sheet opens beside
+  it, and near the top of the screen the room list opens under it. Phones and tablets are unchanged.
+- Tests: the drag with a real mouse in a browser (a quick flick, the edges, click against drag,
+  the sheets, a reload, the double-click, a tablet left as it was).
+
 ## v0.7.9
 A full review of the server, the page, the Android app and the network engine.
 
