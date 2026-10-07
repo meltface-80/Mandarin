@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.10
+- **Switching off a service's import takes its albums out of the library** (Tidal and Qobuz).
+  It only stopped further imports: the favourites, purchases and playlists already brought in
+  stayed on the walls, and Clean up found nothing because they were still marked kept. Off now
+  lets them go; switched on again, they come back. An install already switched off is put right
+  20 seconds after it starts.
+- **A signed-in Qobuz or Tidal account no longer weighs on the server.** Every import (20 s after
+  each start, every six hours, after every rescan) fetched every favourite, purchase and playlist
+  album again and rewrote all its tracks, changed or not — after a restart, one request per album,
+  one after another, while the app waited on the same server (measured: 300 favourites, 306 calls,
+  32 s). Albums already here and read within the week are kept as they are (6 calls, 0.6 s).
+  The cover warm-up runs one pass at a time instead of one per library change.
+- **The mini player, on touch screens** (the Android app, the iPhone and iPad home-screen app,
+  tablets), is 15% taller, with a larger cover, buttons and text. **On a desktop** it is a quarter
+  of the screen wide in the bottom-right corner, twice the height: a cover twice the size, the
+  title beside it and the controls under the title.
+- **On a tablet the album view fills the screen**, as on a phone, instead of a card over the page.
+- **About this album grows downwards** under the cover when expanded; it had risen over the
+  bottom of the cover.
+- **Every album view shows the album's total time**, on the Tracks line, centred under Play Now
+  and Queue.
+
 ## v0.7.9
 A full review of the server, the page, the Android app and the network engine.
 

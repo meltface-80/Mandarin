@@ -6552,6 +6552,13 @@ window.__afterStart = (fn) => {
     }
   }
 
+  /* An album's length: 52:41, or 1:02:15 past the hour. */
+  function fmtTotal(secs) {
+    const s = Math.round(secs), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const pad = n => String(n).padStart(2, "0");
+    return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
+  }
+
   function openAlbum(album, opts) {
     opts = opts || {};
     if (opts.source === "now-playing") {
@@ -6611,6 +6618,7 @@ window.__afterStart = (fn) => {
     setModalArtist(album.subtitle);
     modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading">Loading…</div>`;
     modalTracks.innerHTML  = "";
+    { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
 
     // Reset bio sections
     document.getElementById("album-bio-section").classList.add("hidden");
@@ -8079,6 +8087,12 @@ window.__afterStart = (fn) => {
     const trackWrap = document.querySelector(".track-list-wrap");
     modalTracks.innerHTML = "";
     const trackList = j.tracks || [];
+    // The album's total time (v0.7.10), beside the Tracks heading.
+    const totalEl = document.getElementById("modal-total");
+    if (totalEl) {
+      const secs = trackList.reduce((s, t) => s + (Number(t.length) || 0), 0);
+      totalEl.textContent = secs > 0 ? fmtTotal(secs) : "";
+    }
     // A thin or empty answer is now distinguishable from an album that really
     // has no tracks: Roon declares how many rows the level holds, so we know
     // when it sent fewer. Previously the whole section was hidden and an album

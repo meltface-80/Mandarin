@@ -111,7 +111,7 @@ class Browser {
    * script run in the page before any of its own (a stand-in for the Android
    * app's bridges, say), on every load of the tab.
    */
-  async page(url, { cookies = [], init = null } = {}) {
+  async page(url, { cookies = [], init = null, touch = false } = {}) {
     const { targetId } = await this.send("Target.createTarget", { url: "about:blank" });
     const { sessionId } = await this.send("Target.attachToTarget", { targetId, flatten: true });
     const s = (m, p) => this.send(m, p, sessionId);
@@ -125,7 +125,9 @@ class Browser {
     });
     await s("Runtime.enable");
     await s("Page.enable");
-    await s("Emulation.setDeviceMetricsOverride", { width: this.size.width, height: this.size.height, deviceScaleFactor: 1, mobile: false });
+    await s("Emulation.setDeviceMetricsOverride", { width: this.size.width, height: this.size.height, deviceScaleFactor: 1, mobile: !!touch });
+    // A touch screen (a phone, a tablet): pointer: coarse, hover: none.
+    if (touch) await s("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     for (const c of cookies) await s("Network.setCookie", c);
     if (init) await s("Page.addScriptToEvaluateOnNewDocument", { source: init });
     const loaded = new Promise((resolve) => this.listeners.push((msg) => {

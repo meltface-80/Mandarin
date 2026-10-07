@@ -5838,7 +5838,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 @media (hover: none), (pointer: coarse) {
   .mini-transport { padding-top: 10px; padding-bottom: 10px; }
   [data-palette="hifi"] .mini-transport { padding: 12px 14px 18px; }
-  .mt-art { width: 62px; height: 62px; border-radius: 10px; }
+  .mt-art { width: 64px; height: 64px; border-radius: 10px; }
   .mt-title  { font-size: 17px; }
   .mt-artist { font-size: 14px; }
   [data-palette="hifi"] .mt-kicker:not(:empty) { font-size: 11.5px; }
@@ -5850,7 +5850,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .mt-vol-popover { bottom: calc(90px + env(safe-area-inset-bottom)); }
   .modal:not(.np-mode) .modal-body { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
 }
-@media ((hover: none), (pointer: coarse)) and (max-width: 480px) {
+@media (hover: none) and (max-width: 480px), (pointer: coarse) and (max-width: 480px) {
   .mt-btn { width: 46px; height: 46px; }
   .mt-btn svg { width: 28px; height: 28px; }
   .mt-playpause { width: 48px; height: 48px; }
@@ -5877,7 +5877,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   }
   [data-palette="hifi"] .mini-transport { padding: 12px 14px 20px 12px; }
   .mt-info { display: contents; }
-  .mt-art { grid-area: art; width: 120px; height: 120px; border-radius: 12px; }
+  .mt-art { grid-area: art; width: 132px; height: 132px; border-radius: 12px; }
   .mt-text { grid-area: text; align-self: end; }
   .mt-title  { font-size: 19px; }
   .mt-artist { font-size: 15px; margin-top: 2px; }
@@ -5889,8 +5889,48 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   /* The level meter along the pill's foot, under the cover too. */
   [data-palette="hifi"] .mt-progress { inset: auto 16px 8px 16px; }
   /* The room it reserves: its height (cover and padding) and its gap. */
-  main { padding-bottom: 176px; }
+  main { padding-bottom: 188px; }
   /* The sheets it opens sit over it, at its width. */
-  .mt-vol-popover { left: auto; right: 16px; width: max(25vw, 400px); margin: 0; bottom: 172px; box-sizing: border-box; }
+  .mt-vol-popover { left: auto; right: 16px; width: max(25vw, 400px); margin: 0; bottom: 184px; box-sizing: border-box; }
   .mt-zone-popover { right: 14px; }
+}
+
+/* ------------------------------------------------------------------ */
+/*  The album view (v0.7.10)                                           */
+/* ------------------------------------------------------------------ */
+/* The album's total time on the Tracks line, centred under the Play Now and
+   Queue buttons: the heading spans the same column as the button row, whose
+   heart and ⋯ are the same size at either end, so the line's centre is the
+   centre between the two buttons. */
+.tracks-head { position: relative; }
+.tracks-total {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+/* A TABLET'S ALBUM VIEW IS THE WHOLE SCREEN, as it is on a phone, not a card
+   floating over the page: from 720px up on a touch screen the panel fills
+   the display. (A desktop keeps the card.) The corner buttons and the art
+   measure from the safe-area insets as they do on a phone. */
+@media (min-width: 720px) and (hover: none), (min-width: 720px) and (pointer: coarse) {
+  .modal:not(.np-mode) { padding: 0; }
+  .modal:not(.np-mode) .modal-panel {
+    width: 100%; height: 100%; max-height: 100%;
+    border-radius: 0; border: 0;
+  }
+  .modal:not(.np-mode) .modal-body {
+    padding-left: calc(28px + env(safe-area-inset-left));
+    padding-right: calc(28px + env(safe-area-inset-right));
+  }
+  .modal:not(.np-mode) .modal-close { top: calc(12px + env(safe-area-inset-top)); }
+}
+
+/* THE REVIEW UNDER THE COVER GROWS DOWNWARDS. The cover box clips its image
+   (overflow: hidden), and a box that clips has no automatic minimum height in
+   a grid — so when Show more lengthened the review and the page was held to
+   the screen's height, the grid took the room from the cover's row: the
+   review rose over the bottom of the cover, its badge on the text. The
+   cover's row is now never less than the cover. */
+@media (min-width: 720px) {
+  .modal:not(.np-mode) .modal-art { min-height: 320px; }
 }
