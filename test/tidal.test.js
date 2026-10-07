@@ -88,7 +88,13 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
     });
 
     await t.test("favourites, playlists and favourite tracks into the library", async () => {
-      // The sign-in started the import by itself (the import switch is on).
+      // Off until switched on (v0.7.10): signing in brought nothing in.
+      const st = await api("settings/tidal");
+      assert.equal(st.import, false, "the switch starts off");
+      assert.equal(st.last_import, null, "no import on signing in");
+      assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "nothing of Tidal on the walls");
+      // Switched on: the import starts by itself.
+      assert.equal((await api("settings/tidal", { import: true })).import, true);
       const r = await until(async () => { const s = await api("settings/tidal"); return !s.importing && s.last_import && s; });
       assert.equal(r.last_import.albums, 2);
       assert.equal(r.last_import.playlists, 2);

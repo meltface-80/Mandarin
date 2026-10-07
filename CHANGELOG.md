@@ -12,6 +12,8 @@ Versioning: each set of changes is a development build and takes the next third 
   everything already brought in stayed. Update library now could also run an import with the switch
   off, and an import still running when it was switched off finished anyway. Update library now is
   hidden while the switch is off. Nothing is deleted either way, and Clean up leaves hidden albums alone.
+- **Both switches start off.** Signing in to Qobuz or Tidal brings nothing into the library until you
+  switch it on. A switch you have already set keeps its setting; one never touched is now off.
 - Your own playlists saved while signed out of a service, or with its switch off, no longer drop that
   service's hidden playlists.
 - **A signed-in Qobuz or Tidal account no longer weighs on the server.** Every import (20 s after

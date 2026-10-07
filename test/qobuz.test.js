@@ -87,6 +87,14 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
     });
 
     await t.test("favourites and purchases into the library", async () => {
+      // Off until switched on (v0.7.10): signing in brings nothing in.
+      const st = await api("settings/qobuz");
+      assert.equal(st.import, false, "the switch starts off");
+      assert.equal(st.last_import, null, "no import on signing in");
+      assert.equal((await api("settings/qobuz/import", {})).status, 409, "nor Update library now while off");
+      const on = await api("settings/qobuz", { import: true });
+      assert.equal(on.import, true);
+      await until(async () => !(await api("settings/qobuz")).importing, 30000);
       const r = await api("settings/qobuz/import", {});
       assert.equal(r.status, 200, JSON.stringify(r));
       assert.equal(r.result.albums, 2);
