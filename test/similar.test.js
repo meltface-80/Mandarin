@@ -165,7 +165,8 @@ test("/api/similar: two acts not heard of near what you play, one you know with 
     assert.equal(known.reason, "In your library — a record you don't have");
     assert.equal(known.in_library, false);
     assert.ok(seen.get("New Act") > 20 && seen.get("Another Act") > 20, "the two acts near what you play lead: " + JSON.stringify([...seen]));
-    assert.ok((seen.get("Kids Choir") || 0) < 10 && (seen.get("Tribute A") || 0) < 10, "an act near nothing you play, with few followers, seldom: " + JSON.stringify([...seen]));
+    assert.equal(seen.get("Kids Choir") || 0, 0, "an act near nothing you play never takes a slot while acts near your listening can: " + JSON.stringify([...seen]));
+    assert.equal(seen.get("Tribute A") || 0, 0, "nor a tribute act: " + JSON.stringify([...seen]));
     const r = await get("/api/similar?artist=Artist%20A");
     const fresh = r.acts.find(a => a.name === "New Act") || r.acts.find(a => a.name === "Another Act");
     assert.match(fresh.reason, /^Near (Heavy Act and Artist B|Artist B), which you play$/);

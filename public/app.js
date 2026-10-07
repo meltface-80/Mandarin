@@ -11868,6 +11868,22 @@ function settingsInfo(text) {
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
   idle(() => { try { const im = new Image(); im.src = LOGO_URL; } catch (e) { /* only a head start */ } });
 
+  /*
+   * The pill's room under the sheet (v0.7.9), only while the pill is on
+   * screen: it floats over the overlay, so the panel is centred above it.
+   * On Now playing it is hidden, and the sheet takes the full height.
+   */
+  function fitShareReserve() {
+    const mt = document.getElementById("mini-transport");
+    let reserve = 0;
+    if (mt) {
+      const r = mt.getBoundingClientRect();
+      if (r.height > 0 && r.top < window.innerHeight) reserve = Math.max(0, Math.ceil(window.innerHeight - r.top - 20 + 8));
+    }
+    overlay.style.setProperty("--share-reserve", reserve + "px");
+  }
+  window.addEventListener("resize", () => { if (!overlay.classList.contains("hidden")) fitShareReserve(); });
+
   // Public entry point — called from album modal share button + mini transport
   async function open(input) {
     const title  = input.title  || "";
@@ -11902,6 +11918,7 @@ function settingsInfo(text) {
     frame.innerHTML =
       `<div class="share-placeholder"><div class="share-spinner"></div><div>Generating card…</div></div>`;
     overlay.classList.remove("hidden");
+    fitShareReserve();
 
     try {
       // THE CARD FIRST, THEN THE SUGGESTIONS. The card is drawn from what is

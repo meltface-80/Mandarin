@@ -10,3 +10,6 @@ android/local.properties
 !dist/*.apk
 # Built by CI from android/musicdnet
 android/app/src/main/jniLibs/
+
+# The network engine built locally (go build); CI and the Dockerfile build their own.
+android/musicdnet/musicdnet
