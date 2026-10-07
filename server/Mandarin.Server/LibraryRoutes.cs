@@ -117,7 +117,7 @@ internal static partial class Library
     [GeneratedRegex(@"^[+-]?(?:Infinity|[0-9]+\.?[0-9]*(?:[eE][+-]?[0-9]+)?|\.[0-9]+(?:[eE][+-]?[0-9]+)?)\z")]
     private static partial Regex Decimal();
     /* Number(s) */
-    private static double Num(string? s)
+    public static double Num(string? s)
     {
         if (s == null) return double.NaN;
         s = Names.JsTrim(s);

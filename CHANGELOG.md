@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.5
+A test build, from the `claude/v0.8.5` branch: the fifth step in moving Mandarin's server to C#.
+
+- **Album covers and label logos are now sent by Mandarin's C# server.** Every size of a cover is
+  still drawn once by the Node server and kept; from then on the C# server sends it. After a scan
+  the tile size of every album is drawn ahead, so nearly every cover on the walls comes from C#.
+  - The same rules: an address from before a cover changed gets the album's current cover, and a
+    browser can keep a cover for good once it has it.
+  - The same pictures, byte for byte, with the same caching headers (a new test checks).
+  - A Sonos speaker fetching a cover by its own address is still answered by the Node server,
+    which knows the speakers; a cover address handed to a speaker works in C# too.
+- The Android app for this branch is at the same test address (0.8.5, version code 205).
+
 ## v0.8.4
 A test build, from the `claude/v0.8.4` branch: the fourth step in moving Mandarin's server to C#.
 

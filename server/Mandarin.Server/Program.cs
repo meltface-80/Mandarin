@@ -109,6 +109,8 @@ app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 Pages.Use(app, Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "public"));
 // The library (Library.cs): read here, from the copy the Node server holds.
 Library.Use(app);
+// Covers and label logos already drawn (Images.cs); the rest are drawn by the Node server.
+Images.Use(app, dataDir);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();

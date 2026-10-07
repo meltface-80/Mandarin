@@ -241,6 +241,9 @@ internal static partial class Library
         }
     }
 
+    /* The current copy, for the covers (Images.cs); null when the Node server can't say. */
+    public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;
+
     /* The copy the Node server holds, built here if it isn't already. */
     private static async Task<(Snapshot, LibState)?> Current()
     {

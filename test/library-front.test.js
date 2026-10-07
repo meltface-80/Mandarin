@@ -105,6 +105,43 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");
     assert.ok(s.labels.length >= 1, "labels found by search once on");
+    // Covers (v0.8.5): drawn by the Node server the first time, sent by C# after.
+    const albums = (await (await fetch(N + "/api/library/albums?count=200", { headers: H })).json()).albums;
+    for (const al of albums) {
+      const p = "/api/image/" + al.image_key + "?size=300";
+      const first = await fetch(B + p, { headers: H });
+      assert.equal(first.status, 200, p);
+      const drawn = Buffer.from(await first.arrayBuffer());
+      const [c, n] = await Promise.all([fetch(B + p, { headers: H }), fetch(N + p, { headers: H })]);
+      assert.equal(c.headers.get("x-mandarin-answered"), "C#", p + ": a cover already drawn, sent by C#");
+      assert.deepEqual(Buffer.from(await c.arrayBuffer()), drawn, p + ": the same picture");
+      assert.deepEqual(Buffer.from(await n.arrayBuffer()), drawn);
+      for (const h of ["content-type", "cache-control", "etag", "last-modified"]) assert.equal(c.headers.get(h), n.headers.get(h), p + ": " + h);
+      assert.equal((await fetch(B + p, { headers: Object.assign({ "If-None-Match": c.headers.get("etag") }, H) })).status, 304);
+      // An address from before a cover change: the current cover, not kept.
+      const old = await fetch(B + "/api/image/al-" + al.offset + "-stale?size=300", { headers: H });
+      assert.equal(old.headers.get("x-mandarin-answered"), "C#");
+      assert.equal(old.headers.get("cache-control"), "no-cache");
+      assert.deepEqual(Buffer.from(await old.arrayBuffer()), drawn, "an old address: the current cover");
+    }
+    const key = albums[0].image_key;
+    const signed = ctx.auth.signUrl("/api/image/" + key) + "&size=300";
+    let x = await fetch(B + signed);
+    assert.deepEqual([x.status, x.headers.get("x-mandarin-answered")], [200, "C#"], "a signed address, with no sign-in (a speaker)");
+    x = await fetch(B + "/api/image/" + key + "?size=300");
+    assert.equal(x.status, 401, "neither signed nor signed in: still refused");
+    x = await fetch(B + "/api/image/" + key + "?size=300&s=" + "A".repeat(22));
+    assert.equal(x.status, 401, "a wrong signature: refused");
+    // A label's logo, as kept in <data>/labels.
+    fs.mkdirSync(path.join(lib.data, "labels"), { recursive: true });
+    fs.writeFileSync(path.join(lib.data, "labels", "columbia.png"), Buffer.from("89504e470d0a1a0a", "hex"));
+    ctx.db.raw.prepare("INSERT INTO label_logos(key, file, type, source, url, updated_at) VALUES('columbia', 'columbia.png', 'image/png', 'manual', NULL, 1)").run();
+    const [lc, ln] = await Promise.all([fetch(B + "/api/image/label-columbia?v=1", { headers: H }), fetch(N + "/api/image/label-columbia?v=1", { headers: H })]);
+    assert.deepEqual([lc.status, lc.headers.get("x-mandarin-answered"), lc.headers.get("content-type")], [200, "C#", "image/png"]);
+    assert.deepEqual(Buffer.from(await lc.arrayBuffer()), Buffer.from(await ln.arrayBuffer()));
+    assert.equal(lc.headers.get("cache-control"), ln.headers.get("cache-control"));
+    assert.equal((await fetch(B + "/api/image/label-nobody", { headers: H })).status, 404, "no such logo");
+
     // What hasn't moved is still passed on.
     const st = await fetch(B + "/api/status", { headers: H });
     assert.equal(st.headers.get("x-mandarin-answered"), null, "the status: still the Node server's");
