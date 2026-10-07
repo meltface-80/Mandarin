@@ -94,8 +94,8 @@ internal static partial class Library
     private static double JsNumber(JsonNode? n) => n switch
     {
         null => 0,
-        JsonValue v when v.TryGetValue<long>(out var l) => l,
-        JsonValue v when v.TryGetValue<double>(out var d) => d,
+        // Whatever .NET type holds it (int, long, double, a parsed number): its value.
+        JsonValue v when v.GetValueKind() == JsonValueKind.Number => double.Parse(v.ToJsonString(), CultureInfo.InvariantCulture),
         JsonValue v when v.TryGetValue<bool>(out var b) => b ? 1 : 0,
         JsonValue v when v.TryGetValue<string>(out var str) => Num(str),
         JsonArray a when a.Count == 0 => 0,
@@ -174,8 +174,7 @@ internal static partial class Library
         null => "null",
         JsonValue v when v.TryGetValue<string>(out var str) => str,
         JsonValue v when v.TryGetValue<bool>(out var b) => b ? "true" : "false",
-        JsonValue v when v.TryGetValue<long>(out var l) => l.ToString(CultureInfo.InvariantCulture),
-        JsonValue v when v.TryGetValue<double>(out var d) => JsNum(d),
+        JsonValue v when v.GetValueKind() == JsonValueKind.Number => JsNum(double.Parse(v.ToJsonString(), CultureInfo.InvariantCulture)),
         JsonArray a => string.Join(",", a.Select(x => x == null ? "" : JsStr(x))),
         _ => "[object Object]"
     };

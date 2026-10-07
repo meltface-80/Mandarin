@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.8
+A test build, from the `claude/v0.8.8` branch: the eighth step in moving Mandarin's server to C#.
+
+- **Your own playlists are now Mandarin's C# server's:** the list, opening one, making, renaming
+  and deleting one, and adding tracks or whole albums to one.
+  - Kept where they always were, in the same shape, so nothing to move or redo.
+  - A Qobuz or Tidal playlist still shows only while you're signed in to the service with its
+    import on, and is kept as it is while hidden.
+  - Each change is saved in one go, so two changes at the same moment can't undo each other.
+  - A new test makes every kind of change once through each server, from the same starting
+    point, and checks both the answer and what was saved are the same.
+- Sharing a playlist as text (to MusicD Remote and back) still comes from the Node server.
+- The Android app for this branch is at the same test address (0.8.8, version code 208).
+
 ## v0.8.7
 A test build, from the `claude/v0.8.7` branch: the seventh step in moving Mandarin's server to C#.
 

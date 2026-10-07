@@ -141,6 +141,53 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     }
     await same("/api/smart-playlist?id=nope");
     await same("/api/smart-playlist/albums");
+    // Your own playlists (v0.8.8). Each change is made from the same saved state
+    // once through C# and once on the Node server, and both the answer and what
+    // was saved must agree (new ids and times aside).
+    const one = (await (await fetch(N + "/api/album?offset=" + ids[0], { headers: H })).json());
+    const start = [
+      { id: "p1", name: "Kept", tracks: [{ album_offset: ids[0], album_title: one.album.title, album_subtitle: one.album.subtitle, track_index: 0, title: one.tracks[0].title, subtitle: "", image_key: one.album.image_key, track_no: 1 }], created_at: 1, updated_at: 2, extra: "kept as is" },
+      { id: "q1", name: "From Qobuz", service: "qobuz", tracks: [], created_at: 1, updated_at: 1 },
+      { id: "p2", name: "Empty", tracks: [], created_at: 1, updated_at: 3 }
+    ];
+    const norm = v => JSON.parse(JSON.stringify(v), (k, x) => (k === "created_at" || k === "updated_at") && x > 1e12 ? "now"
+      : k === "id" && typeof x === "string" && /^[0-9a-f]{12}$/.test(x) ? "new" : x);
+    const both = async (p, body) => {
+      const out = [];
+      for (const base of [B, N]) {
+        ctx.db.setSetting("userPlaylists", start);
+        const r = await fetch(base + p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) });
+        out.push({ by: r.headers.get("x-mandarin-answered"), status: r.status, body: norm(await r.json()), saved: norm(ctx.db.setting("userPlaylists", null)) });
+      }
+      assert.equal(out[0].by, "C#", p + " answered by C#");
+      assert.deepStrictEqual(out[0], Object.assign({}, out[1], { by: "C#" }), p + " " + JSON.stringify(body).slice(0, 120));
+      return out[0];
+    };
+    ctx.db.setSetting("userPlaylists", start);
+    for (const p of ["/api/user-playlists", "/api/user-playlist?id=p1", "/api/user-playlist?id=q1", "/api/user-playlist?id=nope", "/api/playlists", "/api/playlist?id=x"]) await same(p);
+    await both("/api/user-playlists", { name: "  Late   Night  " });
+    await both("/api/user-playlists", { name: "" });
+    await both("/api/user-playlists", { id: "p2", name: "Renamed" });
+    await both("/api/user-playlists", { id: "nope", name: "X" });
+    await both("/api/user-playlists/delete", { id: "p1" });
+    await both("/api/user-playlists/delete", { id: "q1" });
+    const t0 = one.tracks[0], t1 = one.tracks[1] || one.tracks[0];
+    await both("/api/user-playlists/add", { id: "p1", tracks: [
+      { album_offset: ids[0], album_title: one.album.title, track_index: 0, title: "  " + t0.title + "  " },
+      { album_offset: ids[0], title: t1.title },
+      { album_offset: ids[0], track_index: 0, title: "not on it" },
+      { album_title: one.album.title, album_subtitle: one.album.subtitle, title: t0.title },
+      { album_title: "Nothing Like It", title: "x" },
+      { album_offset: "999999", track_index: 0 }, null, 5, "x", {}, []
+    ] });
+    await both("/api/user-playlists/add", { name: "Made by adding", tracks: [{ album_offset: ids[1], track_index: 0, title: "" }] });
+    await both("/api/user-playlists/add", { id: "nope", tracks: [{}] });
+    await both("/api/user-playlists/add", { tracks: [{}] });
+    await both("/api/user-playlists/add", { id: "p1", tracks: [] });
+    await both("/api/user-playlists/add-albums", { id: "p2", albums: [{ offset: ids[2] }, { offset: ids[3], title: "x" }, { offset: 999999, title: "Gone" }, 5, null, {}] });
+    await both("/api/user-playlists/add-albums", { name: "Albums", albums: ids.slice(0, 3).map(offset => ({ offset })) });
+    await both("/api/user-playlists/add-albums", { id: "p1", albums: [] });
+    ctx.db.setSetting("userPlaylists", []);
     const fav = await same("/api/favourites");
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");

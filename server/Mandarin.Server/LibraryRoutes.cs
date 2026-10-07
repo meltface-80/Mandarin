@@ -43,12 +43,23 @@ internal static partial class Library
         ["/api/smart-playlists"] = SmartPlaylists,
         ["/api/smart-playlist"] = SmartPlaylist,
         ["/api/smart-playlist/albums"] = SmartPlaylistAlbums,
+        ["/api/user-playlists"] = UserPlaylists,
+        ["/api/user-playlist"] = UserPlaylist,
+        ["/api/playlists"] = NoPlaylists,
+        ["/api/playlist"] = NoSuchPlaylist,
+        ["/api/playlist/art"] = NoPlaylistArt,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
         ["/api/settings/display"] = SaveDisplaySettings,
         ["/api/settings/smart-picks"] = SaveSmartPicksSettings,
         ["/api/settings/home-rows"] = SaveHomeRows,
+        ["/api/user-playlists"] = SavePlaylist,
+        ["/api/user-playlists/delete"] = DeletePlaylist,
+        ["/api/user-playlists/add"] = AddToPlaylist,
+        ["/api/user-playlists/add-albums"] = AddAlbumsToPlaylist,
+        ["/api/playlist/play"] = NoSuchPlaylist,
+        ["/api/playlist/play-track"] = NoSuchPlaylist,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
