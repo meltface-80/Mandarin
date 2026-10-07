@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.7.8
+- **An album's ⋯ menu is all on screen on a tablet.** From 720px up (an iPad either way round,
+  a laptop) the menu opens upwards from the button row, and with only the title and the artist
+  line above that row it rose past the top of the panel, which cut it off: the first two items
+  could be neither seen nor tapped. The title, the buttons and the tracks now start lower, by
+  exactly the room the menu needs (measured, for however many items this album's menu has and
+  however many lines its title takes), and the menu stays clear of the Share button. Scrolled so
+  there is no room above, it opens downwards instead.
+- **About this album sits under the cover on a tablet**, in the left-hand column, with the title,
+  the buttons and the tracks beside it. On a phone nothing moves: the review follows the tracks.
+
 ## v0.7.7
 - **Playback on the server keeps clear of the server's other work.** A scheduled library scan
   during playback was found to run a sound device dry (the scan's reads held up the thread that
