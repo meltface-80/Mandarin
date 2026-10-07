@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.7.6
+# Mandarin — v0.7.7
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1064,6 +1064,13 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless
   you tick others on the device's page.
 * DSD files go to these devices as PCM.
+* **Playback keeps clear of the server's other work (v0.7.7).** The decoder and the device each
+  queue a minute of audio ahead; a library scan runs on a thread of its own at a lower priority;
+  conversions prepared ahead run below playback. On a Linux machine with four cores or more the
+  last core is kept for the playback pair and the server runs on the others (`PLAYBACK_CORE=0`
+  turns this off, `PLAYBACK_CORE=<n>` picks the core). With `--privileged` (or as root) the pair
+  also runs at a higher priority. An ALSA underrun, should one happen, is logged with what the
+  feed was waiting for.
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
 taken from the device's name, and a device that fails being reported and let go.
