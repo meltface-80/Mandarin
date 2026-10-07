@@ -6,6 +6,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.7.6
+- **A sound device on the server no longer runs dry when the feed pauses.** A bit-for-bit
+  capture showed the device playing its whole buffer again — 131,072 frames, three seconds,
+  repeated — six times in a two-minute track, and the track then ending early by the time lost.
+  That is what an ALSA underrun looks like: the only slack between a pause in the feed and a dry
+  device was the device's own buffer. ffmpeg's reader now queues a minute of audio (at 44.1 kHz;
+  half that at 96) ahead of the device, filled by the decoder, which runs well ahead. Underruns
+  are now logged as they happen, with the feed's longest waits (for the decoder, for the device,
+  and for the server itself) so the cause can be read off the log.
 - **A WAV or AIFF played to a sound device on the server, or to a renderer that won't take it,
   is now bit-perfect.** It goes as FLAC at its own rate and depth, and the conversion dithered at
   its 32-bit output before the encoder cut the samples to 24 bits — which took one 24-bit LSB off
