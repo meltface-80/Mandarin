@@ -16,8 +16,12 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
   device can claim to be at home by sending the header itself.
 - **Streams and held requests** pass straight through, as long as they last; request bodies have
   no size limit (a whole database restored from a backup).
-- Every response says which server it came through: `X-Mandarin-Server: C# 0.8.1`.
-  `GET /server-info` answers from C# itself.
+- Every response says which server it came through (`X-Mandarin-Server: C# <version>`), and one
+  C# wrote itself says so (`X-Mandarin-Answered: C#`). `GET /server-info` answers from C# itself.
+  `test/front.test.js` pins which server answers what.
+- **The database** is the Node server's (`<data>/musicd.db`), shared: the Node server makes it and
+  brings its tables up to date first; C# opens it afresh for each request, so a database put back
+  from a backup is the one read next.
 
 When nothing is passed on any more, the Node server, and Node itself, leave the image.
 
@@ -26,6 +30,7 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Part | Where it is |
 |---|---|
 | The port, who is asking, the Node server's start and stop | C# (v0.8.1) |
+| Signing in, signed-in devices, the gate (`Auth.cs`, `Srp.cs`) | C# (v0.8.2); streams and covers still gated by Node |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |
 

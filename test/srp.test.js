@@ -46,3 +46,13 @@ test("the fixed example still comes out the same (Kotlin checks it too)", () => 
   assert.equal(p.K, V.K);
   assert.equal(SRP.serverVerify(ss, V.A, V.M1).M2, V.M2);
 });
+
+// The C# server's half (v0.8.2, server/Srp.cs) against the same example.
+test("the C# server's half of SRP agrees with the fixed example", { skip: !require("fs").existsSync(require("path").join(__dirname, "..", "server", "bin", "mandarin-server")) && !process.env.CI && "the C# server isn't built (server/build.sh)" }, () => {
+  const bin = process.env.MANDARIN_SERVER_BIN || require("path").join(__dirname, "..", "server", "bin", "mandarin-server");
+  const out = JSON.parse(require("child_process").execFileSync(bin, ["--srp-vector", require("path").join(__dirname, "srp-vector.json")], { encoding: "utf8" }));
+  assert.equal(out.B, V.B, "B");
+  assert.equal(out.ok, true, "the right proof is accepted");
+  assert.equal(out.M2, V.M2, "M2");
+  assert.equal(out.wrong_ok, false, "a wrong proof is refused");
+});

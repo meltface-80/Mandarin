@@ -60,7 +60,7 @@ if (process.env.MANDARIN_FRONT === "1") {
     s.start = async () => {
       const ctx = await start();
       front = spawn(bin, [], {
-        env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn }),
+        env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn, DATA_DIR: ctx.config.dataDir }),
         stdio: ["ignore", "inherit", "inherit"]
       });
       front.on("exit", (code) => { if (code && front) console.log(`# the C# server exited (${code})`); });

@@ -5,6 +5,38 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.2
+A test build, from the `claude/v0.8.2` branch: the second step in moving Mandarin's server to C#.
+
+- **Signing in, signed-in devices and the gate are now Mandarin's C# server's.** Making the
+  account, signing in (SRP), the "Enter your current password" check, changing the password,
+  the list of signed-in devices and signing one out are all answered by C#, and so is the gate in
+  front of everything else: a request from a device that isn't signed in stops there and never
+  reaches the Node server.
+  - The same rules, word for word: the account made only from the home network, five wrong
+    passwords from one address locking it out for 15 minutes, every failure slowing the next
+    attempt, an unknown username answered as if it were real, the cookie for browsers and the
+    token for the Android app.
+  - Nothing to sign in again: the account and the devices are the same tables in the same
+    database, read and written by both servers. A token made by either works with the other.
+  - The sign-in maths (SRP) is checked against the same fixed example as the page and the
+    Android app, to the byte.
+  - Streams and covers are still decided by the Node server (a Sonos speaker can't sign in: its
+    addresses carry a signature, or come from a speaker the Node server knows).
+- **A library scan no longer fails when something else writes to the database meanwhile.** The
+  scan's transactions read first and asked for the write lock at their first write; if another
+  connection had written in between (a device signing in, a setting saved), SQLite refused at once
+  ("database is locked") and the whole scan stopped. Every transaction now takes the write lock at
+  its start and waits its turn. Found because the C# server writes to the same file: a scan running
+  while a device signed in failed. Checked: 20 forced scans against 100,000 writes from another
+  connection, none failed.
+- **Streamers' events still reach the Node server** (a streamer telling Mandarin its state changed
+  can't sign in, and goes past the gate as before), and the Node server's loopback-only routes
+  (`/internal/`) stop at the front door.
+- Every response C# writes itself says so (`X-Mandarin-Answered: C#`), and `test/front.test.js`
+  pins which server answers what, so a moved part can't quietly fall back to Node.
+- The Android app for this branch is at the same test address (0.8.2, version code 202).
+
 ## v0.8.1
 A test build, from the `claude/v0.8.1` branch: the first step in moving Mandarin's server from
 Node.js to C#.

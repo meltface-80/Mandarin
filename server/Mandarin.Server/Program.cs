@@ -18,6 +18,19 @@ using System.Net.Sockets;
 using Mandarin.Server;
 
 var version = (typeof(Front).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+
+// `mandarin-server --srp-vector test/srp-vector.json`: the server's half of
+// SRP against the fixed example the page and the Android app are checked
+// against too (test/srp.test.js).
+if (args.Length == 2 && args[0] == "--srp-vector")
+{
+    var v = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(args[1]))!;
+    var st = Srp.ServerStart((string)v["verifier"]!, (string)v["b"]!);
+    var res = Srp.ServerVerify(st, (string)v["A"]!, (string)v["M1"]!);
+    var bad = Srp.ServerVerify(st, (string)v["A"]!, new string('0', 64));
+    Console.WriteLine(new System.Text.Json.Nodes.JsonObject { ["B"] = st.B, ["ok"] = res.Ok, ["M2"] = res.M2, ["wrong_ok"] = bad.Ok }.ToJsonString());
+    return 0;
+}
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 
@@ -30,6 +43,11 @@ if (string.IsNullOrEmpty(upstream))
     upstream = $"http://127.0.0.1:{internalPort}";
 }
 var upstreamUri = new Uri(upstream);
+// The database the Node server keeps (lib/library/db.js), shared: the Node
+// server makes it and brings its tables up to date before this one reads it.
+string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
+    : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
+Db.File = Path.Combine(dataDir, "musicd.db");
 Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
 
 // Nothing is answered until the Node server is: a request that arrived first
@@ -69,8 +87,13 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+// The gate (Auth.cs): nothing but the sign-in page and its parts until the
+// account exists and the device has signed in.
+app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
+
 // What C# answers itself. Everything else goes to the Node server.
 Routes.Map(app, version);
+Auth.Map(app);
 
 var invoker = Front.Invoker();
 var transformer = new ForwardTransformer();
