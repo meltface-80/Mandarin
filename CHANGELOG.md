@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.7
+A test build, from the `claude/v0.8.7` branch: the seventh step in moving Mandarin's server to C#.
+
+- **Settings that are only kept and read are now Mandarin's C# server's:** the wall display (on
+  or off, and its seconds), Smart Picks (on or off, and its hour) and Home's rows (which, in what
+  order). Saved in the same place, so the Node server sees a change at once.
+- **Dynamic playlists are now read by the C# server:** the list, a playlist's albums, and its
+  tracks as the player asks for them. They are saved Library views, so they come from the same
+  Library wall as v0.8.4's.
+- Your own playlists, share links and the waveform switch still come from the Node server: each
+  depends on something only it knows (whether you are signed in to a service, which sites it
+  links to, whether ffmpeg works).
+- The Android app for this branch is at the same test address (0.8.7, version code 207).
+
 ## v0.8.6
 A test build, from the `claude/v0.8.6` branch: the sixth step in moving Mandarin's server to C#.
 

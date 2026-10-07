@@ -488,7 +488,7 @@ internal static class Auth
 
     // The request's JSON body, as the Node server's parser reads it: {} when
     // there is none or it isn't JSON; a 400 (and null) when it says JSON but isn't.
-    private static async Task<JsonObject?> Body(HttpContext ctx)
+    public static async Task<JsonObject?> Body(HttpContext ctx)
     {
         var type = ctx.Request.ContentType ?? "";
         if (!type.Contains("json", StringComparison.OrdinalIgnoreCase)) return [];

@@ -42,6 +42,7 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Signing in, signed-in devices, the gate (`Auth.cs`, `Srp.cs`) | C# (v0.8.2); streams and covers still gated by Node |
 | The page and its files, `public/` (`Pages.cs`) | C# (v0.8.3); deep links, `/login`, `/display` still Node's |
 | Reading the library: the Library wall and its Focus sheet, search, artists, an album's page, genres, decades, the random wall, Favourites, Listen later (`Library.cs`, `LibraryRoutes.cs`, `Names.cs`) | C# (v0.8.4); scans, edits, hearts, labels, Home's rows and a streamed album's page still Node's |
+| Settings only kept and read: the wall display, Smart Picks' switch and hour, Home's rows; dynamic playlists (`SettingsRoutes.cs`) | C# (v0.8.7); your own playlists, share links and the waveform switch still Node's |
 | Home's rows: Album of the day, Label of the week, Recently played, Not played lately (`HomeRoutes.cs`) | C# (v0.8.6); the day and week are the Node server's clock's, told with the library's state; Smart picks still Node's |
 | Covers already drawn and label logos, to signed-in devices and signed addresses (`Images.cs`) | C# (v0.8.5); drawing a cover the first time, and a speaker asking by its own address, still Node's |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |

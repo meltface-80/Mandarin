@@ -37,6 +37,18 @@ internal static partial class Library
         ["/api/home/label-of-the-week"] = LabelOfTheWeek,
         ["/api/home/history"] = History,
         ["/api/home/unplayed"] = Unplayed,
+        ["/api/settings/display"] = DisplaySettings,
+        ["/api/settings/smart-picks"] = SmartPicksSettings,
+        ["/api/settings/home-rows"] = HomeRowsSettings,
+        ["/api/smart-playlists"] = SmartPlaylists,
+        ["/api/smart-playlist"] = SmartPlaylist,
+        ["/api/smart-playlist/albums"] = SmartPlaylistAlbums,
+    };
+    private static readonly Dictionary<string, Handler> Posts = new()
+    {
+        ["/api/settings/display"] = SaveDisplaySettings,
+        ["/api/settings/smart-picks"] = SaveSmartPicksSettings,
+        ["/api/settings/home-rows"] = SaveHomeRows,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
@@ -45,7 +57,8 @@ internal static partial class Library
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
-            if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && ctx.Request.Path.Value is { } p && Gets.TryGetValue(p, out var h))
+            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
+                && table.TryGetValue(p, out var h))
             {
                 try
                 {
@@ -185,7 +198,7 @@ internal static partial class Library
     private static Task<bool> Albums(HttpContext ctx, Snapshot s, LibState st)
     {
         if (st.Building) return NotReady(ctx);
-        var view = View(ctx, s);
+        var view = View(name => Values(ctx, name), s);
         int total = view.Count;
         var offset = (int)Math.Max(0, Math.Min(total, IntOr(Q(ctx, "offset") is { Length: > 0 } o ? o : "0", 0)));
         var count = (int)Math.Max(1, Math.Min(200, IntOr(Q(ctx, "count") is { Length: > 0 } n ? n : "60", 60)));
@@ -300,8 +313,11 @@ internal static partial class Library
     }
 
     /* library.view(q): the Library wall, filtered and sorted. */
-    private static List<Album> View(HttpContext ctx, Snapshot s)
+    private static List<Album> View(Func<string, List<string>?> ask, Snapshot s)
     {
+        string? Q(HttpContext? _, string name) => ask(name) is { } v ? string.Join(",", v) : null;
+        List<string>? Values(HttpContext? _, string name) => ask(name);
+        HttpContext? ctx = null;
         var sortQ = Q(ctx, "sort") ?? "";
         var sort = Sorts.Contains(sortQ) ? sortQ : "album";
         var desc = (Q(ctx, "dir") is { Length: > 0 } d ? d : "asc") == "desc";

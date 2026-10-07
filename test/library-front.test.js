@@ -116,6 +116,31 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.deepEqual([after.album, after.played], [null, true]);
     const week = await same("/api/home/label-of-the-week");
     assert.ok(week.label && week.albums.length >= 3, "a label of the week, labels on");
+    // Settings kept and read (v0.8.7): saved through C#, read the same by both.
+    for (const p of ["/api/settings/display", "/api/settings/smart-picks", "/api/settings/home-rows"]) await same(p, "as set: ");
+    let r = await post("/api/settings/display", { enabled: false, seconds: "30" });
+    assert.deepEqual(r, { ok: true, enabled: false, seconds: 30 });
+    r = await post("/api/settings/display", { seconds: 99 });
+    assert.equal(r.seconds, 30, "out of range: kept");
+    r = await post("/api/settings/smart-picks", { hour: "7.9", enabled: 0 });
+    assert.deepEqual([r.hour, r.enabled], [7, false]);
+    assert.equal((await fetch(B + "/api/settings/smart-picks", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ hour: 24 }) })).status, 400);
+    r = await post("/api/settings/home-rows", { rows: [{ id: "random" }, { id: "history", on: false }, { id: "nope" }, { id: "random" }] });
+    assert.deepEqual(r.rows.slice(0, 4).map(x => x.id), ["downloads", "phone", "random", "history"], "the app's rows at the top, then as given");
+    assert.equal((await fetch(B + "/api/settings/home-rows", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ rows: [{ id: "x" }] }) })).status, 400);
+    for (const p of ["/api/settings/display", "/api/settings/smart-picks", "/api/settings/home-rows"]) await same(p, "after saving: ");
+    // Dynamic playlists (saved Library views): made on the Node server, read by both.
+    const mk = b => fetch(N + "/api/smart-playlists", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(b) }).then(x => x.json());
+    const a1 = (await mk({ name: "Jazz", view: { genre: ["Jazz"], sort: "year", dir: "desc" }, limit: 3 })).playlist;
+    const a2 = (await mk({ name: " Shuffled ", view: { sort: "random", seed: 9, decade: "1960", genre: ["!Pop", 7, null, {}] }, order: "random", mode: "tracks" })).playlist;
+    await mk({ name: "All", view: "nonsense", limit: "9999" });
+    await same("/api/smart-playlists");
+    for (const sp of [a1, a2]) {
+      for (const q of ["", "&offset=1&count=1", "&count=99"]) await same("/api/smart-playlist?id=" + sp.id + q);
+      for (const q of ["", "&max=1", "&max=0"]) await same("/api/smart-playlist/albums?id=" + sp.id + q);
+    }
+    await same("/api/smart-playlist?id=nope");
+    await same("/api/smart-playlist/albums");
     const fav = await same("/api/favourites");
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");
