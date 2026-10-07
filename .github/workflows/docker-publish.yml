@@ -100,3 +100,61 @@ jobs:
               --target "${GITHUB_SHA}"
           fi
           gh release upload engine engine-out/* --clobber
+
+  # Mandarin's audio engine for installs updated in place from Settings, whose
+  # image predates the engine (lib/local/engine.js): built ahead of time on
+  # each platform's own runner and published to the "audio-engine"
+  # pre-release. A pre-release, never "latest", so the server's own updater
+  # (releases/latest) never mistakes it for a Mandarin release.
+  audio-engine:
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        include:
+          - { runner: ubuntu-latest, arch: x64 }
+          - { runner: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build
+        run: |
+          set -e
+          ./engine/build.sh
+          mkdir -p out
+          gzip -9 -c engine/bin/mandarin-audio > out/mandarin-audio-linux-${{ matrix.arch }}.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audio-engine-${{ matrix.arch }}
+          path: out/
+
+  audio-engine-publish:
+    needs: audio-engine
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: audio-engine-*
+          path: out
+          merge-multiple: true
+      - name: Publish to the "audio-engine" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          cd out
+          sha256sum mandarin-audio-linux-*.gz > SHA256SUMS
+          node -p "require('../package.json').version" > VERSION
+          cat SHA256SUMS VERSION
+          cd ..
+          if ! gh release view audio-engine >/dev/null 2>&1; then
+            gh release create audio-engine --prerelease --latest=false --title "Audio engine (for in-place updates)" \
+              --notes "Mandarin's audio engine for installs updated from Settings. Updated on every change to main; not a Mandarin release." \
+              --target "${GITHUB_SHA}"
+          fi
+          gh release upload audio-engine out/* --clobber

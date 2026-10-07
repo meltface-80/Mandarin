@@ -42,6 +42,13 @@ jobs:
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
           ~/ffmpeg-static/ffmpeg -version | head -1
       - run: npm ci --no-audit --no-fund
+      # Mandarin's audio engine (engine/, C#): built ahead of time to one
+      # native program, then tested with the rest (test/engine.test.js).
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the audio engine
+        run: ./engine/build.sh
       - name: Syntax check
         run: |
           node --check index.js
@@ -69,6 +76,10 @@ jobs:
           docker run -d --name smoke -p 3500:3500 -v /tmp/music:/music:ro musicd-server:ci
           for i in $(seq 1 30); do curl -fs localhost:3500/api/health && break; sleep 1; done
           curl -fs localhost:3500/api/health | tee /dev/stderr | grep -q '"ffmpeg":true'
+          # The audio engine is in the image, at the server's version.
+          V=$(node -p "require('./package.json').version")
+          curl -fs localhost:3500/api/health | grep -q "\"audio_engine\":\"$V\""
+          docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
           # A new install asks for its account first: the page is the sign-in page,
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"

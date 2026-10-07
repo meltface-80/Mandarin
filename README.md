@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.7.10
+# Mandarin — v0.8.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1047,9 +1047,14 @@ room (v0.6.18).
 2. On its page: the rates it takes (a USB DAC on Linux lists its own; tap to change), **Output**
    (Original, ×2, ×4, Max), **Fixed volume**, **Volume levelling** and **DSP**, as for a renderer.
 
-How it plays: ffmpeg decodes each track and a second ffmpeg holds the device open. The next track
-at the same rate goes into the open device with nothing between them; a track at another rate
-reopens it. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
+How it plays (v0.8.0, Linux): **Mandarin's audio engine** (`engine/`, a native program written
+in C#) holds the device open. ffmpeg decodes each track straight into the engine's own buffer, up
+to a few minutes ahead, and a thread of the engine's own writes it to the device through ALSA. The
+next track at the same rate goes into the open device with nothing between them; a track at another
+rate reopens it. Where the device is in a track is read from ALSA itself. The image carries the
+engine; an install updated from Settings downloads it once. `AUDIO_ENGINE=0` plays as before
+v0.8.0: ffmpeg decodes each track and a second ffmpeg holds the device open. On a Mac, that is how
+it plays for now. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
 with **Fixed volume** on they are never scaled and the volume is the DAC's or amplifier's.
 
 * **Linux:** ALSA, opened as `plughw:CARD=<name>,DEV=<n>`, so a DAC on another USB port is the
@@ -1068,8 +1073,8 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   queue a minute of audio ahead; a library scan runs on a thread of its own at a lower priority;
   conversions prepared ahead run below playback. On a Linux machine with four cores or more the
   last core is kept for the playback pair and the server runs on the others (`PLAYBACK_CORE=0`
-  turns this off, `PLAYBACK_CORE=<n>` picks the core). With `--privileged` (or as root) the pair
-  also runs at a higher priority. An ALSA underrun, should one happen, is logged with what the
+  turns this off, `PLAYBACK_CORE=<n>` picks the core). With `--privileged`, `--cap-add SYS_NICE`
+  (or as root) the engine's playback thread runs at a real-time priority. An ALSA underrun, should one happen, is logged with what the
   feed was waiting for.
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids

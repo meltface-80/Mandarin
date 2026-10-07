@@ -191,6 +191,17 @@ function createServer(overrides = {}) {
   zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
   zones.upnp.callbackBase = () => ctx.baseUrl();
   zones.upnp.localBase = () => "http://127.0.0.1:" + config.port;
+  zones.upnp.dataDir = config.dataDir;
+  // Mandarin's audio engine for sound devices on this computer (v0.8.0): the
+  // image's, else (in Docker, or asked for) downloaded once in the background.
+  // Until it is here, or without it, devices play as before.
+  {
+    const ENGINE = require("./lib/local/engine");
+    const may = process.env.DOCKER === "1" || process.env.AUDIO_ENGINE_DOWNLOAD === "1" || !!process.env.AUDIO_ENGINE_URL;
+    const found = ENGINE.engine({ dataDir: config.dataDir });
+    if (found) log(`[local] Mandarin's audio engine ${found.version} plays sound devices on this computer`);
+    else if (may && config.audioEngineDownload !== false) ENGINE.ensure({ dataDir: config.dataDir, version: pkg.version, log });
+  }
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version, watchdog: config.tailscaleWatchdog || {} });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
@@ -363,7 +374,8 @@ function createServer(overrides = {}) {
 
   app.get("/api/health", (req, res) => res.json({
     ok: true, version: pkg.version, albums: library.count, rooms: zones.topology.rooms().length,
-    ffmpeg: FF.info().ok, soxr: FF.info().soxr, transcode_cache: transcoder.cacheStats()
+    ffmpeg: FF.info().ok, soxr: FF.info().soxr, transcode_cache: transcoder.cacheStats(),
+    audio_engine: (() => { const e = require("./lib/local/engine").engine({ dataDir: config.dataDir }); return e ? e.version : null; })()
   }));
   app.use("/api", (req, res) => res.status(404).json({ error: `No such endpoint: ${req.method} ${req.path}` }));
 

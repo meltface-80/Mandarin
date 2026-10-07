@@ -1,10 +1,11 @@
 # MusicD Server — your own music files, played to Sonos.
 #
-# Three stages: MusicD's own Tailscale engine (Go, the same program as the
-# Android app's) is built for the image's platform; native modules
-# (better-sqlite3, sharp) are installed where a compiler is available in case
-# a platform has no prebuilt binary; and the image that runs carries only
-# Node, ffmpeg, the engine and the app.
+# Four stages: MusicD's own Tailscale engine (Go, the same program as the
+# Android app's) is built for the image's platform; Mandarin's audio engine
+# (C#, engine/) likewise; native modules (better-sqlite3, sharp) are
+# installed where a compiler is available in case a platform has no prebuilt
+# binary; and the image that runs carries only Node, ffmpeg, the two engines
+# and the app.
 FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS tsnet
 ARG TARGETOS
 ARG TARGETARCH
@@ -14,6 +15,28 @@ RUN go mod download
 COPY android/musicdnet/*.go ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath -ldflags "-s -w -X main.version=server" -o /out/musicdnet .
+
+# Mandarin's audio engine (v0.8.0): one native program, no .NET in the image.
+# Built ahead of time (Native AOT) for the builder's own platform; for the
+# other one (arm64, built on an amd64 runner) as one self-contained file,
+# which needs no cross toolchain and runs the same. Either needs glibc 2.34
+# at most, which the image's Debian has.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot AS audio
+ARG TARGETARCH
+ARG BUILDARCH
+WORKDIR /src
+COPY package.json ./
+COPY engine/Mandarin.Audio/*.csproj engine/Mandarin.Audio/*.cs ./engine/
+RUN set -e; cd engine; \
+    V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
+    RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \
+    if [ "${TARGETARCH:-amd64}" = "${BUILDARCH:-amd64}" ]; then \
+      dotnet publish -c Release -r $RID -p:Version=$V -o /out --nologo; \
+    else \
+      dotnet publish -c Release -r $RID -p:Version=$V -p:PublishAot=false -p:SelfContained=true \
+        -p:PublishSingleFile=true -p:PublishTrimmed=true -p:EnableCompressionInSingleFile=true -o /out --nologo; \
+    fi; \
+    rm -f /out/*.dbg /out/*.pdb; ls -la /out
 
 FROM node:22-bookworm-slim AS deps
 RUN apt-get update \
@@ -42,6 +65,8 @@ RUN apt-get update \
 COPY --from=tsnet /out/musicdnet /usr/local/bin/musicdnet
 
 WORKDIR /app
+# Mandarin's audio engine: sound devices on this computer (lib/local/engine.js).
+COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json index.js launcher.js reset-password.js ./
 COPY lib ./lib

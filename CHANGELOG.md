@@ -5,6 +5,41 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.0
+A test build, from the `claude/v0.8.0-csharp` branch. v0.7.x carries on beside it until this one
+has proved itself.
+
+- **Mandarin's audio engine, written in C#.** A sound device on the server's own computer (a USB
+  DAC, the speakers, HDMI) is now played by a native program of Mandarin's own (`engine/`, .NET 10,
+  built ahead of time: no .NET is needed where it runs). It holds the device open through ALSA.
+  ffmpeg decodes each track straight into the engine's own buffer, 64 MB, a few minutes ahead at
+  CD rates. One thread of the engine's own, and only that thread, writes to the device, on the
+  core kept for playback and at a real-time priority where the system allows it. It allocates
+  nothing while it plays. The server's own work (a library scan, an import, its own memory
+  clean-up) is no longer anywhere in the path from the decoder to the device.
+  - Gapless as before: the next track at the same rate goes into the open device with nothing
+    between them. Pause holds the device where it is (or, on one that can't pause, hands it again
+    what it was holding). A seek is heard at once.
+  - Where the device is in a track is read from ALSA (what the device has still to play), not
+    worked out from a clock.
+  - Volume as before: untouched at 100% or on Fixed volume, scaled on the same 50 dB curve below.
+  - A device that ran dry is put right at once and logged with how much was held ahead.
+  - Checked bit for bit: two tracks (16- and 24-bit) played through the engine, into a file and
+    through the ALSA library itself, come out sample for sample as each track decodes on its own.
+- **Nothing stops playing on the way.** The Docker image carries the engine. An install updated
+  from Settings downloads it once from the new "audio-engine" pre-release, checked against its
+  checksum. Until it is there, on a Mac for now, or with `AUDIO_ENGINE=0`, devices play exactly as
+  in v0.7.x. `/api/health` says which: `"audio_engine": "0.8.0"` or `null`.
+- **Docker:** `--cap-add SYS_NICE` (or `--privileged`, as for the USB DAC already) gives the
+  playback thread its real-time priority. Without it, it plays at an ordinary priority.
+- **The Android app for this branch** is a direct download for testing:
+  `https://github.com/meltface-80/Mandarin/releases/download/test-android/mandarin-android-test.apk`.
+  It is 0.8.0 (version code 200), so a later v0.7.x app won't install over it: going back to v0.7.x
+  before v0.8.0 is released means uninstalling it first.
+- Under the hood: `engine/build.sh` builds the engine; CI builds and tests it with the rest
+  (`test/engine.test.js`); the image builds it for amd64 ahead of time and for arm64 as one
+  self-contained file.
+
 ## v0.7.10
 - **A service's import switch now decides what is in the library** (Tidal and Qobuz). Off: none of
   its albums are on the walls, in search or on Home, and none of its playlists show, straight away.

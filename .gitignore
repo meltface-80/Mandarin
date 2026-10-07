@@ -13,3 +13,7 @@ android/app/src/main/jniLibs/
 
 # The network engine built locally (go build); CI and the Dockerfile build their own.
 android/musicdnet/musicdnet
+# The audio engine's build output (engine/build.sh)
+engine/bin/
+engine/**/obj/
+engine/Mandarin.Audio/bin/
