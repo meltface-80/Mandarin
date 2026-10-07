@@ -4663,6 +4663,11 @@ input.vol-range::-moz-range-thumb {
 /* On an album's page the row sits just above the track list, so the menu
    opens UPWARDS over the cover: every item on screen without scrolling. */
 .modal-actions .overflow-menu { top: auto; bottom: calc(100% + 6px); }
+/* Turned round when its own way has no room (v0.7.8, app.js): the album
+   view scrolled so the button row is near the top, or a playlist's menu at
+   the foot of the screen. Three classes: they beat both rules above. */
+.overflow-wrap .overflow-menu.opens-down { top: calc(100% + 6px); bottom: auto; }
+.overflow-wrap .overflow-menu.opens-up   { top: auto; bottom: calc(100% + 6px); }
 
 /* Parked inside the album view. The modal paints over the top bar, so the menu
    moves into the modal's own header band, to the LEFT of Share. z-index clears
@@ -5509,6 +5514,49 @@ button.cap-chip:active { transform: scale(.96); }
   .modal:not(.np-mode) .modal-body {
     padding-top: calc(24px + var(--ctl-h) + env(safe-area-inset-top));
   }
+}
+
+/* ── About this album beside the cover (v0.7.8) ───────────────────────
+   On a phone the album view is one column and the review follows the tracks:
+   it is a sibling of .modal-info in the page (so it can sit in the left-hand
+   column below), put after it with `order`. On Now playing it is not shown,
+   and the empty column must not take a slot in that screen's flex gap. */
+.modal-aside { order: 1; min-width: 0; }
+.modal.np-mode .modal-aside { display: none; }
+
+/* From 720px up — a tablet either way round, a laptop — two columns: the
+   cover and its review on the left, the title, the buttons and the tracks on
+   the right. A grid rather than the flex row the screen had, because the
+   review has to go UNDER the cover in its column while the right-hand column
+   runs the full height beside both: the art and the review are rows one and
+   two of the first column, the info spans both rows of the second, and the
+   second row is 1fr so a long track list never pushes the review down.
+   Three classes, later in the file, so it wins over the two-column block and
+   the hero block above (see their notes on specificity).
+
+   THE RIGHT-HAND COLUMN STARTS LOW ENOUGH FOR THE ⋯ MENU. The menu opens
+   upwards from the button row so all of it is on screen without scrolling;
+   with the title and the artist line the only things above that row, a menu
+   of four to six items rose past the panel's top edge, where the panel clips
+   it: on an iPad the first two items could be neither seen nor tapped.
+   app.js (fitAlbumMenuRoom) measures the menu and the row and sets
+   --album-menu-room to exactly the room missing — for however many items this
+   album's menu has and however many lines its title takes. */
+@media (min-width: 720px) {
+  .modal:not(.np-mode) .modal-body {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 28px; row-gap: 0;
+    align-items: start; align-content: start;
+  }
+  .modal:not(.np-mode) .modal-art   { grid-column: 1; grid-row: 1; }
+  .modal:not(.np-mode) .modal-aside { grid-column: 1; grid-row: 2; order: 0; }
+  .modal:not(.np-mode) .modal-info  {
+    grid-column: 2; grid-row: 1 / span 2;
+    padding-top: var(--album-menu-room, 0px);
+  }
+  .modal:not(.np-mode) .modal-aside .bio-section { margin-top: 22px; }
 }
 
 /* Now playing's corner button (v0.6.1): ‹ on phones and tablets (going back),

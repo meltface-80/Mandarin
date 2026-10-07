@@ -1973,6 +1973,7 @@ window.__afterStart = (fn) => {
   function closeOverflowMenu() {
     if (!_openOverflow) return;
     _openOverflow.menu.classList.add("hidden");
+    _openOverflow.menu.classList.remove("opens-up", "opens-down");
     _openOverflow.btn.setAttribute("aria-expanded", "false");
     _openOverflow = null;
   }
@@ -2045,6 +2046,33 @@ window.__afterStart = (fn) => {
     return b;
   }
 
+  /*
+   * A menu that would be cut off, opened the other way (v0.7.8). Each menu
+   * opens the way its screen has room for as a rule — downwards under the
+   * button, or upwards over the cover on an album's page — but the box that
+   * clips it (the nearest scrolling ancestor, within the window) is not always
+   * where the rule expects: an album page scrolled so its button row is near
+   * the top, a playlist's menu at the foot of the screen. A menu cut off at the
+   * top cannot even be scrolled to. So it is measured as it opens, and turned
+   * round when the other side has more room.
+   */
+  function placeOverflowMenu(menu, btn) {
+    menu.classList.remove("opens-up", "opens-down");
+    const m = menu.getBoundingClientRect(), b = btn.getBoundingClientRect();
+    let top = 0, bottom = window.innerHeight;
+    for (let el = menu.parentElement; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+      if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(el).overflowY)) {
+        const r = el.getBoundingClientRect();
+        top = Math.max(top, r.top); bottom = Math.min(bottom, r.bottom);
+        break;
+      }
+    }
+    const up = m.bottom <= b.top + 1;
+    const roomAbove = b.top - top - 6, roomBelow = bottom - b.bottom - 6;
+    if (up && m.height > roomAbove && roomBelow > roomAbove) menu.classList.add("opens-down");
+    else if (!up && m.height > roomBelow && roomAbove > roomBelow) menu.classList.add("opens-up");
+  }
+
   function buildOverflowMenu(items, opts) {
     opts = opts || {};
     const wrap = document.createElement("div");
@@ -2090,6 +2118,7 @@ window.__afterStart = (fn) => {
       closeOverflowMenu();
       if (wasOpen) return;
       menu.classList.remove("hidden");
+      placeOverflowMenu(menu, btn);
       btn.setAttribute("aria-expanded", "true");
       _openOverflow = { btn, menu };
     });
@@ -6532,6 +6561,51 @@ window.__afterStart = (fn) => {
   // modal, which closing reveals as it was.
   let npReturn = null;
 
+  /*
+   * ROOM FOR THE ⋯ MENU ABOVE THE BUTTON ROW (v0.7.8). From 720px up the
+   * album view is two columns, and the right-hand one starts with the title
+   * and the artist line — all that stands between the button row and the
+   * panel's top edge. The menu opens upwards from that row, and four to six
+   * items rose past the edge, where the panel clips them: on an iPad the
+   * first two could be neither seen nor tapped. So the column is dropped by
+   * exactly the room missing, measured: the menu's own height (however many
+   * items this album's has), the row's place at the top of the scroll
+   * (however many lines the title takes), and the pinned Share button's
+   * foot, which the menu stays clear of. Phones and Now playing: none — the
+   * menu opens over the cover there. Re-measured when the title, the artist
+   * line or the row changes size, and when the window does.
+   */
+  function fitAlbumMenuRoom() {
+    const info = modal.querySelector(".modal-info");
+    const body = modal.querySelector(".modal-body");
+    if (!info || !body) return;
+    const two = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode") &&
+      window.matchMedia && window.matchMedia("(min-width: 720px)").matches;
+    const menu = two ? modalActs.querySelector(".overflow-wrap .overflow-menu") : null;
+    if (!menu) { info.style.removeProperty("--album-menu-room"); return; }
+    const shown = !menu.classList.contains("hidden");
+    if (!shown) { menu.style.visibility = "hidden"; menu.classList.remove("hidden"); }
+    const h = menu.getBoundingClientRect().height;
+    if (!shown) { menu.classList.add("hidden"); menu.style.visibility = ""; }
+    info.style.setProperty("--album-menu-room", "0px");
+    const bodyTop = body.getBoundingClientRect().top;
+    const rowTop = modalActs.getBoundingClientRect().top - bodyTop + body.scrollTop;
+    const share = document.getElementById("modal-share-btn");
+    const sb = share && share.getClientRects().length ? share.getBoundingClientRect().bottom - bodyTop : 0;
+    const clear = Math.max(8, sb + 8);
+    const missing = Math.ceil(h + 6 + clear - rowTop);
+    info.style.setProperty("--album-menu-room", Math.max(0, missing) + "px");
+  }
+  {
+    let raf = 0;
+    const refit = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; fitAlbumMenuRoom(); }); };
+    window.addEventListener("resize", refit);
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(refit);
+      for (const el of [modalTitle, modalSub, modalActs]) if (el) ro.observe(el);
+    }
+  }
+
   function openAlbum(album, opts) {
     opts = opts || {};
     if (opts.source === "now-playing") {
@@ -8077,6 +8151,7 @@ window.__afterStart = (fn) => {
         { label: "More actions" });
       modalActs.appendChild(more);
     }
+    fitAlbumMenuRoom();
     if (!available.length) {
       // "No playback actions available" was true and useless — it described
       // our own empty array rather than anything the user could act on. When
