@@ -41,6 +41,8 @@ class TailscaleTestActivity : Activity() {
     private lateinit var signIn: Button
     private lateinit var log: TextView
     private var authUrl: String? = null
+    /** The engine's state at the last look, to see it become "Running". */
+    private var lastState: String? = null
     private val lines = StringBuilder()
 
     private val dp get() = resources.displayMetrics.density
@@ -126,6 +128,11 @@ class TailscaleTestActivity : Activity() {
         if (isFinishing) return
         if (st == null) { state.text = "Engine: not running"; return }
         val s = st.optString("state", "?")
+        // Just signed in (or approved): the app looks again for its way to the
+        // server now, rather than at the next change of network (v0.8.11) —
+        // before, it could be connected here and still offline everywhere else.
+        if (s == "Running" && lastState != null && lastState != "Running") Away.recheck(this, soon = true)
+        lastState = s
         authUrl = st.optString("auth_url").takeIf { it.isNotEmpty() }
         val ips = st.optJSONArray("ips")?.let { a -> (0 until a.length()).joinToString(", ") { a.getString(it) } } ?: ""
         state.text = buildString {
