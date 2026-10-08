@@ -5,6 +5,33 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.19
+A test build, from the `claude/v0.8.19` branch: album identification moves to Mandarin's C# server, whole, with the MusicBrainz pack, loudness measuring and the waveforms.
+
+- **The identification scan is now made by Mandarin's C# server.** It looks each album up by
+  what its files carry, then on MusicBrainz and iTunes. It scores what it finds and applies,
+  proposes or leaves the album alone, rule for rule as before. Accept, Decline, Undo, Check again
+  and the album editor's Find match work as before.
+- **The MusicBrainz pack is kept by the C# server too**: downloaded and checked, moved to another
+  folder, and kept up to date once a day.
+- **Measuring loudness and the waveforms are made by the C# server.** The gain each device gets is
+  still worked out by the Node server, which plays.
+- **One MusicBrainz timer.** Every request to MusicBrainz, from either server, waits its turn on the
+  same timer. Together they never ask more than once a second.
+- **Fixed: track names on an album missing a track.** When a match was applied without asking,
+  every track after the gap took its neighbour's name. Now each track gets the name of the track
+  it matched. Albums matched before keep their names; Check again on one fixes it.
+- **Check again** on an album now lets the MusicBrainz pack look at it straight away, even while
+  musicbrainz.org isn't answering.
+- Nothing in your library changes: your matches, proposals and what Undo puts back stay as they
+  were. A new test asks both servers' scorers about 700 made-up albums and checks that every score
+  and verdict is the same. The waveforms match number for number. The identification, pack,
+  loudness and waveform tests now run against the C# server, and so do some older tests that had
+  been running on the Node server alone.
+- When the Node server starts again (an update, Restart), the C# server takes the work back
+  before anything more is done, so the two never work on the same album.
+- The Android app for this branch is at the same test address (0.8.19, version code 219).
+
 ## v0.8.18
 A test build, from the `claude/v0.8.18` branch: the whole library scan moves to Mandarin's C# server in one step.
 

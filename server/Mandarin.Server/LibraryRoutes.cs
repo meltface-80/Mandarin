@@ -48,6 +48,12 @@ internal static partial class Library
         ["/api/playlists"] = NoPlaylists,
         ["/api/playlist"] = NoSuchPlaylist,
         ["/api/playlist/art"] = NoPlaylistArt,
+        ["/api/identify"] = IdentifyState,
+        ["/api/identify/candidates"] = IdentifyCandidates,
+        ["/api/identify/pack"] = PackState,
+        ["/api/loudness"] = LoudnessState,
+        ["/api/waveform"] = Waveform,
+        ["/api/settings/waveform"] = WaveformSettings,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
@@ -65,6 +71,18 @@ internal static partial class Library
         ["/api/labels/merge"] = MergeLabels,
         ["/api/settings/labels"] = SaveLabelsOn,
         ["/api/settings/label-folder-depth"] = SaveLabelDepth,
+        ["/api/identify/settings"] = IdentifySettings,
+        ["/api/identify/accept"] = IdentifyAccept,
+        ["/api/identify/reject"] = IdentifyReject,
+        ["/api/identify/undo"] = IdentifyUndo,
+        ["/api/identify/recheck"] = IdentifyRecheck,
+        ["/api/identify/recheck-all"] = IdentifyRecheckAll,
+        ["/api/identify/match"] = IdentifyMatch,
+        ["/api/identify/pack/download"] = PackDownload,
+        ["/api/identify/pack/remove"] = PackRemove,
+        ["/api/identify/pack/folder"] = PackFolder,
+        ["/api/loudness"] = SaveLoudness,
+        ["/api/settings/waveform"] = SaveWaveformSettings,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
@@ -190,7 +208,7 @@ internal static partial class Library
     }
 
     /* library.json(al, extra): an album as every list shows it. */
-    private static JsonObject AlbumJson(Snapshot s, Album al, JsonObject? extra = null)
+    public static JsonObject AlbumJson(Snapshot s, Album al, JsonObject? extra = null)
     {
         var q = QualityOf(al);
         var o = new JsonObject { ["offset"] = al.Id, ["title"] = al.Title, ["subtitle"] = al.Artist, ["image_key"] = al.ImageKey, ["source"] = al.Service };

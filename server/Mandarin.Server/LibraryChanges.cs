@@ -20,7 +20,7 @@ namespace Mandarin.Server;
 internal static partial class Library
 {
     /* The Node server told of a change made here, to read it again (index.js /internal/library/changed). */
-    private static async Task Tell(JsonObject what)
+    public static async Task Tell(JsonObject what)
     {
         if (upstream == null) return;
         try

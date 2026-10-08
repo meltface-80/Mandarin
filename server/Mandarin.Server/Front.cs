@@ -66,6 +66,8 @@ internal static partial class Front
             psi.Environment["MANDARIN_SERVER_SCAN"] = Scan.ScanCommand.Protocol;
         }
         psi.Environment["MANDARIN_TAG_READER"] = Tags.TagReader.Version;
+        // What this server makes in the Node server's place from the start (Jobs.cs): it doesn't start them itself.
+        psi.Environment["MANDARIN_FRONT_RUNS"] = string.Join(",", Jobs.Names);
         var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start node");
         Log($"[server] started the Node server (pid {proc.Id}) from {appDir}");
         return proc;

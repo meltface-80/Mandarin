@@ -76,6 +76,8 @@ internal static partial class Transcoder
 
     public static bool Soxr => Ff.Value.Soxr;
     public static string Bin => Ff.Value.Bin;
+    /* ffmpeg is there and runs (ffmpeg.js info().ok). */
+    public static bool FfOk => Ff.Value.Ok;
 
     public static string KeyFor(ConvTrack t, ConvPlan p) => $"{t.Id}-{t.Mtime}-{p.Rate}-{p.Bits}{(p.Hq ? "-hq" : "")}{(p.Exact ? "-x" : "")}";
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");

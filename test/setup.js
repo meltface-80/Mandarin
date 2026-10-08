@@ -48,10 +48,11 @@ if (process.env.MANDARIN_FRONT === "1") {
   // scans are made by the C# server — a scanner a test makes itself too.
   process.env.MANDARIN_SERVER_BIN = bin;
   process.env.MANDARIN_SERVER_SCAN = "1";
+  // Nor anything off this machine from the C# server (v0.8.19): its lookups
+  // (MusicBrainz, iTunes, the pack) are kept to loopback as fetch is above.
+  if (!process.env.ALLOW_NETWORK) process.env.MANDARIN_LOOPBACK_ONLY = "1";
   if (!process.env.TAG_READER) process.env.TAG_READER = "csharp";
   require("../lib/library/scanner").Scanner.program = bin;
-  const index = require("../index.js");
-  const real = index.createServer;
   const listening = (port, ms) => new Promise((resolve, reject) => {
     const until = Date.now() + ms;
     const tryOnce = () => {
@@ -60,37 +61,59 @@ if (process.env.MANDARIN_FRONT === "1") {
     };
     tryOnce();
   });
-  index.createServer = (overrides = {}) => {
-    const port = overrides.port != null ? overrides.port : index.config.port;
-    const s = real(Object.assign({}, overrides, { listenPort: 0 }));
-    const start = s.start, stop = s.stop;
-    let front = null;
-    s.start = async () => {
-      const ctx = await start();
-      front = spawn(bin, [], {
-        env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn, MANDARIN_FRONT_KEY: ctx.frontKey, DATA_DIR: ctx.config.dataDir }),
-        stdio: ["ignore", "inherit", "inherit"]
-      });
-      front.on("exit", (code) => { if (code && front) console.log(`# the C# server exited (${code})`); });
-      // The Node server stopping stops the C# server too, as in the image
-      // (Restart, Shut down): the port goes quiet, not "bad gateway".
-      const mine = front;
-      ctx.httpServer.once("close", () => { if (mine.exitCode == null) mine.kill("SIGKILL"); });
-      await listening(port, 30000);
-      // As in the image: the conversions of the music folders' own files are made by C#.
-      ctx.useFront("http://127.0.0.1:" + port);
-      return ctx;
+  // Every load of index.js, a test's fresh one too (delete require.cache…),
+  // is put behind the C# server (v0.8.19: before, a test that loaded it
+  // again ran on the Node server alone).
+  const putBehind = (index) => {
+    if (!index || typeof index.createServer !== "function" || index.createServer.behindCsharp) return index;
+    const real = index.createServer;
+    index.createServer = (overrides = {}) => {
+      const port = overrides.port != null ? overrides.port : index.config.port;
+      const s = real(Object.assign({}, overrides, { listenPort: 0 }));
+      const start = s.start, stop = s.stop;
+      let front = null;
+      s.start = async () => {
+        const ctx = await start();
+        front = spawn(bin, [], {
+          env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn, MANDARIN_FRONT_KEY: ctx.frontKey, DATA_DIR: ctx.config.dataDir }),
+          stdio: ["ignore", "inherit", "inherit"]
+        });
+        front.on("exit", (code) => { if (code && front) console.log(`# the C# server exited (${code})`); });
+        // The Node server stopping stops the C# server too, as in the image
+        // (Restart, Shut down): the port goes quiet, not "bad gateway".
+        const mine = front;
+        ctx.httpServer.once("close", () => { if (mine.exitCode == null) mine.kill("SIGKILL"); });
+        await listening(port, 30000);
+        // As in the image: the conversions of the music folders' own files are made by C#.
+        ctx.useFront("http://127.0.0.1:" + port);
+        return ctx;
+      };
+      s.stop = async () => {
+        const f = front; front = null;
+        if (f && f.exitCode == null) {
+          const gone = new Promise(r => f.once("exit", r));
+          f.kill("SIGTERM");
+          await Promise.race([gone, new Promise(r => setTimeout(r, 5000))]);
+          if (f.exitCode == null) f.kill("SIGKILL");
+        }
+        return stop();
+      };
+      return s;
     };
-    s.stop = async () => {
-      const f = front; front = null;
-      if (f && f.exitCode == null) {
-        const gone = new Promise(r => f.once("exit", r));
-        f.kill("SIGTERM");
-        await Promise.race([gone, new Promise(r => setTimeout(r, 5000))]);
-        if (f.exitCode == null) f.kill("SIGKILL");
-      }
-      return stop();
-    };
-    return s;
+    index.createServer.behindCsharp = true;
+    return index;
   };
+  const Module = require("module");
+  const indexFile = require.resolve("../index.js");
+  const load = Module._load;
+  Module._load = function (request, parent, isMain) {
+    const out = load.apply(this, arguments);
+    if (out && typeof out.createServer === "function" && !out.createServer.behindCsharp) {
+      let file = null;
+      try { file = Module._resolveFilename(request, parent, isMain); } catch (e) { /* not a file */ }
+      if (file === indexFile) putBehind(out);
+    }
+    return out;
+  };
+  putBehind(require("../index.js"));
 }

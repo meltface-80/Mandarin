@@ -206,3 +206,102 @@ test("the pack downloaded from where it's published, checked, kept up to date, r
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("the pack from Settings: what's published, downloaded, kept in another folder, removed — and a bad download thrown away", { timeout: 90000 }, async () => {
+  const http = require("http");
+  const zlib = require("zlib");
+  const crypto = require("crypto");
+  const { FORMAT } = require("../lib/identify/mbpack");
+  const { signIn } = require("./auth-helper");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbpack-api-"));
+  const dumpDir = path.join(dir, "dump"); fs.mkdirSync(dumpDir);
+  writeDump(dumpDir);
+  const built = path.join(dir, "built.sqlite");
+  await build({ dump: dumpDir, out: built });
+  const gz = zlib.gzipSync(fs.readFileSync(built));
+  const desc = { format: FORMAT, built: "2026-10-01T00:00:00Z", releases: "2", file: `mbpack-${FORMAT}.sqlite.gz`, gz_size: gz.length, size: fs.statSync(built).size, sha256: crypto.createHash("sha256").update(gz).digest("hex") };
+  let served = gz;
+  const pub = http.createServer((req, res) => {
+    if (req.url.endsWith(".json")) return res.end(JSON.stringify(desc));
+    if (req.url.endsWith(".gz")) return res.end(served);
+    res.statusCode = 404; res.end();
+  });
+  await new Promise(r => pub.listen(0, "127.0.0.1", r));
+  const music = path.join(dir, "music"), data = path.join(dir, "data");
+  fs.mkdirSync(music); fs.mkdirSync(data);
+  delete require.cache[require.resolve("../index.js")];
+  const { createServer } = require("../index.js");
+  const port = 3638, base = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
+    mbpackUrl: `http://127.0.0.1:${pub.address().port}` });
+  await srv.start();
+  const token = await signIn(base);
+  const api = async (p, body) => {
+    const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+    return Object.assign({ status: r.status }, await r.json());
+  };
+  const until = async (fn, ms = 20000) => {
+    const t0 = Date.now();
+    for (;;) { const v = await fn(); if (v || Date.now() - t0 > ms) return v; await new Promise(r => setTimeout(r, 100)); }
+  };
+  try {
+    // Behind the C# server (MANDARIN_FRONT=1), the pack is kept by it (v0.8.19).
+    if (process.env.MANDARIN_FRONT === "1") {
+      const h = await fetch(base + "/api/identify/pack", { headers: { Authorization: "Bearer " + token } });
+      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the pack is the C# server's");
+    }
+    let s = await api("identify/pack");
+    assert.equal(s.installed, null);
+    assert.equal(s.dir, path.resolve(data));
+    assert.equal(s.dir_fixed, false);
+    assert.equal(s.dir_problem, null);
+    assert.ok(s.free > 0);
+    // What's published, asked in the background.
+    await api("identify/pack?check=1");
+    s = await until(async () => { const j = await api("identify/pack"); return j.latest && !j.checking && j; });
+    assert.ok(s, "what's published, read");
+    assert.deepEqual([s.latest.built, s.latest.releases, s.latest.gz_size], [desc.built, 2, gz.length]);
+    assert.equal(s.check_error, null);
+
+    // Downloaded, checked, put in place.
+    s = await api("identify/pack/download", {});
+    assert.ok(s.job && ["checking", "downloading", "done"].includes(s.job.phase), JSON.stringify(s.job));
+    s = await until(async () => { const j = await api("identify/pack"); return j.job && (j.job.phase === "done" || j.job.error) && j; });
+    assert.deepEqual([s.job.phase, s.job.error, s.job.done], ["done", null, gz.length]);
+    assert.equal(s.installed.releases, 2);
+    assert.equal(s.newer, false, "built after the one published");
+    assert.ok(fs.existsSync(path.join(data, "mbpack.sqlite")));
+
+    // Kept in another folder: moved there, read there; one that isn't there is refused.
+    const other = path.join(dir, "elsewhere"); fs.mkdirSync(other);
+    const bad = await api("identify/pack/folder", { dir: path.join(dir, "missing") });
+    assert.equal(bad.status, 400);
+    assert.match(bad.error, /Can't write/);
+    s = await api("identify/pack/folder", { dir: other });
+    assert.equal(s.status, 200, JSON.stringify(s));
+    assert.equal(s.dir, other);
+    assert.ok(fs.existsSync(path.join(other, "mbpack.sqlite")));
+    assert.ok(!fs.existsSync(path.join(data, "mbpack.sqlite")));
+    assert.equal(s.installed.releases, 2);
+    s = await api("identify/pack/folder", { dir: null });
+    assert.equal(s.dir, path.resolve(data));
+    assert.ok(fs.existsSync(path.join(data, "mbpack.sqlite")));
+
+    // Removed.
+    s = await api("identify/pack/remove", {});
+    assert.equal(s.installed, null);
+    assert.ok(!fs.existsSync(path.join(data, "mbpack.sqlite")));
+
+    // A download that doesn't match its checksum is thrown away.
+    served = Buffer.from(gz); served[served.length - 1] ^= 1;
+    await api("identify/pack/download", {});
+    s = await until(async () => { const j = await api("identify/pack"); return j.job && (j.job.phase === "done" || j.job.error) && j; });
+    assert.match(String(s.job.error), /checksum|unexpected end|incorrect|invalid/i);
+    assert.equal(s.installed, null);
+    assert.ok(!fs.existsSync(path.join(data, "mbpack.sqlite.download")));
+  } finally {
+    await srv.stop();
+    pub.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

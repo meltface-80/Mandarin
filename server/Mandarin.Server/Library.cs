@@ -43,6 +43,8 @@ internal sealed class Album
     public string DateKey = "";
     public List<string> Genres = [];
     public long? Rate, Bits, Added;
+    // albums.track_count, as the Node server has it (al.tracks): what the identification scan counts.
+    public double? TrackCount;
     public bool Lossless, Compilation, CustomArt, Edited;
     public string? Container, Dir, Label, Service;
     public int Discs = 1;
@@ -61,6 +63,8 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
     public string Day { get; init; } = "";
     public long DayStart { get; init; }
     public string Week { get; init; } = "";
+    // The library scan running now (the identification scan waits for it).
+    public bool Scanning { get; init; }
 
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
 }
@@ -237,13 +241,16 @@ internal static partial class Library
             if (j == null) return null;
             // Which cores playback keeps (lib/cpu.js): kept to here too.
             Cpu.Follow(j["cpu"]);
+            // A Node server started again is told again what's made here (Jobs.cs).
+            Jobs.Seen(JsString(j["boot"]) ?? "");
             var labels = j["labels"] as JsonObject;
             return new LibState(JsString(j["boot"]) ?? "", (long)(j["version"]?.GetValue<double>() ?? 0), (long)(j["marks"]?.GetValue<double>() ?? 0),
                 j["building"]?.GetValue<bool>() == true, j["progress"]?.DeepClone(),
                 labels?["enabled"]?.GetValue<bool>() == true, (int)(labels?["depth"]?.GetValue<double>() ?? 0),
                 (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? [])
             {
-                Day = JsString(j["day"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? ""
+                Day = JsString(j["day"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
+                Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning
             };
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException)
@@ -254,6 +261,9 @@ internal static partial class Library
 
     /* The current copy, for the covers (Images.cs); null when the Node server can't say. */
     public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;
+
+    /* The current copy and the Node server's state with it (Identify/), or null when it can't say. */
+    public static Task<(Snapshot, LibState)?> CurrentState() => Current();
 
     /* The copy the Node server holds, built here if it isn't already. */
     private static async Task<(Snapshot, LibState)?> Current()
@@ -342,7 +352,7 @@ internal static partial class Library
     {
         using var c = Db.Open();
         const string sql = @"SELECT a.id, a.key, a.title, a.artist, a.sort_title, a.sort_artist, a.year, a.date, a.label, a.genres, a.dir,
-                                    a.art_hash, a.max_rate, a.max_bits, a.lossless, a.container, a.added_at, a.compilation,
+                                    a.art_hash, a.max_rate, a.max_bits, a.lossless, a.container, a.added_at, a.compilation, a.track_count,
                                     e.title AS e_title, e.artist AS e_artist, e.year AS e_year,
                                     e.art_hash AS e_art_hash, e.art_source AS e_art_source, d.value AS mb_day
                                FROM albums a LEFT JOIN album_edits e ON e.key = a.key
@@ -397,6 +407,7 @@ internal static partial class Library
                 Lossless = lossless,
                 Container = FormatName(Text(F(r, "container")), lossless),
                 Added = Long(F(r, "added_at")),
+                TrackCount = F(r, "track_count") switch { long l => l, double d => d, _ => null },
                 Compilation = Truthy(F(r, "compilation")),
                 Discs = discs.TryGetValue(id, out var dn) && dn != 0 ? (int)dn : 1,
                 Dir = Text(F(r, "dir")) ?? (F(r, "dir") as string),

@@ -27,7 +27,10 @@
  *     server told (test/library-front.test.js);
  *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once);
  *   - v0.8.18: the library scans made by C#, the database the same (test/scan-csharp.test.js,
- *     test/tags-front.test.js; every scanner test in this mode).
+ *     test/tags-front.test.js; every scanner test in this mode);
+ *   - v0.8.19: the identification scan, the MusicBrainz pack, loudness measuring and waveforms
+ *     made by C# (test/identify-csharp.test.js; every identify, pack, loudness and waveform test
+ *     in this mode, which says so; and every test that loads index.js afresh).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -115,5 +118,34 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
     assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on one timer by both servers", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const META = require("../lib/meta");
+  const port = 3645, B = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  try {
+    // Handed over when the C# server started: the Node server's loops stopped for good.
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["identify", "loudness", "mbpack"]);
+    assert.equal(ctx.identifier.handedOver, true);
+    ctx.identifier.start();
+    assert.equal(ctx.identifier.timer, null, "not started again here");
+    // The one timer: loopback with the key, a turn each, 1.1 s apart.
+    const K = { "X-Mandarin-Front-Key": ctx.frontKey };
+    assert.equal((await fetch(B + "/internal/mb/slot")).status, 404, "not without the key");
+    const t0 = Date.now();
+    const a = await fetch(B + "/internal/mb/slot", { headers: K });
+    assert.deepEqual([a.status, await a.json()], [200, { ok: true }]);
+    await fetch(B + "/internal/mb/slot", { headers: K });
+    const t1 = Date.now();
+    // And the Node server's own requests take the next turn on it.
+    await META.mbWait();
+    const t2 = Date.now();
+    assert.ok(t1 - t0 >= 1050, `two turns ${t1 - t0} ms apart`);
+    assert.ok(t2 - t1 >= 1050, `the Node server's turn ${t2 - t1} ms after`);
   } finally { await srv.stop(); }
 });

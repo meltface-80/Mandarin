@@ -35,6 +35,7 @@ const STREAM = require("./lib/stream");
 const SERVICES = require("./lib/services");
 const DSP = require("./lib/dsp");
 const FF = require("./lib/ffmpeg");
+const META = require("./lib/meta");
 const shareLinks = require("./lib/share-links");
 const { Playback, trackIdFromUri, planFor } = require("./lib/server/playback");
 const { Features } = require("./lib/server/features");
@@ -342,6 +343,39 @@ function createServer(overrides = {}) {
     const want = Buffer.from(ctx.frontKey);
     return /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from) && key.length === want.length && crypto.timingSafeEqual(key, want);
   };
+  // The work Mandarin's C# server makes in this one's place (v0.8.19,
+  // server/Mandarin.Server/Jobs.cs): the identification scan, the MusicBrainz
+  // pack and loudness measuring. Each is stopped here for good — the album
+  // being looked at finished first — and the C# server is told how this one
+  // was set up. This server's own requests to MusicBrainz wait their turn on
+  // the C# server's timer from now on.
+  app.post("/internal/front/runs", express.json(), async (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const b = req.body || {};
+    const jobs = new Set([].concat(b.jobs || []).map(String));
+    if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
+    if (jobs.has("identify")) await ctx.identifier.handOver();
+    if (jobs.has("mbpack")) ctx.mbpack.handOver();
+    if (jobs.has("loudness")) ctx.loudness.handOver();
+    const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
+    if (front) {
+      META.useMbSlot(async () => {
+        const r = await fetch(front + "/internal/mb/slot", { headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(60000) });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+      });
+    }
+    ctx.frontRuns = jobs;
+    log(`[musicd] made by the C# server from now on: ${[...jobs].join(", ")}`);
+    res.json({
+      ok: true, boot: ctx.bootId,
+      config: {
+        identify: !!config.identify, identify_tick_ms: config.identifyTickMs,
+        musicbrainz_url: config.mbBaseUrl || null, itunes_url: config.itunesBaseUrl || null,
+        mbpack_url: config.mbpackUrl || null, mbpack_dir: config.mbpackDir || null,
+        loudness_tick_ms: config.loudnessTickMs
+      }
+    });
+  });
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
@@ -354,6 +388,8 @@ function createServer(overrides = {}) {
     res.json({
       boot: ctx.bootId, version: library.version, marks: library.marks,
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
+      // A scan running now: the identification scan waits for it (v0.8.19).
+      scanning: !!scanner.state.running,
       labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() },
       // The day and week on this server's clock (its time zone): Home's rows turn over with them.
       day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
@@ -564,9 +600,23 @@ function createServer(overrides = {}) {
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
     ctx.devices.start();
-    if (config.identify) ctx.identifier.start();
-    ctx.mbpack.start();
-    ctx.loudness.start();
+    // Started by the C# server, which makes these itself (MANDARIN_FRONT_RUNS,
+    // v0.8.19): not started here — unless it never says so (/internal/front/runs).
+    const frontRuns = new Set(String(process.env.MANDARIN_FRONT_RUNS || "").split(",").map(x => x.trim()).filter(Boolean));
+    const startOwn = (skip) => {
+      if (config.identify && !skip.has("identify")) ctx.identifier.start();
+      if (!skip.has("mbpack")) ctx.mbpack.start();
+      if (!skip.has("loudness")) ctx.loudness.start();
+    };
+    startOwn(frontRuns);
+    if (frontRuns.size) {
+      ctx.frontRunsWait = setTimeout(() => {
+        ctx.frontRunsWait = null;
+        log("[musicd] the C# server didn't take over the identification scan and loudness measuring; made here");
+        startOwn(new Set());
+      }, 120000);
+      ctx.frontRunsWait.unref();
+    }
     ctx.tagcheck.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
@@ -614,6 +664,8 @@ function createServer(overrides = {}) {
     for (const id of SERVICES.IDS) await ctx.services[id].stop().catch(() => {});
     zones.stop();
     ctx.devices.stop();
+    if (ctx.frontRunsWait) clearTimeout(ctx.frontRunsWait);
+    if (ctx.frontRuns) META.useMbSlot(null);
     ctx.identifier.stop();
     ctx.mbpack.stop();
     ctx.loudness.stop();

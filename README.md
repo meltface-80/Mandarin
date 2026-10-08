@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.18
+# Mandarin — v0.8.19
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1146,6 +1146,11 @@ through a subnet router arrive from a home address, and the server can't tell th
   cached. Rescans only re-read files whose size or date changed. Since v0.8.18 the C# server makes
   the scan, as a process of its own on the cores playback doesn't keep; the Node server's own scan
   is used until the tag reader check has passed, or where the C# server isn't there.
+* **Album names.** The identification scan looks each album up by what its files carry (a
+  release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
+  each release against the tracks and their lengths, and lays the names over the album, never on
+  the files. Since v0.8.19 the C# server makes it, with the MusicBrainz pack, loudness measuring
+  and the waveforms. Every MusicBrainz request, from either server, waits its turn on one timer.
 * **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —

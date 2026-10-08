@@ -42,6 +42,16 @@ if (args.Length >= 1 && args[0] == "tags")
 // `mandarin-server scan`: one library scan (Scan/ScanCommand.cs), started by
 // the Node server: its job on standard input, what it says on standard output.
 if (args.Length >= 1 && args[0] == "scan") return Mandarin.Server.Scan.ScanCommand.Run();
+// `mandarin-server score`: the identification scan's scorer asked directly, a
+// line of JSON in and one out (Identify/ScoreCommand.cs), for the tests.
+if (args.Length >= 1 && args[0] == "score") return Mandarin.Server.Identify.ScoreCommand.Run();
+// `mandarin-server waveform <file> [seconds]`: a file's waveform as /api/waveform keeps it (Waveforms.cs).
+if (args.Length >= 2 && args[0] == "waveform")
+{
+    var peaks = await Waveforms.Decode(args[1], args.Length > 2 && double.TryParse(args[2], System.Globalization.CultureInfo.InvariantCulture, out var secs) ? secs : 0);
+    Console.WriteLine(peaks == null ? "null" : Convert.ToBase64String(peaks));
+    return peaks == null ? 1 : 0;
+}
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 
@@ -78,6 +88,9 @@ if (!await Front.WaitForUpstream(upstreamUri, node, TimeSpan.FromMinutes(5)))
 }
 
 Front.Log("[server] the Node server is up");
+// The identification scan, the MusicBrainz pack and loudness measuring, taken
+// over from the Node server (Jobs.cs) before anything is answered.
+await Jobs.Start(upstreamUri, frontKey, port, dataDir, version);
 // No settings files, so nothing to watch: by default ASP.NET watches its
 // start folder and everything under it for appsettings.json, which from /app
 // (node_modules and all) held the start for minutes.
@@ -118,6 +131,8 @@ app.UseResponseCompression();
 Transcoder.UseInternal(app);
 // The Node server's check of this side's tag reader against its own (Tags/TagReader.cs).
 Mandarin.Server.Tags.TagReader.UseInternal(app);
+// The Node server's requests to MusicBrainz, each waiting its turn on the one timer here (Identify/Lookups.cs).
+Mandarin.Server.Identify.Lookups.UseInternal(app);
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
@@ -165,6 +180,7 @@ if (node != null)
     lifetime.ApplicationStopping.Register(() => Front.StopNode(node));
 }
 
+app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Jobs.Stop);
 await app.StartAsync();
 Front.Log($"[server] listening on port {port}");
 await app.WaitForShutdownAsync();
