@@ -46,8 +46,9 @@ ARG TARGETARCH
 WORKDIR /src
 COPY package.json ./
 COPY server/Mandarin.Server/*.csproj server/Mandarin.Server/*.cs ./server/
-# The tag reader (v0.8.13), a folder of its own.
+# The tag reader (v0.8.13) and the library scan (v0.8.18), folders of their own.
 COPY server/Mandarin.Server/Tags/*.cs ./server/Tags/
+COPY server/Mandarin.Server/Scan/*.cs ./server/Scan/
 RUN set -e; cd server; \
     V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
     RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \

@@ -490,7 +490,7 @@ internal static class Id3v2
         var extended = Bit(h, 5, 6);
         var size = SyncSafe(h, 6);
         if (tok.Size is long fileSize && size > fileSize - tok.Position)
-            throw new JsError($"ID3v2 tag size {size} exceeds remaining file size");
+            throw new JsError($"ID3v2 tag size {size} exceeds remaining file size {fileSize - tok.Position}");
         var headerType = $"ID3v2.{major}";
         long dataLen;
         if (extended)

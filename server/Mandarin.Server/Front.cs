@@ -58,6 +58,14 @@ internal static partial class Front
         psi.Environment["MANDARIN_FRONT_URL"] = "http://127.0.0.1:" + frontPort;
         // The cores there are to share out (lib/cpu.js), as this server found them before keeping to its own.
         if (Cpu.Startup.Length > 0) psi.Environment["MANDARIN_CPUS"] = Cpu.Startup;
+        // This program, for the library scans it makes (`mandarin-server scan`, v0.8.18), the
+        // protocol it speaks for them, and its tag reader's version (lib/library/tagcheck.js).
+        if (Environment.ProcessPath is { Length: > 0 } self)
+        {
+            psi.Environment["MANDARIN_SERVER_BIN"] = self;
+            psi.Environment["MANDARIN_SERVER_SCAN"] = Scan.ScanCommand.Protocol;
+        }
+        psi.Environment["MANDARIN_TAG_READER"] = Tags.TagReader.Version;
         var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start node");
         Log($"[server] started the Node server (pid {proc.Id}) from {appDir}");
         return proc;

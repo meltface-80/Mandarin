@@ -209,7 +209,8 @@ test("the scanner reading tags with the C# server makes the same library as read
   try {
     const node = await scanWith("node");
     const cs = await scanWith("csharp");
-    assert.ok(cs.lines.some(l => /tags read by the C# server/.test(l)), "read by the C# server: " + cs.lines.join("\n"));
+    // Its tags read by the C# server for this one's scan (v0.8.14), or the whole scan made there (v0.8.18).
+    assert.ok(cs.lines.some(l => /tags read by the C# server|made by the C# server/.test(l)), "read by the C# server: " + cs.lines.join("\n"));
     assert.ok(!cs.lines.some(l => /didn't read the tags/.test(l)), cs.lines.join("\n"));
     assert.ok(!node.lines.some(l => /tags read by the C# server/.test(l)));
     assert.ok(node.rows.length > 50, "tracks: " + node.rows.length + " of " + made.length + " files");

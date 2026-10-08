@@ -44,6 +44,12 @@ if (process.env.MANDARIN_FRONT === "1") {
   const { spawn } = require("child_process");
   const bin = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
   if (!fs.existsSync(bin)) throw new Error("MANDARIN_FRONT=1 needs the C# server built (server/build.sh): " + bin);
+  // As in the image once the tag check has passed (v0.8.18): the library
+  // scans are made by the C# server — a scanner a test makes itself too.
+  process.env.MANDARIN_SERVER_BIN = bin;
+  process.env.MANDARIN_SERVER_SCAN = "1";
+  if (!process.env.TAG_READER) process.env.TAG_READER = "csharp";
+  require("../lib/library/scanner").Scanner.program = bin;
   const index = require("../index.js");
   const real = index.createServer;
   const listening = (port, ms) => new Promise((resolve, reject) => {

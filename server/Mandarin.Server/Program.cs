@@ -39,6 +39,9 @@ if (args.Length >= 1 && args[0] == "tags")
     foreach (var path in paths) Console.WriteLine(Mandarin.Server.Tags.TagReader.Line(path));
     return 0;
 }
+// `mandarin-server scan`: one library scan (Scan/ScanCommand.cs), started by
+// the Node server: its job on standard input, what it says on standard output.
+if (args.Length >= 1 && args[0] == "scan") return Mandarin.Server.Scan.ScanCommand.Run();
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 

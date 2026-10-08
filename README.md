@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.17
+# Mandarin — v0.8.18
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -896,7 +896,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
-| `TAG_READER` | `auto` | Who reads the scan's tags. `auto`: the C# server, once the tag reader check has read every file the same both ways; `csharp`: the C# server always; `node`: the old reader. |
+| `TAG_READER` | `auto` | Who reads the scan's tags, and so who makes the scan (v0.8.18). `auto`: the C# server, once the tag reader check has read every file the same both ways; `csharp`: the C# server always; `node`: the Node server's own reader and scan. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
@@ -1139,11 +1139,13 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 ## How it works
 
-* **Library.** The music folder is walked and every audio file's tags are read with
-  music-metadata into SQLite. Albums are decided a folder at a time, so a folder of tracks by
-  different artists with no album-artist tag becomes one compilation, and `CD1`/`CD2` folders
-  become one album. Covers come from `cover.jpg`/`folder.jpg`/… or the first track's embedded
-  picture, resized once per size and cached. Rescans only re-read files whose size or date changed.
+* **Library.** The music folder is walked and every audio file's tags are read into SQLite.
+  Albums are decided a folder at a time, so a folder of tracks by different artists with no
+  album-artist tag becomes one compilation, and `CD1`/`CD2` folders become one album. Covers come
+  from `cover.jpg`/`folder.jpg`/… or the first track's embedded picture, resized once per size and
+  cached. Rescans only re-read files whose size or date changed. Since v0.8.18 the C# server makes
+  the scan, as a process of its own on the cores playback doesn't keep; the Node server's own scan
+  is used until the tag reader check has passed, or where the C# server isn't there.
 * **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —

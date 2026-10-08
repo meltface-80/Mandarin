@@ -5,6 +5,26 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.18
+A test build, from the `claude/v0.8.18` branch: the whole library scan moves to Mandarin's C# server in one step.
+
+- **The library scan is now made by Mandarin's C# server.** It walks the music folders, reads the tags,
+  names untagged albums from their folders, groups the albums and writes the database. It also
+  chooses the covers, recognises moved files, and keeps the rules that never remove music in a
+  hurry. All of it is done rule for rule, as before.
+- It runs as a program of its own, at the lowest priority, on the cores playback doesn't keep. A full
+  scan is about two and a half times faster.
+- It's used once the tag reader check has passed, as yours has. Until then, or where the C# server
+  isn't there, the Node server scans as before. The server log says `[scan] made by the C# server`
+  when it's the C# server's scan.
+- Nothing in your library changes: the same albums and album numbers, with their hearts, edits and
+  plays. A new test scans one music folder both ways through nine kinds of change (files changed,
+  renamed, removed, a drive missing, a folder that can't be read, and more) and checks that every
+  table comes out the same. Every other scanner test now runs against the C# scan too.
+- When to scan (every six hours, a change on disk, Rescan) and letting a folder go stay with the Node
+  server for now.
+- The Android app for this branch is at the same test address (0.8.18, version code 218).
+
 ## v0.8.17
 A test build, from the `claude/v0.8.17` branch.
 

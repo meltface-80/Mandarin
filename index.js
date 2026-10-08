@@ -84,6 +84,10 @@ const config = {
   // Who reads the scan's tags (v0.8.14): auto (the C# server once the check has
   // passed), csharp (the C# server whenever it's there) or node (this server).
   tagReader: ["auto", "csharp", "node"].includes(String(process.env.TAG_READER || "").toLowerCase()) ? String(process.env.TAG_READER).toLowerCase() : "auto",
+  // The C# server's program, which makes the library scans (v0.8.18) once its
+  // tag reader is the one the scan uses: said by the C# server that starts
+  // this one, with the scan protocol it speaks (an older one says neither).
+  serverBin: process.env.MANDARIN_SERVER_SCAN === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -140,6 +144,15 @@ function createServer(overrides = {}) {
     if (mode === "node" || !ctx.frontUrl) return null;
     if (mode !== "csharp" && !(ctx.tagcheck && ctx.tagcheck.verdict().ready)) return null;
     return { url: ctx.frontUrl, key: ctx.frontKey };
+  };
+  // And who makes the scan (v0.8.18): the C# server, whole, once its tag
+  // reader is trusted with it — the scan that starts with the server too, on
+  // what the check found last time — else this server, as before.
+  scanner.program = () => {
+    const mode = config.tagReader;
+    if (mode === "node" || !config.serverBin) return null;
+    if (mode !== "csharp" && !(ctx.tagcheck && ctx.tagcheck.trusted())) return null;
+    return config.serverBin;
   };
   const advertisedIp = () => config.serverIp || localIp();
   // The speakers found last time are asked first, so after a restart or an

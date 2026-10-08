@@ -25,7 +25,9 @@
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
  *   - v0.8.16: hearts, Listen later, label merges and the label settings made by C#, the Node
  *     server told (test/library-front.test.js);
- *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once).
+ *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once);
+ *   - v0.8.18: the library scans made by C#, the database the same (test/scan-csharp.test.js,
+ *     test/tags-front.test.js; every scanner test in this mode).
  */
 const test = require("node:test");
 const assert = require("node:assert");
