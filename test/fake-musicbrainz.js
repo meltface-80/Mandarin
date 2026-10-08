@@ -3,7 +3,8 @@
  * fake-musicbrainz.js — enough of MusicBrainz's web service on loopback for
  * the identification tests: a release search by title, and a release with
  * its media, tracks, lengths and artist credit, in the shapes the real one
- * answers with.
+ * answers with; and the release-group search the release days make (one
+ * clause per album, any of them), each group with its first release date.
  */
 const http = require("http");
 
@@ -33,12 +34,14 @@ class FakeMusicBrainz {
     this.releases = releases.map(release);
     this.labels = labels;
     this.requests = [];
+    this.agents = [];     // each request's User-Agent, beside it
     this.server = null;
   }
   start() {
     this.server = http.createServer((req, res) => {
       const u = new URL(req.url, "http://x");
       this.requests.push(u.pathname + u.search);
+      this.agents.push(String(req.headers["user-agent"] || ""));
       const send = j => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(j)); };
       let m;
       if (u.pathname === "/ws/2/label/") {
@@ -66,6 +69,17 @@ class FakeMusicBrainz {
           id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"], "label-info": r["label-info"],
           "track-count": r.media[0]["track-count"], media: [{ format: "CD", "track-count": r.media[0]["track-count"] }]
         })) });
+      }
+      if (u.pathname === "/ws/2/release-group/") {
+        const un = x => x.replace(/\\(.)/g, "$1").toLowerCase();
+        const wanted = [...(u.searchParams.get("query") || "").matchAll(/releasegroup:"((?:\\.|[^"])*)"/g)].map(x => un(x[1]));
+        const groups = new Map();
+        for (const r of this.releases) {
+          const g = r["release-group"];
+          if (!wanted.includes(g.title.toLowerCase()) || groups.has(g.id)) continue;
+          groups.set(g.id, { id: g.id, title: g.title, "first-release-date": g["first-release-date"], "primary-type": "Album", "artist-credit": r["artist-credit"] });
+        }
+        return send({ count: groups.size, offset: 0, "release-groups": [...groups.values()] });
       }
       if ((m = /^\/ws\/2\/isrc\/([^/]+)$/.exec(u.pathname))) {
         const code = decodeURIComponent(m[1]);

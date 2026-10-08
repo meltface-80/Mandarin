@@ -63,6 +63,33 @@ internal static class Lookups
         }
     }
 
+    /* fetch(url), as the Node server's own: the status, the body (null past [max] bytes) and the type it says it is. */
+    public static async Task<(int Status, byte[]? Body, string? Type)> Fetch(string url, IEnumerable<(string, string)> headers, int timeoutMs, int max)
+    {
+        Allowed(url);
+        using var cts = new CancellationTokenSource(timeoutMs);
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        foreach (var (k, v) in headers) req.Headers.TryAddWithoutValidation(k, v);
+        try
+        {
+            using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            var type = res.Content.Headers.ContentType?.ToString();
+            await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
+            using var ms = new MemoryStream();
+            var buf = new byte[81920];
+            int n;
+            while ((n = await body.ReadAsync(buf, cts.Token)) > 0)
+            {
+                ms.Write(buf, 0, n);
+                if (ms.Length > max) return ((int)res.StatusCode, null, type);
+            }
+            return ((int)res.StatusCode, ms.ToArray(), type);
+        }
+        catch (OperationCanceledException) { throw new LookupError("This operation was aborted"); }
+        catch (HttpRequestException e) { throw new LookupError("fetch failed" + (e.InnerException != null ? " (" + e.InnerException.Message + ")" : "")); }
+        catch (IOException) { throw new LookupError("terminated"); }
+    }
+
     /* A comparator's answer from a difference, as Array.prototype.sort reads it (NaN is 0). */
     public static int Sgn(double d) => d > 0 ? 1 : d < 0 ? -1 : 0;
 

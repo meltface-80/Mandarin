@@ -5,6 +5,30 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.20
+A test build, from the `claude/v0.8.20` branch: record labels, release days, Smart Picks and the share card's suggestions move to Mandarin's C# server.
+
+- **Record labels are now handled by the C# server, whole.** The Labels wall and each label's
+  albums, the labels looked up for albums whose files carry none (MusicBrainz, then Discogs), and
+  the logos (found on Discogs and FanArt.tv, or chosen by hand) all work as before. So do the scan
+  log and the Discogs and FanArt.tv keys with their check.
+- **Release days are looked up by the C# server** after each library scan, for albums whose tags
+  stop at the year. They now ask the MusicBrainz set with `MUSICBRAINZ_URL`, as the README says.
+  Before, they always asked musicbrainz.org.
+- **Smart Picks and the share card's three suggestions are made by the C# server**, with the map of
+  acts near what you play, built once a day.
+- **Fixed: no suggestions after one missed answer.** When Deezer didn't answer once, the share card
+  showed no suggestions for that artist until the server restarted. Now it asks again next time.
+- **Fixed: a record label named only in other scripts** (a Japanese label, say) could be Label of
+  the week, or a search result, that opened to nothing. It stays off both now, as it stays off the
+  Labels wall.
+- Nothing in your library changes. A new test asks both servers about share links, suggestions,
+  release days and label names over many made-up cases, and checks every answer is the same. The
+  label, release day, Smart Picks and suggestion tests now run against the C# server.
+- When the Node server starts again (an update, Restart), the C# server takes this work back
+  before anything more is done.
+- The Android app for this branch is at the same test address (0.8.20, version code 220).
+
 ## v0.8.19
 A test build, from the `claude/v0.8.19` branch: album identification moves to Mandarin's C# server, whole, with the MusicBrainz pack, loudness measuring and the waveforms.
 

@@ -131,6 +131,8 @@ internal static partial class Library
             tx.Commit();
         }
         await Tell(new JsonObject { ["merges"] = true });
+        // The merged label's logo looked for (LabelRoutes.cs).
+        await LabelsChanged(false);
         return await Send(ctx, new JsonObject { ["ok"] = true, ["target"] = target, ["merged"] = new JsonArray(items.Skip(1).Select(i => (JsonNode)i.Key).ToArray()) });
     }
 
@@ -169,6 +171,8 @@ internal static partial class Library
         var on = Js.Truthy(b["enabled"]);
         using (var c = Db.Open()) SetSetting(c, "labelsEnabled", on);
         await Tell(new JsonObject { ["labels"] = true });
+        // On: the lookups and logos looked for now (LabelRoutes.cs), once they're made here.
+        await LabelsChanged(true);
         return await Send(ctx, new JsonObject { ["ok"] = true, ["enabled"] = on });
     }
 
@@ -181,6 +185,7 @@ internal static partial class Library
         if (depth == int.MinValue || depth < 0 || depth > 6) return await Send(ctx, new JsonObject { ["ok"] = false, ["error"] = "depth must be 0–6" }, 400);
         using (var c = Db.Open()) SetSetting(c, "labelFolderDepth", depth);
         await Tell(new JsonObject { ["labels"] = true });
+        await LabelsChanged(true);
         return await Send(ctx, new JsonObject { ["ok"] = true, ["depth"] = depth, ["rescanning"] = false });
     }
 

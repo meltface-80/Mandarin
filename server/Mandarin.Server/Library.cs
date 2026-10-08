@@ -65,6 +65,8 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
     public string Week { get; init; } = "";
     // The library scan running now (the identification scan waits for it).
     public bool Scanning { get; init; }
+    // When the Node server last read the library (the label wall's builtAt).
+    public double? BuiltAt { get; init; }
 
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
 }
@@ -169,6 +171,8 @@ internal static partial class Library
         foreach (var c in s) h = unchecked(h * 31 + c);
         return h;
     }
+    /* seededRank(s, seed), for the rest of this server (Extras/Taste.cs). */
+    public static uint Seeded(string s, uint seed) => SeededRank(s, seed);
     private static uint ToUint32(long v) => unchecked((uint)v);
 
     private static string? ReleaseDate(long? year, string? tagDate, string? mbDay)
@@ -250,7 +254,8 @@ internal static partial class Library
                 (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? [])
             {
                 Day = JsString(j["day"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
-                Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning
+                Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning,
+                BuiltAt = j["built_at"] is JsonValue bv && bv.TryGetValue<double>(out var built) ? built : null
             };
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException)
@@ -548,7 +553,7 @@ internal static partial class Library
         var order = new List<LabelGroup>();
         foreach (var al in s.Albums)
         {
-            if (al.LabelKey == null) continue;
+            if (string.IsNullOrEmpty(al.LabelKey)) continue;
             var key = s.MergedKey(al.LabelKey);
             if (!m.TryGetValue(key, out var g)) { m[key] = g = new LabelGroup { Key = key }; order.Add(g); }
             g.Albums.Add(al);

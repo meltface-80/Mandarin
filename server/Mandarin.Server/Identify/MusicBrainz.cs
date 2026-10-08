@@ -101,7 +101,7 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         return c;
     }
 
-    private async Task<object?> Get(string path, params (string, object?)[] ps)
+    public async Task<object?> Get(string path, params (string, object?)[] ps)
     {
         var all = new List<(string, object?)> { ("fmt", "json") };
         all.AddRange(ps);

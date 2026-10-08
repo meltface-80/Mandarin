@@ -133,6 +133,8 @@ Transcoder.UseInternal(app);
 Mandarin.Server.Tags.TagReader.UseInternal(app);
 // The Node server's requests to MusicBrainz, each waiting its turn on the one timer here (Identify/Lookups.cs).
 Mandarin.Server.Identify.Lookups.UseInternal(app);
+// The Node server's word that a library scan has ended: what follows it is made here (Jobs.cs).
+Jobs.UseInternal(app);
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.

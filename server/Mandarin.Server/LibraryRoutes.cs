@@ -54,6 +54,17 @@ internal static partial class Library
         ["/api/loudness"] = LoudnessState,
         ["/api/waveform"] = Waveform,
         ["/api/settings/waveform"] = WaveformSettings,
+        ["/api/filters/labels"] = LabelWall,
+        ["/api/label-albums"] = LabelAlbums,
+        ["/api/labels-scan-status"] = LabelScanStatus,
+        ["/api/labels-scan-log"] = LabelScanLog,
+        ["/api/labels/logo-candidates"] = LogoCandidates,
+        ["/api/settings/labels"] = LabelSettings,
+        ["/api/settings/label-folder-depth"] = LabelFolderDepth,
+        ["/api/settings/fanart-key"] = KeyState,
+        ["/api/settings/discogs-token"] = KeyState,
+        ["/api/similar"] = SimilarActs,
+        ["/api/smart-picks"] = SmartPicks,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
@@ -83,6 +94,17 @@ internal static partial class Library
         ["/api/identify/pack/folder"] = PackFolder,
         ["/api/loudness"] = SaveLoudness,
         ["/api/settings/waveform"] = SaveWaveformSettings,
+        ["/api/labels/rescan"] = LabelRescan,
+        ["/api/labels/rescan-force"] = LabelRescan,
+        ["/api/labels/logo"] = SaveLabelLogo,
+        ["/api/settings/fanart-key"] = SaveKey,
+        ["/api/settings/discogs-token"] = SaveKey,
+        ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
+        ["/api/smart-picks/block"] = BlockSmartPicksArtist,
+    };
+    private static readonly Dictionary<string, Handler> Deletes = new()
+    {
+        ["/api/labels/logo"] = RemoveLabelLogo,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
@@ -97,7 +119,7 @@ internal static partial class Library
                 try { await UnmergeLabel(ctx, source); return; }
                 catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[library] unmerge: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
             }
-            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
+            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
                 try

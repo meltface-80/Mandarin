@@ -76,6 +76,8 @@ const config = {
   // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
   discogsBaseUrl: process.env.DISCOGS_URL || "",
   fanartBaseUrl: process.env.FANART_URL || "",
+  // Related artists (the share card's suggestions, Smart Picks): where Deezer is (a fake in the tests).
+  deezerBaseUrl: process.env.DEEZER_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
   // The tag readers' check (lib/library/tagcheck.js): on (TAGCHECK=0 turns it
@@ -190,11 +192,23 @@ function createServer(overrides = {}) {
     },
     afterScan: () => {
       library.reload();
-      // Days for albums whose tags stop at the year (the Release date sort).
-      ctx.releaseDays.run().catch(() => {});
+      // Days for albums whose tags stop at the year (the Release date sort),
+      // and today's Smart Picks: by the C# server once it makes them (v0.8.20).
+      if (!ctx.madeByFront("days")) ctx.releaseDays.run().catch(() => {});
+      if (ctx.frontRuns && (ctx.frontRuns.has("days") || ctx.frontRuns.has("taste"))) ctx.tellFront("/internal/jobs/after-scan");
       artwork.prewarm(400).catch(() => {});
       features.kickSmartPicks();
       ctx.tagcheck.kick();
+    },
+    // The work Mandarin's C# server makes in this one's place (v0.8.19): handed
+    // over (/internal/front/runs), or about to be — started by it, which hasn't
+    // asked yet (MANDARIN_FRONT_RUNS, for two minutes at most).
+    madeByFront: (job) => !!(ctx.frontRuns && ctx.frontRuns.has(job)) || !!(ctx.frontRunsWait && ctx.frontRunsAsked && ctx.frontRunsAsked.has(job)),
+    // The C# server told something (v0.8.20: a library scan ended): on 127.0.0.1, with the key.
+    tellFront: (p) => {
+      if (!ctx.frontJobsUrl) return;
+      fetch(ctx.frontJobsUrl + p, { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(10000) })
+        .catch(e => log(`[musicd] the C# server wasn't told (${p}): ${e.message}`));
     }
   };
   // The C# tag reader read beside this one on every file, and the two compared (v0.8.13).
@@ -205,7 +219,7 @@ function createServer(overrides = {}) {
   // Started by the C# server: its conversions are made there (useFront, above).
   if (process.env.MANDARIN_FRONT_URL) useFront(process.env.MANDARIN_FRONT_URL);
 
-  ctx.releaseDays = new ReleaseDays({ db, library, log });
+  ctx.releaseDays = new ReleaseDays({ db, library, log, baseUrl: config.mbBaseUrl || undefined });
   // The streaming services (lib/services): Qobuz (v0.6.23) and Tidal
   // (v0.6.24) — the account, its albums as library rows, the stream behind
   // /stream for a streamed track, Qobuz's play reports. Tests bring fakes.
@@ -345,18 +359,31 @@ function createServer(overrides = {}) {
   };
   // The work Mandarin's C# server makes in this one's place (v0.8.19,
   // server/Mandarin.Server/Jobs.cs): the identification scan, the MusicBrainz
-  // pack and loudness measuring. Each is stopped here for good — the album
-  // being looked at finished first — and the C# server is told how this one
-  // was set up. This server's own requests to MusicBrainz wait their turn on
-  // the C# server's timer from now on.
+  // pack and loudness measuring; from v0.8.20 the record labels' lookups and
+  // logos, the release days after a scan, and the taste work (Smart Picks, the
+  // share card's suggestions). Each is stopped here for good — the album
+  // being looked at finished first — and the C# server is told which, and how
+  // this one was set up. This server's own requests to MusicBrainz wait their
+  // turn on the C# server's timer from now on.
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste"];
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
-    const jobs = new Set([].concat(b.jobs || []).map(String));
+    const jobs = new Set([].concat(b.jobs || []).map(String).filter(j => FRONT_JOBS.includes(j)));
     if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
     if (jobs.has("identify")) await ctx.identifier.handOver();
     if (jobs.has("mbpack")) ctx.mbpack.handOver();
     if (jobs.has("loudness")) ctx.loudness.handOver();
+    // A pass running now stops after the album (or batch) it is on: waited for, twenty seconds at most.
+    const passes = [];
+    if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
+    if (jobs.has("days")) passes.push(ctx.releaseDays.handOver());
+    if (jobs.has("taste")) passes.push(features.handOver());
+    if (passes.length) {
+      let t;
+      await Promise.race([Promise.all(passes).catch(() => {}), new Promise(r => { t = setTimeout(r, 20000); })]);
+      clearTimeout(t);
+    }
     const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
     if (front) {
       META.useMbSlot(async () => {
@@ -365,14 +392,17 @@ function createServer(overrides = {}) {
       });
     }
     ctx.frontRuns = jobs;
+    ctx.frontJobsUrl = front || null;
     log(`[musicd] made by the C# server from now on: ${[...jobs].join(", ")}`);
     res.json({
-      ok: true, boot: ctx.bootId,
+      ok: true, boot: ctx.bootId, jobs: [...jobs],
       config: {
         identify: !!config.identify, identify_tick_ms: config.identifyTickMs,
         musicbrainz_url: config.mbBaseUrl || null, itunes_url: config.itunesBaseUrl || null,
         mbpack_url: config.mbpackUrl || null, mbpack_dir: config.mbpackDir || null,
-        loudness_tick_ms: config.loudnessTickMs
+        loudness_tick_ms: config.loudnessTickMs,
+        discogs_url: config.discogsBaseUrl || null, fanart_url: config.fanartBaseUrl || null,
+        deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs
       }
     });
   });
@@ -390,6 +420,8 @@ function createServer(overrides = {}) {
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
       // A scan running now: the identification scan waits for it (v0.8.19).
       scanning: !!scanner.state.running,
+      // When the library was last read here (the label wall's builtAt, v0.8.20).
+      built_at: library.builtAt || null,
       labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() },
       // The day and week on this server's clock (its time zone): Home's rows turn over with them.
       day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
@@ -603,6 +635,7 @@ function createServer(overrides = {}) {
     // Started by the C# server, which makes these itself (MANDARIN_FRONT_RUNS,
     // v0.8.19): not started here — unless it never says so (/internal/front/runs).
     const frontRuns = new Set(String(process.env.MANDARIN_FRONT_RUNS || "").split(",").map(x => x.trim()).filter(Boolean));
+    ctx.frontRunsAsked = frontRuns;
     const startOwn = (skip) => {
       if (config.identify && !skip.has("identify")) ctx.identifier.start();
       if (!skip.has("mbpack")) ctx.mbpack.start();
@@ -612,8 +645,11 @@ function createServer(overrides = {}) {
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {
         ctx.frontRunsWait = null;
-        log("[musicd] the C# server didn't take over the identification scan and loudness measuring; made here");
+        log("[musicd] the C# server didn't take over its share of the background work; made here");
         startOwn(new Set());
+        // What followed a library scan while this one waited: made now.
+        if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
+        if (frontRuns.has("taste")) features.kickSmartPicks();
       }, 120000);
       ctx.frontRunsWait.unref();
     }

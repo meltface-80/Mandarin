@@ -47,9 +47,9 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Making conversions with ffmpeg, sent as they're made; the next tracks made ahead, handed over by the Node server; the cache kept under its size (`Transcoder.cs`) | C# (v0.8.11); DSP, ReplayGain, 32-bit, Qobuz and Tidal still Node's |
 | The phone's downloads (Original or Opus 256) and its Opus stream away from home, the album's next tracks made ready (`Downloads.cs`) | C# (v0.8.12); the album's download list (with ReplayGain) and automatic downloads still Node's |
 | Your own playlists: the list, one, making, renaming, deleting, adding tracks or albums (`PlaylistRoutes.cs`) | C# (v0.8.8); sharing a playlist (the MDRP1 text) still Node's |
-| Library changes: hearts, Listen later, label merges, Record labels on or off and their folder depth (`LibraryChanges.cs`), the Node server told (`/internal/library/changed`) | C# (v0.8.16); album edits (with covers), the label lookups and logos still Node's |
+| Library changes: hearts, Listen later, label merges, Record labels on or off and their folder depth (`LibraryChanges.cs`), the Node server told (`/internal/library/changed`) | C# (v0.8.16); album edits (with covers) still Node's |
 | Settings only kept and read: the wall display, Smart Picks' switch and hour, Home's rows; dynamic playlists (`SettingsRoutes.cs`) | C# (v0.8.7); share links still Node's; the waveform switch C#'s since v0.8.19 |
-| Home's rows: Album of the day, Label of the week, Recently played, Not played lately (`HomeRoutes.cs`) | C# (v0.8.6); the day and week are the Node server's clock's, told with the library's state; Smart picks still Node's |
+| Home's rows: Album of the day, Label of the week, Recently played, Not played lately (`HomeRoutes.cs`) | C# (v0.8.6); the day and week are the Node server's clock's, told with the library's state; Smart Picks C#'s since v0.8.20 |
 | Covers already drawn and label logos, to signed-in devices and signed addresses (`Images.cs`) | C# (v0.8.5); drawing a cover the first time, and a speaker asking by its own address, still Node's |
 | Reading tags: the scanner's reader (music-metadata as `scanner.js` uses it), copied to the letter (`Tags/`) | C# (v0.8.13), checked against the scanner's on the library itself (Settings → Library Scanner) |
 | The scan's tags: a folder's new and changed files read together, one on each core playback doesn't keep, at the lowest priority (`Tags/TagReader.cs` ReadAll) | C# (v0.8.14), once the check has read every file the same both ways; read inside the C# scan since v0.8.18 |
@@ -58,7 +58,10 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | The MusicBrainz pack: what's published, downloaded and checked, moved to another folder, kept up to date (`Identify/Pack.cs`) | C# (v0.8.19) |
 | Measuring loudness for files without ReplayGain tags (`Identify/Loudness.cs`) | C# (v0.8.19), on the cores playback doesn't keep; the gain each device gets still Node's |
 | Waveforms for the progress bar: decoded, kept, sent (`Waveforms.cs`) | C# (v0.8.19) |
-| MusicBrainz's one request a second, for both servers (`Identify/Lookups.cs`, `/internal/mb/slot`) | C# (v0.8.19); release days, label lookups and write-ups still asked by the Node server, each on C#'s timer |
+| MusicBrainz's one request a second, for both servers (`Identify/Lookups.cs`, `/internal/mb/slot`) | C# (v0.8.19); write-ups and an album page's own release day still asked by the Node server, on C#'s timer |
+| Record labels: the Labels wall, a label's albums, labels looked up for albums without one (MusicBrainz, then Discogs), logos (Discogs, FanArt.tv, or chosen by hand), the scan log, the Discogs and FanArt.tv keys (`Extras/LabelLookup.cs`, `Extras/LabelLogos.cs`, `LabelRoutes.cs`) | C# (v0.8.20), handed over by the Node server (`Jobs.cs`) |
+| Release days: the day of albums tagged only to the year, from MusicBrainz after each library scan (`Extras/ReleaseDays.cs`) | C# (v0.8.20); the Node server says when a scan ends (`/internal/jobs/after-scan`); an album page's day at once still Node's |
+| Smart Picks, the map of acts near what you play, the share card's suggestions from Deezer with their links (`Extras/Taste.cs`, `Extras/Similar.cs`, `Extras/ShareLinks.cs`, `TasteRoutes.cs`) | C# (v0.8.20), held to the Node server's (`mandarin-server score`); the plays still written by the Node server, which plays |
 | The processor shared out: this server's threads and conversions kept off playback's cores (`Cpu.cs`) | C# (v0.8.13); the split is decided by the Node server (`lib/cpu.js`) and told with the library's state |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |

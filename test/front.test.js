@@ -30,7 +30,10 @@
  *     test/tags-front.test.js; every scanner test in this mode);
  *   - v0.8.19: the identification scan, the MusicBrainz pack, loudness measuring and waveforms
  *     made by C# (test/identify-csharp.test.js; every identify, pack, loudness and waveform test
- *     in this mode, which says so; and every test that loads index.js afresh).
+ *     in this mode, which says so; and every test that loads index.js afresh);
+ *   - v0.8.20: record labels whole (the wall, a label's albums, the lookups, the logos, the keys),
+ *     the release days, Smart Picks and the share card's suggestions made by C#
+ *     (test/extras-csharp.test.js; the label, release day, Smart Picks and similar tests in this mode).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -130,7 +133,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["identify", "loudness", "mbpack"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "taste"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -147,5 +150,44 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
     const t2 = Date.now();
     assert.ok(t1 - t0 >= 1050, `two turns ${t1 - t0} ms apart`);
     assert.ok(t2 - t1 >= 1050, `the Node server's turn ${t2 - t1} ms after`);
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.20: record labels, release days and the taste work handed to C#; the Node server's own never run", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const port = 3650, B = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  try {
+    for (const [what, done] of [["label lookups", ctx.labelLookup.handedOver], ["label logos", ctx.labelLogos.handedOver], ["release days", ctx.releaseDays.handedOver], ["Smart Picks", ctx.features.handedOver]])
+      assert.equal(done, true, what + ": handed over");
+    // The Node server's own passes: never started again here.
+    ctx.db.setSetting("labelsEnabled", true);
+    ctx.library.setLabelRules({ enabled: true });
+    assert.equal(ctx.labelLookup.run({ force: true }), false);
+    assert.equal(ctx.labelLogos.fetchMissing([{ key: "x", title: "X" }], { force: true }), false);
+    assert.equal(await ctx.releaseDays.run(), 0);
+    ctx.features.kickSmartPicks(true);
+    assert.equal(ctx.features.smartBuilding, null);
+    // The C# server's own addresses for the Node server: loopback, with the key, or nothing.
+    const K = { "X-Mandarin-Front-Key": ctx.frontKey };
+    for (const p of ["/internal/jobs/after-scan", "/internal/jobs/taste"]) {
+      assert.equal((await fetch(B + p, { method: "POST" })).status, 404, p + ": not without the key");
+      assert.equal((await fetch(B + p, { headers: K })).status, 404, p + ": POST only");
+    }
+    assert.deepEqual(await (await fetch(B + "/internal/jobs/after-scan", { method: "POST", headers: K })).json(), { ok: true });
+    const g = await (await fetch(B + "/internal/jobs/taste", { method: "POST", headers: K })).json();
+    assert.deepEqual([g.ok, g.heavy, g.played], [true, [], []], "built again, from no plays");
+    // The routes, answered by C# once signed in.
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token };
+    for (const p of ["/api/filters/labels", "/api/label-albums?label=Parlophone", "/api/labels-scan-status", "/api/labels-scan-log", "/api/settings/labels",
+      "/api/settings/label-folder-depth", "/api/settings/fanart-key", "/api/settings/discogs-token", "/api/smart-picks", "/api/similar?artist=Artist%20A"]) {
+      const r = await fetch(B + p, { headers: H });
+      assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
+    }
+    const r = await fetch(B + "/api/labels/logo-candidates?label=Parlophone", { headers: H });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).error], [400, "C#", "Discogs token needed (Settings → Setup → API Keys)"]);
   } finally { await srv.stop(); }
 });
