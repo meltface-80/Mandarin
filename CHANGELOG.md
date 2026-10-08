@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.16
+A test build, from the `claude/v0.8.16` branch: the sixteenth step in moving Mandarin's server to C#.
+
+- **Hearts, Listen later and record label changes are now made by Mandarin's C# server**: a
+  heart on or off, albums put on or taken off Listen later, labels merged or let go, Record labels
+  switched on or off, and the folder depth labels are read from.
+  - Each is written as before, and the Node server is told at once, so playback, Smart Picks and
+    the label lookups see it straight away.
+  - A test makes each change through the C# server and checks every library screen still reads
+    the same from both servers.
+- Album edits move with the covers, in a later step.
+- The Android app for this branch is at the same test address (0.8.16, version code 216).
+
 ## v0.8.15
 A test build, from the `claude/v0.8.15` branch.
 

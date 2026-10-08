@@ -99,13 +99,28 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     };
 
     await battery("as scanned: ");
-    // The library changes on the Node server's side; C# follows.
-    await post("/api/favourites", { offset: ids[2], on: true });
-    await post("/api/favourites", { offset: ids[0], on: true });
-    await post("/api/listen-later", { offsets: [ids[1], ids[4]], on: true });
+    // The library changes. Hearts, Listen later and labels are made by C# (v0.8.16), which tells
+    // the Node server (its copy must follow: the battery asks both); an edit is still the Node server's.
+    const change = async (p, body, method = "POST") => {
+      const r = await fetch(B + p, { method, headers: Object.assign({ "Content-Type": "application/json" }, H), body: body === undefined ? undefined : JSON.stringify(body) });
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by C#");
+      return { status: r.status, body: await r.json() };
+    };
+    assert.deepEqual(await change("/api/favourites", { offset: ids[2], on: true }), { status: 200, body: { ok: true, offset: ids[2], favourite: true } });
+    assert.deepEqual((await change("/api/favourites", { offset: ids[0], on: 1 })).body, { ok: true, offset: ids[0], favourite: true });
+    assert.deepEqual(await change("/api/favourites", { offset: 99999, on: true }), { status: 404, body: { error: "That album is no longer in the library" } });
+    assert.deepEqual((await change("/api/listen-later", { offsets: [ids[1], ids[4], 99999], on: true })).body, { ok: true, offset: ids[4], later: true, count: 2 });
+    assert.ok(ctx.library.isFavourite(ctx.library.album(ids[2])) && ctx.library.isLater(ctx.library.album(ids[4])), "the Node server's copy told");
     await post("/api/album/edit", { offset: ids[3], title: "Edited Title", artist: "The Edited", year: 1988 });
-    await post("/api/settings/labels", { enabled: true });
-    await post("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }] });
+    assert.deepEqual((await change("/api/settings/labels", {})).body, { error: "enabled required" });
+    assert.deepEqual((await change("/api/settings/labels", { enabled: true })).body, { ok: true, enabled: true });
+    assert.equal(ctx.library.labelsOn(), true);
+    assert.deepEqual(await change("/api/labels/merge", { items: [{ key: "columbia" }] }), { status: 400, body: { error: "Two or more labels are needed" } });
+    assert.deepEqual((await change("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }, { key: "BAD!" }] })).body,
+      { ok: true, target: "columbia", merged: ["impulse"] });
+    assert.equal(ctx.library.mergedKey("impulse"), "columbia", "the Node server's merges read again");
+    assert.deepEqual(await change("/api/settings/label-folder-depth", { depth: 9 }), { status: 400, body: { ok: false, error: "depth must be 0–6" } });
+    assert.deepEqual((await change("/api/settings/label-folder-depth", { depth: "0" })).body, { ok: true, depth: 0, rescanning: false });
     const now = Date.now();
     const ins = ctx.db.raw.prepare("INSERT INTO plays(album_id, track_id, ts) VALUES(?, NULL, ?)");
     ins.run(ids[5], now - 1000); ins.run(ids[5], now - 2000); ins.run(ids[6], now - 400 * 86400000);
@@ -118,6 +133,12 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.deepEqual([after.album, after.played], [null, true]);
     const week = await same("/api/home/label-of-the-week");
     assert.ok(week.label && week.albums.length >= 3, "a label of the week, labels on");
+    // A merge let go, by C#; one that isn't there, said so.
+    assert.deepEqual(await change("/api/labels/merge/nothing", undefined, "DELETE"), { status: 404, body: { error: "Not a merged label" } });
+    assert.deepEqual(await change("/api/labels/merge/impulse", undefined, "DELETE"), { status: 200, body: { ok: true } });
+    assert.equal(ctx.library.mergedKey("impulse"), "impulse");
+    await same("/api/library/facets", "unmerged: ");
+    await post("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }] });
     // Settings kept and read (v0.8.7): saved through C#, read the same by both.
     for (const p of ["/api/settings/display", "/api/settings/smart-picks", "/api/settings/home-rows"]) await same(p, "as set: ");
     let r = await post("/api/settings/display", { enabled: false, seconds: "30" });

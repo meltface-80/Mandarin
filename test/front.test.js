@@ -22,7 +22,9 @@
  *     processor's split kept to by C# (test/cpu.test.js);
  *   - v0.8.14: the scan's tags read by C#, the library the same (test/tags-front.test.js,
  *     test/tag-reader-switch.test.js);
- *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates).
+ *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
+ *   - v0.8.16: hearts, Listen later, label merges and the label settings made by C#, the Node
+ *     server told (test/library-front.test.js).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -96,6 +98,18 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
       x = await by(p, { headers: H, redirect: "manual" });
       assert.equal(x.by, "Node", p + ": a Node route or the page for a deep link, passed on");
     }
+    // v0.8.16: hearts, Listen later and label changes made by C# (an album that isn't there, said by C#).
+    const J = Object.assign({ "Content-Type": "application/json" }, H);
+    for (const p of ["/api/favourites", "/api/listen-later"]) {
+      x = await by(p, { method: "POST", headers: J, body: JSON.stringify({ offset: -1, on: true }) });
+      assert.deepEqual([x.status, x.by], [404, "C#"], p + ": made by C#");
+    }
+    x = await by("/api/labels/merge", { method: "POST", headers: J, body: JSON.stringify({ items: [] }) });
+    assert.deepEqual([x.status, x.by], [400, "C#"], "a label merge, by C#");
+    x = await by("/api/labels/merge/nothing", { method: "DELETE", headers: H });
+    assert.deepEqual([x.status, x.by], [404, "C#"], "a merge let go, by C#");
+    x = await by("/api/settings/label-folder-depth", { method: "POST", headers: J, body: JSON.stringify({ depth: -1 }) });
+    assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
     assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
   } finally { await srv.stop(); }

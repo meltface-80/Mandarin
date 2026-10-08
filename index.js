@@ -322,11 +322,21 @@ function createServer(overrides = {}) {
   // copy of the library this is, so it rebuilds its own when this one changes
   // (server/Mandarin.Server/Library.cs). From this machine only, with the key
   // the C# server started this one with (MANDARIN_FRONT_KEY).
-  app.get("/internal/library", (req, res) => {
+  // The C# server, asking: from this machine, with the key it started this one with.
+  const fromFront = (req) => {
     const from = String(req.socket.remoteAddress || "");
     const key = Buffer.from(String(req.get("x-mandarin-front-key") || ""));
     const want = Buffer.from(ctx.frontKey);
-    if (!/^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from) || key.length !== want.length || !crypto.timingSafeEqual(key, want)) return res.status(403).end();
+    return /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from) && key.length === want.length && crypto.timingSafeEqual(key, want);
+  };
+  // A change the C# server made to the library (v0.8.16): read again here.
+  app.post("/internal/library/changed", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    if (ctx.libraryChanged) ctx.libraryChanged(req.body || {});
+    res.json({ ok: true, version: library.version, marks: library.marks });
+  });
+  app.get("/internal/library", (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
     res.set("Cache-Control", "no-store");
     res.json({
       boot: ctx.bootId, version: library.version, marks: library.marks,

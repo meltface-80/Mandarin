@@ -60,6 +60,11 @@ internal static partial class Library
         ["/api/user-playlists/add-albums"] = AddAlbumsToPlaylist,
         ["/api/playlist/play"] = NoSuchPlaylist,
         ["/api/playlist/play-track"] = NoSuchPlaylist,
+        ["/api/favourites"] = SaveFavourite,
+        ["/api/listen-later"] = SaveLater,
+        ["/api/labels/merge"] = MergeLabels,
+        ["/api/settings/labels"] = SaveLabelsOn,
+        ["/api/settings/label-folder-depth"] = SaveLabelDepth,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
@@ -68,6 +73,12 @@ internal static partial class Library
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
+            // A merged label let go (v0.8.16, LibraryChanges.cs).
+            if (UnmergeAddress(ctx, out var source))
+            {
+                try { await UnmergeLabel(ctx, source); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[library] unmerge: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+            }
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
