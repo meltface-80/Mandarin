@@ -239,6 +239,11 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   };
   try {
     await until(async () => (await api("status")).index_count === 5);
+    // Behind the C# server (MANDARIN_FRONT=1), the scan and its page are made there (v0.8.19).
+    if (process.env.MANDARIN_FRONT === "1") {
+      const h = await fetch(B + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
+      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the identification scan's page is the C# server's");
+    }
     // Scheduling off: it scans now, whatever the clock says.
     let r = await api("identify/settings", { schedule: false });
     assert.equal(r.settings.schedule, false);
@@ -428,6 +433,8 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
     { id: 102, title: "Hi Res", artist: "Artist B", date: "2020-01-01", tracks: [["Hi 1", 4], ["Hi 2", 30]] }
   ]).start();
   itunes.refuse = true;     // at first it asks us to wait
+  // Each refusal rests iTunes a second and a half here, not a quarter of an hour.
+  process.env.ITUNES_PAUSE_MS = "1500";
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
   const port = PORT + 1, base = "http://127.0.0.1:" + port;
@@ -446,14 +453,13 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
     // iTunes refusing: every album unidentified, and iTunes resting.
     r = await until(async () => { const j = await api("identify"); return j.progress.checked === 3 && j; });
     assert.equal(r.progress.unidentified, 3);
-    assert.equal(ctx.identifier.itunes.paused, true);
+    assert.ok(itunes.requests.length >= 1, "iTunes was asked, and refused");
     const asked = () => ctx.db.raw.prepare("SELECT itunes FROM album_matches").all().map(x => x.itunes);
     assert.ok(asked().includes("skipped"), JSON.stringify(asked()));
 
-    // Answering again: the unidentified ones are asked of iTunes alone.
+    // Answering again (its rest over): the unidentified ones are asked of iTunes alone.
     const mbBefore = mb.requests.length;
     itunes.refuse = false;
-    ctx.identifier.itunes.pausedUntil = 0;
     r = await until(async () => { const j = await api("identify"); return j.progress.applied === 1 && j.progress.proposed === 1 && asked().every(x => x === "asked") && j; });
     assert.equal(mb.requests.length, mbBefore, "MusicBrainz isn't asked again for an iTunes-only look");
     assert.equal(r.progress.unidentified, 1);
@@ -486,6 +492,7 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
     assert.equal(picked.candidate.mbid, "itunes:102");
     assert.equal(picked.candidate.manual, "pick");
   } finally {
+    delete process.env.ITUNES_PAUSE_MS;
     await srv.stop();
     await mb.stop();
     await itunes.stop();
@@ -684,4 +691,53 @@ test("a fresh look at matching (v0.7.2): a bigger pressing, spaces, a disc of a 
   // The context names the disc when the title doesn't.
   const f = SCORE.distance({ title: "Days Of Future Passed", artist: "The Moody Blues", year: 1967, context: "CD2 · Days Of Future Passed", tracks: disc2 }, set);
   assert.equal(f.parts.disc, 2);
+});
+
+test("applied unasked, a copy missing a track: each track named from the one it paired with (v0.8.19)", { skip, timeout: 90000 }, async () => {
+  const fs = require("fs");
+  const path = require("path");
+  const lib = makeLibrary();
+  fs.rmSync(lib.music, { recursive: true, force: true });
+  // Tracks 1, 2, 4, 5 and 6 of six: the third is missing, the names are lower case.
+  for (const [title, seconds, track] of [["one", 3, 1], ["two", 4, 2], ["four", 6, 4], ["five", 7, 5], ["six", 8, 6]]) {
+    gen(path.join(lib.music, "Gapper", "Gap Record", `0${track}.flac`), { freq: 200 + 40 * track, seconds,
+      tags: { title, artist: "Gapper", album: "Gap Record", track, date: "2001" } });
+  }
+  const mb = await new FakeMusicBrainz([
+    { id: "gap-1", title: "Gap Record", artist: "Gapper", date: "2001-01-01", tracks: [["One", 3], ["Two", 4], ["Three", 5], ["Four", 6], ["Five", 7], ["Six", 8]] }
+  ]).start();
+  const itunes = await new FakeITunes([]).start();
+  delete require.cache[require.resolve("../index.js")];
+  const { createServer } = require("../index.js");
+  const port = 3647, base = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
+    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
+  await srv.start();
+  const token = await signIn(base);
+  const api = async (p, body) => {
+    const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+    return { status: r.status, ...(await r.json().catch(() => ({}))) };
+  };
+  const titles = async offset => (await api("album?offset=" + offset)).tracks.map(t => t.title);
+  try {
+    await until(async () => (await api("status")).index_count === 1);
+    await api("identify/settings", { schedule: false });
+    const r = await until(async () => { const j = await api("identify"); return j.progress.checked === 1 && j; });
+    assert.equal(r.progress.applied, 1, JSON.stringify(r.progress));
+    const a = r.applied[0];
+    assert.ok(a.similarity >= 95 && a.similarity < 100, String(a.similarity));
+    // Not "One, Two, Three, Four, Five": the fourth track is Four, whatever its place.
+    assert.deepEqual(await titles(a.album.offset), ["One", "Two", "Four", "Five", "Six"]);
+    // Undo puts the tags back.
+    await api("identify/undo", { offset: a.album.offset });
+    assert.deepEqual(await titles(a.album.offset), ["one", "two", "four", "five", "six"]);
+    // Chosen by hand (Find match), the same.
+    const m = await api("identify/match", { offset: a.album.offset, query: "gap-1", how: "pick" });
+    assert.equal(m.status, 200, JSON.stringify(m));
+    assert.deepEqual(await titles(a.album.offset), ["One", "Two", "Four", "Five", "Six"]);
+  } finally {
+    await srv.stop();
+    await mb.stop();
+    await itunes.stop();
+  }
 });

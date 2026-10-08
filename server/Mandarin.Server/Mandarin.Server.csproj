@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    Mandarin's server, in C# (v0.8.1 on): the front door. Parts of the server
+    are moved here one at a time, each behind the same tests; until a part
+    has moved, its requests are passed to the Node server behind it. See
+    server/README.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>mandarin-server</AssemblyName>
+    <RootNamespace>Mandarin.Server</RootNamespace>
+    <!-- ICU's collation, as JavaScript's localeCompare (Library.cs): libicu where it runs. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NuGetAudit>false</NuGetAudit>
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <!-- SQLite's native library inside the one file, unpacked on first run. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+</Project>

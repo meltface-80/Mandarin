@@ -141,6 +141,27 @@ jobs:
           name: ${{ steps.name.outputs.apk }}
           path: android/${{ steps.name.outputs.apk }}
 
+      # A test branch's app (v0.8.0 on): a direct download for the phone, from
+      # the rolling "test-android" pre-release, at one fixed address. Never
+      # "latest", and the app's own update check reads main's dist/, so
+      # nothing offers it to anyone who didn't fetch it.
+      - name: Publish a test branch's APK
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/claude/v0.8')
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.name.outputs.apk }}
+        run: |
+          set -e
+          cp "android/$APK" mandarin-android-test.apk
+          branch="${GITHUB_REF#refs/heads/}"
+          if ! gh release view test-android >/dev/null 2>&1; then
+            gh release create test-android --prerelease --latest=false --title "Android app — test build" \
+              --notes "The Android app built from a test branch. Not a release: for testing only." --target "${GITHUB_SHA}"
+          fi
+          gh release edit test-android --notes "The Android app from the $branch branch at ${GITHUB_SHA::7} ($APK). For testing only; not a release."
+          gh release upload test-android mandarin-android-test.apk "android/$APK" --clobber
+
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can
       # link straight at it. From main only. Pushed with GITHUB_TOKEN, which

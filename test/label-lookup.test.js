@@ -44,7 +44,7 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     const text = await r.text();
     let j = {}; try { j = JSON.parse(text); } catch (e) { j = { text }; }
-    return Object.assign({ status: r.status }, j);
+    return Object.assign({ status: r.status, by: r.headers.get("x-mandarin-answered") || "Node" }, j);
   };
   const until = async (fn, ms = 15000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error("timed out"); await new Promise(r => setTimeout(r, 100)); } };
   const settled = () => until(async () => !(await api("labels-scan-status")).scanning);
@@ -68,6 +68,13 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
       assert.match(log, /lookups: done, 3 of 4 found/);
       const third = (await api("library/albums?sort=album")).albums.find(a => a.title === "Third");
       assert.equal((await api("album?offset=" + third.offset)).album.label, "ECM");
+      // Behind the C# server (v0.8.20): the lookups made there, the Node server's own never started.
+      if (process.env.MANDARIN_FRONT === "1") {
+        for (const p of ["filters/labels", "labels-scan-status", "labels-scan-log", "settings/labels", "settings/discogs-token", "label-albums?label=ECM"])
+          assert.equal((await api(p)).by, "C#", p + ": made by the C# server");
+        assert.equal(ctx.labelLookup.handedOver, true);
+        assert.equal(ctx.labelLookup.lines.length, 0, "nothing looked up by the Node server");
+      }
     });
 
     await t.test("kept by identity through a rebuild; misses not asked again; force asks everything", async () => {

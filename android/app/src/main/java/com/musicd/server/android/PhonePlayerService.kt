@@ -59,6 +59,7 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 /**
@@ -762,6 +763,28 @@ class PhonePlayerService : MediaLibraryService() {
     @Volatile private var writer: CacheWriter? = null
     private val onNetwork: (Boolean) -> Unit = { fetchAheadSoon() }
 
+    /*
+     * The playing track first (v0.8.17): on a weak signal the tracks ahead
+     * wait, so what's playing isn't left sharing it with them — before, a
+     * poor mobile signal shared between the two stopped the music every few
+     * seconds. Looked at every second (on the main thread) while there's a
+     * fetch ahead to do; one under way when the player runs short is stopped,
+     * and carried on from where it was once the player holds enough again.
+     */
+    @Volatile private var aheadWaits = true
+    @Volatile private var stoppedFor: CacheWriter? = null
+    private val fetchesOn = AtomicInteger()
+    private val watchPlaying = object : Runnable {
+        override fun run() {
+            main.removeCallbacks(this)
+            if (!running || fetchesOn.get() == 0) return
+            val waiting = player.playbackState == Player.STATE_BUFFERING && player.playWhenReady
+            aheadWaits = CachePlan.aheadWaits(aheadWaits, waiting, player.isLoading, player.totalBufferedDuration)
+            if (aheadWaits) writer?.let { w -> if (stoppedFor !== w) { stoppedFor = w; w.cancel() } }
+            main.postDelayed(this, 1_000)
+        }
+    }
+
     /**
      * A server stream's name in the cache: the track and its format —
      * whichever format is already wholly on the phone (played from there
@@ -835,8 +858,8 @@ class PhonePlayerService : MediaLibraryService() {
      */
     private val fetchAhead = Runnable {
         if (!running) return@Runnable
-        // Offline mode: nothing fetched from the server ahead.
-        if (Store.offlineMode(this)) { writer?.cancel(); return@Runnable }
+        // Offline mode: nothing fetched from the server ahead (one waiting for the playing track ends too).
+        if (Store.offlineMode(this)) { fetchGen++; writer?.cancel(); return@Runnable }
         val isMetered = metered()
         val s = DownloadStore.settings(this)
         val count = if (isMetered) s.cacheMobile else s.cacheWifi
@@ -852,25 +875,39 @@ class PhonePlayerService : MediaLibraryService() {
         val gen = ++fetchGen
         writer?.cancel()
         val wanted = next.filterNotNull().distinct()
+        // Held back until the playing track has enough (looked at now, then every second).
+        aheadWaits = true
+        fetchesOn.incrementAndGet()
+        watchPlaying.run()
         fetcher.execute {
-            if (gen != fetchGen) return@execute
-            val todo = CachePlan.toFetch(next, count) { url -> keyFor(url)?.let { StreamCache.complete(this, it) } ?: true }
-            var failed = false
-            for (url in todo) {
-                if (gen != fetchGen || !running) return@execute
-                val key = keyFor(url) ?: continue
-                val w = CacheWriter(cacheSource.createDataSource(),
-                    DataSpec.Builder().setUri(url).setKey(key).build(), null, null)
-                writer = w
-                try { w.cache() } catch (e: Exception) {
-                    if (gen == fetchGen) { failed = true; Log.i(TAG, "couldn't fetch ahead: ${e.message}") }
-                    break
-                } finally { if (writer === w) writer = null }
+            try {
+                if (gen != fetchGen) return@execute
+                val todo = CachePlan.toFetch(next, count) { url -> keyFor(url)?.let { StreamCache.complete(this, it) } ?: true }
+                var failed = false
+                tracks@ for (url in todo) {
+                    while (true) {
+                        while (aheadWaits) {
+                            if (gen != fetchGen || !running) return@execute
+                            try { Thread.sleep(500) } catch (e: InterruptedException) { return@execute }
+                        }
+                        if (gen != fetchGen || !running) return@execute
+                        val key = keyFor(url) ?: continue@tracks
+                        val w = CacheWriter(cacheSource.createDataSource(),
+                            DataSpec.Builder().setUri(url).setKey(key).build(), null, null)
+                        writer = w
+                        try { w.cache(); break } catch (e: Exception) {
+                            // Stopped for the playing track: carried on from where it was.
+                            if (stoppedFor === w) continue
+                            if (gen == fetchGen) { failed = true; Log.i(TAG, "couldn't fetch ahead: ${e.message}") }
+                            break@tracks
+                        } finally { if (writer === w) writer = null }
+                    }
+                    publishAhead(wanted, isMetered)
+                }
                 publishAhead(wanted, isMetered)
-            }
-            publishAhead(wanted, isMetered)
-            // No network for the moment: try again shortly.
-            if (failed && gen == fetchGen) main.postDelayed({ if (gen == fetchGen) fetchAheadSoon() }, 30_000)
+                // No network for the moment: try again shortly.
+                if (failed && gen == fetchGen) main.postDelayed({ if (gen == fetchGen) fetchAheadSoon() }, 30_000)
+            } finally { fetchesOn.decrementAndGet() }
         }
     }
 
@@ -1101,6 +1138,7 @@ class PhonePlayerService : MediaLibraryService() {
             },
             volume = if (usbVolume()) UsbDriver.volume() else (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),
             muted = if (usbVolume()) UsbDriver.isMuted() else muted,
+            volumeSteps = if (usbVolume()) 100 else max,
             format = when (formatOf(player.currentMediaItem)) { FORMAT_OPUS -> if (floatOpus()) FORMAT_OPUS24 else FORMAT_OPUS; else -> "original" },
             dsp = dsp.active,
             usb = usbNow(),

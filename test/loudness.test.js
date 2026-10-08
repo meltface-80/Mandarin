@@ -165,7 +165,12 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
     assert.equal(dl.tracks[0].replaygain.track_gain, -6);
     assert.equal(dl.tracks[0].replaygain.album_gain, -7);
 
-    // Files without tags are measured, one at a time, when asked.
+    // Files without tags are measured, one at a time, when asked — behind the
+    // C# server (MANDARIN_FRONT=1), by it (v0.8.19).
+    if (process.env.MANDARIN_FRONT === "1") {
+      const h = await fetch(B + "/api/loudness", { headers: { Authorization: "Bearer " + token } });
+      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "measuring is the C# server's");
+    }
     r = await api("loudness", { measure: true });
     assert.equal(r.settings.measure, true);
     r = await until(async () => { const j = await api("loudness"); return j.left === 0 && j; });

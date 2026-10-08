@@ -42,12 +42,26 @@ jobs:
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
           ~/ffmpeg-static/ffmpeg -version | head -1
       - run: npm ci --no-audit --no-fund
+      # Mandarin's audio engine (engine/, C#): built ahead of time to one
+      # native program, then tested with the rest (test/engine.test.js).
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the audio engine
+        run: ./engine/build.sh
+      # Mandarin's server in C# (server/, v0.8.1): on Node 22 every test's
+      # server sits behind it, as in the image (test/setup.js, MANDARIN_FRONT);
+      # on Node 20 the suite talks to the Node server directly. Both must pass.
+      - name: Build the C# server
+        run: ./server/build.sh
       - name: Syntax check
         run: |
           node --check index.js
           node --check public/app.js
           for f in lib/*.js lib/*/*.js; do node --check "$f"; done
       - name: Tests (including the end-to-end run against a fake Sonos household)
+        env:
+          MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
         run: npm test
 
   docker:
@@ -69,6 +83,13 @@ jobs:
           docker run -d --name smoke -p 3500:3500 -v /tmp/music:/music:ro musicd-server:ci
           for i in $(seq 1 30); do curl -fs localhost:3500/api/health && break; sleep 1; done
           curl -fs localhost:3500/api/health | tee /dev/stderr | grep -q '"ffmpeg":true'
+          # The audio engine is in the image, at the server's version.
+          V=$(node -p "require('./package.json').version")
+          curl -fs localhost:3500/api/health | grep -q "\"audio_engine\":\"$V\""
+          docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
+          # The C# server answers on the port, with the Node server behind it.
+          curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
+          curl -fs localhost:3500/server-info | grep -q '"server":"C#"'
           # A new install asks for its account first: the page is the sign-in page,
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"

@@ -5,6 +5,455 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.22
+A test build, from the `claude/v0.8.22` branch: backups, built-in Tailscale, the album editor and
+drawing covers move to Mandarin's C# server.
+
+- **Backup & restore is now made by the C# server.** Making a backup, keeping one on the server,
+  downloading, restoring and deleting all work as before. A backup made by either server restores
+  on the other.
+- **Built-in Tailscale is run by the C# server.** Signing in and out and switching it on or off
+  work as before. It now stays connected while the server restarts after a restore.
+- **The album editor is handled by the C# server**: a corrected title, artist or year, a cover from
+  a web address, undoing your edits, and the search for a missing cover.
+- **Covers are drawn by the C# server** the first time each size is asked for, from the album's own
+  picture: a cover you found, the one in its folder, or the one in its tracks. An album with no
+  cover still gets its drawn one from the Node server, as does a picture only it reads well (CMYK,
+  or with a colour profile other than sRGB).
+- **Saving and deleting a Dynamic Playlist**, and the list of tags to filter by, are handled by the
+  C# server.
+- **Fixed: Greek titles ending in Σ** could be missed by a search typed in lower case. Both
+  servers now read them the same.
+- Nothing in your library changes, and covers already drawn are kept. New tests compare backup
+  files, the cover search and the album editor on both servers.
+
+## v0.8.21
+A test build, from the `claude/v0.8.21` branch: album write-ups, artist stories, Pitchfork, the Qobuz app link and playlist sharing move to Mandarin's C# server.
+
+- **An album's write-up is now made by the C# server.** That covers its year and release day,
+  Wikipedia's words with Pitchfork's score and link, the artist's story, and the links to hear it
+  and read about it. All work as before, and what was already looked up is kept.
+- **Pitchfork's lists are read by the C# server**: Latest and Best New Music, a review's record in
+  your library, and the Pitchfork part of the search.
+- **The link that opens the Qobuz app** on the right record, and the share card's settings, are
+  handled by the C# server.
+- **Sharing a playlist as text, and importing one someone shared with you, are handled by the C#
+  server.** A playlist shared from either server imports into the other.
+- **Fixed: no Qobuz app link after one missed answer.** When Qobuz's site didn't answer once, that
+  album had no link until the server restarted. Now it asks again next time.
+- **Fixed: a write-up holding the text `&constructor;`** showed a line of program code in its
+  place. It now shows the text as written.
+- **Fixed: importing a shared playlist could fail** when one of its tracks was on an album the
+  library hadn't finished adding. That track is now passed over, and the rest import.
+- An album's year in its write-up now asks the MusicBrainz set with `MUSICBRAINZ_URL`, as the
+  release days do. Before, it always asked musicbrainz.org.
+- Nothing in your library changes. New tests ask both servers about write-ups, Pitchfork's pages
+  and shared playlists over many made-up cases, and check every answer is the same. Wikipedia,
+  Pitchfork and Qobuz's site are fakes in the tests (`WIKIPEDIA_URL`, `PITCHFORK_URL`,
+  `QOBUZ_WEB_URL`). The write-up and playlist tests now run against the C# server.
+- The wall display's page, which follows what plays, stays with the Node server for now.
+- The Android app for this branch is at the same test address (0.8.21, version code 221).
+
+## v0.8.20
+A test build, from the `claude/v0.8.20` branch: record labels, release days, Smart Picks and the share card's suggestions move to Mandarin's C# server.
+
+- **Record labels are now handled by the C# server, whole.** The Labels wall and each label's
+  albums, the labels looked up for albums whose files carry none (MusicBrainz, then Discogs), and
+  the logos (found on Discogs and FanArt.tv, or chosen by hand) all work as before. So do the scan
+  log and the Discogs and FanArt.tv keys with their check.
+- **Release days are looked up by the C# server** after each library scan, for albums whose tags
+  stop at the year. They now ask the MusicBrainz set with `MUSICBRAINZ_URL`, as the README says.
+  Before, they always asked musicbrainz.org.
+- **Smart Picks and the share card's three suggestions are made by the C# server**, with the map of
+  acts near what you play, built once a day.
+- **Fixed: no suggestions after one missed answer.** When Deezer didn't answer once, the share card
+  showed no suggestions for that artist until the server restarted. Now it asks again next time.
+- **Fixed: a record label named only in other scripts** (a Japanese label, say) could be Label of
+  the week, or a search result, that opened to nothing. It stays off both now, as it stays off the
+  Labels wall.
+- Nothing in your library changes. A new test asks both servers about share links, suggestions,
+  release days and label names over many made-up cases, and checks every answer is the same. The
+  label, release day, Smart Picks and suggestion tests now run against the C# server.
+- When the Node server starts again (an update, Restart), the C# server takes this work back
+  before anything more is done.
+- The Android app for this branch is at the same test address (0.8.20, version code 220).
+
+## v0.8.19
+A test build, from the `claude/v0.8.19` branch: album identification moves to Mandarin's C# server, whole, with the MusicBrainz pack, loudness measuring and the waveforms.
+
+- **The identification scan is now made by Mandarin's C# server.** It looks each album up by
+  what its files carry, then on MusicBrainz and iTunes. It scores what it finds and applies,
+  proposes or leaves the album alone, rule for rule as before. Accept, Decline, Undo, Check again
+  and the album editor's Find match work as before.
+- **The MusicBrainz pack is kept by the C# server too**: downloaded and checked, moved to another
+  folder, and kept up to date once a day.
+- **Measuring loudness and the waveforms are made by the C# server.** The gain each device gets is
+  still worked out by the Node server, which plays.
+- **One MusicBrainz timer.** Every request to MusicBrainz, from either server, waits its turn on the
+  same timer. Together they never ask more than once a second.
+- **Fixed: track names on an album missing a track.** When a match was applied without asking,
+  every track after the gap took its neighbour's name. Now each track gets the name of the track
+  it matched. Albums matched before keep their names; Check again on one fixes it.
+- **Check again** on an album now lets the MusicBrainz pack look at it straight away, even while
+  musicbrainz.org isn't answering.
+- Nothing in your library changes: your matches, proposals and what Undo puts back stay as they
+  were. A new test asks both servers' scorers about 700 made-up albums and checks that every score
+  and verdict is the same. The waveforms match number for number. The identification, pack,
+  loudness and waveform tests now run against the C# server, and so do some older tests that had
+  been running on the Node server alone.
+- When the Node server starts again (an update, Restart), the C# server takes the work back
+  before anything more is done, so the two never work on the same album.
+- The Android app for this branch is at the same test address (0.8.19, version code 219).
+
+## v0.8.18
+A test build, from the `claude/v0.8.18` branch: the whole library scan moves to Mandarin's C# server in one step.
+
+- **The library scan is now made by Mandarin's C# server.** It walks the music folders, reads the tags,
+  names untagged albums from their folders, groups the albums and writes the database. It also
+  chooses the covers, recognises moved files, and keeps the rules that never remove music in a
+  hurry. All of it is done rule for rule, as before.
+- It runs as a program of its own, at the lowest priority, on the cores playback doesn't keep. A full
+  scan is about two and a half times faster.
+- It's used once the tag reader check has passed, as yours has. Until then, or where the C# server
+  isn't there, the Node server scans as before. The server log says `[scan] made by the C# server`
+  when it's the C# server's scan.
+- Nothing in your library changes: the same albums and album numbers, with their hearts, edits and
+  plays. A new test scans one music folder both ways through nine kinds of change (files changed,
+  renamed, removed, a drive missing, a folder that can't be read, and more) and checks that every
+  table comes out the same. Every other scanner test now runs against the C# scan too.
+- When to scan (every six hours, a change on disk, Rescan) and letting a folder go stay with the Node
+  server for now.
+- The Android app for this branch is at the same test address (0.8.18, version code 218).
+
+## v0.8.17
+A test build, from the `claude/v0.8.17` branch.
+
+- **Settings → Library Scanner opens at once.** The page's own words and switches are there the
+  moment it opens, with the numbers it showed last time, and each part fills in as soon as its own
+  answer comes. Nothing waits any more for GitHub (asked about the MusicBrainz pack in the
+  background) or for the lists of albums.
+- **Only what moves changes.** While the page is open, only the numbers that changed are redrawn;
+  the rest of the page stays still, and the lists of albums are fetched again only when their
+  counts change.
+- On a library of 164,000 tracks, the page's five-second refresh now asks for under 1 KB instead
+  of 725 KB, and the server makes the lists in a quarter of the time.
+- **Android: on a weak signal, the track that's playing comes first.** Away from home, the app
+  saves the next tracks to the phone as you listen. On a poor mobile signal those downloads shared
+  the connection with the track playing, so the music stopped every few seconds. Now they wait
+  until the playing track has 30 seconds in hand, and pause whenever it drops to 10 seconds or the
+  music has to wait. They carry on from where they stopped.
+- The Android app for this branch is at the same test address (0.8.17, version code 217).
+
+## v0.8.16
+A test build, from the `claude/v0.8.16` branch: the sixteenth step in moving Mandarin's server to C#.
+
+- **Hearts, Listen later and record label changes are now made by Mandarin's C# server**: a
+  heart on or off, albums put on or taken off Listen later, labels merged or let go, Record labels
+  switched on or off, and the folder depth labels are read from.
+  - Each is written as before, and the Node server is told at once, so playback, Smart Picks and
+    the label lookups see it straight away.
+  - A test makes each change through the C# server and checks every library screen still reads
+    the same from both servers.
+- Album edits move with the covers, in a later step.
+- The Android app for this branch is at the same test address (0.8.16, version code 216).
+
+## v0.8.15
+A test build, from the `claude/v0.8.15` branch.
+
+- **The tag reader check keeps what it has found when Mandarin updates.** It starts again only
+  when one of the two readers changes. Files already checked by v0.8.13 or v0.8.14 count, so this
+  update doesn't send the check back to the start.
+- **The check is quicker.** It reads a few files at a time, one on each core playback doesn't
+  keep, and no longer rests between batches. While something is playing it still goes gently.
+  - When the old reader stops on a file with several in hand, it reads those again one at a time
+    to find the file, as before.
+- **It shows about how long it has left**, in *Settings → Library Scanner → New tag reader check*.
+- The report says which two readers it compared.
+- The Android app for this branch is at the same test address (0.8.15, version code 215).
+
+## v0.8.14
+A test build, from the `claude/v0.8.14` branch: the fourteenth step in moving Mandarin's server to C#.
+
+- **The scanner now reads tags with Mandarin's C# server.** It reads a folder's new and changed
+  files together, several at a time: one file on each core playback doesn't keep (three on a
+  four-core machine, two while DSP is in use), each at the lowest priority.
+  - The library comes out exactly as before. A new test scans the same music both ways and checks
+    every track, album and tag is the same.
+  - It switches over by itself only once the tag reader check (v0.8.13) has read every file in
+    your library the same both ways. Until then, and after each update until the check has run
+    again, the scanner reads tags itself as before.
+  - A file read differently later sends the scanner back to its own reader until it's put right.
+  - Should the C# server not answer, the scan reads the tags itself and says so once.
+  - *Settings → Library Scanner → New tag reader check* says which reader the scanner uses.
+    `TAG_READER=node` keeps the old reader; `csharp` uses the new one without waiting.
+- The Android app for this branch is at the same test address (0.8.14, version code 214).
+
+## v0.8.13
+A test build, from the `claude/v0.8.13` branch: the thirteenth step in moving Mandarin's server to C#.
+
+- **Playback comes first on the processor.** Playback keeps a core of its own, or two while DSP
+  is in use. Everything else runs on the other cores. On a four-core machine that is one core for
+  playback and three for scanning and the rest; with DSP, two and two.
+  - Playback means Mandarin's audio engine for a sound device on the server, and every conversion
+    a device is waiting for or will play next, made by either server.
+  - Scanning, measuring ReplayGain, the tag reader check below and the phone's downloads run at
+    the lowest priority, and their disk reads go last.
+  - ReplayGain is now measured on every core playback doesn't keep, a file on each, instead of one
+    file at a time.
+  - DSP keeps its second core for ten minutes after its last conversion, so the split doesn't
+    change at every track.
+  - *Settings → Library Scanner → Processor* shows the split.
+  - Playback runs at a higher priority too when the container has `--cap-add SYS_NICE` (or
+    `--privileged`, which a USB DAC needs anyway). Without it, playback still has its own cores.
+  - `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps; `0` shares every core.
+    `PLAYBACK_CORE=<n>` still picks the core.
+- **A check of the new tag reader, on your own library.** Mandarin's C# server now has its own tag
+  reader, a copy of the one the scanner uses. Before the scanner moves to it, every file is read by
+  both, in the background, and the two readings are compared. Nothing in your library changes.
+  - *Settings → Library Scanner → New tag reader check* shows how far it has got. **Copy report**
+    copies the result; please send it to the developer.
+  - It waits while a scan runs, and checks new and changed files after each scan. After an update
+    it reads every file again.
+  - A file the old reader can't survive (a damaged WAV can stop it) is noted, and the check goes on.
+- The Android app for this branch is at the same test address (0.8.13, version code 213).
+
+## v0.8.12
+A test build, from the `claude/v0.8.12` branch: the twelfth step in moving Mandarin's server to C#.
+
+- **The phone's downloads and its music away from home are now made and sent by Mandarin's C#
+  server:** a download at Original or Opus 256 quality, and the Opus stream the phone plays away
+  from home, with the album's next two tracks made ready behind it.
+  - The same audio as before: a new test checks each FLAC is the very file the Node server's
+    settings make, and each Opus file decodes to the very same sound.
+  - Kept in the same place under the same names, so downloads and Opus already made are used as
+    they are.
+- The album's download list (with its ReplayGain numbers) and automatic downloads still come
+  from the Node server; neither makes a file.
+- The Android app for this branch is at the same test address (0.8.12, version code 212).
+
+## v0.8.11
+A test build, from the `claude/v0.8.11` branch: the eleventh step in moving Mandarin's server to C#.
+
+- **Conversions are now made by Mandarin's C# server.** A file a device can't take as it is
+  (24/96 to Sonos, a 24-bit WAV, a streamer's own rate and depth) is converted with ffmpeg by the
+  C# server and sent as it is made; the next tracks of what's playing are made ahead there too,
+  and the cache kept under its size. The same settings to the letter: a new test checks each kind
+  of conversion is the very file the Node server's settings make, byte for byte.
+  - The Node server still makes what only it can: a zone's DSP, a ReplayGain level, 32-bit
+    output, Opus for the phone away from home, and Qobuz and Tidal. Each file is made by one.
+- **Fixed: the phone's volume away from home.** The phone's volume has only a few real steps
+  (often 15), so a level set from the page came back slightly different, and the slider jumped
+  back and forth while the phone caught up — worst away from home — and + or − could get stuck.
+  The app now says how many steps it has; the page moves one step at a time and shows each
+  change as the phone will set it.
+- **Fixed: signed in to Tailscale again, the app stayed offline** until the network changed. It
+  now looks for the server again as soon as the Tailscale screen says connected.
+- The Android app for this branch is at the same test address (0.8.11, version code 211).
+
+## v0.8.10
+A test build, from the `claude/v0.8.10` branch: the tenth step in moving Mandarin's server to C#.
+
+- **Converted audio, once made, is now sent by Mandarin's C# server.** A file a device can't take
+  as it is (24/96 to Sonos, a 24-bit WAV, a streamer's own rate and depth) is converted once by
+  the Node server with ffmpeg and kept; the next tracks are made ahead of play. From then on the
+  C# server sends the kept file, with seeking, and marks it as used so the cache keeps it.
+  - The same bytes and headers, range for range: a new test converts each kind once, then checks
+    the C# server's copy against the Node server's.
+- Still the Node server's: making a conversion the first time, a conversion with a zone's DSP or
+  a ReplayGain level, 32-bit output, Opus for the phone away from home, and Qobuz and Tidal.
+- The Android app for this branch is at the same test address (0.8.10, version code 210).
+
+## v0.8.9
+A test build, from the `claude/v0.8.9` branch: the ninth step in moving Mandarin's server to C#.
+
+- **Music files are now sent by Mandarin's C# server** whenever a track goes out as it is stored:
+  to Sonos when it can play the file (its format, at most 24-bit/48 kHz, stereo, not DSD), and to
+  a streamer that was promised the file itself. Straight from the disk, with seeking as before;
+  before, the Node server read the file and the C# server passed every byte along.
+  - The same bytes, the same headers, the same answer to every kind of range a player asks for:
+    a new test checks each track against the Node server's.
+  - A speaker's address carries a signature, which the C# server checks.
+- Anything converted still goes through the Node server and ffmpeg: a file above what the device
+  takes, a ReplayGain level, Opus for the phone away from home, and Qobuz and Tidal tracks.
+- **Fixed: the Playlists screen's Import button no longer stays on Home** after going back from
+  Playlists. It only went when the way out happened to clear it; it now always goes with the screen.
+- The Android app for this branch is at the same test address (0.8.9, version code 209).
+
+## v0.8.8
+A test build, from the `claude/v0.8.8` branch: the eighth step in moving Mandarin's server to C#.
+
+- **Your own playlists are now Mandarin's C# server's:** the list, opening one, making, renaming
+  and deleting one, and adding tracks or whole albums to one.
+  - Kept where they always were, in the same shape, so nothing to move or redo.
+  - A Qobuz or Tidal playlist still shows only while you're signed in to the service with its
+    import on, and is kept as it is while hidden.
+  - Each change is saved in one go, so two changes at the same moment can't undo each other.
+  - A new test makes every kind of change once through each server, from the same starting
+    point, and checks both the answer and what was saved are the same.
+- Sharing a playlist as text (to MusicD Remote and back) still comes from the Node server.
+- The Android app for this branch is at the same test address (0.8.8, version code 208).
+
+## v0.8.7
+A test build, from the `claude/v0.8.7` branch: the seventh step in moving Mandarin's server to C#.
+
+- **Settings that are only kept and read are now Mandarin's C# server's:** the wall display (on
+  or off, and its seconds), Smart Picks (on or off, and its hour) and Home's rows (which, in what
+  order). Saved in the same place, so the Node server sees a change at once.
+- **Dynamic playlists are now read by the C# server:** the list, a playlist's albums, and its
+  tracks as the player asks for them. They are saved Library views, so they come from the same
+  Library wall as v0.8.4's.
+- Your own playlists, share links and the waveform switch still come from the Node server: each
+  depends on something only it knows (whether you are signed in to a service, which sites it
+  links to, whether ffmpeg works).
+- The Android app for this branch is at the same test address (0.8.7, version code 207).
+
+## v0.8.6
+A test build, from the `claude/v0.8.6` branch: the sixth step in moving Mandarin's server to C#.
+
+- **Home's rows are now read by Mandarin's C# server:** Album of the day, Label of the week,
+  Recently played and Not played lately.
+  - Album of the day is still chosen once a day, at 00:01 on the server's clock, and kept through
+    scans and restarts; both servers read and keep the same choice, and it still leaves Home once
+    played. The day and the week come from the Node server, so a time zone set for the container
+    is followed exactly as before.
+  - The same answers as the Node server's, checked by the test that compares the two.
+- Smart picks, radio and the server's status still come from the Node server.
+- The Android app for this branch is at the same test address (0.8.6, version code 206).
+
+## v0.8.5
+A test build, from the `claude/v0.8.5` branch: the fifth step in moving Mandarin's server to C#.
+
+- **Album covers and label logos are now sent by Mandarin's C# server.** Every size of a cover is
+  still drawn once by the Node server and kept; from then on the C# server sends it. After a scan
+  the tile size of every album is drawn ahead, so nearly every cover on the walls comes from C#.
+  - The same rules: an address from before a cover changed gets the album's current cover, and a
+    browser can keep a cover for good once it has it.
+  - The same pictures, byte for byte, with the same caching headers (a new test checks).
+  - A Sonos speaker fetching a cover by its own address is still answered by the Node server,
+    which knows the speakers; a cover address handed to a speaker works in C# too.
+- The Android app for this branch is at the same test address (0.8.5, version code 205).
+
+## v0.8.4
+A test build, from the `claude/v0.8.4` branch: the fourth step in moving Mandarin's server to C#.
+
+- **Reading the library is now Mandarin's C# server's job:** the Library wall with every sort and
+  Focus filter, search, the artists list and an artist's albums, an album's page, genres and
+  decades, the random wall, Favourites, Listen later and Home's genre row.
+  - The same answers as before, field for field and in the same order: a new test asks both
+    servers the same questions, then changes the library (a heart, Listen later, an edit, labels
+    switched on, a merge, plays) and asks again.
+  - The Node server still scans, takes edits, hearts and label changes; the C# server keeps its
+    copy of the library in step with the Node server's, so a change shows at once.
+  - A streamed album's page (Qobuz, Tidal) still comes from the Node server, which asks the service.
+- **Pages and lists are compressed again.** Since v0.8.3 the page's own files went out without
+  compression; what the C# server answers is gzipped now, as before.
+- The Docker image now includes libicu, so names sort the same way in both servers.
+- The Android app for this branch is at the same test address (0.8.4, version code 204).
+
+## v0.8.3
+A test build, from the `claude/v0.8.3` branch: the third step in moving Mandarin's server to C#.
+
+- **The page and its files are now served by Mandarin's C# server:** the page itself, its script
+  and stylesheets, the icons and the fonts, everything in `public/`. Behind the sign-in as before,
+  with the same caching: an hour for icons and fonts, while the page, its script, stylesheets and
+  JSON are checked each time, so an update is seen at once. A copy still current is answered "not
+  modified", the Android app's offline copy included.
+- The Android app still gets its own page (without `viewport-fit=cover`) and its own stylesheet
+  (every safe-area allowance at zero, plus the app's rules), as before.
+- Every address that isn't a file in `public/` still goes to the Node server: its routes outside
+  `/api` (`/login`, `/display`, the streams), and the page it opens for a deep link.
+- The Android app for this branch is at the same test address (0.8.3, version code 203).
+
+## v0.8.2
+A test build, from the `claude/v0.8.2` branch: the second step in moving Mandarin's server to C#.
+
+- **Signing in, signed-in devices and the gate are now Mandarin's C# server's.** Making the
+  account, signing in (SRP), the "Enter your current password" check, changing the password,
+  the list of signed-in devices and signing one out are all answered by C#, and so is the gate in
+  front of everything else: a request from a device that isn't signed in stops there and never
+  reaches the Node server.
+  - The same rules, word for word: the account made only from the home network, five wrong
+    passwords from one address locking it out for 15 minutes, every failure slowing the next
+    attempt, an unknown username answered as if it were real, the cookie for browsers and the
+    token for the Android app.
+  - Nothing to sign in again: the account and the devices are the same tables in the same
+    database, read and written by both servers. A token made by either works with the other.
+  - The sign-in maths (SRP) is checked against the same fixed example as the page and the
+    Android app, to the byte.
+  - Streams and covers are still decided by the Node server (a Sonos speaker can't sign in: its
+    addresses carry a signature, or come from a speaker the Node server knows).
+- **A library scan no longer fails when something else writes to the database meanwhile.** The
+  scan's transactions read first and asked for the write lock at their first write; if another
+  connection had written in between (a device signing in, a setting saved), SQLite refused at once
+  ("database is locked") and the whole scan stopped. Every transaction now takes the write lock at
+  its start and waits its turn. Found because the C# server writes to the same file: a scan running
+  while a device signed in failed. Checked: 20 forced scans against 100,000 writes from another
+  connection, none failed.
+- **Streamers' events still reach the Node server** (a streamer telling Mandarin its state changed
+  can't sign in, and goes past the gate as before), and the Node server's loopback-only routes
+  (`/internal/`) stop at the front door.
+- Every response C# writes itself says so (`X-Mandarin-Answered: C#`), and `test/front.test.js`
+  pins which server answers what, so a moved part can't quietly fall back to Node.
+- The Android app for this branch is at the same test address (0.8.2, version code 202).
+
+## v0.8.1
+A test build, from the `claude/v0.8.1` branch: the first step in moving Mandarin's server from
+Node.js to C#.
+
+- **Mandarin's server in C# is the front door.** A new program (`server/`, .NET 10) takes
+  Mandarin's port and starts the Node server behind it, on a port on `127.0.0.1` that nothing else
+  can reach. It answers the parts already moved to C# and passes everything else on as it came.
+  Each part of the server moves to C# in a later build, behind the same tests. When nothing is
+  passed on any more, Node leaves the image. `server/README.md` keeps the list of what has moved.
+  - Who is asking goes through unchanged. Home and away are told apart as before, the built-in
+    Tailscale included, and no device can claim to be at home by sending a forwarded address of
+    its own.
+  - Streams to a room or a renderer, held requests and backup uploads pass straight through, as
+    long as they take.
+  - In-app updates work as before: the Node server still runs through `launcher.js`. Restart and
+    Shut down stop the C# server with it, so Docker's restart policy acts as before.
+  - Every response says which server it came through (`X-Mandarin-Server: C# 0.8.1`).
+- **Tested both ways.** The whole suite runs with every test's server behind the C# server
+  (`MANDARIN_FRONT=1`, as CI does on Node 22) and directly (as on Node 20). Both must pass.
+- The Docker image starts the C# server, which starts the Node server. Nothing to change in
+  `docker run`.
+- The Android app for this branch is at the same test address as v0.8.0's (0.8.1, version code 201).
+
+## v0.8.0
+A test build, from the `claude/v0.8.0-csharp` branch. v0.7.x carries on beside it until this one
+has proved itself.
+
+- **Mandarin's audio engine, written in C#.** A sound device on the server's own computer (a USB
+  DAC, the speakers, HDMI) is now played by a native program of Mandarin's own (`engine/`, .NET 10,
+  built ahead of time: no .NET is needed where it runs). It holds the device open through ALSA.
+  ffmpeg decodes each track straight into the engine's own buffer, 64 MB, a few minutes ahead at
+  CD rates. One thread of the engine's own, and only that thread, writes to the device, on the
+  core kept for playback and at a real-time priority where the system allows it. It allocates
+  nothing while it plays. The server's own work (a library scan, an import, its own memory
+  clean-up) is no longer anywhere in the path from the decoder to the device.
+  - Gapless as before: the next track at the same rate goes into the open device with nothing
+    between them. Pause holds the device where it is (or, on one that can't pause, hands it again
+    what it was holding). A seek is heard at once.
+  - Where the device is in a track is read from ALSA (what the device has still to play), not
+    worked out from a clock.
+  - Volume as before: untouched at 100% or on Fixed volume, scaled on the same 50 dB curve below.
+  - A device that ran dry is put right at once and logged with how much was held ahead.
+  - Checked bit for bit: two tracks (16- and 24-bit) played through the engine, into a file and
+    through the ALSA library itself, come out sample for sample as each track decodes on its own.
+- **Nothing stops playing on the way.** The Docker image carries the engine. An install updated
+  from Settings downloads it once from the new "audio-engine" pre-release, checked against its
+  checksum. Until it is there, on a Mac for now, or with `AUDIO_ENGINE=0`, devices play exactly as
+  in v0.7.x. `/api/health` says which: `"audio_engine": "0.8.0"` or `null`.
+- **Docker:** `--cap-add SYS_NICE` (or `--privileged`, as for the USB DAC already) gives the
+  playback thread its real-time priority. Without it, it plays at an ordinary priority.
+- **The Android app for this branch** is a direct download for testing:
+  `https://github.com/meltface-80/Mandarin/releases/download/test-android/mandarin-android-test.apk`.
+  It is 0.8.0 (version code 200), so a later v0.7.x app won't install over it: going back to v0.7.x
+  before v0.8.0 is released means uninstalling it first.
+- Under the hood: `engine/build.sh` builds the engine; CI builds and tests it with the rest
+  (`test/engine.test.js`); the image builds it for amd64 ahead of time and for arm64 as one
+  self-contained file.
+
 ## v0.7.10
 - **A service's import switch now decides what is in the library** (Tidal and Qobuz). Off: none of
   its albums are on the walls, in search or on Home, and none of its playlists show, straight away.

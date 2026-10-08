@@ -201,6 +201,11 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       assert.ok(fs.existsSync(path.join(lib.data, "labels", "bluenote.jpg")));
       assert.equal((await api("label-albums?label=Blue%20Note")).logo_url, by("Blue Note").logo_url);
       assert.equal((await api("settings/labels")).logos, 2);
+      // Behind the C# server (v0.8.20): the logos found there.
+      if (process.env.MANDARIN_FRONT === "1") {
+        for (const p of ["filters/labels", "labels-scan-log", "settings/fanart-key", "labels/logo-candidates?label=Blue%20Note", "label-albums?label=ECM"])
+          assert.equal((await api(p)).headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+      }
       // Opening the wall again doesn't ask again: the misses are remembered.
       const hits = discogs.hits.length + fanart.hits.length;
       await api("filters/labels");

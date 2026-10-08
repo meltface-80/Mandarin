@@ -8,3 +8,9 @@ android/*
 test
 *.md
 *.tar.gz
+engine/bin
+engine/**/obj
+engine/**/bin
+server/bin
+server/**/obj
+server/**/bin

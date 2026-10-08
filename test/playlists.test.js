@@ -3,6 +3,8 @@
  * Playlists: a user playlist made from tracks or whole albums, a Dynamic
  * Playlist saved from a Library view, and sharing — the MDRP1 blob MusicD
  * Remote writes and reads, so a playlist goes either way between the two.
+ * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8), their
+ * sharing (v0.8.21) and the Dynamic Playlists saved (v0.8.22) are made there.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -11,6 +13,7 @@ const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const FRONT = process.env.MANDARIN_FRONT === "1";
 const PORT = 3616;
 const B = "http://127.0.0.1:" + PORT;
 
@@ -34,6 +37,7 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
   const token = await signIn(B);
   const api = async (p, body) => {
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
+    if (FRONT && /^(share|user-playlists?|smart-playlists?)\b/.test(p)) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
     return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
   };
   try {
@@ -111,6 +115,11 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       assert.deepEqual(imp2.substituted.map(s => [s.title, s.found_album]), [["Song 3", "Album One"]], "found by title and artist, the album substitution reported");
       assert.deepEqual(imp2.missing.map(m => m.title), ["Never Heard"]);
       assert.equal((await api("share/import", { blob: "hello" })).status, 400);
+      // Past the body parser's 2 MB: refused by the Node server, the body passed to it unread.
+      const huge = await fetch(B + "/api/share/import", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ blob: "MDRP1:" + "A".repeat(2200000) }) });
+      assert.equal(huge.status, 413);
+      assert.notEqual(huge.headers.get("x-mandarin-answered"), "C#");
     });
   } finally {
     await srv.stop();

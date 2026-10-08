@@ -41,6 +41,27 @@ object CachePlan {
         return out
     }
 
+    /** The tracks ahead wait (v0.8.17) until the player holds this much of what's playing… */
+    const val AHEAD_GO_MS = 30_000L
+    /** …and, once on their way, stop again when it's down to this. */
+    const val AHEAD_STOP_MS = 10_000L
+
+    /**
+     * The playing track first (v0.8.17): whether the tracks ahead wait, so a
+     * weak signal goes to what's playing rather than being shared with them.
+     * They wait while the player is left waiting for data, and while it is
+     * still fetching with less than [AHEAD_GO_MS] held ahead (less than
+     * [AHEAD_STOP_MS] once they're on their way, so they don't stop and start
+     * again every second). When the player is fetching nothing — all it needs
+     * is held, or nothing is playing — they go.
+     */
+    fun aheadWaits(waitingNow: Boolean, playerWaiting: Boolean, playerFetching: Boolean, heldMs: Long): Boolean = when {
+        playerWaiting -> true
+        !playerFetching -> false
+        waitingNow -> heldMs < AHEAD_GO_MS
+        else -> heldMs < AHEAD_STOP_MS
+    }
+
     /** The track id in a server stream address (".../stream/t12.flac?s=..."), or null. */
     fun trackIdOf(url: String): Long? =
         Regex("/stream/t(\\d+)(?:[./?]|$)").find(url)?.groupValues?.get(1)?.toLongOrNull()

@@ -13,6 +13,7 @@
  * is above that.
  */
 const path = require("path");
+const crypto = require("crypto");
 const fs = require("fs");
 const express = require("express");
 const compression = require("compression");
@@ -24,6 +25,8 @@ const { Scanner } = require("./lib/library/scanner");
 const { LibraryWatcher } = require("./lib/library/watch");
 const { Library } = require("./lib/library/index");
 const { ReleaseDays } = require("./lib/library/dates");
+const { TagCheck } = require("./lib/library/tagcheck");
+const CPU = require("./lib/cpu");
 const { TailscaleNode } = require("./lib/server/tsnode");
 const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
@@ -32,6 +35,7 @@ const STREAM = require("./lib/stream");
 const SERVICES = require("./lib/services");
 const DSP = require("./lib/dsp");
 const FF = require("./lib/ffmpeg");
+const META = require("./lib/meta");
 const shareLinks = require("./lib/share-links");
 const { Playback, trackIdFromUri, planFor } = require("./lib/server/playback");
 const { Features } = require("./lib/server/features");
@@ -40,6 +44,11 @@ const list = v => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
 
 const config = {
   port: Number(process.env.PORT) || 3500,
+  // Behind Mandarin's C# server (v0.8.1, server/): it listens on PORT and
+  // passes on what it doesn't answer itself to this one, which listens on
+  // 127.0.0.1 at INTERNAL_PORT, out of reach of anything else. Links and
+  // addresses given out still name PORT.
+  listenPort: process.env.INTERNAL_PORT != null && process.env.INTERNAL_PORT !== "" ? Number(process.env.INTERNAL_PORT) : null,
   musicDir: process.env.MUSIC_DIR || "/music",
   dataDir: process.env.DATA_DIR || path.join(__dirname, "data"),
   serverIp: process.env.SERVER_IP || process.env.BRIDGE_IP || "",
@@ -67,8 +76,25 @@ const config = {
   // Record label logos (lib/labellogos.js): where Discogs and FanArt.tv are (fakes in the tests).
   discogsBaseUrl: process.env.DISCOGS_URL || "",
   fanartBaseUrl: process.env.FANART_URL || "",
+  // Related artists (the share card's suggestions, Smart Picks): where Deezer is (a fake in the tests).
+  deezerBaseUrl: process.env.DEEZER_URL || "",
+  // A record's write-up (lib/meta.js): where Wikipedia, Pitchfork and Qobuz's site are (fakes in the tests).
+  wikipediaBaseUrl: process.env.WIKIPEDIA_URL || "",
+  pitchforkBaseUrl: process.env.PITCHFORK_URL || "",
+  qobuzWebUrl: process.env.QOBUZ_WEB_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
+  // The tag readers' check (lib/library/tagcheck.js): on (TAGCHECK=0 turns it
+  // off; the tests do), and how long after the start it begins.
+  tagcheck: process.env.TAGCHECK !== "0",
+  tagcheckDelayMs: process.env.TAGCHECK_DELAY_MS != null && process.env.TAGCHECK_DELAY_MS !== "" ? Number(process.env.TAGCHECK_DELAY_MS) : null,
+  // Who reads the scan's tags (v0.8.14): auto (the C# server once the check has
+  // passed), csharp (the C# server whenever it's there) or node (this server).
+  tagReader: ["auto", "csharp", "node"].includes(String(process.env.TAG_READER || "").toLowerCase()) ? String(process.env.TAG_READER).toLowerCase() : "auto",
+  // The C# server's program, which makes the library scans (v0.8.18) once its
+  // tag reader is the one the scan uses: said by the C# server that starts
+  // this one, with the scan protocol it speaks (an older one says neither).
+  serverBin: process.env.MANDARIN_SERVER_SCAN === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -77,9 +103,14 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 function createServer(overrides = {}) {
   Object.assign(config, overrides);
+  // The processor shared out, playback first (lib/cpu.js, v0.8.13): this
+  // server on the cores playback doesn't keep, before it starts anything.
+  CPU.init({ log });
   // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
   require("./lib/backup").swapStaged(config.dataDir, log);
   const db = DB.open(config.dataDir, { log });
+  // Where a record's write-up is asked (lib/meta.js).
+  META.configure(config);
   const library = new Library(db, { musicRoot: config.musicDir, log });
   // Where the music is: the folders chosen in Settings → Music folders, or —
   // until any are — the one the server was started with (MUSIC_DIR).
@@ -96,6 +127,42 @@ function createServer(overrides = {}) {
     maxBytes: config.transcodeCacheGb * 1024 ** 3,
     log
   });
+  // Behind Mandarin's C# server (v0.8.11): it makes the conversions of the
+  // music folders' own files; this one hands it its "make these next". Called
+  // with where it listens (MANDARIN_FRONT_URL, or the tests'). A zone's DSP, a
+  // ReplayGain, 32-bit output and the services' tracks are still made here.
+  const useFront = (url) => {
+    transcoder.delegate = !url ? null : {
+      owns: (t, p) => !SERVICES.isStreamed(t.path) && !!p.transcode && !p.dsp && !p.gain && !p.copy &&
+        (p.bits === 16 || p.bits === 24) && p.rate >= 8000 && p.rate <= 768000,
+      prefetch: (items) => {
+        fetch(url + "/internal/transcode/prefetch", {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Mandarin-Front-Key": ctx.frontKey }, body: JSON.stringify(items)
+        }).then(r => { if (!r.ok) log(`[stream] the C# server didn't take the conversions (HTTP ${r.status})`); })
+          .catch(e => log(`[stream] the C# server didn't take the conversions: ${e.message}`));
+      }
+    };
+    // And its tag reader, checked against this one's on the library (v0.8.13).
+    if (ctx.tagcheck) ctx.tagcheck.setFront(url || null, ctx.frontKey);
+    ctx.frontUrl = url || null;
+  };
+  // Who reads the scan's tags (v0.8.14): the C# server once the check has read
+  // every file the same both ways (or TAG_READER=csharp), else this server.
+  scanner.reader = () => {
+    const mode = config.tagReader;
+    if (mode === "node" || !ctx.frontUrl) return null;
+    if (mode !== "csharp" && !(ctx.tagcheck && ctx.tagcheck.verdict().ready)) return null;
+    return { url: ctx.frontUrl, key: ctx.frontKey };
+  };
+  // And who makes the scan (v0.8.18): the C# server, whole, once its tag
+  // reader is trusted with it — the scan that starts with the server too, on
+  // what the check found last time — else this server, as before.
+  scanner.program = () => {
+    const mode = config.tagReader;
+    if (mode === "node" || !config.serverBin) return null;
+    if (mode !== "csharp" && !(ctx.tagcheck && ctx.tagcheck.trusted())) return null;
+    return config.serverBin;
+  };
   const advertisedIp = () => config.serverIp || localIp();
   // The speakers found last time are asked first, so after a restart or an
   // update the rooms are back in a second or two instead of after discovery.
@@ -113,7 +180,14 @@ function createServer(overrides = {}) {
 
   const ctx = {
     config, db, library, scanner, artwork, transcoder, zones, log, version: pkg.version,
+    // This run of the server, and the key the C# server in front asks with (v0.8.4).
+    bootId: crypto.randomBytes(8).toString("hex"),
+    useFront,
+    frontKey: process.env.MANDARIN_FRONT_KEY || crypto.randomBytes(24).toString("hex"),
     baseUrl: () => `http://${advertisedIp()}:${config.port}`,
+    // This server as it fetches from itself: where it listens (behind the C#
+    // server, its own port on 127.0.0.1).
+    localBase: () => "http://127.0.0.1:" + (ctx.listeningOn || config.port),
     shareServices: () => {
       const v = db.setting("shareServices", null);
       return v === null ? shareLinks.defaultServiceIds() : shareLinks.sanitiseIds(v, shareLinks.knownServiceIds());
@@ -124,20 +198,41 @@ function createServer(overrides = {}) {
     },
     afterScan: () => {
       library.reload();
-      // Days for albums whose tags stop at the year (the Release date sort).
-      ctx.releaseDays.run().catch(() => {});
+      // Days for albums whose tags stop at the year (the Release date sort),
+      // and today's Smart Picks: by the C# server once it makes them (v0.8.20).
+      if (!ctx.madeByFront("days")) ctx.releaseDays.run().catch(() => {});
+      if (ctx.frontRuns && (ctx.frontRuns.has("days") || ctx.frontRuns.has("taste"))) ctx.tellFront("/internal/jobs/after-scan");
       artwork.prewarm(400).catch(() => {});
       features.kickSmartPicks();
+      ctx.tagcheck.kick();
+    },
+    // The work Mandarin's C# server makes in this one's place (v0.8.19): handed
+    // over (/internal/front/runs), or about to be — started by it, which hasn't
+    // asked yet (MANDARIN_FRONT_RUNS, for two minutes at most).
+    madeByFront: (job) => !!(ctx.frontRuns && ctx.frontRuns.has(job)) || !!(ctx.frontRunsWait && ctx.frontRunsAsked && ctx.frontRunsAsked.has(job)),
+    // The C# server told something (v0.8.20: a library scan ended): on 127.0.0.1, with the key.
+    tellFront: (p) => {
+      if (!ctx.frontJobsUrl) return;
+      fetch(ctx.frontJobsUrl + p, { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(10000) })
+        .catch(e => log(`[musicd] the C# server wasn't told (${p}): ${e.message}`));
     }
   };
-  ctx.releaseDays = new ReleaseDays({ db, library, log });
+  // The C# tag reader read beside this one on every file, and the two compared (v0.8.13).
+  // Gently while anything plays (v0.8.15): a Sonos room, a renderer, a phone or a sound device here.
+  const playing = () => [...zones.state.values()].some(z => z && (z.state === "playing" || z.state === "loading"));
+  ctx.tagcheck = new TagCheck({ db, dataDir: config.dataDir, scanner, version: pkg.version, log, playing,
+    enabled: config.tagcheck, delayMs: config.tagcheckDelayMs });
+  // Started by the C# server: its conversions are made there (useFront, above).
+  if (process.env.MANDARIN_FRONT_URL) useFront(process.env.MANDARIN_FRONT_URL);
+
+  ctx.releaseDays = new ReleaseDays({ db, library, log, baseUrl: config.mbBaseUrl || undefined });
   // The streaming services (lib/services): Qobuz (v0.6.23) and Tidal
   // (v0.6.24) — the account, its albums as library rows, the stream behind
   // /stream for a streamed track, Qobuz's play reports. Tests bring fakes.
   const afterChange = () => { library.reload(); artwork.prewarm(100).catch(() => {}); };
   ctx.qobuz = new (require("./lib/qobuz").Qobuz)({ db, library, dataDir: config.dataDir, log, baseUrl: config.qobuzBaseUrl || undefined, afterChange });
   ctx.tidal = new (require("./lib/tidal").Tidal)({ db, library, dataDir: config.dataDir, log, baseUrl: config.tidalBaseUrl || undefined,
-    authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => "http://127.0.0.1:" + config.port, afterChange });
+    authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => ctx.localBase(), afterChange });
   ctx.services = { qobuz: ctx.qobuz, tidal: ctx.tidal, of: p => { const id = SERVICES.ofPath(p); return id ? ctx.services[id] : null; } };
   // The transcoder asks the service where a streamed track's audio is, when
   // a device comes to fetch one (or the next is made ready behind it).
@@ -190,7 +285,18 @@ function createServer(overrides = {}) {
   // The renderers as zones, beside the Sonos rooms and the phones.
   zones.upnp = new (require("./lib/renderers/players").UpnpPlayers)(zones, ctx.devices, { transcoder, log });
   zones.upnp.callbackBase = () => ctx.baseUrl();
-  zones.upnp.localBase = () => "http://127.0.0.1:" + config.port;
+  zones.upnp.localBase = () => ctx.localBase();
+  zones.upnp.dataDir = config.dataDir;
+  // Mandarin's audio engine for sound devices on this computer (v0.8.0): the
+  // image's, else (in Docker, or asked for) downloaded once in the background.
+  // Until it is here, or without it, devices play as before.
+  {
+    const ENGINE = require("./lib/local/engine");
+    const may = process.env.DOCKER === "1" || process.env.AUDIO_ENGINE_DOWNLOAD === "1" || !!process.env.AUDIO_ENGINE_URL;
+    const found = ENGINE.engine({ dataDir: config.dataDir });
+    if (found) log(`[local] Mandarin's audio engine ${found.version} plays sound devices on this computer`);
+    else if (may && config.audioEngineDownload !== false) ENGINE.ensure({ dataDir: config.dataDir, version: pkg.version, log });
+  }
   ctx.tailscale = new TailscaleNode({ bin: config.tailscaleBin, dir: path.join(config.dataDir, "tailscale"), port: config.port, db, log, version: pkg.version, watchdog: config.tailscaleWatchdog || {} });
   // Albums made ready for the Android app to keep (Original or Opus 256).
   ctx.downloads = new (require("./lib/server/downloads").Downloads)({
@@ -245,6 +351,103 @@ function createServer(overrides = {}) {
       log(`[tidal] dash: ${e.message}`);
       if (!res.headersSent) res.status(502); res.end();
     }
+  });
+  // The library's state, for Mandarin's C# server in front (v0.8.4): which
+  // copy of the library this is, so it rebuilds its own when this one changes
+  // (server/Mandarin.Server/Library.cs). From this machine only, with the key
+  // the C# server started this one with (MANDARIN_FRONT_KEY).
+  // The C# server, asking: from this machine, with the key it started this one with.
+  const fromFront = (req) => {
+    const from = String(req.socket.remoteAddress || "");
+    const key = Buffer.from(String(req.get("x-mandarin-front-key") || ""));
+    const want = Buffer.from(ctx.frontKey);
+    return /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(from) && key.length === want.length && crypto.timingSafeEqual(key, want);
+  };
+  // The work Mandarin's C# server makes in this one's place (v0.8.19,
+  // server/Mandarin.Server/Jobs.cs): the identification scan, the MusicBrainz
+  // pack and loudness measuring; from v0.8.20 the record labels' lookups and
+  // logos, the release days after a scan, and the taste work (Smart Picks, the
+  // share card's suggestions); from v0.8.22 the built-in Tailscale engine.
+  // Each is stopped here for good — the album being looked at finished first
+  // — and the C# server is told which, and how this one was set up. This
+  // server's own requests to MusicBrainz wait their turn on the C# server's
+  // timer from now on.
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale"];
+  app.post("/internal/front/runs", express.json(), async (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const b = req.body || {};
+    const jobs = new Set([].concat(b.jobs || []).map(String).filter(j => FRONT_JOBS.includes(j)));
+    if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
+    if (jobs.has("identify")) await ctx.identifier.handOver();
+    if (jobs.has("mbpack")) ctx.mbpack.handOver();
+    if (jobs.has("loudness")) ctx.loudness.handOver();
+    // A pass running now stops after the album (or batch) it is on: waited for, twenty seconds at most.
+    const passes = [];
+    if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
+    if (jobs.has("days")) passes.push(ctx.releaseDays.handOver());
+    if (jobs.has("taste")) passes.push(features.handOver());
+    if (passes.length) {
+      let t;
+      await Promise.race([Promise.all(passes).catch(() => {}), new Promise(r => { t = setTimeout(r, 20000); })]);
+      clearTimeout(t);
+    }
+    const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
+    // Tailscale built in (v0.8.22): the engine run there, and the phones' away address asked of it.
+    if (jobs.has("tailscale")) ctx.tailscale.handOver(front ? { url: front, key: ctx.frontKey } : null);
+    if (front) {
+      META.useMbSlot(async () => {
+        const r = await fetch(front + "/internal/mb/slot", { headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(60000) });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+      });
+    }
+    ctx.frontRuns = jobs;
+    ctx.frontJobsUrl = front || null;
+    log(`[musicd] made by the C# server from now on: ${[...jobs].join(", ")}`);
+    res.json({
+      ok: true, boot: ctx.bootId, jobs: [...jobs],
+      config: {
+        identify: !!config.identify, identify_tick_ms: config.identifyTickMs,
+        musicbrainz_url: config.mbBaseUrl || null, itunes_url: config.itunesBaseUrl || null,
+        mbpack_url: config.mbpackUrl || null, mbpack_dir: config.mbpackDir || null,
+        loudness_tick_ms: config.loudnessTickMs,
+        discogs_url: config.discogsBaseUrl || null, fanart_url: config.fanartBaseUrl || null,
+        deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs,
+        wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null,
+        tailscale_bin: config.tailscaleBin || null, tailscale_dir: path.join(config.dataDir, "tailscale"), tailscale_port: config.port,
+        tailscale_watchdog: config.tailscaleWatchdog || null
+      }
+    });
+  });
+  // Started again for the C# server (v0.8.22): a backup restored there, so
+  // everything is read afresh here (and a staged database swapped in).
+  app.post("/internal/front/restart", (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    res.json({ ok: true });
+    log("[musicd] restarting for the C# server (a backup restored)");
+    setTimeout(() => ctx.restartServer(), 50);
+  });
+  // A change the C# server made to the library (v0.8.16): read again here.
+  app.post("/internal/library/changed", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    if (ctx.libraryChanged) ctx.libraryChanged(req.body || {});
+    res.json({ ok: true, version: library.version, marks: library.marks });
+  });
+  app.get("/internal/library", (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    res.set("Cache-Control", "no-store");
+    res.json({
+      boot: ctx.bootId, version: library.version, marks: library.marks,
+      building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
+      // A scan running now: the identification scan waits for it (v0.8.19).
+      scanning: !!scanner.state.running,
+      // When the library was last read here (the label wall's builtAt, v0.8.20).
+      built_at: library.builtAt || null,
+      labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() },
+      // The day and week on this server's clock (its time zone): Home's rows turn over with them.
+      day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
+      // Which cores playback keeps (lib/cpu.js): the C# server keeps to them too (Cpu.cs).
+      cpu: CPU.plan()
+    });
   });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);
@@ -314,7 +517,8 @@ function createServer(overrides = {}) {
   });
 
   function streamOpus(t, req, res) {
-    ctx.downloads.file(Object.assign({}, t), "opus").then(f => {
+    // Made on playback's cores (lib/cpu.js): this one first, the next two just below it.
+    ctx.downloads.file(Object.assign({}, t), "opus", "playback").then(f => {
       res.set("Content-Type", f.mime);
       res.set("Cache-Control", "no-store");
       res.sendFile(f.path, { dotfiles: "allow", acceptRanges: true, headers: { "Content-Type": f.mime } }, (err) => {
@@ -326,7 +530,7 @@ function createServer(overrides = {}) {
     });
     const rest = library.tracks(t.album_id);
     const i = rest.findIndex(x => x.id === t.id);
-    for (const n of rest.slice(i + 1, i + 3)) ctx.downloads.file(Object.assign({}, n), "opus").catch(() => {});
+    for (const n of rest.slice(i + 1, i + 3)) ctx.downloads.file(Object.assign({}, n), "opus", "ahead").catch(() => {});
   }
 
   app.use(compression());
@@ -344,6 +548,8 @@ function createServer(overrides = {}) {
   require("./lib/server/api-devices")(app, ctx);
   require("./lib/server/api-identify")(app, ctx);
   require("./lib/server/api-loudness")(app, ctx);
+  require("./lib/server/api-tagcheck")(app, ctx);
+  require("./lib/server/api-cpu")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   for (const id of SERVICES.IDS) require("./lib/server/api-service")(app, ctx, id);
@@ -363,7 +569,8 @@ function createServer(overrides = {}) {
 
   app.get("/api/health", (req, res) => res.json({
     ok: true, version: pkg.version, albums: library.count, rooms: zones.topology.rooms().length,
-    ffmpeg: FF.info().ok, soxr: FF.info().soxr, transcode_cache: transcoder.cacheStats()
+    ffmpeg: FF.info().ok, soxr: FF.info().soxr, transcode_cache: transcoder.cacheStats(),
+    audio_engine: (() => { const e = require("./lib/local/engine").engine({ dataDir: config.dataDir }); return e ? e.version : null; })()
   }));
   app.use("/api", (req, res) => res.status(404).json({ error: `No such endpoint: ${req.method} ${req.path}` }));
 
@@ -432,19 +639,46 @@ function createServer(overrides = {}) {
           try { const u = new URL(req.url); req.url = u.pathname + u.search; } catch (e) { /* left as it is */ }
         }
         app(req, res);
-      }).listen(config.port, "0.0.0.0", resolve);
+      });
+      const behind = config.listenPort != null;
+      srv.listen(behind ? config.listenPort : config.port, behind ? "127.0.0.1" : "0.0.0.0", () => {
+        ctx.listeningOn = srv.address().port;
+        resolve();
+      });
       srv.on("error", reject);
       ctx.httpServer = srv;
     });
+    if (config.listenPort != null) log(`[musicd] behind Mandarin's C# server: this one on 127.0.0.1:${ctx.listeningOn}`);
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     zones.start();
     ctx.devices.start();
-    if (config.identify) ctx.identifier.start();
-    ctx.mbpack.start();
-    ctx.loudness.start();
+    // Started by the C# server, which makes these itself (MANDARIN_FRONT_RUNS,
+    // v0.8.19): not started here — unless it never says so (/internal/front/runs).
+    const frontRuns = new Set(String(process.env.MANDARIN_FRONT_RUNS || "").split(",").map(x => x.trim()).filter(Boolean));
+    ctx.frontRunsAsked = frontRuns;
+    const startOwn = (skip) => {
+      if (config.identify && !skip.has("identify")) ctx.identifier.start();
+      if (!skip.has("mbpack")) ctx.mbpack.start();
+      if (!skip.has("loudness")) ctx.loudness.start();
+    };
+    startOwn(frontRuns);
+    if (frontRuns.size) {
+      ctx.frontRunsWait = setTimeout(() => {
+        ctx.frontRunsWait = null;
+        log("[musicd] the C# server didn't take over its share of the background work; made here");
+        startOwn(new Set());
+        if (frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
+        // What followed a library scan while this one waited: made now.
+        if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
+        if (frontRuns.has("taste")) features.kickSmartPicks();
+      }, 120000);
+      ctx.frontRunsWait.unref();
+    }
+    ctx.tagcheck.start();
     features.wire();
-    // On your tailnet by itself, once signed in (Settings → Away from home).
-    ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
+    // On your tailnet by itself, once signed in (Settings → Away from home);
+    // by the C# server, when it runs it (v0.8.22).
+    if (!frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
     const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })
@@ -488,9 +722,12 @@ function createServer(overrides = {}) {
     for (const id of SERVICES.IDS) await ctx.services[id].stop().catch(() => {});
     zones.stop();
     ctx.devices.stop();
+    if (ctx.frontRunsWait) clearTimeout(ctx.frontRunsWait);
+    if (ctx.frontRuns) META.useMbSlot(null);
     ctx.identifier.stop();
     ctx.mbpack.stop();
     ctx.loudness.stop();
+    ctx.tagcheck.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);

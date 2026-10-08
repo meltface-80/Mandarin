@@ -213,7 +213,9 @@ test("an album is found by its edited names, its scanned names, and a title of p
 
 test("a folder that can't be read keeps its albums; most of a folder gone at once is kept until you say", { skip }, async () => {
   const lib = makeLibrary();
-  const s = open(lib.data, lib.music, { massRemoval: 1 });
+  // This server's own scan (program: null): its folder reads are the ones made to fail below.
+  // The C# server's scan meets an unreadable folder in test/scan-csharp.test.js.
+  const s = open(lib.data, lib.music, { massRemoval: 1, program: null });
   await s.scanner.scan();
   s.library.reload();
   const idB = byTitle(s.library, "Hi Res").id;

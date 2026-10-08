@@ -19,11 +19,15 @@ services:
       # INCLUDE_ZONES: "Kitchen,Study"
       # EXCLUDE_ZONES: "Bathroom"
       # TRANSCODE_CACHE_GB: "4"
+      # PLAYBACK_CORES: "1"             # cores kept for playback: 1 or 2 (default: 1, 2 while DSP is in use); 0 shares all
     # A USB DAC or speakers on this machine, for Settings → Audio Devices
     # (privileged: the container may open the devices, which it otherwise can't):
     # devices:
     #   - /dev/snd:/dev/snd
     # privileged: true
+    # Without a DAC: playback at a higher priority as well as on its own core.
+    # cap_add:
+    #   - SYS_NICE
     volumes:
       # KEEP THIS VOLUME — library database, play history, settings and caches.
       - musicd-server-data:/app/data

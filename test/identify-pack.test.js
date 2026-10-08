@@ -64,6 +64,10 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
   };
   try {
     await until(async () => (await api("status")).index_count === 2);
+    if (process.env.MANDARIN_FRONT === "1") {
+      const h = await fetch(base + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
+      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the scan is the C# server's");
+    }
     await api("identify/settings", { schedule: false, itunes: false });
     // The barcoded album first, from the pack, though musicbrainz.org never answers.
     const r = await until(async () => { const j = await api("identify"); return j.applied.length === 1 && j; });
@@ -78,17 +82,20 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
     assert.equal(paused.progress.unidentified, 0);
     assert.equal(paused.progress.checked, 1);
 
-    // During that pause a newly barcoded album still gets matched from the
-    // pack (the pack mode, not the pause, decides).
-    const id = ctx.identifier;
-    const bar = () => id.library.albums.find(a => a.title === "Bar Album" || a.title === "The Bar Album");
-    id.recheck(bar().key);   // as "Check again" does: Undo, and forget the verdict
-    id.library.reload();
-    id.packTried.clear();
-    assert.equal(id.state().reason, "pack");
-    await id.tick();
-    assert.equal(id.row(bar().key).status, "applied");
-    assert.equal(id.state().reason, "unreachable", "then nothing more the pack can answer");
+    // During that pause an album the pack can answer is still matched from
+    // it (the pack mode, not the pause, decides): "Check again" undoes the
+    // match and forgets the verdict, and the pack places the album again.
+    const bar = r.applied[0].album.offset;
+    const first = r.applied[0].checked_at;
+    await api("identify/recheck", { offset: bar });
+    const again = await until(async () => {
+      const j = await api("identify");
+      return j.applied.length === 1 && j.applied[0].checked_at > first && j.reason === "unreachable" && j;
+    });
+    assert.ok(again, "matched from the pack again, then nothing more it can answer");
+    assert.equal(again.applied[0].album.offset, bar);
+    assert.equal(again.applied[0].candidate.from_pack, true);
+    assert.equal(again.progress.unidentified, 0);
   } finally {
     await srv.stop();
   }

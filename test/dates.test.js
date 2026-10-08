@@ -153,3 +153,52 @@ test("a database from before release dates gains the columns and keeps everythin
   assert.equal(db.raw.prepare("SELECT year FROM albums WHERE key = 'k'").get().year, 1999);
   db.close();
 });
+
+test("the days found after a library scan, through the server (behind the C# server, made there)", { timeout: 60000 }, async (t) => {
+  const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
+  if (!haveFfmpeg()) return t.skip("ffmpeg is not installed");
+  const { signIn } = require("./auth-helper");
+  const { FakeMusicBrainz } = require("./fake-musicbrainz");
+  const FRONT = process.env.MANDARIN_FRONT === "1";
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Album One (1997) and Hi Res (2020) are tagged to the year; Dated to the day.
+  const lib = makeLibrary();
+  gen(path.join(lib.music, "Artist F", "Dated", "01 One.flac"), { tags: { title: "One", artist: "Artist F", album: "Dated", track: 1, date: "2020-06-01" } });
+  const mb = new FakeMusicBrainz([
+    { id: "r1", title: "Hi Res", artist: "Artist B", date: "2020-11-20", tracks: [["Hi 1", 4], ["Hi 2", 4]] },
+    // A reissue's group, of another year: never Album One's day.
+    { id: "r2", title: "Album One", artist: "Artist A", date: "2011-01-01", tracks: [["Song 1", 2]] }
+  ]);
+  await mb.start();
+  const PORT = 3649, B = "http://127.0.0.1:" + PORT;
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, mbBaseUrl: mb.baseUrl });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const order = async () => ((await (await fetch(B + "/api/library/albums?sort=year&dir=asc", { headers: { Authorization: "Bearer " + token } })).json()).albums || []).map(a => a.title);
+    const t0 = Date.now();
+    let titles = [];
+    while ((titles = await order()).join() !== "Album One,Dated,Hi Res,Best Of") {
+      if (Date.now() - t0 > 20000) assert.fail("Hi Res never got its day: " + titles);
+      await sleep(100);
+    }
+    const asked = mb.requests.map((u, i) => [decodeURIComponent(u), mb.agents[i]]).filter(([u]) => u.startsWith("/ws/2/release-group/?query="));
+    assert.ok(asked.some(([u]) => u.includes('releasegroup:"Hi Res" AND artist:"Artist B"') && u.includes('releasegroup:"Album One"')), JSON.stringify(asked));
+    assert.ok(!asked.some(([u]) => u.includes('"Dated"')), "an album with its day isn't asked about");
+    if (FRONT) {
+      assert.ok(asked.every(([, ua]) => /^Mandarin\//.test(ua)), "asked by the C# server: " + JSON.stringify(asked));
+      assert.equal(ctx.releaseDays.handedOver, true);
+    }
+    // Kept across a reload, and not asked again within the month.
+    const n = mb.requests.length;
+    ctx.library.reload();
+    assert.deepEqual(await order(), ["Album One", "Dated", "Hi Res", "Best Of"]);
+    if (FRONT) {
+      assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST" })).status, 404, "not without the key");
+      assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).status, 200);
+    } else await ctx.releaseDays.run();
+    await sleep(300);
+    assert.equal(mb.requests.length, n, "nothing asked twice");
+  } finally { await srv.stop(); await mb.stop(); }
+});

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.7.10
+# Mandarin — v0.8.22
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -330,6 +330,18 @@ A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos rooms have no DSP here.
+
+</details>
+
+⸻
+
+⚙️ **Playback first** — *new since v0.5.50*
+
+Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and downloads run on the other cores, at the lowest priority.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, `--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all.
 
 </details>
 
@@ -696,7 +708,7 @@ the machine Docker runs on, add these two lines to the command above:
 
 `--device /dev/snd` hands the sound devices to the container; `--privileged` lets the container
 open them, which on most hosts it otherwise can't (the device nodes belong to the host's `audio`
-group). They then appear in **Settings → Audio Devices**. A container already running needs
+group), and lets playback run at a higher priority. They then appear in **Settings → Audio Devices**. A container already running needs
 re-creating with the lines (stop, rm, the `docker run` again — the data volume carries everything
 over). See [Sound devices on the server](#sound-devices-on-the-server).
 
@@ -883,13 +895,15 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `SCAN_INTERVAL_HOURS` | `6` | How often the music folders are re-checked in full (only changed files are re-read). Changes are also noticed as they happen through the file system's own notifications, where it gives them — a network share changed from another machine waits for this. Rescan any time from the menu. |
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
+| `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
+| `TAG_READER` | `auto` | Who reads the scan's tags, and so who makes the scan (v0.8.18). `auto`: the C# server, once the tag reader check has read every file the same both ways; `csharp`: the C# server always; `node`: the Node server's own reader and scan. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
-| `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan and release days. |
+| `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan, release days and an album write-up's year. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
 | `MBPACK_DIR` | data folder | Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there. |
 | `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
@@ -1047,9 +1061,14 @@ room (v0.6.18).
 2. On its page: the rates it takes (a USB DAC on Linux lists its own; tap to change), **Output**
    (Original, ×2, ×4, Max), **Fixed volume**, **Volume levelling** and **DSP**, as for a renderer.
 
-How it plays: ffmpeg decodes each track and a second ffmpeg holds the device open. The next track
-at the same rate goes into the open device with nothing between them; a track at another rate
-reopens it. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
+How it plays (v0.8.0, Linux): **Mandarin's audio engine** (`engine/`, a native program written
+in C#) holds the device open. ffmpeg decodes each track straight into the engine's own buffer, up
+to a few minutes ahead, and a thread of the engine's own writes it to the device through ALSA. The
+next track at the same rate goes into the open device with nothing between them; a track at another
+rate reopens it. Where the device is in a track is read from ALSA itself. The image carries the
+engine; an install updated from Settings downloads it once. `AUDIO_ENGINE=0` plays as before
+v0.8.0: ffmpeg decodes each track and a second ffmpeg holds the device open. On a Mac, that is how
+it plays for now. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
 with **Fixed volume** on they are never scaled and the volume is the DAC's or amplifier's.
 
 * **Linux:** ALSA, opened as `plughw:CARD=<name>,DEV=<n>`, so a DAC on another USB port is the
@@ -1064,13 +1083,16 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless
   you tick others on the device's page.
 * DSD files go to these devices as PCM.
-* **Playback keeps clear of the server's other work (v0.7.7).** The decoder and the device each
-  queue a minute of audio ahead; a library scan runs on a thread of its own at a lower priority;
-  conversions prepared ahead run below playback. On a Linux machine with four cores or more the
-  last core is kept for the playback pair and the server runs on the others (`PLAYBACK_CORE=0`
-  turns this off, `PLAYBACK_CORE=<n>` picks the core). With `--privileged` (or as root) the pair
-  also runs at a higher priority. An ALSA underrun, should one happen, is logged with what the
-  feed was waiting for.
+* **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
+  ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
+  use (the last ones), and both servers run on the others; on four cores, one for playback and
+  three for the rest, or two and two. Scanning, measuring ReplayGain, the tag reader check and the
+  phone's downloads run at the lowest priority, their disk reads last; conversions made ahead of
+  play run just below playback. *Settings → Library Scanner → Processor* shows the split.
+  `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps, `0` shares every core;
+  `PLAYBACK_CORE=<n>` picks the core. With `--privileged`, `--cap-add SYS_NICE` (or as root) the
+  engine and its decoder also run at a higher priority, and the engine's playback thread at a
+  real-time one. An ALSA underrun, should one happen, is logged with what the feed was waiting for.
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
 taken from the device's name, and a device that fails being reported and let go.
@@ -1089,7 +1111,8 @@ an iPhone or a laptop on Tailscale can browse the library but has nothing to pla
 everything is as before. Away, tracks stream as **Opus 256 kbps** by default (about a quarter
 of a CD-quality FLAC's data), made through a 64-bit float resample to Opus's 48 kHz and decoded
 on the phone by the app's own libopus; *Settings → Downloads → Stream as* in the app can send
-the original files instead. Albums you've downloaded play from the phone.
+the original files instead. Albums you've downloaded play from the phone. On a weak signal the
+track that's playing comes first: the tracks after it are fetched only once it has enough.
 
 **Set up once — Tailscale is built in:**
 
@@ -1116,11 +1139,20 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 ## How it works
 
-* **Library.** The music folder is walked and every audio file's tags are read with
-  music-metadata into SQLite. Albums are decided a folder at a time, so a folder of tracks by
-  different artists with no album-artist tag becomes one compilation, and `CD1`/`CD2` folders
-  become one album. Covers come from `cover.jpg`/`folder.jpg`/… or the first track's embedded
-  picture, resized once per size and cached. Rescans only re-read files whose size or date changed.
+* **Library.** The music folder is walked and every audio file's tags are read into SQLite.
+  Albums are decided a folder at a time, so a folder of tracks by different artists with no
+  album-artist tag becomes one compilation, and `CD1`/`CD2` folders become one album. Covers come
+  from `cover.jpg`/`folder.jpg`/… or the first track's embedded picture, resized once per size and
+  cached. Since v0.8.22 the C# server draws them, with ffmpeg; an album with no cover still gets
+  its drawn one from the Node server. Rescans only re-read files whose size or date changed.
+  Since v0.8.18 the C# server makes the scan, as a process of its own on the cores playback
+  doesn't keep; the Node server's own scan is used until the tag reader check has passed, or
+  where the C# server isn't there.
+* **Album names.** The identification scan looks each album up by what its files carry (a
+  release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
+  each release against the tracks and their lengths, and lays the names over the album, never on
+  the files. Since v0.8.19 the C# server makes it, with the MusicBrainz pack, loudness measuring
+  and the waveforms. Every MusicBrainz request, from either server, waits its turn on one timer.
 * **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —

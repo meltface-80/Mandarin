@@ -122,6 +122,9 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
         const out = { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1 };
         // Home, then the Random albums wall from its row's heading: titled; Home again: no title.
         document.getElementById("topbar-back").click(); await sleep(300);
+        // Back on Home, Import goes with the Playlists screen (v0.8.9: it stayed).
+        const importLeft = () => { const pc = document.getElementById("content-count"); return !!(pc && !pc.classList.contains("hidden") && pc.querySelector(".playlists-import")); };
+        out.import_on_home = importLeft();
         document.getElementById("home-random-title").click(); await sleep(600);
         const count = document.getElementById("album-count");
         out.random_title = count.classList.contains("hidden") ? "" : count.textContent;
@@ -139,6 +142,9 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
           $("topbar-back").click(); await sleep(300);
         }
         out.screens = screens;
+        window.__showPlaylists(); await sleep(400);
+        window.__showHome(); await sleep(300);
+        out.import_on_home_again = importLeft();
         out.home_after = [menuShown(), backShown()];
         return out;
       })()`);
@@ -150,6 +156,8 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
     assert.ok(r.right_gap <= 16, "it hugs the right edge: " + r.right_gap + " px");
     assert.ok(r.left_gap > 100, "not the left: " + r.left_gap + " px");
     assert.equal(r.below_bar, true, "just under the top bar");
+    assert.equal(r.import_on_home, false, "Import leaves with the Playlists screen (‹ to Home)");
+    assert.equal(r.import_on_home_again, false, "and when Home is opened from the Playlists screen");
     assert.equal(r.random_title, "Random albums", "the Random albums wall is titled");
     assert.equal(r.home_title_hidden, true, "and Home is not");
     assert.deepEqual(r.home_buttons, [true, false], "Home: the menu button, no ‹");
