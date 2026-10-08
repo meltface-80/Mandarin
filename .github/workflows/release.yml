@@ -49,6 +49,17 @@ jobs:
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
           ~/ffmpeg-static/ffmpeg -version | head -1
 
+      # The audio engine and the C# server, built as CI builds them: on CI the
+      # tests that need them fail rather than skip (test/engine.test.js,
+      # test/srp.test.js), so without these no 0.8.x release got past its tests.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the audio engine
+        run: ./engine/build.sh
+      - name: Build the C# server
+        run: ./server/build.sh
+
       - name: Test before releasing
         timeout-minutes: 15
         run: |
@@ -65,12 +76,21 @@ jobs:
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
             echo "exists=true" >> "$GITHUB_OUTPUT"
+            # A release made by hand has no update bundle: the updater would
+            # fall back to the whole source tarball, APK and all.
+            if gh release view "v$version" --json assets -q '.assets[].name' | grep -qx "musicd-server-$version.tar.gz"; then
+              echo "bundle=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "v$version has no musicd-server-$version.tar.gz; it will be added"
+              echo "bundle=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "bundle=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build the update bundle and notes
-        if: steps.v.outputs.exists == 'false'
+        if: steps.v.outputs.bundle == 'false'
         run: |
           v=${{ steps.v.outputs.version }}
           mkdir -p out/musicd-server
@@ -89,3 +109,11 @@ jobs:
           v=${{ steps.v.outputs.version }}
           gh release create "v$v" "musicd-server-$v.tar.gz" \
             --target "$GITHUB_SHA" --title "MusicD Server v$v" --notes-file notes.md --latest
+
+      - name: Add the update bundle to a release made by hand
+        if: steps.v.outputs.exists == 'true' && steps.v.outputs.bundle == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v=${{ steps.v.outputs.version }}
+          gh release upload "v$v" "musicd-server-$v.tar.gz" --clobber
