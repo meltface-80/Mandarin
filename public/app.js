@@ -18206,12 +18206,16 @@ initServiceBrowser({
       const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
       const said = { checking: "Reading your files both ways, in the background.", paused: "Waits while the library is being scanned.",
         waiting: "Starts in a few minutes.", done: odd ? "Done. Please send the report." : "Done. Every file reads the same." }[t.state] || "";
+      // Who reads the scan's tags (v0.8.14).
+      const reader = t.reader === "csharp" ? "The scanner now reads tags with the new reader."
+        : odd ? "The scanner keeps the old reader until these are fixed."
+        : "The scanner moves to the new reader once every file reads the same.";
       html += '<div class="settings-divider"></div><div class="settings-block">' +
-        row("New tag reader check" + info("Mandarin’s server is moving to C#. Before it reads your tags, every file is read by both the old and the new tag reader and the two are compared. Nothing in your library changes. Copy the report and send it to the developer."),
+        row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared. Once every file reads the same, the scanner reads tags with the new reader, several files at a time on the cores playback doesn’t keep. After an update the check starts again, and the scanner waits for it. Nothing in your library changes. Copy the report and send it to the developer."),
           '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
         '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
           (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") + "</div>" +
-        '<div class="settings-note">' + said + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
+        '<div class="settings-note">' + said + " " + reader + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
     }
     // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.
     if (cpu && Array.isArray(cpu.cores)) {

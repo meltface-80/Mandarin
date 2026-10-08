@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.14
+A test build, from the `claude/v0.8.14` branch: the fourteenth step in moving Mandarin's server to C#.
+
+- **The scanner now reads tags with Mandarin's C# server.** It reads a folder's new and changed
+  files together, several at a time: one file on each core playback doesn't keep (three on a
+  four-core machine, two while DSP is in use), each at the lowest priority.
+  - The library comes out exactly as before. A new test scans the same music both ways and checks
+    every track, album and tag is the same.
+  - It switches over by itself only once the tag reader check (v0.8.13) has read every file in
+    your library the same both ways. Until then, and after each update until the check has run
+    again, the scanner reads tags itself as before.
+  - A file read differently later sends the scanner back to its own reader until it's put right.
+  - Should the C# server not answer, the scan reads the tags itself and says so once.
+  - *Settings → Library Scanner → New tag reader check* says which reader the scanner uses.
+    `TAG_READER=node` keeps the old reader; `csharp` uses the new one without waiting.
+- The Android app for this branch is at the same test address (0.8.14, version code 214).
+
 ## v0.8.13
 A test build, from the `claude/v0.8.13` branch: the thirteenth step in moving Mandarin's server to C#.
 

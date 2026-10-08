@@ -81,6 +81,9 @@ const config = {
   // off; the tests do), and how long after the start it begins.
   tagcheck: process.env.TAGCHECK !== "0",
   tagcheckDelayMs: process.env.TAGCHECK_DELAY_MS != null && process.env.TAGCHECK_DELAY_MS !== "" ? Number(process.env.TAGCHECK_DELAY_MS) : null,
+  // Who reads the scan's tags (v0.8.14): auto (the C# server once the check has
+  // passed), csharp (the C# server whenever it's there) or node (this server).
+  tagReader: ["auto", "csharp", "node"].includes(String(process.env.TAG_READER || "").toLowerCase()) ? String(process.env.TAG_READER).toLowerCase() : "auto",
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -128,6 +131,15 @@ function createServer(overrides = {}) {
     };
     // And its tag reader, checked against this one's on the library (v0.8.13).
     if (ctx.tagcheck) ctx.tagcheck.setFront(url || null, ctx.frontKey);
+    ctx.frontUrl = url || null;
+  };
+  // Who reads the scan's tags (v0.8.14): the C# server once the check has read
+  // every file the same both ways (or TAG_READER=csharp), else this server.
+  scanner.reader = () => {
+    const mode = config.tagReader;
+    if (mode === "node" || !ctx.frontUrl) return null;
+    if (mode !== "csharp" && !(ctx.tagcheck && ctx.tagcheck.verdict().ready)) return null;
+    return { url: ctx.frontUrl, key: ctx.frontKey };
   };
   const advertisedIp = () => config.serverIp || localIp();
   // The speakers found last time are asked first, so after a restart or an

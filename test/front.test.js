@@ -19,7 +19,9 @@
  *   - v0.8.11: conversions made by C#, as the Node server made them (the same test);
  *   - v0.8.12: the phone's downloads and its Opus away, made and sent by C# (the same test);
  *   - v0.8.13: tags read by C# as the scanner reads them (test/tags-front.test.js), and the
- *     processor's split kept to by C# (test/cpu.test.js).
+ *     processor's split kept to by C# (test/cpu.test.js);
+ *   - v0.8.14: the scan's tags read by C#, the library the same (test/tags-front.test.js,
+ *     test/tag-reader-switch.test.js).
  */
 const test = require("node:test");
 const assert = require("node:assert");

@@ -374,8 +374,20 @@ internal static partial class TagReader
         return path[startDot..end];
     }
 
-    /* POST /internal/tags ["/music/a.flac", …] from the Node server (loopback, with the front key):
-       each file's reading, for the check that compares the two readers (lib/library/tagcheck.js). */
+    /*
+     * This reader's version, said with every reading (X-Tag-Reader): the
+     * check's results (lib/library/tagcheck.js) hold for one version only.
+     * Raised whenever a reading could come out differently.
+     */
+    public const string Version = "1";
+
+    /*
+     * POST /internal/tags ["/music/a.flac", …] from the Node server (loopback,
+     * with the front key): each file's reading, for the scanner (v0.8.14) and
+     * for the check that compares the two readers (v0.8.13). The files are
+     * read a few at a time, one on each core playback doesn't keep (Cpu.cs),
+     * each on a thread of its own at the lowest priority, its reads last.
+     */
     public static void UseInternal(Microsoft.AspNetCore.Builder.WebApplication app)
     {
         app.Use(async (ctx, next) =>
@@ -393,11 +405,31 @@ internal static partial class TagReader
             try { items = await System.Text.Json.Nodes.JsonNode.ParseAsync(ctx.Request.Body) as System.Text.Json.Nodes.JsonArray; }
             catch (System.Text.Json.JsonException) { /* none */ }
             var paths = (items ?? []).Select(n => n is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var s) ? s : null)
-                .Where(s => !string.IsNullOrEmpty(s)).Take(500).ToList();
-            var lines = await Task.Run(() => paths.Select(p => Line(p!)).ToList());
+                .Where(s => !string.IsNullOrEmpty(s)).Take(500).Select(s => s!).ToList();
+            var lines = await ReadAll(paths);
             ctx.Response.ContentType = "application/json";
+            ctx.Response.Headers["X-Tag-Reader"] = Version;
             await ctx.Response.WriteAsync("[" + string.Join(",", lines) + "]");
         });
+    }
+
+    /* Each file's reading (Line), in order: read Cpu.Slots at a time, on low-priority threads of their own. */
+    public static Task<string[]> ReadAll(List<string> paths)
+    {
+        var lines = new string[paths.Count];
+        if (paths.Count == 0) return Task.FromResult(lines);
+        var done = new TaskCompletionSource<string[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int next = -1, left = Math.Max(1, Math.Min(Cpu.Slots, paths.Count)), threads = left;
+        for (int t = 0; t < threads; t++)
+        {
+            new Thread(() =>
+            {
+                Cpu.LowerThisThread();
+                try { for (int i; (i = Interlocked.Increment(ref next)) < paths.Count;) lines[i] = Line(paths[i]); }
+                finally { if (Interlocked.Decrement(ref left) == 0) done.TrySetResult(lines); }
+            }) { IsBackground = true, Name = "tags" }.Start();
+        }
+        return done.Task;
     }
 
     /* One file's reading as a line of JSON: { path, ok, tags } or { path, ok: false, error }. */

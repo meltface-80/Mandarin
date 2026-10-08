@@ -40,6 +40,47 @@ internal static partial class Cpu
     [LibraryImport("libc", EntryPoint = "setpriority", SetLastError = true)]
     private static partial int SetPriority(int which, int who, int prio);
 
+    [LibraryImport("libc", EntryPoint = "gettid")]
+    private static partial int GetTid();
+
+    [LibraryImport("libc", EntryPoint = "syscall", SetLastError = true)]
+    private static partial long Syscall(long number, long a, long b, long c);
+
+    /* How many background reads at once: one per core playback doesn't keep (lib/cpu.js slots). */
+    public static int Slots
+    {
+        get
+        {
+            var p = plan;
+            if (p.Background.Length > 0) return p.Background.Length;
+            return Math.Max(1, Environment.ProcessorCount - 1);
+        }
+    }
+
+    /*
+     * The calling thread at the lowest priority, its disk reads last (a
+     * thread of its own, for the scan's reads: on Linux both are the
+     * thread's, not the process's).
+     */
+    public static void LowerThisThread()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        try
+        {
+            int tid = GetTid();
+            SetPriority(0, tid, 19);
+            // ioprio_set(IOPRIO_WHO_PROCESS, tid, best effort, level 7)
+            long nr = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+            {
+                System.Runtime.InteropServices.Architecture.X64 => 251,
+                System.Runtime.InteropServices.Architecture.Arm64 => 30,
+                _ => -1
+            };
+            if (nr > 0) Syscall(nr, 1, tid, (2 << 13) | 7);
+        }
+        catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { /* not Linux's libc */ }
+    }
+
     private static string Own()
     {
         try
