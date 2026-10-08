@@ -47,6 +47,8 @@ internal sealed class Album
     public double? TrackCount;
     public bool Lossless, Compilation, CustomArt, Edited;
     public string? Container, Dir, Label, Service;
+    // Where a found cover came from (album_edits.art_source).
+    public string? ArtSource;
     public int Discs = 1;
     public string ScannedTitle = "", ScannedArtist = "";
     public long? ScannedYear;
@@ -421,6 +423,7 @@ internal static partial class Library
                 Dir = Text(F(r, "dir")) ?? (F(r, "dir") as string),
                 Label = Text(F(r, "label")),
                 CustomArt = eArt != null,
+                ArtSource = Text(F(r, "e_art_source")),
                 ScannedTitle = Text(F(r, "title")) ?? "", ScannedArtist = Text(F(r, "artist")) ?? "", ScannedYear = Long(F(r, "year")),
                 Edited = Text(F(r, "e_title")) != null || Text(F(r, "e_artist")) != null || Long(F(r, "e_year")) != null || eArt != null,
                 Service = ServiceOf(key)

@@ -36,10 +36,16 @@
  *     (test/extras-csharp.test.js; the label, release day, Smart Picks and similar tests in this mode);
  *   - v0.8.21: an album's write-ups and links, an artist's story, Pitchfork's lists, the Qobuz app's
  *     link, the share card's settings and a playlist shared as text, made by C#
- *     (test/writeups-csharp.test.js, test/share-csharp.test.js; the write-up and playlist tests in this mode).
+ *     (test/writeups-csharp.test.js, test/share-csharp.test.js; the write-up and playlist tests in this mode);
+ *   - v0.8.22: backup & restore, built-in Tailscale, Dynamic Playlists saved and deleted, the tag
+ *     filter, the album editor (its cover search too) and covers drawn from an album's own picture,
+ *     by C# (test/backup-csharp.test.js, test/artfind-csharp.test.js; the backup, Tailscale, playlist,
+ *     end-to-end and library tests in this mode).
  */
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("fs");
+const path = require("path");
 const { makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
@@ -136,7 +142,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "taste"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "tailscale", "taste"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -229,5 +235,78 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
     r = await fetch(B + "/api/share/import", { method: "POST", headers: J, body: JSON.stringify({ blob }) });
     assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "and read back");
     assert.deepEqual((await r.json()).resolved.map(t => [t.title, t.album_title]), [["Song 1", "Album One"]]);
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag filter, the album editor and covers answered by C#", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const port = 3653, B = "http://127.0.0.1:" + port;
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token }, J = Object.assign({ "Content-Type": "application/json" }, H);
+    const by = r => r.headers.get("x-mandarin-answered");
+    const post = (p, body) => fetch(B + p, { method: "POST", headers: J, body: JSON.stringify(body) });
+    for (let i = 0; i < 150; i++) { if ((await (await fetch(B + "/api/status", { headers: H })).json()).index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
+    for (const p of ["/api/backup", "/api/tailscale", "/api/filters/tags"]) {
+      const r = await fetch(B + p, { headers: H });
+      assert.deepEqual([r.status, by(r)], [200, "C#"], p);
+    }
+    // The Node server's own Tailscale engine handed over, never started there.
+    assert.ok(ctx.tailscale.front, "Tailscale handed to the C# server");
+    // A backup kept here: made, downloaded and deleted by C#.
+    let r = await post("/api/backup/save", { include: { settings: true } });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "a backup kept here");
+    const kept = (await r.json()).backup;
+    r = await fetch(B + "/api/backup/download/" + kept.id, { headers: H });
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "application/gzip"], "and downloaded");
+    await r.arrayBuffer();
+    r = await fetch(B + "/api/backup/" + kept.id, { method: "DELETE", headers: H });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
+    // A Dynamic Playlist saved and deleted.
+    r = await post("/api/smart-playlists", { name: "Rock", view: { genre: ["Rock"] } });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "a Dynamic Playlist saved");
+    r = await post("/api/smart-playlists/delete", { id: (await r.json()).playlist.id });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
+
+    // Covers: one with a picture of its own (Album One's cover.jpg) drawn by
+    // C#; one with none (Hi Res) drawn by the Node server, sent by C# after.
+    const albums = (await (await fetch(B + "/api/library/albums?sort=album", { headers: H })).json()).albums;
+    const one = albums.find(a => a.title === "Album One"), hi = albums.find(a => a.title === "Hi Res");
+    r = await fetch(B + "/api/image/" + one.image_key + "?size=120", { headers: H });
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "image/jpeg"], "a cover drawn by C#");
+    const drawn = Buffer.from(await r.arrayBuffer());
+    assert.deepEqual([drawn[0], drawn[1]], [0xff, 0xd8], "a JPEG");
+    assert.ok(fs.existsSync(path.join(lib.data, "art", one.image_key + "@120.jpg")), "kept with the others");
+    r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
+    assert.deepEqual([r.status, by(r)], [200, null], "no cover of its own: drawn by the Node server");
+    await r.arrayBuffer();
+    r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "and sent by C# after");
+
+    // The album editor: its view, the cover search, an edit with a cover from an address, and undoing it.
+    r = await fetch(B + "/api/album/edit?offset=" + one.offset, { headers: H });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "the editor's view");
+    assert.deepEqual((await r.json()).art, { own: true, found: false, source: null });
+    r = await fetch(B + "/api/album/art-search?offset=" + one.offset, { headers: H });
+    assert.deepEqual([r.status, by(r), await r.json()], [200, "C#", { sure: null, candidates: [] }], "the cover search (nothing off this machine here)");
+    const artUrl = ctx.auth.signUrl(B + "/api/image/" + hi.image_key + "?size=300");
+    r = await post("/api/album/edit", { offset: one.offset, title: "Album One (Fixed)", art_url: artUrl });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "an edit with a found cover");
+    const saved = await r.json();
+    assert.deepEqual([saved.title, saved.art.found, saved.art.source], ["Album One (Fixed)", true, artUrl]);
+    assert.match(saved.image_key, /^al-\d+-e[0-9a-f]{12}$/);
+    r = await fetch(B + "/api/image/" + saved.image_key + "?size=200", { headers: H });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "the found cover, drawn by C#");
+    await r.arrayBuffer();
+    r = await post("/api/album/edit", { offset: one.offset, art_url: "not a url" });
+    assert.deepEqual([r.status, by(r), await r.json()], [400, "C#", { error: "That isn't a web address" }]);
+    r = await post("/api/album/edit/reset", { offset: one.offset });
+    assert.deepEqual([r.status, by(r)], [200, "C#"], "the edits undone");
+    const reset = await r.json();
+    assert.deepEqual([reset.title, reset.image_key, reset.edited], ["Album One", one.image_key, false]);
+    assert.ok(!fs.readdirSync(path.join(lib.data, "art")).some(f => f.startsWith(saved.image_key + "@")), "the found cover's sizes gone");
   } finally { await srv.stop(); }
 });

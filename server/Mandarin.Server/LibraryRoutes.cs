@@ -72,6 +72,9 @@ internal static partial class Library
         ["/api/settings/share-links"] = ShareSettings,
         ["/api/qobuz-link"] = QobuzLink,
         ["/api/search/external"] = SearchExternal,
+        ["/api/filters/tags"] = TagFilters,
+        ["/api/album/edit"] = AlbumEditState,
+        ["/api/album/art-search"] = AlbumArtSearch,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
@@ -111,6 +114,10 @@ internal static partial class Library
         ["/api/settings/share-links"] = SaveShareSettings,
         ["/api/share/encode"] = ShareEncode,
         ["/api/share/import"] = ShareImport,
+        ["/api/smart-playlists"] = SaveSmartPlaylist,
+        ["/api/smart-playlists/delete"] = DeleteSmartPlaylist,
+        ["/api/album/edit"] = SaveAlbumEdit,
+        ["/api/album/edit/reset"] = ResetAlbumEdit,
     };
     private static readonly Dictionary<string, Handler> Deletes = new()
     {
@@ -129,6 +136,8 @@ internal static partial class Library
                 try { await UnmergeLabel(ctx, source); return; }
                 catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[library] unmerge: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
             }
+            // Backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
+            if (await AdminRoute(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {

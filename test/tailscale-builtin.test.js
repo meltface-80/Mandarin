@@ -3,6 +3,8 @@
  * Tailscale built into the server (lib/server/tsnode.js), driven against a
  * stand-in for the engine that answers its control API the way the real one
  * does (the real one is tested against a private tailnet in android/musicdnet).
+ * Through the server's own routes, so behind the C# server (MANDARIN_FRONT=1)
+ * it's the engine run there (v0.8.22, Admin/Tailscale.cs) that is driven.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -110,12 +112,18 @@ test("signing the server in to Tailscale from Settings", async () => {
   }
 });
 
+// How it is, from Settings → Away from home.
+async function tailscaleOf(token) {
+  return (await fetch(B + "/api/tailscale", { headers: { Authorization: "Bearer " + token } })).json();
+}
+
 test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones learn its address", async () => {
   const eng = stubEngine();
   const srv = server(eng.bin, { TS_AUTHKEY: "tskey-auth-test" });
-  const ctx = await srv.start();
+  await srv.start();
   try {
-    const st = await until(async () => { const s = ctx.tailscale.status(); return s.serving && s; });
+    const token = await signIn(B);
+    const st = await until(async () => { const s = await tailscaleOf(token); return s.serving && s; });
     assert.equal(st.state, "Running");
     assert.equal(st.address, "http://100.90.1.2:" + PORT);
     assert.equal(st.dns_name, "musicd.tail1.ts.net");
@@ -123,9 +131,14 @@ test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones l
     // The key goes through the API, never the engine's environment.
     assert.match(eng.calls(), /"AuthKey":"tskey-auth-test"/);
     assert.match(fs.readFileSync(path.join(eng.dir, "args.txt"), "utf8"), /\nok$/);
-    // The address phones are given: the built-in one before the host's.
-    assert.equal(awayAddress(PORT, {}, { tailscale0: [{ family: "IPv4", address: "100.64.9.9" }] }, ctx.tailscale), "http://100.90.1.2:" + PORT);
-    assert.equal(awayAddress(PORT, { TAILSCALE_ADDRESS: "nas.tail1.ts.net" }, {}, ctx.tailscale), "http://nas.tail1.ts.net:" + PORT);
+    // The address a phone is given when it says hello: the built-in one (asked
+    // of the C# server when it runs the engine).
+    const hello = await (await fetch(B + "/api/phone/hello", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" })).json();
+    assert.equal(hello.away_address, "http://100.90.1.2:" + PORT);
+    // And the order they're chosen in: TAILSCALE_ADDRESS, the built-in one, the host's.
+    const builtIn = { address: () => st.address };
+    assert.equal(awayAddress(PORT, {}, { tailscale0: [{ family: "IPv4", address: "100.64.9.9" }] }, builtIn), "http://100.90.1.2:" + PORT);
+    assert.equal(awayAddress(PORT, { TAILSCALE_ADDRESS: "nas.tail1.ts.net" }, {}, builtIn), "http://nas.tail1.ts.net:" + PORT);
   } finally {
     await srv.stop();
     delete process.env.TS_AUTHKEY;
@@ -134,12 +147,15 @@ test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones l
 
 test("without the engine (a source install) it says so and stays out of the way", async () => {
   const srv = server("/nonexistent/musicdnet");
-  const ctx = await srv.start();
+  await srv.start();
   try {
-    const s = ctx.tailscale.status();
+    const token = await signIn(B);
+    const s = await tailscaleOf(token);
     assert.equal(s.available, false);
     assert.equal(s.state, "Stopped");
-    await assert.rejects(ctx.tailscale.login(), /isn't in this install/);
+    const r = await fetch(B + "/api/tailscale/login", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(r.status, 500);
+    assert.match((await r.json()).error, /isn't in this install/);
   } finally {
     await srv.stop();
   }
@@ -204,9 +220,11 @@ test("an install updated in place downloads the engine, checked, once per server
 test("a node that is Running but not online is rebound, then started afresh", { timeout: 120000 }, async () => {
   const eng = stubEngine();
   const srv = server(eng.bin, { TS_AUTHKEY: "tskey-auth-test", TS_STUB_STALE: "1" }, { tailscaleWatchdog: { rebindMs: 400, restartMs: 1500 } });
-  const ctx = await srv.start();
+  await srv.start();
+  let token = null, st = null;
   try {
-    const st = await until(async () => { const s = ctx.tailscale.status(); return s.serving && s; });
+    token = await signIn(B);
+    st = await until(async () => { const s = await tailscaleOf(token); return s.serving && s; });
     assert.equal(st.online, false, "the status says it isn't online");
     // The engine is asked every 5 s: the rebind within three asks, the fresh start a few after.
     await until(async () => /POST \/rebind/.test(eng.calls()), 40000);
@@ -214,7 +232,7 @@ test("a node that is Running but not online is rebound, then started afresh", { 
     await until(async () => (eng.calls().match(/POST \/start/g) || []).length >= 2, 40000);
     await until(async () => (eng.calls().match(/POST \/serve/g) || []).length >= 2, 40000);
   } catch (e) {
-    console.log("CALLS:\n" + eng.calls() + "\nSTATUS: " + JSON.stringify(ctx.tailscale.status()));
+    console.log("CALLS:\n" + eng.calls() + "\nSTATUS: " + JSON.stringify(token ? await tailscaleOf(token).catch(() => st) : st));
     throw e;
   } finally {
     await srv.stop();

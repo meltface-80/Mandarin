@@ -1,12 +1,13 @@
 // Images.cs — album covers and record labels' logos (v0.8.5), from the
 // /api/image route of lib/server/api-library.js.
 //
-// Every size of every cover is drawn once by the Node server (lib/library/
-// artwork.js: from the album's folder or its tracks, with sharp) and kept in
-// <data>/art; after each scan the tile size of every album is drawn ahead. So
-// nearly every cover asked for is already a file, and those are sent from
-// here. One not drawn yet is passed to the Node server, which draws and keeps
-// it, and the next ask for it is answered here.
+// Every size of every cover is drawn once and kept in <data>/art; after each
+// scan the Node server draws the tile size of every album ahead (lib/library/
+// artwork.js, with sharp). So nearly every cover asked for is already a file,
+// and those are sent from here. One not drawn yet is drawn here (Covers.cs,
+// v0.8.22) from the album's own cover; what's left — an album with none, which
+// gets a drawn one, and a picture sharp would draw differently — is passed to
+// the Node server, which draws and keeps it, and the next ask is answered here.
 //
 // Who may see one: a signed-in device, or an address the Node server signed
 // (a cover handed to a speaker). Anything else is passed on as it came: the
@@ -21,6 +22,7 @@ internal static class Images
 {
     private static readonly int[] Steps = [120, 200, 300, 400, 600, 800, 1200];
     private static string artDir = "", labelDir = "";
+    public static string ArtDir => artDir;
 
     /* artwork.snap: the size drawn for the size asked. */
     public static int Snap(string? size)
@@ -87,20 +89,26 @@ internal static class Images
         // An album's address changes with its cover. One from before a change
         // is answered with the album's current cover, and not kept.
         bool current = true;
+        Album? album = null;
         if (key.StartsWith("al-", StringComparison.Ordinal))
         {
             int dash = key.IndexOf('-', 3);
             if (dash > 3 && key[3..dash].All(char.IsAsciiDigit) && long.TryParse(key[3..dash], out var id))
             {
                 if (await Library.CurrentCopy() is not { } s) return false;
-                if (s.ById.TryGetValue(id, out var al) && al.ImageKey != key) { key = al.ImageKey; current = false; }
+                if (s.ById.TryGetValue(id, out var al))
+                {
+                    album = al;
+                    if (al.ImageKey != key) { key = al.ImageKey; current = false; }
+                }
             }
         }
         var size = ctx.Request.Query["size"].ToString() is { Length: > 0 } sz ? sz : ctx.Request.Query["width"].ToString() is { Length: > 0 } w ? w : null;
         var safe = new string(key.Where(ch => char.IsAsciiLetterOrDigit(ch) || ch == '_' || ch == '-').ToArray());
         if (safe.Length > 200) safe = safe[..200];
         var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
-        if (!File.Exists(cached)) return false;   // not drawn yet: the Node server draws it
+        // Not drawn yet: drawn here from the album's own cover; else the Node server draws it.
+        if (!File.Exists(cached) && (album == null || !await Covers.Draw(album, cached, Snap(size)))) return false;
         await SendFile(ctx, cached, "image/jpeg", current ? "public, max-age=604800, immutable" : "no-cache");
         return true;
     }

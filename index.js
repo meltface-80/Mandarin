@@ -367,11 +367,12 @@ function createServer(overrides = {}) {
   // server/Mandarin.Server/Jobs.cs): the identification scan, the MusicBrainz
   // pack and loudness measuring; from v0.8.20 the record labels' lookups and
   // logos, the release days after a scan, and the taste work (Smart Picks, the
-  // share card's suggestions). Each is stopped here for good — the album
-  // being looked at finished first — and the C# server is told which, and how
-  // this one was set up. This server's own requests to MusicBrainz wait their
-  // turn on the C# server's timer from now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste"];
+  // share card's suggestions); from v0.8.22 the built-in Tailscale engine.
+  // Each is stopped here for good — the album being looked at finished first
+  // — and the C# server is told which, and how this one was set up. This
+  // server's own requests to MusicBrainz wait their turn on the C# server's
+  // timer from now on.
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale"];
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
@@ -391,6 +392,8 @@ function createServer(overrides = {}) {
       clearTimeout(t);
     }
     const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
+    // Tailscale built in (v0.8.22): the engine run there, and the phones' away address asked of it.
+    if (jobs.has("tailscale")) ctx.tailscale.handOver(front ? { url: front, key: ctx.frontKey } : null);
     if (front) {
       META.useMbSlot(async () => {
         const r = await fetch(front + "/internal/mb/slot", { headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(60000) });
@@ -409,9 +412,19 @@ function createServer(overrides = {}) {
         loudness_tick_ms: config.loudnessTickMs,
         discogs_url: config.discogsBaseUrl || null, fanart_url: config.fanartBaseUrl || null,
         deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs,
-        wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null
+        wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null,
+        tailscale_bin: config.tailscaleBin || null, tailscale_dir: path.join(config.dataDir, "tailscale"), tailscale_port: config.port,
+        tailscale_watchdog: config.tailscaleWatchdog || null
       }
     });
+  });
+  // Started again for the C# server (v0.8.22): a backup restored there, so
+  // everything is read afresh here (and a staged database swapped in).
+  app.post("/internal/front/restart", (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    res.json({ ok: true });
+    log("[musicd] restarting for the C# server (a backup restored)");
+    setTimeout(() => ctx.restartServer(), 50);
   });
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
@@ -654,6 +667,7 @@ function createServer(overrides = {}) {
         ctx.frontRunsWait = null;
         log("[musicd] the C# server didn't take over its share of the background work; made here");
         startOwn(new Set());
+        if (frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
         // What followed a library scan while this one waited: made now.
         if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
         if (frontRuns.has("taste")) features.kickSmartPicks();
@@ -662,8 +676,9 @@ function createServer(overrides = {}) {
     }
     ctx.tagcheck.start();
     features.wire();
-    // On your tailnet by itself, once signed in (Settings → Away from home).
-    ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
+    // On your tailnet by itself, once signed in (Settings → Away from home);
+    // by the C# server, when it runs it (v0.8.22).
+    if (!frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
     const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })

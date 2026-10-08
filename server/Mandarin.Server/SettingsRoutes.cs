@@ -246,6 +246,42 @@ internal static partial class Library
         return Sorted(view, (a, b) => Math.Sign((long)SeededRank(a.NTitle + a.NArtist, seed) - SeededRank(b.NTitle + b.NArtist, seed)));
     }
 
+    private const int SmartMax = 50;
+
+    /* POST /api/smart-playlists: one saved (a new one when it has no id), at most fifty. */
+    private static Task<bool> SaveSmartPlaylist(HttpContext ctx, Snapshot s, LibState st) => Change(ctx, (c, b) =>
+    {
+        var list = LoadSmart(c, s);
+        var withId = (JsonObject)b.DeepClone();
+        if (!Js.Truthy(b["id"])) withId["id"] = NewId();
+        if (SmartRecord(withId, s) is not { } rec) return Fail("name required", 400);
+        var at = list.FindIndex(p => p.Id == rec.Id);
+        if (at >= 0) list[at] = rec;
+        else
+        {
+            if (list.Count >= SmartMax) return Fail($"That's {SmartMax} dynamic playlists — delete one first", 400);
+            list.Add(rec);
+        }
+        var all = new JsonArray(list.Select(p => (JsonNode)SmartJson(p)).ToArray());
+        SetSetting(c, "smartPlaylists", all);
+        return (new JsonObject { ["ok"] = true, ["playlist"] = SmartJson(rec), ["playlists"] = all.DeepClone() }, 200);
+    });
+
+    /* POST /api/smart-playlists/delete { id } */
+    private static Task<bool> DeleteSmartPlaylist(HttpContext ctx, Snapshot s, LibState st) => Change(ctx, (c, b) =>
+    {
+        var list = LoadSmart(c, s);
+        var at = list.FindIndex(p => b["id"] is JsonValue v && v.TryGetValue<string>(out var id) && id == p.Id);
+        if (at == -1) return Fail("No such dynamic playlist", 404);
+        list.RemoveAt(at);
+        var all = new JsonArray(list.Select(p => (JsonNode)SmartJson(p)).ToArray());
+        SetSetting(c, "smartPlaylists", all);
+        return (new JsonObject { ["ok"] = true, ["playlists"] = all.DeepClone() }, 200);
+    });
+
+    /* GET /api/filters/tags: none (the Library's tag facet is the genres'). */
+    private static Task<bool> TagFilters(HttpContext ctx, Snapshot s, LibState st) => Send(ctx, new JsonObject { ["tags"] = new JsonArray() });
+
     private static Task<bool> SmartPlaylists(HttpContext ctx, Snapshot s, LibState st)
     {
         using var c = Db.Open();

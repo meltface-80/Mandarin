@@ -2,7 +2,9 @@
 // (v0.8.19): the identification scan with the MusicBrainz pack (Identify/),
 // and measuring loudness (Identify/Loudness.cs); from v0.8.20 the record
 // labels' lookups and logos, the release days after each library scan, and
-// the taste work (Smart Picks, the share card's suggestions) (Extras/).
+// the taste work (Smart Picks, the share card's suggestions) (Extras/); from
+// v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
+// while the Node server starts again.
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -23,7 +25,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -33,6 +35,7 @@ internal static class Jobs
     public static ReleaseDays? Days { get; private set; }
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
+    public static Admin.Tailscale? Tailscale { get; private set; }
 
     private static Uri? upstream;
     private static string key = "";
@@ -122,6 +125,12 @@ internal static class Jobs
         Taste = new Taste(Text(cfg["deezer_url"]), Log) { Ready = () => Holds("taste") };
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
+        // Tailscale built in (v0.8.22): the engine, its folder and the port it serves, as the Node server was set up.
+        var watchdog = cfg["tailscale_watchdog"] as JsonObject;
+        Tailscale = new Admin.Tailscale(
+            Text(cfg["tailscale_bin"]) ?? (Environment.GetEnvironmentVariable("MUSICDNET_BIN") is { Length: > 0 } eb ? eb : "/usr/local/bin/musicdnet"),
+            Text(cfg["tailscale_dir"]) ?? Path.Combine(dataDir, "tailscale"), Int(cfg["tailscale_port"], frontPort), version, Log,
+            Int(watchdog?["rebindMs"], 60000), Int(watchdog?["restartMs"], 240000));
         handed = c.Jobs;
         held = c.Boot;
         seen ??= c.Boot;
@@ -129,6 +138,7 @@ internal static class Jobs
         Packs.Start();
         Loudness.Start();
         Taste.Start();
+        if (handed.Contains("tailscale")) _ = Tailscale.Start();
         Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the Node server said yes: what follows it, made now.
         _ = Task.Run(async () =>
@@ -150,25 +160,33 @@ internal static class Jobs
 
     /*
      * From this machine, with the front key: POST /internal/jobs/after-scan (the
-     * Node server, a library scan ended), and POST /internal/jobs/taste (the taste
+     * Node server, a library scan ended), POST /internal/jobs/taste (the taste
      * graph built again now, from the plays as they are; the tests, after
-     * writing plays: it is otherwise built once a day).
+     * writing plays: it is otherwise built once a day), and GET
+     * /internal/tailscale (how the engine run here is: the Node server gives
+     * phones its address).
      */
     public static void UseInternal(WebApplication app)
     {
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value;
-            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste")) { await next(); return; }
+            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/tailscale")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
-            if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
+            var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
+            if (from == null || !System.Net.IPAddress.IsLoopback(from) || !method
                 || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(given), Encoding.UTF8.GetBytes(key)))
             {
                 ctx.Response.StatusCode = 404;
                 return;
             }
             ctx.Response.ContentType = "application/json";
+            if (p == "/internal/tailscale")
+            {
+                await ctx.Response.WriteAsync(Tailscale is { } t0 && Holds("tailscale") ? Tags.Js.Json(t0.Status()) ?? "{}" : "{\"handed\":false}");
+                return;
+            }
             if (p == "/internal/jobs/after-scan")
             {
                 await AfterScan();
@@ -199,14 +217,36 @@ internal static class Jobs
             try
             {
                 var c = await Claim();
-                if (c != null) { handed = c.Jobs; held = c.Boot; Front.Log("[jobs] the Node server started again; its work stays here"); }
+                if (c != null)
+                {
+                    handed = c.Jobs;
+                    held = c.Boot;
+                    // A Node server that runs Tailscale itself again (an older one, put back): it's its.
+                    if (!handed.Contains("tailscale")) Tailscale?.Stop();
+                    Front.Log("[jobs] the Node server started again; its work stays here");
+                }
             }
             finally { Interlocked.Exchange(ref claiming, 0); }
         });
     }
 
+    /* The Node server started again (a restore: it reads everything afresh, and swaps in a staged database). */
+    public static async Task RestartNode()
+    {
+        if (upstream == null) return;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart"));
+            req.Headers.Add("X-Mandarin-Front-Key", key);
+            using var res = await Http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) Front.Log($"[jobs] the Node server didn't restart (HTTP {(int)res.StatusCode})");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException) { Front.Log($"[jobs] the Node server didn't restart ({e.Message})"); }
+    }
+
     public static void Stop()
     {
+        Tailscale?.Stop();
         Identify?.Stop();
         Packs?.Stop();
         Loudness?.Stop();

@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.22
+A test build, from the `claude/v0.8.22` branch: backups, built-in Tailscale, the album editor and
+drawing covers move to Mandarin's C# server.
+
+- **Backup & restore is now made by the C# server.** Making a backup, keeping one on the server,
+  downloading, restoring and deleting all work as before. A backup made by either server restores
+  on the other.
+- **Built-in Tailscale is run by the C# server.** Signing in and out and switching it on or off
+  work as before. It now stays connected while the server restarts after a restore.
+- **The album editor is handled by the C# server**: a corrected title, artist or year, a cover from
+  a web address, undoing your edits, and the search for a missing cover.
+- **Covers are drawn by the C# server** the first time each size is asked for, from the album's own
+  picture: a cover you found, the one in its folder, or the one in its tracks. An album with no
+  cover still gets its drawn one from the Node server, as does a picture only it reads well (CMYK,
+  or with a colour profile other than sRGB).
+- **Saving and deleting a Dynamic Playlist**, and the list of tags to filter by, are handled by the
+  C# server.
+- **Fixed: Greek titles ending in Σ** could be missed by a search typed in lower case. Both
+  servers now read them the same.
+- Nothing in your library changes, and covers already drawn are kept. New tests compare backup
+  files, the cover search and the album editor on both servers.
+
 ## v0.8.21
 A test build, from the `claude/v0.8.21` branch: album write-ups, artist stories, Pitchfork, the Qobuz app link and playlist sharing move to Mandarin's C# server.
 

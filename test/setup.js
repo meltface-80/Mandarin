@@ -52,6 +52,10 @@ if (process.env.MANDARIN_FRONT === "1") {
   // (MusicBrainz, iTunes, the pack) are kept to loopback as fetch is above.
   if (!process.env.ALLOW_NETWORK) process.env.MANDARIN_LOOPBACK_ONLY = "1";
   if (!process.env.TAG_READER) process.env.TAG_READER = "csharp";
+  // As the C# server starts the Node server in the image (Front.cs, v0.8.22
+  // here): the work it takes over isn't started by the Node server first —
+  // Tailscale's engine among it, which would otherwise start twice.
+  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale";
   require("../lib/library/scanner").Scanner.program = bin;
   const listening = (port, ms) => new Promise((resolve, reject) => {
     const until = Date.now() + ms;
@@ -61,6 +65,8 @@ if (process.env.MANDARIN_FRONT === "1") {
     };
     tryOnce();
   });
+  // Exited, or killed (a signal leaves exitCode null): not to be waited for again.
+  const gone = (p) => p.exitCode != null || p.signalCode != null;
   // Every load of index.js, a test's fresh one too (delete require.cache…),
   // is put behind the C# server (v0.8.19: before, a test that loaded it
   // again ran on the Node server alone).
@@ -82,7 +88,7 @@ if (process.env.MANDARIN_FRONT === "1") {
         // The Node server stopping stops the C# server too, as in the image
         // (Restart, Shut down): the port goes quiet, not "bad gateway".
         const mine = front;
-        ctx.httpServer.once("close", () => { if (mine.exitCode == null) mine.kill("SIGKILL"); });
+        ctx.httpServer.once("close", () => { if (!gone(mine)) mine.kill("SIGKILL"); });
         await listening(port, 30000);
         // As in the image: the conversions of the music folders' own files are made by C#.
         ctx.useFront("http://127.0.0.1:" + port);
@@ -90,7 +96,7 @@ if (process.env.MANDARIN_FRONT === "1") {
       };
       s.stop = async () => {
         const f = front; front = null;
-        if (f && f.exitCode == null) {
+        if (f && !gone(f)) {
           const gone = new Promise(r => f.once("exit", r));
           f.kill("SIGTERM");
           await Promise.race([gone, new Promise(r => setTimeout(r, 5000))]);

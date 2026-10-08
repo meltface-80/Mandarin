@@ -104,6 +104,10 @@ builder.WebHost.ConfigureKestrel(k =>
     k.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
     k.Limits.MinRequestBodyDataRate = null;          // a phone on mobile data, uploading slowly
     k.Limits.MinResponseDataRate = null;             // a renderer reading a stream at its own pace
+    // A backup's description names the device it was made on ("iPhone · Safari",
+    // AdminRoutes.cs): one byte a character, as the Node server writes a header,
+    // where Kestrel would otherwise refuse anything past ASCII.
+    k.ResponseHeaderEncodingSelector = name => name.Equals("X-Mandarin-Backup", StringComparison.OrdinalIgnoreCase) ? System.Text.Encoding.Latin1 : null;
     k.Listen(IPAddress.Any, port);
 });
 builder.Services.AddHttpForwarder();

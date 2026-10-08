@@ -10,6 +10,8 @@
  *   - a backup from a newer Mandarin is refused; backups kept here are listed,
  *     downloaded and deleted;
  *   - all of it away from home too (v0.6.17).
+ * Behind the C# server (MANDARIN_FRONT=1) it is made there (v0.8.22), the
+ * Node server started again from there after a restore.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -22,6 +24,9 @@ const B = require("../lib/backup");
 const { newer, partsOf } = require("../lib/server/api-backup");
 
 const PORT = 3625, BASE = "http://127.0.0.1:" + PORT;
+const FRONT = process.env.MANDARIN_FRONT === "1";
+// Behind the C# server, every backup route is answered there (v0.8.22).
+const byCs = (r, what) => { if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function server(lib, exits) {
@@ -85,6 +90,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
 
     const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H,
       body: JSON.stringify({ include: ["settings", "devices", "collection", "keys"], page: { "rra-ui-text": "1.25" } }) });
+    byCs(r, "a backup file");
     assert.equal(r.status, 200);
     assert.match(r.headers.get("content-disposition"), /mandarin-backup-.*\.tar\.gz/);
     const file = Buffer.from(await r.arrayBuffer());
@@ -100,6 +106,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
 
     const back = await fetch(BASE + "/api/backup/restore?parts=settings,devices,collection,keys,page", {
       method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
+    byCs(back, "a restore");
     const j = await back.json();
     assert.equal(back.status, 200, JSON.stringify(j));
     assert.deepEqual(j.restored.sort(), ["collection", "devices", "keys", "page", "settings", "tailscale"], "the Tailscale identity came with the keys (v0.7.2)");
@@ -113,7 +120,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM favourites").get().n, 1);
     assert.deepEqual(db.raw.prepare("SELECT name, settings FROM audio_devices WHERE id = 'uuid:wiim'").get(), { name: "Lounge", settings: '{"mode":"x2"}' });
 
-    const list = await (await fetch(BASE + "/api/backup", { headers: H })).json();
+    const list = await (byCs(await fetch(BASE + "/api/backup", { headers: H }), "the list")).json();
     assert.equal(list.backups.filter(b => b.kind === "auto" && b.label === "Before restore").length, 1);
     for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
     assert.deepEqual(exits, [75], "restarted");
@@ -179,8 +186,10 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
     assert.equal(s.backup.label, "iPad");
     const list = await (await fetch(BASE + "/api/backup", { headers: H })).json();
     assert.equal(list.backups[0].id, s.backup.id);
-    const dl = await fetch(BASE + "/api/backup/download/" + s.backup.id, { headers: H });
+    const dl = byCs(await fetch(BASE + "/api/backup/download/" + s.backup.id, { headers: H }), "a download");
     assert.equal(dl.status, 200);
+    assert.match(dl.headers.get("content-disposition"), /^attachment; filename="mandarin-backup-manual-\d{4}-\d\d-\d\d-\d{6}\.tar\.gz"$/);
+    assert.equal((await B.readBackup(require("stream").Readable.from([Buffer.from(await dl.arrayBuffer())]))).parts.manifest.app, "mandarin", "read here as written there");
     ctx.db.setSetting("smartPicksHour", 3);
     const re = await (await fetch(BASE + "/api/backup/restore/" + s.backup.id, { method: "POST", headers: H,
       body: JSON.stringify({ include: { settings: true, page: true } }) })).json();
@@ -199,7 +208,7 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
     assert.match((await no.json()).error, /v9\.9\.9; update this server first/);
     assert.equal(ctx.db.setting("smartPicksHour"), 9);
 
-    const del = await (await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H })).json();
+    const del = await (byCs(await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H }), "a delete")).json();
     assert.equal(del.ok, true);
     // The restore's restart, before the next test takes the port.
     for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
@@ -217,12 +226,16 @@ test("away from home (over Tailscale): back up to a file, keep one here, restore
     const J = Object.assign({ "Content-Type": "application/json" }, H);
     assert.equal((await (await fetch(BASE + "/api/auth/status", { headers: H })).json()).away, true);
     ctx.db.setSetting("smartPicksHour", 8);
+    // A device named as a browser's is ("iPhone · Safari"): the header carries
+    // its name one byte a character, as the Node server writes it (v0.8.22).
+    ctx.db.raw.prepare("UPDATE devices SET name = ?").run("iPhone · Safari");
     const file = await fetch(BASE + "/api/backup/file", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true } }) });
     assert.equal(file.status, 200);
     // What the file holds, said up front for the app's list (v0.6.18).
     const said = JSON.parse(file.headers.get("x-mandarin-backup"));
     assert.deepEqual(said.parts, ["settings"]);
-    assert.ok(said.created > 0 && /^\d+\.\d+\.\d+/.test(said.version) && said.from, JSON.stringify(said));
+    assert.ok(said.created > 0 && /^\d+\.\d+\.\d+/.test(said.version), JSON.stringify(said));
+    assert.equal(said.from, "iPhone · Safari");
     const body = Buffer.from(await file.arrayBuffer());
     const s = await (await fetch(BASE + "/api/backup/save", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true }, page: { "rra-ui-cols": "3" } }) })).json();
     assert.equal(s.ok, true);

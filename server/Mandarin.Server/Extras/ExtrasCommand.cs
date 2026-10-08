@@ -7,6 +7,8 @@
 //   { fn: "days", titles, batches: [{ albums: [{ key, title, artist, year, date }], groups }] }
 //   { fn: "labels", plain: [...], images: [{ b64, type }] }
 //   { fn: "writeups", … } and { fn: "blob", texts, ints, uris, entries, docs, date, version, encodes, decodes } (v0.8.21)
+//   { fn: "backup", writes: [{ to, entries: [{ name, data | file }] }], reads: [{ file, db }], newer, parts_of, pretty } (v0.8.22)
+//   { fn: "artfind", bares, looses, texts, artists, matches, cases: [{ album: { title, artist }, tracks, routes: [[prefix, body]] }] } (v0.8.22)
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Extras;
@@ -28,8 +30,73 @@ internal static class ExtrasCommand
         "labels" => LabelFns(job),
         "writeups" => WriteUpFns(job),
         "blob" => BlobFns(job),
+        "backup" => BackupFns(job),
+        "artfind" => ArtFindFns(job),
         _ => throw new JsError("unknown fn")
     };
+
+    /* lib/library/artfind.js's: its comparisons, and whole searches answered from canned pages (test/artfind.test.js's fakeWeb). */
+    private static JsObj ArtFindFns(JsObj job)
+    {
+        var o = new JsObj();
+        o["bare"] = Each(job["bares"], v => ArtFind.Bare(v));
+        o["loose"] = Each(job["looses"], v => ArtFind.Loose(v));
+        o["text"] = Each(job["texts"], a => ArtFind.SameText(Arg(a, 0), Arg(a, 1)));
+        o["artist"] = Each(job["artists"], a => ArtFind.SameArtist(Arg(a, 0), Arg(a, 1)));
+        o["tracks"] = Each(job["matches"], a => ArtFind.TrackMatch(L(Arg(a, 0)), Arg(a, 1) as List<object?>) is { } d ? d : null);
+        o["found"] = Each(job["cases"], c0 =>
+        {
+            var c = O(c0);
+            var routes = L(c["routes"]).Select(r => (Prefix: Str(Arg(r, 0)), Body: Arg(r, 1))).ToList();
+            ArtFind.Get get = url =>
+            {
+                foreach (var (prefix, body) in routes) if (url.StartsWith(prefix, StringComparison.Ordinal)) return Task.FromResult(body);
+                return Task.FromException<object?>(new Identify.LookupError("HTTP 404"));
+            };
+            var al = O(c["album"]);
+            return ArtFind.Find(Str(al["title"]), Str(al["artist"]), L(c["tracks"]), get, _ => { }).GetAwaiter().GetResult();
+        });
+        return o;
+    }
+
+    /* lib/backup.js's and api-backup.js's: backups written (to files named) and read back, versions compared, parts read, JSON as written. */
+    private static JsObj BackupFns(JsObj job)
+    {
+        var o = new JsObj();
+        o["written"] = Each(job["writes"], w0 =>
+        {
+            var w = O(w0);
+            // As writeBackup takes them: a file read from disk, text as it is, anything else as JSON.
+            var entries = L(w["entries"]).Select(O).Select(e => e["file"] is string f ? new Admin.Backup.Entry(Str(e["name"]), File: f)
+                : e["data"] is string text ? new Admin.Backup.Entry(Str(e["name"]), System.Text.Encoding.UTF8.GetBytes(text))
+                : Admin.Backup.JsonEntry(Str(e["name"]), e["data"])).ToList();
+            using (var f = File.Create(Str(w["to"]))) Admin.Backup.WriteBackup(f, entries).GetAwaiter().GetResult();
+            return true;
+        });
+        o["read"] = Each(job["reads"], r0 =>
+        {
+            var r = O(r0);
+            var x = new JsObj();
+            try
+            {
+                var (parts, hasDb) = Admin.Backup.ReadBackup(Str(r["file"]), r["db"] as string);
+                x["parts"] = parts;
+                x["hasDb"] = hasDb;
+                if (hasDb && r["db"] is string db) x["db"] = Convert.ToBase64String(File.ReadAllBytes(db));
+            }
+            catch (Admin.Backup.Refused e) { x["error"] = e.Message; }
+            return x;
+        });
+        o["newer"] = Each(job["newer"], a => Admin.Backup.Newer(Arg(a, 0), Arg(a, 1)));
+        o["parts_of"] = Each(job["parts_of"], v =>
+        {
+            var x = new JsObj();
+            foreach (var (k, b) in Admin.Backup.PartsOf(v)) x[k] = b;
+            return x;
+        });
+        o["pretty"] = Each(job["pretty"], v => Admin.Backup.Pretty(v));
+        return o;
+    }
 
     /* lib/server/share.js's: its fields, a track's entry, a whole document (on the date and version given), blobs made, pastes read. */
     private static JsObj BlobFns(JsObj job)

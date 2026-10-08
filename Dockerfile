@@ -53,6 +53,7 @@ COPY server/Mandarin.Server/Tags/*.cs ./server/Tags/
 COPY server/Mandarin.Server/Scan/*.cs ./server/Scan/
 COPY server/Mandarin.Server/Identify/*.cs ./server/Identify/
 COPY server/Mandarin.Server/Extras/*.cs ./server/Extras/
+COPY server/Mandarin.Server/Admin/*.cs ./server/Admin/
 RUN set -e; cd server; \
     V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
     RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \

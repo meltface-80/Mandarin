@@ -3,8 +3,8 @@
  * Playlists: a user playlist made from tracks or whole albums, a Dynamic
  * Playlist saved from a Library view, and sharing — the MDRP1 blob MusicD
  * Remote writes and reads, so a playlist goes either way between the two.
- * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8) and their
- * sharing (v0.8.21) are made there.
+ * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8), their
+ * sharing (v0.8.21) and the Dynamic Playlists saved (v0.8.22) are made there.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -37,7 +37,7 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
   const token = await signIn(B);
   const api = async (p, body) => {
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
-    if (FRONT && /^(share|user-playlists?)\b/.test(p)) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+    if (FRONT && /^(share|user-playlists?|smart-playlists?)\b/.test(p)) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
     return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
   };
   try {

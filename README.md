@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.21
+# Mandarin — v0.8.22
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1143,9 +1143,11 @@ through a subnet router arrive from a home address, and the server can't tell th
   Albums are decided a folder at a time, so a folder of tracks by different artists with no
   album-artist tag becomes one compilation, and `CD1`/`CD2` folders become one album. Covers come
   from `cover.jpg`/`folder.jpg`/… or the first track's embedded picture, resized once per size and
-  cached. Rescans only re-read files whose size or date changed. Since v0.8.18 the C# server makes
-  the scan, as a process of its own on the cores playback doesn't keep; the Node server's own scan
-  is used until the tag reader check has passed, or where the C# server isn't there.
+  cached. Since v0.8.22 the C# server draws them, with ffmpeg; an album with no cover still gets
+  its drawn one from the Node server. Rescans only re-read files whose size or date changed.
+  Since v0.8.18 the C# server makes the scan, as a process of its own on the cores playback
+  doesn't keep; the Node server's own scan is used until the tag reader check has passed, or
+  where the C# server isn't there.
 * **Album names.** The identification scan looks each album up by what its files carry (a
   release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
   each release against the tracks and their lengths, and lays the names over the album, never on

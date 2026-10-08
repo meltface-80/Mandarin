@@ -22,23 +22,9 @@ internal static partial class Names
     {
         if (string.IsNullOrEmpty(s)) return "";
         if (Ascii.IsValid(s)) return FoldAscii(s);
-        var d = s.Normalize(NormalizationForm.FormKD);
-        var sb = new StringBuilder(d.Length);
-        bool gap = false;
-        foreach (var r in d.EnumerateRunes())
-        {
-            if (r.Value >= 0x300 && r.Value <= 0x36F) continue;
-            if (r.Value == '&') { gap = true; Word(sb, "and", ref gap); gap = true; continue; }
-            var lower = Rune.ToLowerInvariant(r);
-            if (IsLetterOrNumber(lower))
-            {
-                if (gap && sb.Length > 0) sb.Append(' ');
-                gap = false;
-                sb.Append(lower.ToString());
-            }
-            else gap = true;
-        }
-        return sb.ToString();
+        // The rest as the scanner folds it (Scan/ScanNames.cs): JavaScript's
+        // toLowerCase there, so a word's last Σ is ς as it is in Node (v0.8.22).
+        return Scan.ScanNames.Fold(s);
     }
 
     // Plain ASCII, most names: already in its decomposed form, so nothing to normalise.
@@ -59,21 +45,6 @@ internal static partial class Names
         }
         return sb.ToString();
     }
-
-    private static void Word(StringBuilder sb, string w, ref bool gap)
-    {
-        if (gap && sb.Length > 0) sb.Append(' ');
-        gap = false;
-        sb.Append(w);
-    }
-
-    private static bool IsLetterOrNumber(Rune r) => Rune.GetUnicodeCategory(r) switch
-    {
-        UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter
-            or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter
-            or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.LetterNumber or UnicodeCategory.OtherNumber => true,
-        _ => false
-    };
 
     [GeneratedRegex("^the (?=\\S)")]
     private static partial Regex LeadingThe();
