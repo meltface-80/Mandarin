@@ -46,6 +46,8 @@ ARG TARGETARCH
 WORKDIR /src
 COPY package.json ./
 COPY server/Mandarin.Server/*.csproj server/Mandarin.Server/*.cs ./server/
+# The tag reader (v0.8.13), a folder of its own.
+COPY server/Mandarin.Server/Tags/*.cs ./server/Tags/
 RUN set -e; cd server; \
     V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
     RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \
@@ -72,9 +74,13 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # read) to FLAC 24/48. Debian's build includes libsoxr, the better resampler.
 # tini reaps ffmpeg children and passes SIGTERM on, so a stop is immediate.
 # libicu: the C# server sorts names as the Node server does (server/).
+# taskset and ionice (util-linux, in the base image): playback's own cores and
+# the background work's priority (lib/cpu.js); checked here, so the image is
+# never built without them.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && taskset --version && ionice --version && nice --version
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
 # TS_AUTHKEY), the server is on your tailnet by itself (lib/server/tsnode.js).

@@ -31,6 +31,14 @@ if (args.Length == 2 && args[0] == "--srp-vector")
     Console.WriteLine(new System.Text.Json.Nodes.JsonObject { ["B"] = st.B, ["ok"] = res.Ok, ["M2"] = res.M2, ["wrong_ok"] = bad.Ok }.ToJsonString());
     return 0;
 }
+// `mandarin-server tags <file>…`: what the scanner reads from each file, one
+// line of JSON each (Tags/TagReader.cs) — the same as /internal/tags gives.
+if (args.Length >= 1 && args[0] == "tags")
+{
+    var paths = args.Length > 1 ? args[1..] : Console.In.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    foreach (var path in paths) Console.WriteLine(Mandarin.Server.Tags.TagReader.Line(path));
+    return 0;
+}
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 
@@ -105,6 +113,8 @@ app.UseResponseCompression();
 
 // The Node server's "make these next" for the conversions made here (Transcoder.cs).
 Transcoder.UseInternal(app);
+// The Node server's check of this side's tag reader against its own (Tags/TagReader.cs).
+Mandarin.Server.Tags.TagReader.UseInternal(app);
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.

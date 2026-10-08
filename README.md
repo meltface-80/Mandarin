@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.12
+# Mandarin — v0.8.13
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -330,6 +330,18 @@ A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos rooms have no DSP here.
+
+</details>
+
+⸻
+
+⚙️ **Playback first** — *new since v0.5.50*
+
+Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and downloads run on the other cores, at the lowest priority.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, `--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all.
 
 </details>
 
@@ -696,7 +708,7 @@ the machine Docker runs on, add these two lines to the command above:
 
 `--device /dev/snd` hands the sound devices to the container; `--privileged` lets the container
 open them, which on most hosts it otherwise can't (the device nodes belong to the host's `audio`
-group). They then appear in **Settings → Audio Devices**. A container already running needs
+group), and lets playback run at a higher priority. They then appear in **Settings → Audio Devices**. A container already running needs
 re-creating with the lines (stop, rm, the `docker run` again — the data volume carries everything
 over). See [Sound devices on the server](#sound-devices-on-the-server).
 
@@ -1069,13 +1081,16 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless
   you tick others on the device's page.
 * DSD files go to these devices as PCM.
-* **Playback keeps clear of the server's other work (v0.7.7).** The decoder and the device each
-  queue a minute of audio ahead; a library scan runs on a thread of its own at a lower priority;
-  conversions prepared ahead run below playback. On a Linux machine with four cores or more the
-  last core is kept for the playback pair and the server runs on the others (`PLAYBACK_CORE=0`
-  turns this off, `PLAYBACK_CORE=<n>` picks the core). With `--privileged`, `--cap-add SYS_NICE`
-  (or as root) the engine's playback thread runs at a real-time priority. An ALSA underrun, should one happen, is logged with what the
-  feed was waiting for.
+* **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
+  ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
+  use (the last ones), and both servers run on the others; on four cores, one for playback and
+  three for the rest, or two and two. Scanning, measuring ReplayGain, the tag reader check and the
+  phone's downloads run at the lowest priority, their disk reads last; conversions made ahead of
+  play run just below playback. *Settings → Library Scanner → Processor* shows the split.
+  `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps, `0` shares every core;
+  `PLAYBACK_CORE=<n>` picks the core. With `--privileged`, `--cap-add SYS_NICE` (or as root) the
+  engine and its decoder also run at a higher priority, and the engine's playback thread at a
+  real-time one. An ALSA underrun, should one happen, is logged with what the feed was waiting for.
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
 taken from the device's name, and a device that fails being reported and let go.

@@ -235,6 +235,8 @@ internal static partial class Library
             if (!res.IsSuccessStatusCode) return null;
             var j = (await JsonNode.ParseAsync(await res.Content.ReadAsStreamAsync())) as JsonObject;
             if (j == null) return null;
+            // Which cores playback keeps (lib/cpu.js): kept to here too.
+            Cpu.Follow(j["cpu"]);
             var labels = j["labels"] as JsonObject;
             return new LibState(JsString(j["boot"]) ?? "", (long)(j["version"]?.GetValue<double>() ?? 0), (long)(j["marks"]?.GetValue<double>() ?? 0),
                 j["building"]?.GetValue<bool>() == true, j["progress"]?.DeepClone(),

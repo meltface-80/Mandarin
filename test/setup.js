@@ -7,6 +7,8 @@
 if (!process.env.IDENTIFY) process.env.IDENTIFY = "0";
 // Nor this machine's own sound devices (v0.6.18): a test brings its own.
 if (!process.env.LOCAL_AUDIO) process.env.LOCAL_AUDIO = "0";
+// Nor the tag readers' check (v0.8.13): a child process reading every file; its own test turns it on.
+if (!process.env.TAGCHECK) process.env.TAGCHECK = "0";
 // Nor Apple's iTunes: a closed port on loopback unless a test brings a fake.
 if (!process.env.ITUNES_URL) process.env.ITUNES_URL = "http://127.0.0.1:9";
 

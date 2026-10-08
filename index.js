@@ -25,6 +25,8 @@ const { Scanner } = require("./lib/library/scanner");
 const { LibraryWatcher } = require("./lib/library/watch");
 const { Library } = require("./lib/library/index");
 const { ReleaseDays } = require("./lib/library/dates");
+const { TagCheck } = require("./lib/library/tagcheck");
+const CPU = require("./lib/cpu");
 const { TailscaleNode } = require("./lib/server/tsnode");
 const { Artwork } = require("./lib/library/artwork");
 const { ZoneManager } = require("./lib/sonos/zones");
@@ -75,6 +77,10 @@ const config = {
   fanartBaseUrl: process.env.FANART_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
+  // The tag readers' check (lib/library/tagcheck.js): on (TAGCHECK=0 turns it
+  // off; the tests do), and how long after the start it begins.
+  tagcheck: process.env.TAGCHECK !== "0",
+  tagcheckDelayMs: process.env.TAGCHECK_DELAY_MS != null && process.env.TAGCHECK_DELAY_MS !== "" ? Number(process.env.TAGCHECK_DELAY_MS) : null,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -83,6 +89,9 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 function createServer(overrides = {}) {
   Object.assign(config, overrides);
+  // The processor shared out, playback first (lib/cpu.js, v0.8.13): this
+  // server on the cores playback doesn't keep, before it starts anything.
+  CPU.init({ log });
   // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
   require("./lib/backup").swapStaged(config.dataDir, log);
   const db = DB.open(config.dataDir, { log });
@@ -117,6 +126,8 @@ function createServer(overrides = {}) {
           .catch(e => log(`[stream] the C# server didn't take the conversions: ${e.message}`));
       }
     };
+    // And its tag reader, checked against this one's on the library (v0.8.13).
+    if (ctx.tagcheck) ctx.tagcheck.setFront(url || null, ctx.frontKey);
   };
   const advertisedIp = () => config.serverIp || localIp();
   // The speakers found last time are asked first, so after a restart or an
@@ -157,8 +168,12 @@ function createServer(overrides = {}) {
       ctx.releaseDays.run().catch(() => {});
       artwork.prewarm(400).catch(() => {});
       features.kickSmartPicks();
+      ctx.tagcheck.kick();
     }
   };
+  // The C# tag reader read beside this one on every file, and the two compared (v0.8.13).
+  ctx.tagcheck = new TagCheck({ db, dataDir: config.dataDir, scanner, version: pkg.version, log,
+    enabled: config.tagcheck, delayMs: config.tagcheckDelayMs });
   // Started by the C# server: its conversions are made there (useFront, above).
   if (process.env.MANDARIN_FRONT_URL) useFront(process.env.MANDARIN_FRONT_URL);
 
@@ -304,7 +319,9 @@ function createServer(overrides = {}) {
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
       labels: { enabled: !!library.labelRules.enabled, depth: library.labelRules.depth || 0, roots: library.labelRules.roots() },
       // The day and week on this server's clock (its time zone): Home's rows turn over with them.
-      day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey()
+      day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
+      // Which cores playback keeps (lib/cpu.js): the C# server keeps to them too (Cpu.cs).
+      cpu: CPU.plan()
     });
   });
   app.use(express.json({ limit: "2mb" }));
@@ -375,7 +392,8 @@ function createServer(overrides = {}) {
   });
 
   function streamOpus(t, req, res) {
-    ctx.downloads.file(Object.assign({}, t), "opus").then(f => {
+    // Made on playback's cores (lib/cpu.js): this one first, the next two just below it.
+    ctx.downloads.file(Object.assign({}, t), "opus", "playback").then(f => {
       res.set("Content-Type", f.mime);
       res.set("Cache-Control", "no-store");
       res.sendFile(f.path, { dotfiles: "allow", acceptRanges: true, headers: { "Content-Type": f.mime } }, (err) => {
@@ -387,7 +405,7 @@ function createServer(overrides = {}) {
     });
     const rest = library.tracks(t.album_id);
     const i = rest.findIndex(x => x.id === t.id);
-    for (const n of rest.slice(i + 1, i + 3)) ctx.downloads.file(Object.assign({}, n), "opus").catch(() => {});
+    for (const n of rest.slice(i + 1, i + 3)) ctx.downloads.file(Object.assign({}, n), "opus", "ahead").catch(() => {});
   }
 
   app.use(compression());
@@ -405,6 +423,8 @@ function createServer(overrides = {}) {
   require("./lib/server/api-devices")(app, ctx);
   require("./lib/server/api-identify")(app, ctx);
   require("./lib/server/api-loudness")(app, ctx);
+  require("./lib/server/api-tagcheck")(app, ctx);
+  require("./lib/server/api-cpu")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
   for (const id of SERVICES.IDS) require("./lib/server/api-service")(app, ctx, id);
@@ -510,6 +530,7 @@ function createServer(overrides = {}) {
     if (config.identify) ctx.identifier.start();
     ctx.mbpack.start();
     ctx.loudness.start();
+    ctx.tagcheck.start();
     features.wire();
     // On your tailnet by itself, once signed in (Settings → Away from home).
     ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
@@ -559,6 +580,7 @@ function createServer(overrides = {}) {
     ctx.identifier.stop();
     ctx.mbpack.stop();
     ctx.loudness.stop();
+    ctx.tagcheck.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
     for (const t of ctx.scanTimers || []) clearTimeout(t);

@@ -106,9 +106,6 @@ internal static partial class Transcoder
         ];
     }
 
-    [LibraryImport("libc", EntryPoint = "setpriority", SetLastError = true)]
-    private static partial int SetPriority(int which, int who, int prio);
-
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)
     {
@@ -150,14 +147,16 @@ internal static partial class Transcoder
         {
             var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
             foreach (var a in Args(t.Path, p, job.Part)) psi.ArgumentList.Add(a);
+            // On playback's cores (Cpu.cs): made ahead, not waited for, just below what a device is waiting for.
+            var kind = background ? CpuKind.Ahead : CpuKind.Playback;
+            Cpu.Place(psi, kind);
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
-            proc.Exited += (_, _) => { proc.WaitForExit(); Finish(proc.ExitCode); proc.Dispose(); };
+            proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
             proc.Start();
+            Cpu.Adopt(proc, kind);
             proc.StandardInput.Close();
             proc.BeginErrorReadLine();
-            // Made ahead, not waited for: behind playback and the page when the cores are short.
-            if (background) SetPriority(0, proc.Id, 5);
             Front.Log($"[stream] {Path.GetFileName(t.Path)}: {p.Reason} → FLAC {p.Bits}/{(p.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz");
             // A reader waiting for more is woken as the .part grows.
             _ = Task.Run(async () =>

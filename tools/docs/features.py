@@ -141,6 +141,12 @@ FEATURES = [
      "headphone profiles from AutoEq or a pasted ParametricEQ.txt.",
      "Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos "
      "rooms have no DSP here."),
+    ("playfirst", "⚙️", "Playback first", True,
+     "Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and "
+     "downloads run on the other cores, at the lowest priority.",
+     "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, "
+     "`--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores "
+     "playback keeps; 0 shares them all."),
     # ---- Discovering
     ("picks", "⭐", "Smart Picks", False,
      "Five albums a day from your own library, by artists Deezer lists as related to the ones you've "

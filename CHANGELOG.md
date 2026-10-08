@@ -5,6 +5,35 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.13
+A test build, from the `claude/v0.8.13` branch: the thirteenth step in moving Mandarin's server to C#.
+
+- **Playback comes first on the processor.** Playback keeps a core of its own, or two while DSP
+  is in use. Everything else runs on the other cores. On a four-core machine that is one core for
+  playback and three for scanning and the rest; with DSP, two and two.
+  - Playback means Mandarin's audio engine for a sound device on the server, and every conversion
+    a device is waiting for or will play next, made by either server.
+  - Scanning, measuring ReplayGain, the tag reader check below and the phone's downloads run at
+    the lowest priority, and their disk reads go last.
+  - ReplayGain is now measured on every core playback doesn't keep, a file on each, instead of one
+    file at a time.
+  - DSP keeps its second core for ten minutes after its last conversion, so the split doesn't
+    change at every track.
+  - *Settings → Library Scanner → Processor* shows the split.
+  - Playback runs at a higher priority too when the container has `--cap-add SYS_NICE` (or
+    `--privileged`, which a USB DAC needs anyway). Without it, playback still has its own cores.
+  - `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps; `0` shares every core.
+    `PLAYBACK_CORE=<n>` still picks the core.
+- **A check of the new tag reader, on your own library.** Mandarin's C# server now has its own tag
+  reader, a copy of the one the scanner uses. Before the scanner moves to it, every file is read by
+  both, in the background, and the two readings are compared. Nothing in your library changes.
+  - *Settings → Library Scanner → New tag reader check* shows how far it has got. **Copy report**
+    copies the result; please send it to the developer.
+  - It waits while a scan runs, and checks new and changed files after each scan. After an update
+    it reads every file again.
+  - A file the old reader can't survive (a damaged WAV can stop it) is noted, and the check goes on.
+- The Android app for this branch is at the same test address (0.8.13, version code 213).
+
 ## v0.8.12
 A test build, from the `claude/v0.8.12` branch: the twelfth step in moving Mandarin's server to C#.
 

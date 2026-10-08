@@ -17947,6 +17947,8 @@ initServiceBrowser({
   const num = n => Number(n || 0).toLocaleString();
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+  let tagcheck = null;   // the tag readers' check (v0.8.13)
+  let cpu = null;        // how the processor is shared out (v0.8.13)
   let pack = null, packChecked = false;   // the MusicBrainz pack (v0.6.4)
   let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
   let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
@@ -17960,9 +17962,12 @@ initServiceBrowser({
   async function load() {
     if (busy) return;
     try {
-      const [a, b, c, d] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
-        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null), api("/api/library/cleanup").catch(() => null)]);
+      const [a, b, c, d, e, f] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
+        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null), api("/api/library/cleanup").catch(() => null),
+        api("/api/tagcheck").catch(() => null), api("/api/cpu").catch(() => null)]);
       cleanup = d;
+      tagcheck = e;
+      cpu = f;
       st = a; loud = b; pack = c; packChecked = true; err = "";
       if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
     } catch (e) { err = e.message; }
@@ -18162,7 +18167,7 @@ initServiceBrowser({
     if (loud) {
       const m = loud.settings || {};
       html += '<div class="settings-divider"></div><div class="settings-block">' +
-        row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — one file at a time in the background, so Volume Levelling (Settings → Audio Devices → a device) can level them too. An album’s gain is worked out once all of its tracks are known. Your files are never changed."),
+        row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — in the background, a file at a time on each core playback doesn’t keep, so Volume Levelling (Settings → Audio Devices → a device) can level them too. An album’s gain is worked out once all of its tracks are known. Your files are never changed."),
           '<label class="switch"><input type="checkbox" data-ld-measure' + (m.measure ? " checked" : "") + (busy ? " disabled" : "") + ' aria-label="Measure ReplayGain"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
         '<div class="settings-note">Loudness for tracks without ReplayGain tags.</div>' +
         '<div class="id-progress">' + num(loud.tagged) + " tagged · " + num(loud.measured) + " measured · " + num(loud.left) + " to measure" +
@@ -18195,6 +18200,31 @@ initServiceBrowser({
         row("Tidal albums no longer wanted", (td.albums ? '<button type="button" class="settings-update-btn" data-cleanup="tidal"' + (busy ? " disabled" : "") + ">Remove " + num(td.albums) + " album" + (td.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
         '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
+    // The tag readers' check (v0.8.13): the C# reader against this one, on every file.
+    if (tagcheck && tagcheck.available) {
+      const t = tagcheck;
+      const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
+      const said = { checking: "Reading your files both ways, in the background.", paused: "Waits while the library is being scanned.",
+        waiting: "Starts in a few minutes.", done: odd ? "Done. Please send the report." : "Done. Every file reads the same." }[t.state] || "";
+      html += '<div class="settings-divider"></div><div class="settings-block">' +
+        row("New tag reader check" + info("Mandarin’s server is moving to C#. Before it reads your tags, every file is read by both the old and the new tag reader and the two are compared. Nothing in your library changes. Copy the report and send it to the developer."),
+          '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
+        '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
+          (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") + "</div>" +
+        '<div class="settings-note">' + said + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
+    }
+    // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.
+    if (cpu && Array.isArray(cpu.cores)) {
+      const cores = k => k + " core" + (k === 1 ? "" : "s");
+      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Processor' +
+        info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain, the tag check and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
+        '<div class="id-progress">' + (cpu.split
+          ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
+          : cores(cpu.cores.length) + ", shared") + "</div>" +
+        '<div class="settings-note">' + (!cpu.split ? "Playback comes first by priority."
+          : cpu.raised ? "Playback also runs at a higher priority."
+          : "To run playback at a higher priority too, start the container with --cap-add SYS_NICE.") + "</div></div>";
+    }
     html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
     html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
     html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
@@ -18226,6 +18256,25 @@ initServiceBrowser({
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
+    if (e.target.closest("[data-tagcheck-copy]")) {
+      (async () => {
+        let text = "";
+        try { text = await (await fetch("/api/tagcheck/report", { cache: "no-store" })).text(); }
+        catch (x) { return toast("Couldn’t get the report", "error"); }
+        // execCommand first: navigator.clipboard needs https, and the server is usually plain http.
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = !!(document.execCommand && document.execCommand("copy")); } catch (x) { /* below */ }
+        ta.remove();
+        if (!ok) { try { await navigator.clipboard.writeText(text); ok = true; } catch (x) { /* below */ } }
+        if (ok) toast("Report copied. Paste it into a message to the developer.");
+        else window.open("/api/tagcheck/report", "_blank", "noopener");
+      })();
+      return;
+    }
     const cu = e.target.closest("[data-cleanup]");
     if (cu) {
       const kind = cu.getAttribute("data-cleanup");

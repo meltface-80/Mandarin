@@ -28,7 +28,11 @@ internal static partial class Downloads
     private static string dir = "";
     private static long maxBytes;
     private static readonly ConcurrentDictionary<string, Task> Jobs = new();
+    // Two at a time for the phone to keep, and two for the Opus made ahead of a
+    // stream away from home; the one a stream is waiting for at once. Each on
+    // the cores its kind has (Cpu.cs).
     private static readonly SemaphoreSlim Slots = new(2, 2);
+    private static readonly SemaphoreSlim AheadSlots = new(2, 2);
 
     public sealed record Track(long Id, string Path, string Codec, long Rate, long Bits, long Channels, long Mtime, long Size);
     public sealed record Plan(string? File, string? Convert, string Ext, string Mime);
@@ -111,8 +115,12 @@ internal static partial class Downloads
         return Transcoder.Args(t.Path, new ConvPlan(rate, (int)bits, false, false, ""), dest);
     }
 
-    /* The file to send for this track at this quality, made first if need be. */
-    public static async Task<(string Path, string Ext, string Mime)> FileFor(Track t, string quality)
+    /*
+     * The file to send for this track at this quality, made first if need be:
+     * for the phone to keep (Background), for a stream waiting for it
+     * (Playback), or for one that will want it next (Ahead).
+     */
+    public static async Task<(string Path, string Ext, string Mime)> FileFor(Track t, string quality, CpuKind kind = CpuKind.Background)
     {
         var p = PlanFor(t, quality);
         if (p.File != null) return (p.File, p.Ext, p.Mime);
@@ -126,25 +134,29 @@ internal static partial class Downloads
         }
         var job = Jobs.GetOrAdd(key, k => Task.Run(async () =>
         {
-            try { await Convert(t, p, dest); }
+            try { await Convert(t, p, dest, kind); }
             finally { Jobs.TryRemove(key, out _); }
         }));
         await job;
         return (dest, p.Ext, p.Mime);
     }
 
-    private static async Task Convert(Track t, Plan p, string dest)
+    private static async Task Convert(Track t, Plan p, string dest, CpuKind kind)
     {
-        await Slots.WaitAsync();
+        var slots = kind switch { CpuKind.Background => Slots, CpuKind.Ahead => AheadSlots, _ => null };
+        if (slots != null) await slots.WaitAsync();
         try
         {
             var part = dest + ".part";
             var psi = new ProcessStartInfo(Transcoder.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
             foreach (var a in Args(t, p, part)) psi.ArgumentList.Add(a);
+            Cpu.Place(psi, kind);
             using var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start ffmpeg");
+            Cpu.Adopt(proc, kind);
             proc.StandardInput.Close();
             var err = await proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
+            Cpu.Forget(proc);
             if (proc.ExitCode == 0 && System.IO.File.Exists(part)) System.IO.File.Move(part, dest, overwrite: true);
             else
             {
@@ -154,7 +166,7 @@ internal static partial class Downloads
             }
             Prune();
         }
-        finally { Slots.Release(); }
+        finally { slots?.Release(); }
     }
 
     private static void Prune()
@@ -249,10 +261,10 @@ internal static partial class Downloads
         List<Track> rest;
         using (var c = Db.Open()) { t = TrackById(c, id); rest = t == null ? [] : AlbumTracksOf(c, id); }
         if (t == null || t.Path.Contains("://", StringComparison.Ordinal)) return false;
-        // This one first (it takes a slot first), then the next two behind it.
-        var making = FileFor(t, "opus");
+        // This one at once, then the next two just below it, on playback's cores (Cpu.cs).
+        var making = FileFor(t, "opus", CpuKind.Playback);
         var i = rest.FindIndex(x => x.Id == t.Id);
-        foreach (var n in rest.Skip(i + 1).Take(2)) _ = FileFor(n, "opus").ContinueWith(_ => { }, TaskScheduler.Default);
+        foreach (var n in rest.Skip(i + 1).Take(2)) _ = FileFor(n, "opus", CpuKind.Ahead).ContinueWith(_ => { }, TaskScheduler.Default);
         (string Path, string Ext, string Mime) f;
         try { f = await making; }
         catch (IOException e)

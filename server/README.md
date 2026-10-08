@@ -50,6 +50,8 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Settings only kept and read: the wall display, Smart Picks' switch and hour, Home's rows; dynamic playlists (`SettingsRoutes.cs`) | C# (v0.8.7); share links and the waveform switch still Node's |
 | Home's rows: Album of the day, Label of the week, Recently played, Not played lately (`HomeRoutes.cs`) | C# (v0.8.6); the day and week are the Node server's clock's, told with the library's state; Smart picks still Node's |
 | Covers already drawn and label logos, to signed-in devices and signed addresses (`Images.cs`) | C# (v0.8.5); drawing a cover the first time, and a speaker asking by its own address, still Node's |
+| Reading tags: the scanner's reader (music-metadata as `scanner.js` uses it), copied to the letter (`Tags/`) | C# (v0.8.13), checked against the scanner's on the library itself (Settings → Library Scanner); the scanner still reads with Node's |
+| The processor shared out: this server's threads and conversions kept off playback's cores (`Cpu.cs`) | C# (v0.8.13); the split is decided by the Node server (`lib/cpu.js`) and told with the library's state |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |
 

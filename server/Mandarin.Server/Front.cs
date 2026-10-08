@@ -56,6 +56,8 @@ internal static partial class Front
         psi.Environment["MANDARIN_FRONT_KEY"] = frontKey;
         // Where to hand its "make these next" for the conversions made here (Transcoder.cs).
         psi.Environment["MANDARIN_FRONT_URL"] = "http://127.0.0.1:" + frontPort;
+        // The cores there are to share out (lib/cpu.js), as this server found them before keeping to its own.
+        if (Cpu.Startup.Length > 0) psi.Environment["MANDARIN_CPUS"] = Cpu.Startup;
         var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start node");
         Log($"[server] started the Node server (pid {proc.Id}) from {appDir}");
         return proc;
