@@ -71,8 +71,10 @@ class FakeMusicBrainz {
         })) });
       }
       if (u.pathname === "/ws/2/release-group/") {
+        // failDays: the release days' searches refused (a test's album then waits for its page to ask).
+        if (this.failDays && /releasegroup:/.test(u.searchParams.get("query") || "")) { res.statusCode = 503; return send({ error: "busy" }); }
         const un = x => x.replace(/\\(.)/g, "$1").toLowerCase();
-        const wanted = [...(u.searchParams.get("query") || "").matchAll(/releasegroup:"((?:\\.|[^"])*)"/g)].map(x => un(x[1]));
+        const wanted = [...(u.searchParams.get("query") || "").matchAll(/(?:releasegroup|release):"((?:\\.|[^"])*)"/g)].map(x => un(x[1]));
         const groups = new Map();
         for (const r of this.releases) {
           const g = r["release-group"];

@@ -21,14 +21,9 @@ internal static partial class Library
 
     [GeneratedRegex(@"\s+")] private static partial Regex Spaces();
 
-    /* share.js shareText: a string, its spaces collapsed, trimmed and cut to [max]. */
-    private static string ShareText(JsonNode? v, int max = 500)
-    {
-        if (v is not JsonValue sv || !sv.TryGetValue<string>(out var s)) return "";
-        s = Names.JsTrim(Spaces().Replace(s, " "));
-        if (s.Length > max) s = s[..max];
-        return Names.JsTrim(s);
-    }
+    /* share.js shareText: a string, its spaces collapsed, trimmed and cut to [max] (JavaScript's white space). */
+    private static string ShareText(JsonNode? v, int max = 500) =>
+        v is JsonValue sv && sv.TryGetValue<string>(out var s) ? Extras.ShareBlob.Text(s, max) : "";
     /* share.js shareInt: parseInt within [min, max], or null. */
     private static long? ShareInt(JsonNode? v, long min, long max, bool present = true) =>
         PInt(present ? JsStr(v) : null) is long n && n >= min && n <= max ? n : null;

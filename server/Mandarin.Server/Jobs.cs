@@ -32,6 +32,7 @@ internal static class Jobs
     public static Loudness? Loudness { get; private set; }
     public static ReleaseDays? Days { get; private set; }
     public static Taste? Taste { get; private set; }
+    public static WriteUpSources? WriteUps { get; private set; }
 
     private static Uri? upstream;
     private static string key = "";
@@ -119,6 +120,8 @@ internal static class Jobs
         Labels.Logos = new LabelLogos(dataDir, labelsMb, Text(cfg["discogs_url"]), Text(cfg["fanart_url"]), pause, version, Log) { Ready = () => Holds("labels") };
         Days = new ReleaseDays(Text(cfg["musicbrainz_url"]), version, Log) { Ready = () => Holds("days") };
         Taste = new Taste(Text(cfg["deezer_url"]), Log) { Ready = () => Holds("taste") };
+        // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
+        WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
         handed = c.Jobs;
         held = c.Boot;
         seen ??= c.Boot;

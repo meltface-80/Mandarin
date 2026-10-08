@@ -126,14 +126,15 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
         return Library.Sorted(outList, (a, b) => Lookups.Sgn((double)(b.Year!.Value - a.Year!.Value)));
     }
 
-    /* Ask about a batch of albums; keeps what's found, and tells the Node server. → how many found. */
-    private async Task<int> Lookup(List<Album> albums)
+    /* Ask about a batch of albums; keeps what's found, and tells the Node server. → the days found, by album key. */
+    private async Task<Dictionary<string, string>> Lookup(List<Album> albums)
     {
         var url = baseUrl + "/release-group/?query=" + Lookups.Encode(QueryFor(albums.Select(a => (a.Title, a.Artist)))) + "&fmt=json&limit=100";
         if (baseUrl == MusicBrainz.DefaultBase) await Lookups.MbWait();
         var j = await Lookups.Json(url, [("User-Agent", userAgent)], 10000);
         var days = MatchDays(albums.Select(a => (a.Key, a.Title, a.Artist, YearText(a), a.Date)), (j as JsObj)?["release-groups"] as List<object?>);
         var found = new JsonArray();
+        var byKey = new Dictionary<string, string>();
         var now = (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         using (var c = Db.Open())
         {
@@ -150,12 +151,30 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
                 cmd.Parameters.AddWithValue("$v", Js.Json(v));
                 cmd.Parameters.AddWithValue("$t", now);
                 cmd.ExecuteNonQuery();
-                if (day != null) found.Add(new JsonArray(al.Key, day));
+                if (day != null) { found.Add(new JsonArray(al.Key, day)); byKey[al.Key] = day; }
             }
             tx.Commit();
         }
         if (found.Count > 0) await Library.Tell(new JsonObject { ["days"] = found });
-        return found.Count;
+        return byKey;
+    }
+
+    /*
+     * An album being opened (its page shows the day): its day now if it can be
+     * had quickly, else whenever the lookup ends. → the album's date with the
+     * day found in time, or null.
+     */
+    public async Task<string?> Now(Album al, int waitMs = 1500)
+    {
+        if (al.Year is not { } y || y == 0 || (al.Date != null && al.Date.Length >= 10)) return null;
+        if (Taste.CacheGet("mbday", al.Key, 0) is not Undef) return null;
+        var job = Task.Run(async () =>
+        {
+            try { return await Lookup([al]); }
+            catch (Exception) { return new Dictionary<string, string>(); }
+        });
+        if (await Task.WhenAny(job, Task.Delay(waitMs)) != job) return null;
+        return job.Result.TryGetValue(al.Key, out var day) ? Library.ReleaseDateWith(al, day) : null;
     }
 
     /* The pass: every album wanting a day, a batch at a time. One at a time; a second asked for joins the first. */
@@ -191,7 +210,7 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
         {
             try
             {
-                found += await Lookup(list.GetRange(i, Math.Min(Batch, list.Count - i)));
+                found += (await Lookup(list.GetRange(i, Math.Min(Batch, list.Count - i)))).Count;
                 failures = 0;
             }
             catch (Exception e)

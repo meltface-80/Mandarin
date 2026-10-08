@@ -5,6 +5,33 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.21
+A test build, from the `claude/v0.8.21` branch: album write-ups, artist stories, Pitchfork, the Qobuz app link and playlist sharing move to Mandarin's C# server.
+
+- **An album's write-up is now made by the C# server.** That covers its year and release day,
+  Wikipedia's words with Pitchfork's score and link, the artist's story, and the links to hear it
+  and read about it. All work as before, and what was already looked up is kept.
+- **Pitchfork's lists are read by the C# server**: Latest and Best New Music, a review's record in
+  your library, and the Pitchfork part of the search.
+- **The link that opens the Qobuz app** on the right record, and the share card's settings, are
+  handled by the C# server.
+- **Sharing a playlist as text, and importing one someone shared with you, are handled by the C#
+  server.** A playlist shared from either server imports into the other.
+- **Fixed: no Qobuz app link after one missed answer.** When Qobuz's site didn't answer once, that
+  album had no link until the server restarted. Now it asks again next time.
+- **Fixed: a write-up holding the text `&constructor;`** showed a line of program code in its
+  place. It now shows the text as written.
+- **Fixed: importing a shared playlist could fail** when one of its tracks was on an album the
+  library hadn't finished adding. That track is now passed over, and the rest import.
+- An album's year in its write-up now asks the MusicBrainz set with `MUSICBRAINZ_URL`, as the
+  release days do. Before, it always asked musicbrainz.org.
+- Nothing in your library changes. New tests ask both servers about write-ups, Pitchfork's pages
+  and shared playlists over many made-up cases, and check every answer is the same. Wikipedia,
+  Pitchfork and Qobuz's site are fakes in the tests (`WIKIPEDIA_URL`, `PITCHFORK_URL`,
+  `QOBUZ_WEB_URL`). The write-up and playlist tests now run against the C# server.
+- The wall display's page, which follows what plays, stays with the Node server for now.
+- The Android app for this branch is at the same test address (0.8.21, version code 221).
+
 ## v0.8.20
 A test build, from the `claude/v0.8.20` branch: record labels, release days, Smart Picks and the share card's suggestions move to Mandarin's C# server.
 

@@ -188,6 +188,9 @@ internal static partial class Library
         }
         return date;
     }
+    /* An album's date once a day is found for it (library.setLookedUpDay): the day, if it's of the album's year and says more. */
+    public static string? ReleaseDateWith(Album al, string day) =>
+        ReleaseDate(al.Year, al.Date, new JsonObject { ["date"] = day }.ToJsonString());
     // A JSON value as String(v) would give it, or null for null.
     private static string? JsString(JsonNode? n) => n == null ? null : n is JsonValue v && v.TryGetValue<string>(out var s) ? s : n.ToJsonString();
 

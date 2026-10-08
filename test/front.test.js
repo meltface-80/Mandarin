@@ -33,7 +33,10 @@
  *     in this mode, which says so; and every test that loads index.js afresh);
  *   - v0.8.20: record labels whole (the wall, a label's albums, the lookups, the logos, the keys),
  *     the release days, Smart Picks and the share card's suggestions made by C#
- *     (test/extras-csharp.test.js; the label, release day, Smart Picks and similar tests in this mode).
+ *     (test/extras-csharp.test.js; the label, release day, Smart Picks and similar tests in this mode);
+ *   - v0.8.21: an album's write-ups and links, an artist's story, Pitchfork's lists, the Qobuz app's
+ *     link, the share card's settings and a playlist shared as text, made by C#
+ *     (test/writeups-csharp.test.js, test/share-csharp.test.js; the write-up and playlist tests in this mode).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -189,5 +192,42 @@ test("v0.8.20: record labels, release days and the taste work handed to C#; the 
     }
     const r = await fetch(B + "/api/labels/logo-candidates?label=Parlophone", { headers: H });
     assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).error], [400, "C#", "Discogs token needed (Settings → Setup → API Keys)"]);
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const port = 3652, B = "http://127.0.0.1:" + port;
+  // Every source a closed port on loopback: asked, and failing at once.
+  const closed = "http://127.0.0.1:9";
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
+    mbBaseUrl: closed, wikipediaBaseUrl: closed, pitchforkBaseUrl: closed, qobuzWebUrl: closed });
+  await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token }, J = Object.assign({ "Content-Type": "application/json" }, H);
+    for (let i = 0; i < 150; i++) { if ((await (await fetch(B + "/api/status", { headers: H })).json()).index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
+    for (const p of ["/api/album/extras?fast=1&title=Album%20One&artist=Artist%20A", "/api/album/extras?title=Album%20One&artist=Artist%20A", "/api/artist-bio?artist=Artist%20A",
+      "/api/pitchfork/review?url=" + encodeURIComponent("https://pitchfork.com/reviews/albums/x/") + "&album=Album%20One",
+      "/api/settings/share-links", "/api/qobuz-link?album=Album%20One&artist=Artist%20A", "/api/search/external?q=album&parts=pitchfork"]) {
+      const r = await fetch(B + p, { headers: H });
+      assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
+    }
+    // Pitchfork's lists with neither the page nor the feed to be had: the error, as the Node server gives it.
+    for (const p of ["/api/pitchfork/reviews", "/api/pitchfork/reviews?type=best"]) {
+      const r = await fetch(B + p, { headers: H });
+      assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), await r.json()], [500, "C#", { error: "fetch failed" }], p);
+    }
+    let r = await fetch(B + "/api/search/external?q=album", { headers: H });
+    assert.equal(r.headers.get("x-mandarin-answered"), null, "the search's services: still the Node server's");
+    r = await fetch(B + "/api/settings/share-links", { method: "POST", headers: J, body: JSON.stringify({ card_review: false }) });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).card], [200, "C#", { review: false }], "the share card's settings, kept by C#");
+    r = await fetch(B + "/api/share/encode", { method: "POST", headers: J, body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }] }) });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "a playlist shared as text, by C#");
+    const { blob } = await r.json();
+    r = await fetch(B + "/api/share/import", { method: "POST", headers: J, body: JSON.stringify({ blob }) });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "and read back");
+    assert.deepEqual((await r.json()).resolved.map(t => [t.title, t.album_title]), [["Song 1", "Album One"]]);
   } finally { await srv.stop(); }
 });

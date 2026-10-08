@@ -78,6 +78,10 @@ const config = {
   fanartBaseUrl: process.env.FANART_URL || "",
   // Related artists (the share card's suggestions, Smart Picks): where Deezer is (a fake in the tests).
   deezerBaseUrl: process.env.DEEZER_URL || "",
+  // A record's write-up (lib/meta.js): where Wikipedia, Pitchfork and Qobuz's site are (fakes in the tests).
+  wikipediaBaseUrl: process.env.WIKIPEDIA_URL || "",
+  pitchforkBaseUrl: process.env.PITCHFORK_URL || "",
+  qobuzWebUrl: process.env.QOBUZ_WEB_URL || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
   // The tag readers' check (lib/library/tagcheck.js): on (TAGCHECK=0 turns it
@@ -105,6 +109,8 @@ function createServer(overrides = {}) {
   // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
   require("./lib/backup").swapStaged(config.dataDir, log);
   const db = DB.open(config.dataDir, { log });
+  // Where a record's write-up is asked (lib/meta.js).
+  META.configure(config);
   const library = new Library(db, { musicRoot: config.musicDir, log });
   // Where the music is: the folders chosen in Settings → Music folders, or —
   // until any are — the one the server was started with (MUSIC_DIR).
@@ -402,7 +408,8 @@ function createServer(overrides = {}) {
         mbpack_url: config.mbpackUrl || null, mbpack_dir: config.mbpackDir || null,
         loudness_tick_ms: config.loudnessTickMs,
         discogs_url: config.discogsBaseUrl || null, fanart_url: config.fanartBaseUrl || null,
-        deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs
+        deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs,
+        wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null
       }
     });
   });

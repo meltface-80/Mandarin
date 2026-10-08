@@ -65,6 +65,13 @@ internal static partial class Library
         ["/api/settings/discogs-token"] = KeyState,
         ["/api/similar"] = SimilarActs,
         ["/api/smart-picks"] = SmartPicks,
+        ["/api/album/extras"] = AlbumExtras,
+        ["/api/artist-bio"] = ArtistBio,
+        ["/api/pitchfork/reviews"] = PitchforkReviews,
+        ["/api/pitchfork/review"] = PitchforkReviewMatch,
+        ["/api/settings/share-links"] = ShareSettings,
+        ["/api/qobuz-link"] = QobuzLink,
+        ["/api/search/external"] = SearchExternal,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
@@ -101,6 +108,9 @@ internal static partial class Library
         ["/api/settings/discogs-token"] = SaveKey,
         ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
+        ["/api/settings/share-links"] = SaveShareSettings,
+        ["/api/share/encode"] = ShareEncode,
+        ["/api/share/import"] = ShareImport,
     };
     private static readonly Dictionary<string, Handler> Deletes = new()
     {
@@ -653,6 +663,20 @@ internal static partial class Library
         return s;
     }
 
+    /* library.search(query, limit): the albums whose names hold the words, best first. */
+    private static List<(Album Al, int Score)> SearchHits(Snapshot s, string raw, int limit)
+    {
+        var q = Names.Fold(raw);
+        if (q.Length == 0) return [];
+        var qt = q.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var qj = q.Replace(" ", "");
+        var single = qj.Length <= 1;
+        var hits = new List<(Album Al, int Score)>();
+        foreach (var al in s.Albums) { var sc = ScoreAlbum(al, q, qt, qj, single); if (sc > 0) hits.Add((al, sc)); }
+        hits = Sorted(hits, (a, b) => Or(b.Score - a.Score, () => Or(Lc(a.Al.NTitle, b.Al.NTitle), () => Kc(a.Al.NArtistKey, b.Al.NArtistKey))));
+        return hits.Take(limit).ToList();
+    }
+
     private static Task<bool> Search(HttpContext ctx, Snapshot s, LibState st)
     {
         var raw = Q(ctx, "q") ?? "";
@@ -664,16 +688,7 @@ internal static partial class Library
 
         var q = Names.Fold(raw);
         var results = new JsonArray();
-        if (q.Length > 0)
-        {
-            var qt = q.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var qj = q.Replace(" ", "");
-            var single = qj.Length <= 1;
-            var hits = new List<(Album Al, int Score)>();
-            foreach (var al in s.Albums) { var sc = ScoreAlbum(al, q, qt, qj, single); if (sc > 0) hits.Add((al, sc)); }
-            hits = Sorted(hits, (a, b) => Or(b.Score - a.Score, () => Or(Lc(a.Al.NTitle, b.Al.NTitle), () => Kc(a.Al.NArtistKey, b.Al.NArtistKey))));
-            foreach (var h in hits.Take(limit)) results.Add(AlbumJson(s, h.Al, new JsonObject { ["score"] = h.Score }));
-        }
+        foreach (var h in SearchHits(s, raw, limit)) results.Add(AlbumJson(s, h.Al, new JsonObject { ["score"] = h.Score }));
 
         // Labels (only while they're on) and artists whose names hold the words.
         var labels = new JsonArray();

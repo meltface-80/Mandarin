@@ -63,6 +63,30 @@ internal static class Lookups
         }
     }
 
+    /* httpText(url, headers, timeoutMs): the page as text (UTF-8, as fetch's text() reads any page); "HTTP 404" for a refusal. */
+    public static async Task<string> Text(string url, IEnumerable<(string, string)> headers, int timeoutMs)
+    {
+        Allowed(url);
+        using var cts = new CancellationTokenSource(timeoutMs);
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        foreach (var (k, v) in headers) req.Headers.TryAddWithoutValidation(k, v);
+        HttpResponseMessage res;
+        try { res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token); }
+        catch (OperationCanceledException) { throw new LookupError("This operation was aborted"); }
+        // As fetch says it (its cause unsaid): a route that fails says the same as the Node server's.
+        catch (HttpRequestException) { throw new LookupError("fetch failed"); }
+        using (res)
+        {
+            if (!res.IsSuccessStatusCode) throw new LookupError("HTTP " + (int)res.StatusCode) { Status = (int)res.StatusCode };
+            byte[] bytes;
+            try { bytes = await res.Content.ReadAsByteArrayAsync(cts.Token); }
+            catch (OperationCanceledException) { throw new LookupError("This operation was aborted"); }
+            catch (Exception e) when (e is HttpRequestException or IOException) { throw new LookupError("terminated"); }
+            var text = Encoding.UTF8.GetString(bytes);
+            return text.Length > 0 && text[0] == '\uFEFF' ? text[1..] : text;
+        }
+    }
+
     /* fetch(url), as the Node server's own: the status, the body (null past [max] bytes) and the type it says it is. */
     public static async Task<(int Status, byte[]? Body, string? Type)> Fetch(string url, IEnumerable<(string, string)> headers, int timeoutMs, int max)
     {

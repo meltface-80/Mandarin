@@ -9,6 +9,7 @@
 //   { "fn": "pairs", "pairs": [[a, b], …] }
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
 //   { "fn": "share" | "similar" | "days" | "labels", … } (v0.8.20): Extras/ExtrasCommand.cs
+//   { "fn": "writeups" | "blob", … } (v0.8.21): Extras/ExtrasCommand.cs
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -79,7 +80,7 @@ internal static class ScoreCommand
                         }).ToList();
                         break;
                     // v0.8.20's ports (Extras/ExtrasCommand.cs).
-                    case "share" or "similar" or "days" or "labels":
+                    case "share" or "similar" or "days" or "labels" or "writeups" or "blob":
                         o = Extras.ExtrasCommand.Run(Js.Str(job["fn"]), job);
                         break;
                     default:

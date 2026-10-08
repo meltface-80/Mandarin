@@ -6,6 +6,7 @@
 //   { fn: "similar", names, overlaps, artists, related, pools, years, tops, album_lists, tastes, ranks, chooses, reasons, records, played }
 //   { fn: "days", titles, batches: [{ albums: [{ key, title, artist, year, date }], groups }] }
 //   { fn: "labels", plain: [...], images: [{ b64, type }] }
+//   { fn: "writeups", … } and { fn: "blob", texts, ints, uris, entries, docs, date, version, encodes, decodes } (v0.8.21)
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Extras;
@@ -25,8 +26,99 @@ internal static class ExtrasCommand
         "similar" => SimilarFns(job),
         "days" => Days(job),
         "labels" => LabelFns(job),
+        "writeups" => WriteUpFns(job),
+        "blob" => BlobFns(job),
         _ => throw new JsError("unknown fn")
     };
+
+    /* lib/server/share.js's: its fields, a track's entry, a whole document (on the date and version given), blobs made, pastes read. */
+    private static JsObj BlobFns(JsObj job)
+    {
+        var o = new JsObj();
+        o["text"] = Each(job["texts"], a => ShareBlob.Text(Arg(a, 0), (int)Js.ToNumber(Arg(a, 1))));
+        o["int"] = Each(job["ints"], a => ShareBlob.Int(Arg(a, 0), Js.ToNumber(Arg(a, 1)), Js.ToNumber(Arg(a, 2))));
+        o["uris"] = Each(job["uris"], ShareBlob.UriList);
+        o["entry"] = Each(job["entries"], ShareBlob.TrackEntry);
+        o["doc"] = Each(job["docs"], d0 =>
+        {
+            var d = O(d0);
+            var (doc, count, skipped, truncated) = ShareBlob.BuildDoc(d["name"], d["annotation"], d["tracks"], Str(job["date"]), Str(job["version"]));
+            var x = new JsObj();
+            x["doc"] = doc;
+            x["track_count"] = (double)count;
+            x["skipped"] = (double)skipped;
+            x["truncated"] = truncated;
+            return x;
+        });
+        o["encoded"] = Each(job["encodes"], d => ShareBlob.Encode(O(d)));
+        o["decoded"] = Each(job["decodes"], b =>
+        {
+            var x = new JsObj();
+            try { x["doc"] = ShareBlob.Decode(Str(b)); }
+            catch (ShareBlob.Refused e) { x["error"] = e.Message; }
+            return x;
+        });
+        return o;
+    }
+
+    private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
+    private static object? Arg(object? args, int i) { var l = L(args); return i < l.Count ? l[i] : Undef.V; }
+    private static string Str(object? v) => Js.IsNullish(v) ? "" : Js.Str(v);
+    private static List<object?> Items(IEnumerable<JsObj> items) => items.Select(x => (object?)x).ToList();
+
+    /* lib/meta.js's decisions (its `pure`), lib/wiki-match.js's and lib/qobuz-deeplink.js's: each asked with the same arguments. */
+    private static JsObj WriteUpFns(JsObj job)
+    {
+        var o = new JsObj();
+        o["normalize"] = Each(job["normalize"], WriteUps.Normalize);
+        o["decode"] = Each(job["decode"], x => WriteUps.DecodeEntities(x));
+        o["strip"] = Each(job["strip"], x => WriteUps.StripHtml(x));
+        o["first"] = Each(job["first"], x => WriteUps.FirstSignificantToken(x));
+        o["lead"] = Each(job["lead"], x => WriteUps.LeadArtistOf(x));
+        o["slug"] = Each(job["slug"], x => WriteUps.SlugifyForPitchfork(x));
+        o["title_base"] = Each(job["title_base"], x => WriteUps.WikiTitleBase(x));
+        o["loose"] = Each(job["pairs"], a => WriteUps.NamesEqualLoose(Arg(a, 0), Arg(a, 1)));
+        o["overlap"] = Each(job["pairs"], a => WriteUps.NamesOverlap(Arg(a, 0), Arg(a, 1)));
+        o["disambiguator"] = Each(job["title_base"], x => WriteUps.StripDisambiguator(x));
+        o["page_title"] = Each(job["page_titles"], a => WriteUps.AlbumPageTitleMatches(Arg(a, 0), Arg(a, 1)));
+        o["year"] = Each(job["years"], j => WriteUps.PickAlbumYear(j));
+        o["qobuz_pick"] = Each(job["qobuz_search"], a =>
+        {
+            if (WriteUps.QobuzPick(Str(Arg(a, 0)), Arg(a, 1), Arg(a, 2)) is not { } p) return null;
+            var x = new JsObj();
+            x["slug"] = p.Slug;
+            x["id"] = p.Id;
+            return x;
+        });
+        o["qobuz_page"] = Each(job["qobuz_pages"], a => WriteUps.QobuzAlbumPage(Str(Arg(a, 0)), Arg(a, 1), Arg(a, 2), Str(Arg(a, 3))));
+        o["extract"] = Each(job["extracts"], d => WriteUps.WikiExtractOf(d));
+        o["wiki_album"] = Each(job["wiki_albums"], a => WriteUps.WikiAlbumAccepts(Arg(a, 0), O(Arg(a, 1)), Arg(a, 2), Arg(a, 3)));
+        o["artist_primary"] = Each(job["artist_names"], n => WriteUps.WikiArtistPrimary(Str(n)));
+        o["artist_title"] = Each(job["artist_titles"], a => WriteUps.WikiArtistTitleOk(Arg(a, 0), Str(Arg(a, 1))));
+        o["artist_extract"] = Each(job["artist_extracts"], e => WriteUps.WikiArtistExtractOk(O(e)));
+        o["pf_parse"] = Each(job["pf_pages"], h =>
+        {
+            var (d, sc, bnm) = WriteUps.ParsePitchforkReviewHtml(Str(h));
+            var x = new JsObj();
+            x["description"] = d;
+            x["score"] = sc;
+            x["isBestNewMusic"] = bnm;
+            return x;
+        });
+        o["pf_primary"] = Each(job["pf_artists"], a => WriteUps.PitchforkPrimary(a));
+        o["pf_verdict"] = Each(job["pf_verdicts"], a => WriteUps.PitchforkVerdict(Str(Arg(a, 0)), Str(Arg(a, 1)), Str(Arg(a, 2))));
+        o["combine"] = Each(job["combines"], a => WriteUps.CombineBios(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
+        o["rss"] = Each(job["rss"], x => Items(PitchforkLists.ParseRss(Str(x))));
+        o["state"] = Each(job["listings"], h => PitchforkLists.ExtractPreloadedState(Str(h)));
+        o["listing"] = Each(job["listings"], h => Items(PitchforkLists.ListingItems(Str(h))));
+        o["from_url"] = Each(job["review_urls"], a => PitchforkLists.ArtistFromReviewUrl(Arg(a, 0), Arg(a, 1)));
+        o["item_out"] = Each(job["items"], x => PitchforkLists.ItemOut(O(x)));
+        o["newest"] = Each(job["sorts"], l => Items(PitchforkLists.NewestFirst(L(l).Select(O))));
+        o["match"] = Each(job["matches"], a => Items(PitchforkLists.Match(L(Arg(a, 0)).Select(O).ToList(), L(Arg(a, 1)).Select(O).ToList(), Arg(a, 2), (int)Js.ToNumber(Arg(a, 3)))));
+        o["canon"] = Each(job["canon"], x => WriteUps.Canon(x));
+        o["album_id"] = Each(job["album_ids"], a => WriteUps.PickAlbumId(Arg(a, 0), Str(Arg(a, 1)), Arg(a, 2), Arg(a, 3)));
+        return o;
+    }
 
     private static JsObj Share(JsObj job)
     {
