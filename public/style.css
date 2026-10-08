@@ -5179,6 +5179,8 @@ button.cap-chip:active { transform: scale(.96); }
 }
 .id-time:focus { outline: none; border-color: var(--accent); }
 .id-progress { font-size: 14px; line-height: 1.45; color: var(--text); font-variant-numeric: tabular-nums; }
+/* What hasn't come yet (v0.8.17): the place held, quietly. */
+.id-wait { color: var(--muted, var(--text)); opacity: .55; }
 .id-list { display: flex; flex-direction: column; gap: 6px; }
 .id-row {
   display: flex; align-items: center; gap: 10px;

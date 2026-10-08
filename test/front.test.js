@@ -24,7 +24,8 @@
  *     test/tag-reader-switch.test.js);
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
  *   - v0.8.16: hearts, Listen later, label merges and the label settings made by C#, the Node
- *     server told (test/library-front.test.js).
+ *     server told (test/library-front.test.js);
+ *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once).
  */
 const test = require("node:test");
 const assert = require("node:assert");

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.16
+# Mandarin — v0.8.17
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1111,7 +1111,8 @@ an iPhone or a laptop on Tailscale can browse the library but has nothing to pla
 everything is as before. Away, tracks stream as **Opus 256 kbps** by default (about a quarter
 of a CD-quality FLAC's data), made through a 64-bit float resample to Opus's 48 kHz and decoded
 on the phone by the app's own libopus; *Settings → Downloads → Stream as* in the app can send
-the original files instead. Albums you've downloaded play from the phone.
+the original files instead. Albums you've downloaded play from the phone. On a weak signal the
+track that's playing comes first: the tracks after it are fetched only once it has enough.
 
 **Set up once — Tailscale is built in:**
 

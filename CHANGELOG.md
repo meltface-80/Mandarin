@@ -5,6 +5,25 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.17
+A test build, from the `claude/v0.8.17` branch.
+
+- **Settings → Library Scanner opens at once.** The page's own words and switches are there the
+  moment it opens, with the numbers it showed last time, and each part fills in as soon as its own
+  answer comes. Nothing waits any more for GitHub (asked about the MusicBrainz pack in the
+  background) or for the lists of albums.
+- **Only what moves changes.** While the page is open, only the numbers that changed are redrawn;
+  the rest of the page stays still, and the lists of albums are fetched again only when their
+  counts change.
+- On a library of 164,000 tracks, the page's five-second refresh now asks for under 1 KB instead
+  of 725 KB, and the server makes the lists in a quarter of the time.
+- **Android: on a weak signal, the track that's playing comes first.** Away from home, the app
+  saves the next tracks to the phone as you listen. On a poor mobile signal those downloads shared
+  the connection with the track playing, so the music stopped every few seconds. Now they wait
+  until the playing track has 30 seconds in hand, and pause whenever it drops to 10 seconds or the
+  music has to wait. They carry on from where they stopped.
+- The Android app for this branch is at the same test address (0.8.17, version code 217).
+
 ## v0.8.16
 A test build, from the `claude/v0.8.16` branch: the sixteenth step in moving Mandarin's server to C#.
 

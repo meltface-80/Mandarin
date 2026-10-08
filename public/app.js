@@ -17947,11 +17947,26 @@ initServiceBrowser({
   const num = n => Number(n || 0).toLocaleString();
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+  let lists = null;      // the albums in each state, the first of each (v0.8.17): { proposed, …, counts, at }
   let tagcheck = null;   // the tag readers' check (v0.8.13)
   let cpu = null;        // how the processor is shared out (v0.8.13)
-  let pack = null, packChecked = false;   // the MusicBrainz pack (v0.6.4)
+  let pack = null;       // the MusicBrainz pack (v0.6.4)
   let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
   let matching = null, matchDraft = "";   // the row whose barcode box is open, and what's typed in it
+  // What the page showed last time (v0.8.17), on this device: drawn at once
+  // when it opens, then brought up to date block by block.
+  const KEPT = "mandarin.scanner.v1";
+  try {
+    const k = JSON.parse(localStorage.getItem(KEPT) || "null");
+    if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; tagcheck = k.tagcheck || null; cpu = k.cpu || null; pack = k.pack || null; }
+  } catch (e) { /* none kept */ }
+  let keepTimer = null;
+  const keep = () => {
+    clearTimeout(keepTimer);
+    keepTimer = setTimeout(() => {
+      try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, tagcheck, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
+    }, 1000);
+  };
 
   async function api(url, payload) {
     const r = await fetch(url, payload ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : { cache: "no-store" });
@@ -17959,19 +17974,40 @@ initServiceBrowser({
     if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
     return j;
   }
-  async function load() {
+  /*
+   * Each block's answer asked for on its own and drawn as it comes (v0.8.17):
+   * nothing waits for another, nor for GitHub (the pack is asked about in the
+   * server's own time). [opening]: the page has just been opened — the pack
+   * and the clean-up too, and the lists; otherwise only what moves, and the
+   * lists only when their counts did.
+   */
+  let listsAsked = null;
+  function load(opening) {
     if (busy) return;
-    try {
-      const [a, b, c, d, e, f] = await Promise.all([api("/api/identify"), api("/api/loudness").catch(() => null),
-        api("/api/identify/pack" + (packChecked ? "" : "?check=1")).catch(() => null), api("/api/library/cleanup").catch(() => null),
-        api("/api/tagcheck").catch(() => null), api("/api/cpu").catch(() => null)]);
-      cleanup = d;
-      tagcheck = e;
-      cpu = f;
-      st = a; loud = b; pack = c; packChecked = true; err = "";
+    const get = (url, set) => api(url).then(v => { set(v); keep(); }, e => { if (url.startsWith("/api/identify?")) err = e.message; })
+      .then(() => { if (!busy) render(); });
+    get("/api/identify?lists=0", v => { st = v; err = ""; if (opening || listsMoved()) loadLists(); });
+    get("/api/loudness", v => { loud = v; });
+    get("/api/tagcheck", v => { tagcheck = v; });
+    get("/api/cpu", v => { cpu = v; });
+    if (opening || ++quiet % 6 === 0) get("/api/library/cleanup", v => { cleanup = v; });
+    if (opening || (pack && pack.checking)) get("/api/identify/pack" + (opening ? "?check=1" : ""), v => {
+      pack = v;
       if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
-    } catch (e) { err = e.message; }
-    render();
+    });
+  }
+  let quiet = 0;
+  // The counts the lists were last asked for at: when the server's move, the lists are asked for again.
+  const countsOf = (x) => x && x.progress ? [x.progress.checked, x.progress.applied, x.progress.proposed, x.progress.unidentified, x.progress.rejected].join() : "";
+  const listsMoved = () => !lists || countsOf(st) !== listsAsked;
+  function loadLists() {
+    const wanted = countsOf(st);
+    const all = Object.values(more).some(Boolean);
+    api("/api/identify?lists=" + (all ? 500 : SHOW)).then(v => {
+      lists = { proposed: v.proposed || [], unidentified: v.unidentified || [], applied: v.applied || [], rejected: v.rejected || [], counts: v.counts || null, all };
+      listsAsked = countsOf(v) || wanted;
+      if (!busy) render();
+    }, () => {});
   }
   async function setMeasure(on) {
     if (busy) return;
@@ -18039,7 +18075,9 @@ initServiceBrowser({
     return html;
   }
   function packBlock() {
-    if (!pack) return "";
+    if (!pack) return '<div class="settings-divider"></div><div class="settings-block">' +
+      row("MusicBrainz pack" + info("Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."), "") +
+      '<div class="settings-note id-wait">…</div></div>';
     if (packBrowse) return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Where to keep the MusicBrainz pack</div>' + packBrowser() + "</div>";
     const have = pack.installed, job = pack.job, latest = pack.latest;
     let state, buttons = "";
@@ -18055,7 +18093,8 @@ initServiceBrowser({
     } else {
       const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
       state = latest ? "Not downloaded. A " + mbs(latest.gz_size) + " download that unpacks to " + mbs(latest.size) + " in the folder below." +
-        (tight ? ' <span class="away-error">Not enough room in this folder: choose another below.</span>' : "") : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
+        (tight ? ' <span class="away-error">Not enough room in this folder: choose another below.</span>' : "")
+        : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : "Not downloaded." + (pack.check_error ? " (" + esc(pack.check_error) + ")" : "");
       buttons = '<button type="button" class="id-btn is-primary" data-pack="download"' + (busy || !latest ? " disabled" : "") + ">Download</button>";
     }
     return '<div class="settings-divider"></div><div class="settings-block">' +
@@ -18073,7 +18112,12 @@ initServiceBrowser({
   async function act(url, payload, done) {
     if (busy) return;
     busy = true;
-    try { st = await api(url, payload || {}); err = ""; if (done) toast(done); }
+    render();
+    try {
+      st = await api(url, payload || {}); err = ""; if (done) toast(done);
+      if (st.proposed) { lists = { proposed: st.proposed, unidentified: st.unidentified, applied: st.applied, rejected: st.rejected, counts: st.counts || null, all: true }; listsAsked = countsOf(st); }
+      keep();
+    }
     catch (e) { err = e.message; }
     busy = false;
     render();
@@ -18144,61 +18188,75 @@ initServiceBrowser({
   }
 
   function section(kind, title, note) {
-    const list = st[kind] || [];
+    if (!lists || !st) return "";
+    const list = lists[kind] || [];
     if (!list.length) return "";
+    const count = lists.counts && lists.counts[kind] != null ? lists.counts[kind] : list.length;
     const shown = more[kind] ? list : list.slice(0, SHOW);
-    return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">' + title + " (" + num(list.length) + ")</div>" +
+    // All of them kept to 500 (100 applied or declined), as before.
+    const all = Math.min(count, kind === "applied" || kind === "rejected" ? 100 : 500);
+    return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">' + title + " (" + num(count) + ")</div>" +
       (note ? '<div class="settings-note" style="margin:0 0 10px">' + note + "</div>" : "") +
       '<div class="id-list">' + shown.map(it => albumRow(it, kind)).join("") + "</div>" +
-      (shown.length < list.length ? '<button type="button" class="dev-link id-more" data-id-more="' + kind + '">Show all ' + num(list.length) + "</button>" : "") + "</div>";
+      (shown.length < all ? '<button type="button" class="dev-link id-more" data-id-more="' + kind + '">Show all ' + num(count) + "</button>" : "") + "</div>";
   }
 
-  function render() {
-    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
-    const s = st.settings, p = st.progress;
-    let html = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
-        sw("data-id-set=\"enabled\"", s.enabled, "Identify albums")) +
+  /*
+   * The page as blocks (v0.8.17), laid out once: each is drawn from its own
+   * answer — or, until that comes, as it was last time, or as its fixed words
+   * with "…" for what moves — and redrawn only when what it shows changed, so
+   * the page doesn't flicker or jump, and a list keeps its place.
+   */
+  const BLOCKS = ["identify", "pack", "loudness", "schedule", "progress", "cleanup", "tagcheck", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
+  const drawn = {};
+  const wait = '<span class="id-wait">…</span>';
+  function blocks() {
+    const s = st ? st.settings : null, p = st ? st.progress : null;
+    const out = {};
+    out.identify = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
+        sw("data-id-set=\"enabled\"" + (s ? "" : " disabled"), s && s.enabled, "Identify albums")) +
       '<div class="settings-note">The right names for each album, from its files and MusicBrainz.</div>' +
       row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 95 % alike or better, as a MusicBrainz match is; anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
-        sw("data-id-set=\"itunes\"", s.itunes !== false, "Ask iTunes too")) +
+        sw("data-id-set=\"itunes\"" + (s ? "" : " disabled"), s && s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
-    html += packBlock();
+    out.pack = packBlock();
     // Measure ReplayGain: the server's loudness measuring (lib/loudness.js).
-    if (loud) {
-      const m = loud.settings || {};
-      html += '<div class="settings-divider"></div><div class="settings-block">' +
+    {
+      const m = (loud && loud.settings) || {};
+      out.loudness = '<div class="settings-divider"></div><div class="settings-block">' +
         row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — in the background, a file at a time on each core playback doesn’t keep, so Volume Levelling (Settings → Audio Devices → a device) can level them too. An album’s gain is worked out once all of its tracks are known. Your files are never changed."),
-          '<label class="switch"><input type="checkbox" data-ld-measure' + (m.measure ? " checked" : "") + (busy ? " disabled" : "") + ' aria-label="Measure ReplayGain"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
+          '<label class="switch"><input type="checkbox" data-ld-measure' + (m.measure ? " checked" : "") + (busy || !loud ? " disabled" : "") + ' aria-label="Measure ReplayGain"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
         '<div class="settings-note">Loudness for tracks without ReplayGain tags.</div>' +
-        '<div class="id-progress">' + num(loud.tagged) + " tagged · " + num(loud.measured) + " measured · " + num(loud.left) + " to measure" +
-          (loud.failed ? " · " + num(loud.failed) + " couldn’t be read" : "") + "</div>" +
-        (m.measure ? '<div class="settings-note">' + (loud.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
+        '<div class="id-progress">' + (loud ? num(loud.tagged) + " tagged · " + num(loud.measured) + " measured · " + num(loud.left) + " to measure" +
+          (loud.failed ? " · " + num(loud.failed) + " couldn’t be read" : "") : wait) + "</div>" +
+        (loud && m.measure ? '<div class="settings-note">' + (loud.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
     }
-    html += '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling" + info("On: the scan runs between the start and end times each night, on the server’s clock. Off: it runs whenever the library isn’t being scanned. About twelve albums a minute, one MusicBrainz request a second, until every album has been looked at; new albums are checked as they arrive."),
-      sw("data-id-set=\"schedule\"", s.schedule, "Scheduling"));
-    if (s.schedule) {
-      html += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
+    out.schedule = '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling" + info("On: the scan runs between the start and end times each night, on the server’s clock. Off: it runs whenever the library isn’t being scanned. About twelve albums a minute, one MusicBrainz request a second, until every album has been looked at; new albums are checked as they arrive."),
+      sw("data-id-set=\"schedule\"" + (s ? "" : " disabled"), s && s.schedule, "Scheduling"));
+    if (s && s.schedule) {
+      out.schedule += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
         row("End", '<input type="time" class="id-time" data-id-time="end" value="' + esc(s.end) + '"' + (busy ? " disabled" : "") + ' aria-label="End">') +
         '<div class="settings-note">Each night, on the server’s clock.</div>';
     } else {
-      html += '<div class="settings-note">Runs whenever the library isn’t being scanned.</div>';
+      out.schedule += '<div class="settings-note">' + (s ? "Runs whenever the library isn’t being scanned." : "…") + "</div>";
     }
-    html += "</div>";
-    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
-      '<div class="id-progress">' + num(p.checked) + " of " + num(p.eligible) + " albums checked · " + num(p.applied) + " applied · " + num(p.proposed) + " proposed · " + num(p.unidentified) + " unidentified</div>" +
-      '<div class="settings-note">' + status() + "</div>" +
-      ((p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +
+    out.schedule += "</div>";
+    out.progress = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
+      '<div class="id-progress">' + (p ? num(p.checked) + " of " + num(p.eligible) + " albums checked · " + num(p.applied) + " applied · " + num(p.proposed) + " proposed · " + num(p.unidentified) + " unidentified" : wait) + "</div>" +
+      '<div class="settings-note">' + (st ? status() : "…") + "</div>" +
+      (p && (p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +
       "</div>";
     // Clean up (v0.6.23): what could go, counted; only what you press goes.
-    if (cleanup) {
-      const f = cleanup.files || {}, qz = cleanup.qobuz || {}, td = cleanup.tidal || {};
-      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Clean up' +
+    {
+      const f = (cleanup && cleanup.files) || {}, qz = (cleanup && cleanup.qobuz) || {}, td = (cleanup && cleanup.tidal) || {};
+      const gone = (x, kind) => !cleanup ? wait : x.albums ? '<button type="button" class="settings-update-btn" data-cleanup="' + kind + '"' + (busy ? " disabled" : "") + ">Remove " + num(x.albums) + " album" + (x.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>';
+      out.cleanup = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Clean up' +
         info("Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it.") + "</div>" +
-        row("Files gone from the server", (f.albums ? '<button type="button" class="settings-update-btn" data-cleanup="files"' + (busy ? " disabled" : "") + ">Remove " + num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
-        '<div class="settings-note">' + (f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
-        row("Qobuz albums no longer wanted", (qz.albums ? '<button type="button" class="settings-update-btn" data-cleanup="qobuz"' + (busy ? " disabled" : "") + ">Remove " + num(qz.albums) + " album" + (qz.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
-        row("Tidal albums no longer wanted", (td.albums ? '<button type="button" class="settings-update-btn" data-cleanup="tidal"' + (busy ? " disabled" : "") + ">Remove " + num(td.albums) + " album" + (td.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note">Nothing to remove</span>')) +
-        '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
+        row("Files gone from the server", gone(f, "files")) +
+        '<div class="settings-note">' + (!cleanup ? "…" : f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
+        row("Qobuz albums no longer wanted", gone(qz, "qobuz")) +
+        row("Tidal albums no longer wanted", gone(td, "tidal")) +
+        '<div class="settings-note">' + (!cleanup ? "…" : qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
     // The tag readers' check (v0.8.13): the C# reader against this one, on every file.
     // About how long it has to go (v0.8.15), at its pace of the last few minutes.
@@ -18209,6 +18267,7 @@ initServiceBrowser({
       const h = Math.round(min / 60);
       return h === 1 ? "about an hour to go" : "about " + h + " hours to go";
     };
+    out.tagcheck = "";
     if (tagcheck && tagcheck.available) {
       const t = tagcheck;
       const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
@@ -18218,7 +18277,7 @@ initServiceBrowser({
       const reader = t.reader === "csharp" ? "The scanner now reads tags with the new reader."
         : odd ? "The scanner keeps the old reader until these are fixed."
         : "The scanner moves to the new reader once every file reads the same.";
-      html += '<div class="settings-divider"></div><div class="settings-block">' +
+      out.tagcheck = '<div class="settings-divider"></div><div class="settings-block">' +
         row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared, a few at a time on the cores playback doesn’t keep, more gently while something is playing. Once every file reads the same, the scanner reads tags with the new reader. The check starts again only when one of the readers changes. Nothing in your library changes. Copy the report and send it to the developer."),
           '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
         '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
@@ -18227,23 +18286,42 @@ initServiceBrowser({
         '<div class="settings-note">' + said + " " + reader + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
     }
     // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.
-    if (cpu && Array.isArray(cpu.cores)) {
+    {
       const cores = k => k + " core" + (k === 1 ? "" : "s");
-      html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Processor' +
+      const known = cpu && Array.isArray(cpu.cores);
+      out.cpu = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Processor' +
         info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain, the tag check and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
-        '<div class="id-progress">' + (cpu.split
+        '<div class="id-progress">' + (!known ? wait : cpu.split
           ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
           : cores(cpu.cores.length) + ", shared") + "</div>" +
-        '<div class="settings-note">' + (!cpu.split ? "Playback comes first by priority."
+        '<div class="settings-note">' + (!known ? "…" : !cpu.split ? "Playback comes first by priority."
           : cpu.raised ? "Playback also runs at a higher priority."
           : "To run playback at a higher priority too, start the container with --cap-add SYS_NICE.") + "</div></div>";
     }
-    html += section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
-    html += section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
-    html += section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
-    html += section("rejected", "Declined");
-    if (err && !packBrowse) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
-    body.innerHTML = html;
+    out.proposed = section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");
+    out.unidentified = section("unidentified", "Unidentified", "Nothing near enough was found. Tap the name, then ⋯ → Edit album to name it yourself.");
+    out.applied = section("applied", "Applied", "Names written by the scan. Undo puts back what the album had.");
+    out.rejected = section("rejected", "Declined");
+    out.error = err && !packBrowse ? '<div class="settings-note away-error">' + esc(err) + "</div>" : "";
+    return out;
+  }
+
+  function render() {
+    if (!body.querySelector("[data-blk]")) {
+      body.innerHTML = BLOCKS.map(b => '<div data-blk="' + b + '"></div>').join("");
+      for (const k of Object.keys(drawn)) delete drawn[k];
+    }
+    const html = blocks();
+    const typing = document.activeElement && document.activeElement.matches("input:not([type=checkbox]), textarea") ? document.activeElement : null;
+    for (const b of BLOCKS) {
+      if (drawn[b] === html[b]) continue;
+      const el = body.querySelector('[data-blk="' + b + '"]');
+      if (!el) continue;
+      // Never under the box you're typing in: that block is redrawn once you've left it.
+      if (typing && el.contains(typing)) continue;
+      el.innerHTML = html[b];
+      drawn[b] = html[b];
+    }
   }
 
   body.addEventListener("change", (e) => {
@@ -18310,11 +18388,11 @@ initServiceBrowser({
       return;
     }
     const m = e.target.closest("[data-id-more]");
-    if (m) { more[m.getAttribute("data-id-more")] = true; return render(); }
+    if (m) { more[m.getAttribute("data-id-more")] = true; if (lists && !lists.all) loadLists(); return render(); }
     const o = e.target.closest("[data-id-open]");
     if (o && window.__openAlbum) {
       const off = Number(o.getAttribute("data-id-open"));
-      const it = ["proposed", "unidentified", "applied", "rejected"].flatMap(k => st[k] || []).find(x => x.album.offset === off);
+      const it = ["proposed", "unidentified", "applied", "rejected"].flatMap(k => (lists && lists[k]) || []).find(x => x.album.offset === off);
       if (!it) return;
       const closer = document.querySelector("#settings-overlay [data-settings-close]");
       if (closer) closer.click();
@@ -18332,7 +18410,8 @@ initServiceBrowser({
     await act("/api/identify/match", { offset: off, query: q }, "Matched and applied");
     if (!err) { matching = null; matchDraft = ""; render(); }
   });
-  navItem.addEventListener("click", () => { packChecked = false; packBrowse = null; more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; load(); });
+  // Opened: drawn at once from what it showed last, then each block brought up to date (v0.8.17).
+  navItem.addEventListener("click", () => { packBrowse = null; more = { proposed: false, unidentified: false, applied: false, rejected: false }; matching = null; matchDraft = ""; render(); load(true); });
   // Progress moves while the pane is open (not while you're typing in it).
   setInterval(() => {
     if (pane.classList.contains("hidden") || busy || matching !== null || packBrowse) return;

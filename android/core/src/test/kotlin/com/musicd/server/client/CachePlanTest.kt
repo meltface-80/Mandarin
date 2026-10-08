@@ -1,7 +1,9 @@
 package com.musicd.server.client
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CachePlanTest {
@@ -19,6 +21,21 @@ class CachePlanTest {
         assertEquals(listOf("a", "c", "e"), CachePlan.toFetch(upcoming, 5) { it in cached })
         assertEquals(listOf("a"), CachePlan.toFetch(upcoming, 2) { it in cached })
         assertEquals(emptyList<String>(), CachePlan.toFetch(upcoming, 0) { false })
+    }
+
+    @Test fun thePlayingTrackFirst() {
+        // The player left waiting for data: the tracks ahead wait, whatever is held.
+        assertTrue(CachePlan.aheadWaits(false, true, true, 60_000))
+        assertTrue(CachePlan.aheadWaits(false, true, false, 0))
+        // Still fetching what plays, short of 30 s held: they wait; at 30 s, they go.
+        assertTrue(CachePlan.aheadWaits(true, false, true, 29_999))
+        assertFalse(CachePlan.aheadWaits(true, false, true, 30_000))
+        // On their way: they carry on down to 10 s held, then stop.
+        assertFalse(CachePlan.aheadWaits(false, false, true, 10_000))
+        assertTrue(CachePlan.aheadWaits(false, false, true, 9_999))
+        // The player fetching nothing (all it needs held, or nothing playing): they go.
+        assertFalse(CachePlan.aheadWaits(true, false, false, 0))
+        assertFalse(CachePlan.aheadWaits(false, false, false, 0))
     }
 
     @Test fun downloadsAndRepeatsAreLeftOut() {
