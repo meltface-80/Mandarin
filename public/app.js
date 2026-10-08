@@ -18201,6 +18201,14 @@ initServiceBrowser({
         '<div class="settings-note">' + (qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
     // The tag readers' check (v0.8.13): the C# reader against this one, on every file.
+    // About how long it has to go (v0.8.15), at its pace of the last few minutes.
+    const timeLeft = (ms) => {
+      const min = Math.round(ms / 60000);
+      if (min < 2) return "a minute or two to go";
+      if (min < 60) return "about " + min + " minutes to go";
+      const h = Math.round(min / 60);
+      return h === 1 ? "about an hour to go" : "about " + h + " hours to go";
+    };
     if (tagcheck && tagcheck.available) {
       const t = tagcheck;
       const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
@@ -18211,10 +18219,11 @@ initServiceBrowser({
         : odd ? "The scanner keeps the old reader until these are fixed."
         : "The scanner moves to the new reader once every file reads the same.";
       html += '<div class="settings-divider"></div><div class="settings-block">' +
-        row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared. Once every file reads the same, the scanner reads tags with the new reader, several files at a time on the cores playback doesn’t keep. After an update the check starts again, and the scanner waits for it. Nothing in your library changes. Copy the report and send it to the developer."),
+        row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared, a few at a time on the cores playback doesn’t keep, more gently while something is playing. Once every file reads the same, the scanner reads tags with the new reader. The check starts again only when one of the readers changes. Nothing in your library changes. Copy the report and send it to the developer."),
           '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
         '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
-          (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") + "</div>" +
+          (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") +
+          (t.time_left ? " · " + timeLeft(t.time_left) : "") + "</div>" +
         '<div class="settings-note">' + said + " " + reader + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
     }
     // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.

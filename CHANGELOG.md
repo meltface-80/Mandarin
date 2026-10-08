@@ -5,6 +5,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.15
+A test build, from the `claude/v0.8.15` branch.
+
+- **The tag reader check keeps what it has found when Mandarin updates.** It starts again only
+  when one of the two readers changes. Files already checked by v0.8.13 or v0.8.14 count, so this
+  update doesn't send the check back to the start.
+- **The check is quicker.** It reads a few files at a time, one on each core playback doesn't
+  keep, and no longer rests between batches. While something is playing it still goes gently.
+  - When the old reader stops on a file with several in hand, it reads those again one at a time
+    to find the file, as before.
+- **It shows about how long it has left**, in *Settings → Library Scanner → New tag reader check*.
+- The report says which two readers it compared.
+- The Android app for this branch is at the same test address (0.8.15, version code 215).
+
 ## v0.8.14
 A test build, from the `claude/v0.8.14` branch: the fourteenth step in moving Mandarin's server to C#.
 

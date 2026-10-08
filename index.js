@@ -184,7 +184,9 @@ function createServer(overrides = {}) {
     }
   };
   // The C# tag reader read beside this one on every file, and the two compared (v0.8.13).
-  ctx.tagcheck = new TagCheck({ db, dataDir: config.dataDir, scanner, version: pkg.version, log,
+  // Gently while anything plays (v0.8.15): a Sonos room, a renderer, a phone or a sound device here.
+  const playing = () => [...zones.state.values()].some(z => z && (z.state === "playing" || z.state === "loading"));
+  ctx.tagcheck = new TagCheck({ db, dataDir: config.dataDir, scanner, version: pkg.version, log, playing,
     enabled: config.tagcheck, delayMs: config.tagcheckDelayMs });
   // Started by the C# server: its conversions are made there (useFront, above).
   if (process.env.MANDARIN_FRONT_URL) useFront(process.env.MANDARIN_FRONT_URL);
