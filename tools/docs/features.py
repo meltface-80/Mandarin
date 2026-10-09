@@ -44,10 +44,12 @@ FEATURES = [
      "**☰ → Random albums** opens a shuffled wall."),
     ("shelf", "🗄️", "Shelf", True,
      "Flick through your collection as through a record shop's shelf: covers, spines or a carousel, "
-     "narrowed by genre and artist letter, or spun to land anywhere.",
+     "narrowed by genre, artist letter and decade, or spun to land anywhere.",
      "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
-     "case over. The bar at its foot plays, pauses and sets the volume."),
+     "case over, and hold a track on its back to choose tracks to play. The bar at its foot skips "
+     "back and forward, plays, pauses and sets the volume; the tabs at the edges fold the choices "
+     "away and bring in the queue."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",

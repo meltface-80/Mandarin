@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.26
+# Mandarin — v0.8.27
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -109,11 +109,11 @@ Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top b
 
 🗄️ **Shelf** — *new since v0.5.50*
 
-Flick through your collection as through a record shop's shelf: covers, spines or a carousel, narrowed by genre and artist letter, or spun to land anywhere.
+Flick through your collection as through a record shop's shelf: covers, spines or a carousel, narrowed by genre, artist letter and decade, or spun to land anywhere.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over. The bar at its foot plays, pauses and sets the volume.
+Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot skips back and forward, plays, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue.
 
 </details>
 

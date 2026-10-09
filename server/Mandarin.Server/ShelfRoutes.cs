@@ -91,6 +91,7 @@ internal static partial class Library
             var gi = perAlbum[i].Select(n => index[n]).Order().ToList();
             var b = ShelfBucket(al.SortArtist);
             var k = string.IsNullOrEmpty(al.ImageKey) ? null : al.ImageKey;
+            long? y = al.Year is long yr && yr != 0 ? yr : null;
             aOut.Add(new JsonObject
             {
                 ["o"] = al.Id,
@@ -98,10 +99,12 @@ internal static partial class Library
                 ["a"] = al.Artist,
                 ["k"] = k,
                 ["g"] = new JsonArray(gi.Select(x => (JsonNode)x).ToArray()),
-                ["b"] = b
+                ["b"] = b,
+                ["y"] = y
             });
             Add(string.Join("\u0001", al.Id.ToString(CultureInfo.InvariantCulture), al.Title, al.Artist, k ?? "",
-                string.Join(",", gi.Select(x => x.ToString(CultureInfo.InvariantCulture))), b) + "\u0002");
+                string.Join(",", gi.Select(x => x.ToString(CultureInfo.InvariantCulture))), b,
+                y?.ToString(CultureInfo.InvariantCulture) ?? "") + "\u0002");
         }
         var sig = Convert.ToHexStringLower(sha.GetHashAndReset())[..16];
         return new ShelfAnswer(gOut, aOut, albums.Count, sig);
