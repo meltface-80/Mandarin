@@ -250,6 +250,8 @@ internal static partial class Library
             if (j == null) return null;
             // Which cores playback keeps (lib/cpu.js): kept to here too.
             Cpu.Follow(j["cpu"]);
+            // Its version: everything passed to it while it isn't this one's (Front.cs, v0.8.25).
+            Front.NodeSays(JsString(j["app_version"]));
             // A Node server started again is told again what's made here (Jobs.cs).
             Jobs.Seen(JsString(j["boot"]) ?? "");
             var labels = j["labels"] as JsonObject;
@@ -268,6 +270,9 @@ internal static partial class Library
             return null;
         }
     }
+
+    /* The Node server asked how it is (its version among it), before anything is answered (Program.cs). */
+    public static async Task Ask() => await State();
 
     /* The current copy, for the covers (Images.cs); null when the Node server can't say. */
     public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;

@@ -5,6 +5,40 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.25
+A test build, from the `stage0-csharp-updates` branch: stage 0 of the plan for the rest of the move
+to C# (`docs/specs/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring
+Mandarin's C# server too.
+
+- **Updating from Settings now updates the C# server as well.** Until now an update from the app
+  brought the Node server's files only; the C# server came only with a new Docker image, so it
+  could be left several versions behind. That's why v0.8.24's ReplayGain fix needed `docker pull`.
+  - Each release now carries the C# server for x64 and ARM64, with their SHA-256 sums.
+  - Once an update is running, the server sees that the C# server in front of it is another
+    version. It fetches the right one for your machine, checks its sum and that it runs and says
+    the right version, puts it in place, and restarts once more with it.
+  - From this version on, the C# server restarts itself in place. The first time, the C# server
+    in your image (older than this) can't, so it stops and Docker's restart policy starts the
+    container again: `--restart unless-stopped` in the README's `docker run`, or
+    `restart: unless-stopped` in `docker-compose.yml`. Without one, start it again yourself
+    (`docker start musicd-server`).
+  - It's tried twice at most for a version, so a C# server that won't start can't keep the server
+    restarting. If GitHub can't be reached, it's tried again every half hour, six times at most.
+    Settings shows the C# server's version beside Mandarin's while it isn't the same.
+- **Never answered the old way.** While the two servers are different versions, the C# server
+  answers nothing but its own `/server-info` and passes everything to the Node server, which has
+  every part. The background work it would take over (identification, loudness, labels, Smart
+  Picks and the rest) stays with the Node server until the matching C# server is running.
+  Built-in Tailscale is the exception: if the C# server already runs its engine, it is left
+  running, and the Node server doesn't start a second one on the same folder.
+- `mandarin-server --version` says its version. `/api/health` and the update status say which C#
+  server is in front, and whether it matches.
+- On a Mac nothing changes: the Mac runs the Node server alone, and in-app updates are all it needs.
+- Turn it off with `MANDARIN_SERVER_UPDATE=0`.
+- New test: `test/csharp-update.test.js`. GitHub and the C# server in front are stood in for; the
+  C# server's own part, starting itself again in the same process, is run for real.
+- The Android app for this version is 0.8.25 (version code 225). Nothing in it changed.
+
 ## v0.8.24
 A test build, from the `replaygain-fix` branch: Measure ReplayGain fixed, and run by the schedule,
 after identification.

@@ -13,6 +13,57 @@ internal static partial class Front
 {
     private static readonly object logLock = new();
 
+    // ------------------------------------------------------------ the two versions (v0.8.25)
+    //
+    // An update from Settings used to bring the Node server's files only, so an
+    // older C# server could be left in front of a newer Node server. Now the Node
+    // server puts the C# server of its own version in place and asks for this one
+    // to start again (lib/server/csharp-update.js, code 76 below). Until the two
+    // match, nothing is answered here: everything goes to the Node server, which
+    // has every part, and its background work stays with it (Jobs.cs).
+
+    /* This program's version (Program.cs). */
+    public static string Version = "0.0.0";
+    private static volatile string? nodeVersion;
+
+    /* The Node server's version, as it says with its state (Library.cs). */
+    public static void NodeSays(string? v)
+    {
+        var was = nodeVersion;
+        nodeVersion = v ?? "";
+        if (was == nodeVersion) return;
+        if (Matched) { if (was != null) Log($"[server] the Node server is {Version} too: answered here again"); }
+        else Log($"[server] the Node server is {(nodeVersion.Length > 0 ? nodeVersion : "of an older version")}, this one {Version}: everything passed to it until they match");
+    }
+
+    /* Both of the same version: this server answers its share. */
+    public static bool Matched => nodeVersion == Version;
+
+    /* The Node server's word for "start this program again" (lib/server/csharp-update.js). */
+    public const int StartAgainCode = 76;
+
+    [LibraryImport("libc", EntryPoint = "execv", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int Execv(string path, string?[] argv);
+
+    /*
+     * This program started again in this same process, from its file as it is
+     * now (a newer one put in its place), with the same arguments: nothing
+     * outside (Docker, tini, launchd) has to notice. Returns only if it couldn't.
+     */
+    public static void StartAgain(string[] args)
+    {
+        if (OperatingSystem.IsWindows() || Environment.ProcessPath is not { Length: > 0 } self) return;
+        Log($"[server] starting again from {self}");
+        var argv = new string?[args.Length + 2];
+        argv[0] = self;
+        args.CopyTo(argv, 1);
+        argv[^1] = null;
+        Console.Out.Flush();
+        Console.Error.Flush();
+        Execv(self, argv);
+        Log($"[server] couldn't start again (error {Marshal.GetLastPInvokeError()})");
+    }
+
     // Stamped as the Node server stamps its lines.
     public static void Log(string s)
     {

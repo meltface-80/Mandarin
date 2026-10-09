@@ -40,7 +40,10 @@
  *   - v0.8.22: backup & restore, built-in Tailscale, Dynamic Playlists saved and deleted, the tag
  *     filter, the album editor (its cover search too) and covers drawn from an album's own picture,
  *     by C# (test/backup-csharp.test.js, test/artfind-csharp.test.js; the backup, Tailscale, playlist,
- *     end-to-end and library tests in this mode).
+ *     end-to-end and library tests in this mode);
+ *   - v0.8.25: nothing new answered by C#. In front of a Node server of another version (an update
+ *     from Settings half done) C# answers nothing but /server-info and its work stays with Node,
+ *     until the matching C# server, fetched by Node, starts itself again (test/csharp-update.test.js).
  */
 const test = require("node:test");
 const assert = require("node:assert");

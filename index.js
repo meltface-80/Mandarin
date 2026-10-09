@@ -380,6 +380,14 @@ function createServer(overrides = {}) {
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
+    // A C# server of another version (an older image under files updated from
+    // Settings): its background work is made here, the new way, until the C#
+    // server of this version is in place (lib/server/csharp-update.js, v0.8.25).
+    if (b.version !== pkg.version) {
+      log(`[musicd] the C# server is ${b.version || "of an older version"}, this one ${pkg.version}: its background work made here`);
+      if (ctx.ownWork) ctx.ownWork();
+      return res.status(409).json({ ok: false, version: pkg.version });
+    }
     const jobs = new Set([].concat(b.jobs || []).map(String).filter(j => FRONT_JOBS.includes(j)));
     if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
     if (jobs.has("identify")) await ctx.identifier.handOver();
@@ -441,6 +449,8 @@ function createServer(overrides = {}) {
     res.set("Cache-Control", "no-store");
     res.json({
       boot: ctx.bootId, version: library.version, marks: library.marks,
+      // This server's own version: the C# server passes everything on while it isn't its (v0.8.25).
+      app_version: pkg.version,
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
       // A scan running now: the identification scan waits for it (v0.8.19).
       scanning: !!scanner.state.running,
@@ -575,7 +585,9 @@ function createServer(overrides = {}) {
   app.get("/api/health", (req, res) => res.json({
     ok: true, version: pkg.version, albums: library.count, rooms: zones.topology.rooms().length,
     ffmpeg: FF.info().ok, soxr: FF.info().soxr, transcode_cache: transcoder.cacheStats(),
-    audio_engine: (() => { const e = require("./lib/local/engine").engine({ dataDir: config.dataDir }); return e ? e.version : null; })()
+    audio_engine: (() => { const e = require("./lib/local/engine").engine({ dataDir: config.dataDir }); return e ? e.version : null; })(),
+    // The C# server in front, and whether it is this one's version (v0.8.25).
+    csharp: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null
   }));
   app.use("/api", (req, res) => res.status(404).json({ error: `No such endpoint: ${req.method} ${req.path}` }));
 
@@ -668,20 +680,39 @@ function createServer(overrides = {}) {
       if (!skip.has("loudness")) ctx.loudness.start();
     };
     startOwn(frontRuns);
+    // The C# server's share made here after all: it never asked, or is of another version (v0.8.25).
+    let ownStarted = false;
+    ctx.ownWork = () => {
+      if (ownStarted || !frontRuns.size || ctx.frontRuns) return;
+      ownStarted = true;
+      if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
+      ctx.frontRunsAsked = new Set();
+      startOwn(new Set());
+      // Tailscale's engine left to the C# server while it still runs one for this folder.
+      if (frontRuns.has("tailscale")) ctx.tailscale.startUnlessElsewhere().catch(e => log("[tailscale] " + e.message));
+      // What followed a library scan while this one waited: made now.
+      if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
+      if (frontRuns.has("taste")) features.kickSmartPicks();
+    };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {
         ctx.frontRunsWait = null;
         log("[musicd] the C# server didn't take over its share of the background work; made here");
-        startOwn(new Set());
-        if (frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
-        // What followed a library scan while this one waited: made now.
-        if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
-        if (frontRuns.has("taste")) features.kickSmartPicks();
+        ctx.ownWork();
       }, 120000);
       ctx.frontRunsWait.unref();
     }
     ctx.tagcheck.start();
     features.wire();
+    // Started by a C# server of another version: the one of this version put in
+    // its place, and everything started again with it (v0.8.25).
+    const [owner, repo] = (process.env.UPDATE_REPO || "meltface-80/Mandarin").split("/");
+    ctx.csharpUpdate = require("./lib/server/csharp-update").createCsharpUpdate({
+      version: pkg.version, dataDir: config.dataDir, appDir: __dirname, log, owner, repo,
+      token: process.env.GITHUB_TOKEN || null, env: config.csharpUpdateEnv || process.env,
+      stop: () => stop(), exit: config.exitProcess
+    });
+    ctx.csharpUpdate.run().catch(e => log(`[update] the C# server: ${e.message}`));
     // On your tailnet by itself, once signed in (Settings → Away from home);
     // by the C# server, when it runs it (v0.8.22).
     if (!frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
@@ -725,6 +756,7 @@ function createServer(overrides = {}) {
   }
 
   async function stop() {
+    if (ctx.csharpUpdate) ctx.csharpUpdate.stop();
     for (const id of SERVICES.IDS) await ctx.services[id].stop().catch(() => {});
     zones.stop();
     ctx.devices.stop();

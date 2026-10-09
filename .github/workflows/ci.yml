@@ -87,6 +87,8 @@ jobs:
           V=$(node -p "require('./package.json').version")
           curl -fs localhost:3500/api/health | grep -q "\"audio_engine\":\"$V\""
           docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
+          # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
+          test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
           # Measure ReplayGain works with the image's own ffmpeg: its options, as
           # the servers ask, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
           F=$(sed -n 's/^const FILTER = "\(.*\)";$/\1/p' lib/loudness.js)

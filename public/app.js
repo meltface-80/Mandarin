@@ -13323,6 +13323,8 @@ window.__musicdAppUpd = (function () {
   if (zoneSelect) zoneSelect.addEventListener("change", () => loadRadio());
 
   let versionLoaded = false;
+  // Still settling: asked again the next time Settings opens.
+  const going = cs => !!(cs && cs.matched === false && ["asking", "fetching", "downloading", "restarting"].includes(cs.phase));
   async function loadVersion() {
     if (versionLoaded || !versionEl) return;
     try {
@@ -13334,7 +13336,15 @@ window.__musicdAppUpd = (function () {
           versionEl.textContent = parts.length >= 3
             ? "Mandarin v" + parts[0] + "." + parts[1] + " (Build " + parts[2] + ")"
             : "Mandarin v" + s.current;
-          versionLoaded = true;
+          // The C# server in front of another version (v0.8.25): being brought
+          // up to this one, or (couldn't be) to be brought by a new image.
+          const cs = s.csharp;
+          if (cs && cs.version && cs.matched === false) {
+            versionEl.textContent += going(cs) ? " · bringing its C# server up to date"
+              : " · C# server v" + cs.version + (s.is_docker ? " (pull the image again to update it)" : "");
+            versionEl.title = cs.error || "";
+          }
+          versionLoaded = !going(cs);
         }
       }
     } catch (e) {} // network error loading version — settings panel shows without version, non-critical

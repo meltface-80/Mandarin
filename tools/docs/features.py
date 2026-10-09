@@ -277,7 +277,7 @@ FEATURES = [
      "The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app "
      "one Update does the server first, then the app.",
      "**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts "
-     "itself in a few seconds; in the app, Android's installer then asks."),
+     "itself in a few seconds, and again once its C# server is brought up to the same version; in the app, Android's installer then asks."),
 ]
 
 MAX_WORDS = 30
