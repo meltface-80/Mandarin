@@ -114,7 +114,7 @@ internal static class Jobs
         var mb = new PackFirst(new MusicBrainz(Text(cfg["musicbrainz_url"]), version), () => packs.Get());
         var itunes = new ITunes(Text(cfg["itunes_url"]), version, Log);
         Identify = new Identifier(mb, itunes, () => packs.Get(), Log, Int(cfg["identify_tick_ms"], 5000)) { Ready = () => Held };
-        Loudness = new Loudness(Log, Int(cfg["loudness_tick_ms"], 5000)) { Ready = () => Held };
+        Loudness = new Loudness(Log, Int(cfg["loudness_tick_ms"], 5000)) { Ready = () => Held, Identify = () => Identify };
         // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
         // itself (no pack), Discogs, FanArt.tv and Deezer where the Node server says.
         var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);

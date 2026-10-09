@@ -18484,6 +18484,34 @@ initServiceBrowser({
     }
   }
 
+  // Measure ReplayGain's own line (v0.8.24): why it is or isn't measuring.
+  const albumNames = c => (c ? names({ artist: c.subtitle, title: c.title }) : "…");
+  function loudStatus() {
+    const start = st && st.settings ? esc(st.settings.start) : "the start time";
+    switch (loud && loud.reason) {
+      case "waiting": return "Waits for " + start + " (the server's clock).";
+      case "scanning": return "Paused while the library is being scanned.";
+      case "identifying": return "Waits for identification to look at the next albums.";
+      case "measuring": return "Measuring: " + albumNames(loud.current);
+      case "done": return "Every track is known. New ones are measured as they arrive.";
+      default: return "";
+    }
+  }
+
+  // The schedule's "now": what is running, or why nothing is.
+  function nowLine() {
+    const parts = [];
+    if (st.reason === "checking") parts.push("Identifying " + (st.current ? names(st.current) : "…"));
+    else if (st.reason === "starting") parts.push("Identifying the next album");
+    else if (st.reason === "pack") parts.push("Matching from the MusicBrainz pack");
+    if (loud && loud.reason === "measuring") parts.push("Measuring " + albumNames(loud.current));
+    if (parts.length) return "Now: " + parts.join(" · ");
+    if (st.reason === "waiting" || (loud && loud.reason === "waiting")) return "Now: waiting for " + esc(st.settings.start) + ".";
+    if (st.reason === "scanning" || (loud && loud.reason === "scanning")) return "Now: waiting while the library is scanned.";
+    if (st.reason === "unreachable") return "Now: MusicBrainz isn't answering; trying again in a few minutes.";
+    return "Now: nothing to do.";
+  }
+
   // The pressing you have, as MusicBrainz sets it apart from the album:
   // "2015 remaster · released 2015" under a 1988 record.
   const version = c => {
@@ -18546,41 +18574,47 @@ initServiceBrowser({
    * with "…" for what moves — and redrawn only when what it shows changed, so
    * the page doesn't flicker or jump, and a list keeps its place.
    */
-  const BLOCKS = ["identify", "pack", "loudness", "schedule", "progress", "cleanup", "tagcheck", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
+  // The schedule first (v0.8.24), then what it runs, in the order it runs it:
+  // identification (with the pack and its progress), then ReplayGain.
+  const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "tagcheck", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
   const drawn = {};
   const wait = '<span class="id-wait">…</span>';
   function blocks() {
     const s = st ? st.settings : null, p = st ? st.progress : null;
     const out = {};
-    out.identify = '<div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
+    out.identify = '<div class="settings-divider"></div><div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
         sw("data-id-set=\"enabled\"" + (s ? "" : " disabled"), s && s.enabled, "Identify albums")) +
       '<div class="settings-note">The right names for each album, from its files and MusicBrainz.</div>' +
       row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 95 % alike or better, as a MusicBrainz match is; anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
         sw("data-id-set=\"itunes\"" + (s ? "" : " disabled"), s && s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
     out.pack = packBlock();
-    // Measure ReplayGain: the server's loudness measuring (lib/loudness.js).
+    // Measure ReplayGain: the server's loudness measuring (lib/loudness.js),
+    // in the schedule's hours, after identification (v0.8.24).
     {
       const m = (loud && loud.settings) || {};
       out.loudness = '<div class="settings-divider"></div><div class="settings-block">' +
-        row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — in the background, a file at a time on each core playback doesn’t keep, so Volume Levelling (Settings → Audio Devices → a device) can level them too. An album’s gain is worked out once all of its tracks are known. Your files are never changed."),
+        row("Measure ReplayGain" + info("Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — so Volume Levelling (Settings → Audio Devices → a device) can level them too. It keeps to the schedule above: album by album, newest first, each once identification has looked at it, on the cores playback doesn’t keep. An album’s gain is worked out once all of its tracks are known. Qobuz and Tidal tracks aren’t measured. Your files are never changed."),
           '<label class="switch"><input type="checkbox" data-ld-measure' + (m.measure ? " checked" : "") + (busy || !loud ? " disabled" : "") + ' aria-label="Measure ReplayGain"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
-        '<div class="settings-note">Loudness for tracks without ReplayGain tags.</div>' +
+        '<div class="settings-note">Loudness for your files without ReplayGain tags.</div>' +
         '<div class="id-progress">' + (loud ? num(loud.tagged) + " tagged · " + num(loud.measured) + " measured · " + num(loud.left) + " to measure" +
           (loud.failed ? " · " + num(loud.failed) + " couldn’t be read" : "") : wait) + "</div>" +
-        (loud && m.measure ? '<div class="settings-note">' + (loud.measuring ? "Measuring…" : "Every track is known.") + "</div>" : "") + "</div>";
+        (loud && loud.streamed ? '<div class="settings-note">' + num(loud.streamed) + " Qobuz and Tidal track" + (loud.streamed === 1 ? "" : "s") + " aren’t measured.</div>" : "") +
+        (loud && m.measure ? '<div class="settings-note">' + loudStatus() + "</div>" : "") + "</div>";
     }
-    out.schedule = '<div class="settings-divider"></div><div class="settings-block">' + row("Scheduling" + info("On: the scan runs between the start and end times each night, on the server’s clock. Off: it runs whenever the library isn’t being scanned. About twelve albums a minute, one MusicBrainz request a second, until every album has been looked at; new albums are checked as they arrive."),
+    // The schedule (v0.8.24): when identification and ReplayGain run, and
+    // what is happening now. The library scan itself isn't scheduled.
+    out.schedule = '<div class="settings-block"><div class="settings-block-title">Schedule</div>' + row("Scheduling" + info("When identification and Measure ReplayGain run, in that order: an album is measured once identification has looked at it. On: between the start and end times each night, on the server’s clock, and not at all outside them. Off: whenever the library isn’t being scanned, until every album is done. Either way both wait while the library scan runs; the scan itself isn’t scheduled, so new music shows up as it arrives. Identification looks at about twelve albums a minute, one MusicBrainz request a second."),
       sw("data-id-set=\"schedule\"" + (s ? "" : " disabled"), s && s.schedule, "Scheduling"));
     if (s && s.schedule) {
       out.schedule += row("Start", '<input type="time" class="id-time" data-id-time="start" value="' + esc(s.start) + '"' + (busy ? " disabled" : "") + ' aria-label="Start">') +
         row("End", '<input type="time" class="id-time" data-id-time="end" value="' + esc(s.end) + '"' + (busy ? " disabled" : "") + ' aria-label="End">') +
-        '<div class="settings-note">Each night, on the server’s clock.</div>';
+        '<div class="settings-note">Each night, on the server’s clock: identification, then ReplayGain.</div>';
     } else {
-      out.schedule += '<div class="settings-note">' + (s ? "Runs whenever the library isn’t being scanned." : "…") + "</div>";
+      out.schedule += '<div class="settings-note">' + (s ? "Identification, then ReplayGain, whenever the library isn’t being scanned, until done." : "…") + "</div>";
     }
-    out.schedule += "</div>";
-    out.progress = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Progress</div>' +
+    out.schedule += '<div class="id-progress" data-sched-now>' + (st ? nowLine() : wait) + "</div></div>";
+    out.progress = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Identification progress</div>' +
       '<div class="id-progress">' + (p ? num(p.checked) + " of " + num(p.eligible) + " albums checked · " + num(p.applied) + " applied · " + num(p.proposed) + " proposed · " + num(p.unidentified) + " unidentified" : wait) + "</div>" +
       '<div class="settings-note">' + (st ? status() : "…") + "</div>" +
       (p && (p.proposed || p.unidentified) ? '<div class="settings-row" style="margin-top:12px"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-id-recheck-all' + (busy ? " disabled" : "") + ">Check the proposed and unidentified again</button></div>" : "") +

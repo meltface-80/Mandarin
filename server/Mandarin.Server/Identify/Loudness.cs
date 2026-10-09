@@ -1,9 +1,21 @@
 // Loudness.cs — measuring loudness (v0.8.19): the measuring half of
 // lib/loudness.js, rule for rule. Files without ReplayGain tags are measured
 // (EBU R128 integrated loudness and true peak, by ffmpeg's ebur128 filter)
-// when "Measure loudness" is on, in the background: a file at a time on each
+// when "Measure ReplayGain" is on, in the background: a file at a time on each
 // core playback doesn't keep, at the lowest priority. What's measured goes
 // into track_loudness, which the Node server reads for each track's gain.
+//
+// When, and in what order (v0.8.24):
+//   - the hours are the identification scan's: with Scheduling on, only
+//     between its start and end times; with it off, whenever, until done;
+//   - never while the library scan is running;
+//   - album by album, newest additions first, so each album's gain is known
+//     as soon as can be; an album once the identification scan has looked at
+//     it, while that scan is working through the library — the scan first,
+//     then the measuring. When it isn't (switched off, done, MusicBrainz not
+//     answering), any album.
+// Qobuz and Tidal tracks (qobuz://, tidal://) have no file here and are never
+// measured, nor counted as waiting to be.
 //
 // The gains themselves (which one a device gets, the album's from its tracks)
 // stay with the Node server, which plays.
@@ -21,13 +33,24 @@ using Js = Mandarin.Server.Tags.Js;
 
 internal sealed partial class Loudness(Action<string> log, int tickMs)
 {
+    // ffmpeg's ebur128, the frames' own lines at "verbose" (not shown at
+    // ffmpeg's usual level), the summary at "info": what is read. Not
+    // framelog=quiet, which ffmpeg 5.1 — Debian 12's, the image's — doesn't
+    // know: every file failed there (v0.8.24). lib/loudness.js has the same.
+    public const string Filter = "ebur128=peak=true:framelog=verbose";
+
     private readonly object gate = new();
     private readonly Dictionary<double, Process?> jobs = [];   // track id → its ffmpeg, being measured now
+    private readonly Queue<(double Id, string Path)> queue = new();   // the album being measured: its tracks not started yet
+    private JsObj? current;                                    // that album: { offset, title, subtitle }
+    private string idle = "";                                  // why nothing was started last time: "identifying", "done", or ""
     private Timer? timer;
     private int ticking;
 
     /* While the C# server doesn't hold the work (the Node server restarting): nothing is started. */
     public Func<bool> Ready = () => true;
+    /* The identification scan, whose hours and order the measuring keeps to. */
+    public Func<Identifier?> Identify = () => null;
 
     private static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -71,16 +94,43 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         return s;
     }
 
+    // ------------------------------------------------------------ when
+
+    /* Inside the hours (Scheduling off: always). */
+    public static bool InHours()
+    {
+        var s = Identifier.Stored();
+        return !Js.Truthy(s["schedule"]) || Identifier.InWindow(s);
+    }
+
+    /*
+     * Files that failed before v0.8.24 failed because of ffmpeg's options, not
+     * themselves (Filter, above): measured again, once. lib/loudness.js does
+     * the same, under the same flag, so whichever server measures does it.
+     */
+    private static void RetryOnce()
+    {
+        using var c = Db.Open();
+        using var get = c.CreateCommand();
+        get.CommandText = "SELECT value FROM settings WHERE key = 'loudnessRetried'";
+        if (get.ExecuteScalar() is string) return;
+        using var tx = c.BeginTransaction();
+        using (var del = c.CreateCommand()) { del.Transaction = tx; del.CommandText = "DELETE FROM track_loudness WHERE lufs IS NULL"; del.ExecuteNonQuery(); }
+        using (var put = c.CreateCommand()) { put.Transaction = tx; put.CommandText = "INSERT OR REPLACE INTO settings(key, value) VALUES('loudnessRetried', '1')"; put.ExecuteNonQuery(); }
+        tx.Commit();
+    }
+
     // ------------------------------------------------------------ measuring
 
     public void Start()
     {
+        try { RetryOnce(); } catch (Exception e) { log($"[loudness] {e.GetType().Name}: {e.Message}"); }
         lock (gate)
         {
             if (timer != null || !Js.Truthy(Settings()["measure"])) return;
-            timer = new Timer(_ => Tick(), null, tickMs, tickMs);
+            timer = new Timer(_ => { _ = Tick(); }, null, tickMs, tickMs);
         }
-        ThreadPool.QueueUserWorkItem(_ => Tick());
+        ThreadPool.QueueUserWorkItem(_ => { _ = Tick(); });
     }
 
     public void Stop()
@@ -89,6 +139,8 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         {
             timer?.Dispose();
             timer = null;
+            queue.Clear();
+            current = null;
             foreach (var p in jobs.Values)
             {
                 try { p?.Kill(); } catch (Exception) { /* gone */ }
@@ -99,38 +151,118 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
     private bool On { get { lock (gate) return timer != null; } }
 
     /* As many files at once as there are cores for the rest (fewer while DSP has playback's second). */
-    private void Tick()
+    private async Task Tick()
     {
         if (!Ready() || Interlocked.Exchange(ref ticking, 1) == 1) return;
         try
         {
+            lock (gate) if (timer == null || jobs.Count >= Cpu.Slots) return;
+            // Outside the hours, or while the library is scanned: nothing new starts,
+            // and the album under way is chosen again when it may (a scan may have
+            // changed its tracks meanwhile).
+            var cur = InHours() ? await Library.CurrentState() : null;
+            if (cur is not var (lib, st) || st.Scanning)
+            {
+                lock (gate) queue.Clear();
+                return;
+            }
             while (true)
             {
-                string busy;
+                (double Id, string Path) next;
                 lock (gate)
                 {
                     if (timer == null || jobs.Count >= Cpu.Slots) return;
-                    busy = "[" + string.Join(",", jobs.Keys.Select(Js.Num)) + "]";
+                    if (queue.Count == 0) next = (-1, "");
+                    else next = queue.Dequeue();
                 }
-                object?[]? row;
-                using (var c = Db.Open())
+                if (next.Id < 0)
                 {
-                    using var cmd = c.CreateCommand();
-                    cmd.CommandText = @"SELECT t.id, t.path FROM tracks t LEFT JOIN track_loudness l ON l.track_id = t.id
-                        WHERE t.rg_track_gain IS NULL AND l.track_id IS NULL AND t.path NOT LIKE '%://%'
-                        AND t.id NOT IN (SELECT value FROM json_each($1)) ORDER BY t.id LIMIT 1";
-                    cmd.Parameters.AddWithValue("$1", busy);
-                    using var r = cmd.ExecuteReader();
-                    row = r.Read() ? [Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture), r.IsDBNull(1) ? "" : r.GetString(1)] : null;
+                    if (!NextAlbum(lib, st)) return;
+                    continue;
                 }
-                if (row == null) return;
-                var id = (double)row[0]!;
-                lock (gate) jobs[id] = null;
-                _ = Run(id, (string)row[1]!);
+                lock (gate)
+                {
+                    if (jobs.ContainsKey(next.Id)) continue;
+                    jobs[next.Id] = null;
+                }
+                _ = Run(next.Id, next.Path);
             }
         }
         catch (Exception e) { log($"[loudness] {e.GetType().Name}: {e.Message}"); }
         finally { Interlocked.Exchange(ref ticking, 0); }
+    }
+
+    private const string Waiting = "t.rg_track_gain IS NULL AND l.track_id IS NULL AND t.path NOT LIKE '%://%'";
+
+    /*
+     * The next album to measure, its tracks queued: newest additions first;
+     * while the identification scan is working through the library, only an
+     * album it has looked at (or won't). False when there is none to start.
+     */
+    private bool NextAlbum(Snapshot lib, LibState st)
+    {
+        var pending = new List<double?>();
+        double[] busy;
+        lock (gate) busy = [.. jobs.Keys];
+        using var c = Db.Open();
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = $"SELECT DISTINCT t.album_id FROM tracks t LEFT JOIN track_loudness l ON l.track_id = t.id WHERE {Waiting} AND t.id NOT IN (SELECT value FROM json_each($1))";
+            cmd.Parameters.AddWithValue("$1", "[" + string.Join(",", busy.Select(Js.Num)) + "]");
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) pending.Add(r.IsDBNull(0) ? null : Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture));
+        }
+        if (pending.Count == 0) { idle = "done"; return false; }
+
+        // The identification scan at work: an album waits for it, unless the scan
+        // won't look at it (too few tracks, edited by hand) or already has.
+        Func<Album, bool> ready = _ => true;
+        var idf = Identify();
+        if (idf != null && idf.Running && Js.Truthy(idf.Settings()["enabled"]) && Js.Str(idf.State(lib, st)["reason"]) is "checking" or "starting")
+        {
+            var rows = Identifier.AllRows(c);
+            var eligible = new HashSet<long>(Identifier.Eligible(lib).Select(a => a.Id));
+            ready = al => !eligible.Contains(al.Id) || rows.ContainsKey(al.Key) || al.Edited;
+        }
+        double? pick = null;
+        Album? pickAl = null;
+        var found = false;
+        foreach (var id in pending)
+        {
+            Album? al = id is double d ? lib.Find(d) : null;
+            if (al != null && !ready(al)) continue;
+            // Newest first; tracks with no album here (one removed meanwhile) last.
+            if (!found || Newer(al, pickAl, id, pick)) { pick = id; pickAl = al; found = true; }
+        }
+        if (!found) { idle = "identifying"; return false; }
+        idle = "";
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = $@"SELECT t.id, t.path FROM tracks t LEFT JOIN track_loudness l ON l.track_id = t.id
+                WHERE {Waiting} AND {(pick == null ? "t.album_id IS NULL" : "t.album_id = $a")}
+                AND t.id NOT IN (SELECT value FROM json_each($1)) ORDER BY COALESCE(t.disc_no, 1), COALESCE(t.track_no, 9999), t.id LIMIT 500";
+            if (pick != null) cmd.Parameters.AddWithValue("$a", pick.Value);
+            cmd.Parameters.AddWithValue("$1", "[" + string.Join(",", busy.Select(Js.Num)) + "]");
+            using var r = cmd.ExecuteReader();
+            lock (gate)
+            {
+                while (r.Read()) queue.Enqueue((Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture), r.IsDBNull(1) ? "" : r.GetString(1)));
+                var o = new JsObj();
+                o["offset"] = pickAl != null ? pickAl.Id : null;
+                o["title"] = pickAl?.Title ?? "";
+                o["subtitle"] = pickAl?.Artist ?? "";
+                current = o;
+            }
+        }
+        return true;
+    }
+
+    private static bool Newer(Album? a, Album? b, double? aId, double? bId)
+    {
+        if (a == null) return false;
+        if (b == null) return true;
+        long x = a.Added ?? 0, y = b.Added ?? 0;
+        return x != y ? x > y : (aId ?? 0) > (bId ?? 0);
     }
 
     private static void Put(double id, double? lufs, double? peak, string? error)
@@ -156,14 +288,14 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         }
         catch (Exception e)
         {
-            // Stopped on purpose: measured again next time.
-            if (On) { var m = e.Message; Put(id, null, null, m.Length > 200 ? m[..200] : m); }
+            // Stopped on purpose: measured again next time. (A track gone meanwhile has nothing to keep.)
+            try { if (On) { var m = e.Message; Put(id, null, null, m.Length > 200 ? m[..200] : m); } } catch (Exception) { /* gone */ }
         }
         finally
         {
             lock (gate) jobs.Remove(id);
         }
-        if (On) ThreadPool.QueueUserWorkItem(_ => Tick());
+        if (On) ThreadPool.QueueUserWorkItem(_ => { _ = Tick(); });
     }
 
     [GeneratedRegex("I:[\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]*(-?[0-9.]+|-inf)[\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]*LUFS")]
@@ -188,7 +320,7 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
     private static async Task<(double? Lufs, double? Peak)> Measure(string file, Action<Process> started)
     {
         var psi = new ProcessStartInfo(Transcoder.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = false, RedirectStandardInput = false };
-        foreach (var a in new[] { "-hide_banner", "-nostats", "-nostdin", "-i", file, "-map", "0:a:0", "-vn", "-af", "ebur128=peak=true:framelog=quiet", "-f", "null", "-" })
+        foreach (var a in new[] { "-hide_banner", "-nostats", "-nostdin", "-i", file, "-map", "0:a:0", "-vn", "-af", Filter, "-f", "null", "-" })
             psi.ArgumentList.Add(a);
         // Below everything else: the cores playback doesn't keep, the lowest priority, its reads last.
         Cpu.Place(psi, CpuKind.Background);
@@ -215,23 +347,40 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         return ParseEbur128(text);
     }
 
-    /* For the settings page. */
-    public JsObj Status()
+    /*
+     * For the settings page: the counts (files here only — Qobuz and Tidal
+     * tracks apart, as "streamed"), and why it is or isn't measuring now:
+     * off, waiting (outside the hours), scanning (the library), identifying
+     * (the scan first), measuring, done.
+     */
+    public JsObj Status(LibState? st)
     {
-        double tracks, tagged, measured, failed;
+        double tracks, tagged, measured, failed, streamed;
         using (var c = Db.Open())
         {
             using var cmd = c.CreateCommand();
             cmd.CommandText = @"SELECT
-                (SELECT COUNT(*) FROM tracks) AS tracks,
-                (SELECT COUNT(*) FROM tracks WHERE rg_track_gain IS NOT NULL) AS tagged,
+                (SELECT COUNT(*) FROM tracks WHERE path NOT LIKE '%://%') AS tracks,
+                (SELECT COUNT(*) FROM tracks WHERE rg_track_gain IS NOT NULL AND path NOT LIKE '%://%') AS tagged,
                 (SELECT COUNT(*) FROM track_loudness l JOIN tracks t ON t.id = l.track_id WHERE t.rg_track_gain IS NULL AND l.lufs IS NOT NULL) AS measured,
-                (SELECT COUNT(*) FROM track_loudness l JOIN tracks t ON t.id = l.track_id WHERE t.rg_track_gain IS NULL AND l.lufs IS NULL) AS failed";
+                (SELECT COUNT(*) FROM track_loudness l JOIN tracks t ON t.id = l.track_id WHERE t.rg_track_gain IS NULL AND l.lufs IS NULL) AS failed,
+                (SELECT COUNT(*) FROM tracks WHERE path LIKE '%://%') AS streamed";
             using var r = cmd.ExecuteReader();
             r.Read();
-            tracks = r.GetInt64(0); tagged = r.GetInt64(1); measured = r.GetInt64(2); failed = r.GetInt64(3);
+            tracks = r.GetInt64(0); tagged = r.GetInt64(1); measured = r.GetInt64(2); failed = r.GetInt64(3); streamed = r.GetInt64(4);
         }
         var left = Math.Max(0, tracks - tagged - measured - failed);
+        bool running;
+        JsObj? cur;
+        string why;
+        lock (gate) { running = jobs.Count > 0; cur = current; why = idle; }
+        string reason = !On ? "off"
+            : left == 0 && !running ? "done"
+            : running ? "measuring"
+            : !InHours() ? "waiting"
+            : st is { Scanning: true } ? "scanning"
+            : why == "identifying" ? "identifying"
+            : "measuring";
         var o = new JsObj();
         o["settings"] = Settings();
         o["tracks"] = tracks;
@@ -239,7 +388,10 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         o["measured"] = measured;
         o["failed"] = failed;
         o["left"] = left;
-        o["measuring"] = On && left > 0;
+        o["streamed"] = streamed;
+        o["reason"] = reason;
+        o["current"] = reason == "measuring" ? cur : null;
+        o["measuring"] = reason == "measuring";
         return o;
     }
 }
