@@ -5,6 +5,17 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## Unreleased — the `desktop-offline` branch (experimental, on `offline-mode`)
+- **A browser that can't reach the server: the same symbol, not a notice.** "Can't reach
+  Mandarin — check the container is running" across the top of the page is gone. The top bar's
+  offline symbol shows instead, and a tap on it says what the matter is and what to check.
+  It goes away by itself as soon as the server answers.
+- **It comes sooner.** The page used to look for the server once a minute while all was well, so
+  the notice could take over a minute to appear. Now any of the page's own requests that finds no
+  server starts the looking at once: the symbol shows within about 25 seconds (never for a
+  moment's blip), and it still waits while an update restarts the server.
+- `test/offline-indicator.test.js` covers it.
+
 ## Unreleased — the `offline-mode` branch (experimental, on `shelf`)
 - **Offline in the Android app: a symbol, not a notice.** The line across the top of the screen
   saying the server can't be reached (or that Offline mode is on) is gone. In its place, an offline
