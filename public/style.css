@@ -6064,3 +6064,26 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .random-pick-actions .confirm-btn { flex: 1 1 0; }
   .random-pick-artist { margin-bottom: 10px; }
 }
+
+/* ================================================================== */
+/*  Offline: the top bar's symbol and what it says                     */
+/* ================================================================== */
+/* A disc like the menu's and the search's, in the warning colour: a state,
+   not one more control. */
+.topbar .icon-btn.offline-btn,
+[data-palette="hifi"] .topbar .icon-btn.offline-btn {
+  border-color: var(--danger, #e8836b); background: var(--danger, #e8836b); color: var(--plum-pale, #17191c);
+}
+.topbar .icon-btn.offline-btn:hover,
+[data-palette="hifi"] .topbar .icon-btn.offline-btn:hover { filter: brightness(1.08); }
+.offline-box { max-width: 380px; }
+.offline-title {
+  margin: 0 0 10px; font-family: var(--font-display, inherit); font-weight: 400;
+  font-size: calc(20px * var(--ui-menu, 1)); color: var(--text); text-align: center;
+}
+.offline-text { margin: 0 0 18px; }
+.offline-text p {
+  margin: 0 0 8px; font-size: calc(14px * var(--ui-menu, 1)); line-height: 1.45; color: var(--text-dim);
+}
+.offline-text p:last-child { margin-bottom: 0; }
+.offline-box .confirm-actions { flex-wrap: wrap; }

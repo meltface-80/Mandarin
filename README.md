@@ -545,7 +545,7 @@ One switch: only the music on the phone shows, and the server isn't used. With n
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **☰ → Offline mode**.
+In the Android app, **☰ → Offline mode**. While offline, a symbol sits in the top bar between the menu and the search: tap it to see why (Offline mode, or the server can't be reached).
 
 </details>
 
