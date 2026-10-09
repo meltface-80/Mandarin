@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Nothing here is built. It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25); nothing else is. It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -155,22 +155,28 @@ the pace.
 
 ### Stage 0: the C# server delivered with the app's updates (M)
 
-1. **Release:** each release carries `mandarin-server` for `linux-x64` and `linux-arm64` (and
-   macOS once 2.2 is agreed), gzipped, with `SHA256SUMS`, built by `release.yml` the way
-   `docker-publish.yml` builds the audio engine.
-2. **Update:** the updater downloads the matching binary with the bundle, checks it, and puts it
-   in the data folder (`<data>/bin/mandarin-server`), which survives a re-created container.
-3. **Start:** the newer of the image's and the data folder's binary is the one run. Either the C#
-   server starts the new binary in its own place (`execv`), or the image starts through a small
-   script that picks the binary and Docker's restart policy does the rest. `execv` is preferred,
-   since it doesn't depend on how the container was started. A binary that won't start is set
-   aside and the image's is used.
-4. **The two must match.** The C# server checks the Node server's version when it starts it. If
-   they differ (an update half-done, an older image), the C# server answers nothing itself and
-   takes no background work: everything goes to Node, which still has every part (2.4). The
-   Node server's health line says so.
-5. **Tests:** an update test that installs a newer binary and finds it running; a mismatch test
-   in which everything is passed on.
+**Built in v0.8.25** (branch `stage0-csharp-updates`, waiting to be merged). As built:
+
+1. **Release:** each release carries `mandarin-server-linux-x64.gz` and
+   `mandarin-server-linux-arm64.gz`, with their sums in `mandarin-server.sha256`, built by
+   `release.yml` (arm64 cross-built, as the image does). macOS waits for 2.2.
+2. **Update:** the Node server, started by a C# server of another version (it asks its
+   `/server-info`), fetches the program for its own version and machine, checks the sum and that
+   it runs and says that version (`mandarin-server --version`), and renames it over the running
+   one (`lib/server/csharp-update.js`). It lives where the image put it, so it comes and goes with
+   the Node server's files: a container re-created from its image has both from the image again.
+   Twice at most for a version; tried again every half hour while GitHub can't be reached.
+3. **Start:** the Node server stops with code 76. The C# server starts itself again from the new
+   file in the same process (`execv`, `Front.StartAgain`); one from before v0.8.25 stops, and
+   Docker's restart policy starts the container again (the first time only).
+4. **The two must match.** The Node server says its version with its state (`/internal/library`).
+   While they differ, the C# server answers nothing but `/server-info` and passes everything on;
+   the Node server turns down the hand-over of background work (`/internal/front/runs`, 409) and
+   makes it itself, except built-in Tailscale when the C# server already runs its engine.
+5. **Tests:** `test/csharp-update.test.js`, with GitHub and the C# server stood in for, and the
+   C# server's pass-through and its start again in the same process run for real. Checked by
+   hand end to end: a C# server built as 0.0.1 in front of the real Node server became the
+   current one in seven seconds, in the same process, and took over the background work.
 
 ### Stage 1: the small, self-contained parts (several S)
 
@@ -313,7 +319,7 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
 
 ## 6. For the owner to decide
 
-1. **Stage 0 first?** Recommended: yes. Until it's in, in-app updates miss every C# change.
+1. ~~**Stage 0 first?**~~ Decided: yes, and built in v0.8.25.
 2. **Macs:** build the C# server for macOS and run it there (2.2), or keep Macs on Node for
    longer (and so keep both copies of everything for longer)?
 3. **Who does what:** which account takes which stage; one stage in flight per account (2.3).
