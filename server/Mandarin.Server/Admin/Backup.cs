@@ -42,7 +42,7 @@ internal static partial class Backup
     public static readonly string[] CollectionKeys = ["userPlaylists", "smartPlaylists"];
     public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches"];
     // The Qobuz and Tidal sign-ins travel with the keys: tokens, never a password.
-    public static readonly string[] KeyKeys = ["discogsToken", "fanartKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
+    public static readonly string[] KeyKeys = ["discogsToken", "fanartKey", "lastfmKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
     // Kept from the server being restored, whatever the database brought.
     private static readonly string[] KeepTables = ["account", "devices"];
     private static readonly string[] KeepSettings = ["authSecret", "tailscale"];

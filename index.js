@@ -82,6 +82,10 @@ const config = {
   wikipediaBaseUrl: process.env.WIKIPEDIA_URL || "",
   pitchforkBaseUrl: process.env.PITCHFORK_URL || "",
   qobuzWebUrl: process.env.QOBUZ_WEB_URL || "",
+  // Last.fm's similar artists and albums (lib/lastfm.js): where it is (a fake
+  // in the tests), and a key from the environment until one is saved in Settings.
+  lastfmBaseUrl: process.env.LASTFM_URL || "",
+  lastfmKey: process.env.LASTFM_KEY || "",
   identifyTickMs: Number(process.env.IDENTIFY_TICK_MS) || 5000,
   loudnessTickMs: Number(process.env.LOUDNESS_TICK_MS) || 5000,
   // The tag readers' check (lib/library/tagcheck.js): on (TAGCHECK=0 turns it
@@ -552,6 +556,7 @@ function createServer(overrides = {}) {
   require("./lib/server/api-cpu")(app, ctx);
   require("./lib/server/api-dsp")(app, ctx);
   require("./lib/server/api-tailscale")(app, ctx);
+  require("./lib/server/api-lastfm")(app, ctx);
   for (const id of SERVICES.IDS) require("./lib/server/api-service")(app, ctx, id);
   // Restart and Shut down (Settings → Restart & shut down). Tests hand in their own exit.
   // Restart: a clean stop, then 75 for launcher.js to start it again (a restore uses it).
@@ -576,6 +581,7 @@ function createServer(overrides = {}) {
 
   const pub = path.join(__dirname, "public");
   app.get(["/display", "/display/"], (req, res) => res.sendFile(path.join(pub, "display.html")));
+  app.get(["/shelf", "/shelf/"], (req, res) => res.sendFile(path.join(pub, "shelf.html")));
   app.get("/login", (req, res) => res.sendFile(path.join(pub, "login.html")));
   // The interface. The Android app keeps the page clear of the system bars
   // itself, so it gets the page without viewport-fit=cover: otherwise newer

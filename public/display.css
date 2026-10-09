@@ -149,6 +149,25 @@ body {
 }
 body.show-ui { cursor: default; }
 body.show-ui .controls { opacity: 1; pointer-events: auto; }
+/* On to Shelf: a faint pill in the top right, shown with the controls. */
+.to-shelf {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  display: flex; align-items: center; gap: 2px;
+  height: 42px; padding: 0 10px 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(236,232,223,.26);
+  background: rgba(10,12,14,.5);
+  color: rgba(236,232,223,.72);
+  font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.to-shelf svg { width: 18px; height: 18px; }
+body.show-ui .to-shelf { opacity: 1; pointer-events: auto; }
 .ctl-btn {
   border: 0; border-radius: 999px;
   padding: 10px 16px;

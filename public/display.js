@@ -576,6 +576,15 @@
   document.addEventListener("pointerdown", showUI);
   document.addEventListener("pointermove", showUI);
 
+  // ---- On to Shelf --------------------------------------------------------
+  // Shelf takes this page's place (and its "Wall Display ›" brings this one
+  // back the same way). A zone given to this page goes along.
+  const toShelf = $("to-shelf");
+  if (toShelf) toShelf.addEventListener("click", (e) => {
+    e.stopPropagation();
+    location.replace("/shelf" + (ZONE_PARAM ? "?zone=" + encodeURIComponent(ZONE_PARAM) : ""));
+  });
+
   // ---- Tap-to-play panel (library grids) ----------------------------------
   const playPanel = $("playpanel");
   const ppTitle   = $("pp-title");

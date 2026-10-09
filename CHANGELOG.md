@@ -5,6 +5,40 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## Unreleased — the `shelf` branch (experimental)
+Built on v0.8.22, from the work done in Rouen (MusicD Remote) v1.9.2 and v1.9.3. Experimental: not
+yet promised for a release. The version number is unchanged.
+
+- **New: Shelf.** Flick through your collection as through a record shop's shelf, on a tablet on a
+  stand or a TV: **☰ → Shelf**, `/shelf`, or **Shelf ›** on the wall display.
+  - On the left, choose genres and artists' letters (A–Z, #, 1–9). Each tile counts what choosing it
+    would leave. **Random** shuffles the shelf; **Spin** lands somewhere three seconds later.
+  - On the right, the shelf in three looks: covers, spines (with letter tabs) or a carousel. Swipe
+    for one album, swipe and hold to keep turning, flick to spin. Tap the front cover to turn the
+    case over and read its track list.
+  - **Play now**, **Play next** and **Add to queue** for the album in front. Along the foot, the
+    remote's mini player, fixed and flat: play/pause, the zone, the volume, and a tap on the record
+    brings it to the front of the shelf.
+  - It does not zoom, and how it moves is said once, in a popup the first time you open it (and
+    after each update, until you tick "Don't show again").
+  - The whole library is sent once, by the C# server; the page filters it itself.
+- **New: under an album's review**, more by its artist, the albums they appear on, and — with a
+  Last.fm key in **Settings → Setup → API Keys** (or `LASTFM_KEY`) — similar artists and similar
+  albums from Last.fm. Ones in your library open here; the others say "Last.fm ↗" and open there.
+  Read-only: nothing is scrobbled, and only the artist's name is sent.
+- **Random Album now chooses, then asks.** The disc turns, an album is chosen, and a popup offers
+  **Play now**, **Play next** or **Queue**. Nothing plays until you choose. Apple Shortcuts still
+  play at once.
+- **Random Album Radio doesn't repeat itself within six months.** An album the radio played isn't
+  played by the radio again for six months (albums you play yourself don't count). With
+  everything played, the one it played longest ago comes round first. The memory is kept in the
+  database, so it survives a restart and travels with a backup.
+- A backup now carries the Last.fm key with the other keys, on both servers.
+- Not needed here: Rouen's v1.9.2 fix (an album opened at a position in the wrong list) can't happen
+  in Mandarin, whose albums keep their own ids. Smart Picks already never adds anything by itself.
+- New tests: `test/shelf.test.js`, `test/lastfm.test.js`, `test/radio-memory.test.js` and
+  `test/random-pick.test.js`, and Shelf's list asked of both servers in `test/library-front.test.js`.
+
 ## v0.8.22
 A test build, from the `claude/v0.8.22` branch: backups, built-in Tailscale, the album editor and
 drawing covers move to Mandarin's C# server.

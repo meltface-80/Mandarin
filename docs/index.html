@@ -394,8 +394,8 @@
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
       <div class="card is-new"><h3><span class="em">🎲</span>Random Album<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
-        <p>The first tile under the greeting plays a random album you haven't played in 12 months; until Mandarin has 12 months of history, any album.</p>
-        <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is found.</div></div>
+        <p>The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.</p>
+        <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is chosen; then tap <b>Play now</b>, <b>Play next</b> or <b>Queue</b>, or close it.</div></div>
       <div class="card is-new"><h3><span class="em">📅</span>Album of the day<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-aotd" aria-label="How to set up and use Album of the day">i</button></h3>
         <p>One album, the same on every device, chosen by the server at 00:01. Once played from any device, it's gone until the next 00:01.</p>
         <div class="how" id="how-aotd" hidden><b>How to set it up and use it.</b> Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone (<code>TZ</code> in the Docker command).</div></div>
@@ -405,12 +405,18 @@
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home. <b>Sort</b> and <b>Focus</b> are in the top bar; Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
+      <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
+        <p>Flick through your collection as through a record shop's shelf: covers, spines or a carousel, narrowed by genre and artist letter, or spun to land anywhere.</p>
+        <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over. The bar at its foot plays, pauses and sets the volume.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
         <p>Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.</p>
         <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.</div></div>
       <div class="card"><h3><span class="em">💿</span>Album pages<button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
         <p>Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.</p>
         <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album.</div></div>
+      <div class="card is-new"><h3><span class="em">🧭</span>More by, and similar<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
+        <p>Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.</p>
+        <div class="how" id="how-more" hidden><b>How to set it up and use it.</b> Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in <b>Settings → Setup → API Keys</b> (or set <code>LASTFM_KEY</code>). Read-only: nothing is scrobbled.</div></div>
       <div class="card"><h3><span class="em">✏️</span>Edit album<button class="info" type="button" aria-expanded="false" aria-controls="how-edit" aria-label="How to set up and use Edit album">i</button></h3>
         <p>Correct an album's title, artist or year and choose its cover. Edits are kept in the server's database; your music files are not changed.</p>
         <div class="how" id="how-edit" hidden><b>How to set it up and use it.</b> On an album, tap <b>⋯ → Edit album</b>.</div></div>
@@ -439,7 +445,7 @@
         <p>Pick another room, renderer or phone while music plays and it moves there: the queue goes with it, from the same track and second.</p>
         <div class="how" id="how-move" hidden><b>How to set it up and use it.</b> Tap the speaker button (on the bar or Now playing) and choose the device to move to.</div></div>
       <div class="card"><h3><span class="em">📻</span>Random Album Radio<button class="info" type="button" aria-expanded="false" aria-controls="how-radio" aria-label="How to set up and use Random Album Radio">i</button></h3>
-        <p>When a device's queue is running out, a random album you haven't played in 60 days goes on the end. Switched on per device.</p>
+        <p>When a device's queue is running out, a random album goes on the end: never one the radio played in the last six months. Switched on per device.</p>
         <div class="how" id="how-radio" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b>, tap the device and switch on <b>Random album radio</b>. <b>⋯ → Radio</b> on an album plays it and switches radio on for that device.</div></div>
       <div class="card"><h3><span class="em">🔈</span>Sonos<button class="info" type="button" aria-expanded="false" aria-controls="how-sonos" aria-label="How to set up and use Sonos">i</button></h3>
         <p>Play, queue, play next, shuffle, repeat and volume for each Sonos room, and grouping and ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.</p>
@@ -491,7 +497,7 @@
         <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet.</p>
-        <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its options are in <b>Settings → Wall Display</b>.</div></div>
+        <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its options are in <b>Settings → Wall Display</b>. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
       <div class="card"><h3><span class="em">📱</span>The Android app<button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
         <p>The same interface, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.</p>
         <div class="how" id="how-android" hidden><b>How to set it up and use it.</b> Download <a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">mandarin-android.apk</a> and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.</div></div>
@@ -813,6 +819,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
         <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Changes are noticed as they happen where the file system reports them.</td></tr>
         <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted hi-res tracks.</td></tr>
         <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>Tracks converted at once.</td></tr>
+        <tr><td>LASTFM_KEY</td><td>&mdash;</td><td>A Last.fm key for the album view's similar artists and albums, until one is saved in Settings.</td></tr>
         <tr><td>DEBUG</td><td>&mdash;</td><td>Log every API call.</td></tr>
       </table>
     </div>

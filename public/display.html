@@ -44,6 +44,12 @@
   <!-- Mode controls: revealed by tap/mouse, auto-hide. Auto = rotate; any
        other chip pins that screen; Video plays the clip through in full. -->
   <div id="controls" class="controls" aria-label="Display mode"></div>
+  <!-- On to Shelf (/shelf), with the controls: it takes this page's place, so
+       flipping between the two never grows the history. -->
+  <button id="to-shelf" class="to-shelf" type="button" aria-label="Open Shelf">
+    <span>Shelf</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
 
   <!-- Tap-to-play panel for the library grids: pick Play now / Queue -->
   <div id="playpanel" class="playpanel hidden">
