@@ -426,7 +426,11 @@ function createServer(overrides = {}) {
         deezer_url: config.deezerBaseUrl || null, logo_pause_ms: config.logoPauseMs == null ? null : config.logoPauseMs,
         wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null,
         tailscale_bin: config.tailscaleBin || null, tailscale_dir: path.join(config.dataDir, "tailscale"), tailscale_port: config.port,
-        tailscale_watchdog: config.tailscaleWatchdog || null
+        tailscale_watchdog: config.tailscaleWatchdog || null,
+        // Last.fm (v0.8.26): where it is asked, and the key from the environment (LASTFM_KEY).
+        lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
+        // Headphone profiles (v0.8.26): where AutoEq's results are.
+        autoeq_url: config.autoeqBaseUrl || null
       }
     });
   });
@@ -451,6 +455,8 @@ function createServer(overrides = {}) {
       boot: ctx.bootId, version: library.version, marks: library.marks,
       // This server's own version: the C# server passes everything on while it isn't its (v0.8.25).
       app_version: pkg.version,
+      // The address speakers and phones are given (v0.8.26): the phone's download lists' covers.
+      base_url: ctx.baseUrl(),
       building: !!(scanner.state.running && !library.count), progress: scanner.state.progress,
       // A scan running now: the identification scan waits for it (v0.8.19).
       scanning: !!scanner.state.running,

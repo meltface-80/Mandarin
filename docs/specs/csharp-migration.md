@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25); nothing else is. It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); nothing else is. It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -180,6 +180,8 @@ the pace.
 
 ### Stage 1: the small, self-contained parts (several S)
 
+**1a, 1b and 1c built in v0.8.26** (branch `stage1-small-parts`). 1d, 1e and 1f to come.
+
 None of these touch a live player.
 
 - **1a. Last.fm:** the key's routes and its check, similar artists and albums, with the
@@ -334,6 +336,8 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
 
 ## Appendix A: routes still answered by Node
 
+(As of v0.8.26: the headphone profiles, the phone's download lists and plays, and Last.fm have moved since this list was first made.)
+
 From the route list (`app.get/post/…` in `index.js` and `lib/server/`) checked against the C#
 server's. Approximate: some routes are answered by C# only in some cases (for example, `/stream/`
 and `/api/image/`).
@@ -350,8 +354,6 @@ and `/api/image/`).
   `GET /api/phone/commands`
 - **Audio Devices** (`api-devices.js`): `GET /api/audio-devices`, `/api/audio-devices/:id`;
   `PATCH /api/audio-devices/:id`; `POST /api/audio-devices/rescan`, `/api/audio-devices/:id/forget`
-- **DSP** (`api-dsp.js`): `GET /api/dsp/headphones`, `/api/dsp/headphones/profile`;
-  `POST /api/dsp/headphones/parse`
 - **Qobuz and Tidal** (`api-service.js`, for each of `qobuz` and `tidal`): `GET` and `POST
   /api/settings/<svc>`, `POST …/signin`, `…/signin/cancel`, `…/signout`, `…/disconnect`,
   `…/import`; `GET /api/<svc>/lists`, `/new-releases`, `/featured`, `/search`, `/artist-albums`,
@@ -362,10 +364,6 @@ and `/api/image/`).
   `POST /api/library/folders`, `/api/library/forget-folder`, `/api/library/cleanup`,
   `/api/library/rescan`, `/api/reindex`; a streamed album's `GET /api/album`; the services part
   of `GET /api/search/external`
-- **Downloads** (`downloads.js`): `GET /api/download/album`, `/api/download/auto`;
-  `POST /api/download/albums`, `/api/phone/plays`
-- **Last.fm** (`api-lastfm.js`): `GET` and `POST /api/settings/lastfm-key`;
-  `GET /api/lastfm/similar-artists`, `/api/lastfm/similar-albums`
 - **Admin:** `GET /api/update/status`, `POST /api/update/check`, `/api/update/apply` (registered in
   `api-playlists.js`); `GET /api/system/power`, `POST /api/system/restart`, `/api/system/shutdown`;
   `GET /api/cpu`; `GET /api/tagcheck`, `/api/tagcheck/report`
