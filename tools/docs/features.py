@@ -229,7 +229,8 @@ FEATURES = [
     ("offline", "✈️", "Offline mode", True,
      "One switch: only the music on the phone shows, and the server isn't used. With no connection "
      "the app does the same by itself, and reconnects when it can.",
-     "In the Android app, **☰ → Offline mode**."),
+     "In the Android app, **☰ → Offline mode**. While offline, a symbol sits in the top bar between "
+     "the menu and the search: tap it to see why (Offline mode, or the server can't be reached)."),
     ("away", "🌍", "Away from home", False,
      "On mobile data the app reaches the server through its own Tailscale, with no ports opened. "
      "Away, only the phone plays: Opus 256 or the original files.",

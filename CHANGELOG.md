@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## Unreleased — the `offline-mode` branch (experimental, on `shelf`)
+- **Offline in the Android app: a symbol, not a notice.** The line across the top of the screen
+  saying the server can't be reached (or that Offline mode is on) is gone. In its place, an offline
+  symbol in the top bar, between the menu and the magnifying glass. Tap it to see what the matter
+  is: Mandarin can't be reached (and what to check), or Offline mode is on — with a button to
+  switch it off. Only the page changes: the app shows it as soon as it has fetched the page from
+  the server once.
+- New test: `test/offline-indicator.test.js`.
+
 ## Unreleased — the `shelf` branch (experimental)
 Built on v0.8.22, from the work done in Rouen (MusicD Remote) v1.9.2 and v1.9.3. Experimental: not
 yet promised for a release. The version number is unchanged.

@@ -16572,6 +16572,60 @@ initServiceBrowser({
     }
   }
 
+  // Offline — the Android app answering for a server it can't reach, or its
+  // Offline mode: no notice across the page, a symbol in the top bar between
+  // the menu and the search instead. A tap on it says what the matter is.
+  const offBtn = document.getElementById("offline-btn");
+  const offOv = document.getElementById("offline-overlay");
+  let offState = null;   // null (online), or { mode: Offline mode switched on }
+  function paintOffline(state) {
+    offState = state;
+    if (!offBtn) return;
+    offBtn.classList.toggle("hidden", !state);
+    offBtn.setAttribute("aria-label", !state ? "Offline — tap for more"
+      : state.mode ? "Offline mode is on — tap for more" : "Mandarin can't be reached — tap for more");
+    if (!state) closeOffline();
+  }
+  function openOffline() {
+    if (!offOv || !offState) return;
+    const title = document.getElementById("offline-title");
+    const text = document.getElementById("offline-text");
+    const sw = document.getElementById("offline-switch");
+    const lines = offState.mode
+      ? ["You switched Offline mode on, so Mandarin is showing only the music on this phone: the albums you downloaded and the phone’s own music.",
+         "Switch it off to see the server’s library again."]
+      : ["This phone can’t reach the Mandarin server, so the app is showing the music on this phone: the albums you downloaded and the phone’s own music.",
+         "It keeps trying, and the server’s library comes back by itself as soon as the server answers.",
+         "If it doesn’t: check the server is running, and that this phone is on the same network as it — or, away from home, that it can reach the server through Tailscale."];
+    title.textContent = offState.mode ? "Offline mode is on" : "Mandarin can’t be reached";
+    text.textContent = "";
+    for (const line of lines) { const p = document.createElement("p"); p.textContent = line; text.appendChild(p); }
+    // Offline mode is the app's own switch, which it alone can turn off.
+    let canSwitch = false;
+    try { canSwitch = !!offState.mode && !!window.MusicdDownloads && typeof window.MusicdDownloads.set === "function"; } catch (e) { /* no app */ }
+    sw.classList.toggle("hidden", !canSwitch);
+    offOv.classList.remove("hidden");
+    try { document.getElementById("offline-close").focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ }
+  }
+  function closeOffline() { if (offOv) offOv.classList.add("hidden"); }
+  if (offBtn) offBtn.addEventListener("click", openOffline);
+  if (offOv) {
+    document.getElementById("offline-close").addEventListener("click", closeOffline);
+    offOv.querySelector(".confirm-backdrop").addEventListener("click", closeOffline);
+    // The app reloads the page onto the server's library when it changes.
+    document.getElementById("offline-switch").addEventListener("click", () => {
+      try { window.MusicdDownloads.set("offlineMode", "false"); } catch (e) { /* no app */ }
+      closeOffline();
+    });
+    // Ahead of the page's other Escape handlers: one Escape closes this alone.
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || offOv.classList.contains("hidden")) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closeOffline();
+    }, true);
+  }
+
   let unreachable = 0;
   async function check() {
     let j = null;
@@ -16600,11 +16654,10 @@ initServiceBrowser({
     // so every row fills, rather than leaving "No albums" on screen.
     if (albums && el.dataset.wasEmpty === "1") { location.reload(); return; }
     let msg = null, err = false;
+    paintOffline(j.offline ? { mode: !!j.offline_mode } : null);
     if (j.offline) {
-      // The Android app answering for the server (no connection, or offline mode): say so, once, quietly.
-      msg = j.offline_mode
-        ? "Offline mode — showing the music on this phone. Switch it off in the menu to see the server’s library."
-        : "Offline — Mandarin can’t be reached. Showing what’s on this phone.";
+      // The Android app answering for the server (no connection, or offline
+      // mode): said by the top bar's offline symbol, not a notice.
     } else if (j.data_persistent === false) {
       msg = "Your library, album edits and play history are stored inside the container and will be lost " +
             "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.";
