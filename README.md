@@ -61,11 +61,11 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 🎲 **Random Album** — *new since v0.5.50*
 
-The first tile under the greeting plays a random album you haven't played in 12 months; until Mandarin has 12 months of history, any album.
+The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while an album is found.
+Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while an album is chosen; then tap **Play now**, **Play next** or **Queue**, or close it.
 
 </details>
 
@@ -107,6 +107,18 @@ Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top b
 
 ⸻
 
+🗄️ **Shelf** — *new since v0.5.50*
+
+Flick through your collection as through a record shop's shelf: covers, spines or a carousel, narrowed by genre and artist letter, or spun to land anywhere.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over. The bar at its foot plays, pauses and sets the volume.
+
+</details>
+
+⸻
+
 🔍 **Search**
 
 Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.
@@ -126,6 +138,18 @@ Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's scor
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album.
+
+</details>
+
+⸻
+
+🧭 **More by, and similar** — *new since v0.5.50*
+
+Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled.
 
 </details>
 
@@ -241,7 +265,7 @@ Tap the speaker button (on the bar or Now playing) and choose the device to move
 
 📻 **Random Album Radio**
 
-When a device's queue is running out, a random album you haven't played in 60 days goes on the end. Switched on per device.
+When a device's queue is running out, a random album goes on the end: never one the radio played in the last six months. Switched on per device.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -449,7 +473,7 @@ A full-screen now playing page for a TV or tablet.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open `http://<server-ip>:3500/display` on the screen. Its options are in **Settings → Wall Display**.
+Open `http://<server-ip>:3500/display` on the screen. Its options are in **Settings → Wall Display**. Tap the screen for its controls; **Shelf ›** opens Shelf.
 
 </details>
 
@@ -908,6 +932,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `MBPACK_DIR` | data folder | Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there. |
 | `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
+| `LASTFM_KEY` | — | A Last.fm API key for the album view's similar artists and albums, until one is saved in *Settings → Setup → API Keys* (which then wins). |
 | `DEBUG` | — | Log every API call. |
 
 Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks,

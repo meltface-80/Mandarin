@@ -23,10 +23,10 @@ FEATURES = [
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
     ("random-album", "🎲", "Random Album", True,
-     "The first tile under the greeting plays a random album you haven't played in 12 months; until "
-     "Mandarin has 12 months of history, any album.",
+     "The first tile under the greeting chooses an album you haven't played in 12 months (until "
+     "Mandarin has 12 months of history, any album) and offers it to play.",
      "Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while "
-     "an album is found."),
+     "an album is chosen; then tap **Play now**, **Play next** or **Queue**, or close it."),
     ("aotd", "📅", "Album of the day", True,
      "One album, the same on every device, chosen by the server at 00:01. Once played from any "
      "device, it's gone until the next 00:01.",
@@ -42,6 +42,12 @@ FEATURES = [
      "Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top bar; Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
+    ("shelf", "🗄️", "Shelf", True,
+     "Flick through your collection as through a record shop's shelf: covers, spines or a carousel, "
+     "narrowed by genre and artist letter, or spun to land anywhere.",
+     "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
+     "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
+     "case over. The bar at its foot plays, pauses and sets the volume."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
@@ -54,6 +60,11 @@ FEATURES = [
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
      "press ← → for the previous or next album."),
+    ("more", "🧭", "More by, and similar", True,
+     "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
+     "Last.fm key, similar artists and albums. Ones in your library open here.",
+     "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
+     "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
     ("edit", "✏️", "Edit album", False,
      "Correct an album's title, artist or year and choose its cover. Edits are kept in the server's "
      "database; your music files are not changed.",
@@ -102,8 +113,8 @@ FEATURES = [
      "with it, from the same track and second.",
      "Tap the speaker button (on the bar or Now playing) and choose the device to move to."),
     ("radio", "📻", "Random Album Radio", False,
-     "When a device's queue is running out, a random album you haven't played in 60 days goes on the "
-     "end. Switched on per device.",
+     "When a device's queue is running out, a random album goes on the end: never one the radio "
+     "played in the last six months. Switched on per device.",
      "Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. "
      "**⋯ → Radio** on an album plays it and switches radio on for that device."),
     ("sonos", "🔈", "Sonos", False,
@@ -189,7 +200,7 @@ FEATURES = [
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet.",
      "Open `http://<server-ip>:3500/display` on the screen. Its options are in "
-     "**Settings → Wall Display**."),
+     "**Settings → Wall Display**. Tap the screen for its controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
     ("android", "📱", "The Android app", False,
      "The same interface, plus lock-screen and notification controls, volume keys, a widget, a "

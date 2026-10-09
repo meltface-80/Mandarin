@@ -85,6 +85,11 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
       for (const p of ["/api/filters/genres", "/api/filters/decades", "/api/favourites", "/api/listen-later", "/api/home/genre-groups", "/api/library-stats",
         "/api/random-albums?seed=3&count=5", "/api/random-albums?seed=3&filter_type=genre&filter_value=rock", "/api/random-albums?seed=1&filter_type=decade&filter_value=1960"])
         await same(p, label);
+      // Shelf (/shelf): the whole list, and "the same" for the signature it gave.
+      const shelf = await same("/api/shelf/albums", label);
+      assert.equal(shelf.albums.length, ids.length, label + "the shelf holds the library");
+      assert.deepStrictEqual(await same("/api/shelf/albums?sig=" + shelf.sig, label), { same: true, sig: shelf.sig });
+      await same("/api/shelf/albums?sig=0000000000000000", label);
       // Home's rows (v0.8.6).
       for (const p of ["/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
       for (const q of ["", "?months=1&count=3", "?months=0", "?months=99&count=500"]) {

@@ -6623,7 +6623,9 @@ window.__afterStart = (fn) => {
     modalTracks.innerHTML  = "";
     { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
 
-    // Reset bio sections
+    // Reset bio sections, and the sections under them (cleared before any
+    // answer for this album can arrive)
+    resetMoreSections();
     document.getElementById("album-bio-section").classList.add("hidden");
     document.getElementById("album-bio-toggle").classList.add("hidden");
     document.getElementById("album-bio-source").classList.add("hidden");
@@ -7946,6 +7948,10 @@ window.__afterStart = (fn) => {
     if (Array.isArray(j.artists) && j.artists.length) {
       setModalArtist((j.album && j.album.subtitle) || album.subtitle || "", j.artists);
     }
+    // Below the review: more by the album's lead artist (the name its first
+    // artist link shows), what they appear on, and Last.fm's suggestions.
+    fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
+      .catch(() => { /* extras: the album page stands without them */ });
     // Named from its folders, its files carrying no tags (v0.6.0-RC10): said
     // under the names, so they read as the best guess they are.
     {
@@ -8348,6 +8354,169 @@ window.__afterStart = (fn) => {
       showToast(e.message, "error");
       btn.disabled = false; btn.textContent = orig;
     }
+  }
+
+  // ----- Below the review (from Rouen v1.9.3) -------------------------------
+  // The library's other albums by this album's lead artist and the albums
+  // they appear on (/api/artist-albums: the library in memory, nothing asked
+  // outside), then Last.fm's similar artists and similar albums. Three of
+  // each; More shows the rest. A section stays hidden until it has something
+  // to show, and an answer for an album that is no longer open is dropped.
+  //
+  // What a tile does is visible before it is tapped: one in the library looks
+  // like every other album or artist here and opens in Mandarin; one only
+  // Last.fm knows carries "Last.fm ↗" and opens its Last.fm page.
+  //
+  // State is kept on the functions, not in module-level lets: openAlbum can
+  // run before this point in the file is reached (a page restored).
+  function moreSectionIds() {
+    return ["album-more-by", "album-more-appears", "album-lastfm-artists", "album-lastfm-albums"];
+  }
+  function resetMoreSections() {
+    // The previous album's requests, abandoned: the server stops asking
+    // Last.fm for an answer nobody will read.
+    if (resetMoreSections.abort) { try { resetMoreSections.abort.abort(); } catch (e) { /* already done */ } resetMoreSections.abort = null; }
+    for (const id of moreSectionIds()) {
+      const sec = document.getElementById(id);
+      if (!sec) continue;
+      sec.classList.add("hidden");
+      const grid = sec.querySelector(".more-grid");
+      if (grid) grid.textContent = "";
+      const note = sec.querySelector(".more-note");
+      if (note) note.remove();
+      const toggle = sec.querySelector(".more-toggle");
+      if (toggle) { toggle.classList.add("hidden"); toggle.setAttribute("aria-expanded", "false"); toggle.textContent = "More"; }
+      const site = sec.querySelector(".more-site");
+      if (site) { site.classList.add("hidden"); site.removeAttribute("href"); }
+      if (!sec.__wired && toggle) {
+        sec.__wired = true;
+        toggle.addEventListener("click", () => {
+          const open = toggle.getAttribute("aria-expanded") !== "true";
+          for (const el of sec.querySelectorAll(".more-extra")) el.classList.toggle("hidden", !open);
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+          toggle.textContent = open ? "Less" : "More";
+        });
+      }
+    }
+  }
+  // Fill one section: the first three shown, the rest behind More.
+  function fillMoreSection(id, items, build, title) {
+    const SHOWN = 3;
+    const sec = document.getElementById(id);
+    if (!sec) return;
+    const grid = sec.querySelector(".more-grid");
+    const toggle = sec.querySelector(".more-toggle");
+    if (title) { const t = sec.querySelector(".more-title"); if (t) t.textContent = title; }
+    grid.textContent = "";
+    if (!Array.isArray(items) || !items.length) { sec.classList.add("hidden"); return; }
+    items.forEach((it, i) => {
+      const el = build(it);
+      if (i >= SHOWN) el.classList.add("more-extra", "hidden");
+      grid.appendChild(el);
+    });
+    toggle.classList.toggle("hidden", items.length <= SHOWN);
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.textContent = "More";
+    sec.classList.remove("hidden");
+  }
+  // A Last.fm section that cannot answer because of the key says so — the one
+  // failure the user can fix. Anything else (Last.fm slow, an artist it does
+  // not know) leaves the section out.
+  function moreNote(id, text) {
+    const sec = document.getElementById(id);
+    if (!sec) return;
+    const note = document.createElement("p");
+    note.className = "more-note";
+    note.textContent = text;
+    sec.querySelector(".more-grid").after(note);
+    sec.classList.remove("hidden");
+  }
+  function openLastfmPage(url) {
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  }
+  function lastfmTag() {
+    const tag = document.createElement("div");
+    tag.className = "more-ext";
+    tag.textContent = "Last.fm \u2197";
+    return tag;
+  }
+  // An album in the library: the album view.
+  function moreAlbumTile(a) {
+    return buildAlbumTile(a, () => openAlbum(a, { filter: null }), { selectable: false });
+  }
+  // A Last.fm album: the library's own when it has it, else its Last.fm page.
+  function lastfmAlbumTile(al) {
+    if (al.album) return moreAlbumTile(al.album);
+    const tile = buildAlbumTile({ title: al.title, subtitle: al.artist, image_key: al.image_key || null },
+                                () => openLastfmPage(al.url), { selectable: false });
+    tile.classList.add("is-external");
+    tile.setAttribute("aria-label", tile.getAttribute("aria-label") + " on Last.fm");
+    (tile.querySelector(".album-meta") || tile).appendChild(lastfmTag());
+    return tile;
+  }
+  // A similar artist: their page here when the library has them (with one of
+  // their covers to stand for them), else their Last.fm page.
+  function lastfmArtistTile(a) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "more-artist" + (a.in_library ? "" : " is-external");
+    btn.setAttribute("aria-label", a.in_library ? a.name : a.name + " on Last.fm");
+    const pic = document.createElement("div");
+    pic.className = "more-artist-pic";
+    const initial = document.createElement("span");
+    initial.className = "more-artist-initial";
+    initial.textContent = (String(a.name || "").trim().charAt(0) || "?").toUpperCase();
+    pic.appendChild(initial);
+    if (a.image_key) loadArt(pic, a.image_key, tileImgSize());
+    const name = document.createElement("div");
+    name.className = "more-artist-name";
+    name.textContent = a.name;
+    btn.append(pic, name);
+    if (!a.in_library) btn.appendChild(lastfmTag());
+    btn.addEventListener("click", () => {
+      if (!a.in_library) { openLastfmPage(a.url); return; }
+      // As the album view's own artist links: its Back comes back here.
+      const fromAlbum = currentAlbum ? { album: currentAlbum, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } } : null;
+      closeModal();
+      if (window.__showArtistAlbums) window.__showArtistAlbums(a.name, { fromAlbum });
+    });
+    return btn;
+  }
+
+  async function fetchAlbumMore(album, lead) {
+    lead = String(lead || "").trim();
+    // The phone's own music has no place in the server's library.
+    if (!lead || isPhoneAlbum(album) || album.offset == null) return;
+    const json = (r) => (r.ok ? r.json() : null);
+    const mine = () => album === currentAlbum && !modal.classList.contains("hidden") && !modal.classList.contains("np-mode");
+    const ctl = typeof AbortController === "function" ? new AbortController() : null;
+    resetMoreSections.abort = ctl;
+    const opt = ctl ? { signal: ctl.signal } : {};
+    const byTitle = (a, b) => String(a.title || "").localeCompare(String(b.title || ""));
+    const library = fetch("/api/artist-albums?" + new URLSearchParams({ artist: lead }), opt)
+      .then(json).then((j) => {
+        if (!j || !mine()) return;
+        // Not the album being looked at — by its id, so another pressing of
+        // the same title by the same act stays.
+        const by = (j.primary || []).filter(a => a.offset !== album.offset).sort(byTitle);
+        const appears = (j.featured || []).filter(a => a.offset !== album.offset).sort(byTitle);
+        fillMoreSection("album-more-by", by, moreAlbumTile, "More by " + lead);
+        fillMoreSection("album-more-appears", appears, moreAlbumTile, lead + " appears on");
+      });
+    const q = new URLSearchParams({ artist: lead });
+    const lastfm = fetch("/api/lastfm/similar-artists?" + q, opt).then(json).then((j) => {
+      // No key: Last.fm is simply not here, and the albums are not asked for.
+      if (!j || !j.enabled || !mine()) return;
+      if (j.error) { if (/key/i.test(j.error)) moreNote("album-lastfm-artists", j.error + " — Settings → Setup → API Keys."); return; }
+      fillMoreSection("album-lastfm-artists", j.artists, lastfmArtistTile);
+      const site = document.querySelector("#album-lastfm-artists .more-site");
+      if (site && j.url && j.artists && j.artists.length) { site.href = j.url; site.classList.remove("hidden"); }
+      return fetch("/api/lastfm/similar-albums?" + q, opt).then(json).then((k) => {
+        if (!k || !k.enabled || k.error || !mine()) return;
+        fillMoreSection("album-lastfm-albums", k.albums, lastfmAlbumTile);
+      });
+    });
+    await Promise.allSettled([library, lastfm]);
   }
 
   async function fetchAlbumExtras(album) {
@@ -13280,6 +13449,8 @@ window.__musicdAppUpd = (function () {
     statusId: "discogs-token-status", checkId: "discogs-token-check", service: "Discogs", noun: "token" });
   const loadFanartKey = wireKey({ route: "fanart-key", field: "key", inputId: "fanart-key-input", saveId: "fanart-key-save",
     statusId: "fanart-key-status", checkId: "fanart-key-check", service: "FanArt.tv", noun: "key" });
+  const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
+    statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key" });
 
   // ----- Wall display (/display): toggle + rotation interval -----
   const displayToggle    = document.getElementById("display-toggle");
@@ -14176,7 +14347,7 @@ window.__musicdAppUpd = (function () {
     renderHomeRowsList();
   }
 
-  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
+  const open = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadLastfmKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); overlay.classList.remove("hidden"); };
   const close = () => { overlay.classList.add("hidden"); };
 
   openBtn.addEventListener("click", open);
@@ -15637,20 +15808,17 @@ initServiceBrowser({
     rampDisc(disc, 7.5);   // 6s a turn becomes 0.8s, as it was
     await new Promise(r => setTimeout(r, 2000));
 
+    // The album is CHOSEN here and offered (from Rouen v1.9.3): Play now,
+    // Play next or Queue. It used to start playing at once, replacing
+    // whatever was on.
+    let album = null;
     try {
-      const r = await fetch("/api/play-unheard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zone_or_output_id: zone })
-      });
-      const j = await r.json();
-      if (!r.ok) {
-        if (window.__showToast) window.__showToast(j.error || "Could not start playback", "error");
+      const r = await fetch("/api/pick-unheard", { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.album) {
+        if (window.__showToast) window.__showToast(j.error || "Could not choose an album", "error");
       } else {
-        // The server answers with the album itself (its title, its artist).
-        const al = j.album;
-        const name = al && typeof al === "object" ? [al.title, al.subtitle].filter(Boolean).join(" — ") : al;
-        if (window.__showToast) window.__showToast("Playing: " + (name || "an album you haven’t heard"));
+        album = j.album;
       }
     } catch (e) {
       if (window.__showToast) window.__showToast("Request failed", "error");
@@ -15660,6 +15828,80 @@ initServiceBrowser({
       // Then still again at the end of the turn it is on: back where it began.
       discTurns(disc, 0);
     }
+    if (album) showPick(album);
+  }
+
+  // ----- The chosen album, and what to do with it --------------------------
+  const pickOv     = document.getElementById("random-pick-overlay");
+  const pickArt    = document.getElementById("random-pick-art");
+  const pickTitle  = document.getElementById("random-pick-title");
+  const pickArtist = document.getElementById("random-pick-artist");
+  let picked = null;
+  function showPick(album) {
+    if (!pickOv) return;
+    picked = album;
+    pickTitle.textContent = album.title || "Untitled";
+    pickArtist.textContent = album.subtitle || "";
+    pickArt.textContent = "";
+    pickArt.classList.toggle("no-image", !album.image_key);
+    if (album.image_key) {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.addEventListener("error", () => { img.remove(); pickArt.classList.add("no-image"); });
+      img.src = "/api/image/" + encodeURIComponent(album.image_key) + "?size=600";
+      pickArt.appendChild(img);
+    }
+    for (const b of pickOv.querySelectorAll("[data-kind]")) b.disabled = false;
+    pickOv.classList.remove("hidden");
+    try { pickOv.querySelector('[data-kind="play_now"]').focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ }
+  }
+  function closePick() {
+    if (!pickOv) return;
+    pickOv.classList.add("hidden");
+    picked = null;
+  }
+  async function sendPick(kind) {
+    const album = picked;
+    if (!album) return;
+    const zone = zoneSelect && zoneSelect.value;
+    if (!zone) { if (window.__showToast) window.__showToast("Select a zone first"); return; }
+    // One send per choice: a second tap while the first is on its way would
+    // add the album twice.
+    for (const b of pickOv.querySelectorAll("[data-kind]")) b.disabled = true;
+    try {
+      const r = await fetch("/api/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offset: album.offset, zone_or_output_id: zone, kind })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+      const said = { play_now: "Playing", play_next: "Playing next", queue: "Queued" }[kind];
+      if (window.__showToast) window.__showToast(said + ": " + (album.title || "random album"));
+      if (picked === album) closePick();
+    } catch (e) {
+      if (window.__showToast) window.__showToast(e.message || "Could not start playback", "error");
+      for (const b of pickOv.querySelectorAll("[data-kind]")) b.disabled = false;
+    }
+  }
+  if (pickOv) {
+    for (const b of pickOv.querySelectorAll("[data-kind]")) {
+      b.addEventListener("click", () => sendPick(b.dataset.kind));
+    }
+    const close = document.getElementById("random-pick-close");
+    if (close) close.addEventListener("click", closePick);
+    pickOv.addEventListener("click", (e) => {
+      if (e.target.classList && e.target.classList.contains("confirm-backdrop")) closePick();
+    });
+    // Captured on the window, ahead of the album view's and the side menu's own
+    // Escape handlers on the document: one Escape closes the popup on top and
+    // nothing under it.
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || pickOv.classList.contains("hidden")) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closePick();
+    }, true);
   }
 
   // The disc's turns: Infinity to keep it going (and start it if it had
@@ -16161,6 +16403,9 @@ initServiceBrowser({
     item.classList.toggle("hidden", !has);
     if (!has) return;
     const on = offlineModeOn();
+    // Shelf is the server's whole library, a page of its own: not offline.
+    const shelfItem = overlay.querySelector('.menu-item[data-action="shelf"]');
+    if (shelfItem) shelfItem.classList.toggle("hidden", on);
     item.classList.toggle("is-on", on);
     item.setAttribute("aria-checked", String(on));
     const sub = document.getElementById("offline-sub");
@@ -16210,6 +16455,13 @@ initServiceBrowser({
       }
       if (action === "later") {
         if (window.__showListenLater) window.__showListenLater();
+        return;
+      }
+      if (action === "shelf") {
+        // A page of its own. Marked as opened from here, so its "‹ Remote"
+        // goes back to this page as it was left rather than loading it again.
+        try { sessionStorage.setItem("rra-display-from-remote", "1"); } catch (e) {}
+        location.assign("/shelf");
         return;
       }
       if (action === "shuffle") {

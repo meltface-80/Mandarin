@@ -23,6 +23,7 @@ internal static partial class Library
         ["/api/library-stats"] = Stats,
         ["/api/library/albums"] = Albums,
         ["/api/library/facets"] = Facets,
+        ["/api/shelf/albums"] = ShelfAlbums,
         ["/api/random-albums"] = RandomAlbums,
         ["/api/album"] = AlbumPage,
         ["/api/search"] = Search,
