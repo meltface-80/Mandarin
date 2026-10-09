@@ -29,6 +29,10 @@ server. Nothing looks or works differently.
 - **Checked against the Node server's answers:** every album's download list at each quality, the
   automatic downloads, the album lists and the plays (`test/library-front.test.js`). Which server
   answers is pinned in `test/front.test.js`.
+- **The Docker image's base images come through Google's mirror of Docker Hub**
+  (`mirror.gcr.io/library/golang`, `…/node`). They're the same images; the change avoids Docker
+  Hub's limit on anonymous downloads, which failed the image build on GitHub's runners ("429 Too
+  Many Requests"). Microsoft's .NET images still come from Microsoft.
 - The Android app for this version is 0.8.26 (version code 226). Nothing in it changed.
 
 ## v0.8.25

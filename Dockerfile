@@ -6,7 +6,11 @@
 # installed where a compiler is available in case a platform has no prebuilt
 # binary; and the image that runs carries only Node, ffmpeg, the two engines
 # and the app.
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS tsnet
+# Docker Hub's official images are pulled through Google's mirror of them
+# (mirror.gcr.io/library/…, v0.8.26): the same images, without Docker Hub's
+# limit on anonymous pulls, which GitHub's shared runners kept hitting
+# ("429 Too Many Requests"). Microsoft's own images come from Microsoft.
+FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.26-bookworm AS tsnet
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src
@@ -61,7 +65,7 @@ RUN set -e; cd server; \
       -p:EnableCompressionInSingleFile=true -o /out --nologo; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
-FROM node:22-bookworm-slim AS deps
+FROM mirror.gcr.io/library/node:22-bookworm-slim AS deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -70,7 +74,7 @@ COPY package.json package-lock.json ./
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 RUN npm ci --omit=dev --no-audit --no-fund --loglevel=error
 
-FROM node:22-bookworm-slim
+FROM mirror.gcr.io/library/node:22-bookworm-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
       org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
