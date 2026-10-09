@@ -43,6 +43,8 @@ internal static class Jobs
     private static volatile string? held;     // the Node server (its boot) this server holds the work from
     private static volatile string? seen;     // the Node server last seen
     private static int claiming;
+    private static volatile bool refused;   // the Node server said no: of another version (v0.8.25)
+    private static (Uri Node, string Key, int Port, string DataDir, string Version)? startedWith;
 
     private static volatile HashSet<string> handed = [];
 
@@ -59,6 +61,7 @@ internal static class Jobs
     private static async Task<Claimed?> Claim()
     {
         if (upstream == null) return null;
+        refused = false;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/runs"))
@@ -66,12 +69,21 @@ internal static class Jobs
                 Content = new StringContent(new JsonObject
                 {
                     ["jobs"] = new JsonArray(Names.Select(n => (JsonNode)n).ToArray()),
+                    // This program's version: a Node server of another keeps its work (v0.8.25).
+                    ["version"] = Front.Version,
                     // Where its requests to MusicBrainz ask for their turn (Identify/Lookups.cs).
                     ["url"] = "http://127.0.0.1:" + port
                 }.ToJsonString(), Encoding.UTF8, "application/json")
             };
             req.Headers.Add("X-Mandarin-Front-Key", key);
             using var res = await Http.SendAsync(req);
+            if (res.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                // Another version (Front.cs): asked again once the two match, not before.
+                refused = true;
+                Front.Log("[jobs] the Node server is of another version: its background work stays with it");
+                return null;
+            }
             if (!res.IsSuccessStatusCode) { Front.Log($"[jobs] the Node server didn't hand over its work (HTTP {(int)res.StatusCode})"); return null; }
             var j = await res.Content.ReadFromJsonAsync<JsonObject>();
             if (j?["boot"] is not JsonValue b || !b.TryGetValue<string>(out var boot) || j["config"] is not JsonObject config) return null;
@@ -93,14 +105,15 @@ internal static class Jobs
     /* After the Node server is up: the work taken over, and started. */
     public static async Task Start(Uri node, string frontKey, int frontPort, string dataDir, string version)
     {
+        startedWith = (node, frontKey, frontPort, dataDir, version);
         upstream = node;
         key = frontKey;
         port = frontPort;
         Claimed? c = null;
-        for (var i = 0; i < 10 && c == null; i++)
+        for (var i = 0; i < 10 && c == null && !refused; i++)
         {
             c = await Claim();
-            if (c == null) await Task.Delay(TimeSpan.FromSeconds(1));
+            if (c == null && !refused) await Task.Delay(TimeSpan.FromSeconds(1));
         }
         if (c == null)
         {
@@ -211,6 +224,18 @@ internal static class Jobs
     {
         if (boot.Length == 0) return;
         seen = boot;
+        // Turned down at the start, the Node server of another version then: taken
+        // over now that one of this version has started (v0.8.25).
+        if (Identify == null && refused && Front.Matched && startedWith is { } w)
+        {
+            if (Interlocked.Exchange(ref claiming, 1) == 1) return;
+            _ = Task.Run(async () =>
+            {
+                try { await Start(w.Node, w.Key, w.Port, w.DataDir, w.Version); }
+                finally { Interlocked.Exchange(ref claiming, 0); }
+            });
+            return;
+        }
         if (Identify == null || held == boot || Interlocked.Exchange(ref claiming, 1) == 1) return;
         _ = Task.Run(async () =>
         {

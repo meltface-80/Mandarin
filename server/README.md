@@ -32,6 +32,17 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
   brings its tables up to date first; C# opens it afresh for each request, so a database put back
   from a backup is the one read next.
 
+- **Kept at the Node server's version** (v0.8.25): each release carries this program for
+  `linux-x64` and `linux-arm64` with their SHA-256 sums (`release.yml`). An update from Settings
+  brings the Node server's files; the Node server, started by a C# server of another version,
+  fetches the matching program, checks its sum and that it runs (`mandarin-server --version`),
+  renames it over the running one and stops with code 76 (`lib/server/csharp-update.js`). This
+  server then starts itself again from the new file in the same process (`execv`, `Front.cs`);
+  one from before v0.8.25 stops, and Docker's restart policy starts the container again. Twice
+  at most for a version. Until the two match, this server answers nothing but `/server-info` and
+  passes everything to the Node server (which has every part), and the Node server keeps the
+  background work (`/internal/front/runs` turns down another version). `test/csharp-update.test.js`.
+
 When nothing is passed on any more, the Node server, and Node itself, leave the image.
 
 ## What has moved

@@ -18,6 +18,16 @@ using System.Net.Sockets;
 using Mandarin.Server;
 
 var version = (typeof(Front).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+Front.Version = version;
+
+// `mandarin-server --version`: this program's version, and nothing else — how
+// the Node server checks a newer one before putting it in place (v0.8.25,
+// lib/server/csharp-update.js).
+if (args.Length == 1 && args[0] == "--version")
+{
+    Console.WriteLine(version);
+    return 0;
+}
 
 // `mandarin-server --srp-vector test/srp-vector.json`: the server's half of
 // SRP against the fixed example the page and the Android app are checked
@@ -88,6 +98,8 @@ if (!await Front.WaitForUpstream(upstreamUri, node, TimeSpan.FromMinutes(5)))
 }
 
 Front.Log("[server] the Node server is up");
+// Its version, before anything is answered: of another, everything goes to it (Front.cs, v0.8.25).
+await Library.Ask();
 // The identification scan, the MusicBrainz pack and loudness measuring, taken
 // over from the Node server (Jobs.cs) before anything is answered.
 await Jobs.Start(upstreamUri, frontKey, port, dataDir, version);
@@ -140,6 +152,26 @@ Mandarin.Server.Identify.Lookups.UseInternal(app);
 // The Node server's word that a library scan has ended: what follows it is made here (Jobs.cs).
 Jobs.UseInternal(app);
 
+var invoker = Front.Invoker();
+var transformer = new ForwardTransformer();
+var requestConfig = new Yarp.ReverseProxy.Forwarder.ForwarderRequestConfig
+{
+    // A stream to a renderer, a held request: as long as they last.
+    ActivityTimeout = TimeSpan.FromHours(6),
+};
+
+// A Node server of another version behind this one (an update from Settings
+// half done, Front.cs): everything is passed to it as it came, but for this
+// server's own /server-info, until the two match (v0.8.25). Its private
+// addresses stay closed from outside, as the gate keeps them.
+var forwarder = app.Services.GetRequiredService<Yarp.ReverseProxy.Forwarder.IHttpForwarder>();
+app.Use(async (ctx, next) =>
+{
+    if (Front.Matched || ctx.Request.Path == "/server-info") { await next(); return; }
+    if (ctx.Request.Path.StartsWithSegments("/internal")) { ctx.Response.StatusCode = 404; return; }
+    await forwarder.SendAsync(ctx, upstream, invoker, requestConfig, transformer);
+});
+
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
@@ -162,13 +194,6 @@ app.UseRouting();
 Routes.Map(app, version);
 Auth.Map(app);
 
-var invoker = Front.Invoker();
-var transformer = new ForwardTransformer();
-var requestConfig = new Yarp.ReverseProxy.Forwarder.ForwarderRequestConfig
-{
-    // A stream to a renderer, a held request: as long as they last.
-    ActivityTimeout = TimeSpan.FromHours(6),
-};
 app.MapForwarder("/{**catch-all}", upstream, requestConfig, transformer, invoker);
 
 // The Node server stopping (Shut down, a crash) stops this too, with its
@@ -190,4 +215,9 @@ app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.
 await app.StartAsync();
 Front.Log($"[server] listening on port {port}");
 await app.WaitForShutdownAsync();
+// The Node server asking for this program to start again (v0.8.25): a newer one
+// was put in its place (lib/server/csharp-update.js). Started again in this
+// process; if that can't be done, stopped with the code, and Docker's restart
+// policy starts the container again.
+if (node != null && Environment.ExitCode == Front.StartAgainCode) Front.StartAgain(args);
 return Environment.ExitCode;

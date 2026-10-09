@@ -2,7 +2,11 @@
 # in-app updater (Settings → Check for updates) looks for. The release carries
 # musicd-server-<version>.tar.gz: just the server (index.js, launcher.js,
 # lib/, public/, package files), so an update downloads a few hundred KB
-# rather than the whole repository with its APK.
+# rather than the whole repository with its APK. From v0.8.25 it carries
+# Mandarin's C# server too, for each platform the image is built for
+# (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
+# SHA-256 sums in mandarin-server.sha256): an install updated from Settings
+# fetches the one for its machine (lib/server/csharp-update.js).
 name: Release
 
 on:
@@ -84,10 +88,35 @@ jobs:
               echo "v$version has no musicd-server-$version.tar.gz; it will be added"
               echo "bundle=false" >> "$GITHUB_OUTPUT"
             fi
+            # Nor, made before v0.8.25 or by hand, the C# server for an update to fetch.
+            if gh release view "v$version" --json assets -q '.assets[].name' | grep -qx "mandarin-server.sha256"; then
+              echo "csharp=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "v$version has no C# server for in-app updates; it will be added"
+              echo "csharp=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "bundle=false" >> "$GITHUB_OUTPUT"
+            echo "csharp=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # Mandarin's C# server for in-app updates (v0.8.25): built as the image
+      # builds it (self-contained, one file) for both of the image's platforms,
+      # arm64 cross-built here as the image does, each checked to say its version.
+      - name: Build the C# server for in-app updates
+        if: steps.v.outputs.csharp == 'false'
+        run: |
+          set -e
+          v=${{ steps.v.outputs.version }}
+          mkdir -p out/csharp
+          for rid in linux-x64 linux-arm64; do
+            RID=$rid ./server/build.sh
+            gzip -9 -c "server/bin/$rid/mandarin-server" > "out/csharp/mandarin-server-$rid.gz"
+          done
+          test "$(server/bin/linux-x64/mandarin-server --version)" = "$v"
+          (cd out/csharp && sha256sum mandarin-server-*.gz > mandarin-server.sha256 && cat mandarin-server.sha256)
+          ls -la out/csharp
 
       - name: Build the update bundle and notes
         if: steps.v.outputs.bundle == 'false'
@@ -107,7 +136,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           v=${{ steps.v.outputs.version }}
-          gh release create "v$v" "musicd-server-$v.tar.gz" \
+          gh release create "v$v" "musicd-server-$v.tar.gz" out/csharp/* \
             --target "$GITHUB_SHA" --title "MusicD Server v$v" --notes-file notes.md --latest
 
       - name: Add the update bundle to a release made by hand
@@ -117,3 +146,11 @@ jobs:
         run: |
           v=${{ steps.v.outputs.version }}
           gh release upload "v$v" "musicd-server-$v.tar.gz" --clobber
+
+      - name: Add the C# server to a release without it
+        if: steps.v.outputs.exists == 'true' && steps.v.outputs.csharp == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v=${{ steps.v.outputs.version }}
+          gh release upload "v$v" out/csharp/* --clobber

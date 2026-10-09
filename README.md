@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.24
+# Mandarin — v0.8.25
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -641,7 +641,7 @@ The server updates itself from GitHub from Settings and checks every 12 hours. I
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds; in the app, Android's installer then asks.
+**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds, and again once its C# server is brought up to the same version; in the app, Android's installer then asks.
 
 </details>
 
@@ -770,7 +770,16 @@ the page reloads on its own. In the Android app the same button then updates the
 the server is back (v0.7.3). It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
-**Manually** — also the way to pick up changes to the image itself (ffmpeg, Node):
+From v0.8.25 an update from the app brings Mandarin's C# server too: once the new version is
+running, it fetches the C# server of the same version for your machine (x64 or ARM64) from the
+release, checks it, and restarts once more with it — a few seconds more. The first time, the
+C# server from your image can't restart itself, so it stops and Docker's restart policy
+(`--restart unless-stopped`, as above, or `restart: unless-stopped` in `docker-compose.yml`)
+starts the container again. Without a restart policy, start it yourself (`docker start
+musicd-server`). Until the two match, the C# server passes everything to the Node server, so
+nothing is answered the old way.
+
+**Manually** — also the way to pick up changes to the image itself (ffmpeg, Node, the audio engine):
 
 ```bash
 docker pull ghcr.io/meltface-80/musicd-server:latest
