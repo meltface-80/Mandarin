@@ -1,14 +1,16 @@
 "use strict";
 /*
- * Offline in the Android app: when the app answers for a server it can't
- * reach (or its Offline mode is on), /api/status says so (offline,
- * offline_mode). The page no longer writes a notice across the top of the
- * screen; a symbol sits in the top bar between the menu and the search, and
- * a tap on it says what the matter is: the server can't be reached, or
- * Offline mode is on (with the app's switch to turn it off).
+ * Offline: when the Android app answers for a server it can't reach (or
+ * its Offline mode is on), /api/status says so (offline, offline_mode); in
+ * a browser, /api/status doesn't answer at all. The page no longer writes a
+ * notice across the top of the screen; a symbol sits in the top bar between
+ * the menu and the search, and a tap on it says what the matter is: the
+ * server can't be reached, or Offline mode is on (with the app's switch to
+ * turn it off).
  *
  * The app is stood in for: its /api/status answer and its MusicdDownloads
- * bridge. Skipped where no Chromium or Chrome is found.
+ * bridge; a server gone away, by every /api request failing in the page. Skipped
+ * where no Chromium or Chrome is found.
  */
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -16,7 +18,7 @@ const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
-const PORT = 3655, B = "http://127.0.0.1:" + PORT;
+const PORT = 3656, B = "http://127.0.0.1:" + PORT;
 
 // Before the page's scripts: /api/status as the app answers it offline, and
 // (Offline mode) the app's bridge, with every setting it is given written down.
@@ -25,6 +27,7 @@ const init = (offline, bridge) => `(() => {
   const real = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
+    if (url.pathname.startsWith("/api/") && window.__down) throw new TypeError("Failed to fetch");
     const r = await real(input, init);
     if (url.pathname !== "/api/status" || !extra) return r;
     const j = Object.assign(await r.json(), extra);
@@ -66,7 +69,7 @@ const LOOK = `(async () => {
   return out;
 })()`;
 
-test("offline: a symbol in the top bar, not a notice; a tap says what the matter is", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 120000 }, async (t) => {
+test("offline: a symbol in the top bar, not a notice; a tap says what the matter is", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -119,6 +122,44 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
       assert.deepEqual(r.set, [["offlineMode", "false"]], "the app is told to switch it off");
       assert.equal(r.closed, true);
       assert.deepEqual(r.errors, []);
+    });
+
+    await t.test("a browser that can't reach the server: the symbol in seconds (not at the next minute's look), and gone when it answers", async () => {
+      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], init: init(null) });
+      const r = await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        const until = async (f, ms) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(100); } return Date.now() - t0; };
+        const $ = id => document.getElementById(id);
+        const shown = el => !!el && !el.classList.contains("hidden") && getComputedStyle(el).display !== "none";
+        await until(() => document.querySelector("#home-view .album"), 8000);
+        // A request of the page's own that finds no server (the zones are
+        // asked for every 15 s) starts the looks at once; they run every 5 s
+        // while it is away. The first one missed is a blip, three in a row
+        // are news: the symbol within ~25 s, never inside 10.
+        window.__down = true;
+        await sleep(6000);
+        const out = { early: shown($("offline-btn")) };
+        out.after = await until(() => shown($("offline-btn")), 30000);
+        out.notice = shown($("server-notice")) ? $("server-notice").textContent : "";
+        $("offline-btn").click();
+        out.title = $("offline-title").textContent;
+        out.text = [...$("offline-text").querySelectorAll("p")].map(p => p.textContent);
+        out.switch = shown($("offline-switch"));
+        window.__down = false;
+        out.back = await until(() => !shown($("offline-btn")), 20000);
+        out.popupClosed = !shown($("offline-overlay"));
+        return out;
+      })()`);
+      assert.equal(r.early, false, "not for a moment's blip");
+      assert.ok(r.after, "the symbol never came");
+      assert.equal(r.notice, "", "no notice across the top of the page");
+      assert.equal(r.title, "Mandarin can’t be reached");
+      assert.match(r.text[0], /This device can’t reach the Mandarin server/);
+      assert.match(r.text[2], /container is up/);
+      assert.equal(r.switch, false);
+      assert.ok(r.back, "the symbol stayed after the server answered");
+      assert.equal(r.popupClosed, true, "and its popup with it");
+      assert.deepEqual(page.errors, []);
     });
   } finally {
     await b.close();

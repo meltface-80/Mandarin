@@ -5,18 +5,11 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
-## Unreleased — the `offline-mode` branch (experimental, on `shelf`)
-- **Offline in the Android app: a symbol, not a notice.** The line across the top of the screen
-  saying the server can't be reached (or that Offline mode is on) is gone. In its place, an offline
-  symbol in the top bar, between the menu and the magnifying glass. Tap it to see what the matter
-  is: Mandarin can't be reached (and what to check), or Offline mode is on — with a button to
-  switch it off. Only the page changes: the app shows it as soon as it has fetched the page from
-  the server once.
-- New test: `test/offline-indicator.test.js`.
-
-## Unreleased — the `shelf` branch (experimental)
-Built on v0.8.22, from the work done in Rouen (MusicD Remote) v1.9.2 and v1.9.3. Experimental: not
-yet promised for a release. The version number is unchanged.
+## v0.8.23
+A test build, from the `desktop-offline` branch, which carries the `shelf` and `offline-mode`
+branches: Shelf, the album view's More by and Last.fm suggestions, Random Album's choice and the
+radio's six-month rule (from Rouen, MusicD Remote v1.9.2–v1.9.3), and offline shown by a symbol in
+the top bar rather than a notice.
 
 - **New: Shelf.** Flick through your collection as through a record shop's shelf, on a tablet on a
   stand or a TV: **☰ → Shelf**, `/shelf`, or **Shelf ›** on the wall display.
@@ -45,8 +38,25 @@ yet promised for a release. The version number is unchanged.
 - A backup now carries the Last.fm key with the other keys, on both servers.
 - Not needed here: Rouen's v1.9.2 fix (an album opened at a position in the wrong list) can't happen
   in Mandarin, whose albums keep their own ids. Smart Picks already never adds anything by itself.
-- New tests: `test/shelf.test.js`, `test/lastfm.test.js`, `test/radio-memory.test.js` and
-  `test/random-pick.test.js`, and Shelf's list asked of both servers in `test/library-front.test.js`.
+- **Offline in the Android app: a symbol, not a notice.** The line across the top of the screen
+  saying the server can't be reached (or that Offline mode is on) is gone. In its place, an offline
+  symbol in the top bar, between the menu and the magnifying glass. Tap it to see what the matter
+  is: Mandarin can't be reached (and what to check), or Offline mode is on — with a button to
+  switch it off. Only the page changes: the app shows it as soon as it has fetched the page from
+  the server once.
+- **A browser that can't reach the server: the same symbol, not a notice.** "Can't reach
+  Mandarin — check the container is running" across the top of the page is gone. The top bar's
+  offline symbol shows instead, and a tap on it says what the matter is and what to check.
+  It goes away by itself as soon as the server answers.
+- **It comes sooner.** The page used to look for the server once a minute while all was well, so
+  the notice could take over a minute to appear. Now any of the page's own requests that finds no
+  server starts the looking at once: the symbol shows within about 25 seconds (never for a
+  moment's blip), and it still waits while an update restarts the server.
+- New tests: `test/shelf.test.js`, `test/lastfm.test.js`, `test/radio-memory.test.js`,
+  `test/random-pick.test.js` and `test/offline-indicator.test.js`, and Shelf's list asked of both
+  servers in `test/library-front.test.js`.
+- The Android app for this version is 0.8.23 (version code 223). Its offline symbol needs no new
+  app: the app shows it once it has fetched the page from the server.
 
 ## v0.8.22
 A test build, from the `claude/v0.8.22` branch: backups, built-in Tailscale, the album editor and
