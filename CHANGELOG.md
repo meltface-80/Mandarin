@@ -16,6 +16,10 @@ after identification.
   measured as the Node server did, and both asked the same thing.
 - **Files that couldn't be read are measured again, once**, as they failed because of the option,
   not themselves. A file that fails now stays failed, as before.
+- **In Docker, pull the new image for this fix.** There the measuring is done by the C# server,
+  which comes with the image: `docker pull`, then re-create the container. Settings → Updates
+  alone brings the Node server's half only, and the image's C# server goes on measuring the old
+  way. On a Mac, which runs the Node server alone, Settings → Updates is enough.
 - **Measure ReplayGain keeps to the schedule.** With Scheduling on, it measures only between the
   start and end times (01:00–06:00 unless you changed them) and not at all outside them; with
   Scheduling off, whenever, until every file is done. Either way it waits while the library is
