@@ -1,8 +1,9 @@
 "use strict";
 /*
- * Shelf (/shelf), ported from Rouen (MusicD Remote v1.9.3):
+ * Shelf (/shelf), ported from Rouen (MusicD Remote v1.9.3, brought up to
+ * v1.9.7 in v0.8.27):
  *   - lib/shelf.js: the letter an artist is filed under, the list in artist
- *     order with each album's genres, the signature;
+ *     order with each album's genres and year, the signature;
  *   - /api/shelf/albums: the whole library, and "the same" for a signature
  *     still current (the C# server's answer is held to this one in
  *     test/library-front.test.js);
@@ -10,7 +11,9 @@
  *     household: no pinch zoom, the gesture legend gone and said once in a
  *     first-use popup instead, the remote's transport bar fixed and flat at
  *     the shelf's foot (play/pause, volume, the zone, the playing record
- *     brought to the front), and choosing what is on the shelf.
+ *     brought to the front, previous and next), choosing what is on the
+ *     shelf (decades too), choosing tracks on the back of the case, a set's
+ *     discs under their own headings, the queue pane and the lane's fold.
  * The browser part is skipped where no Chromium or Chrome is found.
  */
 const test = require("node:test");
@@ -41,16 +44,17 @@ test("the letter an artist is filed under", () => {
 });
 
 test("the shelf's list: genres commonest first, each album's genres as places in it", () => {
-  const al = (id, title, artist, sortArtist, genres) => ({ id, title, artist, sortArtist, genres, image_key: "al-" + id + "-0" });
+  const al = (id, title, artist, sortArtist, genres, year) => ({ id, title, artist, sortArtist, genres, image_key: "al-" + id + "-0", year });
   const shelf = Shelf.buildShelf([
-    al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"]),
+    al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"], 1969),
     al(2, "Homogenic", "Björk", "bjork", ["Electronic"]),
     al(3, "Kind of Blue", "Miles Davis", "miles davis", ["Jazz"]),
     al(4, "Discovery", "Daft Punk", "daft punk", ["Electronic", "Electronic", ""]),
     al(5, "Untitled", "!!!", "", [])
   ]);
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
-  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B" });
+  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969 });
+  assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
   const sig = Shelf.shelfSignature(shelf);
@@ -59,15 +63,19 @@ test("the shelf's list: genres commonest first, each album's genres as places in
     Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Pop", "Rock"])])), "the same shelf, the same signature");
   assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])])),
     Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])])), "a new title, a new signature");
+  assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)])),
+    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)])), "a new year, a new signature");
 });
 
-// The library: makeLibrary's three albums and seven more, across genres and letters.
+// The library: makeLibrary's three albums (1997, 2020 and a set with no year)
+// and seven more, across genres, letters and decades.
 function library() {
   const lib = makeLibrary();
-  const more = [["The Beatles", "Abbey Road", "Rock"], ["Björk", "Homogenic", "Electronic"], ["Miles Davis", "Kind of Blue", "Jazz"],
-    ["10cc", "The Original Soundtrack", "Rock"], ["!!!", "Myth Takes", "Dance"], ["Daft Punk", "Discovery", "Electronic"], ["Nina Simone", "Pastel Blues", "Jazz"]];
-  for (const [artist, album, genre] of more) {
-    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre, date: "1990" } });
+  const more = [["The Beatles", "Abbey Road", "Rock", 1969], ["Björk", "Homogenic", "Electronic", 1997], ["Miles Davis", "Kind of Blue", "Jazz", 1959],
+    ["10cc", "The Original Soundtrack", "Rock", 1975], ["!!!", "Myth Takes", "Dance", 2007], ["Daft Punk", "Discovery", "Electronic", 2001],
+    ["Nina Simone", "Pastel Blues", "Jazz", 1965]];
+  for (const [artist, album, genre, year] of more) {
+    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre, date: String(year) } });
   }
   return lib;
 }
@@ -94,6 +102,27 @@ const HELPERS = `
   const shown = s => { const e = $(s); return !!e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none"; };
   const posts = p => window.__log.filter(x => x.path === p).map(x => x.body);
   const poll = () => document.dispatchEvent(new Event("visibilitychange"));   // the page asks for the zone again
+  const tile = (cat, label) => [...document.querySelectorAll('.tile[data-cat="' + cat + '"]')].find(t => t.textContent.includes(label));
+`;
+
+// A finger on the shelf (as Rouen's own shelf tests drive it): taps, long
+// presses, the case at the front turned over, and the rows on its back.
+const DRIVE = `
+  const S = () => window.__shelfState();
+  const stage = $("#stage");
+  let pid = 20;
+  const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
+  const tap = (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); pe("pointerup", x, y, id); };
+  const hold = async (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); await sleep(650); pe("pointerup", x, y, id); await sleep(60); };
+  const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  // The cover on show at the front: a pooled one put away may still carry its number.
+  const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
+  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000); await sleep(900); };
+  const row = (i) => document.querySelector('.it.flipped li[data-i="' + i + '"]');
+  const tapRow = async (i) => { const c = mid(row(i)); tap(c.x, c.y); await sleep(60); };
+  const holdRow = async (i) => { const c = mid(row(i)); await hold(c.x, c.y); };
+  const rows = () => [...document.querySelectorAll(".it.flipped .bk-tracks li")].map(li => li.classList.contains("bk-disc") ? "# " + li.textContent
+    : (li.classList.contains("sel") ? "✓" : li.querySelector("i").textContent) + " " + li.querySelector("span").textContent);
 `;
 
 test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
@@ -121,6 +150,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(j.albums.map(a => a.b + " " + a.a), ["# !!!", "1 10cc", "A Artist A", "A Artist B", "B The Beatles", "B Björk", "D Daft Punk",
         "M Miles Davis", "N Nina Simone", "V Various Artists"]);
       assert.deepEqual(j.genres.map(g => g.name + " " + g.count), ["Jazz 3", "Rock 3", "Electronic 2", "Dance 1"]);
+      assert.deepEqual(j.albums.map(a => a.y), [2007, 1975, 1997, 2020, 1969, 1997, 2001, 1959, 1965, null], "each album's year, null for none");
       assert.deepEqual(await (await fetch(B + "/api/shelf/albums?sig=" + j.sig, { headers: H })).json(), { same: true, sig: j.sig });
       const page = await fetch(B + "/shelf", { headers: H });
       assert.equal(page.status, 200);
@@ -174,9 +204,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         assert.equal(first.help, true, "shown the first time");
         assert.equal(first.saved, null);
         assert.equal(first.focus, "help-ok", "Dismiss has the focus");
-        assert.equal(first.items.length, 4);
+        assert.equal(first.items.length, 6);
         assert.match(first.items[0], /^Swipe moves one album/);
         assert.match(first.items[3], /^Tap a cover at the side/);
+        assert.match(first.items[4], /^Hold a track on the back of the case to choose it/);
+        assert.match(first.items[5], /tabs at the edges fold the choices away/);
         assert.equal(first.legend, 0, "nothing on the shelf itself says how it moves");
         assert.equal(first.helpAfter, false);
         assert.deepEqual(first.after, { seen: VERSION, never: false });
@@ -195,7 +227,6 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
     await t.test("choosing: genres OR, letters narrow them, Undo and Reset", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready}
-        const tile = (cat, label) => [...document.querySelectorAll('.tile[data-cat="' + cat + '"]')].find(t => t.textContent.includes(label));
         const out = {};
         tile("genre", "Jazz").click(); tile("genre", "Rock").click();
         out.two = window.__shelfState().N; out.sum = $("#pick-sum").textContent; out.clear = shown("#sec-clear");
@@ -230,6 +261,61 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.empty, { note: true, title: "Nothing on this shelf", why: "No albums match Dance and artists under M.", info: false });
       assert.deepEqual(r.undone, ["Myth Takes"], "Undo takes back the last choice");
       assert.equal(r.reset2, 10);
+      assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("decades: a Years tab, newest first and Undated last; decades OR, and narrow genres and letters as they narrow them", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+        const out = {};
+        const counts = (sel, name) => Object.fromEntries([...document.querySelectorAll(sel)].map(t => [t.querySelector(name).textContent, +t.querySelector(".t-count").textContent]));
+        out.tabs = [...document.querySelectorAll(".tab")].map(t => t.textContent.trim());
+        $('.tab[data-tab="year"]').click();
+        out.tiles = [...document.querySelectorAll(".t-decade")].map(t => t.querySelector(".ch").textContent + " " + t.querySelector(".t-count").textContent);
+        out.note = $("#sec-note").textContent;
+        tile("year", "1960s").click();
+        out.sixties = window.__shelfOrder();
+        tile("year", "1990s").click();
+        out.or = window.__shelfOrder();
+        out.sum = $("#pick-sum").textContent; out.badge = $('.tab[data-tab="year"] .badge').textContent; out.note2 = $("#sec-note").textContent;
+        out.chips = [...document.querySelectorAll(".chip")].map(c => c.textContent.replace("×", "").trim());
+        $('.tab[data-tab="genre"]').click();
+        out.genreCounts = counts(".t-genre", ".t-name");
+        tile("genre", "Jazz").click();
+        out.narrowed = window.__shelfOrder();
+        $('.tab[data-tab="year"]').click();
+        out.yearCounts = counts(".t-decade", ".ch");
+        $("#reset-all").click();
+        out.all = window.__shelfState().N;
+        tile("year", "1950s").click();
+        $('.tab[data-tab="genre"]').click(); tile("genre", "Dance").click();
+        out.why = $("#note-why").textContent;
+        $("#note-reset").click();
+        $('.tab[data-tab="year"]').click(); tile("year", "Undated").click();
+        out.undated = window.__shelfOrder();
+        tile("year", "Undated").click(); tile("year", "1990s").click();
+        $('.tab[data-tab="random"]').click();
+        out.randomNote = $(".t-rand .t-note").textContent;
+        $('.tile[data-cat="random"]').click();
+        out.random = window.__shelfOrder().slice().sort();
+        return out; })()`);
+      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Random"]);
+      assert.deepEqual(r.tiles, ["2020s 1", "2000s 2", "1990s 2", "1970s 1", "1960s 2", "1950s 1", "Undated 1"], "newest first, the albums with no year last");
+      assert.equal(r.note, "Tap decades. Choose as many as you like.");
+      assert.deepEqual(r.sixties, ["Abbey Road", "Pastel Blues"], "1960–1969, in artist order");
+      assert.deepEqual(r.or, ["Album One", "Abbey Road", "Homogenic", "Pastel Blues"], "decades OR among themselves");
+      assert.equal(r.sum, "4 of 10 albums on the shelf");
+      assert.equal(r.badge, "2");
+      assert.equal(r.note2, "2 decades chosen");
+      assert.deepEqual(r.chips, ["1960s", "1990s"]);
+      assert.deepEqual(r.genreCounts, { Jazz: 1, Rock: 2, Electronic: 1, Dance: 0 }, "a genre counts what the decades leave");
+      assert.deepEqual(r.narrowed, ["Pastel Blues"], "a genre narrows the decades");
+      assert.deepEqual(r.yearCounts, { "2020s": 1, "2000s": 0, "1990s": 0, "1970s": 0, "1960s": 1, "1950s": 1, Undated: 0 }, "a decade counts what the genres leave");
+      assert.equal(r.all, 10, "Reset shelf clears the decades too");
+      assert.equal(r.why, "No albums match the 1950s and Dance.");
+      assert.deepEqual(r.undated, ["Best Of"]);
+      assert.match(r.randomNote, /decades/);
+      assert.deepEqual(r.random, ["Album One", "Homogenic"], "Random keeps to the decades chosen");
       assert.deepEqual(page.errors, []);
     });
 
@@ -287,6 +373,97 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.control, { zone_or_output_id: "RINCON_KITCHEN01400", command: "playpause" });
       for (let i = 0; i < 40 && house.room("Kitchen").state !== "PAUSED_PLAYBACK"; i++) await sleep(100);
       assert.equal(house.room("Kitchen").state, "PAUSED_PLAYBACK", "the room paused");
+      assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("chosen tracks: Play now plays the first alone and queues the rest; previous and next move between them; the queue shows them and plays from one", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        const out = {};
+        // Rock by an artist under A: Album One alone, three tracks.
+        tile("genre", "Rock").click(); $('.tab[data-tab="artist"]').click(); tile("artist", "A").click();
+        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        out.front = S().title;
+        await turnOver();
+        out.rows = rows();
+        await holdRow(0); await tapRow(2);
+        out.picks = S().picks; out.count = $("#tsel-count").textContent; out.chosen = rows();
+        document.querySelector('#tsel [data-tact="play_now"]').click();
+        await until(() => posts("/api/play-track").length === 2);
+        out.posts = posts("/api/play-track").map(b => [b.track, b.kind, b.title, b.only]);
+        out.toast = await until(() => /^Playing /.test($("#toast").textContent)) && $("#toast").textContent;
+        out.after = { picks: S().picks, popup: shown("#tsel") };
+        out.playing = await until(() => $("#mt-title").textContent === "Song 1", 10000);
+        out.prevOn = await until(() => !$("#mt-prev").disabled);
+        out.nextOn = await until(() => !$("#mt-next").disabled);
+        $("#mt-next").click();
+        out.next = await until(() => $("#mt-title").textContent === "Song 3", 10000);
+        out.nextOff = await until(() => $("#mt-next").disabled);
+        // The queue, from the track playing on.
+        $("#queue-tab").click();
+        out.queueOpen = { state: S().queue, expanded: $("#queue-tab").getAttribute("aria-expanded") };
+        await until(() => document.querySelectorAll("#q-list li.q-row").length >= 1, 6000);
+        out.queue = [...document.querySelectorAll("#q-list li")].map(li => li.classList.contains("q-h") ? "# " + li.textContent : li.querySelector(".q-t").textContent);
+        out.qzone = $("#q-zone").textContent;
+        $("#mt-prev").click();
+        out.prev = await until(() => $("#mt-title").textContent === "Song 1", 10000);
+        out.queueAfter = await until(() => document.querySelectorAll("#q-list li.q-row").length === 2, 8000) &&
+          [...document.querySelectorAll("#q-list li")].map(li => li.classList.contains("q-h") ? "# " + li.textContent : li.querySelector(".q-t").textContent);
+        out.qsum = $("#q-sum").textContent;
+        out.controls = posts("/api/control");
+        // Play from here: a tap on a track to come offers it, its button plays from it.
+        const up = [...document.querySelectorAll("#q-list li.q-row")].find(li => !li.classList.contains("now"));
+        up.querySelector(".q-item").click();
+        out.armed = up.classList.contains("armed");
+        up.querySelector(".q-go").click();
+        await until(() => posts("/api/play-from-here").length);
+        out.fromHere = posts("/api/play-from-here");
+        out.fromHereToast = await until(() => /^Playing from /.test($("#toast").textContent)) && $("#toast").textContent;
+        out.jumped = await until(() => $("#mt-title").textContent === "Song 3", 10000);
+        $("#queue-tab").click();
+        out.queueClosed = { state: S().queue, expanded: $("#queue-tab").getAttribute("aria-expanded") };
+        return out; })()`);
+      assert.equal(r.front, "Album One");
+      assert.deepEqual(r.rows, ["1 Song 1", "2 Song 2", "3 Song 3"], "one disc: no headings");
+      assert.deepEqual(r.picks, [0, 2], "a long press chooses, a tap adds");
+      assert.equal(r.count, "2 tracks chosen");
+      assert.deepEqual(r.chosen, ["✓ Song 1", "2 Song 2", "✓ Song 3"]);
+      assert.deepEqual(r.posts, [[0, "play_now", "Song 1", true], [2, "queue", "Song 3", true]], "the first alone, the rest queued behind it");
+      assert.equal(r.toast, "Playing 2 tracks in Kitchen");
+      assert.deepEqual(r.after, { picks: [], popup: false }, "then the choice is done");
+      const titles = house.room("Kitchen").queue.map(q => (q.meta.match(/<dc:title>([^<]*)/) || [])[1]);
+      assert.deepEqual(titles, ["Song 1", "Song 3"], "the room's queue: just the two chosen");
+      assert.equal(r.playing, true);
+      assert.equal(r.prevOn, true, "previous on while a queue plays");
+      assert.equal(r.nextOn, true, "next on with a track to come");
+      assert.equal(r.next, true, "next moved to the second chosen track");
+      assert.equal(r.nextOff, true, "next off at the end of the queue");
+      assert.deepEqual(r.queueOpen, { state: true, expanded: "true" });
+      assert.deepEqual(r.queue, ["# Now playing", "Song 3"]);
+      assert.equal(r.qzone, "Kitchen");
+      assert.equal(r.prev, true, "previous moved back to the first");
+      assert.deepEqual(r.queueAfter, ["# Now playing", "Song 1", "# Up next", "Song 3"], "the queue follows");
+      assert.match(r.qsum, /^2 tracks/);
+      assert.deepEqual(r.controls, [{ zone_or_output_id: "RINCON_KITCHEN01400", command: "next" }, { zone_or_output_id: "RINCON_KITCHEN01400", command: "previous" }]);
+      assert.equal(r.armed, true, "a tap offers Play from here");
+      assert.deepEqual(r.fromHere, [{ zone_or_output_id: "RINCON_KITCHEN01400", queue_item_id: 2 }]);
+      assert.equal(r.fromHereToast, "Playing from Song 3");
+      assert.equal(r.jumped, true, "the zone plays from there");
+      assert.deepEqual(r.queueClosed, { state: false, expanded: "false" });
+      assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("a set: each disc under its own heading, numbered from 1", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        $('.tab[data-tab="artist"]').click(); tile("artist", "V").click();
+        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        const out = { front: S().title };
+        await turnOver();
+        out.rows = rows();
+        return out; })()`);
+      assert.equal(r.front, "Best Of");
+      assert.deepEqual(r.rows, ["# Disc 1", "1 C1", "# Disc 2", "1 C2"]);
       assert.deepEqual(page.errors, []);
     });
 
@@ -392,6 +569,64 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(r.fixed, true, "a fixed volume: the button off");
       assert.equal(r.fixedClosed, true);
       assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("previous and next: beside play/pause, on only where the zone allows, and a refusal said", async () => {
+      const allowed = (prev, next) => zone(np({})).replace('"state":"playing"', `"state":"playing","is_previous_allowed":${prev},"is_next_allowed":${next}`);
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+        const out = {};
+        const box = (s) => $(s).getBoundingClientRect();
+        out.order = [...$(".mt-transport").children].map(b => b.id);
+        out.row = Math.abs(box("#mt-prev").top - box("#mt-pp").top) < 1 && Math.abs(box("#mt-next").top - box("#mt-pp").top) < 1
+          && box("#mt-prev").right <= box("#mt-pp").left && box("#mt-pp").right <= box("#mt-next").left && box("#mt-next").right <= box("#mt-info").left;
+        out.labels = [$("#mt-prev").getAttribute("aria-label"), $("#mt-next").getAttribute("aria-label")];
+        window.__fake["/api/zone-state"] = ${allowed(false, false)}; poll();
+        await until(() => $("#mt-title").textContent === "So What");
+        out.off = [$("#mt-prev").disabled, $("#mt-next").disabled];
+        window.__fake["/api/zone-state"] = ${allowed(true, false)}; poll();
+        await until(() => !$("#mt-prev").disabled);
+        out.prevOnly = [$("#mt-prev").disabled, $("#mt-next").disabled];
+        window.__fake["/api/zone-state"] = ${allowed(true, true)}; poll();
+        await until(() => !$("#mt-next").disabled);
+        out.both = [$("#mt-prev").disabled, $("#mt-next").disabled];
+        window.__fail["/api/control"] = 409;
+        $("#mt-next").click();
+        await until(() => /Refused/.test($("#toast").textContent));
+        out.toast = $("#toast").textContent;
+        out.title = $("#mt-title").textContent;
+        out.sent = posts("/api/control");
+        window.__fake["/api/zone-state"] = { zone: null }; poll();
+        await until(() => $("#mt-title").textContent === "");
+        out.gone = [$("#mt-prev").disabled, $("#mt-next").disabled];
+        return out; })()`);
+      assert.deepEqual(r.order, ["mt-prev", "mt-pp", "mt-next"]);
+      assert.equal(r.row, true, "in a row, left of what is playing");
+      assert.deepEqual(r.labels, ["Previous track", "Next track"]);
+      assert.deepEqual(r.off, [true, true], "neither, where the zone allows neither");
+      assert.deepEqual(r.prevOnly, [false, true]);
+      assert.deepEqual(r.both, [false, false]);
+      assert.equal(r.toast, "Refused: /api/control", "the reason said");
+      assert.equal(r.title, "So What", "nothing guessed at on screen");
+      assert.deepEqual(r.sent, [{ zone_or_output_id: "RINCON_KITCHEN01400", command: "next" }]);
+      assert.deepEqual(r.gone, [true, true], "no zone: both off");
+      assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("the lane folds away to the left by its tab, and is remembered", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+        const out = { open: window.__shelfState().pick, expanded: $("#pick-tab").getAttribute("aria-expanded") };
+        const w = $("#stage").getBoundingClientRect().width;
+        $("#pick-tab").click();
+        const wider = await until(() => $("#stage").getBoundingClientRect().width > w + 100, 4000);
+        out.folded = { pick: window.__shelfState().pick, expanded: $("#pick-tab").getAttribute("aria-expanded"), wider };
+        return out; })()`);
+      assert.deepEqual(r, { open: true, expanded: "true", folded: { pick: false, expanded: "false", wider: true } });
+      const again = await open();
+      assert.equal(await again.eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), false, "still folded");
+      await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick); await sleep(300); return true; })()`);
+      assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
     });
 
     await t.test("the wall display offers Shelf, and Shelf the wall display while it is on", async () => {

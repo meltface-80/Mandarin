@@ -5,6 +5,57 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.27
+A test build, from the `shelf-rouen-1.9.7` branch. It is built on v0.8.26 (`stage1-small-parts`), so
+that one goes in first. Shelf gets Rouen's Shelf work since v1.9.3 (Rouen v1.9.4 to v1.9.7), plus
+decades and previous/next buttons, which are Mandarin's own.
+
+- **Choosing tracks on the back of the case** (Rouen v1.9.4).
+  - Turn the front cover over, then hold a track to choose it; its number becomes a tick. Tap more
+    to add them, or tap a chosen one to take it away. With a mouse, Ctrl/⌘-click chooses one and
+    Shift-click a run.
+  - **Play now**, **Play next** and **Queue** sit under the cover while tracks are chosen. Play now
+    plays the first chosen track and queues the rest behind it; Play next and Queue keep album
+    order, whatever order you chose them in.
+  - Turning the case back, or moving the shelf, ends the choosing.
+- **A set's discs each have their own heading**, numbered from 1 (Rouen v1.9.4).
+- **A list too long for the back of the case unfolds into a booklet** below it, with pages for a box
+  set: ‹ › or Page Up / Page Down (Rouen v1.9.4).
+- **The queue** (Rouen v1.9.5).
+  - A pane on the right shows what the zone in the bar will play, from the track playing on. Tap a
+    track for **Play from here**.
+  - It folds away to the right edge by its own tab. The choices on the left fold away the same
+    way, by a tab on the left edge. Each device remembers both.
+  - Rouen v1.9.6's fix is included: the left tab can be reached on an iPad and a TV.
+- **Bigger covers with the panes folded away** (Rouen v1.9.7). The spinning disc and the popup's ×
+  are centred properly.
+- **Decades.** A **Years** tab sits beside Genres, Artists and Random.
+  - It lists the decades your albums are from, newest first, then **Undated** for albums with no
+    year.
+  - Decades combine with each other ("the 1960s or the 1990s"), and narrow genres and letters as
+    those narrow them. Each tile counts what your other choices leave.
+  - Random shuffles what you've chosen, decades included.
+- **Previous and next** on the bar at the shelf's foot, either side of play/pause.
+  - Each is off when the zone can't do it; for example, next at the end of the queue.
+  - Each does exactly what the remote's own previous and next buttons do. On a Sonos room or a
+    renderer, previous goes back to the start of the track first when it's more than five seconds
+    in.
+  - The bar shows the new track when the zone moves to it. If the zone refuses, it says why.
+- **The help popup** also explains choosing tracks and the edge tabs. It shows once after this
+  update, unless you ticked "Don't show again".
+- **What the servers send**, the same from both (checked in `test/library-front.test.js`):
+  - `/api/shelf/albums` gives each album's year.
+  - `/api/album` gives each track's disc number on an album with more than one disc.
+  - The zone's state says how many tracks are left in its queue.
+  - `/api/play-track` takes `only: true`, which Shelf's chosen tracks use: Play now plays that
+    track alone. A track tapped on the album page still plays the rest of the album after it.
+- **Tests** (`test/shelf.test.js`, in Chromium, both ways):
+  - decades;
+  - choosing and playing tracks, against a fake Sonos room;
+  - previous and next, against the same room;
+  - the queue pane, the disc headings and the lane's fold.
+- The Android app for this version is 0.8.27 (version code 227). Nothing in it changed.
+
 ## v0.8.26
 A test build, from the `stage1-small-parts` branch: stage 1 (parts a to c) of the move to C#
 (`docs/specs/csharp-migration.md`). Three more parts of the server are now answered by the C#

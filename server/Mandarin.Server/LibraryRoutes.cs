@@ -573,7 +573,7 @@ internal static partial class Library
             var credit = t.Artist.Length > 0 && Names.ArtistKey(t.Artist) != albumKey ? t.Artist : "";
             string? fmt = null;
             if (t.Lossless && t.Bits != null && t.Rate != null) fmt = $"{t.Bits}/{RateShort(t.Rate.Value)}";
-            return (JsonNode)new JsonObject
+            var row = new JsonObject
             {
                 ["title"] = t.Title,
                 ["subtitle"] = string.Join(" · ", new[] { credit, disc, FmtLen(t.Duration) }.Where(x => x.Length > 0)),
@@ -581,6 +581,9 @@ internal static partial class Library
                 ["track_id"] = t.Id,
                 ["quality"] = fmt
             };
+            // A set's tracks say which disc, as a number (v0.8.27: Shelf's back of the case heads each disc).
+            if (discs > 1) row["disc"] = t.Disc is long d && d != 0 ? d : 1;
+            return (JsonNode)row;
         }).ToArray());
         var album = AlbumJson(s, al);
         album["year"] = al.Year;
