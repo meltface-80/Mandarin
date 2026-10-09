@@ -10,6 +10,7 @@
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
 //   { "fn": "share" | "similar" | "days" | "labels", … } (v0.8.20): Extras/ExtrasCommand.cs
 //   { "fn": "writeups" | "blob", … } (v0.8.21), { "fn": "backup" | "artfind", … } (v0.8.22): Extras/ExtrasCommand.cs
+//   { "fn": "autoeq", "index"?: md, "profile"?: text } (v0.8.26): Extras/AutoEq.cs
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -80,6 +81,15 @@ internal static class ScoreCommand
                         }).ToList();
                         break;
                     // v0.8.20's ports (Extras/ExtrasCommand.cs).
+                    // AutoEq's files read (v0.8.26, Extras/AutoEq.cs): { index } → { rows }, { profile } → { preamp, bands } or { error }.
+                    case "autoeq":
+                        if (job["index"] is string md) o["rows"] = Extras.AutoEq.ParseIndex(md);
+                        if (job["profile"] is string text)
+                        {
+                            try { var (preamp, bands) = Extras.AutoEq.ParseProfile(text); o["preamp"] = preamp; o["bands"] = bands; }
+                            catch (Extras.AutoEqError e) { o["error"] = e.Message; }
+                        }
+                        break;
                     case "share" or "similar" or "days" or "labels" or "writeups" or "blob" or "backup" or "artfind":
                         o = Extras.ExtrasCommand.Run(Js.Str(job["fn"]), job);
                         break;

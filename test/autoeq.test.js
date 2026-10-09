@@ -32,6 +32,35 @@ test("AutoEq's files are read", () => {
   assert.equal(many.bands.length, 10);
 });
 
+test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { skip: !require("fs").existsSync(require("path").join(__dirname, "..", "server", "bin", "mandarin-server")) && "the C# server isn't built (server/build.sh)" }, () => {
+  const { spawnSync } = require("child_process");
+  const bin = process.env.MANDARIN_SERVER_BIN || require("path").join(__dirname, "..", "server", "bin", "mandarin-server");
+  const index = INDEX + [
+    "- [Moondrop Blessing 2](./crinacle/711%20in-ear/Moondrop%20Blessing%202) by crinacle on 711",
+    "- [Apple AirPods](./Rtings/earbud/Apple%20AirPods) by Rtings",
+    "- [Café Phones](./oratory1990/over-ear/Caf%C3%A9%20Phones) by oratory1990   ",
+    "  - [Indented](./a/b/Indented) by someone on rig one on rig two",
+    "not a row", "- [Broken](no-dot-slash) by x"].join("\n");
+  const profiles = [
+    "Preamp: -6.1 dB\nFilter 1: ON LSC Fc 105 Hz Gain 6.4 dB Q 0.70\nFilter 2: OFF PK Fc 37 Hz Gain 0.7 dB Q 3.96\nFilter 3: ON PK Fc 8800 Hz Gain 5.1 dB Q 1.42\nFilter 4: ON HSC Fc 10000 Hz Gain -2.1 dB Q 0.70\nFilter 5: ON HPQ Fc 20 Hz Q 0.7\n",
+    "preamp: 3 dB\r\nfilter 1: on pk fc 100 hz gain 1 db q 1\r\n",
+    "Filter 1: ON PK Fc 5 Hz Gain 1 dB Q 1\nFilter 2: ON PK Fc 100 Hz Gain 25 dB Q 1\nFilter 3: ON PK Fc 100 Hz Gain 1 dB Q 30\nFilter 4: ON LP Fc 15000 Hz Gain 9 dB Q 0.5\nFilter 5: ON XYZ Fc 100 Hz Gain 1 dB Q 1\nFilter 6: ON PEQ Fc 105.25 Hz Gain -6.15 dB Q 0.7065",
+    "Preamp: 1.2.3 dB\nFilter: ON LS Fc 100 Hz Gain -0.04 dB\nFilter 2: ON HS Fc 12000.04 Hz Gain 2.25 dB Q 0.1",
+    new Array(12).fill(0).map((_, i) => `Filter ${i + 1}: ON PK Fc ${100 * (i + 1)} Hz Gain 1 dB Q 1`).join("\n"),
+    "Preamp: -3 dB\nnothing here", "", "Filter 1: ON PK Fc 1e3 Hz Gain 1 dB Q 1\nFilter 2: ON PK Fc -100 Hz Gain 1 dB Q 1"
+  ];
+  const jobs = [{ fn: "autoeq", index }].concat(profiles.map(profile => ({ fn: "autoeq", profile })));
+  const r = spawnSync(bin, ["score"], { input: jobs.map(j => JSON.stringify(j)).join("\n") + "\n", encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  const lines = r.stdout.trim().split("\n").map(l => JSON.parse(l));
+  assert.deepEqual(lines[0].rows, JSON.parse(JSON.stringify(parseIndex(index))), "the index");
+  profiles.forEach((text, i) => {
+    let want;
+    try { const p = parseProfile(text); want = { preamp: p.preamp, bands: p.bands }; } catch (e) { want = { error: e.message }; }
+    assert.deepEqual(lines[i + 1], JSON.parse(JSON.stringify(want)), "profile " + i + ": " + JSON.stringify(text).slice(0, 80));
+  });
+});
+
 test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) => {
   const fake = new FakeAutoEq();
   const base = await fake.start();
@@ -57,6 +86,11 @@ test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) 
       assert.deepEqual((await api("dsp/headphones?q=hd%20999")).results, []);
       assert.deepEqual((await api("dsp/headphones?q=")).results, []);
       assert.equal(fake.hits.filter(h => h === "/INDEX.md").length, 1, "the index was fetched once");
+      // Behind the C# server (v0.8.26): answered by it.
+      if (process.env.MANDARIN_FRONT === "1") {
+        const h = await fetch(B + "/api/dsp/headphones?q=hd", { headers: auth });
+        assert.equal(h.headers.get("x-mandarin-answered"), "C#");
+      }
     });
 
     await t.test("a profile is fetched once and kept", async () => {

@@ -5,6 +5,36 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.26
+A test build, from the `stage1-small-parts` branch: stage 1 (parts a to c) of the move to C#
+(`docs/specs/csharp-migration.md`). Three more parts of the server are now answered by the C#
+server. Nothing looks or works differently.
+
+- **Last.fm moves to the C# server.** The key in Settings → Setup → API Keys (or `LASTFM_KEY`),
+  its check, and the album view's similar artists and similar albums.
+  - One call at a time, a quarter of a second apart, as Last.fm asks.
+  - Answers are kept for a week.
+  - Whether each suggestion is in your library is decided as before.
+  - Last.fm's pictures are still drawn by the Node server.
+- **Headphone profiles move too.** Settings → Audio Devices → a device → DSP: searching AutoEq,
+  fetching a profile (kept for good), and reading one you paste. AutoEq's files are read exactly
+  as before; the C# server is checked against the Node server's reading of them, on awkward
+  files as well. Saving a profile to a device is still the Node server's.
+- **The phone's download lists move too.**
+  - An album's download list, with each track's size and ReplayGain numbers.
+  - Automatic downloads: Smart Picks, the Album of the day and the newest albums.
+  - The phone's downloaded albums refreshed with their current titles and covers.
+  - Plays made on the phone with no server, written to your history.
+  - The downloads themselves were already made by the C# server.
+- **Checked against the Node server's answers:** every album's download list at each quality, the
+  automatic downloads, the album lists and the plays (`test/library-front.test.js`). Which server
+  answers is pinned in `test/front.test.js`.
+- **The Docker image's base images come through Google's mirror of Docker Hub**
+  (`mirror.gcr.io/library/golang`, `…/node`). They're the same images; the change avoids Docker
+  Hub's limit on anonymous downloads, which failed the image build on GitHub's runners ("429 Too
+  Many Requests"). Microsoft's .NET images still come from Microsoft.
+- The Android app for this version is 0.8.26 (version code 226). Nothing in it changed.
+
 ## v0.8.25
 A test build, from the `stage0-csharp-updates` branch: stage 0 of the plan for the rest of the move
 to C# (`docs/specs/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring

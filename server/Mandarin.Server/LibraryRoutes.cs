@@ -76,6 +76,13 @@ internal static partial class Library
         ["/api/filters/tags"] = TagFilters,
         ["/api/album/edit"] = AlbumEditState,
         ["/api/album/art-search"] = AlbumArtSearch,
+        ["/api/settings/lastfm-key"] = LastfmKeyState,
+        ["/api/lastfm/similar-artists"] = LastfmSimilarArtists,
+        ["/api/lastfm/similar-albums"] = LastfmSimilarAlbums,
+        ["/api/dsp/headphones"] = Headphones,
+        ["/api/dsp/headphones/profile"] = HeadphoneProfile,
+        ["/api/download/album"] = DownloadAlbum,
+        ["/api/download/auto"] = DownloadAuto,
     };
     private static readonly Dictionary<string, Handler> Posts = new()
     {
@@ -119,6 +126,10 @@ internal static partial class Library
         ["/api/smart-playlists/delete"] = DeleteSmartPlaylist,
         ["/api/album/edit"] = SaveAlbumEdit,
         ["/api/album/edit/reset"] = ResetAlbumEdit,
+        ["/api/settings/lastfm-key"] = SaveLastfmKey,
+        ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
+        ["/api/download/albums"] = DownloadAlbums,
+        ["/api/phone/plays"] = PhonePlays,
     };
     private static readonly Dictionary<string, Handler> Deletes = new()
     {
@@ -772,6 +783,13 @@ internal static partial class Library
     {
         var artist = Names.JsTrim(Q(ctx, "artist") ?? "");
         if (artist.Length == 0) return Send(ctx, new JsonObject { ["error"] = "artist required" }, 400);
+        var (primary, featured) = ArtistAlbumsOf(s, artist);
+        return Send(ctx, new JsonObject { ["artist"] = artist, ["primary"] = AlbumList(s, primary), ["featured"] = AlbumList(s, featured) });
+    }
+
+    /* library.artistAlbums(name): the albums credited to the act first, then those it is on (Last.fm's tiles too, LastfmRoutes.cs). */
+    private static (List<Album> Primary, List<Album> Featured) ArtistAlbumsOf(Snapshot s, string artist)
+    {
         var q = Names.ArtistKey(artist);
         var primary = new List<Album>();
         var featured = new List<Album>();
@@ -793,7 +811,7 @@ internal static partial class Library
             primary = Sorted(primary, ByYear);
             featured = Sorted(featured, ByYear);
         }
-        return Send(ctx, new JsonObject { ["artist"] = artist, ["primary"] = AlbumList(s, primary), ["featured"] = AlbumList(s, featured) });
+        return (primary, featured);
     }
 
     // ------------------------------------------------------- genres, decades

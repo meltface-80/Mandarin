@@ -63,6 +63,8 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
 {
     // The day ("2026-10-7"), when it began, and the ISO week, on the Node server's clock.
     public string Day { get; init; } = "";
+    // The Node server's own address, as speakers and phones are given it (ctx.baseUrl, v0.8.26).
+    public string BaseUrl { get; init; } = "";
     public long DayStart { get; init; }
     public string Week { get; init; } = "";
     // The library scan running now (the identification scan waits for it).
@@ -260,7 +262,7 @@ internal static partial class Library
                 labels?["enabled"]?.GetValue<bool>() == true, (int)(labels?["depth"]?.GetValue<double>() ?? 0),
                 (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? [])
             {
-                Day = JsString(j["day"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
+                Day = JsString(j["day"]) ?? "", BaseUrl = JsString(j["base_url"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
                 Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning,
                 BuiltAt = j["built_at"] is JsonValue bv && bv.TryGetValue<double>(out var built) ? built : null
             };

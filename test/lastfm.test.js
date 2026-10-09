@@ -202,7 +202,7 @@ function lastfmServer() {
   const calls = [];
   const server = http.createServer((req, res) => {
     const q = Object.fromEntries(new URL(req.url, "http://x").searchParams);
-    calls.push(q);
+    calls.push(Object.defineProperty(q, "at", { value: Date.now() }));
     const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
     if (q.api_key !== "good") return send(403, { message: "Invalid API key - You must be granted a valid key by last.fm", error: 10 });
     if (q.method === "artist.getInfo") return send(200, { artist: { name: q.artist } });
@@ -246,14 +246,20 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
   const base = await fake.start();
   const lib = library();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
-    lastfmBaseUrl: base, lastfmKey: "" });
-  const ctx = await srv.start();
+  // Started with LASTFM_KEY or without (createServer's lastfmKey): the key from the
+  // environment is the server's from its start, on either server (v0.8.26).
+  let srv, token;
+  const start = async (envKey) => {
+    srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
+      lastfmBaseUrl: base, lastfmKey: envKey });
+    await srv.start();
+    token = await signIn(B);
+  };
+  await start("");
   try {
-    const token = await signIn(B);
-    const H = { Authorization: "Bearer " + token };
-    const get = async (p) => (await fetch(B + p, { headers: H })).json();
-    const post = async (p, body) => (await fetch(B + p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) })).json();
+    const H = () => ({ Authorization: "Bearer " + token });
+    const get = async (p) => (await fetch(B + p, { headers: H() })).json();
+    const post = async (p, body) => (await fetch(B + p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H()), body: JSON.stringify(body) })).json();
     for (let i = 0; i < 150 && (await get("/api/status")).index_count < 7; i++) await sleep(100);
     const albums = (await get("/api/library/albums?count=50")).albums;
     const id = (title) => albums.find(a => a.title === title).offset;
@@ -262,12 +268,13 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       assert.deepEqual(await get("/api/settings/lastfm-key"), { set: false, configured: false, masked: "", source: "", check: null });
       assert.deepEqual(await get("/api/lastfm/similar-artists?artist=Radiohead"), { enabled: false });
       assert.deepEqual(await get("/api/lastfm/similar-albums?artist=Radiohead"), { enabled: false });
-      assert.equal((await fetch(B + "/api/lastfm/similar-artists", { headers: H })).status, 400, "an artist is needed");
+      assert.equal((await fetch(B + "/api/lastfm/similar-artists", { headers: H() })).status, 400, "an artist is needed");
       assert.equal(fake.calls.length, 0);
     });
 
     await t.test("a key from the environment until one is saved; a refused one said so", async () => {
-      ctx.config.lastfmKey = "good";
+      await srv.stop();
+      await start("good");
       assert.deepEqual(await get("/api/settings/lastfm-key"), { set: true, configured: true, masked: "••••good", source: "env", check: "ok" });
       const bad = await post("/api/settings/lastfm-key", { key: "  wrongkey " });
       assert.deepEqual(bad, { ok: true, set: true, masked: "••••gkey", source: "settings", check: "invalid" }, "a saved key wins, checked at once");
@@ -302,6 +309,17 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       const calls = fake.calls.length;
       await get("/api/lastfm/similar-albums?artist=Radiohead");
       assert.equal(fake.calls.length, calls, "remembered: the second view asks Last.fm nothing");
+      // One call at a time, a quarter of a second apart (Last.fm's terms), whichever server asks.
+      const asked = fake.calls.filter(c => c.method !== "artist.getInfo").map(c => c.at);
+      assert.ok(asked.length >= 4);
+      for (let i = 1; i < asked.length; i++) assert.ok(asked[i] - asked[i - 1] >= 240, `${asked[i] - asked[i - 1]} ms apart`);
+      // Behind the C# server (v0.8.26): answered by it.
+      if (process.env.MANDARIN_FRONT === "1") {
+        for (const p of ["/api/settings/lastfm-key", "/api/lastfm/similar-artists?artist=Radiohead", "/api/lastfm/similar-albums?artist=Radiohead"]) {
+          const r = await fetch(B + p, { headers: H() });
+          assert.equal(r.headers.get("x-mandarin-answered"), "C#", p);
+        }
+      }
     });
 
     if (!findBrowser() && !process.env.CI) return;

@@ -423,6 +423,39 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     o = await fetch(B + "/api/download/t999999", { headers: H });
     assert.deepEqual([o.status, (await o.json()).error], [404, "That track is no longer in the library"]);
 
+    // The phone's download lists (v0.8.26): the same from either server, ReplayGain's sums among them.
+    const raw = ctx.db.raw;
+    const abbey = rowOf("Come Together"), something = rowOf("Something");
+    raw.prepare("INSERT OR REPLACE INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, ?, ?, 1)").run(abbey.id, -9.37, 0.81);
+    raw.prepare("INSERT OR REPLACE INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, ?, ?, 1)").run(something.id, -13.113, 0.47);
+    raw.prepare("UPDATE tracks SET rg_track_gain = -4.25, rg_track_peak = 0.9 WHERE id = ?").run(rowOf("Hunter").id);
+    for (const id of ids) for (const q of ["", "&quality=opus", "&quality=nonsense"]) await same("/api/download/album?offset=" + id + q, "download list: ");
+    await same("/api/download/album?offset=999999", "download list: ");
+    for (const q of ["?aotd=1&recent=5", "?picks=1&aotd=true&recent=50", "?recent=abc", "?recent=-3&aotd=0", ""]) await same("/api/download/auto" + q, "automatic downloads: ");
+    const samePost = async (p, body, label) => {
+      const opts = { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) };
+      const [c, n] = await Promise.all([fetch(B + p, opts), fetch(N + p, opts)]);
+      const cj = await c.json(), nj = await n.json();
+      assert.equal(c.headers.get("x-mandarin-answered"), "C#", label + p + ": answered by C#");
+      assert.equal(c.status, n.status, label + p + ": the same status");
+      assert.deepStrictEqual(cj, nj, label + p + ": the same answer");
+      return cj;
+    };
+    await samePost("/api/download/albums", { ids: ids.concat([999999, String(ids[0]), null, 1.5, "x", true]) }, "the phone's albums: ");
+    await samePost("/api/download/albums", {}, "the phone's albums: ");
+    // Plays made with no server: written by C# as the Node server writes them (its corrected title too).
+    const before = raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
+    const at = Date.now() - 3600000;
+    const played = await post("/api/phone/plays", { plays: [{ track_id: abbey.id, ts: at }, { track_id: something.id, ts: 1 }, { track_id: 999999, ts: at }, { track_id: rowOf("Hunter").id }, "junk"] });
+    assert.deepEqual(played, { ok: true, recorded: 3 });
+    const rows = raw.prepare("SELECT album_id, track_id, title, artist, album, zone, ts FROM plays ORDER BY id DESC LIMIT 3").all().reverse();
+    assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n, before + 3);
+    const expect = (t, ts) => { const tr = ctx.library.track(t.id); const al = ctx.library.album(tr.album_id); return { album_id: al.id, track_id: tr.id, title: tr.title, artist: tr.artist, album: al.title, zone: rows[0].zone, ts }; };
+    assert.match(rows[0].zone, /^PHONE_/);
+    assert.deepEqual(rows[0], expect(abbey, at));
+    assert.ok(rows[1].ts >= Date.now() - 90 * 86400000 - 60000 && rows[1].ts <= Date.now() - 90 * 86400000 + 60000, "kept to the last 90 days");
+    assert.ok(Math.abs(rows[2].ts - Date.now()) < 60000, "no time given: now");
+
     // Not made yet, or not this side's: the Node server's.
     for (const conv of ["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "/stream/t" + trackOf("Something").id + ".44100-32.flac"]) {
       x = await fetch(B + conv, { headers: H });
