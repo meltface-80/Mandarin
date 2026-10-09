@@ -244,6 +244,18 @@ test("Tailscale's engine already running for the data folder (the C# server's) i
     assert.equal(look(dir), true, "another engine on this folder");
     assert.equal(look(dir + "-other"), false, "not one on another folder");
     assert.equal(look(dir, new Set([other.pid])), false, "nor this server's own");
+    // Taking the work back: left to that engine, and started once it has gone.
+    const logs = [];
+    const started = [];
+    const ts = Object.assign(Object.create(TailscaleNode.prototype), { dir, front: null, proc: null, log: s => logs.push(s), start: async () => { started.push(Date.now()); } });
+    await ts.startUnlessElsewhere();
+    assert.deepEqual(started, [], "not a second engine on the folder");
+    assert.match(logs.join("\n"), /already running for this data folder/);
+    clearTimeout(ts.otherTimer);
+    other.kill("SIGKILL");
+    await sleep(200);
+    await ts.startUnlessElsewhere();
+    assert.equal(started.length, 1, "started once it had gone");
   } finally {
     other.kill("SIGKILL");
   }

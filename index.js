@@ -688,7 +688,8 @@ function createServer(overrides = {}) {
       if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
       ctx.frontRunsAsked = new Set();
       startOwn(new Set());
-      if (frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
+      // Tailscale's engine left to the C# server while it still runs one for this folder.
+      if (frontRuns.has("tailscale")) ctx.tailscale.startUnlessElsewhere().catch(e => log("[tailscale] " + e.message));
       // What followed a library scan while this one waited: made now.
       if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
       if (frontRuns.has("taste")) features.kickSmartPicks();

@@ -35,7 +35,9 @@ const DRIVER = `(async () => {
   out.at_once = ["Schedule", "Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Scheduling", "Identification progress", "Clean up", "Processor"].filter(w => !text().includes(w));
   out.blocks = body.querySelectorAll("[data-blk]").length;
   // Then the numbers, as each comes.
-  out.filled = await until(() => /\\d+ of \\d+ albums checked/.test(text()) && /tagged · /.test(text()) && /core/.test(body.querySelector('[data-blk="cpu"]').textContent));
+  // (The clean-up's counts among them: asked for at the same time, they can come last.)
+  out.filled = await until(() => /\\d+ of \\d+ albums checked/.test(text()) && /tagged · /.test(text()) && /core/.test(body.querySelector('[data-blk="cpu"]').textContent)
+    && /Nothing to remove|Remove \\d/.test(body.querySelector('[data-blk="cleanup"]').textContent));
   out.no_dots = !body.querySelector('[data-blk="progress"] .id-wait') && !body.querySelector('[data-blk="loudness"] .id-wait');
   // The schedule first, then what it runs in the order it runs it (v0.8.24),
   // with what is happening now.
