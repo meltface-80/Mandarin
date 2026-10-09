@@ -2,15 +2,19 @@
 /*
  * ReplayGain (lib/loudness.js, v0.6.0-RC5): the files' own gains kept and
  * used; Track, Album and Auto; the peak keeping a gain from clipping; the
- * stream carrying the gain; files without tags measured in the background.
+ * stream carrying the gain; files without tags measured in the background —
+ * in the schedule's hours, never while the library is scanned, album by
+ * album, newest first, after identification, with options ffmpeg 5.1 knows
+ * (v0.8.24).
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { Loudness, parseEbur128, combine } = require("../lib/loudness");
+const { Loudness, parseEbur128, combine, FILTER } = require("../lib/loudness");
 const STREAM = require("../lib/stream");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
@@ -81,6 +85,110 @@ test("the plan: a gain means a conversion, never on DSD sent as DSD", () => {
   assert.ok(STREAM.ffmpegArgs("/in", p, "/out").join(" ").includes("volume=volume=-6dB:precision=double,aresample"));
   const tc = new STREAM.Transcoder({ cacheDir: fs.mkdtempSync(path.join(require("os").tmpdir(), "rg-")), log: () => {} });
   assert.notEqual(tc.keyFor({ id: 1, mtime: 1 }, p), tc.keyFor({ id: 1, mtime: 1 }, Object.assign({}, p, { gain: -3 })));
+});
+
+test("ebur128's options are ones ffmpeg 5.1 knows, the same on both servers (v0.8.24)", () => {
+  // framelog=quiet came with ffmpeg 6.0; Debian 12's 5.1 refused it and every file failed.
+  assert.equal(FILTER, "ebur128=peak=true:framelog=verbose");
+  const cs = fs.readFileSync(path.join(__dirname, "../server/Mandarin.Server/Identify/Loudness.cs"), "utf8");
+  const js = fs.readFileSync(path.join(__dirname, "../lib/loudness.js"), "utf8");
+  assert.equal(/const string Filter = "([^"]*)"/.exec(cs)[1], FILTER);
+  assert.match(cs, /"-af", Filter,/);
+  assert.match(js, /"-af", FILTER,/);
+  assert.doesNotMatch(cs + js, /"[^"\n]*framelog=quiet[^"\n]*"/, "no ffmpeg argument asks for framelog=quiet");
+  // What is waiting to be measured is the same on both.
+  assert.equal(/const string Waiting = "([^"]*)"/.exec(cs)[1], /const WAITING = "([^"]*)"/.exec(js)[1]);
+});
+
+test("measuring keeps to the hours and the order (v0.8.24): the schedule's window, never while the library is scanned, album by album, newest first, after identification", () => {
+  const DB = require("../lib/library/db");
+  const db = DB.open(fs.mkdtempSync(path.join(os.tmpdir(), "rg-order-")), { log: () => {} });
+  const DAY = 24 * 60 * 60 * 1000, now = Date.now();
+  const albums = new Map();
+  const album = (id, title, ago, tracks) => {
+    db.raw.prepare("INSERT INTO albums(id, key, title, artist, added_at, updated_at) VALUES(?, ?, ?, 'Someone', ?, ?)").run(id, "k" + id, title, now - ago * DAY, now);
+    for (const [tid, no, extra] of tracks) {
+      db.raw.prepare("INSERT INTO tracks(id, album_id, path, mtime, size, title, track_no, rg_track_gain) VALUES(?, ?, ?, 0, 0, ?, ?, ?)")
+        .run(tid, id, (extra && extra.path) || `/m/${id}/${tid}.flac`, "T" + tid, no, extra && extra.gain != null ? extra.gain : null);
+    }
+    albums.set(id, { id, key: "k" + id, title, artist: "Someone", added: now - ago * DAY, edited: false, tracks: tracks.length });
+  };
+  album(1, "Old", 3, [[11, 2], [12, 1]]);                   // track 2 first in the table, played second
+  album(2, "New", 0, [[21, 1], [22, 2]]);
+  album(3, "Middle", 1, [[31, 1, { gain: -5 }], [32, 2]]);  // one track tagged: never measured
+  album(4, "Streamed", -1, [[41, 1, { path: "qobuz://track/41" }], [42, 2, { path: "tidal://track/42" }]]);
+  album(5, "Single", 5, [[51, 1]]);                         // one track: identification never looks at it
+  album(6, "Unseen", 2, [[61, 1], [62, 2]]);
+  // Measured before v0.8.24: failed, as every file did on ffmpeg 5.1.
+  db.raw.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at, error) VALUES(51, NULL, NULL, 1, 'ffmpeg exited with 234')").run();
+
+  let win = false, reason = "checking";
+  const looked = new Set(["k2"]);
+  const scanner = { state: { running: false } };
+  const identifier = {
+    timer: 1, stopped: false, handedOver: false,
+    settings: () => ({ enabled: true, schedule: true, start: "01:00", end: "06:00" }),
+    inWindow: () => win,
+    state: () => ({ reason }),
+    rows: () => new Map([...looked].map(k => [k, {}])),
+    eligible: () => [...albums.values()].filter(al => al.tracks >= 2 && al.id !== 4)
+  };
+  const l = new Loudness({ db, library: { album: id => albums.get(Number(id)) || null }, scanner, identifier });
+  const order = [];
+  l.run = (row) => { order.push(row.id); l.q.put.run(row.id, -20, 0.5, Date.now(), null); };
+  const step = () => { const from = order.length; l.tick(); return order.slice(from); };
+  try {
+    // The counts are the files here: the Qobuz and Tidal tracks apart.
+    let r = l.status();
+    assert.deepEqual([r.tracks, r.tagged, r.measured, r.failed, r.left, r.streamed], [9, 1, 0, 1, 7, 2]);
+    assert.equal(r.reason, "off");
+    // What failed before is measured again — once.
+    l.retryOnce();
+    assert.equal(l.status().failed, 0);
+    assert.equal(db.setting("loudnessRetried", null), 1);
+    db.raw.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at, error) VALUES(51, NULL, NULL, 2, 'unreadable')").run();
+    l.retryOnce();
+    assert.equal(l.status().failed, 1, "a file that fails now stays failed");
+    db.raw.prepare("DELETE FROM track_loudness").run();
+
+    l.timer = setInterval(() => {}, 1e9);
+    l.timer.unref();
+    // Outside the hours: nothing.
+    assert.deepEqual(step(), []);
+    assert.equal(l.status().reason, "waiting");
+    // In them, but the library is being scanned: nothing.
+    win = true;
+    scanner.state.running = true;
+    l.queue = [{ id: 999, path: "/m/gone.flac" }];
+    assert.deepEqual(step(), []);
+    assert.equal(l.status().reason, "scanning");
+    assert.deepEqual(l.queue, [], "the album under way is chosen again after the scan");
+    // Identification at work: the albums it has looked at (New) or won't
+    // (Single, one track), newest first, each album's tracks in order.
+    scanner.state.running = false;
+    assert.deepEqual(step(), [21, 22, 51]);
+    r = l.status();
+    assert.equal(r.reason, "identifying");
+    assert.equal(r.measuring, false);
+    // It looks at Middle; Old you edited by hand, so it never will.
+    looked.add("k3");
+    albums.get(1).edited = true;
+    assert.deepEqual(step(), [32, 12, 11]);
+    // MusicBrainz not answering: identification can't go on, so measuring does.
+    reason = "unreachable";
+    assert.deepEqual(step(), [61, 62]);
+    assert.deepEqual(l.current, { offset: 6, title: "Unseen", subtitle: "Someone" });
+    r = l.status();
+    assert.deepEqual([r.reason, r.left, r.measured, r.current], ["done", 0, 8, null]);
+    assert.ok(!order.includes(41) && !order.includes(42) && !order.includes(31), "Qobuz, Tidal and tagged tracks are never measured");
+    // Scheduling off: whenever.
+    identifier.settings = () => ({ enabled: true, schedule: false, start: "01:00", end: "06:00" });
+    win = false;
+    assert.equal(l.inHours(), true);
+  } finally {
+    l.stop();
+    db.raw.close();
+  }
 });
 
 test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down, untagged files measured", { skip, timeout: 120000 }, async () => {
@@ -171,9 +279,27 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
       const h = await fetch(B + "/api/loudness", { headers: { Authorization: "Bearer " + token } });
       assert.equal(h.headers.get("x-mandarin-answered"), "C#", "measuring is the C# server's");
     }
+    // Scheduling on, its window not now: switched on, nothing is measured (v0.8.24).
+    const hhmm = (h) => { const d = new Date(Date.now() + h * 3600000); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+    r = await api("identify/settings", { schedule: true, start: hhmm(2), end: hhmm(3) });
+    assert.equal(r.status, 200, JSON.stringify(r));
     r = await api("loudness", { measure: true });
     assert.equal(r.settings.measure, true);
-    r = await until(async () => { const j = await api("loudness"); return j.left === 0 && j; });
+    await new Promise(res => setTimeout(res, 1500));
+    r = await api("loudness");
+    assert.deepEqual([r.reason, r.measured, r.failed, r.measuring, r.streamed], ["waiting", 0, 0, false, 0], JSON.stringify(r));
+    // Scheduling off: measured until done, album by album, the newest first
+    // (one scan added them all: the higher id first).
+    await api("identify/settings", { schedule: false });
+    const seen = [];
+    r = await until(async () => {
+      const j = await api("loudness");
+      const t = j.current && j.current.title;
+      if (t && seen[seen.length - 1] !== t) seen.push(t);
+      return j.left === 0 && j.reason === "done" && j;
+    });
+    const rank = new Map(ctx.library.albums.slice().sort((a, b) => (b.added || 0) - (a.added || 0) || b.id - a.id).map((a, i) => [a.title, i]));
+    assert.ok(seen.every((t, i) => rank.has(t) && (i === 0 || rank.get(t) > rank.get(seen[i - 1]))), "measured out of order: " + JSON.stringify(seen));
     assert.equal(r.tagged, 2);
     assert.equal(r.measured + r.failed, 7);
     assert.ok(r.measured >= 5, JSON.stringify(r));

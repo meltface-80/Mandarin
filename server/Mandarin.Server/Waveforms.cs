@@ -326,7 +326,7 @@ internal static partial class Library
     private static Task<bool> LoudnessState(HttpContext ctx, Snapshot s, LibState st)
     {
         if (!Jobs.Held || Jobs.Loudness is not { } l) return Task.FromResult(false);
-        return SendJs(ctx, l.Status());
+        return SendJs(ctx, l.Status(st));
     }
 
     /* POST /api/loudness { measure } */
@@ -336,6 +336,6 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         l.Set(FromNode(b) as JsObj ?? new JsObj());
-        return await SendJs(ctx, l.Status());
+        return await SendJs(ctx, l.Status(st));
     }
 }

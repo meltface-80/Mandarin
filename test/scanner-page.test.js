@@ -32,11 +32,16 @@ const DRIVER = `(async () => {
   document.getElementById("settings-toggle").click(); await sleep(400);
   document.querySelector('#settings-overlay .settings-nav-item[data-pane="identify"]').click();
   // At once, before any answer: the page's own words.
-  out.at_once = ["Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Scheduling", "Progress", "Clean up", "Processor"].filter(w => !text().includes(w));
+  out.at_once = ["Schedule", "Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Scheduling", "Identification progress", "Clean up", "Processor"].filter(w => !text().includes(w));
   out.blocks = body.querySelectorAll("[data-blk]").length;
   // Then the numbers, as each comes.
   out.filled = await until(() => /\\d+ of \\d+ albums checked/.test(text()) && /tagged · /.test(text()) && /core/.test(body.querySelector('[data-blk="cpu"]').textContent));
   out.no_dots = !body.querySelector('[data-blk="progress"] .id-wait') && !body.querySelector('[data-blk="loudness"] .id-wait');
+  // The schedule first, then what it runs in the order it runs it (v0.8.24),
+  // with what is happening now.
+  out.order = [...body.querySelectorAll("[data-blk]")].map(e => e.dataset.blk).slice(0, 5);
+  out.schedTitle = body.querySelector('[data-blk="schedule"] .settings-block-title').textContent;
+  out.now = await until(() => /^Now: /.test((body.querySelector("[data-sched-now]") || {}).textContent || "")) && body.querySelector("[data-sched-now]").textContent;
   // Left open through two refreshes: the fixed parts are the very same elements, not drawn again.
   const row = body.querySelector('[data-blk="identify"] .settings-row');
   row.__kept = true;
@@ -79,6 +84,9 @@ test("Library Scanner: the page at once, each block as its answer comes, only wh
       assert.equal(r.blocks, 13, "laid out as its blocks");
       assert.equal(r.filled, true, "each block filled as its answer came");
       assert.equal(r.no_dots, true, "nothing left waiting");
+      assert.deepEqual(r.order, ["schedule", "identify", "pack", "progress", "loudness"]);
+      assert.equal(r.schedTitle, "Schedule");
+      assert.ok(r.now, "the schedule says what is happening now");
       assert.equal(r.kept, true, "what didn't move wasn't drawn again");
       assert.ok(r.light >= 1, "the state asked for again, without the lists: " + r.light);
       assert.equal(r.lists_on_open, 1, "the lists asked for when the page opened");

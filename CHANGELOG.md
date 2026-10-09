@@ -5,6 +5,42 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.24
+A test build, from the `replaygain-fix` branch: Measure ReplayGain fixed, and run by the schedule,
+after identification.
+
+- **Fixed: Measure ReplayGain measured nothing.** Every file came back "couldn't be read", because
+  the server asked ffmpeg for an option (`framelog=quiet`) that ffmpeg 5.1, the one in Mandarin's
+  Docker image, doesn't have; newer ffmpegs do, which is why the tests didn't notice. It now asks in
+  a way every ffmpeg since 4 understands. It wasn't the move to the C# server: the C# server
+  measured as the Node server did, and both asked the same thing.
+- **Files that couldn't be read are measured again, once**, as they failed because of the option,
+  not themselves. A file that fails now stays failed, as before.
+- **In Docker, pull the new image for this fix.** There the measuring is done by the C# server,
+  which comes with the image: `docker pull`, then re-create the container. Settings → Updates
+  alone brings the Node server's half only, and the image's C# server goes on measuring the old
+  way. On a Mac, which runs the Node server alone, Settings → Updates is enough.
+- **Measure ReplayGain keeps to the schedule.** With Scheduling on, it measures only between the
+  start and end times (01:00–06:00 unless you changed them) and not at all outside them; with
+  Scheduling off, whenever, until every file is done. Either way it waits while the library is
+  being scanned.
+- **One album at a time, after identification.** Within the hours the library scan comes first,
+  then identification, then ReplayGain: albums are measured one at a time, newest additions first,
+  each once identification has looked at it, so the two run side by side, measuring a little
+  behind. When identification can't go on (switched off, finished, or MusicBrainz not answering),
+  measuring carries on with any album.
+- **Qobuz and Tidal tracks are no longer counted as "to measure".** They have no file on the server
+  and were never measured; the page now says how many there are instead.
+- **Settings → Library Scanner, regrouped.** The schedule comes first, with a line saying what is
+  happening now (identifying which album, measuring which, or what it's waiting for), then
+  Identify albums with the MusicBrainz pack and its progress, then Measure ReplayGain with its
+  counts and what it's doing. The rest of the page is as before.
+- The CI's Docker check now measures a file inside the image, so an ffmpeg that refuses the options
+  is caught before a release.
+- New tests in `test/loudness.test.js`: the hours, the order, measuring again once, the counts, and
+  the same ffmpeg options on both servers.
+- The Android app for this version is 0.8.24 (version code 224). Nothing in it changed.
+
 ## v0.8.23
 A test build, from the `desktop-offline` branch, which carries the `shelf` and `offline-mode`
 branches: Shelf, the album view's More by and Last.fm suggestions, Random Album's choice and the

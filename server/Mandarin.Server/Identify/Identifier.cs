@@ -120,7 +120,10 @@ internal sealed partial class Identifier
     }
 
     /* { enabled, schedule, start, end, itunes }, the defaults under what's kept. */
-    public JsObj Settings()
+    public JsObj Settings() => Stored();
+
+    /* The same, for the loudness measuring, which keeps to the same hours (v0.8.24). */
+    public static JsObj Stored()
     {
         var s = new JsObj();
         s["enabled"] = true;
@@ -1056,6 +1059,9 @@ internal sealed partial class Identifier
     });
 
     // ------------------------------------------------------------ the loop
+
+    /* Started, and not stopped: albums are being looked at whenever the hours allow. */
+    public bool Running => timer != null && !stopped;
 
     public void Start()
     {
