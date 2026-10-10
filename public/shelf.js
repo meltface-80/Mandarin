@@ -977,8 +977,12 @@
     applyDrag();
     kick();
   });
+  // How far a finger goes for one album, against a cover's own step (v0.8.32:
+  // 1.4, the shelf asked to be less quick to move; before, 1). A flick that
+  // spins it is firmer for the same reason. The wheel and trackpad are as before.
+  const SWIPE = 1.4;
   function applyDrag() {
-    const raw = drag.p0 - (drag.x - drag.x0) / stepPx + drag.acc;
+    const raw = drag.p0 - (drag.x - drag.x0) / (stepPx * SWIPE) + drag.acc;
     p = wrap() ? raw : rubber(raw);
   }
   // Swipe and HOLD: once the finger is well out and has stopped, the shelf keeps
@@ -1029,8 +1033,8 @@
       return;
     }
     if (d.shuttle) { vp = d.rate / 1000; settleTo(Math.round(p + Math.sign(d.rate) * 0.4)); return; }
-    if (Math.abs(v) >= 1.2 && Math.abs(dx) >= Math.max(100, W * 0.11) && now - d.t0 < 700) { spin(v < 0 ? 1 : -1, Math.abs(v)); return; }
-    vp = -v / stepPx;
+    if (Math.abs(v) >= 1.7 && Math.abs(dx) >= Math.max(140, W * 0.16) && now - d.t0 < 700) { spin(v < 0 ? 1 : -1, Math.abs(v)); return; }
+    vp = -v / (stepPx * SWIPE);
     if (Math.abs(dx) < clamp(W * 0.16, 80, 240)) { settleTo(Math.round(d.p0) + (dx < 0 ? 1 : -1)); return; }
     settleTo(Math.round(p + vp * 240));
   }
@@ -2053,6 +2057,6 @@
 
   // For the test suite: where the shelf is, without reaching into its closure.
   window.__shelfState = () => { const c = centre(); return { p, mode, N, look, title: c && c.t, zone: zoneId, flipped: flippedV, picks: tsel ? [...tsel.picks].sort((x, y) => x - y) : [],
-    pick: !screenEl.classList.contains("pick-off"), queue: qOpen }; };
+    pick: !screenEl.classList.contains("pick-off"), queue: qOpen, swipe: stepPx * SWIPE }; };
   window.__shelfOrder = () => list.map((a) => a.t);
 })();

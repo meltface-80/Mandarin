@@ -431,6 +431,39 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(page.errors, []);
     });
 
+    await t.test("a swipe: one album's way moves one album, and a quick swipe doesn't spin it (v0.8.32: less quick to move)", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        const out = {};
+        await until(() => S().mode === "idle"); await sleep(300);
+        const box = stage.getBoundingClientRect(), y = box.top + box.height * 0.5, x0 = box.left + box.width * 0.5;
+        const swipe = async (dx, ms, hold) => {
+          const id = ++pid, n = Math.max(2, Math.round(ms / 16));
+          pe("pointerdown", x0, y, id);
+          for (let i = 1; i <= n; i++) { await sleep(ms / n); pe("pointermove", x0 + dx * i / n, y, id); }
+          if (hold) await sleep(hold);
+          pe("pointerup", x0 + dx, y, id);
+        };
+        out.swipe = S().swipe;
+        // Slowly, one album's way, then still: one album on.
+        const p0 = Math.round(S().p);
+        await swipe(-S().swipe, 400, 150);
+        await until(() => S().mode === "idle", 4000);
+        out.slow = Math.round(S().p) - p0;
+        // Quick: 150 px in a tenth of a second (1.5 px a millisecond), which spun it before: not a spin now.
+        const p1 = Math.round(S().p);
+        await swipe(-150, 100, 0);
+        out.spun = S().mode === "spin";
+        await until(() => S().mode === "idle", 6000);
+        out.quick = Math.round(S().p) - p1;
+        return out; })()`);
+      assert.ok(r.swipe > 0, "the distance for one album: " + r.swipe);
+      assert.equal(r.slow, 1, "one album's way, slowly: one album");
+      assert.equal(r.spun, false, "a quick swipe doesn't spin the shelf");
+      assert.ok(r.quick >= 1 && r.quick <= 3, "a quick swipe moves an album or a few: " + r.quick);
+      assert.deepEqual(page.errors, []);
+    });
+
     await t.test("chosen tracks: Play now plays the first alone and queues the rest; previous and next move between them; the queue shows them and plays from one", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
