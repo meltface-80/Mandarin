@@ -5,6 +5,54 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.32
+Stages 1e and 1f of the move to C# (`docs/specs/csharp-migration.md`): **the library scans are the
+C# server's**, and so are the covers the Node server still drew with `sharp`, but for a few. Also a
+fix for Queue writing over a queue that wasn't playing, a calmer Shelf, and Add to playlist on the
+album page.
+
+- **The library scans** (stage 1e) are a job the Node server hands over, as identification and
+  the rest are: the C# server reads the library half a second after taking over, every
+  `SCAN_INTERVAL_HOURS` (six), and when the music folders change on disk (watched with the file
+  system's own notifications; read once the changes have been quiet for 20 seconds, at most once a
+  minute, as before). The Node server's own timer and watcher don't start.
+  - Rescan library, Reindex, Settings → Music folders (the list, adding and removing a folder, the
+    folder picker and its hints about mounts), Forget folder, `/api/music-mount` and
+    `/api/search-status` are answered by the C# server, in the same shapes and words.
+  - The Node server keeps its copy of the library for playback: it is told how each scan goes
+    (about once a second, so `/api/status` and the page's progress are as before), reads the
+    albums found so far as they land, and once a scan ends does what followed one (the covers drawn
+    ahead, the tag check, release days and Smart Picks), and after a Rescan brings Qobuz and Tidal
+    up to date, as before.
+  - The scan now reads tags with the C# reader whatever the tag check says (Settings → Library
+    Scanner still runs it and lists any difference). `TAG_READER=node` keeps the scans, and the
+    music-metadata reader, the Node server's.
+  - Clean up stays the Node server's while Qobuz's and Tidal's albums are (stage 4).
+  - `server/Mandarin.Server/Scans.cs`, `ScanRoutes.cs`, `Mounts.cs`. The Node server's part is a
+    hand-over switch only (`index.js`, `lib/server/api-library.js`), as the owner allowed.
+  - **Tests:** `test/scans-csharp.test.js`: every read route held to the Node server's own answer
+    to the same request, every refusal word for word, a folder added and removed, Rescan
+    ("fresh", then "rebuilt"), Reindex, a missing folder kept then forgotten, and a new album found
+    by the watcher, by the timer, and not for a hidden folder.
+- **Covers** (stage 1f), drawn by the C# server with ffmpeg, as the owner chose:
+  - an album with no cover of its own: its placeholder, the same colour, gradient, note, title
+    and artist as `sharp` drew (`test/covers-csharp.test.js` holds the two drawings together);
+  - a picture from elsewhere (a radio station's, a track queued from the Sonos app, Last.fm's):
+    fetched as before (http(s), three redirects, 15 MB at most) and drawn as a cover is.
+  - Still the Node server's: a picture only `sharp` reads well (CMYK, a colour profile other than
+    sRGB, a file cut short), and a speaker asking for a cover by its own address.
+- **Queue and Play next no longer write over a queue that isn't playing.** With music in the queue
+  and nothing playing, queueing an album replaced the queue and started it (on Sonos; a renderer or
+  the phone jumped to it and played). Now what's added joins the queue and nothing starts; an empty
+  queue is started as before, and while music plays nothing changed. A Node change, as the owner
+  allowed for this bug (`test/queue-stopped.test.js`).
+- **Shelf moves less under a finger:** a finger goes 40% further for one album, the shelf carries
+  on less after a swipe, and a flick has to be firmer to spin it. The wheel and a trackpad are as
+  before.
+- **The album page's ⋯ menu has Add to playlist**, under Listen later: the whole album into one of
+  your playlists or a new one.
+- The Android app for this version is 0.8.32 (version code 232). Nothing in it changed.
+
 ## v0.8.31
 Stage 1d of the move to C# (`docs/specs/csharp-migration.md`): Restart and Shut down are the C#
 server's, and **Restart now starts both servers again**.
