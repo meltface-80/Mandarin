@@ -487,7 +487,7 @@ internal static class Covers
     // ------------------------------------------------------------- programs
 
     /* A program run to its end (or killed at `within`): its exit code, what it wrote, and its complaints. */
-    private static async Task<(int Code, byte[] Out, string Err)> Run(string bin, IEnumerable<string> args, byte[]? input, int maxOut, TimeSpan within)
+    internal static async Task<(int Code, byte[] Out, string Err)> Run(string bin, IEnumerable<string> args, byte[]? input, int maxOut, TimeSpan within)
     {
         var psi = new ProcessStartInfo(bin)
         {

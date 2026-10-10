@@ -276,6 +276,122 @@ window.__afterStart = (fn) => {
       mq.setAttribute("aria-label", words);
     }
   }
+
+  // ----- Booklets (v0.8.33) ------------------------------------------------
+  // The PDFs that came with an album, their pages drawn by the C# server
+  // (Booklets.cs): the book on the cover when it has any, and its pages over
+  // the album page, one under another. The Node server has none, so without
+  // the C# server no album shows the book.
+  const bookletBtn = document.getElementById("modal-booklet");
+  let booklets = [];
+  let bookletViewer = null, bookletBack;
+  function resetBooklets() {
+    booklets = [];
+    if (bookletBtn) bookletBtn.classList.add("hidden");
+    closeBooklet();
+  }
+  async function loadBooklets(album) {
+    if (!bookletBtn || currentSource === "now-playing" || typeof album.offset !== "number" || (album.source && album.source !== "local")) return;
+    let list = [];
+    try {
+      const r = await fetch(`/api/album/booklets?offset=${album.offset}`, { cache: "no-store" });
+      if (r.ok) list = (await r.json()).booklets || [];
+    } catch (e) { /* none to show, then */ }
+    // Another album opened while this was asked: not this one's book.
+    if (album !== currentAlbum || !list.length) return;
+    booklets = list;
+    const label = list.length === 1 ? "Booklet" : `${list.length} booklets`;
+    bookletBtn.title = label;
+    bookletBtn.setAttribute("aria-label", label);
+    bookletBtn.classList.remove("hidden");
+  }
+  if (bookletBtn) bookletBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const album = currentAlbum;
+    if (!album || !booklets.length) return;
+    if (booklets.length === 1) { openBooklet(album, booklets[0]); return; }
+    const list = booklets.slice();
+    openLibSheet("Booklets", (body, close) => {
+      for (const b of list) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "action-btn sheet-row";
+        row.textContent = `${b.name} · ${b.pages} page${b.pages === 1 ? "" : "s"}`;
+        row.addEventListener("click", () => { close(); openBooklet(album, b); });
+        body.appendChild(row);
+      }
+    });
+  });
+  function openBooklet(album, b) {
+    if (!bookletViewer) {
+      bookletViewer = document.createElement("div");
+      bookletViewer.className = "booklet-viewer hidden";
+      bookletViewer.id = "booklet-viewer";
+      bookletViewer.setAttribute("role", "dialog");
+      bookletViewer.innerHTML =
+        '<div class="booklet-head">' +
+          '<button class="booklet-close icon-btn" type="button" aria-label="Close booklet" title="Close">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+          '</button><div class="booklet-title"></div><div class="booklet-count"></div>' +
+        '</div><div class="booklet-pages"></div>';
+      bookletViewer.querySelector(".booklet-close").addEventListener("click", closeBooklet);
+      // Over everything but the sheets and the toasts, the transport bar included:
+      // a page is read whole (style.css .booklet-viewer).
+      document.body.appendChild(bookletViewer);
+    }
+    const pages = bookletViewer.querySelector(".booklet-pages");
+    const count = bookletViewer.querySelector(".booklet-count");
+    bookletViewer.querySelector(".booklet-title").textContent = b.name;
+    bookletViewer.setAttribute("aria-label", b.name);
+    bookletViewer.classList.remove("hidden");
+    pages.innerHTML = "";
+    pages.scrollTop = 0;
+    // Drawn as wide as it's shown, on this screen's pixels (the server keeps a few widths).
+    const w = Math.round(Math.min(pages.clientWidth || window.innerWidth, 1100) * (window.devicePixelRatio || 1));
+    // The page counted is the topmost one mostly in view (two short pages can both be).
+    const inView = new Set();
+    const seen = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        const n = Number(en.target.dataset.page);
+        if (en.isIntersecting) inView.add(n); else inView.delete(n);
+      }
+      if (inView.size) count.textContent = `${Math.min(...inView)} / ${b.pages}`;
+    }, { root: pages, threshold: 0.5 });
+    for (let p = 1; p <= b.pages; p++) {
+      const img = document.createElement("img");
+      img.className = "booklet-page";
+      img.alt = `Page ${p}`;
+      img.dataset.page = String(p);
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.addEventListener("load", () => { if (img.naturalWidth) img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; }, { once: true });
+      img.src = `/api/booklet/page?offset=${album.offset}&id=${encodeURIComponent(b.id)}&page=${p}&w=${w}`;
+      pages.appendChild(img);
+      seen.observe(img);
+    }
+    bookletViewer.__seen = seen;
+    count.textContent = `1 / ${b.pages}`;
+    // The phone's Back closes the booklet first, then the album as before.
+    if (bookletBack === undefined) {
+      bookletBack = window.__musicdBack || null;
+      window.__musicdBack = () => { closeBooklet(); return true; };
+    }
+  }
+  function closeBooklet() {
+    if (bookletBack !== undefined) { window.__musicdBack = bookletBack || undefined; bookletBack = undefined; }
+    if (!bookletViewer || bookletViewer.classList.contains("hidden")) return;
+    if (bookletViewer.__seen) { bookletViewer.__seen.disconnect(); bookletViewer.__seen = null; }
+    bookletViewer.classList.add("hidden");
+    bookletViewer.querySelector(".booklet-pages").innerHTML = "";
+  }
+  // Escape closes the booklet before anything under it sees the key.
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !bookletViewer || bookletViewer.classList.contains("hidden")) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    closeBooklet();
+  }, true);
+
   const modalTitle  = document.getElementById("modal-title");
   const modalSub    = document.getElementById("modal-subtitle");
   const modalActs   = document.getElementById("modal-actions");
@@ -6631,6 +6747,7 @@ window.__afterStart = (fn) => {
     document.getElementById("album-bio-source").classList.add("hidden");
     document.getElementById("album-bio-text").dataset.clipped = "true";
     setModalSource(album);   // tile data may already carry it; refreshed below from the detail response
+    resetBooklets();         // a previous album's book never lingers; asked for once its offset is sure
     if (album.image_key) {
       modalImg.src = `/api/image/${encodeURIComponent(album.image_key)}?size=800`;
       modalImg.style.display = "";
@@ -7911,6 +8028,8 @@ window.__afterStart = (fn) => {
     // the album — adopt it so Play/Queue and per-track actions use the fresh
     // position instead of re-tripping the same relocation on every call.
     if (typeof j.offset === "number" && j.offset >= 0) album.offset = j.offset;
+    // Its booklets, by that id (v0.8.33): the book on the cover when it has any.
+    loadBooklets(album);
 
     // The offset is the album's permanent id on this server, so what comes
     // back IS this album — and its title, artist, year and cover are the

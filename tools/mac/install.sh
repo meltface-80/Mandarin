@@ -4,7 +4,7 @@
 #
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
 #
-# Installs Homebrew (if it isn't there), Node.js 22 and ffmpeg, downloads
+# Installs Homebrew (if it isn't there), Node.js 22, ffmpeg and poppler (an album's booklet), downloads
 # Mandarin into ~/Mandarin, asks with the Mac's own Finder windows where the
 # music is (and where to keep the MusicBrainz pack, if anywhere else), starts
 # Mandarin now and at every login, and opens it in the browser. Run it again
@@ -78,9 +78,9 @@ if ! command -v brew >/dev/null 2>&1 && ! use_brew; then
 fi
 BREW="$(brew --prefix)"
 
-# 2. Node.js 22 and ffmpeg.
-say "Installing Node.js and ffmpeg…"
-brew install node@22 ffmpeg
+# 2. Node.js 22 and ffmpeg; poppler draws the pages of an album's booklet (v0.8.33).
+say "Installing Node.js, ffmpeg and poppler…"
+brew install node@22 ffmpeg poppler
 NODE_BIN="$BREW/opt/node@22/bin"
 export PATH="$NODE_BIN:$BREW/bin:$PATH"
 

@@ -4294,9 +4294,37 @@ input.vol-range::-moz-range-thumb {
 #modal-quality { left: 8px; bottom: 8px; padding: 3px 7px; font-size: 12px; border-radius: 6px; }
 
 /* Larger on the album detail artwork, which is far bigger than a tile. */
-/* On the phone: bottom right of the cover (v0.6.0), clear of the share button. */
-#modal-source { width: 28px; height: 28px; top: auto; bottom: 8px; right: 8px; border-radius: 8px; }
+/* Bottom left of the cover, above the bit/sample badge (v0.8.33: the bottom
+   right is the booklet's), or in its place when the album has no rate shown. */
+#modal-source { width: 28px; height: 28px; top: auto; bottom: 36px; left: 8px; right: auto; border-radius: 8px; }
+#modal-source:has(+ #modal-quality.hidden) { bottom: 8px; }
 #modal-source::before { -webkit-mask-size: 16px 16px; mask-size: 16px 16px; }
+/* The album's booklet (v0.8.33): a disc in the cover's bottom right, as the
+   page's other buttons are; never on Now playing. */
+#modal-booklet { position: absolute; right: 8px; bottom: 8px; z-index: 3; width: 38px; height: 38px; padding: 0; border-radius: 50%; }
+.modal.np-mode #modal-booklet { display: none; }
+/* Its pages, over the album page: one under another, as wide as the screen
+   allows, each drawn by the server at that width. 80: over the transport bar
+   (.mini-transport, 70), so the last page isn't under it; under the sheets (90)
+   and the toasts (100). Solid, so nothing of the album page shows through. */
+.booklet-viewer {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 80;
+  display: flex; flex-direction: column;
+  background: #0a0c10;
+}
+.booklet-head {
+  display: flex; align-items: center; gap: 12px; flex: none;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+}
+.booklet-head .booklet-close { flex: none; border-radius: 50%; }
+.booklet-title { flex: 1; min-width: 0; color: #fff; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.booklet-count { flex: none; color: rgba(255, 255, 255, .7); font-size: 13px; font-variant-numeric: tabular-nums; }
+.booklet-pages {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 0 8px calc(16px + env(safe-area-inset-bottom));
+}
+/* Square until drawn (a CD booklet's shape), then the page's own. */
+.booklet-page { display: block; width: 100%; max-width: 1100px; height: auto; aspect-ratio: 1 / 1; margin: 0 auto 10px; background: rgba(255, 255, 255, .06); }
 /* TIDAL — its overlapping-diamond mark (evenodd leaves the overlap open,
    which is what gives the logo its character). */
 .album-source.tidal::before {
@@ -5297,7 +5325,9 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .modal .modal-close,
 [data-palette="hifi"] .modal .modal-home,
 [data-palette="hifi"] .modal .modal-nav-btn,
-[data-palette="hifi"] .modal .modal-share {
+[data-palette="hifi"] .modal .modal-share,
+[data-palette="hifi"] .modal .modal-booklet,
+[data-palette="hifi"] .booklet-viewer .booklet-close {
   border-radius: 50%; border-color: var(--plum); background: var(--plum); color: var(--plum-pale);
 }
 [data-palette="hifi"] .topbar .icon-btn:hover,
@@ -5309,6 +5339,8 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .modal .modal-close:hover,
 [data-palette="hifi"] .modal .modal-home:hover,
 [data-palette="hifi"] .modal .modal-share:hover,
+[data-palette="hifi"] .modal .modal-booklet:hover,
+[data-palette="hifi"] .booklet-viewer .booklet-close:hover,
 [data-palette="hifi"] .modal .modal-nav-btn:not(:disabled):hover { background: var(--plum); color: var(--plum-pale); filter: brightness(1.08); }
 /* The previous and next discs on the art: translucent brass, so the cover shows
    through them while the brass rim and dark chevron keep them easy to find. */

@@ -87,10 +87,13 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # taskset and ionice (util-linux, in the base image): playback's own cores and
 # the background work's priority (lib/cpu.js); checked here, so the image is
 # never built without them.
+# poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
+# album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 \
+    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
-    && taskset --version && ionice --version && nice --version
+    && taskset --version && ionice --version && nice --version \
+    && pdftoppm -v && pdfinfo -v
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
 # TS_AUTHKEY), the server is on your tailnet by itself (lib/server/tsnode.js).

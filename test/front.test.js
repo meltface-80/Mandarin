@@ -51,7 +51,9 @@
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
  *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
  *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
- *     are still passed to it, and test/power.test.js's through-the-server test holds that.
+ *     are still passed to it, and test/power.test.js's through-the-server test holds that;
+ *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
+ *     server has none (test/booklets-csharp.test.js holds that they're C#'s).
  */
 const ports = require("./ports");
 const test = require("node:test");
