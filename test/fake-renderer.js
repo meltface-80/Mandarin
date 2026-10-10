@@ -95,7 +95,20 @@ class FakeRenderer {
 
   // ------------------------------------------------------------ transport
 
-  pos() { return this.state === "PLAYING" ? this.position + (Date.now() - this.at) / 1000 : this.position; }
+  pos() { return this.state === "PLAYING" && !this.held ? this.position + (Date.now() - this.at) / 1000 : this.position; }
+  /* Playing on, but the clock stopped: the track can't run out until
+   * release(), however long the test takes (a restart of the server under
+   * test, on a busy machine) — the tracks here are only a few seconds long. */
+  hold() {
+    if (this.held) return;
+    this.position = this.pos(); this.held = true;
+    if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
+  }
+  release() {
+    if (!this.held) return;
+    this.held = false; this.at = Date.now();
+    if (this.state === "PLAYING") this.armEnd();
+  }
   setPos(s) { this.position = s; this.at = Date.now(); }
   duration() {
     const it = DIDL.parseItems(this.meta || "")[0] || {};
@@ -120,6 +133,7 @@ class FakeRenderer {
   // one was set) starts by itself, else the device stops.
   armEnd() {
     if (this.endTimer) clearTimeout(this.endTimer);
+    if (this.held) { this.endTimer = null; return; }
     const left = Math.max(0, this.duration() - this.pos());
     this.endTimer = setTimeout(() => {
       this.endTimer = null;
