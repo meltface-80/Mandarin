@@ -12,8 +12,6 @@
 // the library's state). Answered here once the Node server has handed over its
 // work; until then (and the picks while it makes them), by it.
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Data.Sqlite;
 using Mandarin.Server.Tags;
 
@@ -26,16 +24,11 @@ internal static partial class Library
     private static readonly string[] DownloadQualities = ["original", "opus"];
     private const int DownloadOpusKbps = 256;
 
-    /* auth.signUrl: the path signed with the install's secret, its signature added as ?s= (or &s=). */
+    /* auth.signUrl: the path signed with the install's secret, its signature added as ?s= (or &s=) (Playback/Signing.cs). */
     private static string? SignUrl(SqliteConnection c, string url)
     {
         if (Db.Setting(c, "authSecret") is not { } sv || Js.Str(sv) is not { Length: > 0 } secret) return null;
-        var i = url.IndexOf("://", StringComparison.Ordinal);
-        var start = i >= 0 ? url.IndexOf('/', i + 3) : 0;
-        var path = start < 0 ? "" : url[start..].Split('?')[0];
-        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(path));
-        var sig = Convert.ToBase64String(mac).TrimEnd('=').Replace('+', '-').Replace('/', '_')[..22];
-        return url + (url.Contains('?') ? "&" : "?") + "s=" + sig;
+        return Playback.Signing.SignUrl(secret, url);
     }
     private static string? ArtUrl(SqliteConnection c, LibState st, Album al) =>
         SignUrl(c, $"{st.BaseUrl}/api/image/{Js.EncodeURIComponent(al.ImageKey)}?size=1200");
@@ -47,17 +40,17 @@ internal static partial class Library
     private static double? FiniteOr(object? v) => v is double d && double.IsFinite(d) ? d : null;
     private static double? Dbl(object? v) => v == null || v is DBNull ? null : Convert.ToDouble(v, CultureInfo.InvariantCulture);
 
-    /* loudness.js combine: the tracks' energy, weighted by length. */
-    private static double? Combine(List<(double Lufs, double Seconds)> parts)
+    /* loudness.js combine: the tracks' energy, weighted by length (V8's pow and log10, Playback/JsMath.cs). */
+    internal static double? Combine(List<(double Lufs, double Seconds)> parts)
     {
         double e = 0, w = 0;
         foreach (var (lufs, seconds) in parts)
         {
             var d = seconds > 0 ? seconds : 1;
-            e += d * Math.Pow(10, lufs / 10);
+            e += d * Playback.JsMath.Pow(10, lufs / 10);
             w += d;
         }
-        return w > 0 && e > 0 ? 10 * Math.Log10(e / w) : null;
+        return w > 0 && e > 0 ? 10 * Playback.JsMath.Log10(e / w) : null;
     }
 
     /* loudness.js albumOf: the album's gain and peak, once every track's loudness is known. */

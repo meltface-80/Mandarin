@@ -83,9 +83,11 @@ internal static partial class Transcoder
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
 
     /* stream.js ffmpegArgs, for a conversion with no DSP and no gain. */
-    public static List<string> Args(string src, ConvPlan p, string dest)
+    public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
+
+    /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
+    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr)
     {
-        var soxr = Ff.Value.Soxr;
         var resampler = soxr ? (p.Hq ? "resampler=soxr:precision=33:" : "resampler=soxr:precision=28:") : "";
         var internalFmt = p.Hq ? "internal_sample_fmt=dblp:" : "";
         var dither = p.Exact || p.Bits == 32 ? "dither_method=0" : p.Bits == 16 ? "dither_method=triangular_hp" : "dither_method=triangular";
