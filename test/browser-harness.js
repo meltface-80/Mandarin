@@ -42,6 +42,10 @@ function findBrowser() {
 // A desktop: a mouse, so (hover: hover) and (pointer: fine) match. Without
 // it headless Chrome reports no hover and a coarse pointer, as a tablet does.
 const MOUSE = "--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2";
+// Without one, said outright: no pointer and no hover, as headless Chrome
+// reports on Linux. On a Mac it reports the machine's own mouse otherwise,
+// and a phone's or a tablet's run would measure a desktop.
+const NO_MOUSE = "--blink-settings=primaryPointerType=1,availablePointerTypes=1,primaryHoverType=1,availableHoverTypes=1";
 
 class Browser {
   constructor(proc, dir, size) {
@@ -75,7 +79,7 @@ class Browser {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-browser-"));
     const args = ["--headless=new", "--remote-debugging-pipe", "--no-sandbox", "--disable-gpu",
       "--disable-dev-shm-usage", "--disable-crash-reporter", "--disable-breakpad", "--no-first-run", "--no-default-browser-check", "--mute-audio",
-      "--user-data-dir=" + dir, `--window-size=${width},${height}`].concat(mouse ? [MOUSE] : [], ["about:blank"]);
+      "--user-data-dir=" + dir, `--window-size=${width},${height}`].concat([mouse ? MOUSE : NO_MOUSE], ["about:blank"]);
     // Its own process group, so close() ends Chrome and every process it
     // started (a wrapper script's child included), not only the first.
     // A starved CI runner can take Chrome a long while to come up, or lose
