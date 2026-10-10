@@ -112,7 +112,11 @@ test("for real: this process off playback's core, children where they belong, mo
     // A playback child: playback's core.
     const [pb, pa] = CPU.wrap("sleep", ["20"], "playback");
     const pl = CPU.adopt(spawn(pb, pa, { stdio: "ignore" }), "playback");
-    await until(() => { try { return allowedOf(bg.pid) === CPU.compact(p.background) && allowedOf(pl.pid) === String(last); } catch (e) { return false; } }, 5000, "the children placed");
+    // Placed once each is sleep itself: before, it is still nice, ionice or
+    // taskset, on this process's cores until the last of them sets its own,
+    // which on a busy machine can come after DSP has moved it, below.
+    const became = (pid, name) => { try { return fs.readFileSync(`/proc/${pid}/comm`, "utf8").trim() === name; } catch (e) { return false; } };
+    await until(() => { try { return became(bg.pid, "sleep") && became(pl.pid, "sleep") && allowedOf(bg.pid) === CPU.compact(p.background) && allowedOf(pl.pid) === String(last); } catch (e) { return false; } }, 5000, "the children placed");
     const nice = Number(fs.readFileSync(`/proc/${bg.pid}/stat`, "utf8").split(") ")[1].split(" ")[16]);
     assert.equal(nice, 19);
     // DSP: playback has a second core; this process and the background child move off it, the playback child stays.
