@@ -35,6 +35,14 @@ internal static partial class Covers
 
     private static readonly Lazy<bool> Text = new(() =>
     {
+        var yes = DrawsText();
+        // Said once: from ffmpeg 6.1 drawtext needs harfbuzz, which some builds leave out (a static one, Homebrew's).
+        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn by the Node server");
+        return yes;
+    });
+
+    private static bool DrawsText()
+    {
         if (!Transcoder.FfOk) return false;
         try
         {
@@ -45,7 +53,7 @@ internal static partial class Covers
             return p.ExitCode == 0 && Regex.IsMatch(outText.Result, @"\sdrawtext\s");
         }
         catch (Exception) { return false; }
-    });
+    }
 
     /* A placeholder drawn at this size into `file` (artwork.js placeholder). */
     public static Task<Drawn> DrawPlaceholder(Album al, string file, int size) =>
@@ -177,24 +185,25 @@ internal static partial class Covers
             return Drawn.Yes;
         });
 
-    /* artwork.js fetchUrl: a 200, three redirects at most, 15 MB at most, 8 s without a byte and it's given up. */
+    /* artwork.js fetchUrl: a 200, three redirects at most, 15 MB at most, 8 s without a byte and it's given up (and no limit beside, as there). */
     private static async Task<byte[]> Fetch(string url, int depth)
     {
         Identify.Lookups.Allowed(url);
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
-        using var res = await Outside.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        HttpResponseMessage res;
+        using (var head = new CancellationTokenSource(TimeSpan.FromSeconds(8)))
+            res = await Outside.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, head.Token);
+        using var _res = res;
         var code = (int)res.StatusCode;
         if (code is >= 300 and < 400 && res.Headers.Location is { } loc && depth < 3)
             return await Fetch(new Uri(new Uri(url), loc).ToString(), depth + 1);
         if (code != 200) throw new HttpRequestException("HTTP " + code);
-        await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
+        await using var body = await res.Content.ReadAsStreamAsync();
         using var buf = new MemoryStream();
         var chunk = new byte[64 << 10];
         while (true)
         {
-            using var idle = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
-            idle.CancelAfter(TimeSpan.FromSeconds(8));
+            using var idle = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             var n = await body.ReadAsync(chunk, idle.Token);
             if (n == 0) break;
             if (buf.Length + n > 15L * 1024 * 1024) throw new InvalidDataException("too large");

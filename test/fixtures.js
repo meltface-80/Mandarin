@@ -14,6 +14,11 @@ function haveFfmpeg() {
   try { return spawnSync(FFMPEG, ["-version"]).status === 0; } catch (e) { return false; }
 }
 
+/* Whether this ffmpeg draws text (drawtext): from 6.1 it needs harfbuzz, which some builds leave out (CI's static one, Homebrew's). */
+function haveDrawtext() {
+  try { const r = spawnSync(FFMPEG, ["-hide_banner", "-filters"], { encoding: "utf8" }); return r.status === 0 && /\sdrawtext\s/.test(r.stdout); } catch (e) { return false; }
+}
+
 function gen(out, { seconds = 3, freq = 440, rate = 44100, fmt = "s16", codecArgs = [], tags = {} }) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const meta = Object.entries(tags).flatMap(([k, v]) => ["-metadata", `${k}=${v}`]);
@@ -72,4 +77,4 @@ function probe(buf) {
   return { rate, channels, bits };
 }
 
-module.exports = { haveFfmpeg, makeLibrary, gen, probe, writeDsf, FFMPEG };
+module.exports = { haveFfmpeg, haveDrawtext, makeLibrary, gen, probe, writeDsf, FFMPEG };

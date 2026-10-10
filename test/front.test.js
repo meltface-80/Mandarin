@@ -65,7 +65,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
-const { makeLibrary } = require("./fixtures");
+const { makeLibrary, haveDrawtext } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)";
@@ -314,8 +314,9 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     const drawn = Buffer.from(await r.arrayBuffer());
     assert.deepEqual([drawn[0], drawn[1]], [0xff, 0xd8], "a JPEG");
     assert.ok(fs.existsSync(path.join(lib.data, "art", one.image_key + "@120.jpg")), "kept with the others");
+    // Where this ffmpeg can't draw text (no drawtext: CI's static build, Homebrew's), the Node server draws it, as before.
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
-    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, haveDrawtext() ? "C#" : null, "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
     await r.arrayBuffer();
     assert.ok(fs.existsSync(path.join(lib.data, "art", hi.image_key + "@120.jpg")), "and kept");
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });

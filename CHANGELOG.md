@@ -40,7 +40,10 @@ album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first
   - a picture from elsewhere (a radio station's, a track queued from the Sonos app, Last.fm's):
     fetched as before (http(s), three redirects, 15 MB at most) and drawn as a cover is.
   - Still the Node server's: a picture only `sharp` reads well (CMYK, a colour profile other than
-    sRGB, a file cut short), and a speaker asking for a cover by its own address.
+    sRGB, a file cut short), a speaker asking for a cover by its own address, and the placeholder
+    where ffmpeg can't draw text (no `drawtext`: Homebrew's on a Mac, CI's static build), as the
+    C# server's log says once.
+  - CI's image check makes sure the image's ffmpeg draws text with a system font.
 - **Queue and Play next no longer write over a queue that isn't playing.** With music in the queue
   and nothing playing, queueing an album replaced the queue and started it (on Sonos; a renderer or
   the phone jumped to it and played). Now what's added joins the queue and nothing starts; an empty
@@ -51,6 +54,8 @@ album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first
   before.
 - **The album page's ⋯ menu has Add to playlist**, under Listen later: the whole album into one of
   your playlists or a new one.
+- **The Android app waits for CI too** (#181, `claude-b-app-waits`), as the release and the image
+  have since v0.8.31 (#179): it goes out only once every CI run on the same commit has passed.
 - The Android app for this version is 0.8.34 (version code 234). Nothing in it changed.
 ## v0.8.33
 An album's booklet, in the app: the PDFs that came with an album open on its page, drawn by the

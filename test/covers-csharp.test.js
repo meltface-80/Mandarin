@@ -6,7 +6,9 @@
  *   - an album with no cover of its own: its placeholder, held to the Node
  *     server's own drawing of it (lib/library/artwork.js) — the same colours
  *     and layout, near enough pixel for pixel (fonts are drawn by two
- *     different libraries, so not to the byte);
+ *     different libraries, so not to the byte). Where ffmpeg can't draw text
+ *     (no drawtext: CI's static build, Homebrew's), the Node server's, as
+ *     before;
  *   - a picture from elsewhere ("u-" and its address): fetched and drawn;
  *     one that can't be had is a 404, as the Node server answers it.
  *
@@ -20,7 +22,7 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const { spawnSync } = require("child_process");
-const { makeLibrary, haveFfmpeg } = require("./fixtures");
+const { makeLibrary, haveFfmpeg, haveDrawtext } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
@@ -71,10 +73,18 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
   const one = albums.find(a => a.title === "Hi Res");
   assert.ok(one && one.image_key, "an album without a cover");
 
-  await t.test("an album with no cover: its placeholder, drawn here, as the Node server draws it", async () => {
+  const drawtext = haveDrawtext();
+  await t.test("an album with no cover: its placeholder, drawn here, as the Node server draws it (by the Node server where ffmpeg can't draw text)", async () => {
     for (const size of [120, 800]) {
       const r = await fetch(`${B}/api/image/${one.image_key}?size=${size}`, H);
       assert.equal(r.status, 200);
+      if (!drawtext) {
+        // Passed on: the Node server's own drawing, kept where the C# server finds it next time.
+        assert.equal(r.headers.get("x-mandarin-answered"), null, "this ffmpeg has no drawtext: the Node server's");
+        assert.equal(dims(Buffer.from(await r.arrayBuffer())), `${size},${size}`);
+        assert.ok(fs.existsSync(path.join(lib.data, "art", `${one.image_key}@${size}.jpg`)));
+        continue;
+      }
       assert.equal(r.headers.get("x-mandarin-answered"), "C#");
       assert.equal(r.headers.get("content-type"), "image/jpeg");
       const mine = Buffer.from(await r.arrayBuffer());
@@ -103,7 +113,9 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     assert.equal(r.headers.get("x-mandarin-answered"), "C#");
     const jpg = Buffer.from(await r.arrayBuffer());
     assert.equal(dims(jpg), "300,200", "fitted inside the size, its shape kept");
-    assert.deepEqual(rgbAt(jpg, 50, 30, 20, 120).map(v => Math.round(v / 16)), [0x33, 0x66, 0xcc].map(v => Math.round(v / 16)), "its colour");
+    // Within a few levels: ffmpeg's versions convert colours a level or two apart (9.0's on a Mac lower).
+    const got = rgbAt(jpg, 50, 30, 20, 120);
+    [0x33, 0x66, 0xcc].forEach((v, i) => assert.ok(Math.abs(got[i] - v) <= 8, `its colour: ${got} against 51,102,204`));
     const n = asked;
     assert.equal((await fetch(`${B}/api/image/${keyOf(at("/moved"))}?size=300`, H)).status, 200);
     assert.equal(asked, n, "kept: not fetched again");
