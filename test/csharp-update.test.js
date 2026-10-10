@@ -403,13 +403,35 @@ test("the C# server: its version, everything passed on to a Node server of anoth
       const f = path.join(__dirname, "runs");
       const run = (fs.existsSync(f) ? Number(fs.readFileSync(f, "utf8")) : 0) + 1;
       fs.writeFileSync(f, String(run));
+      // The cores it was told the machine has (lib/cpu.js), and a split of
+      // them as the Node server sends it: the last kept for playback, the C#
+      // server kept to the rest (Cpu.cs Follow).
+      // Gone with the C# server that started it (a failed test kills that one):
+      // left running, it would hold this test file open to its timeout.
+      const parent = process.ppid;
+      setInterval(() => { if (process.ppid !== parent) process.exit(0); }, 300);
+      const told = process.env.MANDARIN_CPUS || "";
+      fs.writeFileSync(path.join(__dirname, "cpus-" + run), told);
+      const cores = told.split(",").filter(Boolean).flatMap(p => { const [a, b] = p.split("-").map(Number); return Array.from({ length: (b ?? a) - a + 1 }, (_, i) => a + i); });
+      const cpu = cores.length >= 2 ? { split: true, cores, playback: cores.slice(-1), background: cores.slice(0, -1) } : undefined;
+      const allowed = (pid) => { try { return /Cpus_allowed_list:\\s*(\\S+)/.exec(fs.readFileSync("/proc/" + pid + "/status", "utf8"))[1]; } catch (e) { return ""; } };
       http.createServer((req, res) => {
         res.setHeader("Content-Type", "application/json");
-        if (req.url === "/internal/library") return res.end(JSON.stringify({ boot: "b" + run, version: 1, marks: 0, app_version: "0.0.1" }));
+        if (req.url === "/internal/library") return res.end(JSON.stringify({ boot: "b" + run, version: 1, marks: 0, app_version: "0.0.1", cpu }));
         if (req.url === "/internal/front/runs") { res.statusCode = 409; return res.end("{}"); }
         res.end(JSON.stringify({ run }));
       }).listen(Number(process.env.INTERNAL_PORT), "127.0.0.1");
-      if (run === 1) setTimeout(() => process.exit(76), 1500);
+      // The first time, stopped with 76 once the C# server has kept to the
+      // rest (or at most 15 s on: the test then says it never did).
+      if (run === 1) {
+        const want = cpu ? cpu.background.join(",") : null, t0 = Date.now();
+        const narrowed = () => want && allowed(process.ppid).split(",").flatMap(p => { const [a, b] = p.split("-").map(Number); return Array.from({ length: (b ?? a) - a + 1 }, (_, i) => a + i); }).join(",") === want;
+        const check = () => {
+          if (narrowed() || !cpu || Date.now() - t0 > 15000) { fs.writeFileSync(path.join(__dirname, "narrowed"), String(!!narrowed())); setTimeout(() => process.exit(76), 300); }
+          else setTimeout(check, 100);
+        };
+        setTimeout(check, 1500);
+      }
     `);
     const c = run({ MANDARIN_APP_DIR: app, NODE_BIN: process.execPath, DATA_DIR: path.join(app, "data") });
     const pid = c.p.pid;
@@ -420,6 +442,17 @@ test("the C# server: its version, everything passed on to a Node server of anoth
     assert.equal(c.p.pid, pid);
     assert.match(c.out(), /the Node server stopped \(code 76\)/);
     assert.match(c.out(), /starting again from /);
+    // Kept to the cores playback doesn't keep, and then started again in this
+    // same process (execv keeps a process's cores): the server started again
+    // still counts every core the machine gave it, and tells the Node server
+    // so (v0.8.31: it counted the rest, one fewer after every update).
+    // (Linux, two cores or more: elsewhere nothing is split, nor told.)
+    const first = fs.readFileSync(path.join(app, "cpus-1"), "utf8");
+    const count = (list) => list.split(",").filter(Boolean).reduce((n, p) => { const [a, b] = p.split("-").map(Number); return n + (b ?? a) - a + 1; }, 0);
+    if (count(first) >= 2) {
+      assert.equal(fs.readFileSync(path.join(app, "narrowed"), "utf8"), "true", "the C# server kept to the rest before it started again: " + c.out());
+      assert.equal(fs.readFileSync(path.join(app, "cpus-2"), "utf8"), first, "the same cores after starting again");
+    }
     c.p.kill("SIGTERM");
     await new Promise(r => c.p.once("exit", r));
   });

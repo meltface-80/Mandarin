@@ -58,10 +58,13 @@ internal static partial class Front
         argv[0] = self;
         args.CopyTo(argv, 1);
         argv[^1] = null;
+        // On every core it started with again, not those a split kept it to (Cpu.Restore).
+        Cpu.Restore();
         Console.Out.Flush();
         Console.Error.Flush();
         Execv(self, argv);
         Log($"[server] couldn't start again (error {Marshal.GetLastPInvokeError()})");
+        Cpu.Resume();
     }
 
     // Stamped as the Node server stamps its lines.

@@ -37,6 +37,37 @@ internal static partial class Cpu
     /* The cores this server could use when it started, for the Node server it starts (lib/cpu.js). */
     public static readonly string Startup = Own();
 
+    /*
+     * Back on the cores it started with, as it starts again in this same
+     * process (Front.StartAgain, v0.8.31): execv keeps a process's cores, and
+     * the program starting again counts the machine by its own (Startup).
+     * Kept to the rest of a split, it counted those alone: one core fewer
+     * after every update (4, then 3 with 1 for playback, then 2 with none).
+     */
+    public static void Restore()
+    {
+        var all = Expand(Startup);
+        if (all.Length > 0) PinProcess(Environment.ProcessId, all);
+    }
+
+    /* It didn't start again after all: the split kept to again with the next word of it (Follow). */
+    public static void Resume() => Volatile.Write(ref sig, "");
+
+    /* "0-2,5" → [0, 1, 2, 5] (lib/cpu.js expand). */
+    public static int[] Expand(string list)
+    {
+        var cores = new List<int>();
+        foreach (var part in (list ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var ab = part.Split('-');
+            if (!int.TryParse(ab[0], NumberStyles.None, CultureInfo.InvariantCulture, out var a)) continue;
+            var b = a;
+            if (ab.Length > 1 && !int.TryParse(ab[1], NumberStyles.None, CultureInfo.InvariantCulture, out b)) continue;
+            for (int c = a; c <= b && c < 1024; c++) cores.Add(c);
+        }
+        return cores.Distinct().Order().ToArray();
+    }
+
     [LibraryImport("libc", EntryPoint = "sched_setaffinity", SetLastError = true)]
     private static unsafe partial int SetAffinity(int pid, nuint size, byte* mask);
 
