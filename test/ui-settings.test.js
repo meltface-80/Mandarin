@@ -52,7 +52,8 @@ const DRIVER = `(async () => {
   out.label = { title: title(), bar: !$("labels-bar").classList.contains("hidden"), logo: !$("labels-logo-btn").classList.contains("hidden"),
     search: !$("labels-search-btn").classList.contains("hidden") };
   $("topbar-back").click();
-  await until(() => document.querySelectorAll(".label-tile").length >= 2);
+  // The tiles can be back before the bar's title is (a busy machine): both.
+  await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
   out.back = title();
   $("topbar-back").click(); await sleep(500);
   out.home = !$("home-view").classList.contains("hidden");
