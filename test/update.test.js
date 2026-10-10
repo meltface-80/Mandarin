@@ -77,7 +77,10 @@ test("Check for updates installs the newer release and restarts into it, library
     env: Object.assign({}, process.env, {
       PORT: String(port), MUSIC_DIR: lib.music, DATA_DIR: data, SERVER_IP: "127.0.0.1",
       SONOS_HOSTS: ports.host(4), UPDATE_REPO: "me/musicd", UPDATE_API: `http://127.0.0.1:${gh.address().port}`,
-      UPDATE_CHECK: "false"
+      UPDATE_CHECK: "false",
+      // On its own, with no C# server in front (test/setup.js sets the list for the
+      // servers it puts behind one): its library scans and the rest are its own.
+      MANDARIN_FRONT_RUNS: ""
     })
   });
   let auth = {};

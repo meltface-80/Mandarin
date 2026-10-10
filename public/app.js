@@ -7989,6 +7989,15 @@ window.__afterStart = (fn) => {
     return [{ label: on ? "Remove from Listen later" : "Listen later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
   }
 
+  // Add to playlist (v0.8.34): the whole album, into one of your playlists or a
+  // new one, through the same sheet as a selection of albums.
+  function playlistMenuItem(album) {
+    if (!album || typeof album.offset !== "number") return [];
+    return [{ label: "Add to playlist", onClick: () => openAddToPlaylistSheet(null, [{
+      offset: album.offset, title: album.title || "", subtitle: album.subtitle || "", image_key: album.image_key || null
+    }]) }];
+  }
+
   // Inside the Android app only (its MusicdDownloads bridge): keep this album
   // on the phone, or take it off. Browsers and the iPhone app never see it.
   function downloadMenuItem(album) {
@@ -8187,6 +8196,7 @@ window.__afterStart = (fn) => {
         overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
           .concat(serviceMenuItem(j))
           .concat(laterMenuItem(album, j))
+          .concat(playlistMenuItem(album))
           .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
           .concat(downloadMenuItem(album)),
         { label: "More actions" });

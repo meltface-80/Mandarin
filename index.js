@@ -371,12 +371,15 @@ function createServer(overrides = {}) {
   // server/Mandarin.Server/Jobs.cs): the identification scan, the MusicBrainz
   // pack and loudness measuring; from v0.8.20 the record labels' lookups and
   // logos, the release days after a scan, and the taste work (Smart Picks, the
-  // share card's suggestions); from v0.8.22 the built-in Tailscale engine.
-  // Each is stopped here for good — the album being looked at finished first
-  // — and the C# server is told which, and how this one was set up. This
-  // server's own requests to MusicBrainz wait their turn on the C# server's
-  // timer from now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale"];
+  // share card's suggestions); from v0.8.22 the built-in Tailscale engine;
+  // from v0.8.34 the library scans (on the timer and when the music folders
+  // change, Rescan, the music folders' routes), unless the tags are to be
+  // read here (TAG_READER=node). Each is stopped here for good — the album
+  // being looked at finished first — and the C# server is told which, and
+  // how this one was set up. This server's own requests to MusicBrainz wait
+  // their turn on the C# server's timer from now on.
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan"];
+  const handsOver = (j) => FRONT_JOBS.includes(j) && !(j === "scan" && config.tagReader === "node");
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
@@ -388,11 +391,12 @@ function createServer(overrides = {}) {
       if (ctx.ownWork) ctx.ownWork();
       return res.status(409).json({ ok: false, version: pkg.version });
     }
-    const jobs = new Set([].concat(b.jobs || []).map(String).filter(j => FRONT_JOBS.includes(j)));
+    const jobs = new Set([].concat(b.jobs || []).map(String).filter(handsOver));
     if (ctx.frontRunsWait) { clearTimeout(ctx.frontRunsWait); ctx.frontRunsWait = null; }
     if (jobs.has("identify")) await ctx.identifier.handOver();
     if (jobs.has("mbpack")) ctx.mbpack.handOver();
     if (jobs.has("loudness")) ctx.loudness.handOver();
+    if (jobs.has("scan") && ctx.handOverScans) ctx.handOverScans();
     // A pass running now stops after the album (or batch) it is on: waited for, twenty seconds at most.
     const passes = [];
     if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
@@ -430,7 +434,10 @@ function createServer(overrides = {}) {
         // Last.fm (v0.8.26): where it is asked, and the key from the environment (LASTFM_KEY).
         lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
         // Headphone profiles (v0.8.26): where AutoEq's results are.
-        autoeq_url: config.autoeqBaseUrl || null
+        autoeq_url: config.autoeqBaseUrl || null,
+        // The library scans (v0.8.34): the music folder it was started with, the
+        // most a scan may take away unasked, and how often the library is read.
+        music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours
       }
     });
   });
@@ -445,8 +452,8 @@ function createServer(overrides = {}) {
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
-    if (ctx.libraryChanged) ctx.libraryChanged(req.body || {});
-    res.json({ ok: true, version: library.version, marks: library.marks });
+    const more = ctx.libraryChanged ? ctx.libraryChanged(req.body || {}) : null;
+    res.json(Object.assign({ ok: true, version: library.version, marks: library.marks }, more || {}));
   });
   app.get("/internal/library", (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
@@ -699,6 +706,7 @@ function createServer(overrides = {}) {
       // What followed a library scan while this one waited: made now.
       if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
       if (frontRuns.has("taste")) features.kickSmartPicks();
+      if (frontRuns.has("scan")) ctx.ownScans();
     };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {
@@ -724,14 +732,29 @@ function createServer(overrides = {}) {
     if (!frontRuns.has("tailscale")) ctx.tailscale.start().catch(e => log("[tailscale] " + e.message));
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
-    const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })
-      .catch(e => log("[scan] " + e.message)).then(() => ctx.watcher.refresh());
-    ctx.scanTimers = [setTimeout(scan, 500), setInterval(scan, config.scanHours * 3600 * 1000)];
-    ctx.scanTimers[1].unref();
-    // The music folders watched (lib/library/watch.js): a change on disk is
-    // read within a minute, without waiting for the timer.
-    ctx.watcher = new LibraryWatcher({ roots: () => scanner.roots(), onChange: scan, log });
-    ctx.watcher.refresh();
+    // The library read on a timer and when the music folders change: by the
+    // C# server once it takes the scans over (v0.8.34, Scans.cs), so not
+    // started here while it is about to (MANDARIN_FRONT_RUNS).
+    ctx.ownScans = () => {
+      if (ctx.ownScanTimers || (ctx.frontRuns && ctx.frontRuns.has("scan"))) return;
+      const scan = () => scanner.scan().then(r => { if (r.status !== "running") ctx.afterScan(); })
+        .catch(e => log("[scan] " + e.message)).then(() => { if (ctx.watcher) ctx.watcher.refresh(); });
+      ctx.ownScanTimers = [setTimeout(scan, 500), setInterval(scan, config.scanHours * 3600 * 1000)];
+      ctx.ownScanTimers[1].unref();
+      // The music folders watched (lib/library/watch.js): a change on disk is
+      // read within a minute, without waiting for the timer.
+      ctx.watcher = new LibraryWatcher({ roots: () => scanner.roots(), onChange: scan, log });
+      ctx.watcher.refresh();
+    };
+    // Handed over: the timer and the watching stopped here, and a scan of this server's own ended.
+    ctx.handOverScans = () => {
+      for (const t of ctx.ownScanTimers || []) clearTimeout(t);
+      ctx.ownScanTimers = null;
+      if (ctx.watcher) { ctx.watcher.stop(); ctx.watcher = null; }
+      if (scanner.running) scanner.stop();
+    };
+    if (!frontRuns.has("scan") || config.tagReader === "node") ctx.ownScans();
+    ctx.scanTimers = [];
     // The streaming services: your favourites (and purchases) brought up to
     // date soon after the start and every six hours, while signed in with
     // the import on; albums only ever played from the browser let go after
@@ -774,7 +797,7 @@ function createServer(overrides = {}) {
     ctx.tagcheck.stop();
     ctx.releaseDays.stop();
     ctx.tailscale.stop();
-    for (const t of ctx.scanTimers || []) clearTimeout(t);
+    for (const t of (ctx.scanTimers || []).concat(ctx.ownScanTimers || [])) clearTimeout(t);
     if (ctx.watcher) ctx.watcher.stop();
     scanner.onProgress = null;
     scanner.stop();

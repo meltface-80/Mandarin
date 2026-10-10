@@ -596,6 +596,34 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             ("$now", now));
     }
 
+    /* Tracks under dir out of the library ([which]: only those it says) (scanner.js removeUnder, v0.8.34). */
+    public int RemoveUnder(string dir, Func<string, bool>? which = null)
+    {
+        var d = NodePath.Resolve(dir);
+        var n = 0;
+        Transaction(() =>
+        {
+            foreach (var r in All("SELECT id, path FROM tracks"))
+            {
+                var p = Js.Str(r["path"]);
+                if (NodePath.IsInside(p, d) && p != d && (which == null || which(p))) { Exec("DELETE FROM tracks WHERE id = $id", ("$id", r["id"])); n++; }
+            }
+            DropEmptyAlbums();
+        });
+        return n;
+    }
+
+    /* Tracks the library has under dir (scanner.js countUnder, v0.8.34). */
+    public double CountUnder(string dir)
+    {
+        var d = NodePath.Resolve(dir);
+        var like = LikeEscapes().Replace(d, m => "\\" + m.Value) + "/%";
+        return Js.ToNumber(Get("SELECT COUNT(*) AS n FROM tracks WHERE path LIKE $l ESCAPE '\\'", ("$l", like))!["n"]);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"[\\%_]")]
+    private static partial System.Text.RegularExpressions.Regex LikeEscapes();
+
     /* Albums left with no tracks go — their ids kept, for when they come back. */
     private void DropEmptyAlbums()
     {

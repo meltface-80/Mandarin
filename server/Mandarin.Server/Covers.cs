@@ -21,11 +21,14 @@ using System.Text.Json;
 
 namespace Mandarin.Server;
 
-internal static class Covers
+internal static partial class Covers
 {
     // Two at a time (sharp.concurrency(2)), the rest waiting their turn.
     private static readonly SemaphoreSlim Drawing = new(2);
-    private static readonly ConcurrentDictionary<string, Task<bool>> Inflight = new();
+    private static readonly ConcurrentDictionary<string, Task<Drawn>> Inflight = new();
+
+    /* How a cover went: drawn; none of its own (a placeholder is drawn, CoversDrawn.cs); or the Node server's to draw. */
+    public enum Drawn { Yes, NoCover, NodeIts }
     // The picture an album's cover is drawn from, kept a little while: its sizes are asked for together.
     private static readonly ConcurrentDictionary<string, (long At, Lazy<Task<byte[]?>> Bytes)> Sources = new();
     private const long SourceMs = 20000;
@@ -62,33 +65,38 @@ internal static class Covers
      * false when it's the Node server's to draw (see above). One drawing a
      * file at a time; another ask for it waits for that one.
      */
-    public static Task<bool> Draw(Album al, string file, int size)
+    public static Task<Drawn> Draw(Album al, string file, int size) =>
+        Once(file, al.ImageKey, () => Make(al, file, size));
+
+    /* One drawing a file at a time; another ask for it waits for that one. Anything thrown: the Node server's. */
+    private static Task<Drawn> Once(string file, string what, Func<Task<Drawn>> make)
     {
-        if (!Transcoder.FfOk) return Task.FromResult(false);
-        var mine = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!Transcoder.FfOk) return Task.FromResult(Drawn.NodeIts);
+        var mine = new TaskCompletionSource<Drawn>(TaskCreationOptions.RunContinuationsAsynchronously);
         var running = Inflight.GetOrAdd(file, mine.Task);
         if (running != mine.Task) return running;
         _ = Task.Run(async () =>
         {
-            var ok = false;
-            try { ok = await Make(al, file, size); }
-            catch (Exception e) { Front.Log($"[art] {al.ImageKey}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
-            finally { Inflight.TryRemove(file, out _); mine.TrySetResult(ok); }
+            var how = Drawn.NodeIts;
+            try { how = await make(); }
+            catch (Exception e) { Front.Log($"[art] {what}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+            finally { Inflight.TryRemove(file, out _); mine.TrySetResult(how); }
         });
         return mine.Task;
     }
 
-    private static async Task<bool> Make(Album al, string file, int s)
+    private static async Task<Drawn> Make(Album al, string file, int s)
     {
-        if (!ProbeOk) return false;
+        if (!ProbeOk) return Drawn.NodeIts;
         var src = await Source(al);
-        if (src == null) return false;
+        if (src == null) return Drawn.NodeIts;
+        if (src.Length == 0) return Drawn.NoCover;
         var turn = Look(src);
-        if (turn == null) return false;
+        if (turn == null) return Drawn.NodeIts;
         var jpg = await Fit(src, turn, s, "4", al.ImageKey);
-        if (jpg == null) return false;
+        if (jpg == null) return Drawn.NodeIts;
         Write(file, jpg);
-        return true;
+        return Drawn.Yes;
     }
 
     /*
@@ -218,6 +226,9 @@ internal static class Covers
             while (r.Read()) if (!r.IsDBNull(0)) tracks.Add(r.GetString(0));
         }
         if (edited is { Length: > 0 }) return edited;
+        // Empty when there is certainly none (a placeholder is drawn here);
+        // null when it couldn't be told here (the Node server's, as before).
+        var sure = true;
         if (!string.IsNullOrEmpty(artPath))
         {
             try
@@ -230,10 +241,17 @@ internal static class Covers
         }
         foreach (var path in tracks)
         {
-            try { if (await Embedded(path) is { } b) return b; }
-            catch (Exception e) when (e is IOException or JsonException or InvalidOperationException or System.ComponentModel.Win32Exception or KeyNotFoundException) { /* unreadable: next track */ }
+            try
+            {
+                var (read, at) = await PictureOf(path);
+                if (!read) { sure = false; continue; }
+                if (at is null) continue;
+                if (await Embedded(path) is { } b) return b;
+                sure = false;   // a picture there that ffmpeg wouldn't give: music-metadata might
+            }
+            catch (Exception e) when (e is IOException or JsonException or InvalidOperationException or System.ComponentModel.Win32Exception or KeyNotFoundException) { sure = false; /* unreadable: next track */ }
         }
-        return null;
+        return sure ? [] : null;
     }
 
     /* artwork.embeddedPicture: the front cover among a track's pictures, else the first, as it's kept there. */
@@ -251,16 +269,19 @@ internal static class Covers
      * the first whose kind says "front" (an ID3 or FLAC picture's type, as
      * ffmpeg's "comment"; an APE tag's item name), else the first picture.
      */
-    private static async Task<int?> Picture(string track)
+    private static async Task<int?> Picture(string track) => (await PictureOf(track)).At;
+
+    /* Picture, and whether ffprobe could tell at all (Read false: it couldn't). */
+    private static async Task<(bool Read, int? At)> PictureOf(string track)
     {
-        if (!File.Exists(track)) return null;
+        if (!File.Exists(track)) return (true, null);
         var (code, json, _) = await Run(Ffprobe,
             ["-v", "error", "-show_entries", "stream=index,codec_type:stream_disposition=attached_pic:stream_tags", "-of", "json", track],
             null, 1 << 20, TimeSpan.FromSeconds(20));
-        if (code != 0) return null;
+        if (code != 0) return (false, null);
         int? front = null, first = null;
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array) return null;
+        if (!doc.RootElement.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array) return (true, null);
         foreach (var st in streams.EnumerateArray())
         {
             if (!st.TryGetProperty("codec_type", out var ct) || ct.GetString() != "video") continue;
@@ -274,7 +295,7 @@ internal static class Covers
                 if (kind.Contains("front", StringComparison.OrdinalIgnoreCase)) { front = index; break; }
             }
         }
-        return front ?? first;
+        return (true, front ?? first);
     }
 
     /* artwork.hasOwnArt: a cover of its own — found, in its folder, or in its first three tracks. */

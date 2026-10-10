@@ -5,9 +5,11 @@
 // scan the Node server draws the tile size of every album ahead (lib/library/
 // artwork.js, with sharp). So nearly every cover asked for is already a file,
 // and those are sent from here. One not drawn yet is drawn here (Covers.cs,
-// v0.8.22) from the album's own cover; what's left — an album with none, which
-// gets a drawn one, and a picture sharp would draw differently — is passed to
-// the Node server, which draws and keeps it, and the next ask is answered here.
+// v0.8.22) from the album's own cover; an album with none gets its drawn one,
+// and a picture from elsewhere (a "u-" key) is fetched and drawn, here too
+// (CoversDrawn.cs, v0.8.34). What's left — a picture sharp would draw
+// differently — is passed to the Node server, which draws and keeps it, and
+// the next ask is answered here.
 //
 // Who may see one: a signed-in device, or an address the Node server signed
 // (a cover handed to a speaker). Anything else is passed on as it came: the
@@ -107,8 +109,26 @@ internal static class Images
         var safe = new string(key.Where(ch => char.IsAsciiLetterOrDigit(ch) || ch == '_' || ch == '-').ToArray());
         if (safe.Length > 200) safe = safe[..200];
         var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
-        // Not drawn yet: drawn here from the album's own cover; else the Node server draws it.
-        if (!File.Exists(cached) && (album == null || !await Covers.Draw(album, cached, Snap(size)))) return false;
+        // Not drawn yet: drawn here — the album's own cover, else its placeholder,
+        // or a picture from elsewhere (v0.8.34); what only sharp would draw the
+        // same is the Node server's.
+        if (!File.Exists(cached))
+        {
+            Covers.Drawn how;
+            if (album != null)
+            {
+                how = await Covers.Draw(album, cached, Snap(size));
+                if (how == Covers.Drawn.NoCover) how = await Covers.DrawPlaceholder(album, cached, Snap(size));
+            }
+            else if (Covers.ForeignUrl(key) is { } url)
+            {
+                how = await Covers.DrawForeign(url, cached, Snap(size));
+                // Not to be had: absent, as the Node server answers it.
+                if (how == Covers.Drawn.NoCover) { ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; ctx.Response.StatusCode = 404; return true; }
+            }
+            else return false;
+            if (how != Covers.Drawn.Yes) return false;
+        }
         await SendFile(ctx, cached, "image/jpeg", current ? "public, max-age=604800, immutable" : "no-cache");
         return true;
     }

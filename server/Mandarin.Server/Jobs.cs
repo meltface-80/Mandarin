@@ -4,7 +4,7 @@
 // labels' lookups and logos, the release days after each library scan, and
 // the taste work (Smart Picks, the share card's suggestions) (Extras/); from
 // v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
-// while the Node server starts again.
+// while the Node server starts again; from v0.8.34 the library scans (Scans.cs).
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -25,7 +25,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -161,6 +161,7 @@ internal static class Jobs
         Loudness.Start();
         Taste.Start();
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
+        if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the Node server said yes: what follows it, made now.
         _ = Task.Run(async () =>
@@ -257,6 +258,9 @@ internal static class Jobs
                     held = c.Boot;
                     // A Node server that runs Tailscale itself again (an older one, put back): it's its.
                     if (!handed.Contains("tailscale")) Tailscale?.Stop();
+                    // The library scans: one now, as one started with the Node server — or its own again.
+                    if (handed.Contains("scan") && startedWith is { } w) Scans.Start(c.Config, w.DataDir);
+                    else Scans.Stop();
                     Front.Log("[jobs] the Node server started again; its work stays here");
                 }
             }
@@ -268,6 +272,8 @@ internal static class Jobs
     public static async Task RestartNode()
     {
         if (upstream == null) return;
+        // A scan under way ended first: the database it writes is about to be put back.
+        Scans.Halt();
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart"));
@@ -280,6 +286,7 @@ internal static class Jobs
 
     public static void Stop()
     {
+        Scans.Stop();
         Tailscale?.Stop();
         Identify?.Stop();
         Packs?.Stop();

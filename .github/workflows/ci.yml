@@ -173,6 +173,12 @@ jobs:
           grep -q "const string Filter = \"$F\";" server/Mandarin.Server/Identify/Loudness.cs
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
             -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
+          # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
+          # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
+          # static ffmpeg has no drawtext, so there the Node server draws it instead.
+          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -filters | grep -Eq "\sdrawtext\s"
+          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -v error -nostdin -f lavfi -i color=c=black:s=64x64:d=1 \
+            -vf "drawtext=text=A:font=sans-serif:fontsize=40:fontcolor=white:x=10:y=10" -frames:v 1 -f null -
           # The C# server answers on the port, with the Node server behind it.
           curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
           curl -fs localhost:3500/server-info | grep -q '"server":"C#"'

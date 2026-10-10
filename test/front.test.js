@@ -53,14 +53,19 @@
  *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
  *     are still passed to it, and test/power.test.js's through-the-server test holds that;
  *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
- *     server has none (test/booklets-csharp.test.js holds that they're C#'s).
+ *     server has none (test/booklets-csharp.test.js holds that they're C#'s);
+ *   - v0.8.34: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
+ *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
+ *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
+ *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
+ *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
-const { makeLibrary } = require("./fixtures");
+const { makeLibrary, haveDrawtext } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)";
@@ -170,7 +175,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "tailscale", "taste"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "scan", "tailscale", "taste"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -300,7 +305,8 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
 
     // Covers: one with a picture of its own (Album One's cover.jpg) drawn by
-    // C#; one with none (Hi Res) drawn by the Node server, sent by C# after.
+    // C#; one with none (Hi Res): its placeholder drawn by C# too since
+    // v0.8.34 (test/covers-csharp.test.js holds it to the Node server's).
     const albums = (await (await fetch(B + "/api/library/albums?sort=album", { headers: H })).json()).albums;
     const one = albums.find(a => a.title === "Album One"), hi = albums.find(a => a.title === "Hi Res");
     r = await fetch(B + "/api/image/" + one.image_key + "?size=120", { headers: H });
@@ -308,9 +314,11 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     const drawn = Buffer.from(await r.arrayBuffer());
     assert.deepEqual([drawn[0], drawn[1]], [0xff, 0xd8], "a JPEG");
     assert.ok(fs.existsSync(path.join(lib.data, "art", one.image_key + "@120.jpg")), "kept with the others");
+    // Where this ffmpeg can't draw text (no drawtext: CI's static build, Homebrew's), the Node server draws it, as before.
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
-    assert.deepEqual([r.status, by(r)], [200, null], "no cover of its own: drawn by the Node server");
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, haveDrawtext() ? "C#" : null, "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
     await r.arrayBuffer();
+    assert.ok(fs.existsSync(path.join(lib.data, "art", hi.image_key + "@120.jpg")), "and kept");
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
     assert.deepEqual([r.status, by(r)], [200, "C#"], "and sent by C# after");
 

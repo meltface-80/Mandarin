@@ -99,6 +99,8 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
         assert.deepEqual(page.errors, [], size);
       } finally { await b.close(); }
       assert.ok(r.rest.items.length >= 4, size + ": the menu has its items: " + r.rest.items.join(", "));
+      // Add to playlist (v0.8.34): straight after Listen later.
+      assert.equal(r.rest.items[r.rest.items.indexOf("Listen later") + 1], "Add to playlist", size + ": Add to playlist under Listen later: " + r.rest.items.join(", "));
       assert.ok(r.rest.hit.every(Boolean), `${size}: every item can be tapped (${r.rest.items.map((t, i) => (r.rest.hit[i] ? "✓ " : "✗ ") + t).join(", ")})`);
       assert.ok(r.rest.menu.t >= r.panel.t, `${size}: the menu's top (${r.rest.menu.t}) is inside the panel (${r.panel.t})`);
       assert.equal(r.rest.down, false, size + ": at rest it opens upwards, as before");
@@ -122,5 +124,50 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
         assert.ok(r.title.t > r.art.b, "a phone: the title under the cover, as before");
       }
     }
+  } finally { await srv.stop(); }
+});
+
+test("the album's ⋯ → Add to playlist: the whole album into a playlist you choose", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const api = (p, body) => fetch(B + "/api/" + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H }).then(r => r.json());
+    for (let i = 0; i < 100; i++) { if ((await api("status")).index_count === 3) break; await new Promise(r => setTimeout(r, 100)); }
+    const albums = (await api("library/albums?sort=album")).albums;
+    const hi = albums.find(a => a.title === "Hi Res");
+    // A playlist to add to: Mix, one track to begin with.
+    await api("user-playlists/add-albums", { name: "Mix", albums: [{ offset: hi.offset }] });
+    const before = (await api("user-playlists")).playlists.find(p => p.name === "Mix").track_total;
+    const b = await Browser.launch({ width: 1180, height: 820 });
+    let r;
+    try {
+      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true });
+      r = await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        const until = async (f, ms = 15000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(30); } };
+        await until(() => document.querySelector("#home-view .album"));
+        const al = (await (await fetch("/api/library/albums?sort=album")).json()).albums.find(a => a.title === "Album One");
+        window.__openAlbum(al, {});
+        await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn"));
+        await sleep(1000);
+        document.querySelector("#modal-actions .overflow-wrap .overflow-btn").click(); await sleep(150);
+        const item = [...document.querySelectorAll("#modal-actions .overflow-menu .sel-menu-item")].find(x => x.textContent === "Add to playlist");
+        if (!item) return { item: false };
+        item.click();
+        const row = await until(() => [...document.querySelectorAll(".sheet-row")].find(x => x.textContent.startsWith("Mix ·")));
+        if (row) row.click();
+        await sleep(1500);
+        return { item: true, row: !!row };
+      })()`);
+      assert.deepEqual(page.errors, []);
+    } finally { await b.close(); }
+    assert.equal(r.item, true, "Add to playlist in the menu");
+    assert.equal(r.row, true, "the sheet lists your playlists");
+    const after = (await api("user-playlists")).playlists.find(p => p.name === "Mix").track_total;
+    assert.equal(after, before + 3, "Album One's three tracks added to Mix");
   } finally { await srv.stop(); }
 });
