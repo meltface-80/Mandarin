@@ -437,7 +437,9 @@ function createServer(overrides = {}) {
         autoeq_url: config.autoeqBaseUrl || null,
         // The library scans (v0.8.34): the music folder it was started with, the
         // most a scan may take away unasked, and how often the library is read.
-        music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours
+        music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
+        // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
+        qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null
       }
     });
   });

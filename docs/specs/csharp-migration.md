@@ -41,7 +41,8 @@ pages, Home's rows, filters), playlists, settings, hearts and Listen later, cove
 and drawn from an album's own picture, music files sent as they are, conversions without DSP or
 gain, the phone's downloads and its Opus stream, tag reading, the library scan itself,
 identification, the pack, measuring loudness, waveforms, record labels, release days, Smart Picks,
-write-ups, sharing, the album editor, backups and built-in Tailscale.
+write-ups, sharing, the album editor, backups and built-in Tailscale; from v0.8.39, browsing
+Qobuz's and Tidal's catalogue.
 
 ### Still Node's, by area
 
@@ -49,7 +50,7 @@ write-ups, sharing, the album editor, backups and built-in Tailscale.
 |---|---|---|---|---|
 | **Playback**: rooms, transport, queue, grouping, radio, the phone as a zone | 35 | `lib/sonos/*` 2,200, `lib/renderers/*` 2,060, `lib/local/*` 920, `api-playback.js` and `playback.js` 750, radio and plays 520 | Sonos (SOAP on port 1400), SSDP multicast, UPnP renderers (SOAP, GENA events), LinkPlay, the audio engine, the Android app's long poll | **Large, highest risk** |
 | **Conversions Node still makes**: ReplayGain (`?g=`), DSP (`?o=`), 32-bit, Qobuz and Tidal | the `/stream` cases C# passes on | `lib/stream.js` 546, `lib/dsp.js`, `public/biquad.js` | ffmpeg; the transcode folder shared with C# | Medium |
-| **Qobuz and Tidal**: sign-in, browsing, import, favourites, their streams | about 36 | `lib/services/*`, `lib/qobuz/*`, `lib/tidal/*` 1,600 | qobuz.com, tidal.com (OAuth, DASH) | Large |
+| **Qobuz and Tidal**: sign-in, import, favourites, opening and playing, their streams (browsing C#'s since v0.8.39) | about 22 | `lib/services/*`, `lib/qobuz/*`, `lib/tidal/*` 1,600 | qobuz.com, tidal.com (OAuth, DASH) | Large |
 | **Audio Devices and DSP**: the device register, per-device settings, headphone profiles | 8 | `lib/renderers/devices.js`, `registry.js`, `profiles.js`, `lib/autoeq.js`, `api-devices.js`, `api-dsp.js` 1,000 | AutoEq on GitHub; live player state | Medium (writes re-plan live queues) |
 | **Library housekeeping**: when to scan (timer, folder watcher, Rescan), music folders, clean-up, `/api/status`, the wall display's content, a streamed album's page | 13 | `lib/server/api-library.js` (parts), `lib/library/watch.js`, `lib/server/mounts.js`, `lib/library/index.js` | the file system | Medium |
 | **Phone downloads, the lists**: an album's download list (with ReplayGain), automatic downloads, plays sent from the phone | 4 | `lib/server/downloads.js` 297 | none | Small |
@@ -304,7 +305,15 @@ After this, Node converts only Qobuz and Tidal tracks.
 ### Stage 4: Qobuz and Tidal (L)
 
 1. The catalogue, read-only: search, new releases, featured, an album, an artist's albums, lists,
-   an album's state.
+   an album's state. **Built in v0.8.39** (Claude B; `Services/`, `ServiceRoutes.cs`): the seven
+   `GET /api/<s>/…` routes of each service answered by C#, held to the Node server's answers
+   (`test/services-csharp.test.js`), their addresses handed over with the rest (`Jobs.cs`). The
+   account, the kept albums and the library are read from the database the Node server writes;
+   nothing is written. A request Tidal's token has to be refreshed for stays the Node server's
+   (it alone refreshes it until step 4), and the favourites' ids are kept no longer than the Node
+   server's library stays unchanged, so a favourite changed there (step 2, still its own) is seen
+   at once. Tidal's lists no longer prime the Node server's copy of an album, so opening one from
+   the browser asks Tidal for it once more, until step 2 moves opening too.
 2. Library rows: open, favourite and unfavourite, clean-up, the 30-day prune. Node is told.
 3. Import, the favourites watch and the service playlists, as a job handed over.
 4. Sign-in and sign-out. **The C# server alone refreshes Tidal's token** from then on: with two
@@ -429,8 +438,8 @@ and `/api/image/`).
   `PATCH /api/audio-devices/:id`; `POST /api/audio-devices/rescan`, `/api/audio-devices/:id/forget`
 - **Qobuz and Tidal** (`api-service.js`, for each of `qobuz` and `tidal`): `GET` and `POST
   /api/settings/<svc>`, `POST …/signin`, `…/signin/cancel`, `…/signout`, `…/disconnect`,
-  `…/import`; `GET /api/<svc>/lists`, `/new-releases`, `/featured`, `/search`, `/artist-albums`,
-  `/album`, `/state`; `POST /api/<svc>/favorite`, `/unfavorite`, `/open`, `/play`;
+  `…/import`; `POST /api/<svc>/favorite`, `/unfavorite`, `/open`, `/play` (the `GET` catalogue
+  routes C#'s since v0.8.39);
   `POST /api/services/watch`; `GET /internal/dash/:key`
 - **Library** (`api-library.js`): `GET /api/status`, `/api/library/cleanup`, `/api/display/content`;
   `POST /api/library/cleanup`; a streamed album's `GET /api/album`; the services part of

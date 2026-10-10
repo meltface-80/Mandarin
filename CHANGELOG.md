@@ -5,6 +5,37 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.39
+Stage 4.1 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's catalogue
+is the C# server's**. Built by Claude B, in parallel with stage 2 (v0.8.37 and v0.8.38), as the owner
+arranged. Nothing in the Android app changed (it is 0.8.39 so the version moves together).
+
+- **Browsing Qobuz and Tidal** — new releases, the featured lists (Tidal's tabs), search, an
+  artist's albums, an album and its tracks, and whether an album is in your favourites on the
+  service — is answered by the C# server, in the same shapes and words (`GET /api/qobuz/…` and
+  `/api/tidal/…`: `lists`, `new-releases`, `featured`, `search`, `artist-albums`, `album`, `state`).
+  Each album is marked as before: a favourite on the service, kept in the library, in the library.
+  - The account, the albums kept and the library are read from the database the Node server writes;
+    the C# server writes nothing. Signing in, the settings, the import, favouriting, opening and
+    playing a service album stay the Node server's (stages 4.2 to 4.4, and 6).
+  - **Tidal's token** is still refreshed by the Node server alone, so the two servers never hold
+    different ones: a request made when it is about to expire, or that Tidal refuses, is passed to
+    the Node server, which refreshes it and answers; the next is the C# server's again.
+  - A favourite added or taken away (still the Node server's) is seen at once by the lists and the
+    album's heart: the C# server keeps the favourites a minute, as before, but never past a change
+    to the library.
+  - One thing slower: Tidal's lists no longer hand the Node server the albums they list, so opening
+    an album from Tidal's browser asks Tidal for it once more, until opening moves too (4.2).
+  - `server/Mandarin.Server/Services/` (`ServiceHttp.cs`, `QobuzApi.cs`, `TidalApi.cs`,
+    `Catalogue.cs`), `ServiceRoutes.cs`. The Node server's part is the hand-over only: the services'
+    addresses added to what it hands over (`index.js`), as Last.fm's were in v0.8.26.
+  - **Tests:** `test/services-csharp.test.js`, through the C# server: every catalogue route,
+    signed out and signed in, held to the Node server's own answer to the same request, its
+    refusals word for word; a favourite changed on the Node server seen at once; Tidal's token
+    refreshed by the Node server alone, for a refused token and for one about to expire.
+    `test/qobuz.test.js` and `test/tidal.test.js` pass with C# answering. `test/front.test.js` pins
+    which server answers what (its v0.8.39 test and header line).
+
 ## v0.8.35
 The Queue screen, quick: tapping a track further down plays from it with "Now playing" moved at
 once, and a Sonos room's queue is kept by the server instead of read whole from the speaker each

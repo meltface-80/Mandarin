@@ -58,7 +58,12 @@
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
  *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
- *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here).
+ *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
+ *   - v0.8.39: Qobuz's and Tidal's catalogue (new releases, the featured lists, search, an artist's
+ *     albums, an album, whether it is a favourite), by C#, each held to the Node server's own answer
+ *     (test/services-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode). A request
+ *     Tidal's token has to be refreshed for is still the Node server's, as are signing in, the settings,
+ *     the import, favourites, opening and playing (the v0.8.39 test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -370,5 +375,32 @@ test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answer
     assert.deepEqual(await by("/api/download/albums", { ids: [] }), [200, "C#", { albums: [] }]);
     assert.deepEqual(await by("/api/download/album?offset=999999"), [404, "C#", { error: "That album is no longer in the library" }]);
     assert.deepEqual(await by("/api/phone/plays", { plays: [] }), [200, "C#", { ok: true, recorded: 0 }]);
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in, favourites, opening and playing still the Node server's", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+    sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const by = async (p, body) => {
+      const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
+      return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json()];
+    };
+    for (let i = 0; i < 300 && !ctx.frontRuns; i++) await new Promise(r => setTimeout(r, 100));
+    // Signed out: refused by C#, in the Node server's words.
+    for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
+      for (const p of ["new-releases", "featured", "search?q=x", "artist-albums?artist_id=1", "album?id=1", "state?album_id=1"]) {
+        assert.deepEqual(await by(`/api/${s}/${p}`), [401, "C#", { error: "Not signed in to " + name, connected: false }], p);
+      }
+      assert.deepEqual((await by(`/api/settings/${s}`)).slice(0, 2), [200, "Node"]);
+      assert.deepEqual((await by(`/api/${s}/open`, { album_id: "1" })).slice(0, 2), [401, "Node"]);
+      assert.deepEqual((await by(`/api/${s}/favorite`, { album_id: "1" })).slice(0, 2), [401, "Node"]);
+    }
+    assert.deepEqual(await by("/api/tidal/lists"), [401, "C#", { error: "Not signed in to Tidal", connected: false }]);
   } finally { await srv.stop(); }
 });
