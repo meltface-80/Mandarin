@@ -596,7 +596,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             ("$now", now));
     }
 
-    /* Tracks under dir out of the library ([which]: only those it says) (scanner.js removeUnder, v0.8.32). */
+    /* Tracks under dir out of the library ([which]: only those it says) (scanner.js removeUnder, v0.8.34). */
     public int RemoveUnder(string dir, Func<string, bool>? which = null)
     {
         var d = NodePath.Resolve(dir);
@@ -613,7 +613,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         return n;
     }
 
-    /* Tracks the library has under dir (scanner.js countUnder, v0.8.32). */
+    /* Tracks the library has under dir (scanner.js countUnder, v0.8.34). */
     public double CountUnder(string dir)
     {
         var d = NodePath.Resolve(dir);

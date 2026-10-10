@@ -99,7 +99,7 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
         assert.deepEqual(page.errors, [], size);
       } finally { await b.close(); }
       assert.ok(r.rest.items.length >= 4, size + ": the menu has its items: " + r.rest.items.join(", "));
-      // Add to playlist (v0.8.32): straight after Listen later.
+      // Add to playlist (v0.8.34): straight after Listen later.
       assert.equal(r.rest.items[r.rest.items.indexOf("Listen later") + 1], "Add to playlist", size + ": Add to playlist under Listen later: " + r.rest.items.join(", "));
       assert.ok(r.rest.hit.every(Boolean), `${size}: every item can be tapped (${r.rest.items.map((t, i) => (r.rest.hit[i] ? "✓ " : "✗ ") + t).join(", ")})`);
       assert.ok(r.rest.menu.t >= r.panel.t, `${size}: the menu's top (${r.rest.menu.t}) is inside the panel (${r.panel.t})`);

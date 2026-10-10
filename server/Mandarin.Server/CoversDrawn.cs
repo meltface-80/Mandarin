@@ -1,5 +1,5 @@
 // CoversDrawn.cs — the covers the Node server drew with sharp, drawn here
-// (v0.8.32, stage 1f of docs/specs/csharp-migration.md), from
+// (v0.8.34, stage 1f of docs/specs/csharp-migration.md), from
 // lib/library/artwork.js, with ffmpeg:
 //
 //   - an album with no cover of its own: its placeholder (artwork.js

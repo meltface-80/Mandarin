@@ -431,7 +431,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(page.errors, []);
     });
 
-    await t.test("a swipe: one album's way moves one album, and a quick swipe doesn't spin it (v0.8.32: less quick to move)", async () => {
+    await t.test("a swipe: one album's way moves one album, and a quick swipe doesn't spin it (v0.8.34: less quick to move)", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};

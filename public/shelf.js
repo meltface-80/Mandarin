@@ -977,7 +977,7 @@
     applyDrag();
     kick();
   });
-  // How far a finger goes for one album, against a cover's own step (v0.8.32:
+  // How far a finger goes for one album, against a cover's own step (v0.8.34:
   // 1.4, the shelf asked to be less quick to move; before, 1). A flick that
   // spins it is firmer for the same reason. The wheel and trackpad are as before.
   const SWIPE = 1.4;

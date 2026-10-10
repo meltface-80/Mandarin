@@ -1,6 +1,6 @@
 "use strict";
 /*
- * The library scans made by the C# server (v0.8.32, stage 1e;
+ * The library scans made by the C# server (v0.8.34, stage 1e;
  * server/Mandarin.Server/Scans.cs and ScanRoutes.cs):
  *
  *   - Settings → Music folders, the folder picker, the music mount and how

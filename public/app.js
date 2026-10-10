@@ -7989,7 +7989,7 @@ window.__afterStart = (fn) => {
     return [{ label: on ? "Remove from Listen later" : "Listen later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
   }
 
-  // Add to playlist (v0.8.32): the whole album, into one of your playlists or a
+  // Add to playlist (v0.8.34): the whole album, into one of your playlists or a
   // new one, through the same sheet as a selection of albums.
   function playlistMenuItem(album) {
     if (!album || typeof album.offset !== "number") return [];

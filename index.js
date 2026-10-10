@@ -372,7 +372,7 @@ function createServer(overrides = {}) {
   // pack and loudness measuring; from v0.8.20 the record labels' lookups and
   // logos, the release days after a scan, and the taste work (Smart Picks, the
   // share card's suggestions); from v0.8.22 the built-in Tailscale engine;
-  // from v0.8.32 the library scans (on the timer and when the music folders
+  // from v0.8.34 the library scans (on the timer and when the music folders
   // change, Rescan, the music folders' routes), unless the tags are to be
   // read here (TAG_READER=node). Each is stopped here for good — the album
   // being looked at finished first — and the C# server is told which, and
@@ -435,7 +435,7 @@ function createServer(overrides = {}) {
         lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
         // Headphone profiles (v0.8.26): where AutoEq's results are.
         autoeq_url: config.autoeqBaseUrl || null,
-        // The library scans (v0.8.32): the music folder it was started with, the
+        // The library scans (v0.8.34): the music folder it was started with, the
         // most a scan may take away unasked, and how often the library is read.
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours
       }
@@ -733,7 +733,7 @@ function createServer(overrides = {}) {
     // Albums found by a scan appear (and play) as it goes, not only at the end.
     scanner.onProgress = () => library.reload();
     // The library read on a timer and when the music folders change: by the
-    // C# server once it takes the scans over (v0.8.32, Scans.cs), so not
+    // C# server once it takes the scans over (v0.8.34, Scans.cs), so not
     // started here while it is about to (MANDARIN_FRONT_RUNS).
     ctx.ownScans = () => {
       if (ctx.ownScanTimers || (ctx.frontRuns && ctx.frontRuns.has("scan"))) return;

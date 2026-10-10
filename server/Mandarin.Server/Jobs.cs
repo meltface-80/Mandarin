@@ -4,7 +4,7 @@
 // labels' lookups and logos, the release days after each library scan, and
 // the taste work (Smart Picks, the share card's suggestions) (Extras/); from
 // v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
-// while the Node server starts again; from v0.8.32 the library scans (Scans.cs).
+// while the Node server starts again; from v0.8.34 the library scans (Scans.cs).
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is

@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The covers the Node server drew with sharp, drawn by the C# server
- * (v0.8.32, stage 1f; server/Mandarin.Server/CoversDrawn.cs), with ffmpeg:
+ * (v0.8.34, stage 1f; server/Mandarin.Server/CoversDrawn.cs), with ffmpeg:
  *
  *   - an album with no cover of its own: its placeholder, held to the Node
  *     server's own drawing of it (lib/library/artwork.js) — the same colours

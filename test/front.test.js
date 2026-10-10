@@ -54,7 +54,7 @@
  *     are still passed to it, and test/power.test.js's through-the-server test holds that;
  *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
  *     server has none (test/booklets-csharp.test.js holds that they're C#'s);
- *   - v0.8.32: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
+ *   - v0.8.34: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
  *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
@@ -306,7 +306,7 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
 
     // Covers: one with a picture of its own (Album One's cover.jpg) drawn by
     // C#; one with none (Hi Res): its placeholder drawn by C# too since
-    // v0.8.32 (test/covers-csharp.test.js holds it to the Node server's).
+    // v0.8.34 (test/covers-csharp.test.js holds it to the Node server's).
     const albums = (await (await fetch(B + "/api/library/albums?sort=album", { headers: H })).json()).albums;
     const one = albums.find(a => a.title === "Album One"), hi = albums.find(a => a.title === "Hi Res");
     r = await fetch(B + "/api/image/" + one.image_key + "?size=120", { headers: H });

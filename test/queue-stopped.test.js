@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Queue and Play next on a zone that isn't playing (v0.8.32): a queue with
+ * Queue and Play next on a zone that isn't playing (v0.8.34): a queue with
  * music in it isn't cleared, and isn't started — what's added joins it. Only
  * a queue that was empty is started, as before. While music plays, as before.
  *

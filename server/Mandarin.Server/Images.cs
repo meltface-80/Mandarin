@@ -7,7 +7,7 @@
 // and those are sent from here. One not drawn yet is drawn here (Covers.cs,
 // v0.8.22) from the album's own cover; an album with none gets its drawn one,
 // and a picture from elsewhere (a "u-" key) is fetched and drawn, here too
-// (CoversDrawn.cs, v0.8.32). What's left — a picture sharp would draw
+// (CoversDrawn.cs, v0.8.34). What's left — a picture sharp would draw
 // differently — is passed to the Node server, which draws and keeps it, and
 // the next ask is answered here.
 //
@@ -110,7 +110,7 @@ internal static class Images
         if (safe.Length > 200) safe = safe[..200];
         var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
         // Not drawn yet: drawn here — the album's own cover, else its placeholder,
-        // or a picture from elsewhere (v0.8.32); what only sharp would draw the
+        // or a picture from elsewhere (v0.8.34); what only sharp would draw the
         // same is the Node server's.
         if (!File.Exists(cached))
         {

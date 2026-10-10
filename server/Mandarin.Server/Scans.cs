@@ -1,4 +1,4 @@
-// Scans.cs — the library scans, made here in the Node server's place (v0.8.32,
+// Scans.cs — the library scans, made here in the Node server's place (v0.8.34,
 // stage 1e of docs/specs/csharp-migration.md): when they run, from index.js
 // and lib/library/watch.js, and the scan itself, as lib/library/scanner.js
 // scanByProgram started it.

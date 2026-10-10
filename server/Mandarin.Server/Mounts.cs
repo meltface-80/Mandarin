@@ -1,4 +1,4 @@
-// Mounts.cs — what the server can see of the machine it runs on (v0.8.32),
+// Mounts.cs — what the server can see of the machine it runs on (v0.8.34),
 // from lib/server/mounts.js: the drives and shares mounted into its container
 // (or, outside Docker, into the system), read from /proc/self/mountinfo — for
 // Settings → Music folders to offer, and to say why a folder looks empty.
