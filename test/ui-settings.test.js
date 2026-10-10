@@ -58,6 +58,24 @@ const DRIVER = `(async () => {
   $("topbar-back").click(); await sleep(500);
   out.home = !$("home-view").classList.contains("hidden");
 
+  // ‹ on a label before its albums have come (a slow server): when they come,
+  // they stay off the Labels list. Held until the list is back, then let go.
+  const plainFetch = window.fetch;
+  let letGo, came = false;
+  const held = new Promise(r => { letGo = r; });
+  window.fetch = (u, o) => String(u).includes("/api/label-albums")
+    ? plainFetch(u, o).then(async res => { await held; came = true; return res; }) : plainFetch(u, o);
+  $("labels-toggle").click();
+  await until(() => document.querySelectorAll(".label-tile").length >= 2);
+  [...document.querySelectorAll(".label-tile")].find(t => t.getAttribute("aria-label") === "Parlophone").click();
+  await until(() => title() === "Parlophone");
+  $("topbar-back").click();
+  await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
+  letGo(); await until(() => came); await sleep(500);
+  window.fetch = plainFetch;
+  out.back_early = { title: title(), labels: document.querySelectorAll(".label-tile").length };
+  $("topbar-back").click(); await sleep(500);
+
   // The Library wall: Focus, Sort and the glass in the top bar, in brass.
   const libTitle = $("home-library-title");
   out.has_library = !!libTitle;
@@ -153,6 +171,7 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.deepEqual(r.label, { title: "Parlophone", bar: false, logo: true, search: false });
     assert.equal(r.back, "Labels", "‹ on a label goes back to all labels");
     assert.equal(r.home, true, "and ‹ there goes Home");
+    assert.deepEqual(r.back_early, { title: "Labels", labels: 2 }, "a label's albums that come after ‹ don't cover the Labels list");
     assert.equal(r.has_library, true, "Home has its Library row");
     assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: true, brass: true, glass_last: true });
     assert.deepEqual(r.lib_open, { focus: true, sort: true, title: true, value: "Al" }, "the field opens in the bar's row over the title; Focus and Sort stay in theirs");
