@@ -188,6 +188,18 @@ test("an install updated in place downloads the engine, checked, once per server
     // Not in the image, and nowhere to fetch it from: not offered (a source install).
     assert.equal(node("0.3.21", { TS_ENGINE_URL: "" }).available, false);
 
+    // The engine is built for Linux only: anywhere else (a Mac) it isn't
+    // offered even with somewhere to fetch it from, and nothing is fetched.
+    if (process.platform !== "linux") {
+      const m = node2("0.3.21");
+      assert.equal(m.available, false);
+      await m.start();
+      assert.equal(m.proc, null);
+      assert.equal(fetched, 0);
+      assert.ok(!fs.existsSync(path.join(data, "bin", "musicdnet")));
+      return;
+    }
+
     const a = node2("0.3.21");
     assert.equal(a.available, true);
     await a.start();

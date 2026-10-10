@@ -32,10 +32,21 @@ utest("a renderer's plan: Original within its ceiling, upsampling in the file's 
   assert.equal(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/dsf");
   assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/x-dff");
   assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 5644800, bitsPerSample: 1 }, dsdDac)), [176400, 24, undefined]);
-  // The 64-bit float pipeline, and its own cache key.
-  const args = S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
-  assert.match(args, /precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular/);
-  assert.match(S.ffmpegArgs("/m/a.flac", S.plan(hi), "/out.flac").join(" "), /precision=28:osr=48000/, "the Sonos conversion is as it was");
+  // The 64-bit float pipeline, and its own cache key. SoX's resampler where
+  // ffmpeg has it (lib/ffmpeg.js), swr where it hasn't (Homebrew's, on a Mac):
+  // both, whichever this machine's ffmpeg is.
+  const FF = require("../lib/ffmpeg");
+  const withSoxr = (soxr, fn) => {
+    const real = FF.info;
+    FF.info = () => Object.assign({}, real(), { soxr });
+    try { return fn(); } finally { FF.info = real; }
+  };
+  const x4 = () => S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
+  const sonos = () => S.ffmpegArgs("/m/a.flac", S.plan(hi), "/out.flac").join(" ");
+  assert.match(withSoxr(true, x4), / -af aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
+  assert.match(withSoxr(false, x4), / -af aresample=internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
+  assert.match(withSoxr(true, sonos), / -af aresample=resampler=soxr:precision=28:osr=48000:/, "the Sonos conversion is as it was");
+  assert.match(withSoxr(false, sonos), / -af aresample=osr=48000:/, "the Sonos conversion is as it was");
   const tr = new S.Transcoder({ cacheDir: require("os").tmpdir() + "/musicd-keys-" + process.pid, log: () => {} });
   assert.notEqual(tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi)), tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi, { rates: [44100, 48000], containers: ["flac"] })));
   function pick(p) { return [p.rate, p.bits, p.upsampled]; }

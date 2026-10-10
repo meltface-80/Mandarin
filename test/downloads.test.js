@@ -76,8 +76,16 @@ test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
       assert.ok(body.includes(Buffer.from("OpusHead")));
       // 24/48: the encoder is fed 64-bit float resampled to 48 kHz by SoX,
       // and the Opus stream says 48 kHz (a 96 kHz source, here).
-      const args = require("../lib/server/downloads").Downloads.opusArgs("in.flac", "out.opus");
-      assert.ok(args.includes("-af") && /soxr:precision=33:internal_sample_fmt=dblp:osr=48000/.test(args[args.indexOf("-af") + 1]));
+      // SoX's where ffmpeg has it (lib/ffmpeg.js), swr where it hasn't
+      // (Homebrew's, on a Mac): both, whichever this machine's ffmpeg is.
+      const FF = require("../lib/ffmpeg"), real = FF.info;
+      const opusArgs = (soxr) => {
+        FF.info = () => Object.assign({}, real(), { soxr });
+        try { return require("../lib/server/downloads").Downloads.opusArgs("in.flac", "out.opus"); } finally { FF.info = real; }
+      };
+      assert.equal(opusArgs(true)[opusArgs(true).indexOf("-af") + 1], "aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=48000");
+      assert.equal(opusArgs(false)[opusArgs(false).indexOf("-af") + 1], "aresample=internal_sample_fmt=dblp:osr=48000");
+      const args = opusArgs(real().soxr);
       assert.equal(args[args.indexOf("-ar") + 1], "48000");
       assert.equal(args[args.indexOf("-sample_fmt") + 1], "flt");
       const head = body.indexOf(Buffer.from("OpusHead"));
