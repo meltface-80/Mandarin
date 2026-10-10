@@ -42,6 +42,30 @@ internal static partial class Front
     /* The Node server's word for "start this program again" (lib/server/csharp-update.js). */
     public const int StartAgainCode = 76;
 
+    /*
+     * Restart and Shut down asked for here (PowerRoutes.cs, v0.8.31): the Node
+     * server is stopped cleanly, then this program starts again in this same
+     * process (Restart) or leaves with 0 (Shut down). Only where this program
+     * started the Node server itself (RunsNode), as an install does.
+     */
+    public enum Leave { No, Restart, ShutDown }
+    private static int leaving;
+    public static Leave Leaving => (Leave)Volatile.Read(ref leaving);
+    public static bool RunsNode { get; set; }
+    public static Action? StopApp { get; set; }
+    /* The first ask wins; true if this one was it. */
+    public static bool LeaveBy(Leave how)
+    {
+        if (Interlocked.CompareExchange(ref leaving, (int)how, (int)Leave.No) != (int)Leave.No) return false;
+        Log(how == Leave.Restart ? "[power] restart asked for from Settings" : "[power] shut down asked for from Settings");
+        return true;
+    }
+
+    [LibraryImport("libc", EntryPoint = "getuid")]
+    private static partial uint GetUid();
+    /* This user's id (launchctl's gui/<uid> domain). */
+    public static uint Uid() => GetUid();
+
     [LibraryImport("libc", EntryPoint = "execv", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial int Execv(string path, string?[] argv);
 

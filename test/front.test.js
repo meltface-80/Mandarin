@@ -48,7 +48,10 @@
  *     phone's download lists and offline plays, by C# (test/lastfm.test.js, test/autoeq.test.js and
  *     test/library-front.test.js in this mode);
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
- *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode).
+ *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
+ *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
+ *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
+ *     are still passed to it, and test/power.test.js's through-the-server test holds that.
  */
 const ports = require("./ports");
 const test = require("node:test");

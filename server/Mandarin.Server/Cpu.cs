@@ -34,6 +34,9 @@ internal static partial class Cpu
         : OperatingSystem.IsMacOS() ? (false, Have("nice", "-n", "0", "true"), false)
         : (false, false, false));
 
+    /* The split as the Node server last sent it (lib/cpu.js plan()), whole; null until it has. */
+    public static JsonNode? Last { get; private set; }
+
     /* The cores this server could use when it started, for the Node server it starts (lib/cpu.js). */
     public static readonly string Startup = Own();
 
@@ -165,6 +168,8 @@ internal static partial class Cpu
     /* The split as the Node server sent it (/internal/library "cpu"); kept to from now on. */
     public static void Follow(JsonNode? cpu)
     {
+        // As the Node server sent it, for /api/cpu (PowerRoutes.cs): the decision is still its.
+        if (cpu is JsonObject whole) Last = whole.DeepClone();
         if (cpu is not JsonObject o || !OperatingSystem.IsLinux()) return;
         var on = o["split"] is JsonValue sv && sv.TryGetValue<bool>(out var b) && b;
         var next = new Split(on, Cores(o["playback"]), Cores(o["background"]), Cores(o["cores"]));

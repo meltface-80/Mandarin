@@ -5,6 +5,36 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.31
+Stage 1d of the move to C# (`docs/specs/csharp-migration.md`): Restart and Shut down are the C#
+server's, and **Restart now starts both servers again**.
+
+- **Restart** (the side menu's power button) stops the Node server cleanly, then the C# server
+  starts itself again in place, on every processor core it started with, as after an update, and
+  starts a new Node server. Before, only the Node server started again and the C# server carried
+  on as it was.
+  - A downloaded update waiting to be put in is no longer put in by Restart; Settings → Update
+    does that, as it always has.
+- **Shut down** is as before, now from the C# server: both stop. On a Mac the login item is
+  unloaded, so it stays stopped until the Mandarin icon or the next login. In Docker it isn't
+  offered (`docker stop`).
+- **Settings → Library Scanner's processor line** (`/api/cpu`) is answered by the C# server. Which
+  core playback keeps is still decided by the Node server until playback moves (stage 6): taking
+  it now would mean changing the Node server.
+- From home only, both, as before.
+- `server/Mandarin.Server/PowerRoutes.cs`; answered there where the C# server started the Node
+  server itself, as every install does.
+- **Tests:** `test/power-csharp.test.js` runs the real C# server starting the real Node server:
+  Restart in the same process with a new Node server and the library and sign-in as they were;
+  Shut down leaving with 0; Docker's refusal.
+- **Releases, the image and the engines wait for CI** (#179, `claude-b-release-waits`). A merge
+  to `main` used to publish the release and the image at once, alongside CI rather than after it:
+  v0.8.29 and v0.8.30 both went out while their Mac tests were still running, v0.8.29's to fail.
+  Now each waits for CI on the same commit and goes out only if every run of it passed
+  (`.github/wait-for-ci.sh`, a first `ci` job in `release.yml` and `docker-publish.yml`). A CI run
+  re-run to green: re-run the failed job of the Release or Publish run too.
+- The Android app for this version is 0.8.31 (version code 231). Nothing in it changed.
+
 ## v0.8.30
 A test build, from the `v0.8.31-tests` branch, with `v0.8.31-cpu` and #176 (`claude-b-fix`) merged
 in. The tests run several at once, about three and a half times faster; Settings counts every

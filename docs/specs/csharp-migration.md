@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26) and d (v0.8.31); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -234,7 +234,7 @@ the pace.
 
 ### Stage 1: the small, self-contained parts (several S)
 
-**1a, 1b and 1c built in v0.8.26** (branch `stage1-small-parts`). 1d, 1e and 1f to come.
+**1a, 1b and 1c built in v0.8.26** (branch `stage1-small-parts`); **1d in v0.8.31**. 1e and 1f to come.
 
 None of these touch a live player.
 
@@ -249,7 +249,11 @@ None of these touch a live player.
 - **1c. AutoEq headphone profiles:** the three `/api/dsp/headphones` routes (they need only the
   `cache` table and the AutoEq address).
 - **1d. Restart and shut down**, and the processor split decided in C# (`lib/cpu.js`'s decision;
-  `Cpu.cs` already applies it).
+  `Cpu.cs` already applies it). **Built in v0.8.31** (`PowerRoutes.cs`), as the owner chose:
+  Restart starts both servers again (the C# one in its same process, as after an update); the
+  split's decision stays the Node server's until playback moves (stage 6), since taking it would
+  mean changing the Node server, and `/api/cpu` is answered by C# with the split as Node last
+  sent it. Answered by C# only where it started the Node server itself (every install).
 - **1e. Library housekeeping:** music folders, letting a folder go, the music mount, clean-up,
   `/api/search-status`, Rescan, the scan timer and the folder watcher. The scan itself is already
   C#'s. The Node server keeps its own copy of the library for playback, so it is told when a scan
@@ -421,8 +425,8 @@ and `/api/image/`).
   `/api/library/rescan`, `/api/reindex`; a streamed album's `GET /api/album`; the services part
   of `GET /api/search/external`
 - **Admin:** `GET /api/update/status`, `POST /api/update/check`, `/api/update/apply` (registered in
-  `api-playlists.js`); `GET /api/system/power`, `POST /api/system/restart`, `/api/system/shutdown`;
-  `GET /api/cpu`; `GET /api/tagcheck`, `/api/tagcheck/report`
+  `api-playlists.js`); `GET /api/tagcheck`, `/api/tagcheck/report` (power and `/api/cpu` C#'s since
+  v0.8.31)
 - **Streams and pictures C# passes on:** `/stream/` with `?g=` or `?o=`, 32-bit, a Qobuz or Tidal
   track, or an unsigned request from a speaker; `/api/image/` for an album with no cover, a
   picture only `sharp` reads well, or an outside picture
