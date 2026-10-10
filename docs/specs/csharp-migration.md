@@ -147,6 +147,9 @@ the CHANGELOG, and the version (both would call theirs 0.8.25). Proposed:
 - **Each stage has one owner.** Two accounts can work at once only on stages that don't touch the
   same area, and the second to merge takes the next version number and brings `main` in first.
 - **Each branch starts from the latest `main`**, and nothing is stacked on an unmerged branch.
+- **Each build has its own branch, named for its version** (the owner's rule from v0.8.30): `v0.8.30`,
+  `v0.8.31`, … New work never goes onto a branch whose build is already up for merging; a fix to
+  that build does.
 - **`replaygain-fix` merged before anything else**: it changes `Identify/Loudness.cs`,
   `Identify/Identifier.cs` and `Jobs.cs`.
 
@@ -166,8 +169,11 @@ updates bringing both servers together (2.1):
 - **The Node copies of parts already moved are frozen,** not deleted: they stay as they are for a
   Mac kept on Node alone (`MANDARIN_NODE_ONLY=1`), and for a C# server that hasn't started. A Mac
   on Node alone keeps what it has and gets no new server features.
-- **What Node still owns** (playback, the updater, Qobuz and Tidal, the conversions it makes)
-  changes in Node until its stage moves it. That isn't work done twice.
+- **No work in the Node server at all** (the owner's rule, made firmer after v0.8.29). Not even in
+  what Node still owns (playback, the updater, Qobuz and Tidal, the conversions it makes): an area
+  that needs changing moves to C# first, and is changed there. v0.8.29's change to the updater was
+  the last made in Node. The pages stay HTML, CSS and JavaScript (browsers run nothing else), and
+  the tests stay in JavaScript (stage 7).
 - **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as
   `test/front.test.js` does). The Node-alone run in CI keeps testing what Node still owns.
 - Deleting the frozen copies follows the rule above.

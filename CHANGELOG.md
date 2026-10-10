@@ -31,9 +31,11 @@ new server work is done in C# only (`docs/specs/csharp-migration.md`, 2.1, 2.2 a
   - Until now the C# server was fetched only after the update had installed the Node server's
     files. If that fetch failed, the two ran mismatched, with the C# server passing everything on,
     for up to three hours or for good.
-- **New server work is now done in C# only.** The Node server's copies of parts already moved stay
-  as they are, for a Mac kept on Node alone, and aren't changed any more. What the Node server
-  still does itself (playback, the updater, Qobuz and Tidal) changes there until it moves.
+- **All server work is now done in C#.** The Node server's copies of parts already moved stay as
+  they are, for a Mac kept on Node alone, and aren't changed any more. A part the Node server still
+  runs itself (playback, the updater, Qobuz and Tidal) moves to C# before it's changed; this
+  build's change to the updater is the last made in Node.
+- **Each build now has its own branch, named for its version** (`v0.8.30` next).
 - **For the C# server on a Mac** (`server/`):
   - the scan's file system calls take macOS's forms (`Scan/NodeFs.cs`);
   - the C library is macOS's (`Program.cs`);

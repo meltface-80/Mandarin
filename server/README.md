@@ -51,8 +51,9 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
   as in the image (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
   (`Scan/NodeFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
   suite through it on a Mac runner.
-- **New server work is done here only** (v0.8.29, the owner's decision): the Node copies of parts
-  already moved are kept as they are, and changed no more (`docs/specs/csharp-migration.md`, 2.4).
+- **All server work is done here** (the owner's decision, v0.8.29): the Node copies of parts already
+  moved are kept as they are and changed no more, and an area the Node server still owns moves here
+  before it is changed (`docs/specs/csharp-migration.md`, 2.4).
 
 When nothing is passed on any more, the Node server, and Node itself, leave the image.
 
