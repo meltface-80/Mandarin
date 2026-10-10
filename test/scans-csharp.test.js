@@ -175,3 +175,24 @@ test("the library read on the C# server's timer, and when the music folders chan
     await until(async () => (await albums(s)) === 4, 15000, "the new album, on the timer");
   });
 });
+
+// The owner's decision (v0.8.36): the scans go to the C# server only where the
+// Node server's own would already be its program — TAG_READER=csharp, or the
+// tag check passed. Otherwise they stay the Node server's, as before v0.8.34.
+// (Last in this file: a server's settings stay with the next one started here.)
+test("the scans stay with the Node server where its own wouldn't be the C# program's", { skip, timeout: 120000 }, async (t) => {
+  for (const [what, overrides] of [["TAG_READER=node", { tagReader: "node" }], ["the tag check not passed", { tagReader: "auto" }]]) {
+    await t.test(what, async (t) => {
+      const lib = makeLibrary();
+      const s = await serve(t, lib, {}, overrides);
+      await until(async () => (await albums(s)) === 3 && idle(s), 30000, "the first scan, the Node server's");
+      assert.ok(s.ctx.frontRuns, "the rest handed over");
+      assert.ok(!s.ctx.frontRuns.has("scan"), "but not the scans");
+      assert.ok(s.ctx.ownScanTimers, "the Node server's own timer runs");
+      const f = await s.get("/api/library/folders");
+      assert.deepEqual([f.status, f.by], [200, null], "the music folders answered by the Node server");
+      const r = await s.post("/api/library/rescan");
+      assert.deepEqual([r.status, r.by, r.j.status], [200, null, "fresh"], JSON.stringify(r.j));
+    });
+  }
+});

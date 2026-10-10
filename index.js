@@ -373,13 +373,19 @@ function createServer(overrides = {}) {
   // logos, the release days after a scan, and the taste work (Smart Picks, the
   // share card's suggestions); from v0.8.22 the built-in Tailscale engine;
   // from v0.8.34 the library scans (on the timer and when the music folders
-  // change, Rescan, the music folders' routes), unless the tags are to be
-  // read here (TAG_READER=node). Each is stopped here for good — the album
-  // being looked at finished first — and the C# server is told which, and
-  // how this one was set up. This server's own requests to MusicBrainz wait
-  // their turn on the C# server's timer from now on.
+  // change, Rescan, the music folders' routes), where this server's own
+  // would already be made by the C# program (scansGoToFront). Each is
+  // stopped here for good — the album being looked at finished first — and
+  // the C# server is told which, and how this one was set up. This server's
+  // own requests to MusicBrainz wait their turn on the C# server's timer from
+  // now on.
   const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan"];
-  const handsOver = (j) => FRONT_JOBS.includes(j) && !(j === "scan" && config.tagReader === "node");
+  // The library scans go to the C# server only where this server's own would
+  // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
+  // or the tag check passed for the two readers (not TAG_READER=node). Else
+  // they stay here, as before v0.8.34. Decided at the hand-over.
+  const scansGoToFront = () => !!scanner.program();
+  const handsOver = (j) => FRONT_JOBS.includes(j) && (j !== "scan" || scansGoToFront());
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
@@ -753,7 +759,7 @@ function createServer(overrides = {}) {
       if (ctx.watcher) { ctx.watcher.stop(); ctx.watcher = null; }
       if (scanner.running) scanner.stop();
     };
-    if (!frontRuns.has("scan") || config.tagReader === "node") ctx.ownScans();
+    if (!frontRuns.has("scan") || !scansGoToFront()) ctx.ownScans();
     ctx.scanTimers = [];
     // The streaming services: your favourites (and purchases) brought up to
     // date soon after the start and every six hours, while signed in with

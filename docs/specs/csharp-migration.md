@@ -174,6 +174,15 @@ updates bringing both servers together (2.1):
   that needs changing moves to C# first, and is changed there. v0.8.29's change to the updater was
   the last made in Node. The pages stay HTML, CSS and JavaScript (browsers run nothing else), and
   the tests stay in JavaScript (stage 7).
+- **Exceptions the owner has allowed:**
+  - **hand-over switches**: small Node changes that only make Node do less, so a part can move.
+    The library scans (1e, v0.8.34): the job `scan` and Node's timer and watcher left unstarted
+    (`index.js`), and the scan reports the C# server sends it, mirrored for its copy of the
+    library and `/api/status` (`lib/server/api-library.js`); and in v0.8.36 the rule for when
+    they are handed over (decision 7);
+  - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
+  - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
+    only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
 - **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as
   `test/front.test.js` does). The Node-alone run in CI keeps testing what Node still owns.
 - Deleting the frozen copies follows the rule above.
@@ -263,9 +272,12 @@ None of these touch a live player.
   Rescan, Reindex, the music folders, the folder picker, Forget folder, `/api/music-mount` and
   `/api/search-status`, and tells the Node server how each scan goes (its state about once a
   second, for `/api/status`; the albums so far; the end, after which it does what followed a scan).
-  The scan now reads tags with C#'s reader whatever the tag check says, unless the server is
-  started with `TAG_READER=node`, which keeps the scans the Node server's. Clean-up stays the Node
-  server's while Qobuz's and Tidal's albums are (stage 4).
+  The scans are handed over only where the Node server's own would already be the C# program's
+  (decided by the owner, v0.8.36; decision 7): `TAG_READER=csharp`, or the tag check passed for
+  the two readers (and not `TAG_READER=node`). Otherwise they stay the Node server's, as before,
+  its own timer and watcher with them. It is decided at the hand-over (v0.8.34 handed them over
+  whatever the check said). Clean-up stays the Node server's while Qobuz's and Tidal's albums are
+  (stage 4).
 - **1f. The covers `sharp` still draws:** an album with no cover, CMYK or colour-profiled pictures,
   outside pictures, pictures asked for by a speaker's own address. The owner chose ffmpeg, as
   `Covers.cs` does. **Built in v0.8.34** (`CoversDrawn.cs`): the placeholder (held to sharp's
@@ -401,9 +413,10 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
    then each kind of player?
 5. **When the Node copies go:** the rule in 2.4, or another? Decided meanwhile: no more work done
    twice; new server work is C# only (2.4).
-6. **Covers:** ffmpeg as now, or an image library for what `sharp` still draws (1f)?
-7. **The tag reader:** keep using C#'s only where the check has passed, until stage 7 (as now), or
-   make it the only one sooner?
+6. ~~**Covers:**~~ Decided: ffmpeg, as `Covers.cs` already does (1f, built in v0.8.34).
+7. ~~**The tag reader:**~~ Decided: C#'s only where the tag check has passed (or
+   `TAG_READER=csharp`), until stage 7. The library scans go to the C# server on the same rule
+   (v0.8.36).
 
 ---
 
