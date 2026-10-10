@@ -259,7 +259,10 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
     await t.test("the page: Remove from Qobuz favourites closes the album and takes its tile off the wall", { skip: !findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)" }, async () => {
       await api("qobuz/favorite", { album_id: "1003" });
       const b = await Browser.launch({ width: 390, height: 844 });
-      let r;
+      let r, held, after;
+      // Qobuz's answer to the removal held back: the page is seen before it,
+      // then timed from it (a busy machine's round trip isn't the page's).
+      const release = qobuz.hold("favorite/delete");
       try {
         const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
         r = await page.eval(`(async () => {
@@ -276,22 +279,33 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           await until(() => !modal.classList.contains("hidden") && $("modal-title").textContent === "Q Other");
           const item = await until(() => [...modal.querySelectorAll(".overflow-menu .sel-menu-item")].find(x => x.textContent === "Remove from Qobuz favourites"));
           out.why = await until(() => $("modal-why-note") && $("modal-why-note").textContent);
-          const t0 = Date.now();
+          // When the page closed and the tile went, noted as they happen.
+          const seen = window.__removed = {};
+          (async () => {
+            await until(() => modal.classList.contains("hidden"), 60000); seen.closed = Date.now();
+            await until(() => ![...document.querySelectorAll("#album-grid .album")].some(t => t.querySelector(".album-title").textContent === "Q Other"), 60000); seen.gone = Date.now();
+            seen.wall_shown = !$("album-grid").classList.contains("hidden");
+          })();
           item.click();
-          await until(() => modal.classList.contains("hidden"));
-          out.closed_in_ms = Date.now() - t0;
-          await until(() => ![...document.querySelectorAll("#album-grid .album")].some(t => t.querySelector(".album-title").textContent === "Q Other"));
-          out.gone_in_ms = Date.now() - t0;
-          out.wall_shown = !$("album-grid").classList.contains("hidden");
           return out;
         })()`);
+        // The removal at Qobuz, waiting: the page is still open.
+        await until(() => qobuz.parked["favorite/delete"] >= 1);
+        await sleep(300);
+        held = await page.eval(`({ open: !document.getElementById("album-modal").classList.contains("hidden"), closed: !!window.__removed.closed })`);
+        const t0 = Date.now();
+        release();
+        after = await page.eval(`(async () => { const t0 = Date.now(); while (!window.__removed.gone && Date.now() - t0 < 30000) await new Promise(r => setTimeout(r, 50)); return window.__removed; })()`);
+        after.closed_in_ms = after.closed ? after.closed - t0 : null;
+        after.gone_in_ms = after.gone ? after.gone - t0 : null;
         assert.deepEqual(page.errors, []);
-      } finally { await b.close(); }
+      } finally { release(); await b.close(); }
       assert.equal(r.on_wall, true, "a favourite is on the Library wall");
       assert.match(r.why, /^In your library as a Qobuz favourite/, r.why);
-      assert.ok(r.closed_in_ms < 2000, "the page closed in " + r.closed_in_ms + " ms");
-      assert.ok(r.gone_in_ms < 2000, "the tile was gone in " + r.gone_in_ms + " ms");
-      assert.equal(r.wall_shown, true);
+      assert.deepEqual(held, { open: true, closed: false }, "open until Qobuz has answered");
+      assert.ok(after.closed_in_ms != null && after.closed_in_ms < 2000, "the page closed " + after.closed_in_ms + " ms after Qobuz answered");
+      assert.ok(after.gone_in_ms != null && after.gone_in_ms < 2000, "the tile was gone " + after.gone_in_ms + " ms after Qobuz answered");
+      assert.equal(after.wall_shown, true);
       assert.equal(qobuz.favourites.has("1003"), false, "and it is gone from Qobuz itself");
     });
 
