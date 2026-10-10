@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.37
+Stage 2a of the move to C#: the logic Sonos playback runs on, written in C# and held to the Node
+server's answers. Nothing that runs changes: the C# copies are used only by the tests until playback
+moves (stage 6).
+
+- **The Sonos logic in C#** (`server/Mandarin.Server/Playback/`): XML read as the Node server reads
+  it (`lib/xml.js`, broken documents included), DIDL-Lite built byte for byte and read back, the
+  queue's move plans, the household read from a ZoneGroupState (rooms, groups, pairs, home theatre
+  satellites), the SSDP answer's headers and this machine's LAN addresses, and the SOAP envelope
+  sent and the answer or fault read.
+  - **Tests:** `test/sonos-csharp.test.js` asks both servers about 11,700 cases and needs the same
+    answers, key order included: what the repo's fake speakers and real players send, awkward cases
+    by hand, and seeded generated and damaged ones.
+- **Who does what:** the owner's split is in the migration spec. Stage 2 is this account's (2a here,
+  2b next); stage 4's parts 1 to 4 (Qobuz and Tidal, not their streams) are Claude B's.
+- The Android app for this version is 0.8.37 (version code 237). Nothing in it changed.
+
 ## v0.8.36
 The app and the browser page no longer go stale and stop answering taps after the phone has slept,
 and the library scans go to the C# server only once the tag check has passed, as the owner decided.

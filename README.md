@@ -9,7 +9,7 @@
 
 note: v0.8x series of updates is due to migrating to C#
 
-# Mandarin — v0.8.36
+# Mandarin — v0.8.37
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
