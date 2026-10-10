@@ -6,6 +6,7 @@
  * from it, as musicbrainz.org would. Here a dump of a few rows, written in
  * the dump's own COPY text, escapes and \N included.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -231,7 +232,7 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
   fs.mkdirSync(music); fs.mkdirSync(data);
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  const port = 3638, base = "http://127.0.0.1:" + port;
+  const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     mbpackUrl: `http://127.0.0.1:${pub.address().port}` });
   await srv.start();

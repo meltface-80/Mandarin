@@ -8,6 +8,7 @@
  * beside it.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -15,9 +16,9 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3632;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
-const PORT2 = 3637, B2 = "http://127.0.0.1:" + PORT2; // the Playlists test's own, so the two never share a port
+const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2; // the Playlists test's own, so the two never share a port
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));

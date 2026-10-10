@@ -6,6 +6,7 @@
  * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8), their
  * sharing (v0.8.21) and the Dynamic Playlists saved (v0.8.22) are made there.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const SH = require("../lib/server/share");
@@ -14,7 +15,7 @@ const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const FRONT = process.env.MANDARIN_FRONT === "1";
-const PORT = 3616;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("the share blob is MusicD Remote's: MDRP1, gzip, JSPF", () => {

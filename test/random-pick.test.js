@@ -6,6 +6,7 @@
  * until one is tapped; closing it plays nothing; one Escape closes only the
  * popup; on a phone held sideways the whole box is on screen.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -13,7 +14,7 @@ const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
-const PORT = 3654, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const KITCHEN = "RINCON_KITCHEN01400";
 
@@ -44,7 +45,7 @@ test("Random Album: chosen, then offered", { skip: (!haveFfmpeg() && "ffmpeg is 
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);

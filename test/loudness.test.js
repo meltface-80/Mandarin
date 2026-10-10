@@ -7,6 +7,7 @@
  * album, newest first, after identification, with options ffmpeg 5.1 knows
  * (v0.8.24).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -18,7 +19,7 @@ const { Loudness, parseEbur128, combine, FILTER } = require("../lib/loudness");
 const STREAM = require("../lib/stream");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3619;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 20000) {

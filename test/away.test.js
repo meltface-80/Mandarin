@@ -9,6 +9,7 @@
  * The tests run on loopback, so "away" is a proxy on this machine forwarding
  * for a Tailscale address — the one case X-Forwarded-For is believed.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -18,7 +19,7 @@ const { isLocal } = require("../lib/server/auth");
 const { awayAddress, inTailnet } = require("../lib/server/tailscale");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3605;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const TAILNET = "100.101.102.103";
 
@@ -48,7 +49,7 @@ test("away, only this phone plays", { skip, timeout: 90000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"] });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] });
   await srv.start();
   const phoneToken = await signIn(B);
   const browserToken = await (async () => {

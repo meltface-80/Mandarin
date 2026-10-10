@@ -4,6 +4,7 @@
  * every device from 00:01, gone from all of them once played; "Not played in
  * 6 months" offers nothing until Mandarin has six months of listening.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -11,7 +12,7 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3617;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, async () => {

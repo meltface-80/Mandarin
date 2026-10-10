@@ -14,6 +14,7 @@
  *   - the share card's × a brass disc; every ⓘ named for screen readers.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -23,7 +24,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 // On CI (GitHub's runners carry Chrome) a missing browser is a failure, not
 // a skip, so these checks can't quietly stop running.
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3622;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 // Runs in the page: walks the screens and reports what it saw.

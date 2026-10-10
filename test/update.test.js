@@ -5,6 +5,7 @@
  * POST to /api/update/apply must bring the server back up as that version —
  * with the data directory left alone.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -70,12 +71,12 @@ test("Check for updates installs the newer release and restarts into it, library
   });
   await new Promise(r => gh.listen(0, "127.0.0.1", r));
 
-  const port = 3593;
+  const port = ports.port();
   const proc = spawn(process.execPath, ["launcher.js"], {
     cwd: app, stdio: "ignore",
     env: Object.assign({}, process.env, {
       PORT: String(port), MUSIC_DIR: lib.music, DATA_DIR: data, SERVER_IP: "127.0.0.1",
-      SONOS_HOSTS: "127.0.0.250", UPDATE_REPO: "me/musicd", UPDATE_API: `http://127.0.0.1:${gh.address().port}`,
+      SONOS_HOSTS: ports.host(4), UPDATE_REPO: "me/musicd", UPDATE_API: `http://127.0.0.1:${gh.address().port}`,
       UPDATE_CHECK: "false"
     })
   });

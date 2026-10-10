@@ -8,6 +8,7 @@
  * the best rate it takes otherwise; gapless via SetNextAVTransportURI, and
  * the hand-started fallback for a device without it.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -18,7 +19,7 @@ const { signIn } = require("./auth-helper");
 const { idFor } = require("../lib/renderers/discovery");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3608;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -45,7 +46,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   await wiim.start(); await poly.start();
   const { createServer } = require("../index.js");
   const options = {
-    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"],
+    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false
   };
   let srv = createServer(options);

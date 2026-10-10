@@ -6,6 +6,7 @@
  * playing, in the order chosen, with the rest of the queue after it.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -14,7 +15,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3633;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 10000) {
@@ -58,7 +59,7 @@ test("Play next: a track's button, a selection's menu item, and the order they l
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);

@@ -14,6 +14,7 @@
  *   - an album played from the browser without being kept is reachable by
  *     id but not on the walls; signed out, nothing streams.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -25,7 +26,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3634, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 15000) {
   const t0 = Date.now();
@@ -55,7 +56,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"],
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, identify: false, qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
   const token = await signIn(B);

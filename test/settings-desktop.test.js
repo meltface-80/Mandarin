@@ -5,6 +5,7 @@
  * 360–680px), over the dimmed page; a click outside closes it. A phone, held
  * either way, still fills the screen. Skipped where no Chromium or Chrome is found.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -12,7 +13,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3625;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {

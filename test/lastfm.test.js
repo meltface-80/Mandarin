@@ -14,6 +14,7 @@
  *     album open), what they appear on, A to Z, three and More; then
  *     Last.fm's similar artists and albums, each saying where it opens.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("http");
@@ -193,7 +194,7 @@ test("the Last.fm key travels with a backup's other keys", () => {
 
 // ---- The routes and the album view, against a fake Last.fm on loopback ----
 
-const PORT = 3653, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MUSE_ART = "https://lastfm.freetls.fastly.net/i/u/300x300/muse.jpg";
 

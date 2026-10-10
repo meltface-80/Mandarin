@@ -4,6 +4,7 @@
  * or as Opus 256, current titles for albums already on the phone, and plays
  * made offline joining the history.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -12,7 +13,7 @@ const { signIn } = require("./auth-helper");
 const { phonePlays } = require("../lib/server/downloads");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3604;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("what a phone can play as it is", () => {

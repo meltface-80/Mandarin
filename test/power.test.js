@@ -7,6 +7,7 @@
  *     unloads that item (launchctl bootout) so launchd doesn't start it again;
  *   - neither in Docker's case for Shut down, nor from away for either.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { makeLibrary } = require("./fixtures");
@@ -113,7 +114,7 @@ test("through the real server: signed in, the routes answer and Restart stops it
   const lib = makeLibrary();
   const exits = [];
   const { createServer } = require("../index.js");
-  const PORT = 3624, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
     upnpMulticast: false, identify: false, exitProcess: c => exits.push(c), powerEnv: {}, powerPlatform: "linux" });
   await srv.start();

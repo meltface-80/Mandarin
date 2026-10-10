@@ -9,6 +9,7 @@
  * given, the way a speaker does, and records what came back. That is what
  * proves a hi-res file actually reaches the speaker as 24/48 FLAC.
  */
+const ports = require("./ports");
 const http = require("http");
 const XML = require("../lib/xml");
 const DIDL = require("../lib/sonos/didl");
@@ -189,8 +190,8 @@ class Room {
 
 class FakeHousehold {
   constructor(rooms = [
-    { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: "127.0.0.11" },
-    { uid: "RINCON_STUDY001400", name: "Study", ip: "127.0.0.12", model: "Sonos Era 100" }
+    { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: ports.host(0) },
+    { uid: "RINCON_STUDY001400", name: "Study", ip: ports.host(1), model: "Sonos Era 100" }
   ]) {
     this.rooms = rooms.map(r => new Room(this, r));
   }

@@ -6,6 +6,7 @@
  * Through the server's own routes, so behind the C# server (MANDARIN_FRONT=1)
  * it's the engine run there (v0.8.22, Admin/Tailscale.cs) that is driven.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -14,7 +15,7 @@ const path = require("path");
 const { signIn } = require("./auth-helper");
 const { awayAddress } = require("../lib/server/tailscale");
 
-const PORT = 3609;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 // The engine's control API, as far as the server uses it. It records what it

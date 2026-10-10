@@ -17,6 +17,7 @@
  *     discs under their own headings, the queue pane and the lane's fold.
  * The browser part is skipped where no Chromium or Chrome is found.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -26,7 +27,7 @@ const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
-const PORT = 3652;
+const PORT = ports.port();
 const VERSION = require("../package.json").version;
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -134,7 +135,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   const b = await Browser.launch({ width: 1440, height: 900, mouse: true });
   try {

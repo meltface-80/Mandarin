@@ -12,6 +12,7 @@
  * The "device" in these tests is a file the PCM is written to at the speed
  * it would play (lib/local/devices.js, file:).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -175,7 +176,7 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     id: L.idOf("test:dac"), kind: "local", family: "local", network_name: "Test DAC", manufacturer: "Test", model: "USB audio",
     location: "file:" + out, playable: true, caps: { advertised: { containers: ["flac"], rates: [44100, 48000, 96000], bits: [16, 24, 32] } }
   };
-  const PORT = 3631, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   // The server's log, for what the player says of the device.
   const logs = [], realLog = console.log;
   console.log = (...a) => { logs.push(a.join(" ")); realLog(...a); };

@@ -12,13 +12,14 @@
  * bridge; a server gone away, by every /api request failing in the page. Skipped
  * where no Chromium or Chrome is found.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
-const PORT = 3656, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 // Before the page's scripts: /api/status as the app answers it offline, and
 // (Offline mode) the app's bridge, with every setting it is given written down.

@@ -5,6 +5,7 @@
  * decisions over canned Deezer answers (lib/similar.js), then the route
  * end to end with Deezer stood in for.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const similar = require("../lib/similar");
@@ -96,7 +97,7 @@ test("the reason under each act", () => {
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDeezer } = require("./fake-deezer");
-const PORT = 3643, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 // Behind the C# server (MANDARIN_FRONT=1), which makes the suggestions from v0.8.20.
 const FRONT = process.env.MANDARIN_FRONT === "1";
 

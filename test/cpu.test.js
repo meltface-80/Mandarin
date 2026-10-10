@@ -7,6 +7,7 @@
  * running, moved when DSP takes or gives back its second core; and, through
  * the C# server (MANDARIN_FRONT=1), that server keeping to the same split.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -150,7 +151,7 @@ test("the C# server keeps to the split, and moves with it", { skip: skipFront, t
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-cpu-"));
   const music = path.join(root, "music"), data = path.join(root, "data");
   fs.mkdirSync(music);
-  const PORT = 3698, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const before = allowedOf(process.pid);
   const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });

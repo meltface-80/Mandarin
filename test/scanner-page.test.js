@@ -8,6 +8,7 @@
  * second time, it shows what it showed last straight away. Skipped where no
  * Chromium or Chrome is found.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -15,7 +16,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3627;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {
