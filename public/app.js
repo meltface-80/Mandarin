@@ -9734,6 +9734,7 @@ window.__afterStart = (fn) => {
       try {
         const r = await fetch("/api/filters/labels");
         const j = await r.json();
+        if (!(labelsActive && mode === "list")) return;
         if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
         const minAlbums = labelMin();
         const labels = (j.labels || []).filter(lb => (lb.albumCount || 1) >= minAlbums);
@@ -9927,6 +9928,8 @@ window.__afterStart = (fn) => {
         const r = await fetch("/api/label-albums?label=" + encodeURIComponent(name) +
                               "&order=" + encodeURIComponent(labelOrder()));
         const j = await r.json();
+        // ‹ (or Home) while this was on its way: it no longer belongs on screen.
+        if (!stillOnLabel()) return;
         if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
         currentLabelLogoUrl = j.logo_url || null; // expose to logo picker
         const albums = j.albums || [];
@@ -9948,9 +9951,11 @@ window.__afterStart = (fn) => {
         }
         grid.appendChild(frag);
       } catch (e) {
+        if (!stillOnLabel()) return;
         grid.innerHTML = "";
         setBanner("Couldn't load albums: " + e.message, true);
       }
+      function stillOnLabel() { return labelsActive && mode === "albums" && currentLabelName === name; }
     }
 
     if (labelsBack) labelsBack.addEventListener("click", () => showLabelsList());
