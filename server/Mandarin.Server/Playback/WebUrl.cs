@@ -1,7 +1,8 @@
-// WebUrl.cs — `new URL(input, base).toString()` as Node gives it (v0.8.37,
-// stage 2a of docs/specs/csharp-migration.md), for lib/renderers/
-// description.js, which resolves every address a device describes against its
-// URLBase or the description's own.
+// WebUrl.cs — `new URL(input, base).toString()` and `new URL(s).hostname` as
+// Node gives them (v0.8.37, stage 2a of docs/specs/csharp-migration.md): for
+// lib/renderers/description.js, which resolves every address a device
+// describes against its URLBase or the description's own, and for a Sonos
+// player's address, the host of its Location (Topology.cs).
 //
 // Node's URL is the WHATWG URL Standard (the ada parser), and so is this: the
 // basic URL parser, state by state, and its serializer. So a device's sloppy
@@ -20,16 +21,17 @@
 // a base with an opaque path ("x#f" on "mailto:a"), which ada takes and the
 // standard (and ada, without the "#") refuses; it fails here.
 //
-// One difference: a host with letters outside ASCII (or a label written
-// "xn--") goes through .NET's IDNA (ICU's UTS #46), label by label, where Node
-// has its own; .NET turns down a few such labels WHATWG takes (one beginning
-// or ending with a hyphen, one over 63 letters), and doesn't apply the bidi
-// rule across labels. ASCII hosts, which is what devices on a network give,
-// are read exactly.
+// One difference: a host with letters outside ASCII goes through .NET's IDNA
+// (ICU's UTS #46), label by label, where Node has its own tables; .NET turns
+// down a few such labels WHATWG takes (one beginning or ending with a hyphen,
+// one over 63 letters), and doesn't apply the bidi rule across labels. An
+// ASCII "xn--" label is checked here as real Punycode of something UTS #46
+// lets through, as Node checks it. ASCII hosts, which is what devices on a
+// network give, are read exactly.
 using System.Globalization;
 using System.Text;
 
-namespace Mandarin.Server.Renderers;
+namespace Mandarin.Server.Playback;
 
 internal static class WebUrl
 {
@@ -40,6 +42,9 @@ internal static class WebUrl
         if (baseUrl != null && (b = Parse(baseUrl, null)) == null) return null;
         return Parse(input, b)?.Serialize();
     }
+
+    /* new URL(input).hostname ("" for a URL without a host), or null where the constructor throws. */
+    public static string? Hostname(string input) => Parse(input, null) is { } r ? r.Host ?? "" : null;
 
     private sealed class Record
     {
@@ -511,30 +516,87 @@ internal static class WebUrl
 
     private static readonly IdnMapping Idn = new() { AllowUnassigned = false, UseStd3AsciiRules = false };
 
-    // domain to ASCII, not strict: an ASCII name without "xn--" labels is only lowercased.
+    /* domain to ASCII (UTS 46, non-transitional, no hyphen, STD3 or length checks). */
     private static string? DomainToAscii(string domain)
     {
-        var labels = domain.Split(['.', '\u3002', '\uFF0E', '\uFF61']);
-        var plain = domain.All(ch => ch < 0x80) && !labels.Any(IsAce);
-        string result;
-        if (plain) result = AsciiLower(domain);
-        else
+        var labels = new List<string>();
+        var label = new StringBuilder();
+        foreach (var c in domain)
         {
-            var parts = new List<string>();
-            foreach (var label in labels)
-            {
-                if (label.All(ch => ch < 0x80) && !IsAce(label)) { parts.Add(AsciiLower(label)); continue; }
-                try { parts.Add(AsciiLower(Idn.GetAscii(label))); }
-                catch (ArgumentException) { return null; }
-            }
-            result = string.Join(".", parts);
+            if (c is '.' or '。' or '．' or '｡') { labels.Add(label.ToString()); label.Clear(); }
+            else label.Append(c);
         }
+        labels.Add(label.ToString());
+        for (var i = 0; i < labels.Count; i++)
+        {
+            var l = labels[i];
+            if (l.All(char.IsAscii))
+            {
+                l = AsciiLower(l);
+                if (l.StartsWith("xn--", StringComparison.Ordinal) && !PunycodeOk(l[4..])) return null;
+                labels[i] = l;
+                continue;
+            }
+            try { labels[i] = AsciiLower(Idn.GetAscii(l)); }
+            catch (ArgumentException) { return null; }
+        }
+        var result = string.Join(".", labels);
         if (result.Length == 0) return null;
         foreach (var r in result.EnumerateRunes()) if (ForbiddenDomain(r.Value)) return null;
         return result;
     }
 
-    private static bool IsAce(string label) => label.Length >= 4 && label.StartsWith("xn--", StringComparison.OrdinalIgnoreCase);
+    /* An xn-- label: real Punycode, of something UTS 46 lets through. */
+    private static bool PunycodeOk(string code)
+    {
+        var decoded = Punycode(code);
+        if (decoded == null || decoded.Length == 0) return false;
+        if (decoded.All(char.IsAscii)) return true;
+        try { Idn.GetAscii(decoded); return true; }
+        catch (ArgumentException) { return false; }
+    }
+
+    /* RFC 3492's decoder; null when the code is not Punycode. */
+    private static string? Punycode(string input)
+    {
+        const int Base = 36, TMin = 1, TMax = 26, Skew = 38, Damp = 700;
+        var output = new List<int>();
+        var d = input.LastIndexOf('-');
+        if (d > 0) foreach (var c in input[..d]) { if (c >= 0x80) return null; output.Add(c); }
+        long n = 128, i = 0, bias = 72;
+        var p = d > 0 ? d + 1 : 0;
+        while (p < input.Length)
+        {
+            long oldi = i, w = 1;
+            for (long k = Base; ; k += Base)
+            {
+                if (p >= input.Length) return null;
+                var c = input[p++];
+                int digit = c >= '0' && c <= '9' ? c - '0' + 26 : c >= 'a' && c <= 'z' ? c - 'a' : c >= 'A' && c <= 'Z' ? c - 'A' : -1;
+                if (digit < 0) return null;
+                i += digit * w;
+                if (i > int.MaxValue) return null;
+                var t = k <= bias ? TMin : k >= bias + TMax ? TMax : k - bias;
+                if (digit < t) break;
+                w *= Base - t;
+                if (w > int.MaxValue) return null;
+            }
+            var len = output.Count + 1;
+            var delta = oldi == 0 ? (i - oldi) / Damp : (i - oldi) / 2;
+            delta += delta / len;
+            long kk = 0;
+            while (delta > ((Base - TMin) * TMax) / 2) { delta /= Base - TMin; kk += Base; }
+            bias = kk + (Base - TMin + 1) * delta / (delta + Skew);
+            n += i / len;
+            i %= len;
+            if (n > 0x10FFFF || (n >= 0xD800 && n <= 0xDFFF)) return null;
+            output.Insert((int)i, (int)n);
+            i++;
+        }
+        var sb = new StringBuilder();
+        foreach (var cp in output) sb.Append(char.ConvertFromUtf32(cp));
+        return sb.ToString();
+    }
 
     private static string AsciiLower(string s) => string.Create(s.Length, s, (span, v) =>
     {

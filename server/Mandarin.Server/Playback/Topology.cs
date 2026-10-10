@@ -10,7 +10,7 @@
 //   - each ZoneGroup is a group, named by its coordinator; each member with a
 //     UUID is a member, its address the host of its Location ("" when it has
 //     none or the Location doesn't read as a URL, exactly as `new URL()` reads
-//     it: UrlHost.cs);
+//     it: WebUrl.cs);
 //   - satellites, subs and the second of a pair are Invisible; BOOST and BRIDGE
 //     units IsZoneBridge; a stereo pair is a ChannelMapSet with a left-only and
 //     a right-only player (a home theatre's surrounds are HTSatChanMapSet,
@@ -83,7 +83,7 @@ internal static class Topology
                 var uid = Xml.Prop(m, "@UUID");
                 if (!Js.Truthy(uid)) continue;
                 // No location, or one that isn't a URL: not addressable.
-                var ip = UrlHost.Hostname(Js.Str(Xml.Or(Xml.Prop(m, "@Location"), ""))) ?? "";
+                var ip = WebUrl.Hostname(Js.Str(Xml.Or(Xml.Prop(m, "@Location"), ""))) ?? "";
                 var map =ParseChannelMap(Xml.Or(Xml.Prop(m, "@ChannelMapSet"), ""));
                 var sets = map.Keys.Select(k => map[k]).ToList();
                 var z = new JsObj();

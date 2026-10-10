@@ -49,15 +49,9 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot AS se
 ARG TARGETARCH
 WORKDIR /src
 COPY package.json ./
-COPY server/Mandarin.Server/*.csproj server/Mandarin.Server/*.cs ./server/
-# The tag reader (v0.8.13), the library scan (v0.8.18), the identification
-# scan with loudness measuring (v0.8.19), and record labels, release days and
-# the taste work (v0.8.20), folders of their own.
-COPY server/Mandarin.Server/Tags/*.cs ./server/Tags/
-COPY server/Mandarin.Server/Scan/*.cs ./server/Scan/
-COPY server/Mandarin.Server/Identify/*.cs ./server/Identify/
-COPY server/Mandarin.Server/Extras/*.cs ./server/Extras/
-COPY server/Mandarin.Server/Admin/*.cs ./server/Admin/
+# The whole project, its folders with it (bin/ and obj/ left out by
+# .dockerignore), so a new folder can't be left behind (v0.8.37).
+COPY server/Mandarin.Server/ ./server/
 RUN set -e; cd server; \
     V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
     RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \
