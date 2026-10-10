@@ -4,9 +4,10 @@
  * v1.9.7 in v0.8.27):
  *   - lib/shelf.js: the letter an artist is filed under, the list in artist
  *     order with each album's genres and year, the signature;
- *   - /api/shelf/albums: the whole library, and "the same" for a signature
- *     still current (the C# server's answer is held to this one in
- *     test/library-front.test.js);
+ *   - /api/shelf/albums: the whole library with Mandarin's version, and "the
+ *     same" for a signature still current (the C# server's answer is held to
+ *     this one in test/library-front.test.js; the page and the list are C#'s,
+ *     test/front.test.js);
  *   - the page in a real browser, against the real server and a fake Sonos
  *     household: no pinch zoom, the gesture legend gone and said once in a
  *     first-use popup instead, the remote's transport bar fixed and flat at
@@ -80,10 +81,11 @@ function library() {
   return lib;
 }
 
-// Before the page's own scripts: every POST written down, and any address
-// answered with a stand-in (window.__fake) or refused (window.__fail).
+// Before the page's own scripts: every POST written down, which server
+// answered each request (window.__by), and any address answered with a
+// stand-in (window.__fake) or refused (window.__fail).
 const INIT = `(() => {
-  window.__log = []; window.__fake = {}; window.__fail = {};
+  window.__log = []; window.__fake = {}; window.__fail = {}; window.__by = [];
   const real = window.fetch.bind(window);
   const json = (body, status) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   window.fetch = async (input, init) => {
@@ -91,7 +93,9 @@ const INIT = `(() => {
     if (init && init.method === "POST") window.__log.push({ path: url.pathname, body: init.body ? JSON.parse(init.body) : null });
     if (window.__fail[url.pathname]) return json({ error: "Refused: " + url.pathname }, window.__fail[url.pathname]);
     if (window.__fake[url.pathname]) return json(window.__fake[url.pathname], 200);
-    return real(input, init);
+    const r = await real(input, init);
+    window.__by.push(url.pathname + " " + (r.headers.get("x-mandarin-answered") || "Node"));
+    return r;
   };
 })();`;
 
@@ -151,6 +155,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         "M Miles Davis", "N Nina Simone", "V Various Artists"]);
       assert.deepEqual(j.genres.map(g => g.name + " " + g.count), ["Jazz 3", "Rock 3", "Electronic 2", "Dance 1"]);
       assert.deepEqual(j.albums.map(a => a.y), [2007, 1975, 1997, 2020, 1969, 1997, 2001, 1959, 1965, null], "each album's year, null for none");
+      assert.equal(j.version, VERSION, "Mandarin's version, for the help popup");
       assert.deepEqual(await (await fetch(B + "/api/shelf/albums?sig=" + j.sig, { headers: H })).json(), { same: true, sig: j.sig });
       const page = await fetch(B + "/shelf", { headers: H });
       assert.equal(page.status, 200);
@@ -337,10 +342,37 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(Math.round(r.left), 0);
       assert.equal(Math.round(r.width), 0, "the shelf column's full width");
       assert.equal(Math.round(r.bottom), 0, "at its foot");
-      assert.equal(r.under, true, "under the album's name and buttons");
+      assert.equal(r.under, true, "under the album's name");
       assert.equal(r.zone, "Kitchen");
       assert.equal(r.title, "Nothing playing");
       assert.equal(r.oldLine, false);
+    });
+
+    await t.test("v0.8.28: the album's Play now and Queue in the bar, by the zone button; no Play next; bigger buttons; bigger covers", async () => {
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+        const box = (s) => $(s).getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const size = (s) => Math.round($(s).getBoundingClientRect().width / rem * 10) / 10;
+        const st = $("#stage"), S = parseFloat(st.style.getPropertyValue("--S"));
+        return {
+          acts: [...document.querySelectorAll("[data-act]")].map(b => b.dataset.act + " " + b.textContent.trim()),
+          inBar: $("#actions").parentElement.id, underInfo: !$("#info").querySelector("[data-act]"),
+          order: box("#mt-info").right <= box("#actions").left && box("#actions").right <= box("#mt-zone-btn").left,
+          infoOnBar: Math.round(box("#mt").top - box("#info").bottom),
+          sizes: { prev: size("#mt-prev svg"), next: size("#mt-next svg"), pp: size("#mt-pp"), zone: size("#mt-zone-btn"), vol: size("#mt-vol-btn"), zoneIcon: size("#mt-zone-btn svg") },
+          gap: Math.round((box("#mt-pp").left - box("#mt-prev").right) / rem * 10) / 10,
+          cover: Math.round(S), stage: { h: st.clientHeight, w: st.clientWidth }
+        }; })()`);
+      assert.deepEqual(r.acts, ["play_now Play now", "queue Queue"], "Play now and Queue; Play next gone");
+      assert.equal(r.inBar, "mt", "in the bar");
+      assert.equal(r.underInfo, true, "not under the album any more");
+      assert.equal(r.order, true, "after what's playing, before the zone button");
+      assert.equal(r.infoOnBar, 0, "the album's name just above the bar");
+      assert.deepEqual(r.sizes, { prev: 2.4, next: 2.4, pp: 5, zone: 4.4, vol: 4.4, zoneIcon: 2.7 }, "twice the size they were (1.2rem, 2.75rem, 1.35rem); play/pause bigger");
+      assert.ok(r.gap >= 0.7, "more room between previous and play/pause: " + r.gap);
+      assert.ok(r.cover >= Math.min(r.stage.h * 0.74, r.stage.w * 0.46) - 1, "the covers in the room the buttons left: " + JSON.stringify(r));
+      assert.deepEqual(page.errors, []);
     });
 
     await t.test("Play now plays the album in front; the bar shows it, and pauses it", async () => {
@@ -361,7 +393,13 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.flipped = $("#mt-pp").getAttribute("aria-label");
         await until(() => posts("/api/control").length);
         out.control = posts("/api/control")[0];
+        $('.act[data-act="queue"]').click();
+        await until(() => posts("/api/play").length === 2);
+        out.queued = posts("/api/play")[1];
+        out.queueToast = await until(() => /added to the queue/.test($("#toast").textContent), 4000) && $("#toast").textContent;
         return out; })()`);
+      assert.equal(r.queued.kind, "queue", "Queue adds the album to the end");
+      assert.equal(r.queueToast, r.front + " added to the queue in Kitchen");
       assert.equal(r.front, "Myth Takes");
       assert.equal(r.play.kind, "play_now");
       assert.equal(r.play.zone_or_output_id, "RINCON_KITCHEN01400");
@@ -388,11 +426,16 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.rows = rows();
         await holdRow(0); await tapRow(2);
         out.picks = S().picks; out.count = $("#tsel-count").textContent; out.chosen = rows();
+        out.barActs = getComputedStyle($("#actions")).visibility;
+        // The back's list as big as it holds (v0.8.28): three tracks, one column, well above the smallest.
+        const ol = document.querySelector(".it.flipped .bk-tracks");
+        out.fit = { one: ol.classList.contains("one"), fit: parseFloat(ol.style.getPropertyValue("--fit")), fits: ol.scrollHeight <= ol.clientHeight + 1,
+          cut: [...ol.querySelectorAll("li span")].filter(s => s.scrollWidth > s.clientWidth + 1).length };
         document.querySelector('#tsel [data-tact="play_now"]').click();
         await until(() => posts("/api/play-track").length === 2);
         out.posts = posts("/api/play-track").map(b => [b.track, b.kind, b.title, b.only]);
         out.toast = await until(() => /^Playing /.test($("#toast").textContent)) && $("#toast").textContent;
-        out.after = { picks: S().picks, popup: shown("#tsel") };
+        out.after = { picks: S().picks, popup: shown("#tsel"), barActs: getComputedStyle($("#actions")).visibility };
         out.playing = await until(() => $("#mt-title").textContent === "Song 1", 10000);
         out.prevOn = await until(() => !$("#mt-prev").disabled);
         out.nextOn = await until(() => !$("#mt-next").disabled);
@@ -430,7 +473,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.chosen, ["✓ Song 1", "2 Song 2", "✓ Song 3"]);
       assert.deepEqual(r.posts, [[0, "play_now", "Song 1", true], [2, "queue", "Song 3", true]], "the first alone, the rest queued behind it");
       assert.equal(r.toast, "Playing 2 tracks in Kitchen");
-      assert.deepEqual(r.after, { picks: [], popup: false }, "then the choice is done");
+      assert.deepEqual(r.after, { picks: [], popup: false, barActs: "visible" }, "then the choice is done, and the album's buttons are back");
+      assert.equal(r.barActs, "hidden", "the album's Play now and Queue step aside while tracks are chosen");
+      assert.equal(r.fit.one, true, "three tracks: one column");
+      assert.ok(r.fit.fit > 1.5, "sized up to fill the back: " + JSON.stringify(r.fit));
+      assert.deepEqual([r.fit.fits, r.fit.cut], [true, 0], "all of it on the back, no title cut short");
       const titles = house.room("Kitchen").queue.map(q => (q.meta.match(/<dc:title>([^<]*)/) || [])[1]);
       assert.deepEqual(titles, ["Song 1", "Song 3"], "the room's queue: just the two chosen");
       assert.equal(r.playing, true);
@@ -528,6 +575,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $("#mt-vol-btn").click();
         out.open = shown("#vol");
         out.max = $("#vol-slider").max; out.value = $("#vol-slider").value;
+        out.fill = $("#vol-slider").style.getPropertyValue("--fill");
         $("#vol-plus").click();
         await until(() => vols().length >= 1);
         out.plus = vols()[0];
@@ -560,6 +608,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(r.open, true);
       assert.equal(r.max, "60", "the range ends at the soft limit");
       assert.equal(r.value, "30");
+      assert.equal(r.fill, "50.0%", "the slider's track filled to the level (v0.8.28)");
       assert.deepEqual(r.plus, { zone_or_output_id: "RINCON_KITCHEN01400", value: 32 }, "the shown value and a step");
       assert.deepEqual(r.fromDrag, { zone_or_output_id: "RINCON_KITCHEN01400", value: 42 }, "from the dragged value");
       assert.deepEqual(r.capped, [60, 60], "+ stops at the soft limit");
@@ -578,7 +627,8 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         const out = {};
         const box = (s) => $(s).getBoundingClientRect();
         out.order = [...$(".mt-transport").children].map(b => b.id);
-        out.row = Math.abs(box("#mt-prev").top - box("#mt-pp").top) < 1 && Math.abs(box("#mt-next").top - box("#mt-pp").top) < 1
+        const mid = (s) => (box(s).top + box(s).bottom) / 2;
+        out.row = Math.abs(mid("#mt-prev") - mid("#mt-pp")) < 1 && Math.abs(mid("#mt-next") - mid("#mt-pp")) < 1
           && box("#mt-prev").right <= box("#mt-pp").left && box("#mt-pp").right <= box("#mt-next").left && box("#mt-next").right <= box("#mt-info").left;
         out.labels = [$("#mt-prev").getAttribute("aria-label"), $("#mt-next").getAttribute("aria-label")];
         window.__fake["/api/zone-state"] = ${allowed(false, false)}; poll();
@@ -627,6 +677,29 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(await again.eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), false, "still folded");
       await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick); await sleep(300); return true; })()`);
       assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
+    });
+
+    // v0.8.28: through the C# server, the page asks the Node server for playback and nothing else.
+    // Playback (the rooms, their queues, the transport) is the Node server's until stage 6.
+    await t.test("through the C# server: only playback is asked of the Node server", { skip: process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server" }, async () => {
+      const PLAYBACK = ["/api/zones", "/api/zone-state", "/api/queue", "/api/control", "/api/play", "/api/play-track", "/api/play-from-here", "/api/volume"];
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        $('.tab[data-tab="year"]').click(); tile("year", "1990s").click();
+        await until(() => S().N === 2 && S().mode === "idle"); await sleep(300);
+        await turnOver();
+        $("#queue-tab").click(); await until(() => document.querySelectorAll("#q-list li").length, 6000);
+        $("#queue-tab").click();
+        $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
+        return [...new Set(window.__by)].sort(); })()`);
+      const node = r.filter(x => x.endsWith(" Node")).map(x => x.slice(0, -5));
+      const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
+      assert.deepEqual(node.filter(p => !PLAYBACK.includes(p)), [], "nothing but playback from the Node server: " + JSON.stringify(r));
+      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display"]) assert.ok(csharp.includes(p), p + " answered by C#: " + JSON.stringify(r));
+      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(node.includes(p), p + " asked, and still the Node server's: " + JSON.stringify(r));
+      const shelfPage = await fetch(B + "/shelf", { headers: H });
+      assert.equal(shelfPage.headers.get("x-mandarin-answered"), "C#", "the page itself");
+      assert.deepEqual(page.errors, []);
     });
 
     await t.test("the wall display offers Shelf, and Shelf the wall display while it is on", async () => {

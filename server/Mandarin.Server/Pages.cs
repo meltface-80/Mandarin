@@ -1,9 +1,10 @@
 // Pages.cs — the page and its files (public/), moved from index.js in v0.8.3.
 //
 // Only what is a file in public/ is served here, behind the gate: the page,
-// its script and stylesheets, the icons and fonts. Every other address still
-// goes to the Node server, which has routes outside /api (/login, /display,
-// the streams) and opens the page itself for any deep link.
+// its script and stylesheets, the icons and fonts, and Shelf's page at /shelf
+// (v0.8.28). Every other address still goes to the Node server, which has
+// routes outside /api (/login, /display, the streams) and opens the page
+// itself for any deep link.
 //
 // The Android app's WebView gets two files of its own, as before: the page
 // without viewport-fit=cover, and the stylesheet with every safe-area
@@ -37,6 +38,10 @@ internal static partial class Pages
         // The page itself, at / and /index.html.
         app.MapMethods("/", ["GET", "HEAD"], (HttpContext ctx) => SendApp(ctx, publicDir, files));
         app.MapMethods("/index.html", ["GET", "HEAD"], (HttpContext ctx) => SendApp(ctx, publicDir, files));
+        // Shelf (v0.8.28), as the Node server sends it: the file as it is, for
+        // the app's WebView too. The route takes /shelf/ as well (a second
+        // route for it would be the same one twice, and neither would answer).
+        app.MapMethods("/shelf", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "shelf.html"));
 
         // The Android app's stylesheet; everyone else's is the file as it is.
         app.Use(async (ctx, next) =>
@@ -78,25 +83,27 @@ internal static partial class Pages
     private static async Task SendApp(HttpContext ctx, string publicDir, IFileProvider files)
     {
         ctx.Response.Headers.Vary = "User-Agent";
-        var file = Path.Combine(publicDir, "index.html");
-        if (!IsApp(ctx))
-        {
-            var info = files.GetFileInfo("index.html");
-            if (!info.Exists) { ctx.Response.StatusCode = 404; return; }
-            var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + info.LastModified.ToUnixTimeMilliseconds().ToString("x") + "\"", isWeak: true);
-            ctx.Response.Headers.ETag = etag.ToString();
-            ctx.Response.Headers.LastModified = info.LastModified.ToString("R");
-            ctx.Response.Headers.CacheControl = "public, max-age=0";
-            ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-            if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(etag.Tag.ToString(), StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return; }
-            ctx.Response.ContentType = "text/html; charset=utf-8";
-            ctx.Response.ContentLength = info.Length;
-            if (HttpMethods.IsHead(ctx.Request.Method)) return;
-            await ctx.Response.SendFileAsync(info);
-            return;
-        }
-        var html = await File.ReadAllTextAsync(file);
+        if (!IsApp(ctx)) { await SendFile(ctx, files, "index.html"); return; }
+        var html = await File.ReadAllTextAsync(Path.Combine(publicDir, "index.html"));
         await Send(ctx, ViewportFit().Replace(html, "", 1), "text/html; charset=utf-8");
+    }
+
+    // A page in public/ as it is on disc, as Express's sendFile sends it: its
+    // size and time as a weak tag, asked after each time.
+    private static async Task SendFile(HttpContext ctx, IFileProvider files, string name)
+    {
+        var info = files.GetFileInfo(name);
+        if (!info.Exists) { ctx.Response.StatusCode = 404; return; }
+        var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + info.LastModified.ToUnixTimeMilliseconds().ToString("x") + "\"", isWeak: true);
+        ctx.Response.Headers.ETag = etag.ToString();
+        ctx.Response.Headers.LastModified = info.LastModified.ToString("R");
+        ctx.Response.Headers.CacheControl = "public, max-age=0";
+        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(etag.Tag.ToString(), StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return; }
+        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.ContentLength = info.Length;
+        if (HttpMethods.IsHead(ctx.Request.Method)) return;
+        await ctx.Response.SendFileAsync(info);
     }
 
     // A file made for this request: never kept stale (no-cache), and a

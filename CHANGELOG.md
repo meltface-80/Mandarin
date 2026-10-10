@@ -5,6 +5,51 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.28
+A test build, from the `shelf-cs` branch. Shelf's screen is rearranged for a tablet on a stand,
+and its page moves to the C# server, so Shelf now asks the Node server for nothing but playback.
+
+- **Shelf's screen, rearranged:**
+  - **The album's Play now and Queue are in the bar at the foot**, after what's playing and just
+    before the zone button. **Play next is gone** from the album's buttons; it's still offered for
+    tracks you choose on the back of the case.
+  - **The album's name sits just above the bar.**
+  - **Bigger buttons:** previous and next are twice the size, play/pause is bigger, and there's
+    more room between them. The zone and volume buttons are twice the size too.
+  - **A bigger volume control:** a thicker slider with a bigger knob, and bigger − and + buttons.
+  - **Bigger covers**, in the room the album's buttons left.
+  - **The track list on the back of the case is as big as the back holds.** Its size is worked out
+    for each album:
+    - in one column or two, whichever lets the names be bigger;
+    - growing never cuts short a name that fitted at the smallest size;
+    - a list too long even at the smallest still goes on into the booklet below the case.
+    The barcode is smaller to give the names more room.
+  - **On a phone** the bar takes two rows: the album's Play now and Queue above, the rest below.
+  - While you choose tracks on the back, the album's own Play now and Queue step aside, as its
+    name does.
+
+- **Shelf's page (`/shelf`) is answered by the C# server**, as the main page has been since v0.8.3.
+  With Shelf's list already there (v0.8.23), every request Shelf makes outside playback is now the
+  C# server's.
+- **Playback stays the Node server's** for now: the rooms, the queue, play/pause, previous and
+  next, volume and Play now. It moves with the rest of playback in stage 6 of the move to C#
+  (`docs/specs/csharp-migration.md`).
+- **Shelf's list also gives Mandarin's version.** The help popup uses it to know when it's due
+  again after an update, instead of asking the updater. It shows once the library has arrived.
+- **Tests:**
+  - `test/front.test.js` pins `/shelf` to the C# server: the page, "not modified" for a copy
+    still current, and the sign-in page for a visitor signed out.
+  - `test/shelf.test.js` now records, in a real browser through the C# server, which server
+    answered each request the page made: nothing but playback may come from the Node server.
+  - `test/shelf.test.js` also checks the rearranged screen:
+    - Play now and Queue are in the bar, by the zone button, with no Play next, and Queue adds to
+      the queue;
+    - the buttons are the new sizes, and the covers take the room;
+    - a short track list fills the back with nothing cut short;
+    - the volume slider fills to the level.
+  - The full suite passes both ways.
+- The Android app for this version is 0.8.28 (version code 228). Nothing in it changed.
+
 ## v0.8.27
 A test build, from the `shelf-rouen-1.9.7` branch. It is built on v0.8.26 (`stage1-small-parts`), so
 that one goes in first. Shelf gets Rouen's Shelf work since v1.9.3 (Rouen v1.9.4 to v1.9.7), plus

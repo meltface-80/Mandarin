@@ -346,9 +346,11 @@
       scene.style.perspectiveOrigin = `50% ${Math.round(TOP + S * 0.58)}px`;
       rig.style.transform = "none";
     } else {
-      S = Math.round(Math.max(110, Math.min(H * (0.64 + 0.12 * roomy), W * 0.44, 600)));
+      // v0.8.28: bigger, in the room the album's buttons left (they are in
+      // the bar now); the floor's reflection may run off the stage's foot.
+      S = Math.round(Math.max(110, Math.min(H * (0.74 + 0.10 * roomy), W * 0.46, 760)));
       T = 2;
-      TOP = Math.round((H - S * 1.22) * 0.56);
+      TOP = Math.round(Math.max(H * 0.02, (H - S * 1.2) * 0.5));
       stepPx = Math.max(60, S * 0.42);
       K = Math.min(12, Math.ceil((W / 2 + S * 0.3 - S * 0.62) / (S * 0.24)) + 1);
       scene.style.perspective = Math.round(S * 3.2) + "px";
@@ -545,6 +547,35 @@
     if (best - 1 > s && rows[best - 1].head) best--;
     return best;
   }
+  // The back's list as big as the back holds it (v0.8.28): in one column or
+  // two, whichever lets the titles be bigger, its size found by measuring, as
+  // the booklet's pages are. Growing never cuts short a title more than the
+  // smallest size does; one column is kept over two that would cut titles
+  // short, unless two are much bigger. False when it doesn't fit even at the
+  // smallest: the back is cut there, and the rest goes into the booklet.
+  const FIT_MAX = 2.2;
+  function fitTracks(ol, rows) {
+    ol.innerHTML = rowsHTML(rows, 0, rows.length);
+    const cut = () => { let n = 0; for (const s of ol.querySelectorAll("li span")) if (s.scrollWidth > s.clientWidth + 1) n++; return n; };
+    const at = (one, f) => { ol.classList.toggle("one", one); ol.style.setProperty("--fit", f.toFixed(3)); return fitsIn(ol); };
+    const ways = [];
+    for (const one of [true, false]) {
+      if (!at(one, 1)) continue;
+      const least = cut();
+      let lo = 1, hi = FIT_MAX;
+      if (at(one, hi) && cut() <= least) lo = hi;
+      else for (let k = 0; k < 7; k++) { const mid = (lo + hi) / 2; if (at(one, mid) && cut() <= least) lo = mid; else hi = mid; }
+      at(one, lo);
+      ways.push({ one, f: lo, size: lo * (one ? 4 : 3.5), cut: cut() });
+    }
+    if (!ways.length) { at(rows.length <= 10, 1); return false; }
+    ways.sort((x, y) => y.size - x.size);
+    let w = ways[0];
+    const whole = ways.find((x) => !x.cut);
+    if (w.cut && whole && whole.size >= w.size * 0.75) w = whole;
+    at(w.one, w.f);
+    return true;
+  }
   function bookletShell(el) {
     const a = el._album;
     el._bkl.innerHTML = `<div class="bkl-in"><div class="bkl-head">${esc(a.a)} · ${esc(a.t)}</div><ol class="bk-tracks"></ol>`
@@ -562,7 +593,7 @@
     const ol = el._back.querySelector(".bk-tracks");
     if (!ol || !st || !st.tracks || !st.tracks.length) return;
     const rows = trackRows(st, picksFor(key));
-    const pages = [[0, pageEnd(ol, rows, 0)]];
+    const pages = [[0, fitTracks(ol, rows) ? rows.length : pageEnd(ol, rows, 0)]];
     if (pages[0][1] < rows.length) {
       const bol = bookletShell(el);
       while (pages[pages.length - 1][1] < rows.length) {
@@ -680,9 +711,10 @@
     }
     const n = tsel ? tsel.picks.size : 0;
     $("#tsel").classList.toggle("hidden", !n);
-    // The album's own title and buttons step aside: they are for the whole
-    // album, and two rows of Play buttons would not say which is which.
+    // The album's own title, and its buttons in the bar, step aside: they are
+    // for the whole album, and two Play nows would not say which is which.
     $("#info").classList.toggle("choosing", !!n);
+    $("#mt").classList.toggle("choosing", !!n);
     if (n) $("#tsel-count").textContent = n === 1 ? "1 track chosen" : `${n} tracks chosen`;
   }
   // on: true chooses, false un-chooses, undefined toggles. A track chosen is
@@ -1361,6 +1393,11 @@
     const max = Number.isFinite(Number(v.max)) ? Number(v.max) : 100;
     return Number.isFinite(Number(v.soft_limit)) ? Math.min(max, Number(v.soft_limit)) : max;
   }
+  // How far along the slider is filled (shelf.css draws its track).
+  function fillVol() {
+    const s = $("#vol-slider"), lo = Number(s.min) || 0, hi = Number(s.max) || 100;
+    s.style.setProperty("--fill", (hi > lo ? clamp((Number(s.value) - lo) / (hi - lo), 0, 1) * 100 : 0).toFixed(1) + "%");
+  }
   function paintVol(v) {
     const slider = $("#vol-slider");
     const absolute = absoluteVol(v);
@@ -1371,6 +1408,7 @@
       slider.step = String(Number(v.step) > 0 ? v.step : 1);
       slider.value = String(v.value);
       volShown = Number(v.value);
+      fillVol();
     }
     $("#vol-value").textContent = absolute ? String(Math.round(Number(v.value))) : "";
   }
@@ -1416,6 +1454,7 @@
   function showVolume(value) {
     volShown = value;
     $("#vol-slider").value = String(value);
+    fillVol();
     $("#vol-value").textContent = String(Math.round(value));
     volHoldUntil = Date.now() + 2500;   // held against the poll
   }
@@ -1897,8 +1936,10 @@
         const j = await jget("/api/shelf/albums" + (ready && libSig ? "?sig=" + encodeURIComponent(libSig) : ""));
         retryMs = 5000;
         // Nothing the shelf shows has changed (the library may have, in ways
-        // it doesn't show: a year, a heart): nothing to redraw.
+        // it doesn't show: a heart, a play): nothing to redraw.
         if (j.same) return;
+        // Mandarin's version comes with the list: the help is due after an update.
+        if (!ready) maybeShowHelp(String(j.version || ""));
         // Choices are kept by NAME: the genre list is ordered by count, so a
         // genre can sit at another place in the new one.
         const namesChosen = new Map([...sel.genre].map((i) => [i, genres[i] ? genres[i].name : null]));
@@ -1970,11 +2011,11 @@
     catch (e) { return {}; }   // unreadable: as if never shown
   }
   let helpVersion = "";
-  async function maybeShowHelp() {
+  // Asked once, when the library first arrives: its answer says Mandarin's version.
+  function maybeShowHelp(version) {
     const saved = helpSaved();
     if (saved.never) return;
-    try { helpVersion = String((await jget("/api/update/status")).current || ""); }
-    catch (e) { helpVersion = ""; /* unknown: shown once until a version can be read */ }
+    helpVersion = version;   // "" if unknown: shown once until a version can be read
     // Shown when it never has been, or when the version it was last dismissed
     // at is not this one. An unknown version never re-shows a dismissed help.
     if ("seen" in saved && (saved.seen === helpVersion || !helpVersion)) return;
@@ -2005,7 +2046,6 @@
   layout();
   loadLibrary();
   checkWall();
-  maybeShowHelp();
   setInterval(() => { if (!document.hidden) pollNowPlaying(); }, 4000);
   setInterval(checkLive, 30000);
   // Coming back to a hidden page is a touch: its clock is however long it was away.

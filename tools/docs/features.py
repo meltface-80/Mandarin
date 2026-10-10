@@ -47,9 +47,9 @@ FEATURES = [
      "narrowed by genre, artist letter and decade, or spun to land anywhere.",
      "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
-     "case over, and hold a track on its back to choose tracks to play. The bar at its foot skips "
-     "back and forward, plays, pauses and sets the volume; the tabs at the edges fold the choices "
-     "away and bring in the queue."),
+     "case over, and hold a track on its back to choose tracks to play. The bar at its foot plays "
+     "or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
+     "the edges fold the choices away and bring in the queue."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",

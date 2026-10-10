@@ -9,8 +9,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
-    # whole hour; nothing here should take a quarter of that.
-    timeout-minutes: 15
+    # whole hour; nothing here should take half of that. 25, not 15 (v0.8.28):
+    # the suite through the C# server takes about 14 minutes on its own now,
+    # and 15 cancelled a run whose tests had all passed.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

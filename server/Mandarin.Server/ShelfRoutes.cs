@@ -1,10 +1,11 @@
 // ShelfRoutes.cs — what the Shelf screen (/shelf) is given: lib/shelf.js and
 // its route in lib/server/api-library.js, in the same shape. The whole library
 // in the Library wall's artist order, each album's genres as places in a list
-// of genres (commonest first), and the letter its artist is filed under. The
-// page filters it itself; one answer per library, built once and kept with
-// the copy of the library it was built from. test/shelf.test.js holds the two
-// servers' answers to each other.
+// of genres (commonest first), the letter its artist is filed under and its
+// year (v0.8.27); and Mandarin's version (v0.8.28). The page filters it itself; one
+// answer per library, built once and kept with the copy of the library it was
+// built from. test/library-front.test.js holds the two servers' answers to
+// each other.
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,6 +38,7 @@ internal static partial class Library
         {
             ["total"] = shelf.Total,
             ["sig"] = shelf.Sig,
+            ["version"] = Front.Version,
             ["genres"] = shelf.Genres.DeepClone(),
             ["albums"] = shelf.Albums.DeepClone()
         });

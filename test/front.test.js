@@ -46,7 +46,9 @@
  *     until the matching C# server, fetched by Node, starts itself again (test/csharp-update.test.js);
  *   - v0.8.26: Last.fm (the key, similar artists and albums), headphone profiles from AutoEq, and the
  *     phone's download lists and offline plays, by C# (test/lastfm.test.js, test/autoeq.test.js and
- *     test/library-front.test.js in this mode).
+ *     test/library-front.test.js in this mode);
+ *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
+ *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -116,6 +118,20 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.deepEqual([x.status, x.by], [200, "C#"], "the app's stylesheet");
     const tag = x.r.headers.get("etag");
     assert.equal((await by("/style.css", { headers: Object.assign({ "If-None-Match": tag }, app) })).status, 304, "the app's offline copy, still current");
+    // Shelf (v0.8.28): its page, the file as it is; and its list, with the version.
+    for (const p of ["/shelf", "/shelf/"]) {
+      x = await by(p, { headers: H });
+      assert.deepEqual([x.status, x.by], [200, "C#"], "Shelf's page " + p);
+      assert.match(x.r.headers.get("content-type"), /^text\/html; charset=utf-8$/i);
+      assert.match(await x.r.text(), /<title>Mandarin Shelf<\/title>/);
+    }
+    const shelfPage = await by("/shelf", { headers: H });
+    assert.equal((await by("/shelf", { headers: Object.assign({ "If-None-Match": shelfPage.r.headers.get("etag") }, H) })).status, 304, "Shelf's page, still current");
+    x = await by("/shelf", { redirect: "manual" });
+    assert.deepEqual([x.status, x.by, x.r.headers.get("location")], [302, "C#", "/login?next=%2Fshelf"], "Shelf signed out: to sign in, and back");
+    x = await by("/api/shelf/albums", { headers: H });
+    assert.deepEqual([x.status, x.by], [200, "C#"], "Shelf's list");
+    assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
     for (const p of ["/login", "/display", "/library"]) {
