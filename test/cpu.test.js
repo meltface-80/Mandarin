@@ -59,7 +59,12 @@ test("playback's cores: the last one (two with DSP), at least two left on four o
   assert.equal(CPU.compact([5, 0, 2, 1]), "0-2,5");
 });
 
-test("each kind started where it belongs, below what it should yield to", () => {
+test("each kind started where it belongs, below what it should yield to", (t) => {
+  // A Linux machine's plan (taskset, ionice), on whatever this one is: only
+  // decided, nothing run (pin: false). A Mac's own is decided above.
+  const platform = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", Object.assign({}, platform, { value: "linux" }));
+  t.after(() => { Object.defineProperty(process, "platform", platform); CPU.reset(); });
   CPU.reset();
   const tools = { taskset: true, nice: true, ionice: true };
   // Split, without moving this process (what would be done, only).
