@@ -143,6 +143,9 @@ class Browser {
     await loaded;
     return {
       errors,
+      /* A DevTools command for this tab (Fetch.enable, say), and its events. */
+      send: s,
+      on: (fn) => this.listeners.push((msg) => { if (msg.sessionId === sessionId) fn(msg); }),
       /* Runs an expression in the page (a promise is awaited) → its value. */
       async eval(expression) {
         const r = await s("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });

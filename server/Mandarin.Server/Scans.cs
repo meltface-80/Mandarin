@@ -147,6 +147,21 @@ internal static partial class Scans
     /* What a scan came to (scanner.js scan's result), and how many albums the Node server's library has after it. */
     public sealed record Scanned(JsonObject Result, double? Count);
 
+    /*
+     * [body] (tracks taken away: a folder removed or let go) with no scan able to
+     * start meanwhile, the timer's or the watcher's included (Run takes the same
+     * lock): false, and nothing done, while one is under way.
+     */
+    public static bool WhileNoScan(Action body)
+    {
+        lock (Gate)
+        {
+            if (Running) return false;
+            body();
+            return true;
+        }
+    }
+
     /* A scan (scanner.js scan): { status: "running" } when one is under way; [services]: Qobuz and Tidal brought up to date after, as after Rescan. */
     public static Task<Scanned> Run(bool force, bool services)
     {

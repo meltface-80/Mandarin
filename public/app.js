@@ -27,6 +27,74 @@
 })();
 
 /* ------------------------------------------------------------------ */
+/*  No request waits for ever (v0.8.36). A phone that slept, or moved  */
+/*  from Wi-Fi to mobile data, can leave a request on a connection     */
+/*  that will never answer, and the browser keeps only six to the      */
+/*  server: six such and everything after them waits too — the screen  */
+/*  goes stale and nothing tapped does anything. So each request the   */
+/*  page makes of the server is given up after a while (a read 30 s,   */
+/*  anything else 90 s; the long jobs — Reindex, backups, an update,   */
+/*  an import, the MusicBrainz pack — not), and when the page comes    */
+/*  back (shown again, or woken: its clock jumped) every read still    */
+/*  waiting from before is let go at once, before it asks afresh. (Not */
+/*  a write: its answer may be in already, and it has its own limit.)  */
+/* ------------------------------------------------------------------ */
+(function requestLimits() {
+  const real = window.fetch;
+  const LONG = /^\/api\/(reindex|backup|update\/apply|settings\/(qobuz|tidal)\/import|identify\/pack)/;
+  const live = new Set();
+  const limits = () => Object.assign({ read: 30000, other: 90000 }, window.__musicdRequestLimits || {});
+  window.fetch = function (input, init) {
+    let u;
+    try { u = new URL(typeof input === "string" ? input : (input && input.url) || "", location.href); } catch (e) { return real.apply(this, arguments); }
+    if (u.origin !== location.origin || !u.pathname.startsWith("/api/") || LONG.test(u.pathname) || typeof AbortController !== "function") {
+      return real.apply(this, arguments);
+    }
+    const method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
+    const ms = method === "GET" || method === "HEAD" ? limits().read : limits().other;
+    const ctl = new AbortController();
+    const own = init && init.signal;
+    if (own) {
+      if (own.aborted) ctl.abort(own.reason);
+      else own.addEventListener("abort", () => ctl.abort(own.reason), { once: true });
+    }
+    const entry = { ctl, at: Date.now(), read: method === "GET" || method === "HEAD" };
+    live.add(entry);
+    // Still running when the time is up (its answer, or its body, never came): given up.
+    const timer = setTimeout(() => {
+      live.delete(entry);
+      ctl.abort(typeof DOMException === "function" ? new DOMException("No answer from the server", "TimeoutError") : undefined);
+    }, ms);
+    const done = () => { live.delete(entry); };
+    return real.call(this, input, Object.assign({}, init, { signal: ctl.signal })).then(
+      (r) => { done(); return r; },
+      (e) => { clearTimeout(timer); done(); throw e; });
+  };
+  // Back (shown again, or woken): the reads still waiting from before are let go.
+  const letGo = (before) => {
+    for (const e of [...live]) {
+      if (e.at > before || !e.read) continue;
+      live.delete(e);
+      e.ctl.abort(typeof DOMException === "function" ? new DOMException("The page was away", "AbortError") : undefined);
+    }
+  };
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (hiddenAt) letGo(Date.now());
+    hiddenAt = 0;
+  });
+  // A page on screen that slept without being told (its timers stopped): its
+  // clock jumps. (A hidden one's timers are slowed anyway, and it lets go on coming back.)
+  let tick = Date.now();
+  setInterval(() => {
+    const now = Date.now();
+    if (now - tick > 15000 && !document.hidden) letGo(tick);
+    tick = now;
+  }, 5000);
+})();
+
+/* ------------------------------------------------------------------ */
 /*  Later, once the first screen is up (v0.6.10): what the page asks   */
 /*  for at start but nothing on that screen shows waits until the page */
 /*  has loaded and settled, so the rows and covers go first.           */
@@ -6139,7 +6207,12 @@ window.__afterStart = (fn) => {
   }
 
   // ----- Zones -----
-  async function loadZones() {
+  // One ask at a time (v0.8.36): a slow answer isn't joined by another every 15 s.
+  let zonesAsked = null;
+  function loadZones() {
+    return zonesAsked || (zonesAsked = loadZonesNow().finally(() => { zonesAsked = null; }));
+  }
+  async function loadZonesNow() {
     try {
       const r = await fetch("/api/zones");
       const j = await r.json();
@@ -10453,7 +10526,10 @@ window.__afterStart = (fn) => {
             }
           } catch (e) {} // corrupt sessionStorage modal state — skip restore, open normally
 
-          setInterval(loadZones, 15000);
+          // Every 15 s while on screen (v0.8.36: not while hidden), and at once on coming back.
+          setInterval(() => { if (!document.hidden) loadZones(); }, 15000);
+          // (Just after: an ask left waiting from before is let go first — not joined.)
+          document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(loadZones, 0); });
           return;
         }
       } catch (e) {} // /api/status fetch failed — server not ready yet, fall through to "Waiting" banner
@@ -13304,7 +13380,7 @@ window.__musicdAppUpd = (function () {
   };
 
   window.__afterStart(check);   // a notice, not the first screen
-  setInterval(check, 15 * 60 * 1000);
+  setInterval(() => { if (!document.hidden) check(); }, 15 * 60 * 1000);
 })();
 
 /* ------------------------------------------------------------------ */
@@ -16860,11 +16936,21 @@ initServiceBrowser({
   }
 
   let unreachable = 0;
-  async function check() {
+  // One look at a time (v0.8.36): before, a look that hung was joined by
+  // another at each failed request, and none of them looked again after.
+  let looking = null;
+  function check() {
+    return looking || (looking = checkNow().finally(() => { looking = null; }));
+  }
+  async function checkNow() {
     clearTimeout(checkTimer);
     let j = null;
     try {
-      const r = await fetch("/api/status", { cache: "no-store" });
+      // No answer in 8 s counts as none.
+      const ctl = typeof AbortController === "function" ? new AbortController() : null;
+      const t = ctl && setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch("/api/status", { cache: "no-store", signal: ctl ? ctl.signal : undefined });
+      clearTimeout(t);
       j = await r.json();
     } catch (e) {
       // An update restarting the server, or a moment's blip: say nothing.

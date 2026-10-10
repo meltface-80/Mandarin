@@ -166,16 +166,17 @@ internal static partial class Library
             var d = NodePath.Resolve(Scans.StringOf(b["remove"]));
             if (!now.Contains(d)) return await Send(ctx, new JsonObject { ["error"] = "Not one of the music folders" }, 404);
             if (now.Count == 1) return await Send(ctx, new JsonObject { ["error"] = "It's the only music folder — add another first" }, 400);
-            if (Scans.Running) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
-            SetFolders(now.Where(r => r != d).ToList());
-            int n;
-            JsonArray folders;
-            using (var db = Scans.OpenDb())
+            int n = 0;
+            JsonArray folders = [];
+            var removed = Scans.WhileNoScan(() =>
             {
+                SetFolders(now.Where(r => r != d).ToList());
+                using var db = Scans.OpenDb();
                 var sc = Scans.Scanner(db);
                 n = sc.RemoveUnder(d);
                 folders = FolderList(sc);
-            }
+            });
+            if (!removed) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
             var count = await Scans.Changed();
             return await Send(ctx, new JsonObject { ["ok"] = true, ["removed"] = n, ["folders"] = folders, ["count"] = count ?? await CountNow() });
         }
@@ -247,14 +248,19 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         var d = NodePath.Resolve(Js.Truthy(b["dir"]) ? Scans.StringOf(b["dir"]) : "");
-        int n;
+        int n = 0;
         bool present;
         try
         {
             if (!Scans.Roots().Any(r => d == r || NodePath.Dirname(d) == r)) throw new ScanError("Not one of the music folders");
             try { present = NodeFs.ReadDir(d).Any(e => !e.Name.StartsWith('.')); } catch (IOException) { present = false; }
-            using var db = Scans.OpenDb();
-            n = Scans.Scanner(db).RemoveUnder(d, present ? (p => !NodeFs.Exists(p)) : null);
+            var gone = present;
+            var forgot = Scans.WhileNoScan(() =>
+            {
+                using var db = Scans.OpenDb();
+                n = Scans.Scanner(db).RemoveUnder(d, gone ? (p => !NodeFs.Exists(p)) : null);
+            });
+            if (!forgot) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }
         catch (Exception e) when (e is ScanError or Microsoft.Data.Sqlite.SqliteException)
         {
