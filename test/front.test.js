@@ -48,7 +48,9 @@
  *     phone's download lists and offline plays, by C# (test/lastfm.test.js, test/autoeq.test.js and
  *     test/library-front.test.js in this mode);
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
- *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode).
+ *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
+ *   - v0.8.32: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
+ *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -295,7 +297,8 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
 
     // Covers: one with a picture of its own (Album One's cover.jpg) drawn by
-    // C#; one with none (Hi Res) drawn by the Node server, sent by C# after.
+    // C#; one with none (Hi Res): its placeholder drawn by C# too since
+    // v0.8.32 (test/covers-csharp.test.js holds it to the Node server's).
     const albums = (await (await fetch(B + "/api/library/albums?sort=album", { headers: H })).json()).albums;
     const one = albums.find(a => a.title === "Album One"), hi = albums.find(a => a.title === "Hi Res");
     r = await fetch(B + "/api/image/" + one.image_key + "?size=120", { headers: H });
@@ -304,8 +307,9 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     assert.deepEqual([drawn[0], drawn[1]], [0xff, 0xd8], "a JPEG");
     assert.ok(fs.existsSync(path.join(lib.data, "art", one.image_key + "@120.jpg")), "kept with the others");
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
-    assert.deepEqual([r.status, by(r)], [200, null], "no cover of its own: drawn by the Node server");
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
     await r.arrayBuffer();
+    assert.ok(fs.existsSync(path.join(lib.data, "art", hi.image_key + "@120.jpg")), "and kept");
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
     assert.deepEqual([r.status, by(r)], [200, "C#"], "and sent by C# after");
 

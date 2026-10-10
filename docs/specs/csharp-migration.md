@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26) and most of f (v0.8.32); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -255,8 +255,12 @@ None of these touch a live player.
   C#'s. The Node server keeps its own copy of the library for playback, so it is told when a scan
   ends, as now.
 - **1f. The covers `sharp` still draws:** an album with no cover, CMYK or colour-profiled pictures,
-  outside pictures, pictures asked for by a speaker's own address. The owner chooses how: ffmpeg
-  as `Covers.cs` does now, or an image library (ImageSharp or SkiaSharp).
+  outside pictures, pictures asked for by a speaker's own address. The owner chose ffmpeg, as
+  `Covers.cs` does. **Built in v0.8.32** (`CoversDrawn.cs`): the placeholder (held to sharp's
+  drawing by `test/covers-csharp.test.js`) and outside pictures. Left with the Node server: what
+  only sharp reads well (CMYK, profiles other than sRGB, cut short; drawn by ffmpeg their colours
+  would differ), and a speaker asking by its own address (only the Node server knows its
+  speakers, until playback moves).
 
 ### Stage 2: pure ports, held to Node's answers (M)
 
