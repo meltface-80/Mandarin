@@ -27,6 +27,12 @@ server's, and **Restart now starts both servers again**.
 - **Tests:** `test/power-csharp.test.js` runs the real C# server starting the real Node server:
   Restart in the same process with a new Node server and the library and sign-in as they were;
   Shut down leaving with 0; Docker's refusal.
+- **Releases, the image and the engines wait for CI** (#179, `claude-b-release-waits`). A merge
+  to `main` used to publish the release and the image at once, alongside CI rather than after it:
+  v0.8.29 and v0.8.30 both went out while their Mac tests were still running, v0.8.29's to fail.
+  Now each waits for CI on the same commit and goes out only if every run of it passed
+  (`.github/wait-for-ci.sh`, a first `ci` job in `release.yml` and `docker-publish.yml`). A CI run
+  re-run to green: re-run the failed job of the Release or Publish run too.
 - The Android app for this version is 0.8.31 (version code 231). Nothing in it changed.
 
 ## v0.8.30
