@@ -211,8 +211,13 @@ if (node != null)
     node.EnableRaisingEvents = true;
     node.Exited += (_, _) =>
     {
-        // Restart or Shut down from Settings (PowerRoutes.cs): it was stopped for that.
-        if (Front.Leaving != Front.Leave.No) { Front.Log($"[server] the Node server stopped (code {node.ExitCode})"); lifetime.StopApplication(); return; }
+        // Restart or Shut down from Settings (PowerRoutes.cs): it was stopped for
+        // that, by the stop already under way. Not asked to stop again: that
+        // stop holds the host's lock while it waits for this very process, and
+        // asking again here could wait on it in turn (seen: Shut down left
+        // hanging, the Node server gone).
+        // The same when this server was already stopping (docker stop, Ctrl-C).
+        if (Front.Leaving != Front.Leave.No || lifetime.ApplicationStopping.IsCancellationRequested) { Front.Log($"[server] the Node server stopped (code {node.ExitCode})"); return; }
         Front.Log($"[server] the Node server stopped (code {node.ExitCode}); stopping");
         Environment.ExitCode = node.ExitCode;
         lifetime.StopApplication();
