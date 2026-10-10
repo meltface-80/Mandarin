@@ -58,7 +58,10 @@
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
  *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
- *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here).
+ *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
+ *   - v0.8.37: nothing new answered by C#. Stage 2a's ports, the Sonos and renderer logic, are held to
+ *     the Node server's by test/sonos-csharp.test.js and test/renderers-csharp.test.js, and used by
+ *     nothing yet.
  */
 const ports = require("./ports");
 const test = require("node:test");

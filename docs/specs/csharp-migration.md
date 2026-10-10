@@ -153,6 +153,17 @@ the CHANGELOG, and the version (both would call theirs 0.8.25). Proposed:
 - **`replaygain-fix` merged before anything else**: it changes `Identify/Loudness.cs`,
   `Identify/Identifier.cs` and `Jobs.cs`.
 
+Who does what (the owner's split, v0.8.37):
+
+- **Stage 2, one account:** 2a (v0.8.37) is DIDL-Lite, the queue moves, Sonos's ZoneGroupState and
+  the renderers' descriptions, sinks, events and capability profiles; 2b (v0.8.38) is the stream
+  plans, ReplayGain, the DSP filters, URL signing and the radio's memory.
+- **Stage 4's parts 1 to 4, Claude B** (v0.8.39 on): the catalogue, the library rows, the import,
+  sign-in. Not the streams (part 5).
+- **One more shared file:** `Identify/ScoreCommand.cs`, the `score` harness's dispatch. Each adds
+  its own lines there; whoever merges second keeps both.
+- **Reviews:** each account reviews the other's pull requests.
+
 ### 2.4 When the Node copies go
 
 Today the Node copy of each moved part is kept and tested. It is the fallback for a Mac, for a
@@ -408,7 +419,8 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
 1. ~~**Stage 0 first?**~~ Decided: yes, and built in v0.8.25.
 2. ~~**Macs:**~~ Decided: the C# server built for macOS and run there (2.2), built in v0.8.29;
    existing Macs move by running the install line again.
-3. **Who does what:** which account takes which stage; one stage in flight per account (2.3).
+3. ~~**Who does what:**~~ Decided (v0.8.37): stage 2 is this account's, as 2a (v0.8.37) and 2b
+   (v0.8.38); stage 4's parts 1 to 4 are Claude B's (v0.8.39 on), in parallel. See 2.3.
 4. **Playback:** the whole hub behind a switch (recommended), or the read-only state first and
    then each kind of player?
 5. **When the Node copies go:** the rule in 2.4, or another? Decided meanwhile: no more work done

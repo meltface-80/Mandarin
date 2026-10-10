@@ -11,6 +11,8 @@
 //   { "fn": "share" | "similar" | "days" | "labels", … } (v0.8.20): Extras/ExtrasCommand.cs
 //   { "fn": "writeups" | "blob", … } (v0.8.21), { "fn": "backup" | "artfind", … } (v0.8.22): Extras/ExtrasCommand.cs
 //   { "fn": "autoeq", "index"?: md, "profile"?: text } (v0.8.26): Extras/AutoEq.cs
+//   { "fn": "xml" | "didl" | "moves" | "topology" | "soap", … } (v0.8.37): Playback/SonosCommand.cs
+//   { "fn": "description" | "protocolinfo" | "gena" | "profiles", … } (v0.8.37): Renderers/RendererCommand.cs
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -92,6 +94,14 @@ internal static class ScoreCommand
                         break;
                     case "share" or "similar" or "days" or "labels" or "writeups" or "blob" or "backup" or "artfind":
                         o = Extras.ExtrasCommand.Run(Js.Str(job["fn"]), job);
+                        break;
+                    // The Sonos ports of stage 2 (v0.8.37, Playback/SonosCommand.cs).
+                    case "xml" or "didl" or "moves" or "topology" or "soap":
+                        o = Playback.SonosCommand.Run(Js.Str(job["fn"]), job);
+                        break;
+                    // The UPnP renderers' logic (v0.8.37, Renderers/RendererCommand.cs).
+                    case "description" or "protocolinfo" or "gena" or "profiles":
+                        o = Renderers.RendererCommand.Run(Js.Str(job["fn"]), job);
                         break;
                     default:
                         o["error"] = "unknown fn";
