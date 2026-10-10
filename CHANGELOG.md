@@ -5,6 +5,38 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.36
+The app and the browser page no longer go stale and stop answering taps after the phone has slept,
+and the library scans go to the C# server only once the tag check has passed, as the owner decided.
+
+- **A screen that went stale and stopped answering** (the Android app and the PWA alike, until
+  closed and opened again). A phone that sleeps, or moves from Wi-Fi to mobile data, can leave
+  requests on connections that never answer, and a browser keeps only six to the server: once six
+  were waiting, everything after them waited too. Several things made that likely: the room list
+  asked for every 15 seconds even in the background, with nothing to stop a new ask joining one
+  still waiting; the offline check (v0.8.23) starting another look at the server at every failed
+  request while one hung, and never looking again after; and almost nothing the page asks for had
+  a time limit. Now:
+  - every request the page makes of the server is given up after 30 s (a read) or 90 s (anything
+    else); the long jobs (Reindex, backups, an update, an import, the MusicBrainz pack) aren't;
+  - coming back to the page (shown again, or woken: its clock jumped) lets go at once of every
+    request still waiting from before, before the page asks afresh;
+  - the room list and the update check aren't asked for while the page is hidden, nor the room
+    list again while one ask is waiting; it's asked for at once on coming back;
+  - the offline check looks once at a time, and an answer that takes over 8 s counts as none.
+  - **Tests:** `test/stale-page.test.js`, in a browser, with the requests a dead connection would
+    hold held for ever: one is given up; coming back lets go of what was waiting; failed requests
+    don't each start another look; hidden, the room list isn't asked for, and shown, it is at once.
+    On the page before, the first of them never ends.
+- **The library scans go to the C# server only once the tag check has passed** (the owner's
+  decision): where the Node server's own scans would already be made by the C# program —
+  `TAG_READER=csharp`, or the check passed for the two readers. Otherwise they stay the Node
+  server's, as before v0.8.34 (which handed them over whatever the check said). Decided when the
+  C# server takes the work over. `test/scans-csharp.test.js` holds both ways.
+  - Removing a music folder or forgetting a missing one is checked against a scan and done under
+    one lock, so the timer's or the watcher's scan can't start in between.
+- The Android app for this version is 0.8.36 (version code 236). Nothing in it changed.
+
 ## v0.8.35
 The Queue screen, quick: tapping a track further down plays from it with "Now playing" moved at
 once, and a Sonos room's queue is kept by the server instead of read whole from the speaker each
@@ -54,7 +86,8 @@ album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first
     up to date, as before.
   - The scan now reads tags with the C# reader whatever the tag check says (Settings → Library
     Scanner still runs it and lists any difference). `TAG_READER=node` keeps the scans, and the
-    music-metadata reader, the Node server's.
+    music-metadata reader, the Node server's. *(v0.8.36 puts the check back: the scans are handed
+    over only once it has passed.)*
   - Clean up stays the Node server's while Qobuz's and Tidal's albums are (stage 4).
   - `server/Mandarin.Server/Scans.cs`, `ScanRoutes.cs`, `Mounts.cs`. The Node server's part is a
     hand-over switch only (`index.js`, `lib/server/api-library.js`), as the owner allowed.
