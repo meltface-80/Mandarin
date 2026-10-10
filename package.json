@@ -15,7 +15,7 @@
   },
   "scripts": {
     "start": "node launcher.js",
-    "test": "node --require ./test/setup.js --test --test-concurrency=1 test/*.test.js"
+    "test": "node --require ./test/setup.js --test --test-concurrency=4 test/*.test.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",

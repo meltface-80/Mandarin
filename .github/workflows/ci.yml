@@ -88,11 +88,11 @@ jobs:
           ffmpeg -version | head -1
       - run: npm ci --no-audit --no-fund
       # The tests' stand-in speakers and hosts live on loopback addresses
-      # besides 127.0.0.1 (test/fake-sonos.js, test/auth.test.js,
-      # test/discovery-robust.test.js, test/update.test.js): Linux answers on
-      # all of 127/8, a Mac on 127.0.0.1 alone until each is added.
+      # besides 127.0.0.1, a block of them for each test file running at once
+      # (test/ports.js): Linux answers on all of 127/8, a Mac on 127.0.0.1
+      # alone until each is added.
       - name: Loopback addresses for the stand-in speakers
-        run: for ip in 127.0.0.11 127.0.0.12 127.0.0.97 127.0.0.99 127.0.0.250; do sudo ifconfig lo0 alias "$ip" up; done
+        run: for ip in $(node test/ports.js --addresses); do sudo ifconfig lo0 alias "$ip" up; done
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
