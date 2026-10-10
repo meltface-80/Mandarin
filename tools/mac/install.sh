@@ -9,6 +9,14 @@
 # music is (and where to keep the MusicBrainz pack, if anywhere else), starts
 # Mandarin now and at every login, and opens it in the browser. Run it again
 # to choose other folders; it keeps the library, the account and the settings.
+#
+# From v0.8.29 Mandarin's C# server runs in front, as in the Docker image: it
+# is what launchd starts, and it starts the Node server behind it. It is this
+# Mac's build from the release of the version installed, checked against the
+# release's sums. A Mac installed before v0.8.29 gets it by running this line
+# again. To keep the Node server alone, as before:
+#
+#   MANDARIN_NODE_ONLY=1 /bin/bash -c "$(curl -fsSL …/install.sh)"
 set -euo pipefail
 
 APP_DIR="$HOME/Mandarin"
@@ -16,10 +24,46 @@ LABEL="app.mandarin.server"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPO="https://github.com/meltface-80/Mandarin.git"
 PORT=3500
+RELEASES="${MANDARIN_RELEASES:-https://github.com/meltface-80/Mandarin/releases/download}"
+NODE_ONLY="${MANDARIN_NODE_ONLY:-0}"
+# ${@+"$@"}: the Mac's bash (3.2) calls an empty "$@" unbound under set -u.
+for a in ${@+"$@"}; do if [ "$a" = "--node-only" ]; then NODE_ONLY=1; fi; done
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 # XML-safe text for the launch file.
 xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+
+# Mandarin's C# server (v0.8.29) for the install in $1, at version $2: this
+# Mac's build from that version's release, checked against the release's sums,
+# signed to run here if its own signature didn't come through, and asked its
+# version. Sets SERVER to where it was put, or leaves it empty.
+fetch_server() {
+  local dir="$1" version="$2" rid t want got
+  SERVER=""
+  case "$(uname -m)" in arm64) rid=osx-arm64 ;; *) rid=osx-x64 ;; esac
+  say "Fetching Mandarin's C# server ($version, $rid)…"
+  t="$(mktemp -d)"
+  if curl -fsSL --retry 3 -o "$t/sums" "$RELEASES/v$version/mandarin-server.sha256" \
+     && curl -fsSL --retry 3 -o "$t/server.gz" "$RELEASES/v$version/mandarin-server-$rid.gz"; then
+    want="$(awk -v n="mandarin-server-$rid.gz" '$2 == n || $2 == "*" n { print $1 }' "$t/sums")"
+    got="$(shasum -a 256 "$t/server.gz" | awk '{ print $1 }')"
+    if [ -n "$want" ] && [ "$want" = "$got" ] && gunzip -c "$t/server.gz" > "$t/mandarin-server"; then
+      chmod 755 "$t/mandarin-server"
+      codesign --verify "$t/mandarin-server" 2>/dev/null || codesign --force --sign - "$t/mandarin-server" 2>/dev/null || true
+      if [ "$("$t/mandarin-server" --version 2>/dev/null || true)" = "$version" ]; then
+        mkdir -p "$dir/server/bin"
+        mv -f "$t/mandarin-server" "$dir/server/bin/mandarin-server"
+        echo "$version" > "$dir/server/bin/mandarin-server.version"
+        SERVER="$dir/server/bin/mandarin-server"
+      fi
+    fi
+  fi
+  # Only the folder made above.
+  case "$t" in */tmp.*) rm -rf "$t" ;; esac
+}
+
+# Only the functions, for CI's Mac to try fetch_server (.github/workflows/ci.yml).
+if [ "${MANDARIN_INSTALL_FUNCTIONS_ONLY:-0}" = 1 ]; then return 0 2>/dev/null || exit 0; fi
 
 if [ "$(uname)" != "Darwin" ]; then echo "This installer is for macOS. On Linux, use Docker (see the README)."; exit 1; fi
 
@@ -50,6 +94,20 @@ say "Setting Mandarin up…"
 (cd "$APP_DIR" && npm ci --omit=dev --no-audit --no-fund --loglevel=error)
 mkdir -p "$APP_DIR/data"
 
+# 3b. Mandarin's C# server (v0.8.29): this Mac's build, from the release of the
+#     version installed (an install updated from Settings is newer than the
+#     download), checked against the release's sums, signed to run here if its
+#     own signature didn't come through, and asked its version.
+SERVER=""
+if [ "$NODE_ONLY" != 1 ]; then
+  VERSION="$(node -p "require('$APP_DIR/package.json').version")"
+  fetch_server "$APP_DIR" "$VERSION"
+  if [ -z "$SERVER" ]; then
+    echo "Mandarin's C# server for v$VERSION couldn't be had for this Mac, so Mandarin runs on its Node"
+    echo "server alone for now. Update Mandarin in Settings, then run this line again."
+  fi
+fi
+
 # 4. Where the music is: the Finder's own folder chooser.
 say "Choose your music folder in the window that opens."
 MUSIC="$(osascript -e 'POSIX path of (choose folder with prompt "Choose the folder your music is in:" default location (path to music folder))' 2>/dev/null || true)"
@@ -76,9 +134,19 @@ fi
   echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
   echo '<plist version="1.0"><dict>'
   echo "  <key>Label</key><string>$LABEL</string>"
-  echo "  <key>ProgramArguments</key><array><string>$(xml "$NODE_BIN/node")</string><string>$(xml "$APP_DIR/launcher.js")</string></array>"
+  # The C# server, which starts the Node server (NODE_BIN, launcher.js in
+  # MANDARIN_APP_DIR); or, without it, the Node server alone.
+  if [ -n "$SERVER" ]; then
+    echo "  <key>ProgramArguments</key><array><string>$(xml "$SERVER")</string></array>"
+  else
+    echo "  <key>ProgramArguments</key><array><string>$(xml "$NODE_BIN/node")</string><string>$(xml "$APP_DIR/launcher.js")</string></array>"
+  fi
   echo "  <key>WorkingDirectory</key><string>$(xml "$APP_DIR")</string>"
   echo '  <key>EnvironmentVariables</key><dict>'
+  if [ -n "$SERVER" ]; then
+    echo "    <key>NODE_BIN</key><string>$(xml "$NODE_BIN/node")</string>"
+    echo "    <key>MANDARIN_APP_DIR</key><string>$(xml "$APP_DIR")</string>"
+  fi
   echo "    <key>MUSIC_DIR</key><string>$(xml "$MUSIC")</string>"
   [ -n "$PACK" ] && echo "    <key>MBPACK_DIR</key><string>$(xml "$PACK")</string>"
   echo "    <key>PORT</key><string>$PORT</string>"
@@ -150,4 +218,9 @@ echo
 echo "Create your account in the browser window that opened. Mandarin starts by itself"
 echo "whenever you log in, and the Mandarin icon on your desktop starts it after a Shut down."
 echo "Add or change music folders any time in Settings → Music Folders."
-echo "If macOS asks to let \"node\" find devices on your network or open your files, choose Allow."
+if [ -n "$SERVER" ]; then
+  echo "If macOS asks to let \"mandarin-server\" find devices on your network or open your files,"
+  echo "choose Allow: Mandarin needs it to reach your speakers and read your music."
+else
+  echo "If macOS asks to let \"node\" find devices on your network or open your files, choose Allow."
+fi

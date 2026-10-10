@@ -28,8 +28,11 @@ internal static partial class Cpu
     private static string sig = "";
     private static readonly object Moving = new();
     private static readonly ConcurrentDictionary<int, (CpuKind Kind, int[] Cores)> Children = new();
+    // On a Mac (v0.8.29), nice alone, asked as lib/cpu.js asks it: BSD's has no --version.
     private static readonly Lazy<(bool Taskset, bool Nice, bool Ionice)> Tools = new(() =>
-        OperatingSystem.IsLinux() ? (Have("taskset"), Have("nice"), Have("ionice")) : (false, false, false));
+        OperatingSystem.IsLinux() ? (Have("taskset"), Have("nice"), Have("ionice"))
+        : OperatingSystem.IsMacOS() ? (false, Have("nice", "-n", "0", "true"), false)
+        : (false, false, false));
 
     /* The cores this server could use when it started, for the Node server it starts (lib/cpu.js). */
     public static readonly string Startup = Own();
@@ -92,12 +95,12 @@ internal static partial class Cpu
         return "";
     }
 
-    private static bool Have(string bin)
+    private static bool Have(string bin, params string[] ask)
     {
         try
         {
             var psi = new ProcessStartInfo(bin) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
-            psi.ArgumentList.Add("--version");
+            foreach (var a in ask.Length > 0 ? ask : ["--version"]) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
             if (p == null) return false;
             _ = p.StandardOutput.ReadToEndAsync();

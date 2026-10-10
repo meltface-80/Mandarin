@@ -5,6 +5,53 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.29
+A test build, from the `mac-csharp` branch, built on v0.8.28 (`shelf-cs`), so that one goes in first.
+Mandarin's C# server now runs on Macs too, updates bring both servers together, and from here on
+new server work is done in C# only (`docs/specs/csharp-migration.md`, 2.1, 2.2 and 2.4).
+
+- **The C# server on a Mac.** As in the Docker image, it's what starts when you log in, and it
+  starts the Node server behind it.
+  - **Installing on a Mac now sets it up**, for Apple silicon and Intel.
+  - **A Mac installed before v0.8.29:** paste the install line again, at the Mac. When macOS asks
+    to let **mandarin-server** find devices on your network or open your files, choose **Allow**:
+    Mandarin needs both to reach your speakers and read your music. Until you do, the Mac carries
+    on as it was, and Settings shows a note under the version.
+  - The C# server comes from the release of the version you have. If you haven't updated in a
+    while, update in Settings first, then paste the line.
+  - `MANDARIN_NODE_ONLY=1` in front of the line keeps the Node server alone, as before.
+  - **What it changes on a Mac:** the library scan, identification, loudness, backups and the rest
+    already moved now run in C# there too, as in Docker. Playback and the Mac's own sound devices
+    stay the Node server's for now, and built-in Tailscale stays Linux only.
+- **An update brings both servers together** (Docker and Mac). Settings → Update now fetches and
+  checks the C# server of the new version *before* it installs anything ("Fetching the C#
+  server…"), and the two start together.
+  - **If it can't be had** (GitHub not answering, say), the update stops and says why. Nothing
+    changes, and you can try again.
+  - Until now the C# server was fetched only after the update had installed the Node server's
+    files. If that fetch failed, the two ran mismatched, with the C# server passing everything on,
+    for up to three hours or for good.
+- **New server work is now done in C# only.** The Node server's copies of parts already moved stay
+  as they are, for a Mac kept on Node alone, and aren't changed any more. What the Node server
+  still does itself (playback, the updater, Qobuz and Tidal) changes there until it moves.
+- **For the C# server on a Mac** (`server/`):
+  - the scan's file system calls take macOS's forms (`Scan/NodeFs.cs`);
+  - the C library is macOS's (`Program.cs`);
+  - background work runs at a lower priority with `nice`, as the Node server does on a Mac
+    (`Cpu.cs`);
+  - `server/build.sh` builds for the Mac it runs on.
+- **Releases** carry `mandarin-server-osx-arm64.gz` and `mandarin-server-osx-x64.gz`, built and
+  signed on GitHub's Mac runners, beside the Linux builds and in the same sums file.
+- **Tests:**
+  - CI runs the whole suite through the C# server on a Mac. The scan is held to the Node server's
+    there, file for file.
+  - `test/csharp-update.test.js`: the Mac's build chosen and signed; the new version's C# server put
+    in place before an update, and an update that can't have it stopped with nothing changed.
+  - `test/update-prepare.test.js`: the updater asks for it before staging anything.
+  - **Not tried on a real Mac** (there isn't one to try it on): the installer, macOS's permission
+    prompts, Sonos on a Mac's network, and whether macOS asks again after an update. Tell me what
+    happens on yours.
+- The Android app for this version is 0.8.29 (version code 229). Nothing in it changed.
 ## v0.8.28
 A test build, from the `shelf-cs` branch: Shelf's page moves to the C# server, so Shelf now asks the
 Node server for nothing but playback.

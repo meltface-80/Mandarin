@@ -4,6 +4,11 @@
 // each entry's type as a Dirent has it, and stat's times to the nanosecond
 // (mtimeMs is seconds × 1000 + nanoseconds ÷ 10⁶, as a double: .NET keeps
 // only tenths of a microsecond, and a cover's fingerprint is made from it).
+//
+// On a Mac (v0.8.29) the same, from macOS's own calls as libuv makes them:
+// its directory entries and stat are laid out otherwise than Linux's, there
+// is no statx, an Intel Mac names the 64-bit-inode forms with a suffix, and
+// a few error numbers differ.
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -42,12 +47,39 @@ internal static unsafe partial class NodeFs
     [LibraryImport("libc", EntryPoint = "free")]
     private static partial void Free(nint p);
 
+    // macOS: on Apple silicon the plain names are the 64-bit-inode forms; on an
+    // Intel Mac those carry $INODE64, and realpath that allocates $DARWIN_EXTSN.
+    [LibraryImport("libc", EntryPoint = "stat", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int MacStat(string path, byte* buf);
+
+    [LibraryImport("libc", EntryPoint = "lstat", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int MacLstat(string path, byte* buf);
+
+    [LibraryImport("libc", EntryPoint = "opendir$INODE64", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial nint IntelOpenDir(string name);
+
+    [LibraryImport("libc", EntryPoint = "readdir$INODE64", SetLastError = true)]
+    private static partial nint IntelReadDir(nint dir);
+
+    [LibraryImport("libc", EntryPoint = "stat$INODE64", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int IntelStat(string path, byte* buf);
+
+    [LibraryImport("libc", EntryPoint = "lstat$INODE64", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int IntelLstat(string path, byte* buf);
+
+    [LibraryImport("libc", EntryPoint = "realpath$DARWIN_EXTSN", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial nint IntelRealPath(string path, nint resolved);
+
+    private static readonly bool Mac = OperatingSystem.IsMacOS();
+    private static readonly bool Intel = Mac && RuntimeInformation.ProcessArchitecture == Architecture.X64;
+
     private const int AtFdCwd = -100;
     private const int AtSymlinkNoFollow = 0x100;
     private const uint StatxBasicStats = 0x7ff;
 
     // struct dirent (glibc and musl, 64-bit): d_ino, d_off, d_reclen, d_type, d_name.
-    private const int DType = 18, DName = 19;
+    // macOS's: d_ino, d_seekoff, d_reclen, d_namlen, d_type, d_name.
+    private static readonly int DType = Mac ? 20 : 18, DName = Mac ? 21 : 19;
 
     private static EntryType FromDType(byte t) => t switch
     {
@@ -76,11 +108,17 @@ internal static unsafe partial class NodeFs
     private static string Error(string what, string path, int errno) =>
         $"{ErrName(errno)}: {Marshal.GetPInvokeErrorMessage(errno).ToLowerInvariant()}, {what} '{path}'";
 
-    private static string ErrName(int errno) => errno switch
-    {
-        1 => "EPERM", 2 => "ENOENT", 5 => "EIO", 13 => "EACCES", 20 => "ENOTDIR", 40 => "ELOOP", 116 => "ESTALE", 110 => "ETIMEDOUT", 107 => "ENOTCONN",
-        _ => "E" + errno
-    };
+    private static string ErrName(int errno) => Mac
+        ? errno switch
+        {
+            1 => "EPERM", 2 => "ENOENT", 5 => "EIO", 13 => "EACCES", 20 => "ENOTDIR", 62 => "ELOOP", 70 => "ESTALE", 60 => "ETIMEDOUT", 57 => "ENOTCONN",
+            _ => "E" + errno
+        }
+        : errno switch
+        {
+            1 => "EPERM", 2 => "ENOENT", 5 => "EIO", 13 => "EACCES", 20 => "ENOTDIR", 40 => "ELOOP", 116 => "ESTALE", 110 => "ETIMEDOUT", 107 => "ENOTCONN",
+            _ => "E" + errno
+        };
 
     /*
      * fs.readdir(dir, { withFileTypes: true }): every entry but "." and "..",
@@ -90,14 +128,14 @@ internal static unsafe partial class NodeFs
     public static List<Entry> ReadDir(string dir)
     {
         var raw = new List<(byte[] Name, byte Type)>();
-        var d = OpenDir(dir);
+        var d = Intel ? IntelOpenDir(dir) : OpenDir(dir);
         if (d == 0) throw new FsError(Error("scandir", dir, Marshal.GetLastPInvokeError()));
         try
         {
             while (true)
             {
                 Marshal.SetLastPInvokeError(0);
-                var e = ReadDir(d);
+                var e = Intel ? IntelReadDir(d) : ReadDir(d);
                 if (e == 0)
                 {
                     var err = Marshal.GetLastPInvokeError();
@@ -140,6 +178,18 @@ internal static unsafe partial class NodeFs
     public static bool TryStat(string path, bool follow, out Stat st)
     {
         st = default;
+        if (Mac)
+        {
+            // struct stat, 64-bit inodes: st_mode at 4, st_mtimespec at 48, st_size at 96.
+            var buf = stackalloc byte[256];
+            var r = Intel ? (follow ? IntelStat(path, buf) : IntelLstat(path, buf)) : (follow ? MacStat(path, buf) : MacLstat(path, buf));
+            if (r != 0) return false;
+            int mode = *(ushort*)(buf + 4);
+            long sec = *(long*)(buf + 48), nsec = *(long*)(buf + 56);
+            long size = *(long*)(buf + 96);
+            st = new Stat(FromMode(mode), size, sec * 1e3 + nsec / 1e6);
+            return true;
+        }
         if (haveStatx)
         {
             try
@@ -178,7 +228,7 @@ internal static unsafe partial class NodeFs
     /* fs.realpathSync; null where it would throw. */
     public static string? RealPathOf(string path)
     {
-        var p = RealPath(path, 0);
+        var p = Intel ? IntelRealPath(path, 0) : RealPath(path, 0);
         if (p == 0) return null;
         try { return Marshal.PtrToStringUTF8(p); }
         finally { Free(p); }

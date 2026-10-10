@@ -10,6 +10,10 @@
  * everything on and its background work stays with the Node server. GitHub and
  * the C# server in front are stood in for here; the C# server's own part is
  * run for real where it is built.
+ *
+ * v0.8.29: a Mac's build on a Mac, signed to run there; and prepare(), which
+ * an update from Settings calls before it stages anything, so the C# server of
+ * the new version is in place first, or the update stops with nothing changed.
  */
 const PORT = 3676, FAKE = 3677, NODE = 3678;
 process.env.UPDATE_API = "http://127.0.0.1:" + FAKE;
@@ -42,15 +46,16 @@ const server = http.createServer((req, res) => {
   send(404, "{}");
 });
 
-/* A release of 9.9.9 whose program, asked, says `says`; its sum right unless `badSum`. */
-function release({ says = "9.9.9", badSum = false, withProgram = true } = {}) {
+/* A release of 9.9.9 whose program for `build`, asked, says `says`; its sum right unless `badSum`. */
+function release({ says = "9.9.9", badSum = false, withProgram = true, build = "linux-x64" } = {}) {
   const prog = Buffer.from(`#!/bin/sh\nif [ "$1" = "--version" ]; then echo ${says}; exit 0; fi\nexit 3\n`);
   const gz = zlib.gzipSync(prog);
   const sum = crypto.createHash("sha256").update(badSum ? Buffer.from("other") : gz).digest("hex");
-  fake.files = { "/dl/mandarin-server-linux-x64.gz": gz, "/dl/mandarin-server.sha256": `${sum}  mandarin-server-linux-x64.gz\n${"0".repeat(64)}  mandarin-server-linux-arm64.gz\n` };
+  const name = `mandarin-server-${build}.gz`;
+  fake.files = { ["/dl/" + name]: gz, "/dl/mandarin-server.sha256": `${sum}  ${name}\n${"0".repeat(64)}  mandarin-server-linux-arm64.gz\n` };
   fake.release = {
     tag_name: "v9.9.9",
-    assets: (withProgram ? ["mandarin-server-linux-x64.gz", "mandarin-server.sha256"] : ["musicd-server-9.9.9.tar.gz"])
+    assets: (withProgram ? [name, "mandarin-server.sha256"] : ["musicd-server-9.9.9.tar.gz"])
       .map(name => ({ name, browser_download_url: B + "/dl/" + name }))
   };
   return prog;
@@ -163,11 +168,11 @@ test("the C# server brought up to the Node server's version", async (t) => {
     assert.deepEqual(i.exits, [76]);
   });
 
-  await t.test("not asked to: the Node server alone, not Linux, a machine with no build, or switched off", async () => {
+  await t.test("not asked to: the Node server alone, a system or a processor with no build, or switched off", async () => {
     fake.asked = [];
     const cases = [
       [{ env: {} }, "none"],
-      [{ platform: "darwin" }, "unsupported"],
+      [{ platform: "win32" }, "unsupported"],
       [{ arch: "ia32" }, "unsupported"],
       [{ env: { MANDARIN_FRONT: "csharp", MANDARIN_FRONT_URL: B, MANDARIN_SERVER_UPDATE: "0" } }, "off"]
     ];
@@ -189,6 +194,73 @@ test("the C# server brought up to the Node server's version", async (t) => {
     assert.ok(ok, "asked again: " + JSON.stringify(i.u.status()));
     assert.deepEqual(i.exits, [76]);
     i.u.stop();
+  });
+
+  await t.test("on a Mac (v0.8.29): this Mac's build, signed to run there, put in place", async () => {
+    fake.front = "9.9.8";
+    fake.asked = [];
+    const prog = release({ build: "osx-arm64" });
+    const signed = [];
+    const i = install({ platform: "darwin", arch: "arm64", codesign: f => { signed.push(path.basename(f)); return true; } });
+    const st = await i.u.run();
+    assert.equal(st.phase, "restarting");
+    assert.ok(fake.asked.includes("/dl/mandarin-server-osx-arm64.gz"), "the Mac's build: " + fake.asked.join(", "));
+    assert.deepEqual(signed, ["mandarin-server.new"], "checked for a signature (signed if it has none) before it is run");
+    assert.deepEqual(fs.readFileSync(i.bin), prog);
+    assert.deepEqual(i.exits, [76]);
+    // One that can't be signed is never put in place.
+    release({ build: "osx-x64" });
+    const j = install({ platform: "darwin", arch: "x64", codesign: () => false });
+    assert.equal((await j.u.run()).phase, "error");
+    assert.match(j.u.status().error, /couldn't be signed/);
+    assert.equal(fs.readFileSync(j.bin, "utf8"), "the old program");
+    assert.deepEqual(j.left(), ["mandarin-server"], "nothing left beside it");
+  });
+
+  await t.test("before an update (v0.8.29): the new version's C# server in place first; then only the start again is left", async () => {
+    fake.front = "9.9.8";
+    const prog = release();
+    // The Node server of 9.9.8, updating to 9.9.9 from Settings.
+    const i = install({ version: "9.9.8" });
+    fake.asked = [];
+    assert.equal(await i.u.prepare("9.9.9"), "9.9.9");
+    assert.deepEqual(fs.readFileSync(i.bin), prog, "the new program in place, the running one carrying on from the old file");
+    assert.equal(fs.readFileSync(i.bin + ".version", "utf8"), "9.9.9\n");
+    assert.deepEqual(i.left(), ["mandarin-server", "mandarin-server.version"]);
+    assert.deepEqual([i.exits, i.stops()], [[], 0], "nothing stopped: the update stages the rest and restarts");
+    assert.ok(!fake.asked.includes("/server-info"), "the C# server in front isn't asked");
+    // The update's new Node server, of 9.9.9, starts behind the C# server of 9.9.8.
+    const next = install({ version: "9.9.9", env: { MANDARIN_FRONT: "csharp", MANDARIN_FRONT_URL: B, MANDARIN_SERVER_BIN: i.bin }, dataDir: i.data });
+    fake.asked = [];
+    const st = await next.u.run();
+    assert.equal(st.phase, "restarting");
+    assert.deepEqual(fake.asked, ["/server-info"], "nothing fetched again");
+    assert.deepEqual(next.exits, [76], "only the start again");
+  });
+
+  await t.test("before an update: if it can't be had, the update stops and nothing has changed", async () => {
+    fake.front = "9.9.8";
+    for (const [why, rel] of [["no program in the release", { withProgram: false }], ["a wrong sum", { badSum: true }], ["the wrong version", { says: "9.9.7" }]]) {
+      release(rel);
+      const i = install({ version: "9.9.8" });
+      await assert.rejects(i.u.prepare("9.9.9"), /the C# server 9\.9\.9 couldn't be fetched .*; nothing was changed/, why);
+      assert.equal(fs.readFileSync(i.bin, "utf8"), "the old program", why + ": the old program as it was");
+      assert.deepEqual(i.left(), ["mandarin-server"], why + ": nothing left beside it");
+    }
+    release();
+    const win = install({ version: "9.9.8", platform: "win32" });
+    await assert.rejects(win.u.prepare("9.9.9"), /no C# server is built for this machine/, "a machine with no build would be left behind");
+  });
+
+  await t.test("before an update: nothing to do with no C# server in front, or its updates switched off", async () => {
+    release();
+    fake.asked = [];
+    for (const env of [{}, { MANDARIN_FRONT: "csharp", MANDARIN_FRONT_URL: B, MANDARIN_SERVER_UPDATE: "0" }]) {
+      const i = install({ version: "9.9.8", env });
+      assert.equal(await i.u.prepare("9.9.9"), null);
+      assert.equal(fs.readFileSync(i.bin, "utf8"), "the old program");
+    }
+    assert.deepEqual(fake.asked, [], "nothing asked of anyone");
   });
 
   await t.test("a C# server that never says its version: left as it is", async () => {

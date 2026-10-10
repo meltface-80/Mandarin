@@ -12919,6 +12919,7 @@ window.__musicdAppUpd = (function () {
     checking:   "Preparing\u2026",
     downloading:"Downloading\u2026",
     extracting: "Unpacking\u2026",
+    preparing:  "Fetching the C# server\u2026",
     restarting: "Restarting\u2026"
   };
   const DISMISS_KEY = "rra-update-dismissed";
@@ -13004,7 +13005,7 @@ window.__musicdAppUpd = (function () {
     } catch (e) { /* offline; try again next tick */ }
     if (s) {
       const ph = s.apply && s.apply.phase;
-      if (ph === "downloading" || ph === "extracting" || ph === "restarting") {
+      if (ph === "downloading" || ph === "extracting" || ph === "preparing" || ph === "restarting") {
         showProgress(ph); startPoll(s.latest); return;
       }
     }
@@ -13339,6 +13340,12 @@ window.__musicdAppUpd = (function () {
           // The C# server in front of another version (v0.8.25): being brought
           // up to this one, or (couldn't be) to be brought by a new image.
           const cs = s.csharp;
+          // A Mac still on the Node server alone (v0.8.29): the install line
+          // pasted again brings the C# server in front, as in the image.
+          if (s.mac_node_only) {
+            versionEl.textContent += " · paste the Mac install line again to bring in the C# server";
+            versionEl.title = "New server features come in Mandarin's C# server, which this Mac doesn't run yet. See Install on a Mac in the README.";
+          }
           if (cs && cs.version && cs.matched === false) {
             versionEl.textContent += going(cs) ? " · bringing its C# server up to date"
               : " · C# server v" + cs.version + (s.is_docker ? " (pull the image again to update it)" : "");
