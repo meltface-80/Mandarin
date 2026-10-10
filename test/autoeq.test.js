@@ -4,6 +4,7 @@
  * kept in the database and saved to a device's DSP — against a fake AutoEq
  * (test/fake-autoeq.js) — and a profile pasted by hand.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { parseIndex, parseProfile } = require("../lib/autoeq");
@@ -12,7 +13,7 @@ const { makeLibrary } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 
-const PORT = 3611;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("AutoEq's files are read", () => {
@@ -72,7 +73,7 @@ test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) 
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], autoeqBaseUrl: base, upnpMulticast: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], autoeqBaseUrl: base, upnpMulticast: false });
   await srv.start();
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };

@@ -26,6 +26,8 @@ class FakeQobuz {
     this.fileUrlCalls = [];     // { track_id, format_id, sig_ok }
     this.fetches = [];          // stream fetches
     this.logins = 0;
+    this.holds = {};            // call -> a promise its requests wait on (hold)
+    this.parked = {};           // call -> how many came while held
     this.server = null;
     this.port = 0;
   }
@@ -56,6 +58,15 @@ class FakeQobuz {
       maximum_sampling_rate: (t.rate || a.rate) / 1000, maximum_bit_depth: t.bits || a.bits, album: this.albumJson(a, false) };
   }
 
+  /* Requests for this call wait until the returned function is called:
+   * a test sees what the page does before the answer, whatever the time. */
+  hold(call) {
+    let go;
+    this.holds[call] = new Promise(r => { go = r; });
+    this.parked[call] = 0;
+    return () => { delete this.holds[call]; go(); };
+  }
+
   start() {
     const creds = credentials();
     this.server = http.createServer((req, res) => {
@@ -79,7 +90,9 @@ class FakeQobuz {
       const authed = () => req.headers["x-user-auth-token"] === this.token;
       let body = "";
       req.on("data", c => { body += c; });
-      req.on("end", () => {
+      req.on("end", async () => {
+        // Held (hold()): answered once the test lets go.
+        if (this.holds[call]) { this.parked[call] = (this.parked[call] || 0) + 1; await this.holds[call]; }
         if (call === "user/login") {
           this.logins++;
           if (q.username !== this.user.login || q.password !== this.user.password) return json(401, { message: "Invalid username/password", status: "error", code: 401 });

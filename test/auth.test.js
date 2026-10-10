@@ -4,6 +4,7 @@
  * sent, wrong guesses locked out, devices signed out, a forgotten password
  * reset on the server, and Sonos still able to fetch what it's given.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -14,7 +15,7 @@ const SRP = require("../public/srp");
 const { isLocal, deviceNameFromUA } = require("../lib/server/auth");
 const { signIn, post, USER, PASS } = require("./auth-helper");
 
-const PORT = 3600;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function startServer(dataDir) {
@@ -164,16 +165,17 @@ test("a queue made before the update keeps playing: speakers need no signature",
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-auth-sonos-"));
   fs.mkdirSync(path.join(tmp, "music"));
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT + 1, musicDir: path.join(tmp, "music"), dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"] });
+  const port = ports.port();
+  const srv = createServer({ port, musicDir: path.join(tmp, "music"), dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] });
   const ctx = await srv.start();
   const from = (ip) => new Promise((resolve) => {
-    const r = http.get({ host: "127.0.0.1", port: PORT + 1, path: "/api/image/al-1-0", localAddress: ip, agent: false }, (x) => { x.resume(); resolve(x.statusCode); });
+    const r = http.get({ host: "127.0.0.1", port, path: "/api/image/al-1-0", localAddress: ip, agent: false }, (x) => { x.resume(); resolve(x.statusCode); });
     r.on("error", (e) => resolve(e.message));
   });
   try {
-    for (let i = 0; i < 50 && !ctx.zones.topology.hosts.includes("127.0.0.12"); i++) await new Promise(r => setTimeout(r, 200));
-    assert.notEqual(await from("127.0.0.12"), 401, "a speaker gets through unsigned");
-    assert.equal(await from("127.0.0.99"), 401, "anything else needs to sign in");
+    for (let i = 0; i < 50 && !ctx.zones.topology.hosts.includes(ports.host(1)); i++) await new Promise(r => setTimeout(r, 200));
+    assert.notEqual(await from(ports.host(1)), 401, "a speaker gets through unsigned");
+    assert.equal(await from(ports.host(3)), 401, "anything else needs to sign in");
   } finally {
     await srv.stop();
     await house.stop();

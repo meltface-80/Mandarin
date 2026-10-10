@@ -13,6 +13,7 @@
  *     it back to its corner;
  *   - on a tablet it doesn't move.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -20,7 +21,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3646, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // The bar shown as it is with something playing, a counter on its info area's clicks.

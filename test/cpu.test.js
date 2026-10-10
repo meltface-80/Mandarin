@@ -7,6 +7,7 @@
  * running, moved when DSP takes or gives back its second core; and, through
  * the C# server (MANDARIN_FRONT=1), that server keeping to the same split.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -58,7 +59,12 @@ test("playback's cores: the last one (two with DSP), at least two left on four o
   assert.equal(CPU.compact([5, 0, 2, 1]), "0-2,5");
 });
 
-test("each kind started where it belongs, below what it should yield to", () => {
+test("each kind started where it belongs, below what it should yield to", (t) => {
+  // A Linux machine's plan (taskset, ionice), on whatever this one is: only
+  // decided, nothing run (pin: false). A Mac's own is decided above.
+  const platform = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", Object.assign({}, platform, { value: "linux" }));
+  t.after(() => { Object.defineProperty(process, "platform", platform); CPU.reset(); });
   CPU.reset();
   const tools = { taskset: true, nice: true, ionice: true };
   // Split, without moving this process (what would be done, only).
@@ -106,7 +112,11 @@ test("for real: this process off playback's core, children where they belong, mo
     // A playback child: playback's core.
     const [pb, pa] = CPU.wrap("sleep", ["20"], "playback");
     const pl = CPU.adopt(spawn(pb, pa, { stdio: "ignore" }), "playback");
-    await until(() => { try { return allowedOf(bg.pid) === CPU.compact(p.background) && allowedOf(pl.pid) === String(last); } catch (e) { return false; } }, 5000, "the children placed");
+    // Placed once each is sleep itself: before, it is still nice, ionice or
+    // taskset, on this process's cores until the last of them sets its own,
+    // which on a busy machine can come after DSP has moved it, below.
+    const became = (pid, name) => { try { return fs.readFileSync(`/proc/${pid}/comm`, "utf8").trim() === name; } catch (e) { return false; } };
+    await until(() => { try { return became(bg.pid, "sleep") && became(pl.pid, "sleep") && allowedOf(bg.pid) === CPU.compact(p.background) && allowedOf(pl.pid) === String(last); } catch (e) { return false; } }, 5000, "the children placed");
     const nice = Number(fs.readFileSync(`/proc/${bg.pid}/stat`, "utf8").split(") ")[1].split(" ")[16]);
     assert.equal(nice, 19);
     // DSP: playback has a second core; this process and the background child move off it, the playback child stays.
@@ -150,7 +160,7 @@ test("the C# server keeps to the split, and moves with it", { skip: skipFront, t
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-cpu-"));
   const music = path.join(root, "music"), data = path.join(root, "data");
   fs.mkdirSync(music);
-  const PORT = 3698, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const before = allowedOf(process.pid);
   const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });

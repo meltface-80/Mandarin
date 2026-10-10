@@ -10,6 +10,7 @@
  * reading tags with the C# server (v0.8.14): the library it makes is the one
  * the scanner makes reading them itself, row for row.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -98,7 +99,7 @@ test("the check reads the library both ways and reports", { skip: skipFront, tim
   const music = path.join(root, "music"), data = path.join(root, "data");
   const made = build(path.join(music, "Various"), { damage: 0 })
     .filter(f => /\.(flac|mp3|m4a|ogg|opus|wav|aif|dsf|dff|ape)$/.test(f) && !/v25|toolarge|bigcomment/.test(f));
-  const PORT = 3697, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false, tagcheck: true, tagcheckDelayMs: 0, tagReader: "auto" });
   let ctx;
@@ -189,7 +190,7 @@ test("the scanner reading tags with the C# server makes the same library as read
   // Each reader in turn, over its own copy of the database: the first scan as
   // the server starts, then every file read again (force) by that reader.
   const scanWith = async (reader) => {
-    const PORT = 3699;
+    const PORT = ports.port();
     const lines = [];
     const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: path.join(root, "data-" + reader), serverIp: "127.0.0.1",
       sonosHosts: [], upnpMulticast: false, identify: false, tagcheck: false, tagReader: reader });

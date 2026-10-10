@@ -4,6 +4,7 @@
  * files carry none — MusicBrainz then Discogs (fakes on loopback) — kept by
  * the album's identity, misses remembered, the tags always winning.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -14,7 +15,7 @@ const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { plainName } = require("../lib/labellookup");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3615;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("Discogs' numbered names are plain", () => {

@@ -13,6 +13,7 @@
  *     title, the buttons and the tracks to the right;
  *   - on a phone nothing moves: one column, the review after the tracks.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -20,7 +21,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3644, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));

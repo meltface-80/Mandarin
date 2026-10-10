@@ -10,6 +10,7 @@
  * and MusicBrainz are fakes on loopback. The same answers from either server;
  * behind the C# server (MANDARIN_FRONT=1), made there (v0.8.21).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -18,7 +19,7 @@ const { FakeWeb, wiki } = require("./fake-web");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 
 const FRONT = process.env.MANDARIN_FRONT === "1";
-const PORT = 3651, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const ALBUM_TEXT = "Album One is the debut studio album by English band Artist A, released in 1997.";
 const ARTIST_TEXT = "Artist A are an English rock band formed in London in 1990.";

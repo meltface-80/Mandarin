@@ -8,6 +8,7 @@
  * then the library changes (a heart, Listen later, an edit, labels switched
  * on, a merge, a play) and they must still be.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -43,7 +44,7 @@ function library() {
 
 test("the library in C# answers as the Node server does", { skip, timeout: 120000 }, async () => {
   const lib = library();
-  const PORT = 3696, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();

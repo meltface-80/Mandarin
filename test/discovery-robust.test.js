@@ -11,6 +11,7 @@
  *     and stays listed; one that has really gone is quietly not found;
  *   - the loop runners keep one timer per loop, not one per run.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const net = require("net");
@@ -49,17 +50,17 @@ test("the household is read quickly past a player that hangs", { timeout: 30000 
   await house.start();
   // A "player" at an old address that takes the connection and never answers.
   const silent = net.createServer(() => { /* say nothing */ });
-  await new Promise(r => silent.listen(1400, "127.0.0.97", r));
+  await new Promise(r => silent.listen(1400, ports.host(2), r));
   try {
-    const top = new T.Topology({ seedHosts: ["127.0.0.97", "127.0.0.11"] });
+    const top = new T.Topology({ seedHosts: [ports.host(2), ports.host(0)] });
     const t0 = Date.now();
     assert.equal(await top.refresh(), true, "the household was read");
     const ms = Date.now() - t0;
     assert.ok(top.rooms().some(r => r.name === "Kitchen"), "its rooms are known");
     assert.ok(ms < 8000, `read in ${ms} ms: a short probe of the silent one, then the rest at once (was ten seconds per stale address)`);
     // Found by a search just now: asked first next time.
-    top.all.clear(); top.recent = ["127.0.0.11"];
-    assert.equal(top.hosts[0], "127.0.0.11");
+    top.all.clear(); top.recent = [ports.host(0)];
+    assert.equal(top.hosts[0], ports.host(0));
   } finally { silent.close(); await house.stop(); }
 });
 

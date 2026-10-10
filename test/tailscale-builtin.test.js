@@ -6,6 +6,7 @@
  * Through the server's own routes, so behind the C# server (MANDARIN_FRONT=1)
  * it's the engine run there (v0.8.22, Admin/Tailscale.cs) that is driven.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -14,7 +15,7 @@ const path = require("path");
 const { signIn } = require("./auth-helper");
 const { awayAddress } = require("../lib/server/tailscale");
 
-const PORT = 3609;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 // The engine's control API, as far as the server uses it. It records what it
@@ -186,6 +187,18 @@ test("an install updated in place downloads the engine, checked, once per server
   try {
     // Not in the image, and nowhere to fetch it from: not offered (a source install).
     assert.equal(node("0.3.21", { TS_ENGINE_URL: "" }).available, false);
+
+    // The engine is built for Linux only: anywhere else (a Mac) it isn't
+    // offered even with somewhere to fetch it from, and nothing is fetched.
+    if (process.platform !== "linux") {
+      const m = node2("0.3.21");
+      assert.equal(m.available, false);
+      await m.start();
+      assert.equal(m.proc, null);
+      assert.equal(fetched, 0);
+      assert.ok(!fs.existsSync(path.join(data, "bin", "musicdnet")));
+      return;
+    }
 
     const a = node2("0.3.21");
     assert.equal(a.available, true);

@@ -5,6 +5,7 @@
  * switched on; a track named by its id or by its title, album and artist;
  * 4,000 buckets, decoded once and kept; what isn't a file of ours says so.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -12,7 +13,7 @@ const { signIn } = require("./auth-helper");
 const { decodeWaveform } = require("../lib/waveform-decode");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3640;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 20000) {

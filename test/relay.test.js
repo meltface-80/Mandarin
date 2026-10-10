@@ -4,6 +4,7 @@
  * the WebView treats as a web proxy: the request line carries the whole
  * address. The server must answer those exactly as it answers the usual kind.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -12,7 +13,7 @@ const net = require("net");
 const path = require("path");
 const { signIn } = require("./auth-helper");
 
-const PORT = 3606;
+const PORT = ports.port();
 
 // Raw HTTP/1.1 on one connection: each request's status line and body, in order.
 function rawRequests(requests) {

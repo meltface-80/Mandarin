@@ -8,6 +8,7 @@
  * the best rate it takes otherwise; gapless via SetNextAVTransportURI, and
  * the hand-started fallback for a device without it.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -18,7 +19,7 @@ const { signIn } = require("./auth-helper");
 const { idFor } = require("../lib/renderers/discovery");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3608;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -45,7 +46,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   await wiim.start(); await poly.start();
   const { createServer } = require("../index.js");
   const options = {
-    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"],
+    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false
   };
   let srv = createServer(options);
@@ -352,6 +353,9 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     await t.test("the server restarted (an update): the renderer's queue is kept and the playing track recognised", async () => {
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1"; });
+      // Song 1 plays on through the restart however long it takes: the track
+      // is 3 seconds long, and a restart on a busy machine can take longer.
+      wiim.hold();
       await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
       const sets = wiim.log.filter(a => a === "SetAVTransportURI").length;
       await srv.stop();
@@ -364,6 +368,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.deepEqual((await api("queue?zone=" + WIIM)).items.map(i => i.title), ["Song 1", "Song 2", "Song 3"]);
       assert.equal(wiim.log.filter(a => a === "SetAVTransportURI").length, sets, "not started again: the same track carries on");
       // And it still moves on to the next.
+      wiim.release();
       await until(() => wiim.nextUri, 10000);
     });
   } finally {

@@ -6,6 +6,7 @@
  * artist kept out. Made by the C# server from v0.8.20 (MANDARIN_FRONT=1
  * checks it answered).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -14,7 +15,7 @@ const { signIn } = require("./auth-helper");
 const { FakeDeezer } = require("./fake-deezer");
 
 const FRONT = process.env.MANDARIN_FRONT === "1";
-const PORT = 3648, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const DAY = 86400000;
 
 test("Smart Picks: by acts near what you play, then the least played; made again; an artist kept out", { skip: !haveFfmpeg() && "ffmpeg is not installed", timeout: 60000 }, async () => {

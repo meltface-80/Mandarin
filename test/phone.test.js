@@ -6,6 +6,7 @@
  * as commands. What it reports back drives now playing and the play history.
  * No other device (the iPhone home-screen app, a browser) sees it or reaches it.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -13,7 +14,7 @@ const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3603;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 8000) {
@@ -31,7 +32,7 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const options = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"] };
+  const options = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] };
   let srv = createServer(options);
   let ctx = await srv.start();
   const phoneToken = await signIn(B);                 // kind "android"

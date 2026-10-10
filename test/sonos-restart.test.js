@@ -4,6 +4,7 @@
  * the speakers remembered last time — and until then the server says it is
  * still looking, so the page doesn't claim there are no rooms.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -31,17 +32,22 @@ test("rooms come back straight after a restart, and 'searching' covers the gap",
   const music = path.join(tmp, "music");
   fs.mkdirSync(music);
   const { createServer } = require("../index.js");
-  const cfg = { port: 3596, musicDir: music, dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1" };
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const cfg = { port: PORT, musicDir: music, dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1" };
   let auth = {};
-  const status = () => fetch("http://127.0.0.1:3596/api/status", { headers: auth }).then(r => r.json());
+  const status = () => fetch(B + "/api/status", { headers: auth }).then(r => r.json());
 
   let srv = null;
   try {
-    // First run: told where one speaker is.
-    srv = createServer(Object.assign({}, cfg, { sonosHosts: ["127.0.0.11"] }));
+    // First run: told where one speaker is. The speakers hold their answers
+    // until the status has been read, so a start slowed by other tests running
+    // alongside can't have read the rooms already.
+    srv = createServer(Object.assign({}, cfg, { sonosHosts: [ports.host(0)] }));
+    house.hold();
     await srv.start();
-    auth = { Authorization: "Bearer " + await signIn("http://127.0.0.1:3596") };
+    auth = { Authorization: "Bearer " + await signIn(B) };
     const first = await status();
+    house.release();
     assert.equal(first.sonos.searching, true, "looking, not 'no rooms', right after start");
     await until(async () => (await status()).sonos.rooms === 2, 10000);
     assert.equal((await status()).sonos.searching, false);

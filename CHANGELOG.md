@@ -5,6 +5,40 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.30
+A test build, from the `v0.8.31-tests` branch, with `v0.8.31-cpu` and #176 (`claude-b-fix`) merged
+in. The tests run several at once, about three and a half times faster; Settings counts every
+processor core again after an update; and a label's albums no longer come back over the Labels list.
+
+- **Settings counted one core fewer after each update** (Docker and Mac). A 4-core machine showed
+  "3 cores · 1 kept for playback · 2 for scanning" after an update from Settings, then 2 after the
+  next. The C# server keeps itself off playback's core, and after an update it starts itself again
+  in the same process, which kept it to those cores; it then counted only them. It now goes back
+  to every core first (`server/Mandarin.Server/Cpu.cs` `Restore`, `Front.cs`).
+  - **Already counting fewer?** Restart the container or the app once. The update into this
+    version is still made by the old one, so it doesn't put it right by itself.
+- **A label's albums could come back over the Labels list** (#176). Tapping ‹ while a label's
+  albums were still on their way showed the label again when they came. The Labels list and a
+  label's albums now drop an answer for a screen that is no longer showing.
+- **The tests run several files at once** (`npm test`: four; CI's Mac job: two, as it has three
+  cores). On a 4-core machine: Node alone from 585 s to about 165 s, through the C# server from
+  859 s to about 240 s.
+  - `test/ports.js` hands each test file its own ports and loopback addresses (a slot per test
+    process, kept in the temp folder), and `test/fake-sonos.js` puts its rooms on them. A new test
+    takes `ports.port()` and `ports.host(i)` instead of a number. CI's Mac job adds every address
+    to lo0 (`node test/ports.js --addresses`).
+  - Tests that waited a fixed time and then acted now wait for the thing itself (Sonos and renderer
+    restarts, the share card, the shelf, Settings, the folder watch, the processor split). The
+    stand-in Sonos rooms and renderer can hold their answers or their clock for that.
+- **Tests on a Mac** (CI): Homebrew's ffmpeg has no SoX resampler, so both resamplers' commands are
+  now checked on every machine; a browser run without a mouse has none on a Mac either; built-in
+  Tailscale's download is checked as not offered off Linux; the processor plan is checked as Linux's
+  anywhere; and the folder watch is heard to be live before changes are counted (a Mac's starts a
+  moment after it's asked for, and misses what changes before).
+- `test/csharp-update.test.js`: the C# server started again after an update tells the Node server
+  the same cores as before.
+- The Android app for this version is 0.8.30 (version code 230). Nothing in it changed.
+
 ## v0.8.29
 A test build, from the `mac-csharp` branch, built on v0.8.28 (`shelf-cs`), so that one goes in first.
 Mandarin's C# server now runs on Macs too, updates bring both servers together, and from here on

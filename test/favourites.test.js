@@ -3,13 +3,14 @@
  * Favourites: the heart on an album, kept on the server by the album's
  * identity, listed newest first, and still there after the library reloads.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3609;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 10000) {

@@ -5,6 +5,7 @@
  * does, worked out on the page; and an artist's page lists what the server
  * has of theirs AND what is on the phone, under "On this phone".
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -13,7 +14,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const { FakeHousehold } = require("./fake-sonos");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3639, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 // The app's bridge, as MusicdDownloads provides it: downloads (none) and the
 // phone's own music — three albums, one by an artist the server also has.
@@ -123,7 +124,7 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);

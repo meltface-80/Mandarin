@@ -5,6 +5,7 @@
  * MusicBrainz on loopback — applied names laid over the album and its tracks,
  * a near miss proposed then accepted, a poor match left alone, undo.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const SCORE = require("../lib/identify/score");
@@ -16,7 +17,7 @@ const { FakeITunes } = require("./fake-itunes");
 const { ITunes } = require("../lib/identify/itunes");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3611;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 15000) {
@@ -437,7 +438,7 @@ test("iTunes for what MusicBrainz can't place: exact applied, near proposed; ski
   process.env.ITUNES_PAUSE_MS = "1500";
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  const port = PORT + 1, base = "http://127.0.0.1:" + port;
+  const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
   const ctx = await srv.start();
@@ -531,7 +532,7 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
   ]).start();
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  const port = 3618, base = "http://127.0.0.1:" + port;
+  const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
   const ctx = await srv.start();
@@ -709,7 +710,7 @@ test("applied unasked, a copy missing a track: each track named from the one it 
   const itunes = await new FakeITunes([]).start();
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  const port = 3647, base = "http://127.0.0.1:" + port;
+  const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
   await srv.start();

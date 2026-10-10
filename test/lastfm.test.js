@@ -14,6 +14,7 @@
  *     album open), what they appear on, A to Z, three and More; then
  *     Last.fm's similar artists and albums, each saying where it opens.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("http");
@@ -193,36 +194,57 @@ test("the Last.fm key travels with a backup's other keys", () => {
 
 // ---- The routes and the album view, against a fake Last.fm on loopback ----
 
-const PORT = 3653, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MUSE_ART = "https://lastfm.freetls.fastly.net/i/u/300x300/muse.jpg";
 
-/* Last.fm on loopback: "good" is a key it takes, anything else it refuses. */
+/*
+ * Last.fm on loopback: "good" is a key it takes, anything else it refuses.
+ * In a thread of its own: the moment each call comes is noted there, not on
+ * this thread, which also runs the Node server under test (behind the C#
+ * one) and can be held up by it long enough to note a call late. calls()
+ * gives every call noted so far, in order.
+ */
 function lastfmServer() {
-  const calls = [];
-  const server = http.createServer((req, res) => {
-    const q = Object.fromEntries(new URL(req.url, "http://x").searchParams);
-    calls.push(Object.defineProperty(q, "at", { value: Date.now() }));
-    const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
-    if (q.api_key !== "good") return send(403, { message: "Invalid API key - You must be granted a valid key by last.fm", error: 10 });
-    if (q.method === "artist.getInfo") return send(200, { artist: { name: q.artist } });
-    if (q.method === "artist.getSimilar") {
-      if (q.artist !== "Radiohead") return send(200, { similarartists: { "@attr": { artist: q.artist }, artist: [] } });
-      return send(200, { similarartists: { "@attr": { artist: "Radiohead" }, artist: [
-        { name: "Thom Yorke", url: "https://www.last.fm/music/Thom+Yorke", image: [{ "#text": STAR, size: "large" }] },
-        { name: "Atoms for Peace", url: "https://www.last.fm/music/Atoms+for+Peace", image: [] },
-        { name: "Muse", url: "https://www.last.fm/music/Muse", image: [{ "#text": MUSE_ART, size: "extralarge" }] }] } });
-    }
-    if (q.method === "artist.getTopAlbums") {
-      const top = { "Thom Yorke": { name: "The Eraser", artist: { name: "Thom Yorke" }, url: "https://www.last.fm/music/Thom+Yorke/The+Eraser", image: [] },
-        "Muse": { name: "Origin of Symmetry", artist: { name: "Muse" }, url: "https://www.last.fm/music/Muse/Origin+of+Symmetry", image: [{ "#text": MUSE_ART, size: "extralarge" }] } }[q.artist];
-      if (!top) return send(200, { error: 6, message: "The artist you supplied could not be found" });
-      return send(200, { topalbums: { album: [top] } });
-    }
-    send(400, { error: 3, message: "Invalid Method" });
+  const { Worker } = require("worker_threads");
+  const w = new Worker(`
+    const http = require("http");
+    const { parentPort, workerData: { STAR, MUSE_ART } } = require("worker_threads");
+    const calls = [];
+    const server = http.createServer((req, res) => {
+      const q = Object.fromEntries(new URL(req.url, "http://x").searchParams);
+      calls.push(Object.assign({}, q, { at: Date.now() }));
+      const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
+      if (q.api_key !== "good") return send(403, { message: "Invalid API key - You must be granted a valid key by last.fm", error: 10 });
+      if (q.method === "artist.getInfo") return send(200, { artist: { name: q.artist } });
+      if (q.method === "artist.getSimilar") {
+        if (q.artist !== "Radiohead") return send(200, { similarartists: { "@attr": { artist: q.artist }, artist: [] } });
+        return send(200, { similarartists: { "@attr": { artist: "Radiohead" }, artist: [
+          { name: "Thom Yorke", url: "https://www.last.fm/music/Thom+Yorke", image: [{ "#text": STAR, size: "large" }] },
+          { name: "Atoms for Peace", url: "https://www.last.fm/music/Atoms+for+Peace", image: [] },
+          { name: "Muse", url: "https://www.last.fm/music/Muse", image: [{ "#text": MUSE_ART, size: "extralarge" }] }] } });
+      }
+      if (q.method === "artist.getTopAlbums") {
+        const top = { "Thom Yorke": { name: "The Eraser", artist: { name: "Thom Yorke" }, url: "https://www.last.fm/music/Thom+Yorke/The+Eraser", image: [] },
+          "Muse": { name: "Origin of Symmetry", artist: { name: "Muse" }, url: "https://www.last.fm/music/Muse/Origin+of+Symmetry", image: [{ "#text": MUSE_ART, size: "extralarge" }] } }[q.artist];
+        if (!top) return send(200, { error: 6, message: "The artist you supplied could not be found" });
+        return send(200, { topalbums: { album: [top] } });
+      }
+      send(400, { error: 3, message: "Invalid Method" });
+    });
+    parentPort.on("message", (m) => {
+      if (m === "start") server.listen(0, "127.0.0.1", () => parentPort.postMessage({ base: "http://127.0.0.1:" + server.address().port + "/2.0/" }));
+      if (m === "calls") parentPort.postMessage({ calls });
+      if (m === "stop") server.close(() => parentPort.postMessage({ stopped: true }));
+    });
+  `, { eval: true, workerData: { STAR, MUSE_ART } });
+  const ask = (m, key) => new Promise((resolve) => {
+    const on = (x) => { if (x && key in x) { w.off("message", on); resolve(x[key]); } };
+    w.on("message", on);
+    w.postMessage(m);
   });
-  return { calls, server, start: () => new Promise(r => server.listen(0, "127.0.0.1", () => r("http://127.0.0.1:" + server.address().port + "/2.0/"))),
-    stop: () => new Promise(r => server.close(() => r())) };
+  return { start: () => ask("start", "base"), calls: () => ask("calls", "calls"),
+    stop: async () => { await ask("stop", "stopped"); await w.terminate(); } };
 }
 
 function library() {
@@ -269,7 +291,7 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       assert.deepEqual(await get("/api/lastfm/similar-artists?artist=Radiohead"), { enabled: false });
       assert.deepEqual(await get("/api/lastfm/similar-albums?artist=Radiohead"), { enabled: false });
       assert.equal((await fetch(B + "/api/lastfm/similar-artists", { headers: H() })).status, 400, "an artist is needed");
-      assert.equal(fake.calls.length, 0);
+      assert.equal((await fake.calls()).length, 0);
     });
 
     await t.test("a key from the environment until one is saved; a refused one said so", async () => {
@@ -306,11 +328,11 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       assert.equal(j.albums[0].album.offset, id("The Eraser"));
       assert.equal(j.albums[1].album, null);
       assert.equal(j.albums[1].url, "https://www.last.fm/music/Muse/Origin+of+Symmetry");
-      const calls = fake.calls.length;
+      const calls = (await fake.calls()).length;
       await get("/api/lastfm/similar-albums?artist=Radiohead");
-      assert.equal(fake.calls.length, calls, "remembered: the second view asks Last.fm nothing");
+      assert.equal((await fake.calls()).length, calls, "remembered: the second view asks Last.fm nothing");
       // One call at a time, a quarter of a second apart (Last.fm's terms), whichever server asks.
-      const asked = fake.calls.filter(c => c.method !== "artist.getInfo").map(c => c.at);
+      const asked = (await fake.calls()).filter(c => c.method !== "artist.getInfo").map(c => c.at);
       assert.ok(asked.length >= 4);
       for (let i = 1; i < asked.length; i++) assert.ok(asked[i] - asked[i - 1] >= 240, `${asked[i] - asked[i - 1]} ms apart`);
       // Behind the C# server (v0.8.26): answered by it.

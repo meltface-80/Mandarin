@@ -6,6 +6,7 @@
  * left for musicbrainz.org, not marked unidentified. Here musicbrainz.org is
  * a closed port: down for the whole test.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -53,7 +54,7 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
   writePack(path.join(lib.data, "mbpack.sqlite"));
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
-  const port = 3626, base = "http://127.0.0.1:" + port;
+  const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: "http://127.0.0.1:9", itunesBaseUrl: "http://127.0.0.1:9" });
   const ctx = await srv.start();

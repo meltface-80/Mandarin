@@ -4,6 +4,7 @@
  * lands in the register with its capabilities in layers, a name you give a
  * device shows everywhere, and a device that has gone can be forgotten.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -22,7 +23,7 @@ const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3607;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 async function until(fn, ms = 15000) {
@@ -177,7 +178,7 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
   await wiim.start(); await poly.start(); await telly.start();
   const { createServer } = require("../index.js");
   const srv = createServer({
-    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"],
+    port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location, telly.location], upnpMulticast: false, upnpOfflineMs: 2500
   });
   await srv.start();

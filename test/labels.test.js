@@ -4,6 +4,7 @@
  * switched on; the Labels wall, a label's albums, search, the Focus facet,
  * the album page, Label of the week, and the folder-depth rule.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { canonicalLabelName, labelKey, isLikelyNotALabel, labelFromFolder } = require("../lib/labels");
@@ -11,7 +12,7 @@ const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3613;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("a label's names fold together", () => {

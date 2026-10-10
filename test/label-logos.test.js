@@ -4,6 +4,7 @@
  * in the background from Discogs then FanArt.tv (fakes on loopback), or
  * chosen by hand; kept under the data folder and served as label-<key> images.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -15,7 +16,7 @@ const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { typeOf, LabelLogos } = require("../lib/labellogos");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const PORT = 3614;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 test("an image's kind is read from its bytes", () => {

@@ -11,6 +11,7 @@
  *     a list, bigger text and tiles, and no grid ⇄ list button in the top bar.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
@@ -18,7 +19,7 @@ const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3623;
+const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {
@@ -51,7 +52,8 @@ const DRIVER = `(async () => {
   out.label = { title: title(), bar: !$("labels-bar").classList.contains("hidden"), logo: !$("labels-logo-btn").classList.contains("hidden"),
     search: !$("labels-search-btn").classList.contains("hidden") };
   $("topbar-back").click();
-  await until(() => document.querySelectorAll(".label-tile").length >= 2);
+  // The tiles can be back before the bar's title is (a busy machine): both.
+  await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
   out.back = title();
   $("topbar-back").click(); await sleep(500);
   out.home = !$("home-view").classList.contains("hidden");
@@ -216,9 +218,10 @@ const SIZES_DRIVER = `(async () => {
 test("the Library's controls under the top bar on phones, tablets and desktops", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT + 1, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const PORT2 = ports.port();
+  const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
-  const B2 = "http://127.0.0.1:" + (PORT + 1);
+  const B2 = "http://127.0.0.1:" + PORT2;
   try {
     const token = await signIn(B2);
     const H = { Authorization: "Bearer " + token };

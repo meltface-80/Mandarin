@@ -13,6 +13,7 @@
  * Behind the C# server (MANDARIN_FRONT=1) it is made there (v0.8.22), the
  * Node server started again from there after a restore.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -23,7 +24,7 @@ const { signIn } = require("./auth-helper");
 const B = require("../lib/backup");
 const { newer, partsOf } = require("../lib/server/api-backup");
 
-const PORT = 3625, BASE = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), BASE = "http://127.0.0.1:" + PORT;
 const FRONT = process.env.MANDARIN_FRONT === "1";
 // Behind the C# server, every backup route is answered there (v0.8.22).
 const byCs = (r, what) => { if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };

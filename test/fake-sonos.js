@@ -9,6 +9,7 @@
  * given, the way a speaker does, and records what came back. That is what
  * proves a hi-res file actually reaches the speaker as 24/48 FLAC.
  */
+const ports = require("./ports");
 const http = require("http");
 const XML = require("../lib/xml");
 const DIDL = require("../lib/sonos/didl");
@@ -154,6 +155,8 @@ class Room {
 
   start() {
     this.server = http.createServer((req, res) => {
+      // Held (house.hold()): answered once the test lets go.
+      if (this.house.held) return this.house.held.then(() => this.server.emit("request", req, res));
       if (req.method === "GET" && req.url === "/xml/device_description.xml") {
         res.setHeader("Content-Type", "text/xml");
         return res.end(`<?xml version="1.0"?><root xmlns="urn:schemas-upnp-org:device-1-0"><device>` +
@@ -189,12 +192,16 @@ class Room {
 
 class FakeHousehold {
   constructor(rooms = [
-    { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: "127.0.0.11" },
-    { uid: "RINCON_STUDY001400", name: "Study", ip: "127.0.0.12", model: "Sonos Era 100" }
+    { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: ports.host(0) },
+    { uid: "RINCON_STUDY001400", name: "Study", ip: ports.host(1), model: "Sonos Era 100" }
   ]) {
     this.rooms = rooms.map(r => new Room(this, r));
   }
   room(name) { return this.rooms.find(r => r.name === name); }
+  /* Every room holds its answers until release(): a test that has to see the
+   * server before it has heard from the speakers, however slowly it started. */
+  hold() { if (!this.held) this.held = new Promise(r => { this.letGo = r; }); }
+  release() { const go = this.letGo; this.held = null; this.letGo = null; if (go) go(); }
   zgs() {
     const groups = new Map();
     for (const r of this.rooms) {
@@ -208,7 +215,7 @@ class FakeHousehold {
     return `<ZoneGroupState><ZoneGroups>${xml}</ZoneGroups><VanishedDevices/></ZoneGroupState>`;
   }
   async start() { for (const r of this.rooms) await r.start(); }
-  async stop() { for (const r of this.rooms) await r.stop(); }
+  async stop() { this.release(); for (const r of this.rooms) await r.stop(); }
 }
 
 module.exports = { FakeHousehold };

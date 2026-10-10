@@ -1,4 +1,5 @@
 "use strict";
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -170,7 +171,7 @@ test("the days found after a library scan, through the server (behind the C# ser
     { id: "r2", title: "Album One", artist: "Artist A", date: "2011-01-01", tracks: [["Song 1", 2]] }
   ]);
   await mb.start();
-  const PORT = 3649, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, mbBaseUrl: mb.baseUrl });
   const ctx = await srv.start();

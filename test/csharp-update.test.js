@@ -15,7 +15,8 @@
  * an update from Settings calls before it stages anything, so the C# server of
  * the new version is in place first, or the update stops with nothing changed.
  */
-const PORT = 3676, FAKE = 3677, NODE = 3678;
+const ports = require("./ports");
+const PORT = ports.port(), FAKE = ports.port(), NODE = ports.port();
 process.env.UPDATE_API = "http://127.0.0.1:" + FAKE;
 
 const test = require("node:test");

@@ -17,6 +17,7 @@
  *     discs under their own headings, the queue pane and the lane's fold.
  * The browser part is skipped where no Chromium or Chrome is found.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
@@ -26,7 +27,7 @@ const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
-const PORT = 3652;
+const PORT = ports.port();
 const VERSION = require("../package.json").version;
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -85,14 +86,21 @@ function library() {
 // answered each request (window.__by), and any address answered with a
 // stand-in (window.__fake) or refused (window.__fail).
 const INIT = `(() => {
-  window.__log = []; window.__fake = {}; window.__fail = {}; window.__by = [];
+  window.__log = []; window.__fake = {}; window.__fail = {}; window.__by = []; window.__asked = {}; window.__heard = {};
   const real = window.fetch.bind(window);
   const json = (body, status) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   window.fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
     if (init && init.method === "POST") window.__log.push({ path: url.pathname, body: init.body ? JSON.parse(init.body) : null });
     if (window.__fail[url.pathname]) return json({ error: "Refused: " + url.pathname }, window.__fail[url.pathname]);
-    if (window.__fake[url.pathname]) return json(window.__fake[url.pathname], 200);
+    if (window.__fake[url.pathname]) {
+      // Counted once the page has read it (window.__heard): a test waits for
+      // that, not for a while, before it acts on what the page now shows.
+      const k = url.pathname, n = window.__asked[k] = (window.__asked[k] || 0) + 1;
+      const r = json(window.__fake[k], 200), read = r.json.bind(r);
+      r.json = async () => { const v = await read(); window.__heard[k] = Math.max(window.__heard[k] || 0, n); return v; };
+      return r;
+    }
     const r = await real(input, init);
     window.__by.push(url.pathname + " " + (r.headers.get("x-mandarin-answered") || "Node"));
     return r;
@@ -106,6 +114,15 @@ const HELPERS = `
   const shown = s => { const e = $(s); return !!e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none"; };
   const posts = p => window.__log.filter(x => x.path === p).map(x => x.body);
   const poll = () => document.dispatchEvent(new Event("visibilitychange"));   // the page asks for the zone again
+  // Asked again, and an answer asked for from now on read and painted: not one
+  // already on its way with what was there before (a busy machine can take
+  // longer than any fixed wait).
+  const polled = async () => {
+    const k = "/api/zone-state", n = window.__asked[k] || 0;
+    poll();
+    await until(() => (window.__heard[k] || 0) > n);
+    await sleep(0);
+  };
   const tile = (cat, label) => [...document.querySelectorAll('.tile[data-cat="' + cat + '"]')].find(t => t.textContent.includes(label));
 `;
 
@@ -134,7 +151,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   const b = await Browser.launch({ width: 1440, height: 900, mouse: true });
   try {
@@ -539,18 +556,18 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.failToast = $("#toast").textContent;
         delete window.__fail["/api/control"];
         // Radio, or a stream: no album to find.
-        window.__fake["/api/zone-state"] = ${zone(np({ line3: "" }))}; poll(); await sleep(300);
+        window.__fake["/api/zone-state"] = ${zone(np({ line3: "" }))}; await polled();
         $("#mt-info").click(); out.radio = $("#toast").textContent;
         // Nothing playing.
         window.__fake["/api/zone-state"] = ${zone(null)}; poll(); await until(() => $("#mt-title").textContent === "Nothing playing");
         $("#mt-info").click(); out.nothing = $("#toast").textContent;
         // An album on the shelf, by its id: brought to the front.
-        window.__fake["/api/zone-state"] = ${zone(np({ album_offset: kob, line3: "A title the shelf doesn't have" }))}; poll(); await sleep(300);
+        window.__fake["/api/zone-state"] = ${zone(np({ album_offset: kob, line3: "A title the shelf doesn't have" }))}; await polled();
         $("#mt-info").click();
         await until(() => window.__shelfState().mode === "idle" && window.__shelfState().title === "Kind of Blue", 4000);
         out.front = window.__shelfState().title;
         // One that isn't on this shelf.
-        window.__fake["/api/zone-state"] = ${zone(np({ line3: "Not Here", line2: "Nobody" }))}; poll(); await sleep(300);
+        window.__fake["/api/zone-state"] = ${zone(np({ line3: "Not Here", line2: "Nobody" }))}; await polled();
         $("#mt-info").click(); out.missing = $("#toast").textContent;
         return out; })()`);
       assert.ok(Math.abs(r.progress - 20) < 0.5, "60 s of 300: a fifth of the way (" + r.progress + ")");
@@ -595,14 +612,14 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $("#stage").dispatchEvent(new PointerEvent("pointerup", { pointerId: 9, button: 0, clientX: 10, clientY: 10, bubbles: true }));
         out.closedByShelf = !shown("#vol");
         // Steps only.
-        window.__fake["/api/zone-state"] = ${zone(np({}), { type: "incremental", step: 1 })}; poll(); await sleep(300);
+        window.__fake["/api/zone-state"] = ${zone(np({}), { type: "incremental", step: 1 })}; await polled();
         $("#mt-vol-btn").click(); await sleep(50);
         out.incSlider = shown("#vol-slider");
         const before = vols().length;
         $("#vol-plus").click(); await until(() => vols().length > before);
         out.inc = vols().slice(-1)[0];
         // Fixed.
-        window.__fake["/api/zone-state"] = ${zone(np({}), null)}; poll(); await sleep(300);
+        window.__fake["/api/zone-state"] = ${zone(np({}), null)}; await polled();
         out.fixed = $("#mt-vol-btn").disabled; out.fixedClosed = !shown("#vol");
         return out; })()`);
       assert.equal(r.open, true);

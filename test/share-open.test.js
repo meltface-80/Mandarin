@@ -12,6 +12,7 @@
  *  - a wordmark the card doesn't carry, which loadImage(null) turned into a
  *    request for "/null" — the whole app page, on every draw.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -22,7 +23,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const { FakeHousehold } = require("./fake-sonos");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
-const PORT = 3641, B = "http://127.0.0.1:" + PORT;
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -43,8 +44,14 @@ const DRIVER = `(async () => {
   await until(() => !$("album-modal").classList.contains("hidden") && $("album-modal").classList.contains("np-mode"));
   await until(() => $("modal-img") && $("modal-img").complete && $("modal-img").naturalWidth > 0, 15000);
   out.np_art = $("modal-img") ? $("modal-img").getAttribute("src") : null;
+  // The page's own pictures (the tiles behind) loaded first: on a busy machine
+  // they come in late, and one finishing after the click isn't the card's.
   await sleep(300);
-  out.requests.length = 0;
+  let heard = out.requests.length, quietSince = performance.now();
+  await until(() => {
+    if (out.requests.length !== heard) { heard = out.requests.length; quietSince = performance.now(); }
+    return performance.now() - quietSince > 1000;
+  }, 15000);
   const t0 = performance.now();
   // The moment the card lands, to the microtask (a poll would be late by its tick).
   const landed = new Promise(ok => new MutationObserver((m, o) => { const i = $("share-frame").querySelector("img"); if (i) { o.disconnect(); ok({ img: i, at: performance.now() }); } }).observe($("share-frame"), { childList: true, subtree: true }));
@@ -54,6 +61,9 @@ const DRIVER = `(async () => {
   out.card_ms = Math.round(out.card_at - t0);
   await until(() => out.requests.some(r => r.url.startsWith("/api/similar")), 8000);
   await sleep(500);
+  // Only what was asked for once the share was: a request started before it
+  // and answered after isn't the card's.
+  out.requests = out.requests.filter(r => r.at >= t0);
   out.card_src = img ? img.src.slice(0, 5) : null;
   return out;
 })()`;
@@ -63,7 +73,7 @@ test("the share card is drawn from the page's own cover and tile, and the sugges
   const house = new FakeHousehold();
   await house.start();
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: ["127.0.0.11"], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);

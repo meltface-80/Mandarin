@@ -7,7 +7,8 @@
  * if it can't be had, the update stops there with its reason and nothing is
  * staged. (Through the C# server's own fetch, test/csharp-update.test.js.)
  */
-const FAKE = 3679;
+const ports = require("./ports");
+const FAKE = ports.port();
 process.env.UPDATE_API = "http://127.0.0.1:" + FAKE;
 
 const test = require("node:test");

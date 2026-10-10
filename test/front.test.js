@@ -50,6 +50,7 @@
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode).
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -61,7 +62,7 @@ const skip = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going throug
 
 test("which server answers: sign-in, the gate, the page and the library in C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const PORT = 3695, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
@@ -159,7 +160,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
   const META = require("../lib/meta");
-  const port = 3645, B = "http://127.0.0.1:" + port;
+  const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   try {
@@ -187,7 +188,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
 test("v0.8.20: record labels, release days and the taste work handed to C#; the Node server's own never run", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
-  const port = 3650, B = "http://127.0.0.1:" + port;
+  const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   try {
@@ -226,7 +227,7 @@ test("v0.8.20: record labels, release days and the taste work handed to C#; the 
 test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
-  const port = 3652, B = "http://127.0.0.1:" + port;
+  const port = ports.port(), B = "http://127.0.0.1:" + port;
   // Every source a closed port on loopback: asked, and failing at once.
   const closed = "http://127.0.0.1:9";
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
@@ -263,7 +264,7 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
 test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag filter, the album editor and covers answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("../index.js");
-  const port = 3653, B = "http://127.0.0.1:" + port;
+  const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   try {
@@ -335,7 +336,7 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
 
 test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const PORT = 3699, B = "http://127.0.0.1:" + PORT;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false, lastfmKey: "" });
   await srv.start();

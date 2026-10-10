@@ -88,11 +88,11 @@ jobs:
           ffmpeg -version | head -1
       - run: npm ci --no-audit --no-fund
       # The tests' stand-in speakers and hosts live on loopback addresses
-      # besides 127.0.0.1 (test/fake-sonos.js, test/auth.test.js,
-      # test/discovery-robust.test.js, test/update.test.js): Linux answers on
-      # all of 127/8, a Mac on 127.0.0.1 alone until each is added.
+      # besides 127.0.0.1, a block of them for each test file running at once
+      # (test/ports.js): Linux answers on all of 127/8, a Mac on 127.0.0.1
+      # alone until each is added.
       - name: Loopback addresses for the stand-in speakers
-        run: for ip in 127.0.0.11 127.0.0.12 127.0.0.97 127.0.0.99 127.0.0.250; do sudo ifconfig lo0 alias "$ip" up; done
+        run: for ip in $(node test/ports.js --addresses); do sudo ifconfig lo0 alias "$ip" up; done
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -124,10 +124,14 @@ jobs:
           bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
           test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
           echo "fetched, checked and placed; a wrong sum placed nothing"
+      # Two files at once, not package.json's four: GitHub's Mac runners have
+      # three cores, and each file here runs the C# server, the Node server and
+      # often Chromium and ffmpeg; four at once kept the machine so busy that a
+      # different timing-sensitive test lost its race on each run.
       - name: Tests, through the C# server
         env:
           MANDARIN_FRONT: "1"
-        run: npm test
+        run: node --require ./test/setup.js --test --test-concurrency=2 test/*.test.js
 
   docker:
     name: Build image
