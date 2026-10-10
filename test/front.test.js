@@ -49,6 +49,9 @@
  *     test/library-front.test.js in this mode);
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
+ *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
+ *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
+ *     are still passed to it, and test/power.test.js's through-the-server test holds that;
  *   - v0.8.32: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here).
  */

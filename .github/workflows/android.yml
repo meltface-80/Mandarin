@@ -3,7 +3,8 @@ name: Android
 # The APK is built here: GitHub's runners carry the Android SDK, so this is the
 # shortest path from a commit to something installable. Every push produces
 # an artifact, and pushes to main publish the APK into dist/ when versionName
-# changes.
+# changes, once CI has passed on the same commit (v0.8.32): the app goes out
+# with the server's release, never ahead of its tests.
 on:
   push:
     branches: ["**"]
@@ -14,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: read     # to see CI's runs (.github/wait-for-ci.sh)
 
 defaults:
   run:
@@ -62,7 +64,8 @@ jobs:
     name: APK
     runs-on: ubuntu-latest
     needs: [core, engine]
-    timeout-minutes: 40
+    # The build, then the wait for CI before publishing to dist/ (an hour at most).
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -170,6 +173,18 @@ jobs:
       # Without the signing secrets the published APK (a release build) is
       # signed with the committed key: the same every build, so updates
       # install in place.
+      # CI on this commit, passed: every test, the Mac's included (v0.8.32), as
+      # the release and the image wait for it (.github/wait-for-ci.sh). Without
+      # this the app reached phones some 15 minutes before the server it goes
+      # with, and before that version's tests had finished.
+      - name: Wait for CI to pass
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA"
+
       - name: Publish the APK into dist/
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: .
