@@ -42,6 +42,18 @@ on `127.0.0.1` that nothing else can reach, and stops when it stops.
   at most for a version. Until the two match, this server answers nothing but `/server-info` and
   passes everything to the Node server (which has every part), and the Node server keeps the
   background work (`/internal/front/runs` turns down another version). `test/csharp-update.test.js`.
+  - From v0.8.29 the update fetches and checks this program of the new version *before* it stages
+    the Node server's files, and stops with nothing changed if it can't be had (`prepare`,
+    `lib/updater.js` `beforeApply`); the new Node server finds it in place and only asks for the
+    start again. `test/update-prepare.test.js`.
+- **On a Mac** (v0.8.29): built for `osx-arm64` and `osx-x64` on GitHub's Mac runners (signed ad
+  hoc, as macOS needs), carried by each release, and started by launchd in front of the Node server
+  as in the image (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
+  (`Scan/NodeFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
+  suite through it on a Mac runner.
+- **All server work is done here** (the owner's decision, v0.8.29): the Node copies of parts already
+  moved are kept as they are and changed no more, and an area the Node server still owns moves here
+  before it is changed (`docs/specs/csharp-migration.md`, 2.4).
 
 When nothing is passed on any more, the Node server, and Node itself, leave the image.
 
@@ -88,9 +100,9 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 
 ## Building and testing
 
-`./build.sh` builds `server/bin/mandarin-server`: one self-contained file, no .NET needed where it
-runs (needs the .NET 10 SDK to build).
+`./build.sh` builds `server/bin/mandarin-server` for the machine it runs on (Linux or a Mac; `RID=`
+for another): one self-contained file, no .NET needed where it runs (needs the .NET 10 SDK to build).
 
 `MANDARIN_FRONT=1 npm test` runs the whole suite with every test's server behind the C# server, as
-in the image (`test/setup.js`). CI runs it that way on Node 22 and directly on Node 20; both must
-pass. A part moves to C# only when the suite still passes both ways.
+in the image (`test/setup.js`). CI runs it that way on Node 22 and directly on Node 20, and through
+the C# server on a Mac; all must pass. A part moves to C# only when the suite still passes both ways.

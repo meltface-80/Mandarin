@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v0.8.28
+# Mandarin — v0.8.29
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -809,7 +809,8 @@ Intel. The Mac needs to stay on, on the same network as your speakers.
   **On this Mac** is fine; **Choose a folder...** to put it on another drive.
 * **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
 * **Your Desktop folder**, if macOS asks: **Allow**, so the Mandarin icon can go on the desktop.
-* **Allow** if macOS asks to let **node** find devices on your network or open your files.
+* **Allow** if macOS asks to let **mandarin-server** find devices on your network or open your
+  files. Mandarin needs both to reach your speakers and read your music.
 
 **4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
 log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`). Add more
@@ -820,7 +821,18 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 **File → Add to Dock**. It opens like an app, for choosing music and playing it on your speakers.
 
 **On a Mac:**
-* **Updates** come from the app, as on Linux (Settings → **Updates**).
+* **Mandarin's C# server** runs in front, as in the Docker image: it's what starts when you log in,
+  and it starts the rest (v0.8.29). New server features come in it.
+  * **Installed before v0.8.29?** Paste the install line once more, at the Mac, so you're there to
+    click **Allow** when macOS asks about **mandarin-server**. Until you do, Settings says so, and
+    the Mac carries on as it was, without the new server features.
+  * The C# server comes from the release of the version you have. If you haven't updated in a
+    while, update in Settings first, then paste the line.
+  * To keep the Node server alone, as before v0.8.29:
+    `MANDARIN_NODE_ONLY=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"`
+* **Updates** come from the app, as on Linux (Settings → **Updates**). An update brings both
+  servers together: if the C# server of the new version can't be had, the update stops and says
+  why, with nothing changed.
 * **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
   **Shut down** stops Mandarin; double-click
   **Mandarin** on the desktop (or in your Applications folder) to start it again. It also starts

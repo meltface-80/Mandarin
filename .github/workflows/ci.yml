@@ -66,6 +66,69 @@ jobs:
           MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
         run: npm test
 
+  # A Mac (v0.8.29): the C# server built for it and the whole suite through
+  # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
+  # silicon; ffmpeg from Homebrew, as the installer has it.
+  macos:
+    name: Tests on a Mac
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install ffmpeg
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install ffmpeg
+          ffmpeg -version | head -1
+      - run: npm ci --no-audit --no-fund
+      # The tests' stand-in speakers and hosts live on loopback addresses
+      # besides 127.0.0.1 (test/fake-sonos.js, test/auth.test.js,
+      # test/discovery-robust.test.js, test/update.test.js): Linux answers on
+      # all of 127/8, a Mac on 127.0.0.1 alone until each is added.
+      - name: Loopback addresses for the stand-in speakers
+        run: for ip in 127.0.0.11 127.0.0.12 127.0.0.97 127.0.0.99 127.0.0.250; do sudo ifconfig lo0 alias "$ip" up; done
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the C# server
+        run: |
+          ./server/build.sh
+          codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      # The installer's own step (tools/mac/install.sh fetch_server), on a Mac:
+      # this build served as a release, fetched, checked, signed and placed;
+      # and with a sum that doesn't match, nothing placed.
+      - name: The installer fetches the Mac's C# server
+        run: |
+          set -e
+          v=$(node -p "require('./package.json').version")
+          rid=osx-$(uname -m | sed 's/x86_64/x64/')
+          rel="$RUNNER_TEMP/release"
+          mkdir -p "$rel/v$v" "$rel/v0.0.1"
+          gzip -9 -c server/bin/mandarin-server > "$rel/v$v/mandarin-server-$rid.gz"
+          (cd "$rel/v$v" && shasum -a 256 "mandarin-server-$rid.gz" > mandarin-server.sha256)
+          cp "$rel/v$v/mandarin-server-$rid.gz" "$rel/v0.0.1/"
+          echo "$(printf '0%.0s' $(seq 64))  mandarin-server-$rid.gz" > "$rel/v0.0.1/mandarin-server.sha256"
+          python3 -m http.server 8799 --bind 127.0.0.1 --directory "$rel" >/dev/null 2>&1 &
+          served=$!
+          trap 'kill $served 2>/dev/null' EXIT
+          sleep 2
+          export MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_RELEASES=http://127.0.0.1:8799
+          bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -n "$SERVER"; test "$("$SERVER" --version)" = "$2"; codesign --verify "$SERVER"' _ "$RUNNER_TEMP/app" "$v"
+          test "$(cat "$RUNNER_TEMP/app/server/bin/mandarin-server.version")" = "$v"
+          bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
+          test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
+          echo "fetched, checked and placed; a wrong sum placed nothing"
+      - name: Tests, through the C# server
+        env:
+          MANDARIN_FRONT: "1"
+        run: npm test
+
   docker:
     name: Build image
     runs-on: ubuntu-latest

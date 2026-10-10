@@ -26,7 +26,9 @@ const CANDIDATES = [
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
-  "/usr/bin/chromium-browser"
+  "/usr/bin/chromium-browser",
+  // A Mac's (GitHub's Mac runners have it; v0.8.29).
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ];
 
 /* The browser to use, or null. */

@@ -6,7 +6,9 @@
 # Mandarin's C# server too, for each platform the image is built for
 # (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
-# fetches the one for its machine (lib/server/csharp-update.js).
+# fetches the one for its machine (lib/server/csharp-update.js). From v0.8.29
+# it carries the Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz), built
+# on a Mac so that macOS will run them, for the Mac installer and its updates.
 name: Release
 
 on:
@@ -22,7 +24,46 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Mandarin's C# server for Macs (v0.8.29), Apple silicon and Intel: built on
+  # a Mac, where the SDK signs it (ad hoc, as macOS needs to run anything),
+  # signed here if it wasn't, and each asked its version where it can run.
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the C# server for Macs
+        run: |
+          set -e
+          v=$(node -p "require('./package.json').version")
+          mkdir -p out/csharp
+          for rid in osx-arm64 osx-x64; do
+            RID=$rid ./server/build.sh
+            b="server/bin/$rid/mandarin-server"
+            codesign --verify "$b" || codesign --force --sign - "$b"
+            codesign --verify "$b"
+            gzip -9 -c "$b" > "out/csharp/mandarin-server-$rid.gz"
+          done
+          test "$(server/bin/osx-arm64/mandarin-server --version)" = "$v"
+          if arch -x86_64 /usr/bin/true 2>/dev/null; then
+            test "$(arch -x86_64 server/bin/osx-x64/mandarin-server --version)" = "$v"
+          else
+            echo "No Rosetta on this runner: the Intel build is signed but not run"
+          fi
+          ls -la out/csharp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: csharp-macos
+          path: out/csharp/
+          retention-days: 7
+
   release:
+    needs: macos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +141,14 @@ jobs:
             echo "bundle=false" >> "$GITHUB_OUTPUT"
             echo "csharp=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # The Mac's, built in the job above (v0.8.29), beside the Linux ones
+      # before the sums are made, so one sums file covers every build.
+      - uses: actions/download-artifact@v4
+        if: steps.v.outputs.csharp == 'false'
+        with:
+          name: csharp-macos
+          path: out/csharp
 
       # Mandarin's C# server for in-app updates (v0.8.25): built as the image
       # builds it (self-contained, one file) for both of the image's platforms,

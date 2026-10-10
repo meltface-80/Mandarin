@@ -15,7 +15,14 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Mandarin.Server;
+
+// On a Mac (v0.8.29) the C library is libSystem: what this program imports as
+// "libc" (the scan's file system, starting itself again, the pack's checks).
+if (OperatingSystem.IsMacOS())
+    NativeLibrary.SetDllImportResolver(typeof(Front).Assembly, (name, _, _) =>
+        name == "libc" ? NativeLibrary.Load("/usr/lib/libSystem.B.dylib") : IntPtr.Zero);
 
 var version = (typeof(Front).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
 Front.Version = version;

@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); nothing else is, apart from Shelf's page (v0.8.28, below). It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -84,6 +84,14 @@ What this means:
 **Proposal: stage 0** (below): the C# server delivered with every in-app update, and a rule for
 when the two don't match.
 
+**Built in v0.8.25, and closed in v0.8.29.** Stage 0 fetched the C# server *after* the update had
+put the Node server's files in place, so the two ran mismatched (everything passed to Node) for a
+minute or two, or for hours, or for good when GitHub couldn't be reached. From v0.8.29 the update
+fetches and checks the C# server of the new version first (`prepare` in `csharp-update.js`, called
+by `lib/updater.js` before it stages anything), and stops with nothing changed if it can't be had.
+The new Node server then finds it in place and only starts it again. That is what lets a part exist
+in C# alone (2.4).
+
 ### 2.2 Macs run the Node server alone
 
 `tools/mac/install.sh` installs Node and runs `node launcher.js` from a launchd agent. There is no
@@ -103,6 +111,33 @@ would place nothing), the Mac's sound devices (they play
 through `lib/local/output.js` and Core Audio, while the C# audio engine is ALSA only), and built-in
 Tailscale (Linux only today). This could come as part of stage 0, or straight after.
 
+**Decided, and built in v0.8.29.** As built:
+
+- **Release:** `mandarin-server-osx-arm64.gz` and `-osx-x64.gz`, built on GitHub's Mac runners (the
+  SDK signs them ad hoc there, which macOS needs to run anything), each asked its version, in the
+  same sums file as the Linux ones.
+- **Installer:** `tools/mac/install.sh` fetches the build for the version installed (an install
+  updated from Settings is newer than its download), checks its sum and signature, and makes
+  `mandarin-server` what launchd starts, with `NODE_BIN` and `MANDARIN_APP_DIR`. A Mac installed
+  earlier moves by running the line again, at the Mac (the owner's choice), so someone is there to
+  allow **mandarin-server** onto the network; until then Settings says so. `MANDARIN_NODE_ONLY=1`
+  keeps the Node server alone.
+- **Updates:** `csharp-update.js` fetches the Mac's build on a Mac and signs it again if its
+  signature didn't come through.
+- **What differed on a Mac:**
+  - the scan's file system calls (`Scan/NodeFs.cs`): macOS lays out directory entries and `stat`
+    otherwise, has no `statx`, names the 64-bit-inode forms `$INODE64` on Intel, and numbers some
+    errors differently;
+  - "libc" is libSystem (`Program.cs`);
+  - `Cpu.cs` uses `nice` there, as `lib/cpu.js` does (no core split on a Mac).
+  - Sound devices stay the Node server's (Core Audio through ffmpeg) until stage 6; Tailscale stays
+    Linux only, as in Node.
+- **Tested:** CI runs the whole suite through the C# server on a Mac runner, so the scan is held to
+  the Node server's there (`test/scan-csharp.test.js`), and so is everything else.
+  - **There is no Mac to try it on by hand** (the owner's answer). The installer, macOS's
+    permission prompts, Sonos on a real network, and whether macOS asks again after a C# update (an
+    ad hoc signature changes with every build) are untested until a Mac owner tries them.
+
 ### 2.3 One move at a time
 
 Two accounts moving parts at once will collide. Every move edits the same files: the table in
@@ -112,6 +147,9 @@ the CHANGELOG, and the version (both would call theirs 0.8.25). Proposed:
 - **Each stage has one owner.** Two accounts can work at once only on stages that don't touch the
   same area, and the second to merge takes the next version number and brings `main` in first.
 - **Each branch starts from the latest `main`**, and nothing is stacked on an unmerged branch.
+- **Each build has its own branch, named for its version** (the owner's rule from v0.8.30): `v0.8.30`,
+  `v0.8.31`, … New work never goes onto a branch whose build is already up for merging; a fix to
+  that build does.
 - **`replaygain-fix` merged before anything else**: it changes `Identify/Loudness.cs`,
   `Identify/Identifier.cs` and `Jobs.cs`.
 
@@ -123,6 +161,22 @@ reference the C# code is held to. Proposed rule: **the Node copy of an area is d
 install runs the C# server (2.2), the C# server updates in place (2.1), and one release has gone
 out with the C# side as the only one used.** Then the Node-alone run in CI goes too. Until then,
 both copies are kept and both are tested.
+
+**Decided by the owner (v0.8.29): no more work done twice.** With the C# server on Macs (2.2) and
+updates bringing both servers together (2.1):
+
+- **New server work is done in C# only.** A new route, field or rule goes into the C# server.
+- **The Node copies of parts already moved are frozen,** not deleted: they stay as they are for a
+  Mac kept on Node alone (`MANDARIN_NODE_ONLY=1`), and for a C# server that hasn't started. A Mac
+  on Node alone keeps what it has and gets no new server features.
+- **No work in the Node server at all** (the owner's rule, made firmer after v0.8.29). Not even in
+  what Node still owns (playback, the updater, Qobuz and Tidal, the conversions it makes): an area
+  that needs changing moves to C# first, and is changed there. v0.8.29's change to the updater was
+  the last made in Node. The pages stay HTML, CSS and JavaScript (browsers run nothing else), and
+  the tests stay in JavaScript (stage 7).
+- **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as
+  `test/front.test.js` does). The Node-alone run in CI keeps testing what Node still owns.
+- Deleting the frozen copies follows the rule above.
 
 ---
 
@@ -323,12 +377,13 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
 ## 6. For the owner to decide
 
 1. ~~**Stage 0 first?**~~ Decided: yes, and built in v0.8.25.
-2. **Macs:** build the C# server for macOS and run it there (2.2), or keep Macs on Node for
-   longer (and so keep both copies of everything for longer)?
+2. ~~**Macs:**~~ Decided: the C# server built for macOS and run there (2.2), built in v0.8.29;
+   existing Macs move by running the install line again.
 3. **Who does what:** which account takes which stage; one stage in flight per account (2.3).
 4. **Playback:** the whole hub behind a switch (recommended), or the read-only state first and
    then each kind of player?
-5. **When the Node copies go:** the rule in 2.4, or another?
+5. **When the Node copies go:** the rule in 2.4, or another? Decided meanwhile: no more work done
+   twice; new server work is C# only (2.4).
 6. **Covers:** ffmpeg as now, or an image library for what `sharp` still draws (1f)?
 7. **The tag reader:** keep using C#'s only where the check has passed, until stage 7 (as now), or
    make it the only one sooner?
