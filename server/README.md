@@ -98,6 +98,7 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Headphone profiles from AutoEq: the index fetched once a day and searched, a profile fetched once and kept, one pasted by hand read (`Extras/AutoEq.cs`, `DspRoutes.cs`) | C# (v0.8.26), held to the Node server's reading of AutoEq's files (`mandarin-server score`); saving a profile to a device (Audio Devices) still Node's |
 | The processor shared out: this server's threads and conversions kept off playback's cores (`Cpu.cs`) | C# (v0.8.13); the split is decided by the Node server (`lib/cpu.js`) and told with the library's state |
 | Restart and Shut down (the side menu's power button), what this install can do, and the processor split for Settings → Library Scanner (`PowerRoutes.cs`) | C# (v0.8.31), where this server started the Node server (an install). Restart starts both again, this one in its same process as after an update; Shut down stops both (on a Mac the login item is unloaded; not in Docker). The split is still decided by the Node server until playback moves |
+| An album's booklets: the PDFs in its folder, and their pages drawn as pictures for the album page's book button (`Booklets.cs`, `BookletRoutes.cs`; poppler's pdfinfo and pdftoppm) | C# alone (v0.8.33): new with this server, the Node server has none |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
 | Everything else | Node, behind the C# server |
 
