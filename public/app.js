@@ -7143,13 +7143,58 @@ window.__afterStart = (fn) => {
     }
   }
 
-  async function loadQueue() {
+  // The queue as last shown (v0.8.35): while it is asked for again, that one
+  // stays on screen and the fresh one replaces it once it comes — the list is
+  // never emptied to wait. Only a zone not yet shown says "Loading queue…".
+  let queueView = null;     // { zoneId, items, history }
+  let queueLoads = 0;       // the latest load: an earlier one that answers after it is dropped
+  // [expectFirst]: a track just played from here. Until the room's own queue
+  // has it as "Now playing", the screen keeps it so (asked again three times,
+  // then the room's word is taken).
+  async function loadQueue(opts = {}) {
     const zoneId = queueZoneId();
     if (!zoneId) return;
+    const seq = ++queueLoads;
     const summary = document.getElementById("queue-summary");
     const list    = document.getElementById("queue-list");
     const empty   = document.getElementById("queue-empty");
-    summary.textContent = "Loading queue…";
+    if (!queueView || queueView.zoneId !== zoneId) {
+      queueView = null;
+      summary.textContent = "Loading queue…";
+      list.innerHTML = "";
+      empty.classList.add("hidden");
+    }
+    try {
+      const r = await fetch(`/api/queue?zone=${encodeURIComponent(zoneId)}`);
+      const j = await r.json();
+      if (seq !== queueLoads || zoneId !== queueZoneId()) return;
+      const view = { zoneId, items: j.items || [], history: Array.isArray(j.history) ? j.history : [] };
+      const tries = opts.tries || 0;
+      if (opts.expectFirst != null && (view.items[0] || {}).queue_item_id !== opts.expectFirst && tries < 3) {
+        setTimeout(() => { if (seq === queueLoads) loadQueue({ expectFirst: opts.expectFirst, tries: tries + 1 }); }, 700);
+        return;
+      }
+      renderQueue(view);
+    } catch (e) {
+      if (seq !== queueLoads) return;
+      if (!queueView) summary.textContent = "Couldn't load queue: " + e.message;
+    }
+  }
+  // The queue once a track further down plays from here: the ones above it
+  // played (newest first, as the server sends them), it "Now playing".
+  function playedFrom(view, k) {
+    const played = view.items.slice(0, k).reverse().map(x => ({
+      track: x.title, artist: x.subtitle, album: x.album, image_key: x.image_key,
+      duration: x.length || 0, elapsed: x.length || 0, played: true, queue_item_id: x.queue_item_id
+    }));
+    return { zoneId: view.zoneId, items: view.items.slice(k), history: played.concat(view.history) };
+  }
+  function renderQueue(view) {
+    queueView = view;
+    const summary = document.getElementById("queue-summary");
+    const list    = document.getElementById("queue-list");
+    const empty   = document.getElementById("queue-empty");
+    summary.textContent = "";
     list.innerHTML = "";
     // The rows about to be discarded are the ones the picks point at, so the
     // selection goes with them. Select MODE goes too: leaving it on with an
@@ -7160,10 +7205,8 @@ window.__afterStart = (fn) => {
     queueSelected = [];
     empty.classList.add("hidden");
     try {
-      const r = await fetch(`/api/queue?zone=${encodeURIComponent(zoneId)}`);
-      const j = await r.json();
-      const items = j.items || [];
-      const history = Array.isArray(j.history) ? j.history : [];
+      const items = view.items;
+      const history = view.history;
       // Only truly empty when there is nothing either side of the divider. A
       // queue that has run out but played twenty tracks is not an empty screen.
       if (!items.length && !history.length) {
@@ -7295,6 +7338,9 @@ window.__afterStart = (fn) => {
             // back up. An in-page sheet cannot be resolved by backgrounding.
             if (!await confirmDialog(`Play from "${trackName}"?`)) return;
             const epochAtSend = hiddenEpoch;
+            // "Now playing" moves to it at once (v0.8.35); the room's own queue is asked for after.
+            const at = queueView ? queueView.items.indexOf(it) : -1;
+            if (at > 0) renderQueue(playedFrom(queueView, at));
             try {
               const r = await fetch("/api/play-from-here", {
                 method: "POST",
@@ -7310,11 +7356,11 @@ window.__afterStart = (fn) => {
               if (!r.ok) {
                 const j = await r.json().catch(() => ({}));
                 showToast("Couldn't play from here: " + (j.error || `HTTP ${r.status}`), "error");
+                loadQueue();
                 return;
               }
-              // Give Roon a moment, then re-pull the queue so the "now playing"
-              // marker moves and earlier-played tracks fall away.
-              setTimeout(loadQueue, 600);
+              // The room's own queue, now it has moved: the server answers once it has.
+              loadQueue({ expectFirst: it.queue_item_id });
             } catch (e) {
               // Backgrounded mid-flight. iOS killed the connection and handed
               // us the rejection on reopen, so this is not a failure the user
@@ -7324,6 +7370,7 @@ window.__afterStart = (fn) => {
               // about a tap made minutes ago.
               if (hiddenEpoch !== epochAtSend) { loadQueue(); return; }
               showToast("Couldn't play from here: " + e.message, "error");
+              loadQueue();
             }
           });
         }
@@ -7332,7 +7379,7 @@ window.__afterStart = (fn) => {
       }
       paintQueueSelection();
     } catch (e) {
-      summary.textContent = "Couldn't load queue: " + e.message;
+      summary.textContent = "Couldn't show the queue: " + e.message;
     }
   }
   // The picks played now (moved to after the track playing and the first of

@@ -47,6 +47,13 @@ class Room {
   }
   setPos(s) { this.position = s; this.at = Date.now(); }
 
+  /* The queue's UpdateID: a number of its content (never 0), as a speaker moves its own on every change. */
+  queueUpdateId() {
+    let h = 2166136261;
+    for (const q of this.queue) for (const ch of q.uri + "\n" + q.meta) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    return (h % 2147483646) + 1;
+  }
+
   current() {
     if (this.currentUri.startsWith("x-rincon-queue:")) return this.queue[this.track - 1] || null;
     return null;
@@ -144,10 +151,17 @@ class Room {
       case "GetMute": return { CurrentMute: this.muted ? "1" : "0" };
       case "SetMute": this.muted = a.DesiredMute === "1" || a.DesiredMute === "true"; return {};
       case "Browse": {
-        const items = this.queue.map((q, i) => q.meta.replace(/<item id="[^"]*"/, `<item id="Q:0/${i + 1}"`)
+        // As a speaker answers: the part asked for (StartingIndex, RequestedCount), and the
+        // queue's UpdateID, which moves whenever the queue does (here: its content's own number,
+        // so a test that changes room.queue itself moves it too).
+        const from = Number(a.StartingIndex) || 0, count = Number(a.RequestedCount) || this.queue.length;
+        const part = this.queue.slice(from, from + count);
+        const items = part.map((q, i) => q.meta.replace(/<item id="[^"]*"/, `<item id="Q:0/${from + i + 1}"`)
           .replace(/^<DIDL-Lite[^>]*>/, "").replace(/<\/DIDL-Lite>$/, ""));
         const didl = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">' + items.join("") + "</DIDL-Lite>";
-        return { Result: didl, NumberReturned: String(this.queue.length), TotalMatches: String(this.queue.length), UpdateID: "1" };
+        this.browses = (this.browses || 0) + 1;
+        this.browsed = (this.browsed || 0) + part.length;
+        return { Result: didl, NumberReturned: String(part.length), TotalMatches: String(this.queue.length), UpdateID: String(this.queueUpdateId()) };
       }
       default: throw 401;
     }
