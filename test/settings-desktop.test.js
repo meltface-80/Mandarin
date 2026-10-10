@@ -19,22 +19,26 @@ const B = "http://127.0.0.1:" + PORT;
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  // A step's wait, and then until what it set moving has stopped: the sheet
+  // slides in, a page slides over; on a busy machine they finish later.
+  const moving = () => document.getAnimations().some(x => x.playState === "running" && x.effect && x.effect.getComputedTiming().endTime !== Infinity);
+  const step = async (ms) => { await sleep(ms); await until(() => !moving()); };
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   const sheet = () => document.querySelector("#settings-overlay > .settings-sheet");
   const width = () => Math.round(sheet().getBoundingClientRect().width);
   const out = { vw: innerWidth };
-  document.getElementById("menu-toggle").click(); await sleep(400);
+  document.getElementById("menu-toggle").click(); await step(400);
   out.menu = Math.round(document.querySelector(".menu-drawer").getBoundingClientRect().width);
-  document.querySelector(".menu-backdrop").click(); await sleep(400);
-  document.getElementById("settings-toggle").click(); await sleep(400);
+  document.querySelector(".menu-backdrop").click(); await step(400);
+  document.getElementById("settings-toggle").click(); await step(400);
   out.list = { w: width(), left: Math.round(sheet().getBoundingClientRect().left) };
   // Settings' × and every page's ‹: the brass disc the top bar's buttons have, at their size (v0.7.1).
   const disc = el => { const r = el.getBoundingClientRect(); const c = getComputedStyle(el); return { w: Math.round(r.width), h: Math.round(r.height), bg: c.backgroundColor, radius: c.borderRadius }; };
   out.bar_disc = disc(document.getElementById("menu-toggle"));
   out.close_disc = disc(document.querySelector("#settings-overlay .settings-app-close"));
-  document.querySelector('#settings-overlay .settings-nav-item[data-pane="account"]').click(); await sleep(300);
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="account"]').click(); await step(300);
   out.back_disc = disc(document.querySelector('#settings-overlay .settings-pane:not(.hidden) .settings-back'));
-  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
   out.panes = {};
   // The list's order (v0.6.21), and Setup's.
   const titles = sel => [...document.querySelectorAll(sel + ' .settings-nav-item:not(.hidden) .settings-nav-title')].map(t => t.textContent);
@@ -42,27 +46,27 @@ const DRIVER = `(async () => {
   out.setup_order = titles('#settings-overlay .settings-pane[data-pane="setup"]');
   const SETUP = ["ui", "homescreen"];
   for (const p of ["ui", "identify", "homescreen", "system"]) {
-    if (SETUP.includes(p)) { document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await sleep(300); }
-    document.querySelector('#settings-overlay .settings-nav-item[data-pane="' + p + '"]').click(); await sleep(500);
+    if (SETUP.includes(p)) { document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await step(300); }
+    document.querySelector('#settings-overlay .settings-nav-item[data-pane="' + p + '"]').click(); await step(500);
     out.panes[p] = { w: width(), overflow: sheet().scrollWidth > sheet().clientWidth + 1 };
-    document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
+    document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
     if (SETUP.includes(p)) {
       // Back from one of Setup's pages is Setup, then the list.
       out["back_from_" + p] = !document.querySelector('#settings-overlay .settings-pane[data-pane="setup"]').classList.contains("hidden");
-      document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
+      document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
     }
   }
   out.back_to_list = width();
   // +75% and +100% text: offered on a desktop only, and +50% anywhere else.
-  document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await sleep(200);
-  document.querySelector('#settings-overlay .settings-nav-item[data-pane="ui"]').click(); await sleep(300);
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await step(200);
+  document.querySelector('#settings-overlay .settings-nav-item[data-pane="ui"]').click(); await step(300);
   out.text_options = [...document.querySelectorAll("#ui-text-select option")].filter(o => !o.hidden).map(o => o.textContent);
   window.__uiPrefs.set("text", "2");
   out.text_2 = window.__uiPrefs.get("text");
   window.__uiPrefs.set("text", "1");
-  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
-  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
-  document.querySelector("#settings-overlay .settings-backdrop").click(); await sleep(300);
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
+  document.querySelector("#settings-overlay .settings-backdrop").click(); await step(300);
   out.closed = document.getElementById("settings-overlay").classList.contains("hidden");
   return out;
 })()`;
