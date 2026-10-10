@@ -4,9 +4,10 @@
  * v1.9.7 in v0.8.27):
  *   - lib/shelf.js: the letter an artist is filed under, the list in artist
  *     order with each album's genres and year, the signature;
- *   - /api/shelf/albums: the whole library, and "the same" for a signature
- *     still current (the C# server's answer is held to this one in
- *     test/library-front.test.js);
+ *   - /api/shelf/albums: the whole library with Mandarin's version, and "the
+ *     same" for a signature still current (the C# server's answer is held to
+ *     this one in test/library-front.test.js; the page and the list are C#'s,
+ *     test/front.test.js);
  *   - the page in a real browser, against the real server and a fake Sonos
  *     household: no pinch zoom, the gesture legend gone and said once in a
  *     first-use popup instead, the remote's transport bar fixed and flat at
@@ -80,10 +81,11 @@ function library() {
   return lib;
 }
 
-// Before the page's own scripts: every POST written down, and any address
-// answered with a stand-in (window.__fake) or refused (window.__fail).
+// Before the page's own scripts: every POST written down, which server
+// answered each request (window.__by), and any address answered with a
+// stand-in (window.__fake) or refused (window.__fail).
 const INIT = `(() => {
-  window.__log = []; window.__fake = {}; window.__fail = {};
+  window.__log = []; window.__fake = {}; window.__fail = {}; window.__by = [];
   const real = window.fetch.bind(window);
   const json = (body, status) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   window.fetch = async (input, init) => {
@@ -91,7 +93,9 @@ const INIT = `(() => {
     if (init && init.method === "POST") window.__log.push({ path: url.pathname, body: init.body ? JSON.parse(init.body) : null });
     if (window.__fail[url.pathname]) return json({ error: "Refused: " + url.pathname }, window.__fail[url.pathname]);
     if (window.__fake[url.pathname]) return json(window.__fake[url.pathname], 200);
-    return real(input, init);
+    const r = await real(input, init);
+    window.__by.push(url.pathname + " " + (r.headers.get("x-mandarin-answered") || "Node"));
+    return r;
   };
 })();`;
 
@@ -151,6 +155,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         "M Miles Davis", "N Nina Simone", "V Various Artists"]);
       assert.deepEqual(j.genres.map(g => g.name + " " + g.count), ["Jazz 3", "Rock 3", "Electronic 2", "Dance 1"]);
       assert.deepEqual(j.albums.map(a => a.y), [2007, 1975, 1997, 2020, 1969, 1997, 2001, 1959, 1965, null], "each album's year, null for none");
+      assert.equal(j.version, VERSION, "Mandarin's version, for the help popup");
       assert.deepEqual(await (await fetch(B + "/api/shelf/albums?sig=" + j.sig, { headers: H })).json(), { same: true, sig: j.sig });
       const page = await fetch(B + "/shelf", { headers: H });
       assert.equal(page.status, 200);
@@ -627,6 +632,29 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(await again.eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), false, "still folded");
       await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick); await sleep(300); return true; })()`);
       assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
+    });
+
+    // v0.8.28: through the C# server, the page asks the Node server for playback and nothing else.
+    // Playback (the rooms, their queues, the transport) is the Node server's until stage 6.
+    await t.test("through the C# server: only playback is asked of the Node server", { skip: process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server" }, async () => {
+      const PLAYBACK = ["/api/zones", "/api/zone-state", "/api/queue", "/api/control", "/api/play", "/api/play-track", "/api/play-from-here", "/api/volume"];
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        $('.tab[data-tab="year"]').click(); tile("year", "1990s").click();
+        await until(() => S().N === 2 && S().mode === "idle"); await sleep(300);
+        await turnOver();
+        $("#queue-tab").click(); await until(() => document.querySelectorAll("#q-list li").length, 6000);
+        $("#queue-tab").click();
+        $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
+        return [...new Set(window.__by)].sort(); })()`);
+      const node = r.filter(x => x.endsWith(" Node")).map(x => x.slice(0, -5));
+      const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
+      assert.deepEqual(node.filter(p => !PLAYBACK.includes(p)), [], "nothing but playback from the Node server: " + JSON.stringify(r));
+      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display"]) assert.ok(csharp.includes(p), p + " answered by C#: " + JSON.stringify(r));
+      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(node.includes(p), p + " asked, and still the Node server's: " + JSON.stringify(r));
+      const shelfPage = await fetch(B + "/shelf", { headers: H });
+      assert.equal(shelfPage.headers.get("x-mandarin-answered"), "C#", "the page itself");
+      assert.deepEqual(page.errors, []);
     });
 
     await t.test("the wall display offers Shelf, and Shelf the wall display while it is on", async () => {

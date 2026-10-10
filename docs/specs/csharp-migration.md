@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); nothing else is. It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), and stage 1's parts a to c (v0.8.26); nothing else is, apart from Shelf's page (v0.8.28, below). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -57,7 +57,7 @@ write-ups, sharing, the album editor, backups and built-in Tailscale.
 | **Covers Node still draws** with `sharp`: an album with no cover, CMYK or colour-profiled pictures, outside pictures (`u-` keys: Last.fm, stations, a Sonos queue's art), a speaker asking by its own address | in `/api/image/` | `lib/library/artwork.js` 268 | the web (outside pictures) | Medium |
 | **Last.fm**: similar artists and albums, the key | 4 | `lib/lastfm.js`, `api-lastfm.js` 430 | ws.audioscrobbler.com | Small |
 | **The tag check**: the C# tag reader checked against music-metadata, file by file | 2 | `lib/library/tagcheck*.js` 510 | none | Stays until Node leaves (see 4.7) |
-| **What Node itself is for**: pages `/login`, `/display`, `/shelf` and deep links, `/api/health`, the speakers' event callbacks (`NOTIFY /upnp/event`), the database's tables and migrations, the launcher | — | `index.js` 771, `lib/library/db.js` 483 | — | Last |
+| **What Node itself is for**: pages `/login`, `/display` and deep links (`/shelf` C#'s since v0.8.28), `/api/health`, the speakers' event callbacks (`NOTIFY /upnp/event`), the database's tables and migrations, the launcher | — | `index.js` 771, `lib/library/db.js` 483 | — | Last |
 
 ---
 
@@ -281,8 +281,9 @@ remove.
 
 ### Stage 7: Node leaves (M to L)
 
-- **The last routes:** `/login`, `/display`, `/shelf`, deep links, `/api/health`, the event
-  callbacks.
+- **The last routes:** `/login`, `/display`, deep links, `/api/health`, the event callbacks.
+  (`/shelf` moved in v0.8.28: Shelf now asks the Node server only for playback, which moves in
+  stage 6, with play-track's `only` and the room's `queue_items_remaining` that v0.8.27 added.)
 - **The database's tables and migrations** move to C#. Today `lib/library/db.js` and the
   `Features` constructor create every table; C# creates none.
 - **The updater and launcher** move to C#, and the C# tag reader is used everywhere.
@@ -370,8 +371,8 @@ and `/api/image/`).
 - **Streams and pictures C# passes on:** `/stream/` with `?g=` or `?o=`, 32-bit, a Qobuz or Tidal
   track, or an unsigned request from a speaker; `/api/image/` for an album with no cover, a
   picture only `sharp` reads well, or an outside picture
-- **Node's own:** `NOTIFY /upnp/event/:id`, `GET /api/health`, `/login`, `/display`, `/shelf`, and
-  every deep link
+- **Node's own:** `NOTIFY /upnp/event/:id`, `GET /api/health`, `/login`, `/display`, and every deep
+  link (`/shelf` C#'s since v0.8.28)
 
 ## Appendix B: corrections found while surveying
 

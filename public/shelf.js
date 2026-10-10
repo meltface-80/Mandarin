@@ -1897,8 +1897,10 @@
         const j = await jget("/api/shelf/albums" + (ready && libSig ? "?sig=" + encodeURIComponent(libSig) : ""));
         retryMs = 5000;
         // Nothing the shelf shows has changed (the library may have, in ways
-        // it doesn't show: a year, a heart): nothing to redraw.
+        // it doesn't show: a heart, a play): nothing to redraw.
         if (j.same) return;
+        // Mandarin's version comes with the list: the help is due after an update.
+        if (!ready) maybeShowHelp(String(j.version || ""));
         // Choices are kept by NAME: the genre list is ordered by count, so a
         // genre can sit at another place in the new one.
         const namesChosen = new Map([...sel.genre].map((i) => [i, genres[i] ? genres[i].name : null]));
@@ -1970,11 +1972,11 @@
     catch (e) { return {}; }   // unreadable: as if never shown
   }
   let helpVersion = "";
-  async function maybeShowHelp() {
+  // Asked once, when the library first arrives: its answer says Mandarin's version.
+  function maybeShowHelp(version) {
     const saved = helpSaved();
     if (saved.never) return;
-    try { helpVersion = String((await jget("/api/update/status")).current || ""); }
-    catch (e) { helpVersion = ""; /* unknown: shown once until a version can be read */ }
+    helpVersion = version;   // "" if unknown: shown once until a version can be read
     // Shown when it never has been, or when the version it was last dismissed
     // at is not this one. An unknown version never re-shows a dismissed help.
     if ("seen" in saved && (saved.seen === helpVersion || !helpVersion)) return;
@@ -2005,7 +2007,6 @@
   layout();
   loadLibrary();
   checkWall();
-  maybeShowHelp();
   setInterval(() => { if (!document.hidden) pollNowPlaying(); }, 4000);
   setInterval(checkLive, 30000);
   // Coming back to a hidden page is a touch: its clock is however long it was away.
