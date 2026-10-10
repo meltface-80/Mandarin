@@ -39,11 +39,15 @@ test("rooms come back straight after a restart, and 'searching' covers the gap",
 
   let srv = null;
   try {
-    // First run: told where one speaker is.
+    // First run: told where one speaker is. The speakers hold their answers
+    // until the status has been read, so a start slowed by other tests running
+    // alongside can't have read the rooms already.
     srv = createServer(Object.assign({}, cfg, { sonosHosts: [ports.host(0)] }));
+    house.hold();
     await srv.start();
     auth = { Authorization: "Bearer " + await signIn(B) };
     const first = await status();
+    house.release();
     assert.equal(first.sonos.searching, true, "looking, not 'no rooms', right after start");
     await until(async () => (await status()).sonos.rooms === 2, 10000);
     assert.equal((await status()).sonos.searching, false);
