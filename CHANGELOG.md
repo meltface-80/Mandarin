@@ -6,9 +6,9 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.8.37
-Stage 2a of the move to C#: the logic Sonos playback runs on, written in C# and held to the Node
-server's answers. Nothing that runs changes: the C# copies are used only by the tests until playback
-moves (stage 6).
+Stage 2a of the move to C#: the logic Sonos and other players are driven by, written in C# and held
+to the Node server's answers. Nothing that runs changes: the C# copies are used only by the tests
+until playback moves (stage 6).
 
 - **The Sonos logic in C#** (`server/Mandarin.Server/Playback/`): XML read as the Node server reads
   it (`lib/xml.js`, broken documents included), DIDL-Lite built byte for byte and read back, the
@@ -18,6 +18,15 @@ moves (stage 6).
   - **Tests:** `test/sonos-csharp.test.js` asks both servers about 11,700 cases and needs the same
     answers, key order included: what the repo's fake speakers and real players send, awkward cases
     by hand, and seeded generated and damaged ones.
+- **The renderers' logic in C#** (`server/Mandarin.Server/Renderers/`): a device's description (its
+  services' addresses resolved as Node's URL resolves them), the formats it says it takes, the events
+  it sends, and its capability profile (the rates, bits and DSD it gets, the user's own rates over
+  them).
+  - **Tests:** `test/renderers-csharp.test.js` asks both servers about 16,000 cases the same way:
+    the repo's fake renderers, real devices' documents (WiiM, Sonos, Denon, Linn, gmrender,
+    Samsung), Sonos's event shapes, and seeded generated and broken ones.
+- **The Docker image's build** copies the C# server's folder whole, so a new folder of it can't be
+  left out (the image failed to build on this branch's first push, which added `Playback/`).
 - **Who does what:** the owner's split is in the migration spec. Stage 2 is this account's (2a here,
   2b next); stage 4's parts 1 to 4 (Qobuz and Tidal, not their streams) are Claude B's.
 - The Android app for this version is 0.8.37 (version code 237). Nothing in it changed.
