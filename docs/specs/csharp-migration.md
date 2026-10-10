@@ -335,7 +335,8 @@ it by kind would need a protocol between the two processes that is thrown away a
 over several versions, each a kind of player:
 
 1. the hub, the queue store, the phone as a zone (no device I/O), history, plays and the radio;
-2. Sonos: discovery, topology, control, the queue on the speaker;
+2. Sonos: discovery, topology, control, the queue on the speaker (with the copy of it the Node
+   server keeps since v0.8.35, read again only when the speaker's UpdateID moves);
 3. UPnP renderers: discovery, GENA (C# answers the events itself), gapless, LinkPlay;
 4. sound devices on the server: the engine's driver (the engine is already C#), ALSA's list;
 5. the device list and `/api/status`'s rooms.
