@@ -7,6 +7,8 @@
 
 </div>
 
+note: v0.8x series of updates is due to migrating to C#
+
 # Mandarin — v0.8.35
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
