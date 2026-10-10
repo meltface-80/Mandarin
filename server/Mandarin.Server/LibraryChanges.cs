@@ -20,9 +20,12 @@ namespace Mandarin.Server;
 internal static partial class Library
 {
     /* The Node server told of a change made here, to read it again (index.js /internal/library/changed). */
-    public static async Task Tell(JsonObject what)
+    public static async Task Tell(JsonObject what) => await Told(what, false);
+
+    /* The same, with its answer; null when it wasn't told. [quiet]: not logged (Scans.cs tells it every second while a scan runs). */
+    public static async Task<JsonObject?> Told(JsonObject what, bool quiet)
     {
-        if (upstream == null) return;
+        if (upstream == null) return null;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/library/changed"))
@@ -31,11 +34,17 @@ internal static partial class Library
             };
             req.Headers.Add("X-Mandarin-Front-Key", frontKey);
             using var res = await Http.SendAsync(req);
-            if (!res.IsSuccessStatusCode) Front.Log($"[library] the Node server wasn't told of a change (HTTP {(int)res.StatusCode})");
+            if (!res.IsSuccessStatusCode)
+            {
+                if (!quiet) Front.Log($"[library] the Node server wasn't told of a change (HTTP {(int)res.StatusCode})");
+                return null;
+            }
+            return await JsonNode.ParseAsync(await res.Content.ReadAsStreamAsync()) as JsonObject;
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
-            Front.Log($"[library] the Node server wasn't told of a change ({e.Message})");
+            if (!quiet) Front.Log($"[library] the Node server wasn't told of a change ({e.Message})");
+            return null;
         }
     }
 

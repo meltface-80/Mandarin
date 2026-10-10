@@ -53,7 +53,10 @@
  *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
  *     are still passed to it, and test/power.test.js's through-the-server test holds that;
  *   - v0.8.32: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
- *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here).
+ *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
+ *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
+ *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
+ *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -170,7 +173,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "tailscale", "taste"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "scan", "tailscale", "taste"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");

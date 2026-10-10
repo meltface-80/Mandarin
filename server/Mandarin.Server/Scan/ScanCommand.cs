@@ -69,17 +69,7 @@ internal static class ScanCommand
             var force = Js.Truthy(job["force"]);
             var slots = job["slots"] is double sl && sl >= 1 ? (int)Math.Min(sl, 64) : Math.Max(1, Environment.ProcessorCount - 1);
 
-            using var db = new SqliteConnection(new SqliteConnectionStringBuilder
-            {
-                DataSource = Path.Combine(dataDir, "musicd.db"), Mode = SqliteOpenMode.ReadWrite, Pooling = false, DefaultTimeout = 60
-            }.ToString());
-            db.Open();
-            using (var cmd = db.CreateCommand())
-            {
-                // As lib/library/db.js opens it: a write waits its turn, deleting a track takes its tags and loudness with it.
-                cmd.CommandText = "PRAGMA busy_timeout = 30000; PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL;";
-                cmd.ExecuteNonQuery();
-            }
+            using var db = OpenDb(dataDir);
             var scanner = new Scanner(db, root, roots, massRemoval, slots, line => Send(Message("log", ("line", line))));
             scanner.OnProgress = () => Send(Message("progress", ("state", scanner.State.ToJs())));
             tick = new Timer(_ => Send(Message("state", ("state", scanner.State.ToJs()))), null, 500, 500);
@@ -98,6 +88,20 @@ internal static class ScanCommand
     }
 
     private static Timer? tick;
+
+    /* The database, as lib/library/db.js opens it: a write waits its turn, deleting a track takes its tags and loudness with it. */
+    public static SqliteConnection OpenDb(string dataDir)
+    {
+        var db = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(dataDir, "musicd.db"), Mode = SqliteOpenMode.ReadWrite, Pooling = false, DefaultTimeout = 60
+        }.ToString());
+        db.Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "PRAGMA busy_timeout = 30000; PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL;";
+        cmd.ExecuteNonQuery();
+        return db;
+    }
 
     /* The half-second state stopped, and any under way finished: nothing is said after the result (a "running" then would hold the next scan back). */
     private static void StopTicking()

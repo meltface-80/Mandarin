@@ -55,7 +55,7 @@ if (process.env.MANDARIN_FRONT === "1") {
   // As the C# server starts the Node server in the image (Front.cs, v0.8.22
   // here): the work it takes over isn't started by the Node server first —
   // Tailscale's engine among it, which would otherwise start twice.
-  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale";
+  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale,scan";
   require("../lib/library/scanner").Scanner.program = bin;
   const listening = (port, ms) => new Promise((resolve, reject) => {
     const until = Date.now() + ms;

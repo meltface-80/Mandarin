@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26), d (v0.8.31) and most of f (v0.8.32); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26), d (v0.8.31), and e and most of f (v0.8.32); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -17,9 +17,9 @@ and what has to be settled first.
 The C# server (`server/`, .NET 10) is the front door. It takes the port, answers what has moved,
 and passes everything else to the Node server behind it, which it starts itself (`node
 launcher.js`) on a private port. Both use the same database. The Node server still says which
-copy of the library is current, still scans on its timer, and still plays. Background work the
-C# server does in Node's place (identification, the MusicBrainz pack, loudness, record labels,
-release days, Smart Picks, Tailscale) is handed over to it each time the Node server starts
+copy of the library is current and still plays. Background work the C# server does in Node's
+place (identification, the MusicBrainz pack, loudness, record labels, release days, Smart Picks,
+Tailscale, and from v0.8.32 the library scans) is handed over to it each time the Node server starts
 (`/internal/front/runs`). `server/README.md` has the details.
 
 ### In numbers
@@ -234,7 +234,7 @@ the pace.
 
 ### Stage 1: the small, self-contained parts (several S)
 
-**1a, 1b and 1c built in v0.8.26** (branch `stage1-small-parts`); **1d in v0.8.31**. 1e and 1f to come.
+**1a, 1b and 1c built in v0.8.26** (branch `stage1-small-parts`); **1d in v0.8.31**; **1e and most of 1f in v0.8.32**.
 
 None of these touch a live player.
 
@@ -257,7 +257,15 @@ None of these touch a live player.
 - **1e. Library housekeeping:** music folders, letting a folder go, the music mount, clean-up,
   `/api/search-status`, Rescan, the scan timer and the folder watcher. The scan itself is already
   C#'s. The Node server keeps its own copy of the library for playback, so it is told when a scan
-  ends, as now.
+  ends, as now. **Built in v0.8.32** (`Scans.cs`, `ScanRoutes.cs`, `Mounts.cs`): the scans are a
+  job handed over like the others ("scan"), so the Node server's timer and watcher don't start;
+  the C# server runs `mandarin-server scan` on its own timer and `FileSystemWatcher`, answers
+  Rescan, Reindex, the music folders, the folder picker, Forget folder, `/api/music-mount` and
+  `/api/search-status`, and tells the Node server how each scan goes (its state about once a
+  second, for `/api/status`; the albums so far; the end, after which it does what followed a scan).
+  The scan now reads tags with C#'s reader whatever the tag check says, unless the server is
+  started with `TAG_READER=node`, which keeps the scans the Node server's. Clean-up stays the Node
+  server's while Qobuz's and Tidal's albums are (stage 4).
 - **1f. The covers `sharp` still draws:** an album with no cover, CMYK or colour-profiled pictures,
   outside pictures, pictures asked for by a speaker's own address. The owner chose ffmpeg, as
   `Covers.cs` does. **Built in v0.8.32** (`CoversDrawn.cs`): the placeholder (held to sharp's
@@ -423,11 +431,9 @@ and `/api/image/`).
   `…/import`; `GET /api/<svc>/lists`, `/new-releases`, `/featured`, `/search`, `/artist-albums`,
   `/album`, `/state`; `POST /api/<svc>/favorite`, `/unfavorite`, `/open`, `/play`;
   `POST /api/services/watch`; `GET /internal/dash/:key`
-- **Library** (`api-library.js`): `GET /api/status`, `/api/search-status`, `/api/library/browse`,
-  `/api/library/folders`, `/api/library/cleanup`, `/api/music-mount`, `/api/display/content`;
-  `POST /api/library/folders`, `/api/library/forget-folder`, `/api/library/cleanup`,
-  `/api/library/rescan`, `/api/reindex`; a streamed album's `GET /api/album`; the services part
-  of `GET /api/search/external`
+- **Library** (`api-library.js`): `GET /api/status`, `/api/library/cleanup`, `/api/display/content`;
+  `POST /api/library/cleanup`; a streamed album's `GET /api/album`; the services part of
+  `GET /api/search/external` (the music folders, Rescan and Reindex C#'s since v0.8.32)
 - **Admin:** `GET /api/update/status`, `POST /api/update/check`, `/api/update/apply` (registered in
   `api-playlists.js`); `GET /api/tagcheck`, `/api/tagcheck/report` (power and `/api/cpu` C#'s since
   v0.8.31)
