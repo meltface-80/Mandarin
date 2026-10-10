@@ -44,8 +44,14 @@ const DRIVER = `(async () => {
   await until(() => !$("album-modal").classList.contains("hidden") && $("album-modal").classList.contains("np-mode"));
   await until(() => $("modal-img") && $("modal-img").complete && $("modal-img").naturalWidth > 0, 15000);
   out.np_art = $("modal-img") ? $("modal-img").getAttribute("src") : null;
+  // The page's own pictures (the tiles behind) loaded first: on a busy machine
+  // they come in late, and one finishing after the click isn't the card's.
   await sleep(300);
-  out.requests.length = 0;
+  let heard = out.requests.length, quietSince = performance.now();
+  await until(() => {
+    if (out.requests.length !== heard) { heard = out.requests.length; quietSince = performance.now(); }
+    return performance.now() - quietSince > 1000;
+  }, 15000);
   const t0 = performance.now();
   // The moment the card lands, to the microtask (a poll would be late by its tick).
   const landed = new Promise(ok => new MutationObserver((m, o) => { const i = $("share-frame").querySelector("img"); if (i) { o.disconnect(); ok({ img: i, at: performance.now() }); } }).observe($("share-frame"), { childList: true, subtree: true }));
@@ -55,6 +61,9 @@ const DRIVER = `(async () => {
   out.card_ms = Math.round(out.card_at - t0);
   await until(() => out.requests.some(r => r.url.startsWith("/api/similar")), 8000);
   await sleep(500);
+  // Only what was asked for once the share was: a request started before it
+  // and answered after isn't the card's.
+  out.requests = out.requests.filter(r => r.at >= t0);
   out.card_src = img ? img.src.slice(0, 5) : null;
   return out;
 })()`;
