@@ -211,11 +211,15 @@ if (node != null)
     node.EnableRaisingEvents = true;
     node.Exited += (_, _) =>
     {
+        // Restart or Shut down from Settings (PowerRoutes.cs): it was stopped for that.
+        if (Front.Leaving != Front.Leave.No) { Front.Log($"[server] the Node server stopped (code {node.ExitCode})"); lifetime.StopApplication(); return; }
         Front.Log($"[server] the Node server stopped (code {node.ExitCode}); stopping");
         Environment.ExitCode = node.ExitCode;
         lifetime.StopApplication();
     };
     lifetime.ApplicationStopping.Register(() => Front.StopNode(node));
+    Front.RunsNode = true;
+    Front.StopApp = lifetime.StopApplication;
 }
 
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Jobs.Stop);
@@ -226,5 +230,9 @@ await app.WaitForShutdownAsync();
 // was put in its place (lib/server/csharp-update.js). Started again in this
 // process; if that can't be done, stopped with the code, and Docker's restart
 // policy starts the container again.
+// Restart from Settings (v0.8.31): both servers, this one started again in
+// this process as after an update; Shut down: 0, for nothing to start it again.
+if (node != null && Front.Leaving == Front.Leave.Restart) { Front.StartAgain(args); return Front.StartAgainCode; }
+if (node != null && Front.Leaving == Front.Leave.ShutDown) return 0;
 if (node != null && Environment.ExitCode == Front.StartAgainCode) Front.StartAgain(args);
 return Environment.ExitCode;

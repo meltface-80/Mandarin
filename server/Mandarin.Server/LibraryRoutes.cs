@@ -150,6 +150,8 @@ internal static partial class Library
             }
             // Backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
             if (await AdminRoute(ctx)) return;
+            // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
+            if (await PowerRoute(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
