@@ -87,6 +87,12 @@ jobs:
           brew install ffmpeg
           ffmpeg -version | head -1
       - run: npm ci --no-audit --no-fund
+      # The tests' stand-in speakers and hosts live on loopback addresses
+      # besides 127.0.0.1 (test/fake-sonos.js, test/auth.test.js,
+      # test/discovery-robust.test.js, test/update.test.js): Linux answers on
+      # all of 127/8, a Mac on 127.0.0.1 alone until each is added.
+      - name: Loopback addresses for the stand-in speakers
+        run: for ip in 127.0.0.11 127.0.0.12 127.0.0.97 127.0.0.99 127.0.0.250; do sudo ifconfig lo0 alias "$ip" up; done
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -109,6 +115,8 @@ jobs:
           cp "$rel/v$v/mandarin-server-$rid.gz" "$rel/v0.0.1/"
           echo "$(printf '0%.0s' $(seq 64))  mandarin-server-$rid.gz" > "$rel/v0.0.1/mandarin-server.sha256"
           python3 -m http.server 8799 --bind 127.0.0.1 --directory "$rel" >/dev/null 2>&1 &
+          served=$!
+          trap 'kill $served 2>/dev/null' EXIT
           sleep 2
           export MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_RELEASES=http://127.0.0.1:8799
           bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -n "$SERVER"; test "$("$SERVER" --version)" = "$2"; codesign --verify "$SERVER"' _ "$RUNNER_TEMP/app" "$v"

@@ -64,6 +64,10 @@ test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { s
 test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) => {
   const fake = new FakeAutoEq();
   const base = await fake.start();
+  // Stopped even if what follows can't start (on a Mac without the speakers'
+  // loopback addresses it couldn't): left open, it kept the run from ending.
+  let stopped = false;
+  t.after(async () => { if (!stopped) await fake.stop(); });
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
@@ -140,6 +144,6 @@ test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) 
       assert.equal(off.dsp_info.active, false);
     });
   } finally {
-    await srv.stop(); await house.stop(); await fake.stop();
+    await srv.stop(); await house.stop(); await fake.stop(); stopped = true;
   }
 });
