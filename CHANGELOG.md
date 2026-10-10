@@ -5,6 +5,34 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.35
+The Queue screen, quick: tapping a track further down plays from it with "Now playing" moved at
+once, and a Sonos room's queue is kept by the server instead of read whole from the speaker each
+time.
+
+- **Tapping a track to play from it** (after the "Play from …?" question) moves "Now playing" to
+  it straight away, the tracks above it into the played ones, before the speaker has answered.
+  The room's own queue is then asked for as soon as it has moved, not after a fixed wait, and if
+  the room isn't there yet the screen keeps what you tapped and asks again.
+- **The list is never emptied to wait.** Opening the Queue tab again, or any change made on it
+  (Remove, Play next, Clear), leaves the rows on screen until the fresh queue replaces them.
+  "Loading queue…" shows only for a room whose queue hasn't been shown yet.
+- **A Sonos room's queue is kept by the server.** Opened again, the speaker is asked for its first
+  track alone, whose answer says whether the queue has changed (Sonos's UpdateID); the whole queue,
+  up to a thousand tracks, is read again only when it has. A change made in the Sonos app is seen
+  the same way. When the queue grows (an album added here or there), the server reads it again in
+  the background, so the screen opens on it at once.
+- **Play from here** answers once the room has moved to the track (its state read back first).
+- A Node change, as the owner allowed: playback is the Node server's until stage 6. Renderers'
+  and the phone's queues were already the server's own, in memory.
+- **Tests:** `test/queue-screen.test.js`: the queue opened again costs one track's answer; a change
+  from the Sonos app is read; an album added is read in the background; Play from here answers
+  with the room moved; and in a browser, with the speaker holding its answers, "Now playing" moves
+  at once and the list is never empty. All but the Sonos-app case fail on the code before.
+  `test/fake-sonos.js` now answers a Browse as a speaker does: the part asked for, and an UpdateID
+  that moves with the queue.
+- The Android app for this version is 0.8.35 (version code 235). Nothing in it changed.
+
 ## v0.8.34
 Stages 1e and 1f of the move to C# (`docs/specs/csharp-migration.md`): **the library scans are the
 C# server's**, and so are the covers the Node server still drew with `sharp`, but for a few. Also a
