@@ -5,6 +5,41 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.33
+An album's booklet, in the app: the PDFs that came with an album open on its page, drawn by the
+C# server. From the `claude-b-booklets` branch, built on v0.8.31; `v0.8.32` is a separate build.
+
+- **The book button.** An album with a booklet shows a brass book in the bottom right of its
+  cover, opposite the bit/sample rate. Albums without one show nothing.
+  - **A booklet** is a PDF in the album's folder, in a folder inside it that holds no music
+    ("Scans", "Booklet", "Artwork"), or beside the discs' folders ("CD 1", "Disc 2"). A folder with
+    music in it is another album's: a single loose in an artist's folder doesn't show the booklets
+    of the artist's albums. Twenty at most; an album with several offers them on a sheet.
+  - **Tapping it** opens the booklet over the album page, its pages one under another, as wide as
+    the screen, with the page you're on at the top. × or the phone's Back closes it (Escape in a
+    browser), leaving the album page as it was.
+- **The source badge** (Local, Qobuz, Tidal) moves to the bottom left of the cover, above the
+  bit/sample rate, or in its place when there's no rate: the bottom right is the book's.
+- **Drawn by the C# server, page by page.** The Android app's page can't show a PDF itself, so the
+  server draws each page as a picture at the screen's width (`server/Mandarin.Server/Booklets.cs`,
+  `BookletRoutes.cs`; `GET /api/album/booklets`, `GET /api/booklet/page`), two at a time, in the
+  background's place, kept in the data folder's `booklets/` (half a gigabyte at most, the pages
+  least lately shown let go first). A phone fetches only the pages it shows. A booklet is named by its album and an id, never by a path, so nothing outside an album's
+  own booklets can be asked for; signed in only. New with the C# server: none of it is the Node
+  server's (a Mac kept on Node alone shows no book).
+- **poppler** draws them (pdfinfo, pdftoppm), as ffmpeg draws covers:
+  - **Docker:** in the image from this version.
+  - **A Mac:** run the install line again (it now installs poppler with ffmpeg), or
+    `brew install poppler`. Until then a Mac shows no book; once it's there, the server finds it
+    within five minutes, without a restart.
+- **Tests:** `test/booklets-csharp.test.js`, through the C# server: which albums have one (and a
+  single loose in an artist's folder that hasn't the artist's albums' booklets), pages
+  drawn in their own colours at a kept width and kept, a changed booklet drawn afresh, nothing
+  outside an album's booklets (another album's, a page past the end, an id made up, not signed
+  in), and in a browser at a phone's size the book's and the badges' places, the sheet, the pages,
+  Escape and Back. CI installs poppler on Linux and the Mac, and the test fails there without it.
+- The Android app for this version is 0.8.33 (version code 233). Nothing in it changed.
+
 ## v0.8.31
 Stage 1d of the move to C# (`docs/specs/csharp-migration.md`): Restart and Shut down are the C#
 server's, and **Restart now starts both servers again**.

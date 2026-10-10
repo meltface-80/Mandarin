@@ -189,6 +189,8 @@ Pages.Use(app, Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR
 Library.Use(app);
 // Covers and label logos already drawn (Images.cs); the rest are drawn by the Node server.
 Images.Use(app, dataDir);
+// An album's booklets, their pages drawn in data/booklets (v0.8.33, Booklets.cs).
+Booklets.Init(dataDir);
 // Music files sent as they are (Streams.cs); conversions are the Node server's.
 Streams.Use(app, dataDir);
 // The phone's downloads and its Opus away from home (Downloads.cs).

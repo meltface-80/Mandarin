@@ -67,6 +67,8 @@ internal static partial class Library
         ["/api/similar"] = SimilarActs,
         ["/api/smart-picks"] = SmartPicks,
         ["/api/album/extras"] = AlbumExtras,
+        ["/api/album/booklets"] = AlbumBooklets,
+        ["/api/booklet/page"] = BookletPage,
         ["/api/artist-bio"] = ArtistBio,
         ["/api/pitchfork/reviews"] = PitchforkReviews,
         ["/api/pitchfork/review"] = PitchforkReviewMatch,

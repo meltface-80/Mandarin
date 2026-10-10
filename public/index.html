@@ -496,6 +496,15 @@
           <img id="modal-img" alt="" decoding="async">
           <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
           <span id="modal-quality" class="album-quality hidden"></span>
+          <!-- The album's booklet (v0.8.33): bottom right, opposite the bit/sample
+               badge, only when the album has one (a PDF in its folder). -->
+          <button class="modal-booklet icon-btn hidden" id="modal-booklet" type="button" aria-label="Booklet" title="Booklet">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </button>
           <!-- Previous and next (v0.5.44): the album before and after this one in
                the list it was opened from — a Home row, an artist's albums, a
                label's, the Library wall, search — at the art's edges, halfway up.

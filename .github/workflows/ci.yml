@@ -43,6 +43,13 @@ jobs:
           fi
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
           ~/ffmpeg-static/ffmpeg -version | head -1
+      # poppler (v0.8.33): the C# server draws an album's booklet with it
+      # (test/booklets-csharp.test.js). The runner may have it already.
+      - name: Install poppler
+        timeout-minutes: 5
+        run: |
+          command -v pdftoppm >/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends poppler-utils; }
+          pdftoppm -v
       - run: npm ci --no-audit --no-fund
       # Mandarin's audio engine (engine/, C#): built ahead of time to one
       # native program, then tested with the rest (test/engine.test.js).
@@ -84,8 +91,9 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: |
-          brew install ffmpeg
+          brew install ffmpeg poppler
           ffmpeg -version | head -1
+          pdftoppm -v
       - run: npm ci --no-audit --no-fund
       # The tests' stand-in speakers and hosts live on loopback addresses
       # besides 127.0.0.1, a block of them for each test file running at once
