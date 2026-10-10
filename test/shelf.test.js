@@ -445,9 +445,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
           pe("pointerup", x0 + dx, y, id);
         };
         out.swipe = S().swipe;
-        // Slowly, one album's way, then still: one album on.
+        // Slowly, one album's way, then still: one album on. Still for a tenth of a second: past the
+        // 80 ms after which a lift has no speed, and well short of the 200 ms after which a held finger
+        // keeps the shelf turning (a busy machine's timers run late; 150 ms was too near it on CI's Mac).
         const p0 = Math.round(S().p);
-        await swipe(-S().swipe, 400, 150);
+        await swipe(-S().swipe, 400, 100);
         await until(() => S().mode === "idle", 4000);
         out.slow = Math.round(S().p) - p0;
         // Quick: 150 px in a tenth of a second (1.5 px a millisecond), which spun it before: not a spin now.
