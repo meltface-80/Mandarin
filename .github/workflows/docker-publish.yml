@@ -11,7 +11,25 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/musicd-server
 
 jobs:
+  # CI on this commit, passed: every test, the Mac's included (v0.8.31). The
+  # image and the engines below wait for it, so none is published from a
+  # commit whose tests fail (.github/wait-for-ci.sh).
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for CI to pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA"
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,6 +83,7 @@ jobs:
   # (lib/server/tsnode.js). A pre-release, and never "latest", so the server's
   # own updater (releases/latest) never mistakes it for a MusicD release.
   engine:
+    needs: ci
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -107,6 +126,7 @@ jobs:
   # pre-release. A pre-release, never "latest", so the server's own updater
   # (releases/latest) never mistakes it for a Mandarin release.
   audio-engine:
+    needs: ci
     if: github.ref == 'refs/heads/main'
     strategy:
       matrix:

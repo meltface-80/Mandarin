@@ -9,6 +9,8 @@
 # fetches the one for its machine (lib/server/csharp-update.js). From v0.8.29
 # it carries the Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz), built
 # on a Mac so that macOS will run them, for the Mac installer and its updates.
+# From v0.8.31 nothing is released until CI has passed on the same commit,
+# every job of it, the Mac's tests included (.github/wait-for-ci.sh).
 name: Release
 
 on:
@@ -18,16 +20,31 @@ on:
 
 permissions:
   contents: write
+  actions: read     # to see CI's runs (.github/wait-for-ci.sh)
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
+  # CI on this commit, passed: every test, the Mac's included (v0.8.31). The
+  # jobs below wait for it, so a version whose tests fail is never released.
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for CI to pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA"
+
   # Mandarin's C# server for Macs (v0.8.29), Apple silicon and Intel: built on
   # a Mac, where the SDK signs it (ad hoc, as macOS needs to run anything),
   # signed here if it wasn't, and each asked its version where it can run.
   macos:
+    needs: ci
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
