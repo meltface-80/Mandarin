@@ -7,7 +7,8 @@
  * until the app was closed and opened again. In a browser, with the
  * requests a dead connection would hold held for ever by the browser itself:
  *   - a request that never answers is given up (here after 1.5 s; 30 s for real);
- *   - coming back to the page lets go at once of what was still waiting;
+ *   - coming back to the page lets go at once of the reads still waiting
+ *     (not a write: its answer may be in already; it has its own limit);
  *   - failed requests don't each start another look at the server while a
  *     look hangs (the offline check), one look at a time;
  *   - hidden, the room list isn't asked for every 15 s; shown, it is at once.
@@ -57,7 +58,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     asked.push(new URL(url).pathname);
     if (/\/api\/queue/.test(url)) page.send("Fetch.failRequest", { requestId: msg.params.requestId, errorReason: "ConnectionReset" }).catch(() => {});
   });
-  await page.send("Fetch.enable", { patterns: ["/api/library-stats", "/api/status", "/api/zones", "/api/queue"].map(p => ({ urlPattern: "*" + p + "*" })) });
+  await page.send("Fetch.enable", { patterns: ["/api/library-stats", "/api/status", "/api/zones", "/api/queue", "/api/settings/display"].map(p => ({ urlPattern: "*" + p + "*" })) });
   const count = (p) => asked.filter(x => x === p).length;
 
   await t.test("a request that never answers is given up", async () => {
@@ -82,6 +83,21 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
       return out;
     })()`);
     assert.equal(r, "AbortError");
+  });
+
+  await t.test("a write still waiting isn't let go on coming back (its answer may be in): it keeps its own limit", async () => {
+    const r = await page.eval(`(async () => {
+      const waiting = fetch("/api/settings/display", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+        .then(() => "answered", (e) => e.name);
+      await new Promise(r => setTimeout(r, 300));
+      ${SHOW(true)};
+      await new Promise(r => setTimeout(r, 100));
+      ${SHOW(false)};
+      const early = await Promise.race([waiting, new Promise(r => setTimeout(() => r("still waiting"), 1000))]);
+      return { early, late: await waiting };
+    })()`);
+    assert.equal(r.early, "still waiting", "not let go on coming back");
+    assert.equal(r.late, "TimeoutError", "given up at its own limit");
   });
 
   await t.test("failed requests don't each start another look while one hangs", async () => {

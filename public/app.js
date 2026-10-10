@@ -35,8 +35,9 @@
 /*  page makes of the server is given up after a while (a read 30 s,   */
 /*  anything else 90 s; the long jobs — Reindex, backups, an update,   */
 /*  an import, the MusicBrainz pack — not), and when the page comes    */
-/*  back (shown again, or woken: its clock jumped) every request still */
-/*  waiting from before is let go at once, before it asks afresh.      */
+/*  back (shown again, or woken: its clock jumped) every read still    */
+/*  waiting from before is let go at once, before it asks afresh. (Not */
+/*  a write: its answer may be in already, and it has its own limit.)  */
 /* ------------------------------------------------------------------ */
 (function requestLimits() {
   const real = window.fetch;
@@ -57,7 +58,7 @@
       if (own.aborted) ctl.abort(own.reason);
       else own.addEventListener("abort", () => ctl.abort(own.reason), { once: true });
     }
-    const entry = { ctl, at: Date.now() };
+    const entry = { ctl, at: Date.now(), read: method === "GET" || method === "HEAD" };
     live.add(entry);
     // Still running when the time is up (its answer, or its body, never came): given up.
     const timer = setTimeout(() => {
@@ -69,10 +70,10 @@
       (r) => { done(); return r; },
       (e) => { clearTimeout(timer); done(); throw e; });
   };
-  // Back (shown again, or woken): what was still waiting from before is let go.
+  // Back (shown again, or woken): the reads still waiting from before are let go.
   const letGo = (before) => {
     for (const e of [...live]) {
-      if (e.at > before) continue;
+      if (e.at > before || !e.read) continue;
       live.delete(e);
       e.ctl.abort(typeof DOMException === "function" ? new DOMException("The page was away", "AbortError") : undefined);
     }

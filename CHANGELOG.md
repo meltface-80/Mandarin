@@ -20,14 +20,15 @@ and the library scans go to the C# server only once the tag check has passed, as
   - every request the page makes of the server is given up after 30 s (a read) or 90 s (anything
     else); the long jobs (Reindex, backups, an update, an import, the MusicBrainz pack) aren't;
   - coming back to the page (shown again, or woken: its clock jumped) lets go at once of every
-    request still waiting from before, before the page asks afresh;
+    read still waiting from before, before the page asks afresh (not a write: its answer may be
+    in already, and it has its own limit);
   - the room list and the update check aren't asked for while the page is hidden, nor the room
     list again while one ask is waiting; it's asked for at once on coming back;
   - the offline check looks once at a time, and an answer that takes over 8 s counts as none.
   - **Tests:** `test/stale-page.test.js`, in a browser, with the requests a dead connection would
-    hold held for ever: one is given up; coming back lets go of what was waiting; failed requests
-    don't each start another look; hidden, the room list isn't asked for, and shown, it is at once.
-    On the page before, the first of them never ends.
+    hold held for ever: one is given up; coming back lets go of a read that was waiting, not a
+    write; failed requests don't each start another look; hidden, the room list isn't asked for,
+    and shown, it is at once. On the page before, the first of them never ends.
 - **The library scans go to the C# server only once the tag check has passed** (the owner's
   decision): where the Node server's own scans would already be made by the C# program —
   `TAG_READER=csharp`, or the check passed for the two readers. Otherwise they stay the Node
