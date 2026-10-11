@@ -23,12 +23,16 @@ internal static partial class Library
     public static async Task Tell(JsonObject what) => await Told(what, false);
 
     /* The same, with its answer; null when it wasn't told. [quiet]: not logged (Scans.cs tells it every second while a scan runs). */
-    public static async Task<JsonObject?> Told(JsonObject what, bool quiet)
+    public static Task<JsonObject?> Told(JsonObject what, bool quiet) =>
+        ToNode("/internal/library/changed", what, quiet ? null : "[library] the Node server wasn't told of a change");
+
+    /* A word to the Node server at one of its /internal/ addresses, with its answer; null when it wasn't told ([failed]: what is logged then). */
+    public static async Task<JsonObject?> ToNode(string path, JsonObject what, string? failed = null)
     {
         if (upstream == null) return null;
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/library/changed"))
+            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))
             {
                 Content = new StringContent(what.ToJsonString(), Encoding.UTF8, "application/json")
             };
@@ -36,14 +40,14 @@ internal static partial class Library
             using var res = await Http.SendAsync(req);
             if (!res.IsSuccessStatusCode)
             {
-                if (!quiet) Front.Log($"[library] the Node server wasn't told of a change (HTTP {(int)res.StatusCode})");
+                if (failed != null) Front.Log($"{failed} (HTTP {(int)res.StatusCode})");
                 return null;
             }
             return await JsonNode.ParseAsync(await res.Content.ReadAsStreamAsync()) as JsonObject;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
-            if (!quiet) Front.Log($"[library] the Node server wasn't told of a change ({e.Message})");
+            if (failed != null) Front.Log($"{failed} ({e.Message})");
             return null;
         }
     }

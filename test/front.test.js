@@ -69,7 +69,11 @@
  *     albums, an album, whether it is a favourite), by C#, each held to the Node server's own answer
  *     (test/services-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode). A request
  *     Tidal's token has to be refreshed for is still the Node server's, as are signing in, the settings,
- *     the import, favourites, opening and playing (the v0.8.39 test here).
+ *     the import, favourites, opening and playing (the v0.8.39 test here);
+ *   - v0.8.40: conversions with a ReplayGain (?g=), a zone's DSP (?o=) and 32-bit output, by C#, made
+ *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
+ *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
+ *     are still converted by the Node server.
  */
 const ports = require("./ports");
 const test = require("node:test");

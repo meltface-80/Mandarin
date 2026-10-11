@@ -8,25 +8,28 @@
 //     streamer's own word for DSD, from a short list);
 //   - no segment (Sonos): the file as stored when Sonos can take it: a type
 //     it reads, at most 48 kHz and 24 bits, stereo, not DSD.
-// A conversion (a rate and depth in the address, or the 24/48 rule) is made by
-// the Node server with ffmpeg and kept in <data>/transcode, named for the track,
-// its file's time and the conversion; the next tracks are made ahead of play.
-// One already made is sent from here too (v0.8.10), and marked as used, as the
-// Node server does, so the cache keeps it. One still to make is passed on, as
-// is a conversion with a zone's DSP (?o=) or a ReplayGain (?g=), 32-bit output,
-// Opus for the phone away (?q=opus), and a track streamed from Qobuz or Tidal.
-// So is a request this side can't vouch for (a speaker asking by its own
-// address: the Node server knows the speakers).
+// A conversion (a rate and depth in the address, or the 24/48 rule) is made
+// here with ffmpeg (Transcoder.cs, v0.8.11) and kept in <data>/transcode, or
+// sent from there when made already. Since v0.8.40 (stage 3) so are those
+// with a ReplayGain (?g=), with a zone's DSP (?o=, read from audio_devices as
+// the device fetches) and 32-bit output (where ffmpeg writes it), planned as
+// the Node server plans them (Playback/StreamPlans.cs). Still passed on: Opus
+// for the phone away (?q=opus, Downloads.cs's), a track streamed from Qobuz
+// or Tidal, a ?g= or ?o= in a form this side can't read as Express does, and
+// a request this side can't vouch for (a speaker asking by its own address:
+// the Node server knows the speakers).
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Data.Sqlite;
 using Microsoft.Net.Http.Headers;
+using Mandarin.Server.Playback;
 
 namespace Mandarin.Server;
 
+using JsObj = Mandarin.Server.Tags.JsObj;
+
 internal static partial class Streams
 {
-    private const int MaxRate = 48000, MaxBits = 24;
-
     [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
     [GeneratedRegex(@"^audio/(x-)?(dsf|dff|dsd)\z")]
@@ -41,49 +44,8 @@ internal static partial class Streams
     };
     internal static string MimeForExt(string ext) => ExtMime.TryGetValue(ext.ToLowerInvariant(), out var m) ? m : "application/octet-stream";
 
-    [GeneratedRegex("mpeg|mp3")] private static partial Regex Mpeg();
-    [GeneratedRegex(@"\.(m4a|mp4|alac)\z")] private static partial Regex Mp4Alac();
-    [GeneratedRegex("^aac|mpeg-4/aac|^mp4a")] private static partial Regex AacCodec();
-    [GeneratedRegex(@"\.(m4a|mp4|m4b)\z")] private static partial Regex Mp4Ext();
-    [GeneratedRegex(@"\.(ogg|oga)\z")] private static partial Regex OggExt();
-    [GeneratedRegex(@"pcm|65534|^\z")] private static partial Regex Pcm();
-    [GeneratedRegex(@"\.wave?\z")] private static partial Regex WavExt();
-    [GeneratedRegex(@"\.aif[fc]?\z")] private static partial Regex AiffExt();
-    [GeneratedRegex("dsd|dsf|dff", RegexOptions.IgnoreCase)] private static partial Regex DsdCodec();
-    [GeneratedRegex(@"\.(dsf|dff)\z", RegexOptions.IgnoreCase)] private static partial Regex DsdExt();
-
-    /* stream.js nativeMime: the type Sonos matches on, when it reads the file as it is. */
-    internal static string? NativeMime(string path, string codecRaw, long bits)
-    {
-        var codec = codecRaw.ToLowerInvariant();
-        var ext = Ext(path);
-        if (codec == "flac" && ext is ".flac" or ".fla") return "audio/flac";
-        if (ext == ".mp3" && (codec.Length == 0 || Mpeg().IsMatch(codec))) return "audio/mpeg";
-        if (codec == "alac" && Mp4Alac().IsMatch(ext)) return "audio/mp4";
-        if (AacCodec().IsMatch(codec) && Mp4Ext().IsMatch(ext)) return "audio/mp4";
-        if (codec.StartsWith("aac", StringComparison.Ordinal) && ext == ".aac") return "audio/aac";
-        if (codec == "vorbis" && OggExt().IsMatch(ext)) return "audio/ogg";
-        var pcm = Pcm().IsMatch(codec);
-        var b = bits != 0 ? bits : 16;
-        if (pcm && WavExt().IsMatch(ext) && b <= 16) return "audio/wav";
-        if (pcm && AiffExt().IsMatch(ext) && b <= 16) return "audio/aiff";
-        return null;
-    }
-    // path.extname, lower case: ".flac", or "" (a name starting with a dot has none).
-    private static string Ext(string p)
-    {
-        var name = Names.Basename(p);
-        int i = name.LastIndexOf('.');
-        return i <= 0 ? "" : name[i..].ToLowerInvariant();
-    }
-
     private static string cacheDir = "";
 
-    // ECMAScript: \b between ASCII word characters and the rest, as JavaScript's is ("éape" is APE there).
-    [GeneratedRegex(@"flac|alac|pcm|65534|monkey|\bape\b|wavpack|\bwv\b|\btta\b|\btak\b|shorten|\bshn\b", RegexOptions.ECMAScript)]
-    private static partial Regex IntegerCodec();
-    [GeneratedRegex(@"\.(wave?|aif[fc]?)\z", RegexOptions.IgnoreCase)]
-    private static partial Regex Uncompressed();
 
     public static void Use(WebApplication app, string dataDir)
     {
@@ -129,18 +91,35 @@ internal static partial class Streams
         if (!a.Success) return false;
         var q = ctx.Request.Query;
         var opus = q["q"].ToString() == "opus";
-        // Levelled (ReplayGain): the Node server's.
-        if (q.ContainsKey("g") && !opus) return false;
         var seg = a.Groups[2].Value;
         if (!long.TryParse(a.Groups[1].Value, out var id)) return false;
-        // A rate and depth a streamer was promised: made with the high-quality settings.
+        // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
         if (seg.Length > 0 && seg != "orig")
         {
             var rb = seg.Split('-');
             if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return false;
-            if (segRate < 8000 || segRate > 768000 || segBits is not (16 or 24)) return false;   // a 400, or 32-bit: the Node server's
-            if (q.ContainsKey("o")) return false;   // with the zone's DSP
+            if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return false;   // a 400: the Node server's
+        }
+        // ?g=<dB>: with this ReplayGain in it; ?o=<output>: with that zone's DSP (v0.8.40). Read as Express
+        // reads them: one plain value; an array or an object of either (g[]=, g=1&g=2) the Node server's.
+        var raw = ctx.Request.QueryString.HasValue ? ctx.Request.QueryString.Value![1..] : "";
+        double? gain = null;
+        if (!opus)
+        {
+            if (QueryOne(raw, "g") is not { } gq) return false;
+            if (gq.Here)
+            {
+                var g = Tags.Js.StringToNumber(gq.Value!);
+                if (!double.IsFinite(g) || g < -24 || g > 12) return false;   // a 400: the Node server's
+                gain = g;
+            }
+        }
+        string? output = null;
+        if (segRate != 0)
+        {
+            if (QueryOne(raw, "o") is not { } oq) return false;
+            if (oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
         Track? t = null;
@@ -163,55 +142,95 @@ internal static partial class Streams
         // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12).
         if (opus) return await Downloads.StreamOpus(ctx, id);
 
-        string mime = "audio/flac";
-        ConvPlan? conv = null;
-        if (segRate != 0) conv = new ConvPlan(segRate, (int)segBits, true, false, "what the renderer was promised");
+        // The plan, as index.js makes it: the file as stored, a renderer's rate and depth (with its zone's DSP), or the 24/48 rule.
+        JsObj p;
+        if (segRate != 0)
+        {
+            p = Jv.Obj(("transcode", true), ("hq", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", (double)segRate), ("bits", (double)segBits),
+                ("reason", "what the renderer was promised"));
+            if (output != null)
+            {
+                using var c = Db.Open();
+                if (Dsp.PlanPart(DspFor(c, output), p["rate"]) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
+            }
+        }
         else if (seg == "orig")
         {
-            mime = MimeForExt(a.Groups[3].Value);
+            var mime = MimeForExt(a.Groups[3].Value);
             var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
             if (DsdMime().IsMatch(asked) && a.Groups[3].Value.ToLowerInvariant() is "dsf" or "dff") mime = asked;
+            p = Jv.Obj(("transcode", false), ("mime", mime));
         }
-        else (mime, conv) = SonosRule(t.Path, t.Codec, t.Rate, t.Bits, t.Channels);
-        if (conv != null)
+        else p = (JsObj)StreamPlans.PlanFor(Row(t), null, null)!;
+        if (gain is { } gn)
         {
-            // Made already: sent from the cache, marked as used. Not yet: made
-            // now, and sent as it is made (v0.8.11; before, the Node server's).
-            if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
-            var job = Transcoder.Start(new ConvTrack(id, t.Path, t.Mtime), conv);
-            if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, "audio/flac");
-            if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
-            await Transcoder.TailFollow(ctx, job, "audio/flac");
-            return true;
+            p = (JsObj)StreamPlans.WithGain(p, Jv.Obj(("path", t.Path), ("codec", t.Codec), ("sampleRate", (double)t.Rate), ("bitsPerSample", (double)t.Bits),
+                ("channels", (double)t.Channels)), null, gn)!;
+            if (segRate != 0) p["hq"] = true;
         }
 
         if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
-        return await SendFile(ctx, t.Path, mime);
+        if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
+        // Made already: sent from the cache, marked as used. Not yet: made
+        // now, and sent as it is made (v0.8.11; before, the Node server's).
+        var job = Transcoder.Start(new ConvTrack(id, t.Path, t.Mtime), ConvPlan.Of(p));
+        if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
+        if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
+        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));
+        return true;
     }
 
-    /* stream.js plan, with no target (Sonos): the file as it is (its type), or a conversion. */
-    internal static (string Mime, ConvPlan? Conv) SonosRule(string path, string codecRaw, long rate, long bits, long channelsRaw)
+    /* The library row as lib/server/playback.js planFor reads it (a number left out: 0, as Number(null) || 0 has it). */
+    internal static JsObj Row(string path, string codec, long rate, long bits, long channels) =>
+        Jv.Obj(("path", path), ("codec", codec), ("sample_rate", (double)rate), ("bits", (double)bits), ("channels", (double)channels));
+    private static JsObj Row(Track t) => Row(t.Path, t.Codec, t.Rate, t.Bits, t.Channels);
+
+    /*
+     * devices.js dspFor(id): the device's DSP as Biquad.normalise keeps it,
+     * read from audio_devices as the device fetches; null for none, a Sonos
+     * room (Trueplay's), or a setting that doesn't read.
+     */
+    private static object? DspFor(SqliteConnection c, string id)
     {
-        var native = NativeMime(path, codecRaw, bits);
-        var tooHigh = rate > MaxRate || bits > MaxBits;
-        var dsd = DsdCodec().IsMatch(codecRaw) || DsdExt().IsMatch(path);
-        var channels = channelsRaw != 0 ? channelsRaw : 2;
-        if (native != null && !tooHigh && channels <= 2 && !dsd) return (native, null);
-        // The 24/48 rule's conversion: 48 kHz at most (DSD at 48), 24 bits
-        // for anything resampled or deeper than 16, else the file's own.
-        var outRate = dsd ? MaxRate : (rate > MaxRate || rate == 0 ? MaxRate : rate);
-        var outBits = dsd || rate > MaxRate || bits > 16 || bits == 0 ? 24 : 16;
-        // stream.js repack: only the container changes, the samples exactly as they were.
-        var codec = codecRaw.ToLowerInvariant();
-        var exact = rate != 0 && bits != 0 && outRate == rate && outBits >= bits && channels <= 2
-            && (IntegerCodec().IsMatch(codec) || (codec.Length == 0 && Uncompressed().IsMatch(path)));
-        string reason;
-        if (dsd) reason = "DSD, which Sonos does not play";
-        else if (tooHigh) reason = $"{(bits != 0 ? bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit/{(rate != 0 ? Tags.Js.Num(rate / 1000.0) : "?")} kHz is above what Sonos takes";
-        else if (channels > 2) reason = $"{channels} channels, folded down to stereo";
-        else if (Uncompressed().IsMatch(path)) reason = $"{(bits != 0 ? bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit uncompressed, repacked as FLAC with the same samples";
-        else reason = $"a {(codecRaw.Length > 0 ? codecRaw : "file")} Sonos cannot read";
-        return (native ?? "audio/flac", new ConvPlan(outRate, (int)outBits, false, exact, reason));
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT kind, settings FROM audio_devices WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", id);
+        using var r = cmd.ExecuteReader();
+        if (!r.Read() || (!r.IsDBNull(0) && Convert.ToString(r.GetValue(0), CultureInfo.InvariantCulture) == "sonos")) return null;
+        // registry.js parseJson: the settings when they are an object (an array is one too), else {}.
+        object? settings = null;
+        try { settings = r.IsDBNull(1) ? null : Mandarin.Server.Scan.JsJson.Parse(Convert.ToString(r.GetValue(1), CultureInfo.InvariantCulture) ?? ""); }
+        catch (Exception) { /* not JSON: {} */ }
+        var dsp = settings is JsObj o ? o["dsp"] : Tags.Undef.V;
+        try { return Biquad.Normalise(dsp); } catch (Exception) { return null; }
+    }
+
+    /*
+     * req.query[name] as Express's query parser (qs) makes it, where that is
+     * plain: (true, the value) once, (false, null) not there; null where qs
+     * would make an array or an object of it (name=1&name=2, name[]=, [name]=),
+     * which this side leaves to the Node server.
+     */
+    internal static (bool Here, string? Value)? QueryOne(string query, string name)
+    {
+        if (query.Length == 0) return (false, null);
+        var clean = query.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase).Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+        var parts = clean.Split('&');
+        string? found = null;
+        for (var n = 0; n < parts.Length && n < 1000; n++)   // parameterLimit
+        {
+            var part = parts[n];
+            var bracketEquals = part.IndexOf("]=", StringComparison.Ordinal);
+            var pos = bracketEquals == -1 ? part.IndexOf('=') : bracketEquals + 1;
+            var key = Signing.Decode(pos == -1 ? part : part[..pos]);
+            if (key == name)
+            {
+                if (found != null) return null;   // twice: an array
+                found = pos == -1 ? "" : Signing.Decode(part[(pos + 1)..]);
+            }
+            else if (key.StartsWith(name + "[", StringComparison.Ordinal) || key.StartsWith('[')) return null;
+        }
+        return found != null ? (true, found) : (false, null);
     }
 
     public static async Task<bool> SendFile(HttpContext ctx, string file, string mime)

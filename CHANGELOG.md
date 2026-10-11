@@ -5,6 +5,33 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.40
+Stage 3 of the move to C#: the conversions the Node server still made, with a ReplayGain, a zone's
+DSP or 32-bit output, are made by the C# server, the files the very ones the Node server made.
+After this only Qobuz's and Tidal's tracks are converted by the Node server.
+
+- **A ReplayGain (`?g=`)**, on a Sonos room's stream and on a streamer's, **a zone's DSP (`?o=`)**,
+  read from the device's settings as it fetches (a Sonos room's left to Trueplay, as before), and
+  **32-bit output** where ffmpeg writes 32-bit FLAC: planned as `index.js` plans them, with stage
+  2b's ports, and made with the same ffmpeg arguments under the same names in the conversions
+  folder. A gain or a zone written in a form Express would read as a list (`g[]=`, `g` twice) is
+  still the Node server's to answer, as is a gain out of range (its 400).
+- **Made ahead too:** the Node server's "make these next" hands these to the C# server as it already
+  handed the rest (`owns` in `index.js`, the hand-over switch).
+- **Playback's second core while DSP runs**, as before: the C# server tells the Node server when a
+  DSP conversion starts and when the last ends (`POST /internal/cpu/dsp`), and keeps to the split
+  it answers with. The split stays the Node server's decision (`lib/cpu.js`).
+- `Streams.cs` plans every stream with `Playback/StreamPlans.cs` (held to `lib/stream.js` by
+  `test/streams-csharp.test.js`) instead of its own copy of the Sonos rule.
+- **Tests:** `test/conversions-csharp.test.js` (through the C# server): a gain on Sonos's rule, on
+  the 24/48 rule and on a streamer's rate; a zone's DSP alone and with a gain; a Sonos room's and an
+  unknown zone's left out; 32-bit where ffmpeg writes it (refused as before where it doesn't), and
+  end to end behind an ffmpeg that says it writes it (none of this machine's or CI's do); what is
+  still the Node server's; and its "make these next" for a gain and a DSP made by the C# server.
+  Each file is compared with the one ffmpeg makes from the Node server's own plan, byte for byte,
+  under the Node server's own name. `test/library-front.test.js` now expects these from C#.
+- The Android app for this version is 0.8.40 (version code 240). Nothing in it changed.
+
 ## v0.8.39
 Stage 4.1 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's catalogue
 is the C# server's**. Built by Claude B, in parallel with stage 2 (v0.8.37 and v0.8.38), as the owner

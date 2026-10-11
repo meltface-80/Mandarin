@@ -133,12 +133,13 @@ function createServer(overrides = {}) {
   });
   // Behind Mandarin's C# server (v0.8.11): it makes the conversions of the
   // music folders' own files; this one hands it its "make these next". Called
-  // with where it listens (MANDARIN_FRONT_URL, or the tests'). A zone's DSP, a
-  // ReplayGain, 32-bit output and the services' tracks are still made here.
+  // with where it listens (MANDARIN_FRONT_URL, or the tests'). With a zone's
+  // DSP, a ReplayGain and 32-bit output too since v0.8.40 (stage 3); only the
+  // services' tracks are still made here.
   const useFront = (url) => {
     transcoder.delegate = !url ? null : {
-      owns: (t, p) => !SERVICES.isStreamed(t.path) && !!p.transcode && !p.dsp && !p.gain && !p.copy &&
-        (p.bits === 16 || p.bits === 24) && p.rate >= 8000 && p.rate <= 768000,
+      owns: (t, p) => !SERVICES.isStreamed(t.path) && !!p.transcode && !p.copy &&
+        (p.bits === 16 || p.bits === 24 || (p.bits === 32 && FF.info().flac32)) && p.rate >= 8000 && p.rate <= 768000,
       prefetch: (items) => {
         fetch(url + "/internal/transcode/prefetch", {
           method: "POST", headers: { "Content-Type": "application/json", "X-Mandarin-Front-Key": ctx.frontKey }, body: JSON.stringify(items)
@@ -456,6 +457,14 @@ function createServer(overrides = {}) {
     res.json({ ok: true });
     log("[musicd] restarting for the C# server (a backup restored)");
     setTimeout(() => ctx.restartServer(), 50);
+  });
+  // A conversion with DSP the C# server is making (v0.8.40): playback has its
+  // second core while one runs and for a while after, as when they were made
+  // here (lib/cpu.js); the split answered, for it to keep to at once.
+  app.post("/internal/cpu/dsp", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    CPU.dsp(!!(req.body && req.body.on));
+    res.json({ cpu: CPU.plan() });
   });
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {

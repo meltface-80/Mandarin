@@ -302,7 +302,7 @@ const GAINS = [0, 0.04, 0.05, -0.05, 0.049, 0.06, -6.25, 6.35, 12, -24, 100, -1e
 
 function plansJob(r, n) {
   const job = { fn: "plans", native: [], ext_mime: [], family: [], renderer_mime: [], plan: [], repack: [], with_gain: [], with_dsp: [], args: [], keys: [],
-    plan_for: [], service: [], held_native: [], held_mime: [], held_sonos: [], held_keys: [], held_args: [] };
+    plan_for: [], service: [], held_mime: [], held_sonos: [], held_keys: [], held_args: [] };
   const targets = profileTargets(r);
   const anyTarget = () => { const x = r(); return x < 0.3 ? null : x < 0.7 ? pick(r, targets) : oddTarget(r); };
   for (let i = 0; i < n; i++) {
@@ -329,7 +329,6 @@ function plansJob(r, n) {
     const int = v => Number.isFinite(Number(v)) && Math.abs(Number(v)) <= Number.MAX_SAFE_INTEGER ? Math.max(0, Math.trunc(Number(v))) : 0;
     const hp = typeof t.path === "string" ? t.path : "";
     const hc = typeof t.codec === "string" ? t.codec : "";
-    job.held_native.push([hp, hc, int(t.bitsPerSample)]);
     job.held_sonos.push([hp, hc, r() < 0.01 ? pick(r, [2e15, 9007199254740991]) : int(t.sampleRate), int(t.bitsPerSample), int(t.channels)]);
     job.held_keys.push([1 + Math.floor(r() * 1e6), Math.floor(r() * 2e12), pick(r, RATES), pick(r, [16, 24]), r() < 0.5, r() < 0.3]);
     job.held_args.push(["/m/" + i + pick(r, EXTS), pick(r, RATES), pick(r, [16, 24, 32]), r() < 0.5, r() < 0.3, "/t/" + i + ".flac.part", r() < 0.5]);
@@ -344,7 +343,6 @@ function plansJob(r, n) {
 
 /* Node's answers for a plans job. */
 function plansNode(job) {
-  const map = (t, accepts) => ({ mime: t.transcode ? "audio/flac" : t.mime, conv: t.transcode ? { rate: t.rate, bits: t.bits, hq: !!t.hq, exact: !!t.exact, reason: t.reason } : null });
   return {
     native: run(job.native, t => S.nativeMime(t)),
     ext_mime: run(job.ext_mime, e => S.mimeForExt(e)),
@@ -358,9 +356,9 @@ function plansNode(job) {
     keys: run(job.keys, ([track, p]) => keyFor(track, p)),
     plan_for: run(job.plan_for, ([row, target, gain]) => planFor(row, target, gain)),
     service: run(job.service, p => SV.ofPath(p)),
-    held_native: run(job.held_native, ([p, c, b]) => S.nativeMime({ path: p, codec: c, bitsPerSample: b })),
     held_mime: run(job.held_mime, e => S.mimeForExt(e)),
-    held_sonos: run(job.held_sonos, ([p, c, rate, bits, ch]) => map(S.plan({ path: p, codec: c, sampleRate: rate, bitsPerSample: bits, channels: ch }))),
+    // What the stream route plans from a row as the C# server reads it (v0.8.40), as playback.js's planFor plans it.
+    held_sonos: run(job.held_sonos, ([p, c, rate, bits, ch]) => planFor({ path: p, codec: c, sample_rate: rate, bits, channels: ch }, null, null)),
     held_keys: run(job.held_keys, ([id, mtime, rate, bits, hq, exact]) => keyFor({ id, mtime }, { rate, bits, hq, exact })),
     held_args: run(job.held_args, ([src, rate, bits, hq, exact, dest, soxr]) => withSoxr(soxr, () => S.ffmpegArgs(src, { rate, bits, hq, exact }, dest)))
   };
