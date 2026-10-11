@@ -38,6 +38,27 @@ itself.
   covers), when the page has stopped asking, or when it's hidden; the two-minute spacing.
 - The Android app for this version is 0.8.42 (version code 242).
 
+## v0.8.41
+Albums found by the identification scan at **85 % alike or better are now applied** (it was 95 %),
+as the owner asked: going through about 190 proposals, most of the 85–94 % ones were right, held
+back by an edition note, track names written differently or the lengths of another pressing.
+
+- **Applied from 85 %**, as the page shows it, from MusicBrainz and iTunes alike, with Undo as
+  before. Nothing is proposed any more: anything below 85 % is left for you to match by hand,
+  as it always was.
+- **The proposals already waiting are applied** the first time the scan runs after the update,
+  as if each had been accepted (the same catch-up v0.6.3 had for its own change).
+- The few that will now be applied wrongly can be put right as before: Undo on the album, or Find
+  match.
+- Both copies of the scan's rule move together (`lib/identify/score.js` and the C# server's
+  `Identify/Score.cs`, which makes the scan), so the Node server's answers and the C# server's
+  stay the same; Settings → Library Scanner, the README and the site say 85 %.
+- **Tests:** `test/identify.test.js` holds the new line (85 % applied, 94 % applied, 84 % left
+  unidentified, nothing proposed), the proposals waiting at 85 % or more applied once, and the scan
+  end to end with its near misses applied (a track missing, a length 26 s off, from MusicBrainz and
+  from iTunes); `test/identify-csharp.test.js` holds the two servers to the same verdicts.
+- The Android app for this version is 0.8.41 (version code 241). Nothing in it changed.
+
 ## v0.8.40
 Stage 3 of the move to C#: the conversions the Node server still made, with a ReplayGain, a zone's
 DSP or 32-bit output, are made by the C# server, the files the very ones the Node server made.

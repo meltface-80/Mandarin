@@ -1081,7 +1081,7 @@ internal sealed partial class Identifier
     public Func<bool> Ready = () => true;
 
     /*
-     * Proposals already waiting that the rule now applies (95 % alike): applied
+     * Proposals already waiting that the rule now applies (85 % alike, v0.8.41): applied
      * once the library is there, as if accepted. → how many were applied.
      */
     private async Task<int> ApplyWaiting(Snapshot lib)
