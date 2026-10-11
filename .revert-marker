@@ -1,0 +1,2 @@
+This revert undoes PR #195 (merge commit 459b5014cb61ae41bb4a241eaafb5247b860a234)
+Reverting back to v0.8.44 stable state.
