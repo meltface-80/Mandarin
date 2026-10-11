@@ -29,6 +29,12 @@ const FRONT = process.env.MANDARIN_FRONT === "1";
 // Behind the C# server, every backup route is answered there (v0.8.22).
 const byCs = (r, what) => { if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// A restore's restart (half a second on: a clean stop, then the exit) seen
+// through before the port is taken again. On a busy machine the stop takes a
+// few seconds; a test that stopped the server alongside it found it already
+// stopping and went on while its port was still held, and the next server on
+// it failed with EADDRINUSE.
+const restarted = async (exits) => { for (let i = 0; i < 300 && !exits.length; i++) await sleep(50); };
 
 async function server(lib, exits) {
   delete require.cache[require.resolve("../index.js")];
@@ -123,7 +129,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
 
     const list = await (byCs(await fetch(BASE + "/api/backup", { headers: H }), "the list")).json();
     assert.equal(list.backups.filter(b => b.kind === "auto" && b.label === "Before restore").length, 1);
-    for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+    await restarted(exits);
     assert.deepEqual(exits, [75], "restarted");
   } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
 });
@@ -144,7 +150,7 @@ test("the whole database: restored at the next start, today's account and sign-i
   const j = await back.json();
   assert.deepEqual(j.restored, ["database"], JSON.stringify(j));
   assert.ok(fs.existsSync(path.join(lib.data, "restore-staged.db")), "staged for the next start");
-  for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+  await restarted(exits);
   try { await srv.stop(); } catch (e) { /* already */ }
 
   ({ srv, ctx } = await server(lib, exits));
@@ -212,7 +218,7 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
     const del = await (byCs(await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H }), "a delete")).json();
     assert.equal(del.ok, true);
     // The restore's restart, before the next test takes the port.
-    for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+    await restarted(exits);
   } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
 });
 
@@ -249,7 +255,7 @@ test("away from home (over Tailscale): back up to a file, keep one here, restore
       method: "POST", headers: Object.assign({ "Content-Type": "application/gzip" }, H), body });
     assert.equal(re.status, 200);
     assert.equal(ctx.db.setting("smartPicksHour"), 8);
-    for (let i = 0; i < 20 && !exits.length; i++) await sleep(100);
+    await restarted(exits);
     assert.deepEqual(exits, [75], "and the server restarted");
   } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
 });
