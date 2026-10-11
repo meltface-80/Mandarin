@@ -191,7 +191,13 @@ test("the scans stay with the Node server where its own wouldn't be the C# progr
       assert.ok(s.ctx.ownScanTimers, "the Node server's own timer runs");
       const f = await s.get("/api/library/folders");
       assert.deepEqual([f.status, f.by], [200, null], "the music folders answered by the Node server");
-      const r = await s.post("/api/library/rescan");
+      // Asked again while a scan of the Node server's own runs (its watcher's, on a busy machine): "busy", from it too.
+      let r = await s.post("/api/library/rescan");
+      for (let i = 0; i < 20 && r.j && r.j.status === "busy"; i++) {
+        assert.deepEqual([r.status, r.by], [200, null], "busy, said by the Node server");
+        await until(() => idle(s), 30000, "its scan to end");
+        r = await s.post("/api/library/rescan");
+      }
       assert.deepEqual([r.status, r.by, r.j.status], [200, null, "fresh"], JSON.stringify(r.j));
     });
   }

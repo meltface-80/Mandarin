@@ -90,7 +90,7 @@ internal static class Signing
     }
 
     /* qs's decode: + is a space, then decodeURIComponent, or the text as it is where that throws. */
-    private static string Decode(string s)
+    internal static string Decode(string s)
     {
         var plus = s.Replace('+', ' ');
         return DecodeURIComponent(plus) ?? plus;

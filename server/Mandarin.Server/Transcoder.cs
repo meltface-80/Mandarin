@@ -3,17 +3,21 @@
 //
 // A file a device can't take as it is goes to it as FLAC, made by ffmpeg into
 // <data>/transcode under a name that says what it is (track, file time, rate,
-// depth, -hq for a streamer's, -x for a repack), written as .part and renamed
-// when complete, and sent while it is being made. The next tracks are made
-// ahead of play, in the background, two at a time (TRANSCODE_CONCURRENCY), and
-// the cache is kept under TRANSCODE_CACHE_GB (4), least recently used first.
+// depth, -hq for a streamer's, -d and the DSP's fingerprint, -g and the gain,
+// -x for a repack), written as .part and renamed when complete, and sent while
+// it is being made. The next tracks are made ahead of play, in the background,
+// two at a time (TRANSCODE_CONCURRENCY), and the cache is kept under
+// TRANSCODE_CACHE_GB (4), least recently used first.
 //
-// This side makes the conversions of the music folders' own files. The Node
-// server still makes those it alone can: a zone's DSP, a ReplayGain, 32-bit
-// output, and a track fetched from Qobuz or Tidal. Their names never meet
-// (a DSP or gain is in the name; a service's track has its own id). The Node
-// server hands its "make these next" for the rest to this side
+// This side makes the conversions of the music folders' own files: since
+// v0.8.40 (stage 3) with a ReplayGain, a zone's DSP and 32-bit output too, the
+// name and ffmpeg's arguments as lib/stream.js writes them
+// (Playback/StreamPlans.cs). The Node server still makes a track fetched from
+// Qobuz or Tidal (a service's track has its own id, so their names never
+// meet). It hands its "make these next" for the rest to this side
 // (POST /internal/transcode/prefetch), so one file is only ever made by one.
+// While a conversion with DSP runs, the Node server is told (it gives
+// playback its second core, lib/cpu.js) and its split is kept to at once.
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -23,8 +27,37 @@ using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;
 
+using JsObj = Mandarin.Server.Tags.JsObj;
+using Jv = Mandarin.Server.Playback.Jv;
+using StreamPlans = Mandarin.Server.Playback.StreamPlans;
+
 internal sealed record ConvTrack(long Id, string Path, long Mtime);
-internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string Reason);
+internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string Reason)
+{
+    // A ReplayGain in dB (0: none), and a zone's DSP: the plan's part (lib/dsp.js planPart) and the file's own rate (v0.8.40).
+    public double Gain { get; init; }
+    public JsObj? Dsp { get; init; }
+    public double InRate { get; init; }
+
+    /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
+    public JsObj ToJs()
+    {
+        var o = Jv.Obj(("transcode", true), ("rate", (double)Rate), ("bits", (double)Bits), ("reason", Reason));
+        if (Hq) o["hq"] = true;
+        if (Exact) o["exact"] = true;
+        if (Dsp != null) { o["dsp"] = Dsp; o["inRate"] = InRate; }
+        if (Gain != 0) o["gain"] = Gain;
+        return o;
+    }
+
+    /* A plan of lib/stream.js's (or Playback/StreamPlans.cs's) for a conversion. */
+    public static ConvPlan Of(JsObj p) => new((long)Jv.Num(p["rate"]), (int)Jv.Num(p["bits"]), Jv.T(p["hq"]), Jv.T(p["exact"]), Jv.Str(Jv.Or(p["reason"], "")))
+    {
+        Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0,
+        Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
+        InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0
+    };
+}
 
 internal sealed class ConvJob
 {
@@ -45,7 +78,12 @@ internal static partial class Transcoder
     private static readonly ConcurrentDictionary<string, ConvJob> Jobs = new();
     private static readonly List<(string Key, ConvTrack T, ConvPlan P)> Queue = [];
     private static int running;
-    private static readonly Lazy<(string Bin, bool Ok, bool Soxr)> Ff = new(Probe);
+    private static readonly Lazy<(string Bin, bool Ok, bool Soxr, bool Flac32)> Ff = new(Probe);
+    // DSP conversions running here, and what the Node server last heard of them (told as the first
+    // starts and the last ends, never twice the same: its own count, lib/cpu.js dsp(), is kept by both).
+    private static int dspRunning;
+    private static bool dspTold;
+    private static readonly SemaphoreSlim DspTelling = new(1, 1);
 
     public static void Init(string dataDir)
     {
@@ -57,10 +95,11 @@ internal static partial class Transcoder
         foreach (var f in Directory.EnumerateFiles(dir, "*.part")) { try { File.Delete(f); } catch (IOException) { /* gone */ } }
     }
 
-    /* ffmpeg.js info: where ffmpeg is, and whether it has libsoxr. */
-    private static (string, bool, bool) Probe()
+    /* ffmpeg.js info: where ffmpeg is, whether it has libsoxr, and whether it writes 32-bit FLAC. */
+    private static (string, bool, bool, bool) Probe()
     {
         var bin = Environment.GetEnvironmentVariable("FFMPEG_PATH") is { Length: > 0 } b ? b : "ffmpeg";
+        bool ok, soxr;
         try
         {
             var psi = new ProcessStartInfo(bin) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
@@ -68,47 +107,57 @@ internal static partial class Transcoder
             using var p = Process.Start(psi)!;
             var stdout = p.StandardOutput.ReadToEndAsync();
             _ = p.StandardError.ReadToEndAsync();
-            if (!p.WaitForExit(10000)) { try { p.Kill(); } catch { /* gone */ } return (bin, false, false); }
-            return (bin, p.ExitCode == 0, stdout.Result.Contains("--enable-libsoxr", StringComparison.Ordinal));
+            if (!p.WaitForExit(10000)) { try { p.Kill(); } catch { /* gone */ } return (bin, false, false, false); }
+            ok = p.ExitCode == 0;
+            soxr = stdout.Result.Contains("--enable-libsoxr", StringComparison.Ordinal);
         }
-        catch (Exception) { return (bin, false, false); }
+        catch (Exception) { return (bin, false, false, false); }
+        return (bin, ok, soxr, ok && Writes32(bin));
+    }
+
+    /*
+     * Can this ffmpeg write 32-bit FLAC? (6.1 quietly caps the encoder at 24.)
+     * A fifth of a second of silence is encoded and its STREAMINFO read back,
+     * as lib/ffmpeg.js asks it.
+     */
+    private static bool Writes32(string bin)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(bin) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            foreach (var a in new[] { "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
+                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-" }) psi.ArgumentList.Add(a);
+            using var p = Process.Start(psi)!;
+            using var ms = new MemoryStream();
+            var copy = p.StandardOutput.BaseStream.CopyToAsync(ms);
+            _ = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(10000)) { try { p.Kill(); } catch { /* gone */ } return false; }
+            copy.Wait(5000);
+            var b = ms.ToArray();
+            if (p.ExitCode != 0 || b.Length <= 42 || Encoding.ASCII.GetString(b, 0, 4) != "fLaC") return false;
+            var si = b.AsSpan(8, 34);
+            return (((si[12] & 1) << 4) | (si[13] >> 4)) + 1 == 32;
+        }
+        catch (Exception) { return false; }
     }
 
     public static bool Soxr => Ff.Value.Soxr;
+    /* This ffmpeg writes 32-bit FLAC (ffmpeg.js info().flac32). */
+    public static bool Flac32 => Ff.Value.Flac32;
     public static string Bin => Ff.Value.Bin;
     /* ffmpeg is there and runs (ffmpeg.js info().ok). */
     public static bool FfOk => Ff.Value.Ok;
 
-    public static string KeyFor(ConvTrack t, ConvPlan p) => $"{t.Id}-{t.Mtime}-{p.Rate}-{p.Bits}{(p.Hq ? "-hq" : "")}{(p.Exact ? "-x" : "")}";
+    /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
 
-    /* stream.js ffmpegArgs, for a conversion with no DSP and no gain. */
+    /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
     public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
 
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
-    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr)
-    {
-        var resampler = soxr ? (p.Hq ? "resampler=soxr:precision=33:" : "resampler=soxr:precision=28:") : "";
-        var internalFmt = p.Hq ? "internal_sample_fmt=dblp:" : "";
-        var dither = p.Exact || p.Bits == 32 ? "dither_method=0" : p.Bits == 16 ? "dither_method=triangular_hp" : "dither_method=triangular";
-        var graph = $"aresample={resampler}{internalFmt}osr={p.Rate}:{dither}";
-        return
-        [
-            "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-            "-i", src,
-            "-map", "0:a:0",
-            "-vn",
-            "-af", graph,
-            "-ar", p.Rate.ToString(CultureInfo.InvariantCulture),
-            "-ac", "2",
-            "-sample_fmt", p.Bits == 16 ? "s16" : "s32",
-            "-bits_per_raw_sample", p.Bits.ToString(CultureInfo.InvariantCulture),
-            "-map_metadata", "0",
-            "-c:a", "flac", "-compression_level", "5",
-            "-f", "flac",
-            dest
-        ];
-    }
+    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr) =>
+        StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList();
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)
@@ -128,6 +177,7 @@ internal static partial class Transcoder
         if (existing != job) return existing;
 
         var err = new StringBuilder();
+        var dspOn = false;
         void Finish(int code)
         {
             if (code == 0 && File.Exists(job.Part))
@@ -141,6 +191,7 @@ internal static partial class Transcoder
                 try { File.Delete(job.Part); } catch (IOException) { /* never made */ }
             }
             job.Done = true;
+            if (dspOn) { dspOn = false; DspEnded(); }
             if (job.Failed) Front.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
             Jobs.TryRemove(key, out _);
             job.Wake();
@@ -157,6 +208,8 @@ internal static partial class Transcoder
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
             proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
+            // DSP: playback has a second core while it runs, and for a while after (lib/cpu.js, the Node server's to decide).
+            if (p.Dsp != null) { dspOn = true; DspStarted(); }
             proc.Start();
             Cpu.Adopt(proc, kind);
             proc.StandardInput.Close();
@@ -181,6 +234,30 @@ internal static partial class Transcoder
             Finish(-1);
         }
         return job;
+    }
+
+    private static void DspStarted() { if (Interlocked.Increment(ref dspRunning) == 1) _ = TellDsp(); }
+    private static void DspEnded() { if (Interlocked.Decrement(ref dspRunning) == 0) _ = TellDsp(); }
+
+    /*
+     * The Node server told whether a DSP conversion runs here, one word at a
+     * time and only when that changes (on, then off); its split kept to at
+     * once. Not heard (it was starting again): told with the next change.
+     */
+    private static async Task TellDsp()
+    {
+        await DspTelling.WaitAsync();
+        try
+        {
+            var on = Volatile.Read(ref dspRunning) > 0;
+            if (on == dspTold) return;
+            if (await Library.ToNode("/internal/cpu/dsp", new JsonObject { ["on"] = on }) is { } said)
+            {
+                dspTold = on;
+                Cpu.Follow(said["cpu"]);
+            }
+        }
+        finally { DspTelling.Release(); }
     }
 
     /* Queue conversions to be made in the background, in order. */
@@ -336,10 +413,23 @@ internal static partial class Transcoder
         var rate = Num(p["rate"]);
         var bits = Num(p["bits"]);
         if (path.Length == 0 || path.Contains("://", StringComparison.Ordinal) || double.IsNaN(id) || !Truthy(p["transcode"])) return null;
-        if (Truthy(p["dsp"]) || Truthy(p["gain"]) || Truthy(p["copy"])) return null;   // the Node server's
-        if (bits is not (16 or 24) || !(rate >= 8000 && rate <= 768000)) return null;
+        if (Truthy(p["copy"])) return null;   // a service's, as it comes: the Node server's
+        if (!(bits is 16 or 24 || (bits == 32 && Flac32)) || !(rate >= 8000 && rate <= 768000)) return null;
+        // A ReplayGain and a zone's DSP (v0.8.40), as the Node server planned them: its fingerprint names the file.
+        var gain = Truthy(p["gain"]) ? Num(p["gain"]) : 0;
+        if (double.IsNaN(gain)) return null;
+        JsObj? dsp = null;
+        if (Truthy(p["dsp"]))
+        {
+            if (Mandarin.Server.Scan.JsJson.Parse(p["dsp"]!.ToJsonString()) is not JsObj d || d["hash"] is not string || !Jv.T(d["dsp"])) return null;
+            dsp = d;
+        }
         var mtime = Num(t["mtime"]);
+        var inRate = Num(p["inRate"]);
         return (new ConvTrack((long)id, path, double.IsNaN(mtime) ? 0 : (long)Math.Floor(mtime)),
-                new ConvPlan((long)rate, (int)bits, Truthy(p["hq"]), Truthy(p["exact"]), Js.Str(p["reason"])));
+                new ConvPlan((long)rate, (int)bits, Truthy(p["hq"]), Truthy(p["exact"]), Js.Str(p["reason"]))
+                {
+                    Gain = gain, Dsp = dsp, InRate = dsp != null && !double.IsNaN(inRate) ? inRate : 0
+                });
     }
 }
