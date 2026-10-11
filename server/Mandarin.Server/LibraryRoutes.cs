@@ -156,6 +156,8 @@ internal static partial class Library
             if (await PowerRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
+            // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.
+            if (await ServiceRoute(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
