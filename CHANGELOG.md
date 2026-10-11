@@ -5,6 +5,37 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.38
+Stage 2b of the move to C#: the stream plans, ReplayGain, the DSP filters, the addresses signed for
+speakers and the radio's memory, written in C# and held to the Node server's answers. Holding the C#
+server already running to the same answers found a few places it differed; they're put right.
+
+- **In C#** (`server/Mandarin.Server/Playback/`), used only by the tests until stages 3 and 6:
+  - the stream plans (`lib/stream.js`): what a speaker, a streamer or the phone gets, the file as it
+    is or a conversion, its type, the levelling and DSP added to it, ffmpeg's arguments, and the
+    cache's names for it;
+  - ReplayGain: the levelling setting, an album's loudness from its tracks', each track's gain;
+  - the DSP filters (`public/biquad.js`, `lib/dsp.js`): their curves, headroom, the stored form, the
+    fingerprint in a conversion's name, and ffmpeg's filter graph;
+  - the radio's six-month memory;
+  - V8's own `sin`, `cos`, `log`, `log10` and `pow` (`JsMath.cs`): .NET's differ from them in the
+    last bit for a few in a hundred numbers, which would change a cache name or a headroom figure.
+- **Put right in the C# server already running:**
+  - **a signed address** (a stream or a cover handed to a speaker) is checked as the Node server checks
+    it: the path as the request wrote it, and `s` as Express reads the query. Before, the decoded path
+    (a cover whose name needs escaping went to the Node server) and `?S=` as well as `?s=`. Where it
+    can't be sure what the Node server would say (`s[]=`, an unusual address), the Node server decides,
+    as it did;
+  - a measured peak and an album's loudness are worked out with V8's `pow` and `log10`, so they're
+    stored as the Node server would store them, to the last bit;
+  - AutoEq's bands are rounded as JavaScript rounds (one value just under a half came out one higher);
+  - Sonos's conversion: a codec name with a letter outside ASCII is read as JavaScript reads it.
+- **Tests:** `test/streams-csharp.test.js` asks both about 207,000 cases and needs the same answers,
+  NaN and -0 included: the repo's own cases (streams, DSP, levelling, the radio, signing), every rate
+  from 8 kHz to 768 kHz and DSD64 to DSD512 at every depth, every renderer profile, every filter at
+  its extremes, and seeded generated ones. Signing is checked against the Node server's own gate.
+- The Android app for this version is 0.8.38 (version code 238). Nothing in it changed.
+
 ## v0.8.37
 Stage 2a of the move to C#: the logic Sonos and other players are driven by, written in C# and held
 to the Node server's answers. Nothing that runs changes: the C# copies are used only by the tests

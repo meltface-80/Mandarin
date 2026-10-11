@@ -61,7 +61,10 @@
  *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
  *   - v0.8.37: nothing new answered by C#. Stage 2a's ports, the Sonos and renderer logic, are held to
  *     the Node server's by test/sonos-csharp.test.js and test/renderers-csharp.test.js, and used by
- *     nothing yet.
+ *     nothing yet;
+ *   - v0.8.38: nothing new answered by C#. Stage 2b's ports (stream plans, gains, DSP, signing, the
+ *     radio's memory) are held to the Node server's by test/streams-csharp.test.js; a signed stream's
+ *     or cover's address checked as the Node server checks it (the same test).
  */
 const ports = require("./ports");
 const test = require("node:test");
