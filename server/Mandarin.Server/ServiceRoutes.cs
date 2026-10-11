@@ -254,14 +254,12 @@ internal static partial class Library
         if (!Scans.On || !BodyFits(ctx)) return false;
         var (ok, b) = await ServiceBody(ctx);
         if (!ok || Prop(b, "kind") is not string kind || CatalogueOf(kind) is not { } svc) return false;
+        var removed = 0;
         try
         {
             if (Scans.Running) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
             if (!svc.CleanUpFits()) return false;
-            var removed = 0;
             if (!Scans.WhileNoScan(() => removed = svc.CleanUp())) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
-            if (removed > 0) await svc.Changed();
-            return await Send(ctx, new JsonObject { ["ok"] = true, ["kind"] = kind, ["removed"] = removed, ["count"] = await CountNow() });
         }
         catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted)
         {
@@ -270,6 +268,10 @@ internal static partial class Library
             ctx.Request.Body.Position = 0;
             return false;
         }
+        // Made: told and answered here from now on. Passed on after this, the
+        // Node server would clean up again and answer that nothing went.
+        if (removed > 0) await svc.Changed();
+        return await Send(ctx, new JsonObject { ["ok"] = true, ["kind"] = kind, ["removed"] = removed, ["count"] = await CountNow() });
     }
 
     /*

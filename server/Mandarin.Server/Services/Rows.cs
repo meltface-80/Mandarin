@@ -425,15 +425,18 @@ internal abstract partial class Catalogue
     public int CleanUp()
     {
         using var c = OpenRows();
-        var kept = KeptSet();
-        var held = HeldSet();
         var on = Connected();
-        var rows = OwnAlbums(c).Where(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key))).ToList();
+        // What goes is read inside the transaction (it holds the write lock):
+        // a favourite made here meanwhile, its row and its kept mark, is
+        // either all before it or all after, never half seen and deleted.
         using var tx = c.BeginTransaction();
+        var kept = Keys(c, NsKept);
+        var held = Keys(c, NsHeld);
+        var rows = OwnAlbums(c).Where(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key))).ToList();
         foreach (var r in rows)
         {
             foreach (var t in new[] { "album_edits", "favourites", "listen_later", "track_edits" }) Run(c, $"DELETE FROM {t} WHERE key = $k", ("$k", r.Key));
-            Run(c, "DELETE FROM albums WHERE id = $id", ("$id", (double)r.Id));
+            Run(c, "DELETE FROM albums WHERE id = $id AND key = $k", ("$id", (double)r.Id), ("$k", r.Key));
         }
         if (!Connected())
         {
@@ -466,13 +469,31 @@ internal abstract partial class Catalogue
                 if (kept.Contains(r.Key) || held.Contains(r.Key)) continue;
                 var last = Num(Scalar(c, "SELECT MAX(ts) AS last FROM plays WHERE album_id = $id", ("$id", (double)r.Id))) ?? 0;
                 var updated = Num(r.UpdatedAt) is { } u && u != 0 ? u : 0;
-                if (Math.Max(last, updated) > NowMs() - days * 86400e3) continue;
-                Run(c, "DELETE FROM albums WHERE id = $id", ("$id", (double)r.Id));
-                n++;
+                var since = NowMs() - days * 86400e3;
+                if (Math.Max(last, updated) > since) continue;
+                // Read a while ago: gone only if it is still as it was then. A
+                // favourite or an open made here since (its row touched, its kept
+                // mark written), a play, or a playlist holding it keeps it.
+                n += Run(c, @"DELETE FROM albums WHERE id = $id AND key = $k AND updated_at IS $u
+                               AND NOT EXISTS (SELECT 1 FROM cache WHERE ns IN ($kept, $held) AND key = $k)
+                               AND NOT EXISTS (SELECT 1 FROM plays WHERE album_id = $id AND ts > $since)",
+                    ("$id", (double)r.Id), ("$k", r.Key), ("$u", Num(r.UpdatedAt)), ("$kept", NsKept), ("$held", NsHeld), ("$since", since));
             }
         }
         if (n > 0) await Changed();
         return n;
+    }
+
+    /* The keys kept under a cache namespace, read on [c] (inside its transaction). */
+    private static HashSet<string> Keys(SqliteConnection c, string ns)
+    {
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT key FROM cache WHERE ns = $ns";
+        cmd.Parameters.AddWithValue("$ns", ns);
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) if (!r.IsDBNull(0)) set.Add(r.GetString(0));
+        return set;
     }
 }
 
