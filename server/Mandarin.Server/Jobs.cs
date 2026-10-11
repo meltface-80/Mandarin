@@ -41,6 +41,9 @@ internal static class Jobs
     public static string? LastfmEnvKey { get; private set; }
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
+    // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
+    public static Services.QobuzCatalogue? Qobuz { get; private set; }
+    public static Services.TidalCatalogue? Tidal { get; private set; }
 
     private static Uri? upstream;
     private static string key = "";
@@ -144,6 +147,9 @@ internal static class Jobs
         // Headphone profiles and Last.fm (v0.8.26): where AutoEq and Last.fm are, and the environment's Last.fm key.
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
         LastfmEnvKey = Text(cfg["lastfm_key"]);
+        // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as the Node server was set up (the tests' fakes).
+        Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"]));
+        Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]));
         Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
