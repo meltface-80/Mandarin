@@ -5,7 +5,7 @@
 // the taste work (Smart Picks, the share card's suggestions) (Extras/); from
 // v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
 // while the Node server starts again; from v0.8.34 the library scans (Scans.cs);
-// from v0.8.43 the month's prune of Qobuz's and Tidal's albums only ever played
+// from v0.8.44 the month's prune of Qobuz's and Tidal's albums only ever played
 // from the browser (Services/Rows.cs).
 //
 // The Node server is told so before any of it starts (POST
@@ -150,7 +150,7 @@ internal static class Jobs
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
         LastfmEnvKey = Text(cfg["lastfm_key"]);
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as the Node server was set up (the tests' fakes).
-        // Their albums' rows (v0.8.43): the covers kept in the data folder, beside the database.
+        // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"])) { DataDir = dataDir };
         Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
@@ -171,7 +171,7 @@ internal static class Jobs
         Taste.Start();
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
-        // The month's prune of the services' albums only ever played from the browser (v0.8.43): daily, while handed over.
+        // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily, while handed over.
         Services.Prune.Start();
         Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the Node server said yes: what follows it, made now.

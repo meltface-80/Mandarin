@@ -5,7 +5,7 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
-## v0.8.43
+## v0.8.44
 Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
 rows in the library are the C# server's**: opening one, adding it to your favourites and taking it
 away, its page, Clean up and the month's prune. Each writes what the Node server wrote, column for
@@ -53,9 +53,9 @@ column, and answers in its words; the Node server is told and reads its library 
   server, the favourite made once), Clean up signed in and out, and the prune.
   `test/services-csharp.test.js` now opens and favourites on the Node server itself (its change seen
   at once). `test/qobuz.test.js` and `test/tidal.test.js` pass with C# answering. `test/front.test.js`
-  pins which server answers what (its v0.8.43 test and header line; "prune" in the v0.8.19 test's job
+  pins which server answers what (its v0.8.44 test and header line; "prune" in the v0.8.19 test's job
   list).
-- The Android app for this version is 0.8.43 (version code 243). Nothing in it changed.
+- The Android app for this version is 0.8.44 (version code 244). Nothing in it changed.
 
 ## v0.8.40
 Stage 3 of the move to C#: the conversions the Node server still made, with a ReplayGain, a zone's

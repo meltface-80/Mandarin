@@ -74,13 +74,13 @@
  *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
  *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
  *     are still converted by the Node server;
- *   - v0.8.43: Qobuz's and Tidal's albums as library rows, by C#: an album opened, favourited and taken
+ *   - v0.8.44: Qobuz's and Tidal's albums as library rows, by C#: an album opened, favourited and taken
  *     away, a streamed album's page (its favourite brought into line, why it is here), Clean up of a
  *     service's albums where the scans are C#'s, and the month's prune, a job handed over ("prune"),
  *     each held to what the Node server writes and answers (test/services-rows-csharp.test.js;
  *     test/qobuz.test.js and test/tidal.test.js in this mode). A request Tidal's token has to be
  *     refreshed for is still the Node server's, as are signing in, the settings, the import and playing
- *     (the v0.8.43 test here; the job list in the v0.8.19 one).
+ *     (the v0.8.44 test here; the job list in the v0.8.19 one).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -421,7 +421,7 @@ test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in and play
   } finally { await srv.stop(); }
 });
 
-test("v0.8.43: Qobuz's and Tidal's albums opened, favourited, their page, Clean up and the prune answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean up and the prune answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",

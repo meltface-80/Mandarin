@@ -65,7 +65,7 @@ internal static class ServiceHttp
 
     /*
      * fetch(url, { method, headers, body, signal }) and r.text(), for a write
-     * (Tidal's favourites, v0.8.43): [body] sent as it is, with the type said
+     * (Tidal's favourites, v0.8.44): [body] sent as it is, with the type said
      * as the Node server says it (no charset added).
      */
     public static async Task<(int Status, string Text)> Send(string method, string url, IEnumerable<(string Name, string Value)> headers, string? body, string contentType, int timeoutMs)
@@ -96,7 +96,7 @@ internal static class ServiceHttp
 
     /*
      * fetch(url, { signal: AbortSignal.timeout(ms) }) and r.arrayBuffer(): a
-     * cover (streaming.js fetchArt, v0.8.43), its status and its bytes. Kept to
+     * cover (streaming.js fetchArt, v0.8.44), its status and its bytes. Kept to
      * this machine where the tests say so (MANDARIN_LOOPBACK_ONLY), as the Node
      * server's fetch is there.
      */

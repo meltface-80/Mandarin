@@ -1,6 +1,6 @@
 // LibraryRoutes.cs — the library's read routes (v0.8.4), from
 // lib/server/api-library.js, in the same shapes. An album of a streaming
-// service's page asks the service too: answered here from v0.8.43 once the
+// service's page asks the service too: answered here from v0.8.44 once the
 // Node server has handed over its work (ServiceRoutes.cs), until then by it.
 // Anything asked of a Node server too old to say which copy it holds goes to
 // it: a request this side can't answer exactly is passed on, never guessed at.
@@ -159,7 +159,7 @@ internal static partial class Library
             if (await ScanRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.
             if (await ServiceRoute(ctx)) return;
-            // And their albums opened, favourited and cleaned up (v0.8.43, ServiceRoutes.cs), likewise.
+            // And their albums opened, favourited and cleaned up (v0.8.44, ServiceRoutes.cs), likewise.
             if (await ServiceWrite(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
@@ -572,7 +572,7 @@ internal static partial class Library
     {
         var al = s.Find(Num(Q(ctx, "offset")));
         if (al == null) return await Send(ctx, new JsonObject { ["error"] = "That album is no longer in the library — rescan to refresh" }, 409);
-        // A streamed album's page asks the service too (v0.8.43, ServiceRoutes.cs): here once
+        // A streamed album's page asks the service too (v0.8.44, ServiceRoutes.cs): here once
         // the Node server has handed over its work; a token Tidal wants refreshed, its.
         Tags.JsObj? service = null;
         if (al.Service != null)

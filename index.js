@@ -375,7 +375,7 @@ function createServer(overrides = {}) {
   // share card's suggestions); from v0.8.22 the built-in Tailscale engine;
   // from v0.8.34 the library scans (on the timer and when the music folders
   // change, Rescan, the music folders' routes), where this server's own
-  // would already be made by the C# program (scansGoToFront); from v0.8.43
+  // would already be made by the C# program (scansGoToFront); from v0.8.44
   // the month's prune of Qobuz's and Tidal's albums only ever played from the
   // browser (its daily timer below does nothing here). Each is
   // stopped here for good — the album being looked at finished first — and
@@ -797,7 +797,7 @@ function createServer(overrides = {}) {
     };
     for (const t of [setTimeout(serviceSync, config.qobuzSyncDelayMs == null ? 20000 : config.qobuzSyncDelayMs),
       setInterval(serviceSync, 6 * 3600e3), setInterval(serviceWatch, config.serviceWatchMs || 120000),
-      // The prune: by the C# server once handed over (v0.8.43, Services/Rows.cs).
+      // The prune: by the C# server once handed over (v0.8.44, Services/Rows.cs).
       setInterval(() => { if (ctx.madeByFront("prune")) return; for (const id of SERVICES.IDS) { try { ctx.services[id].pruneTransient(); } catch (e) { /* next day */ } } }, 24 * 3600e3)]) {
       t.unref(); ctx.scanTimers.push(t);
     }

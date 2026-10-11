@@ -1,7 +1,7 @@
 "use strict";
 /*
  * Qobuz's and Tidal's albums as library rows, written by the C# server
- * (v0.8.43, stage 4.2; server/Mandarin.Server/Services/Rows.cs and
+ * (v0.8.44, stage 4.2; server/Mandarin.Server/Services/Rows.cs and
  * ServiceRoutes.cs), against the fakes on loopback (test/fake-qobuz.js,
  * test/fake-tidal.js), each held to what the Node server writes and answers
  * for the same request (asked of it directly, the state put back between):

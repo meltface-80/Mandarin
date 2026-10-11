@@ -117,7 +117,7 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
     assert.deepEqual(tl.lists.map(l => l.id), ["recommended", "top", "rising"]);
   });
 
-  // Opening and favouriting are the C# server's since v0.8.43 (test/services-rows-csharp.test.js);
+  // Opening and favouriting are the C# server's since v0.8.44 (test/services-rows-csharp.test.js);
   // the Node server still makes them for a request passed to it (Tidal's token), and its import and watch.
   await t.test("an album opened, and a favourite changed, on the Node server: seen at once", async () => {
     const open = await call(NODE, "qobuz/open", { album_id: "q100" });

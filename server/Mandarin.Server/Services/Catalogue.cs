@@ -5,7 +5,7 @@
 // tracks, and whether an album is in the account's favourites. The account
 // (signed in by the Node server), the albums kept and those in the library are
 // read from the database it writes; the library's rows written here from
-// v0.8.43 are Rows.cs.
+// v0.8.44 are Rows.cs.
 //
 // The favourites' ids are kept a minute, as api.js keeps them, and no longer
 // than the Node server's library stays as it was: a favourite added or taken
@@ -265,7 +265,7 @@ internal sealed class QobuzCatalogue : Catalogue
             ("description", Or(P(a, "description"), "")));
     }
 
-    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.43)
+    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.44)
 
     /* The album and its tracks in the plain shape (index.js fullAlbum): the tracks from the album's own answer when it has them all. */
     protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id)
@@ -457,7 +457,7 @@ internal sealed partial class TidalCatalogue : Catalogue
         return Obj(("album", (await Marked([NormAlbum(a)], ask))[0]), ("tracks", tracks.Select(t => (object?)NormTrack(t, a)).ToList()), ("description", ""));
     }
 
-    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.43)
+    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.44)
 
     /*
      * The album and its tracks in the plain shape (index.js fullAlbum). The

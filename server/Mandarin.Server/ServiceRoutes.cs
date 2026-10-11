@@ -8,7 +8,7 @@
 //   GET /api/<s>/album?id           the album and its tracks
 //   GET /api/<s>/state?album_id     whether it is in the account's favourites
 //
-// and from v0.8.43 (stage 4.2) the library's rows of them (Services/Rows.cs):
+// and from v0.8.44 (stage 4.2) the library's rows of them (Services/Rows.cs):
 //
 //   POST /api/<s>/open { album_id } → { ok, offset, album }: the album's page here
 //   POST /api/<s>/favorite { album_id } · /unfavorite → { ok, album_id, favourite }:
@@ -127,7 +127,7 @@ internal static partial class Library
     private static Task<bool> SignedOut(HttpContext ctx, Catalogue svc) =>
         SendJs(ctx, Jso(("error", "Not signed in to " + svc.Name), ("connected", false)), 401);
 
-    // ------------------------------------------------------------ the library's rows (v0.8.43)
+    // ------------------------------------------------------------ the library's rows (v0.8.44)
 
     [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite)$")]
     private static partial Regex ServiceWritePath();

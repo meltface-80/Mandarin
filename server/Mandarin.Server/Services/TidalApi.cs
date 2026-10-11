@@ -1,5 +1,5 @@
 // TidalApi.cs — Tidal's API as lib/tidal/api.js asks it (v0.8.39, stage 4.1):
-// the catalogue's calls; from v0.8.43 (stage 4.2) the favourite set and taken
+// the catalogue's calls; from v0.8.44 (stage 4.2) the favourite set and taken
 // away too. Each call is
 //
 //   https://api.tidal.com/v1/<call>?<the parameters>&countryCode=…   Bearer <token>
@@ -100,7 +100,7 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
     }
 
     /*
-     * A write (api.js call with a method and a form body, v0.8.43): sent once,
+     * A write (api.js call with a method and a form body, v0.8.44): sent once,
      * never kept. Refused, it is the Node server's to make (ToNode): Tidal made
      * nothing of a request it refused, so the Node server's is the one made.
      */
@@ -113,7 +113,7 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
     }
 
     /*
-     * A write is made here only with a token good for [ms] more (v0.8.43): one
+     * A write is made here only with a token good for [ms] more (v0.8.44): one
      * that would want refreshing before the request is done, and the whole
      * request is the Node server's, before anything is written — so a token is
      * never found due partway through one, after the write.
@@ -156,7 +156,7 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
     public Task<object?> NewReleases(double limit = 100) => FeaturedAlbums("new", limit);
     public Task<object?> FavouriteIds(object? userId, bool fresh, long? version) => Call($"users/{Js.Str(userId)}/favorites/ids", [], 60e3, fresh, version);
 
-    // ------------------------------------------------------------ the library's rows (v0.8.43)
+    // ------------------------------------------------------------ the library's rows (v0.8.44)
 
     /* The favourite on Tidal itself (api.js setFavourite): every answer kept forgotten first. */
     public Task<object?> SetFavourite(object? userId, string albumId, bool on)

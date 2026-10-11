@@ -1,5 +1,5 @@
 // QobuzApi.cs — Qobuz's API as lib/qobuz/api.js asks it (v0.8.39, stage 4.1):
-// the catalogue's calls; from v0.8.43 (stage 4.2) the purchases' ids and the
+// the catalogue's calls; from v0.8.44 (stage 4.2) the purchases' ids and the
 // favourite set and taken away too. Each call is
 //
 //   https://www.qobuz.com/api.json/0.2/<call>?<the parameters, sorted>&app_id=…
@@ -93,7 +93,7 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
     public Task<object?> Featured(object? type, double limit, double offset = 0) => Get("album/getFeatured", [("type", type), ("limit", limit), ("offset", offset)], Hour);
     public Task<object?> FavouriteIds(bool fresh, long? version) => Get("favorite/getUserFavoriteIds", [], 60e3, fresh, version);
 
-    // ------------------------------------------------------------ the library's rows (v0.8.43)
+    // ------------------------------------------------------------ the library's rows (v0.8.44)
 
     /* The purchases' ids (api.js purchaseIds): kept a minute, as the favourites' are. */
     public Task<object?> PurchaseIds(bool fresh, long? version) => Get("purchase/getUserPurchasesIds", [], 60e3, fresh, version);

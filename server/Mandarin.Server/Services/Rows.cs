@@ -1,4 +1,4 @@
-// Rows.cs — Qobuz's and Tidal's albums as rows in the library (v0.8.43, stage
+// Rows.cs — Qobuz's and Tidal's albums as rows in the library (v0.8.44, stage
 // 4.2 of docs/specs/csharp-migration.md), from lib/services/streaming.js, rule
 // for rule:
 //
