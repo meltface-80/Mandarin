@@ -319,6 +319,8 @@ internal static class Jobs
         if (upstream == null) return;
         // A scan under way ended first: the database it writes is about to be put back.
         Scans.Halt();
+        // The services' import and watch likewise, at their next album (v0.8.45).
+        await Services.Import.HaltRuns();
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart"));

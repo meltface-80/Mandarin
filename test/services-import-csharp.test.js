@@ -460,6 +460,37 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     const r = await fetch(NODE + "/internal/services/step", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, K), body: JSON.stringify({ service: "nope" }) });
     assert.deepEqual([r.status, await r.json()], [400, { error: "service required" }]);
   });
+
+  await t.test("the Node server's step failing: what was brought in here before is told, and on the walls", async () => {
+    importOn("qobuz", false);
+    reset("tidal");
+    await post("settings/tidal/import");
+    // Two albums new to both servers (nothing of them kept a minute), favourited on Tidal; refused
+    // at the second, and the Node server can't get a new token either.
+    const file = tidal.albums[0].tracks[0].file;
+    tidal.albums.push({ id: 2007, title: "T Seventh", artist: "T Artist", year: 2025, hires: false, tracks: [{ id: 8601, title: "T Seventh One", file, duration: 3 }] },
+      { id: 2008, title: "T Eighth", artist: "T Artist", year: 2025, hires: false, tracks: [{ id: 8701, title: "T Eighth One", file, duration: 3 }] });
+    tidal.favourites.add("2007");
+    tidal.favourites.add("2008");
+    const refresh = tidal.refreshToken, asked = [];
+    let tripped = false;
+    const trip = (req) => {
+      const m = /\/v1\/albums\/(2007|2008)\b/.exec(req.url);
+      if (!m || tripped) return;
+      if (!asked.includes(m[1])) asked.push(m[1]);
+      if (asked.length === 2) { tripped = true; tidal.expireAccess(); tidal.refreshToken = "rt-refused"; }
+    };
+    tidal.server.on("request", trip);
+    let w;
+    try { w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: K })).json(); }
+    finally { tidal.server.off("request", trip); tidal.refreshToken = refresh; tidal.favourites.delete("2007"); tidal.favourites.delete("2008"); }
+    assert.ok(tripped, "refused partway");
+    assert.ok(w.services.tidal.error, "the Node server's step failed: " + JSON.stringify(w));
+    const first = asked[0] === "2007" ? "T Seventh" : "T Eighth";
+    const titles = (await get("library/albums?sort=album")).j.albums.filter(a => a.source === "tidal").map(a => a.title);
+    assert.ok(titles.includes(first), `${first}, brought in here before, on the walls: ${JSON.stringify(titles)}`);
+    importOn("qobuz", true);
+  });
 });
 
 test("the import's timers: the first import after the hand-over and the watch, by the C# server", { skip, timeout: 120000 }, async (t) => {

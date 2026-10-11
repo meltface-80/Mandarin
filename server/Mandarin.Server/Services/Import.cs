@@ -50,6 +50,8 @@ internal abstract partial class Catalogue
     private Task<JsObj>? importing;
     private Task<JsObj?>? watching;
     private double lastWatch;
+    // Moved by Halt: a run started before stops at its next album.
+    private volatile int generation;
 
     // ------------------------------------------------------------ what each service brings
 
@@ -170,11 +172,20 @@ internal abstract partial class Catalogue
 
     private async Task<JsObj> RunImport()
     {
-        try { return await ImportHere(); }
-        catch (ToNode) { return await NodeStep("import") as JsObj ?? new JsObj(); }
+        var gen = generation;
+        var wrote = false;
+        try { return await ImportHere(gen, () => wrote = true); }
+        catch (ToNode)
+        {
+            // Left to the Node server from here; its run tells it of what it
+            // changed. One that fails tells it nothing, so what was written
+            // here before is told now.
+            try { return await NodeStep("import") as JsObj ?? new JsObj(); }
+            catch { if (wrote) await Changed(); throw; }
+        }
     }
 
-    private async Task<JsObj> ImportHere()
+    private async Task<JsObj> ImportHere(int gen, Action wrote)
     {
         var t0 = NowMs();
         BeforeAsking();
@@ -183,12 +194,14 @@ internal abstract partial class Catalogue
         double added = 0, failed = 0, fetched = 0;
         foreach (var (id, hint) in want)
         {
+            Going(gen);
             try
             {
                 // Only what is new, or a week old (v0.7.10): an album here and read this week is kept as it is.
-                if (FreshAlbumId(id) == null) { await EnsureAlbum(id, hint); fetched++; }
+                if (FreshAlbumId(id) == null) { await EnsureAlbum(id, hint); wrote(); fetched++; }
                 if (!before.Contains(Key + id)) added++;
                 Keep(id, true, Or(hint["kept_as"], "favourite"), Or(hint["kept_at"], null));
+                wrote();
             }
             catch (Exception e) when (e is not ToNode)
             {
@@ -202,6 +215,7 @@ internal abstract partial class Catalogue
         HashSet<string> drop;
         try { drop = (await WantedIds(new Ask(await Library.NodeVersion()), true)).Keys.ToHashSet(StringComparer.Ordinal); }
         catch (Exception e) when (e is not ToNode) { drop = want.Select(w => w.Id).ToHashSet(StringComparer.Ordinal); }
+        Going(gen);
         double dropped = 0;
         using (var c = Db.Open())
         {
@@ -209,12 +223,14 @@ internal abstract partial class Catalogue
             {
                 if (drop.Contains(key.Length >= Key.Length ? key[Key.Length..] : "")) continue;
                 Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", NsKept), ("$k", key));
+                wrote();
                 dropped++;
             }
         }
         (double Playlists, double Held) pl = (0, 0);
-        try { pl = await ImportPlaylists(); }
+        try { pl = await ImportPlaylists(gen, wrote); }
         catch (Exception e) when (e is not ToNode) { Front.Log($"[{Id}] playlists: {Said(e)}"); }
+        Going(gen);
         var result = new JsObj();
         result["at"] = NowMs();
         result["albums"] = (double)want.Count;
@@ -239,7 +255,7 @@ internal abstract partial class Catalogue
      * here so the tracks play, off the walls unless favourites — and a
      * playlist gone from the service goes from here.
      */
-    private async Task<(double Playlists, double Held)> ImportPlaylists()
+    private async Task<(double Playlists, double Held)> ImportPlaylists(int gen, Action wrote)
     {
         var lists = new List<(string Id, string Name, List<(long AlbumId, string Path)> Items)>();
         var held = new List<string>();
@@ -251,10 +267,11 @@ internal abstract partial class Catalogue
             foreach (var (aid, tid) in items)
             {
                 if (aid.Length == 0) continue;
+                Going(gen);
                 try
                 {
                     // Here and read this week: as it is (v0.7.10, as the import).
-                    if (!albumsSeen.ContainsKey(aid)) albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid);
+                    if (!albumsSeen.ContainsKey(aid)) { albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid); wrote(); }
                 }
                 catch (Exception e) when (e is not ToNode) { Front.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
                 if (heldSeen.Add(Key + aid)) held.Add(Key + aid);
@@ -277,6 +294,7 @@ internal abstract partial class Catalogue
         // server's, and so this server's copy) so the records find their rows.
         await Changed("opened");
         var s = await Library.CurrentCopy() ?? throw new JsError("The library couldn't be read");
+        Going(gen);
         using var c = Db.Open();
         using var tx = c.BeginTransaction(IsolationLevel.Serializable, deferred: false);
         var v = SettingOf(c, "userPlaylists");
@@ -339,13 +357,16 @@ internal abstract partial class Catalogue
 
     private async Task<JsObj?> RunWatch()
     {
+        var gen = generation;
         double added = 0;
-        try { return await WatchHere(n => added = n); }
+        try { return await WatchHere(gen, n => added = n); }
         catch (ToNode)
         {
-            // Left to the Node server from here: what it brings in, and what was brought in here before.
-            var r = await NodeStep("watch");
-            if (added > 0) await Changed();
+            // Left to the Node server from here: what it brings in, and what
+            // was brought in here before, told whether its run makes it or not.
+            object? r;
+            try { r = await NodeStep("watch"); }
+            finally { if (added > 0) await Changed(); }
             if (r is not JsObj o) return null;
             if (added > 0)
             {
@@ -357,7 +378,7 @@ internal abstract partial class Catalogue
         }
     }
 
-    private async Task<JsObj> WatchHere(Action<double> broughtIn)
+    private async Task<JsObj> WatchHere(int gen, Action<double> broughtIn)
     {
         BeforeAsking();
         // Asked now, and kept the minute as the catalogue's are: no longer than the library stays as it is.
@@ -367,9 +388,11 @@ internal abstract partial class Catalogue
         foreach (var (id, why) in want)
         {
             if (before.Contains(Key + id)) continue;
+            Going(gen);
             try { await EnsureAlbum(id); Keep(id, true, why); added++; broughtIn(added); }
             catch (Exception e) when (e is not ToNode) { failed++; Front.Log($"[{Id}] watch {id}: {Said(e)}"); }
         }
+        Going(gen);
         using (var c = Db.Open())
         {
             foreach (var key in before)
@@ -391,6 +414,32 @@ internal abstract partial class Catalogue
         o["failed"] = failed;
         o["changed"] = added > 0 || dropped > 0;
         return o;
+    }
+
+    // ------------------------------------------------------------ halted
+
+    /*
+     * An import or a watch under way stopped at its next album, and waited
+     * for up to [most] (a backup about to be put back, Jobs.RestartNode): it
+     * would otherwise write on across the Node server's exit and the
+     * database put back, as the Node server's own never did. One started
+     * after this runs as ever.
+     */
+    public async Task Halt(TimeSpan most)
+    {
+        Task[] running;
+        lock (importGate)
+        {
+            generation++;
+            running = new Task?[] { importing, watching }.OfType<Task>().ToArray();
+        }
+        if (running.Length > 0) await Task.WhenAny(Task.WhenAll(running).ContinueWith(_ => { }, TaskScheduler.Default), Task.Delay(most));
+    }
+
+    /* Stopped here if halted since the run began. */
+    private void Going(int gen)
+    {
+        if (gen != generation) throw new OperationCanceledException("stopped: a backup is being put back");
     }
 
     // ------------------------------------------------------------ left to the Node server
@@ -623,15 +672,36 @@ internal static class Import
     public static void Later(Catalogue s, string said = "import") =>
         _ = s.ImportLibrary().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Front.Log($"[{s.Id}] {said}: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
 
-    /* index.js serviceSync: each service's import, side by side. */
+    /*
+     * index.js serviceSync: each service's import. One after the other, not
+     * side by side as there: a step left to the Node server (Tidal's token)
+     * writes the playlists outside any transaction, so it mustn't run while
+     * the other service's import here writes them.
+     */
     private static void Sync()
     {
         try
         {
             if (!Jobs.Holds("import")) return;
-            foreach (var s in Services()) if (Wants(s)) Later(s);
+            var todo = Services().Where(Wants).ToList();
+            if (todo.Count == 0) return;
+            _ = Task.Run(async () =>
+            {
+                foreach (var s in todo)
+                {
+                    try { await s.ImportLibrary(); }
+                    catch (Exception e) { Front.Log($"[{s.Id}] import: {Catalogue.Said(e)}"); }
+                }
+            });
         }
         catch (Exception e) { Front.Log($"[import] {e.GetType().Name}: {e.Message}"); }
+    }
+
+    /* Each service's import or watch under way stopped, and the timers (a backup about to be put back): the Node server's start after it arms them again. */
+    public static async Task HaltRuns()
+    {
+        Stop();
+        await Task.WhenAll(Services().Select(s => s.Halt(TimeSpan.FromSeconds(20))));
     }
 
     /* index.js serviceWatch: each service's favourites looked at. */

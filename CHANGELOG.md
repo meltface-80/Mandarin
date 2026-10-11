@@ -35,6 +35,14 @@ Node server is told and reads its library again, as before.
   partway, it is left to the Node server from there, which makes it with its own import or watch and
   refreshes the token (`POST /internal/services/step`). What was brought in before stays, each album
   written whole and kept once its rows are; the counts are then those of the Node server's run.
+- **Where the two servers meet:**
+  - a step left to the Node server that fails (Tidal refuses it a new token too): what the C# server
+    brought in before is told to it all the same, so it is on the walls;
+  - the imports on the timers (the first after the hand-over, then every six hours) are made one
+    service after the other, not side by side, so a step left to the Node server never writes the
+    playlists while the other service's import here writes them;
+  - a backup put back stops an import or a watch under way at its next album (waited for up to 20
+    seconds) before the Node server starts again, rather than writing on into the database put back.
 - The C# server's copy of the library is now read again as soon as it tells the Node server of a
   service's change, as the Node server's own is, rather than at the next request: an import running
   meanwhile is never seen half made.
@@ -60,7 +68,8 @@ Node server is told and reads its library again, as before.
   kept marks with the service's own dates, Tidal's "+0000" among them, the held marks, the playlists
   as text, yours and the other service's kept as they were, what it made, the answer); the watch;
   the page's quick look and its 15 seconds; Tidal's token due (the import and the watch made once,
-  by the Node server, which refreshed it) and refused partway (the same library in the end); the
+  by the Node server, which refreshed it), refused partway (the same library in the end) and
+  refused with no new token to be had (what was brought in before on the walls); the
   import after a Rescan and after signing in made by the C# server; and its timers, the Node
   server's own idle. `test/qobuz.test.js` now caches Qobuz's listing with an import through the
   front door rather than inside the Node server. `test/fake-qobuz.js` can date a favourite and a
