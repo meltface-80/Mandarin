@@ -74,6 +74,9 @@
  *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
  *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
  *     are still converted by the Node server.
+ *   - v0.8.43: which albums the library holds, as a mark on every answer to a signed-in device
+ *     (X-Mandarin-Library) and at /api/library/mark, by C#: the page reads its rows again when it
+ *     moves (test/library-live.test.js).
  */
 const ports = require("./ports");
 const test = require("node:test");
