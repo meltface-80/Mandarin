@@ -20,6 +20,9 @@ server already running to the same answers found a few places it differed; they'
   - the radio's six-month memory;
   - V8's own `sin`, `cos`, `log`, `log10` and `pow` (`JsMath.cs`): .NET's differ from them in the
     last bit for a few in a hundred numbers, which would change a cache name or a headroom figure.
+    They're x64 Node's to the bit, on every machine. Node built for Apple silicon rounds a few of its
+    own in the last bit differently, so on a Mac a conversion with DSP or levelling that Node made
+    may, now and then, be made again under C#'s name for it once C# makes them (stage 3).
 - **Put right in the C# server already running:**
   - **a signed address** (a stream or a cover handed to a speaker) is checked as the Node server checks
     it: the path as the request wrote it, and `s` as Express reads the query. Before, the decoded path
@@ -34,6 +37,9 @@ server already running to the same answers found a few places it differed; they'
   NaN and -0 included: the repo's own cases (streams, DSP, levelling, the radio, signing), every rate
   from 8 kHz to 768 kHz and DSD64 to DSD512 at every depth, every renderer profile, every filter at
   its extremes, and seeded generated ones. Signing is checked against the Node server's own gate.
+  The answers built on `Math` are held to Node's where its `Math` is V8's fdlibm (x64: CI's Linux
+  jobs); on Apple silicon the test checks that Node's own `Math` is within the last bits of
+  `JsMath.cs` and leaves those answers out.
 - The Android app for this version is 0.8.38 (version code 238). Nothing in it changed.
 
 ## v0.8.37

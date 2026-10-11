@@ -9,9 +9,12 @@
 // the same constants, the same order of operations, the same argument
 // reduction — and, in pow, V8's own bracketing of its last division, which
 // isn't fdlibm's. Doubles in .NET are IEEE doubles with no hidden extra
-// precision and no fused multiply-add, as in V8, so the results are the same
-// bits (checked against Node 22 over millions of arguments, special values
-// and huge ones included).
+// precision and no fused multiply-add, as in V8 on x64, so the results are
+// the same bits as Node's there (checked against Node 22 over millions of
+// arguments, special values and huge ones included). Node built for arm64
+// (Apple silicon) rounds a few in the last bit differently, its compiler
+// fusing a multiply and an add inside fdlibm; .NET never fuses on its own, so
+// these give the same bits on every machine, x64 Node's.
 //
 // fdlibm's notice, which goes with it:
 //   Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.

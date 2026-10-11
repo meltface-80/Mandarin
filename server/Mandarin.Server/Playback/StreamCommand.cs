@@ -9,6 +9,7 @@
 //     fingerprint, num, band_filter, filters, plan_part, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
 //   { fn: "sign", secret, sigs, urls, valid, targets, queries, decode }   lib/server/auth.js
 //   { fn: "radio", keys, runs: [{ saved, start, window, ops }] }   lib/radio-memory.js
+//   { fn: "math", sin, cos, log, log10, pow }   JsMath.cs itself, against this machine's Math
 //
 // Each list is answered in order, one result for each case. Numbers JSON
 // can't carry travel as { "$js": "NaN" | "Infinity" | "-Infinity" | "-0" }
@@ -37,6 +38,7 @@ internal static class StreamCommand
             "dsp" => DspFns(job),
             "sign" => Sign(job),
             "radio" => Radio(job),
+            "math" => MathFns(job),
             _ => throw new JsError("unknown fn")
         };
         return (JsObj)Mark(o)!;
@@ -231,6 +233,19 @@ internal static class StreamCommand
         o["targets"] = Each(job["targets"], t => Signing.Gate(secret, Js.Str(t)) is { } b ? b : null);
         o["queries"] = Each(job["queries"], q => Signing.QueryS(Js.Str(q)));
         o["decode"] = Each(job["decode"], s => Signing.DecodeURIComponent(Js.Str(s)));
+        return o;
+    }
+
+    // ---------------------------------------------------------------- V8's Math, as JsMath.cs has it
+
+    private static JsObj MathFns(JsObj job)
+    {
+        var o = new JsObj();
+        o["sin"] = Each(job["sin"], x => JsMath.Sin(Jv.Num(x)));
+        o["cos"] = Each(job["cos"], x => JsMath.Cos(Jv.Num(x)));
+        o["log"] = Each(job["log"], x => JsMath.Log(Jv.Num(x)));
+        o["log10"] = Each(job["log10"], x => JsMath.Log10(Jv.Num(x)));
+        o["pow"] = Each(job["pow"], a => JsMath.Pow(Jv.Num(Arg(a, 0)), Jv.Num(Arg(a, 1))));
         return o;
     }
 

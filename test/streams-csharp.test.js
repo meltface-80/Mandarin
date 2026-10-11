@@ -76,6 +76,52 @@ function csharp(job) {
 const THROWS = { $throws: true };
 const run = (list, f) => (list || []).map(x => { try { return mark(f(x)); } catch (e) { return THROWS; } });
 
+/*
+ * V8's Math.sin, cos, log, log10 and pow, as JsMath.cs has them, against this
+ * machine's Node. On x64 Node's are V8's fdlibm, and the two agree to the bit.
+ * Node built for arm64 (Apple silicon) rounds a few of them differently in the
+ * last bit (its compiler fuses a multiply and an add there). JsMath.cs doesn't
+ * (.NET never fuses on its own, and the ports use nothing else but exact
+ * operations), so the C# server gives the same bits everywhere. There Node
+ * isn't the reference, and an ill-conditioned case (a filter far below its
+ * rate) can carry a last bit into another headroom and another fingerprint.
+ * So the answers built on these (the stream plans with their DSP and gains,
+ * the DSP, ReplayGain) are held to Node's where its Math is fdlibm's (CI's
+ * Linux jobs), and left out where it isn't; the rest are held everywhere.
+ */
+function mathProbe() {
+  const r = rng(77), job = { fn: "math", sin: [], cos: [], log: [], log10: [], pow: [] };
+  const RATE = [8000, 44100, 48000, 88200, 96000, 192000, 384000, 768000];
+  const ODD = [0, -0, NaN, Infinity, -Infinity, 1, -1, Math.PI, 1e-310, 1e300, -1e300, 0.5, 10];
+  for (let i = 0; i < 3000; i++) {
+    const w = i % 3 === 0 ? 2 * Math.PI * 20 * Math.pow(1000, r()) / pick(r, RATE) : i % 3 === 1 ? (r() - 0.5) * 20 : (r() - 0.5) * 1e7;
+    job.sin.push(w); job.cos.push(w);
+    const v = i % 2 ? Math.pow(10, (r() - 0.5) * 80) : r() * 2;
+    job.log.push(v); job.log10.push(v);
+    job.pow.push(pick(r, [[10, (r() - 0.75) * 160 / 20], [10, (r() - 0.5) * 60 / 10], [10, (r() - 0.5) * 48 / 40], [2400, r()], [1000, r()], [r() * 100, (r() - 0.5) * 20]]));
+  }
+  for (const x of ODD) { job.sin.push(x); job.cos.push(x); job.log.push(x); job.log10.push(x); for (const y of ODD) job.pow.push([x, y]); }
+  const got = csharp(wire(job));
+  const out = { differ: 0, worst: 0, cases: 0 };
+  for (const k of ["sin", "cos", "log", "log10", "pow"]) {
+    job[k].forEach((a, i) => {
+      const want = mark(k === "pow" ? Math.pow(a[0], a[1]) : Math[k](a));
+      out.cases++;
+      if (Object.is(JSON.stringify(got[k][i]), JSON.stringify(want))) return;
+      out.differ++;
+      const g = typeof got[k][i] === "number" ? got[k][i] : NaN, w = typeof want === "number" ? want : NaN;
+      // Relative, or absolute below 1 (a sine near a zero).
+      out.worst = Math.max(out.worst, Number.isFinite(g) && Number.isFinite(w) ? Math.abs(g - w) / Math.max(Math.abs(g), Math.abs(w), 1) : Infinity);
+      if (!out.first) out.first = `${k}(${JSON.stringify(a)}): C# ${JSON.stringify(got[k][i])}, Node ${JSON.stringify(want)}`;
+    });
+  }
+  return out;
+}
+/* This machine's Node has V8's fdlibm (asked once, when the C# server is built). */
+let mathHere = null;
+const fdlibm = () => (mathHere = mathHere || mathProbe()).differ === 0;
+const onlyFdlibm = () => skip || (!fdlibm() && `this Node's Math isn't V8's fdlibm (${process.arch}: ${mathHere.differ} of ${mathHere.cases} differ in the last bits); held to the bit on x64`);
+
 let compared = 0;
 /* Both answers, case by case; the first that differs is shown with its seed. */
 function same(what, cases, got, want, seed) {
@@ -326,7 +372,15 @@ function comparePlans(job, seed) {
   for (const k of Object.keys(want)) same("plans." + k, job[k], got[k], want[k], seed);
 }
 
-test("stream plans: the repo's own cases, then every rate, depth, container and renderer profile", { skip }, () => {
+test("V8's Math as JsMath.cs has it: Node's to the bit on x64, within the last bits on arm64", { skip }, (t) => {
+  fdlibm();
+  const m = mathHere;
+  t.diagnostic(`${m.cases} cases, ${m.differ} differ from this machine's Node (${process.arch})${m.first ? "; the first: " + m.first : ""}`);
+  if (process.arch === "x64") assert.equal(m.differ, 0, "V8's fdlibm, to the bit: " + m.first);
+  else assert.ok(m.worst <= 1e-14, `within the last bits (worst ${m.worst}): ${m.first}`);
+});
+
+test("stream plans: the repo's own cases, then every rate, depth, container and renderer profile", { skip: onlyFdlibm() }, () => {
   const r = rng(838);
   const job = plansJob(r, 0);
   job.plan = REPO_PLANS.slice();
@@ -348,7 +402,7 @@ test("stream plans: the repo's own cases, then every rate, depth, container and 
   comparePlans(job, 838);
 });
 
-test("stream plans: thousands of generated tracks, devices, gains and DSP", { skip }, () => {
+test("stream plans: thousands of generated tracks, devices, gains and DSP", { skip: onlyFdlibm() }, () => {
   for (const seed of [1, 2, 3]) comparePlans(plansJob(rng(seed), 1500), seed);
 });
 
@@ -418,7 +472,7 @@ function compareDsp(job, seed) {
   for (const k of Object.keys(want)) same("dsp." + k, job[k], got[k], want[k], seed);
 }
 
-test("the DSP: the repo's own settings, every filter type at its extremes, and generated ones", { skip }, () => {
+test("the DSP: the repo's own settings, every filter type at its extremes, and generated ones", { skip: onlyFdlibm() }, () => {
   const r = rng(4242);
   const job = dspJob(r, 0);
   const peak = [{ type: "peak", freq: 1000, gain: 6, q: 1.41 }];
@@ -522,7 +576,7 @@ function gainNode(job) {
   };
 }
 
-test("ReplayGain: the repo's own cases, then generated settings, tags, measurements and albums", { skip }, () => {
+test("ReplayGain: the repo's own cases, then generated settings, tags, measurements and albums", { skip: onlyFdlibm() }, () => {
   const job = gainJob(rng(1800), 0);
   job.levelling.push(null, { mode: "auto", target: -30, unknown: 3 });
   job.patch.push([null, { mode: "album", target: -20 }], [null, { target: -13 }], [null, { target: -26 }], [null, { unknown: 2 }], [null, { mode: "loud" }]);
