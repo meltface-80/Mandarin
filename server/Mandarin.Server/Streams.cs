@@ -39,7 +39,7 @@ internal static partial class Streams
         ["wav"] = "audio/wav", ["wave"] = "audio/wav", ["aif"] = "audio/aiff", ["aiff"] = "audio/aiff", ["aifc"] = "audio/aiff",
         ["wma"] = "audio/x-ms-wma", ["dsf"] = "audio/x-dsf", ["dff"] = "audio/x-dff"
     };
-    private static string MimeForExt(string ext) => ExtMime.TryGetValue(ext.ToLowerInvariant(), out var m) ? m : "application/octet-stream";
+    internal static string MimeForExt(string ext) => ExtMime.TryGetValue(ext.ToLowerInvariant(), out var m) ? m : "application/octet-stream";
 
     [GeneratedRegex("mpeg|mp3")] private static partial Regex Mpeg();
     [GeneratedRegex(@"\.(m4a|mp4|alac)\z")] private static partial Regex Mp4Alac();
@@ -53,7 +53,7 @@ internal static partial class Streams
     [GeneratedRegex(@"\.(dsf|dff)\z", RegexOptions.IgnoreCase)] private static partial Regex DsdExt();
 
     /* stream.js nativeMime: the type Sonos matches on, when it reads the file as it is. */
-    private static string? NativeMime(string path, string codecRaw, long bits)
+    internal static string? NativeMime(string path, string codecRaw, long bits)
     {
         var codec = codecRaw.ToLowerInvariant();
         var ext = Ext(path);
@@ -79,7 +79,8 @@ internal static partial class Streams
 
     private static string cacheDir = "";
 
-    [GeneratedRegex(@"flac|alac|pcm|65534|monkey|\bape\b|wavpack|\bwv\b|\btta\b|\btak\b|shorten|\bshn\b")]
+    // ECMAScript: \b between ASCII word characters and the rest, as JavaScript's is ("éape" is APE there).
+    [GeneratedRegex(@"flac|alac|pcm|65534|monkey|\bape\b|wavpack|\bwv\b|\btta\b|\btak\b|shorten|\bshn\b", RegexOptions.ECMAScript)]
     private static partial Regex IntegerCodec();
     [GeneratedRegex(@"\.(wave?|aif[fc]?)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Uncompressed();
@@ -145,7 +146,7 @@ internal static partial class Streams
         Track? t = null;
         using (var c = Db.Open())
         {
-            if (!Images.Signed(ctx, c, path) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+            if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
             using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime FROM tracks WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);
@@ -171,33 +172,7 @@ internal static partial class Streams
             var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
             if (DsdMime().IsMatch(asked) && a.Groups[3].Value.ToLowerInvariant() is "dsf" or "dff") mime = asked;
         }
-        else
-        {
-            // stream.js plan, with no target: the file as it is, or a conversion.
-            var native = NativeMime(t.Path, t.Codec, t.Bits);
-            var tooHigh = t.Rate > MaxRate || t.Bits > MaxBits;
-            var dsd = DsdCodec().IsMatch(t.Codec) || DsdExt().IsMatch(t.Path);
-            var channels = t.Channels != 0 ? t.Channels : 2;
-            if (native == null || tooHigh || channels > 2 || dsd)
-            {
-                // The 24/48 rule's conversion: 48 kHz at most (DSD at 48), 24 bits
-                // for anything resampled or deeper than 16, else the file's own.
-                var outRate = dsd ? MaxRate : (t.Rate > MaxRate || t.Rate == 0 ? MaxRate : t.Rate);
-                var outBits = dsd || t.Rate > MaxRate || t.Bits > 16 || t.Bits == 0 ? 24 : 16;
-                // stream.js repack: only the container changes, the samples exactly as they were.
-                var codec = t.Codec.ToLowerInvariant();
-                var exact = t.Rate != 0 && t.Bits != 0 && outRate == t.Rate && outBits >= t.Bits && channels <= 2
-                    && (IntegerCodec().IsMatch(codec) || (codec.Length == 0 && Uncompressed().IsMatch(t.Path)));
-                string reason;
-                if (dsd) reason = "DSD, which Sonos does not play";
-                else if (tooHigh) reason = $"{(t.Bits != 0 ? t.Bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit/{(t.Rate != 0 ? (t.Rate / 1000.0).ToString(CultureInfo.InvariantCulture) : "?")} kHz is above what Sonos takes";
-                else if (channels > 2) reason = $"{channels} channels, folded down to stereo";
-                else if (Uncompressed().IsMatch(t.Path)) reason = $"{(t.Bits != 0 ? t.Bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit uncompressed, repacked as FLAC with the same samples";
-                else reason = $"a {(t.Codec.Length > 0 ? t.Codec : "file")} Sonos cannot read";
-                conv = new ConvPlan(outRate, (int)outBits, false, exact, reason);
-            }
-            mime = native ?? "audio/flac";
-        }
+        else (mime, conv) = SonosRule(t.Path, t.Codec, t.Rate, t.Bits, t.Channels);
         if (conv != null)
         {
             // Made already: sent from the cache, marked as used. Not yet: made
@@ -212,6 +187,31 @@ internal static partial class Streams
 
         if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
         return await SendFile(ctx, t.Path, mime);
+    }
+
+    /* stream.js plan, with no target (Sonos): the file as it is (its type), or a conversion. */
+    internal static (string Mime, ConvPlan? Conv) SonosRule(string path, string codecRaw, long rate, long bits, long channelsRaw)
+    {
+        var native = NativeMime(path, codecRaw, bits);
+        var tooHigh = rate > MaxRate || bits > MaxBits;
+        var dsd = DsdCodec().IsMatch(codecRaw) || DsdExt().IsMatch(path);
+        var channels = channelsRaw != 0 ? channelsRaw : 2;
+        if (native != null && !tooHigh && channels <= 2 && !dsd) return (native, null);
+        // The 24/48 rule's conversion: 48 kHz at most (DSD at 48), 24 bits
+        // for anything resampled or deeper than 16, else the file's own.
+        var outRate = dsd ? MaxRate : (rate > MaxRate || rate == 0 ? MaxRate : rate);
+        var outBits = dsd || rate > MaxRate || bits > 16 || bits == 0 ? 24 : 16;
+        // stream.js repack: only the container changes, the samples exactly as they were.
+        var codec = codecRaw.ToLowerInvariant();
+        var exact = rate != 0 && bits != 0 && outRate == rate && outBits >= bits && channels <= 2
+            && (IntegerCodec().IsMatch(codec) || (codec.Length == 0 && Uncompressed().IsMatch(path)));
+        string reason;
+        if (dsd) reason = "DSD, which Sonos does not play";
+        else if (tooHigh) reason = $"{(bits != 0 ? bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit/{(rate != 0 ? Tags.Js.Num(rate / 1000.0) : "?")} kHz is above what Sonos takes";
+        else if (channels > 2) reason = $"{channels} channels, folded down to stereo";
+        else if (Uncompressed().IsMatch(path)) reason = $"{(bits != 0 ? bits.ToString(CultureInfo.InvariantCulture) : "?")}-bit uncompressed, repacked as FLAC with the same samples";
+        else reason = $"a {(codecRaw.Length > 0 ? codecRaw : "file")} Sonos cannot read";
+        return (native ?? "audio/flac", new ConvPlan(outRate, (int)outBits, false, exact, reason));
     }
 
     public static async Task<bool> SendFile(HttpContext ctx, string file, string mime)

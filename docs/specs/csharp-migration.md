@@ -314,6 +314,12 @@ Node version by the `score` harness:
 
 This makes stages 3 and 6 much safer, and some of it is needed by 1b.
 
+Done: 2a in v0.8.37 (`Playback/` and `Renderers/`: XML, DIDL-Lite, the queue moves, the household,
+SOAP, device descriptions, sinks, events, profiles), 2b in v0.8.38 (`Playback/`: the stream plans
+and cache names, ReplayGain, the DSP filters, signing, the radio's memory, and V8's own sin, cos,
+log, log10 and pow so the numbers agree to the last bit). The C# server already running was held to
+the same tests, and put right where it differed (v0.8.38's CHANGELOG lists where).
+
 ### Stage 3: the conversions Node still makes (M)
 
 1. **ReplayGain streams (`?g=`):** C# adds the volume filter and the `-g` cache name, written

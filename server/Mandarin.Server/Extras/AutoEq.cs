@@ -110,8 +110,8 @@ internal sealed partial class AutoEq(string? baseUrl, Action<string> log)
     [GeneratedRegex(@"^Filter\s*[0-9]*:\s*(ON|OFF)\s+([A-Z]+)\s+Fc\s+(-?[0-9.]+)\s*Hz(?:\s+Gain\s+(-?[0-9.]+)\s*dB)?(?:\s+Q\s+(-?[0-9.]+))?", RegexOptions.IgnoreCase)]
     private static partial Regex Filter();
 
-    // Math.round(x): halves up, toward +Infinity.
-    private static double Round(double x) => Math.Floor(x + 0.5);
+    // Math.round(x): halves up, toward +Infinity (not floor(x + 0.5), one more for 0.49999999999999994).
+    private static double Round(double x) => Mandarin.Server.Tags.Js.Round(x);
 
     /* biquad.js normaliseBand: within range, rounded as stored; out of range throws. */
     public static JsObj NormaliseBand(string type, double freq, double gain, double q)

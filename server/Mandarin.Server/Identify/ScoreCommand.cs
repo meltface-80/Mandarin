@@ -13,6 +13,7 @@
 //   { "fn": "autoeq", "index"?: md, "profile"?: text } (v0.8.26): Extras/AutoEq.cs
 //   { "fn": "xml" | "didl" | "moves" | "topology" | "soap", … } (v0.8.37): Playback/SonosCommand.cs
 //   { "fn": "description" | "protocolinfo" | "gena" | "profiles", … } (v0.8.37): Renderers/RendererCommand.cs
+//   { "fn": "plans" | "gain" | "dsp" | "sign" | "radio" | "math", … } (v0.8.38): Playback/StreamCommand.cs
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -102,6 +103,10 @@ internal static class ScoreCommand
                     // The UPnP renderers' logic (v0.8.37, Renderers/RendererCommand.cs).
                     case "description" or "protocolinfo" or "gena" or "profiles":
                         o = Renderers.RendererCommand.Run(Js.Str(job["fn"]), job);
+                        break;
+                    // Stream plans, ReplayGain, DSP, signing, the radio's memory (v0.8.38).
+                    case "plans" or "gain" or "dsp" or "sign" or "radio" or "math":
+                        o = Playback.StreamCommand.Run(Js.Str(job["fn"]), job);
                         break;
                     default:
                         o["error"] = "unknown fn";

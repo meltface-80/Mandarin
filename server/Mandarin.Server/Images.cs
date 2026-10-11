@@ -14,8 +14,6 @@
 // Who may see one: a signed-in device, or an address the Node server signed
 // (a cover handed to a speaker). Anything else is passed on as it came: the
 // Node server knows the speakers, which fetch covers by their own address.
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -52,21 +50,20 @@ internal static class Images
         });
     }
 
-    // HMAC-SHA256 of the path under the install's secret, base64url, 22 characters (auth.js, sig).
-    public static bool Signed(HttpContext ctx, SqliteConnection c, string path)
+    // HMAC-SHA256 of the path under the install's secret, base64url, 22 characters (auth.js, sig),
+    // checked as the Node server's gate checks it (Playback/Signing.cs): the path as the request
+    // wrote it, not decoded, and s as Express reads the query. Where that can't be said here, not.
+    public static bool Signed(HttpContext ctx, SqliteConnection c)
     {
-        var s = ctx.Request.Query["s"].ToString();
-        if (s.Length != 22 || !s.All(ch => char.IsAsciiLetterOrDigit(ch) || ch == '-' || ch == '_')) return false;
         if (Db.Setting(c, "authSecret") is not { } sv || Js.Str(sv) is not { Length: > 0 } secret) return false;
-        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(path));
-        var want = Convert.ToBase64String(mac).TrimEnd('=').Replace('+', '-').Replace('/', '_')[..22];
-        return CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(s), Encoding.ASCII.GetBytes(want));
+        var raw = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget;
+        return Playback.Signing.Gate(secret, raw) == true;
     }
 
     private static async Task<bool> Answer(HttpContext ctx, string path, string key)
     {
         using (var c = Db.Open())
-            if (!Signed(ctx, c, path) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+            if (!Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
 
         // A record label's logo, as kept: its address changes with it.
         if (key.StartsWith("label-", StringComparison.Ordinal))

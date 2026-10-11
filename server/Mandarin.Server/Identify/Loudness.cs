@@ -313,7 +313,7 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         double? lufs = i.Success && i.Groups[1].Value != "-inf" ? Js.StringToNumber(i.Groups[1].Value) : null;
         double? peakDb = p.Success && p.Groups[1].Value != "-inf" ? Js.StringToNumber(p.Groups[1].Value) : null;
         return (lufs is double l && double.IsFinite(l) && l > -70 ? l : null,
-                peakDb is double pd && double.IsFinite(pd) ? Math.Pow(10, pd / 20) : null);
+                peakDb is double pd && double.IsFinite(pd) ? Playback.JsMath.Pow(10, pd / 20) : null);
     }
 
     /* One file's integrated loudness and true peak, decoded in full. */
