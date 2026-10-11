@@ -30,6 +30,12 @@ itself.
   then) is closed rather than ending the relay; if the relay does stop, it closes its port, and the
   app starts it again when it's next on screen. Before, a relay that had stopped kept the port
   open, and every request the page made was taken and never answered.
+- **Smart Picks' Make again, asked while the picks are being made, is no longer dropped** (the C#
+  server's, `Extras/Taste.cs`): they're made once more when that build ends, from the plays as they
+  are then. It's what turned main's Mac run red after v0.8.41: the Smart Picks test's Make again
+  landed on the build that follows the library scan, which had read the plays from before.
+  `test/smart-picks.test.js` now holds a build on a slow Deezer (`test/fake-deezer.js`'s `hold`)
+  and asks again meanwhile.
 - **Tests:** `test/stale-page.test.js`, in a browser: the page says how long it has been asking
   with no answer, an answer from the server ends it, the next ask starts it again, and coming back
   starts afresh. `PageWatchTest` (JVM): a page that answers is left alone; a silent one is put up

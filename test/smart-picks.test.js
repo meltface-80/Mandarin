@@ -4,7 +4,8 @@
  * ones you play (Deezer's related lists — a fake on loopback), the rest from
  * the least-played corners; steady for the day, made again on asking, an
  * artist kept out. Made by the C# server from v0.8.20 (MANDARIN_FRONT=1
- * checks it answered).
+ * checks it answered). And made again when asked while they are being
+ * made (v0.8.42, the C# server's): the ask is kept for when that build ends.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -74,5 +75,55 @@ test("Smart Picks: by acts near what you play, then the least played; made again
     // Seed Act's related acts came from Deezer once: kept a week.
     assert.equal(deezer.calls.filter(c => c === "artist/300/related?limit=25").length, 1, JSON.stringify(deezer.calls));
     if (FRONT) assert.equal(ctx.features.handedOver, true, "not made by the Node server");
+  } finally { await srv.stop(); await deezer.stop(); }
+});
+
+test("Smart Picks made again while they are being made: made once more when that build ends", { skip: (!FRONT && "the C# server's (MANDARIN_FRONT=1)") || (!haveFfmpeg() && "ffmpeg is not installed"), timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  for (const [artist, album] of [["Artist C", "Third"], ["Artist D", "Fourth"], ["Artist E", "Fifth"]])
+    gen(path.join(lib.music, artist, album, "01 One.flac"), { tags: { title: "One", artist, album, track: 1 } });
+  const deezer = new FakeDeezer({
+    "search/artist?limit=10&q=Seed%20Act": { data: [{ id: 300, name: "Seed Act", nb_fan: 9000 }] },
+    "artist/300/related?limit=25": { data: [{ id: 301, name: "Artist C" }] },
+    "search/artist?limit=10&q=Other%20Act": { data: [{ id: 400, name: "Other Act", nb_fan: 9000 }] },
+    "artist/400/related?limit=25": { data: [{ id: 401, name: "Artist D" }] }
+  });
+  // The first look for Seed Act waits until let go: a build under way.
+  let release, asked, holding = true;
+  const held = new Promise(r => { release = r; });
+  const askedFor = new Promise(r => { asked = r; });
+  deezer.hold = (p) => {
+    if (p !== "search/artist?limit=10&q=Seed%20Act" || !holding) return null;
+    holding = false; asked(); return held;
+  };
+  await deezer.start();
+  const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2;
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, deezerBaseUrl: deezer.base });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B2);
+    const H = { Authorization: "Bearer " + token };
+    const call = async (p, body) => {
+      const r = await fetch(B2 + "/api/" + p, body ? { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) } : { headers: H });
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+      return await r.json();
+    };
+    const until = async (fn, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error("timed out"); await new Promise(r => setTimeout(r, 100)); } };
+    await until(async () => (await (await fetch(B2 + "/api/status", { headers: H })).json()).index_count === 6);
+    // The day's first picks, made after the scan with nothing played.
+    await until(async () => (await call("smart-picks")).picks.length);
+    const now = Date.now();
+    for (let d = 1; d <= 3; d++) ctx.features.insertPlay.run(null, null, "Song", "Seed Act", "Their Record", "z", now - d * DAY);
+    assert.equal((await call("smart-picks/rebuild", {})).building, true);
+    await askedFor;   // that build is waiting on Deezer now
+    // Played meanwhile, on more days, and made again while the first build waits.
+    for (let d = 1; d <= 4; d++) ctx.features.insertPlay.run(null, null, "Song", "Other Act", "Theirs", "z", now - d * DAY + 1000);
+    assert.equal((await call("smart-picks/rebuild", {})).building, true);
+    release();   // the first build goes on, with Seed Act alone
+    const r = await until(async () => { const j = await call("smart-picks"); return j.picks.some(x => x.reason === "Because you have been playing Other Act") && j; });
+    assert.deepEqual(r.picks.filter(x => x.reason.startsWith("Because")).map(x => [x.album, x.reason]),
+      [["Fourth", "Because you have been playing Other Act"], ["Third", "Because you have been playing Seed Act"]],
+      "made again from the plays as they are once the first build ended");
   } finally { await srv.stop(); await deezer.stop(); }
 });
