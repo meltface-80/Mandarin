@@ -73,7 +73,14 @@
  *   - v0.8.40: conversions with a ReplayGain (?g=), a zone's DSP (?o=) and 32-bit output, by C#, made
  *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
  *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
- *     are still converted by the Node server.
+ *     are still converted by the Node server;
+ *   - v0.8.43: Qobuz's and Tidal's albums as library rows, by C#: an album opened, favourited and taken
+ *     away, a streamed album's page (its favourite brought into line, why it is here), Clean up of a
+ *     service's albums where the scans are C#'s, and the month's prune, a job handed over ("prune"),
+ *     each held to what the Node server writes and answers (test/services-rows-csharp.test.js;
+ *     test/qobuz.test.js and test/tidal.test.js in this mode). A request Tidal's token has to be
+ *     refreshed for is still the Node server's, as are signing in, the settings, the import and playing
+ *     (the v0.8.43 test here; the job list in the v0.8.19 one).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -190,7 +197,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "scan", "tailscale", "taste"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "prune", "scan", "tailscale", "taste"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -388,7 +395,7 @@ test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answer
   } finally { await srv.stop(); }
 });
 
-test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in, favourites, opening and playing still the Node server's", { skip, timeout: 60000 }, async () => {
+test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in and playing still the Node server's", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
@@ -408,9 +415,47 @@ test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in, favouri
         assert.deepEqual(await by(`/api/${s}/${p}`), [401, "C#", { error: "Not signed in to " + name, connected: false }], p);
       }
       assert.deepEqual((await by(`/api/settings/${s}`)).slice(0, 2), [200, "Node"]);
-      assert.deepEqual((await by(`/api/${s}/open`, { album_id: "1" })).slice(0, 2), [401, "Node"]);
-      assert.deepEqual((await by(`/api/${s}/favorite`, { album_id: "1" })).slice(0, 2), [401, "Node"]);
+      assert.deepEqual((await by(`/api/${s}/play`, { album_id: "1", zone_or_output_id: "x" })).slice(0, 2), [401, "Node"]);
     }
     assert.deepEqual(await by("/api/tidal/lists"), [401, "C#", { error: "Not signed in to Tidal", connected: false }]);
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.43: Qobuz's and Tidal's albums opened, favourited, their page, Clean up and the prune answered by C#", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+    sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const by = async (p, body) => {
+      const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
+      return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json().catch(() => null)];
+    };
+    for (let i = 0; i < 300 && !ctx.frontRuns; i++) await new Promise(r => setTimeout(r, 100));
+    // The library read on first start (Clean up waits for a scan under way).
+    for (let i = 0; i < 300; i++) { const st = (await by("/api/status"))[2]; if (st.index_count >= 3 && !st.library_importing) break; await new Promise(r => setTimeout(r, 100)); }
+    // The prune handed over: the Node server's daily timer does nothing.
+    assert.equal(ctx.frontRuns.has("prune"), true);
+    assert.equal(ctx.madeByFront("prune"), true);
+    for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
+      for (const p of ["open", "favorite", "unfavorite"])
+        assert.deepEqual(await by(`/api/${s}/${p}`, { album_id: "1" }), [401, "C#", { error: "Not signed in to " + name, connected: false }], s + "/" + p);
+    }
+    // A streamed album's page: by C#, signed out without the service's fields.
+    const now = Date.now();
+    ctx.db.raw.prepare(`INSERT INTO albums(key, title, artist, dir, track_count, added_at, updated_at) VALUES('qobuz:9', 'Q', 'A', 'qobuz://album/9', 0, ?, ?)`).run(now, now);
+    ctx.library.reload();
+    const id = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:9'").get().id;
+    const page = await by("/api/album?offset=" + id);
+    assert.deepEqual(page.slice(0, 2), [200, "C#"], "a streamed album's page");
+    assert.equal(page[2].album.qobuz_id, "9");
+    assert.equal(page[2].album.service_why, undefined, "signed out: nothing of the service");
+    // Clean up of a service's albums where the scans are C#'s: signed out, every one goes.
+    assert.deepEqual(await by("/api/library/cleanup", { kind: "qobuz" }), [200, "C#", { ok: true, kind: "qobuz", removed: 1, count: 3 }]);
+    assert.deepEqual((await by("/api/library/cleanup", { kind: "files" })).slice(0, 2), [200, "Node"], "the music folders' kind, the Node server's");
+    assert.deepEqual((await by("/api/library/cleanup")).slice(0, 2), [200, "Node"], "the counts, the Node server's");
   } finally { await srv.stop(); }
 });

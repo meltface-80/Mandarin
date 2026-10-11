@@ -1,8 +1,9 @@
 // LibraryRoutes.cs — the library's read routes (v0.8.4), from
 // lib/server/api-library.js, in the same shapes. An album of a streaming
-// service's still opens through the Node server (its page asks the service),
-// as does anything asked of a Node server too old to say which copy it holds:
-// a request this side can't answer exactly is passed on, never guessed at.
+// service's page asks the service too: answered here from v0.8.43 once the
+// Node server has handed over its work (ServiceRoutes.cs), until then by it.
+// Anything asked of a Node server too old to say which copy it holds goes to
+// it: a request this side can't answer exactly is passed on, never guessed at.
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -158,6 +159,8 @@ internal static partial class Library
             if (await ScanRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.
             if (await ServiceRoute(ctx)) return;
+            // And their albums opened, favourited and cleaned up (v0.8.43, ServiceRoutes.cs), likewise.
+            if (await ServiceWrite(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
@@ -565,12 +568,19 @@ internal static partial class Library
     [GeneratedRegex(@"(?:(?<=[A-Za-z0-9_])(?![A-Za-z0-9_])|(?<![A-Za-z0-9_])(?=[A-Za-z0-9_]))(artist|album)(?:(?<=[A-Za-z0-9_])(?![A-Za-z0-9_])|(?<![A-Za-z0-9_])(?=[A-Za-z0-9_]))")]
     private static partial Regex NamesFromFolders();
 
-    private static Task<bool> AlbumPage(HttpContext ctx, Snapshot s, LibState st)
+    private static async Task<bool> AlbumPage(HttpContext ctx, Snapshot s, LibState st)
     {
         var al = s.Find(Num(Q(ctx, "offset")));
-        if (al == null) return Send(ctx, new JsonObject { ["error"] = "That album is no longer in the library — rescan to refresh" }, 409);
-        // A streamed album's page asks the service too: the Node server's.
-        if (al.Service != null) return Task.FromResult(false);
+        if (al == null) return await Send(ctx, new JsonObject { ["error"] = "That album is no longer in the library — rescan to refresh" }, 409);
+        // A streamed album's page asks the service too (v0.8.43, ServiceRoutes.cs): here once
+        // the Node server has handed over its work; a token Tidal wants refreshed, its.
+        Tags.JsObj? service = null;
+        if (al.Service != null)
+        {
+            if (CatalogueOf(al.Service) is not { } svc) return false;
+            try { service = await ServiceFields(svc, al, st); }
+            catch (global::Mandarin.Server.Services.ToNode) { return false; }
+        }
         using var c = Db.Open();
         var tracks = Tracks(c, s, al);
         var discs = tracks.Select(t => t.Disc ?? 1).Distinct().Count();
@@ -596,13 +606,15 @@ internal static partial class Library
         var album = AlbumJson(s, al);
         album["year"] = al.Year;
         album["genres"] = new JsonArray(al.Genres.Select(g => (JsonNode)g).ToArray());
+        // Object.assign(library.json(al), { year, genres }, the service's, label): in that order.
+        if (service != null) foreach (var k in service.Keys) album[k] = JsonNode.Parse(Tags.Js.Json(service[k])!);
         if (s.LabelOf(al) is { } label) album["label"] = label;
         var boxAlbums = new JsonArray();
         if (al.Box != null)
             foreach (var id in al.Box.Ids)
                 if (id != al.Id && s.ById.TryGetValue(id, out var x))
                     boxAlbums.Add(AlbumJson(s, x, new JsonObject { ["disc"] = x.Box?.Disc }));
-        return Send(ctx, new JsonObject
+        return await Send(ctx, new JsonObject
         {
             ["album"] = album,
             ["tracks"] = rows,

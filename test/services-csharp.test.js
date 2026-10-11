@@ -117,21 +117,23 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
     assert.deepEqual(tl.lists.map(l => l.id), ["recommended", "top", "rising"]);
   });
 
+  // Opening and favouriting are the C# server's since v0.8.43 (test/services-rows-csharp.test.js);
+  // the Node server still makes them for a request passed to it (Tidal's token), and its import and watch.
   await t.test("an album opened, and a favourite changed, on the Node server: seen at once", async () => {
-    const open = await post("qobuz/open", { album_id: "q100" });
-    assert.equal(open.by, null, "opening is the Node server's");
+    const open = await call(NODE, "qobuz/open", { album_id: "q100" });
+    assert.equal(open.by, null, "made by the Node server");
     const a = await same("qobuz/album?id=q100");
     assert.equal(a.j.offset, open.j.offset, "its place in the library");
     assert.equal(a.j.album.in_library, true);
     for (const [s, id] of [["qobuz", "q200"], ["tidal", "2002"]]) {
       assert.equal((await get(`${s}/state?album_id=${id}`)).j.favourite, false);
-      const fav = await post(`${s}/favorite`, { album_id: id });
+      const fav = await call(NODE, `${s}/favorite`, { album_id: id });
       assert.deepEqual([fav.status, fav.by], [200, null], JSON.stringify(fav.j));
       const st = await same(`${s}/state?album_id=${id}`);
       assert.equal(st.j.favourite, true, s + ": the favourite seen straight after, not a minute later");
       const listed = (await same(`${s}/search?q=hi-res`)).j.albums.find(x => x.id === id);
       assert.equal(listed.favourited, true, s + ": and in the lists");
-      await post(`${s}/unfavorite`, { album_id: id });
+      await call(NODE, `${s}/unfavorite`, { album_id: id });
       assert.equal((await same(`${s}/state?album_id=${id}`)).j.favourite, false, s + ": and taken away");
     }
   });

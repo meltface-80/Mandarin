@@ -2,14 +2,16 @@
 // stage 4.1 of docs/specs/csharp-migration.md), from lib/qobuz/index.js,
 // lib/tidal/index.js and lib/services/streaming.js, rule for rule: new
 // releases, the featured lists, search, an artist's albums, an album and its
-// tracks, and whether an album is in the account's favourites. Read-only:
-// the account (signed in by the Node server), the albums kept and those in the
-// library are read from the database it writes; nothing is written here.
+// tracks, and whether an album is in the account's favourites. The account
+// (signed in by the Node server), the albums kept and those in the library are
+// read from the database it writes; the library's rows written here from
+// v0.8.43 are Rows.cs.
 //
 // The favourites' ids are kept a minute, as api.js keeps them, and no longer
 // than the Node server's library stays as it was: a favourite added or taken
-// away there (POST /api/<s>/favorite, still its own) reads the library again,
-// so the next list here asks the service afresh rather than show it stale.
+// away there (its import and watch, or a request passed to it for Tidal's
+// token) reads the library again, so the next list here asks the service
+// afresh rather than show it stale.
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
@@ -22,7 +24,7 @@ using Js = Mandarin.Server.Tags.Js;
 /* What a list call is asked with, and of which state of the library. */
 internal sealed record Ask(long? Version);
 
-internal abstract class Catalogue(string id, string name)
+internal abstract partial class Catalogue(string id, string name)
 {
     public string Id { get; } = id;
     public string Name { get; } = name;
@@ -262,6 +264,46 @@ internal sealed class QobuzCatalogue : Catalogue
         return Obj(("album", (await Marked([NormAlbum(a)], ask))[0]), ("tracks", tracks.Select(t => (object?)NormTrack(t, a)).ToList()),
             ("description", Or(P(a, "description"), "")));
     }
+
+    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.43)
+
+    /* The album and its tracks in the plain shape (index.js fullAlbum): the tracks from the album's own answer when it has them all. */
+    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id)
+    {
+        var a = await Api.Album(id);
+        var listed = P(a, "tracks");
+        var items = AndP(listed, "items");
+        List<object?> tracks;
+        if (Js.Truthy(listed) && Js.Truthy(items) && LessEq(P(listed, "total"), P(items, "length")))
+            tracks = items as List<object?> ?? throw new InvalidOperationException("Qobuz's tracks aren't a list");
+        else tracks = await Api.AlbumTracks(id);
+        return (NormAlbum(a)!, tracks.Where(t => !(P(t, "streamable") is false)).Select(t => NormTrack(t, a)).ToList());
+    }
+
+    /* The favourite on Qobuz itself. */
+    protected override async Task ApiFavourite(string id, bool on) => await Api.SetFavourite(id, on);
+
+    /* The favourites' and the purchases' ids, one ask each (index.js wantedIds). */
+    public override async Task<Dictionary<string, string>> WantedIds(Ask ask, bool fresh = false)
+    {
+        var o = await base.WantedIds(ask, fresh);
+        object? j;
+        try { j = await Api.PurchaseIds(fresh, ask.Version); }
+        catch (Exception e) when (e is ServiceError or JsError) { j = null; }
+        foreach (var id in IdsOf(j))
+            if (!Js.IsNullish(id) && !o.ContainsKey(Js.Str(id))) o[Js.Str(id)] = "purchase";
+        return o;
+    }
+
+    /* The ids however Qobuz lists them: a list of ids, or of albums. */
+    private static List<object?> IdsOf(object? j)
+    {
+        var a = AndP(j, "albums");
+        if (a is List<object?> l) return l;
+        if (Js.Truthy(a) && P(a, "items") is List<object?> items)
+            return items.Select(x => Js.Truthy(x) && !Js.IsNullish(P(x, "id")) ? P(x, "id") : x).ToList();
+        return [];
+    }
 }
 
 /* Tidal's catalogue (lib/tidal/index.js). */
@@ -413,5 +455,36 @@ internal sealed partial class TidalCatalogue : Catalogue
         var a = await Api.Album(id);
         var tracks = await Api.AlbumTracks(id);
         return Obj(("album", (await Marked([NormAlbum(a)], ask))[0]), ("tracks", tracks.Select(t => (object?)NormTrack(t, a)).ToList()), ("description", ""));
+    }
+
+    // ------------------------------------------------------------ rows in the library (the hooks, v0.8.43)
+
+    /*
+     * The album and its tracks in the plain shape (index.js fullAlbum). The
+     * tracks and the cover (640 px, kept beside the database) are fetched side
+     * by side, so an album opens in the time of the slower of the two. An
+     * album a list gave is known already (Listed): its tracks only are asked.
+     */
+    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id)
+    {
+        var a = await Api.Album(id);
+        var album = NormAlbum(a) ?? throw new JsError("Cannot set properties of null (setting 'image')");
+        album["image"] = Api.Image(P(a, "cover"), "640x640");
+        var tracks = Api.AlbumTracks(id);
+        var art = FetchArt(id, album["image"]);
+        var list = await tracks;
+        try { await art; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again by EnsureAlbum */ }
+        return (album, list.Where(t => !(P(t, "allowStreaming") is false) && !(P(t, "streamReady") is false)).Select(t => NormTrack(t, a)).ToList());
+    }
+
+    /*
+     * The favourite on Tidal itself, made here only with a token good for the
+     * whole of the request (five minutes is far more than it takes): else the
+     * Node server's, which refreshes it, before anything is written.
+     */
+    protected override async Task ApiFavourite(string id, bool on)
+    {
+        Api.GoodFor(5 * 60e3);
+        await Api.SetFavourite(UserId(), id, on);
     }
 }
