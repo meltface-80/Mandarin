@@ -3,7 +3,7 @@
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
 //   { fn: "plans", native, ext_mime, family, renderer_mime, plan, repack, with_gain, with_dsp, args, keys, plan_for, service,
-//     held_native, held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
+//     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
 //     fingerprint, num, band_filter, filters, plan_part, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
@@ -126,15 +126,10 @@ internal static class StreamCommand
         o["service"] = Each(job["service"], p => StreamPlans.ServiceOf(p));
 
         // What the C# server already does, held to the same answers.
-        o["held_native"] = Each(job["held_native"], a => Streams.NativeMime(Js.Str(Arg(a, 0)), Js.Str(Arg(a, 1)), (long)Jv.Num(Arg(a, 2))));
         o["held_mime"] = Each(job["held_mime"], e => Streams.MimeForExt(Js.Str(e)));
-        o["held_sonos"] = Each(job["held_sonos"], a =>
-        {
-            var (mime, conv) = Streams.SonosRule(Js.Str(Arg(a, 0)), Js.Str(Arg(a, 1)), (long)Jv.Num(Arg(a, 2)), (long)Jv.Num(Arg(a, 3)), (long)Jv.Num(Arg(a, 4)));
-            // A conversion is sent as FLAC whatever the file's own type.
-            return Jv.Obj(("mime", conv == null ? mime : "audio/flac"), ("conv", conv == null ? null
-                : Jv.Obj(("rate", (double)conv.Rate), ("bits", (double)conv.Bits), ("hq", conv.Hq), ("exact", conv.Exact), ("reason", conv.Reason))));
-        });
+        // The plan the stream route makes from a library row as it reads it (v0.8.40: Sonos's, before a gain).
+        o["held_sonos"] = Each(job["held_sonos"], a => StreamPlans.PlanFor(Streams.Row(Js.Str(Arg(a, 0)), Js.Str(Arg(a, 1)), (long)Jv.Num(Arg(a, 2)),
+            (long)Jv.Num(Arg(a, 3)), (long)Jv.Num(Arg(a, 4))), null, null));
         o["held_keys"] = Each(job["held_keys"], a =>
         {
             var t = new ConvTrack((long)Jv.Num(Arg(a, 0)), "", (long)Jv.Num(Arg(a, 1)));

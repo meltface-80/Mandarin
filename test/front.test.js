@@ -64,7 +64,11 @@
  *     nothing yet;
  *   - v0.8.38: nothing new answered by C#. Stage 2b's ports (stream plans, gains, DSP, signing, the
  *     radio's memory) are held to the Node server's by test/streams-csharp.test.js; a signed stream's
- *     or cover's address checked as the Node server checks it (the same test).
+ *     or cover's address checked as the Node server checks it (the same test);
+ *   - v0.8.40: conversions with a ReplayGain (?g=), a zone's DSP (?o=) and 32-bit output, by C#, made
+ *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
+ *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
+ *     are still converted by the Node server.
  */
 const ports = require("./ports");
 const test = require("node:test");

@@ -38,8 +38,8 @@ Tailscale, and from v0.8.34 the library scans) is handed over to it each time th
 
 The front door, signing in, the page and its files, reading the library (walls, search, album
 pages, Home's rows, filters), playlists, settings, hearts and Listen later, covers already drawn
-and drawn from an album's own picture, music files sent as they are, conversions without DSP or
-gain, the phone's downloads and its Opus stream, tag reading, the library scan itself,
+and drawn from an album's own picture, music files sent as they are, conversions (with ReplayGain,
+a zone's DSP and 32-bit output since v0.8.40), the phone's downloads and its Opus stream, tag reading, the library scan itself,
 identification, the pack, measuring loudness, waveforms, record labels, release days, Smart Picks,
 write-ups, sharing, the album editor, backups and built-in Tailscale.
 
@@ -48,7 +48,7 @@ write-ups, sharing, the album editor, backups and built-in Tailscale.
 | Area | Routes | Main Node files (lines) | Talks to | Size, risk |
 |---|---|---|---|---|
 | **Playback**: rooms, transport, queue, grouping, radio, the phone as a zone | 35 | `lib/sonos/*` 2,200, `lib/renderers/*` 2,060, `lib/local/*` 920, `api-playback.js` and `playback.js` 750, radio and plays 520 | Sonos (SOAP on port 1400), SSDP multicast, UPnP renderers (SOAP, GENA events), LinkPlay, the audio engine, the Android app's long poll | **Large, highest risk** |
-| **Conversions Node still makes**: ReplayGain (`?g=`), DSP (`?o=`), 32-bit, Qobuz and Tidal | the `/stream` cases C# passes on | `lib/stream.js` 546, `lib/dsp.js`, `public/biquad.js` | ffmpeg; the transcode folder shared with C# | Medium |
+| **Conversions Node still makes**: Qobuz and Tidal (ReplayGain, DSP and 32-bit C#'s since v0.8.40) | the `/stream` cases C# passes on | `lib/stream.js` 546, `lib/dsp.js`, `public/biquad.js` | ffmpeg; the transcode folder shared with C# | Medium |
 | **Qobuz and Tidal**: sign-in, browsing, import, favourites, their streams | about 36 | `lib/services/*`, `lib/qobuz/*`, `lib/tidal/*` 1,600 | qobuz.com, tidal.com (OAuth, DASH) | Large |
 | **Audio Devices and DSP**: the device register, per-device settings, headphone profiles | 8 | `lib/renderers/devices.js`, `registry.js`, `profiles.js`, `lib/autoeq.js`, `api-devices.js`, `api-dsp.js` 1,000 | AutoEq on GitHub; live player state | Medium (writes re-plan live queues) |
 | **Library housekeeping**: when to scan (timer, folder watcher, Rescan), music folders, clean-up, `/api/status`, the wall display's content, a streamed album's page | 13 | `lib/server/api-library.js` (parts), `lib/library/watch.js`, `lib/server/mounts.js`, `lib/library/index.js` | the file system | Medium |
@@ -190,7 +190,10 @@ updates bringing both servers together (2.1):
     The library scans (1e, v0.8.34): the job `scan` and Node's timer and watcher left unstarted
     (`index.js`), and the scan reports the C# server sends it, mirrored for its copy of the
     library and `/api/status` (`lib/server/api-library.js`); and in v0.8.36 the rule for when
-    they are handed over (decision 7);
+    they are handed over (decision 7). The conversions with ReplayGain, DSP and 32-bit output
+    (stage 3, v0.8.40): the transcoder's `owns` widened (`index.js`), and the C# server's word
+    that a DSP conversion runs taken (`POST /internal/cpu/dsp`, which calls `lib/cpu.js`'s own
+    `dsp()`), so the split stays the Node server's decision as the work leaves it;
   - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
   - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
     only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
@@ -329,6 +332,12 @@ the same tests, and put right where it differed (v0.8.38's CHANGELOG lists where
    graph from stage 2, and playback's second core while DSP runs.
 
 After this, Node converts only Qobuz and Tidal tracks.
+
+Done in v0.8.40, on stage 2b's ports (`Playback/StreamPlans.cs`, `Dsp.cs`, `Biquad.cs`): the
+`/stream` route plans as index.js does, a `?g=` or `?o=` in a form Express would read differently
+(`g[]=`, a key twice) still passed on; the Node server's "make these next" hands these over too
+(its `owns`, the hand-over switch); and a DSP conversion here tells the Node server, which keeps
+deciding the split (`POST /internal/cpu/dsp`, answered with it).
 
 ### Stage 4: Qobuz and Tidal (L)
 
@@ -469,8 +478,9 @@ and `/api/image/`).
 - **Admin:** `GET /api/update/status`, `POST /api/update/check`, `/api/update/apply` (registered in
   `api-playlists.js`); `GET /api/tagcheck`, `/api/tagcheck/report` (power and `/api/cpu` C#'s since
   v0.8.31)
-- **Streams and pictures C# passes on:** `/stream/` with `?g=` or `?o=`, 32-bit, a Qobuz or Tidal
-  track, or an unsigned request from a speaker; `/api/image/` for an album with no cover, a
+- **Streams and pictures C# passes on:** `/stream/` for a Qobuz or Tidal track, a `?g=` or `?o=`
+  Express would read as an array or an object, 32-bit where ffmpeg can't write it, or an unsigned
+  request from a speaker; `/api/image/` for an album with no cover, a
   picture only `sharp` reads well, or an outside picture
 - **Node's own:** `NOTIFY /upnp/event/:id`, `GET /api/health`, `/login`, `/display`, and every deep
   link (`/shelf` C#'s since v0.8.28)

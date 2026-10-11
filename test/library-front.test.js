@@ -304,11 +304,13 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     await x.arrayBuffer();
     x = await fetch(B + "/stream/t" + tid + ".orig" + path.extname(tpath));
     assert.equal(x.status, 401, "neither signed nor signed in: refused");
-    for (const conv of ["/stream/t" + tid + ".flac?g=-3", "/stream/t999999.flac"]) {
-      x = await fetch(B + conv, { headers: H });
-      assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
-      await x.arrayBuffer();
-    }
+    // A ReplayGain is converted here too since v0.8.40 (test/conversions-csharp.test.js); a track there isn't, the Node server's.
+    x = await fetch(B + "/stream/t" + tid + ".flac?g=-3", { headers: H });
+    assert.equal(x.headers.get("x-mandarin-answered"), "C#", "with a ReplayGain: converted by C#");
+    await x.arrayBuffer();
+    x = await fetch(B + "/stream/t999999.flac", { headers: H });
+    assert.equal(x.headers.get("x-mandarin-answered"), null, "no such track: the Node server's");
+    await x.arrayBuffer();
 
     // Conversions (v0.8.11): made by C# as they are sent, then from the cache,
     // range for range; and the very file ffmpeg makes with the Node server's
@@ -457,10 +459,12 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     assert.ok(rows[1].ts >= Date.now() - 90 * 86400000 - 60000 && rows[1].ts <= Date.now() - 90 * 86400000 + 60000, "kept to the last 90 days");
     assert.ok(Math.abs(rows[2].ts - Date.now()) < 60000, "no time given: now");
 
-    // Not made yet, or not this side's: the Node server's.
-    for (const conv of ["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "/stream/t" + trackOf("Something").id + ".44100-32.flac"]) {
+    // A zone's DSP (none for a zone that isn't one) and 32-bit output: this side's since v0.8.40, the
+    // latter where ffmpeg writes 32-bit FLAC (else the Node server's 400, as before).
+    const flac32 = require("../lib/ffmpeg").info().flac32;
+    for (const [conv, by] of [["/stream/t" + trackOf("Something").id + ".48000-24.flac?o=x", "C#"], ["/stream/t" + trackOf("Something").id + ".44100-32.flac", flac32 ? "C#" : null]]) {
       x = await fetch(B + conv, { headers: H });
-      assert.equal(x.headers.get("x-mandarin-answered"), null, conv + ": the Node server's");
+      assert.equal(x.headers.get("x-mandarin-answered"), by, conv);
       await x.arrayBuffer();
     }
 
