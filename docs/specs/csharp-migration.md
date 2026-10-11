@@ -193,6 +193,8 @@ updates bringing both servers together (2.1):
     library and `/api/status` (`lib/server/api-library.js`); and in v0.8.36 the rule for when
     they are handed over (decision 7);
   - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
+  - **the identification's line moved to 85 %** (v0.8.41, the owner's call): in both copies of the
+    rule, `lib/identify/score.js` and `Identify/Score.cs`, so the two servers keep the same verdicts;
   - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
     only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
 - **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as
