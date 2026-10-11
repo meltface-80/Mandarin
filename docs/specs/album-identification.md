@@ -26,6 +26,14 @@ its label, then the releases a few of the tracks' ISRCs share (`Identifier.idRes
 release found that way is applied when it fits within "proposed". The scanner keeps every tag
 (`track_tags`) and these identifiers in their own columns.
 
+**v0.8.41 (the owner's call):** applied unasked from **85 %** alike, as the page shows it, not
+95 %. Going through about 190 proposals, most of the 85–94 % ones were right: an edition note,
+track names written differently, lengths of another pressing. Nothing is proposed any more: 85 %
+and up is applied (with Undo), anything less is left unidentified for matching by hand, and the
+proposals already waiting are applied once, as if accepted (`applyWaiting`). Where this plan
+says 95 % below, read 85 %. `APPLY_PERCENT`/`PROPOSE` in `lib/identify/score.js`, and
+`ApplyPercent`/`Propose` in `server/Mandarin.Server/Identify/Score.cs`, which makes the scan.
+
 ## 1. What the owner asked for
 
 * Some albums show **Various Artists** (or another wrong artist) because the tags are off.
