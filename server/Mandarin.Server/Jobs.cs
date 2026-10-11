@@ -4,7 +4,9 @@
 // labels' lookups and logos, the release days after each library scan, and
 // the taste work (Smart Picks, the share card's suggestions) (Extras/); from
 // v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
-// while the Node server starts again; from v0.8.34 the library scans (Scans.cs).
+// while the Node server starts again; from v0.8.34 the library scans (Scans.cs);
+// from v0.8.44 the month's prune of Qobuz's and Tidal's albums only ever played
+// from the browser (Services/Rows.cs).
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -25,7 +27,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -148,8 +150,9 @@ internal static class Jobs
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
         LastfmEnvKey = Text(cfg["lastfm_key"]);
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as the Node server was set up (the tests' fakes).
-        Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"]));
-        Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]));
+        // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database.
+        Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
+        Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"])) { DataDir = dataDir };
         Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
@@ -168,6 +171,8 @@ internal static class Jobs
         Taste.Start();
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
+        // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily, while handed over.
+        Services.Prune.Start();
         Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the Node server said yes: what follows it, made now.
         _ = Task.Run(async () =>
@@ -191,16 +196,17 @@ internal static class Jobs
      * From this machine, with the front key: POST /internal/jobs/after-scan (the
      * Node server, a library scan ended), POST /internal/jobs/taste (the taste
      * graph built again now, from the plays as they are; the tests, after
-     * writing plays: it is otherwise built once a day), and GET
-     * /internal/tailscale (how the engine run here is: the Node server gives
-     * phones its address).
+     * writing plays: it is otherwise built once a day), POST /internal/jobs/prune
+     * (the services' month's prune made now, as the daily timer makes it: the
+     * tests), and GET /internal/tailscale (how the engine run here is: the
+     * Node server gives phones its address).
      */
     public static void UseInternal(WebApplication app)
     {
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value;
-            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/tailscale")) { await next(); return; }
+            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/tailscale")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
@@ -220,6 +226,15 @@ internal static class Jobs
             {
                 await AfterScan();
                 await ctx.Response.WriteAsync("{\"ok\":true}");
+                return;
+            }
+            if (p == "/internal/jobs/prune")
+            {
+                if (await Services.Prune.Run() is not { } pruned) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
+                var done = new Tags.JsObj();
+                done["ok"] = true;
+                done["removed"] = pruned;
+                await ctx.Response.WriteAsync(Tags.Js.Json(done) ?? "{}");
                 return;
             }
             if (!Holds("taste") || Taste is not { } t) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
@@ -293,6 +308,7 @@ internal static class Jobs
     public static void Stop()
     {
         Scans.Stop();
+        Services.Prune.Stop();
         Tailscale?.Stop();
         Identify?.Stop();
         Packs?.Stop();

@@ -63,6 +63,65 @@ internal static class ServiceHttp
         }
     }
 
+    /*
+     * fetch(url, { method, headers, body, signal }) and r.text(), for a write
+     * (Tidal's favourites, v0.8.44): [body] sent as it is, with the type said
+     * as the Node server says it (no charset added).
+     */
+    public static async Task<(int Status, string Text)> Send(string method, string url, IEnumerable<(string Name, string Value)> headers, string? body, string contentType, int timeoutMs)
+    {
+        using var cts = new CancellationTokenSource(timeoutMs);
+        try
+        {
+            using var req = new HttpRequestMessage(new HttpMethod(method), url);
+            foreach (var (n, v) in headers) req.Headers.TryAddWithoutValidation(n, v);
+            if (body != null)
+            {
+                req.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(body));
+                req.Content.Headers.TryAddWithoutValidation("Content-Type", contentType);
+            }
+            using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            var text = await res.Content.ReadAsStringAsync(cts.Token);
+            return ((int)res.StatusCode, text);
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            throw new JsError("The operation was aborted due to timeout");
+        }
+        catch (Exception e) when (e is HttpRequestException or UriFormatException or InvalidOperationException or IOException)
+        {
+            throw new JsError("fetch failed");
+        }
+    }
+
+    /*
+     * fetch(url, { signal: AbortSignal.timeout(ms) }) and r.arrayBuffer(): a
+     * cover (streaming.js fetchArt, v0.8.44), its status and its bytes. Kept to
+     * this machine where the tests say so (MANDARIN_LOOPBACK_ONLY), as the Node
+     * server's fetch is there.
+     */
+    public static async Task<(int Status, byte[] Body)> GetBytes(string url, int timeoutMs)
+    {
+        try { Identify.Lookups.Allowed(url); }
+        catch (Identify.LookupError e) { throw new JsError(e.Message); }
+        using var cts = new CancellationTokenSource(timeoutMs);
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            if (!res.IsSuccessStatusCode) return ((int)res.StatusCode, []);
+            return ((int)res.StatusCode, await res.Content.ReadAsByteArrayAsync(cts.Token));
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            throw new JsError("The operation was aborted due to timeout");
+        }
+        catch (Exception e) when (e is HttpRequestException or UriFormatException or InvalidOperationException or IOException or ArgumentException)
+        {
+            throw new JsError("fetch failed");
+        }
+    }
+
     /* JSON.parse(text), or null when it isn't JSON. */
     public static object? ParseOrNull(string text)
     {

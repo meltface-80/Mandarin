@@ -5,6 +5,58 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.44
+Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
+rows in the library are the C# server's**: opening one, adding it to your favourites and taking it
+away, its page, Clean up and the month's prune. Each writes what the Node server wrote, column for
+column, and answers in its words; the Node server is told and reads its library again, as before.
+
+- **Opening an album** from a service's browser or search (`POST /api/qobuz/open`, `/api/tidal/open`):
+  its rows written (the album, its tracks), its cover kept beside the database as before, and the
+  album's page opens. One already in the library is answered as it is, the service not asked.
+  An album Tidal's lists gave is again asked of Tidal for its tracks only (v0.8.39 had made that
+  one ask slower).
+- **Add to / Remove from favourites** (`/favorite`, `/unfavorite`): made on Qobuz or Tidal, the
+  album kept in the library (its rows written or brought up to date) or let go, as before.
+- **A streamed album's page** (`GET /api/album`): whether it is a favourite on the service, the
+  library brought into line with that as the page opens (a favourite removed in the service's own
+  app is let go, one added there kept, a purchase kept whatever), and why it is here (kept as a
+  favourite or a purchase and since when, held by a playlist, last played, a release day still to
+  come), in the same order of fields.
+- **Clean up** of Qobuz's or Tidal's albums (Settings → Library Scanner), where the library scans are
+  the C# server's: the albums no longer wanted go, with their edits, hearts and Listen later; signed
+  out, every one, with the kept marks and the service's playlists. The counts, and the music folders'
+  own Clean up, stay the Node server's.
+- **The month's prune** of albums only ever played from the browser (unplayed a month, neither kept
+  nor held): made by the C# server once a day, the first ten minutes after it takes the work over,
+  handed over as the job "prune"; the Node server's own daily timer then does nothing.
+- **Tidal's token** is still refreshed by the Node server alone: a request it would have to be
+  refreshed for is passed to the Node server whole. A favourite is passed on unless the token is good
+  for five more minutes, so a token is never found due after the favourite was made; one Tidal
+  refuses changed nothing there, so the Node server's is the one made. Either way it is made once.
+- Signing in, the settings, the import, the favourites' watch, the service playlists and playing stay
+  the Node server's (stages 4.3, 4.4 and 6).
+- `server/Mandarin.Server/Services/Rows.cs` (new), `Catalogue.cs`, `QobuzApi.cs`, `TidalApi.cs`,
+  `ServiceHttp.cs`, `ServiceRoutes.cs`, `LibraryRoutes.cs`, `Jobs.cs`. The Node server's part is the
+  hand-over only: "prune" added to the work it hands over and its timer left idle (`index.js`), and
+  the C# server's word that the services' rows changed taken (`services` in
+  `lib/server/api-library.js`): the library read again and the covers drawn ahead, as each service's
+  own change did (an album opened: read again only, as opening did), and after a favourite the
+  service's answers it kept forgotten, as its own favourite forgot them.
+- **Tests:** `test/services-rows-csharp.test.js`, through the C# server, each held to the Node
+  server's own write and answer for the same request: an album opened (every column of its album and
+  tracks rows and the type SQLite keeps each as, its cover and the address beside it, the answer word
+  for word), favourited and taken away (the rows, the kept mark, the favourite on the service, the
+  Node server's own kept answer forgotten, an album opened before brought up to date), the page's
+  service fields in order (kept, let go, kept as the page opens, a purchase, a row from before
+  v0.7.3, a release still to come), Tidal's token about to expire or refused (answered by the Node
+  server, the favourite made once), Clean up signed in and out, and the prune.
+  `test/services-csharp.test.js` now opens and favourites on the Node server itself (its change seen
+  at once). `test/qobuz.test.js` and `test/tidal.test.js` pass with C# answering. `test/front.test.js`
+  pins which server answers what (its v0.8.44 test and header line; "prune" in the v0.8.19 test's job
+  list).
+- The Android app for this version is 0.8.44 (version code 244). Nothing in it changed.
+
 ## v0.8.43
 Albums added to the library show up on their own, in the Android app and the browser alike: Home's
 Library row and the Library wall take them as the scan finds them, with nothing tapped. Before, with

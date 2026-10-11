@@ -1,5 +1,6 @@
 // TidalApi.cs — Tidal's API as lib/tidal/api.js asks it (v0.8.39, stage 4.1):
-// the catalogue's calls only, read-only. Each call is
+// the catalogue's calls; from v0.8.44 (stage 4.2) the favourite set and taken
+// away too. Each call is
 //
 //   https://api.tidal.com/v1/<call>?<the parameters>&countryCode=…   Bearer <token>
 //
@@ -75,7 +76,14 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
         var key = "GET " + url;
         if (ttl > 0 && !fresh && Cache.TryGet(key, version, out var kept)) return kept;
         var (status, text) = await ServiceHttp.Get(url, [("Authorization", "Bearer " + AccessToken())], 20000);
-        // Refused: the Node server refreshes the token and asks again.
+        var j = Answered(status, text);
+        if (ttl > 0) Cache.Set(key, ttl, j, version);
+        return j;
+    }
+
+    /* Tidal's answer as api.js call reads it: refused, the Node server refreshes the token and asks again; another failure in Tidal's words. */
+    private static object? Answered(int status, string text)
+    {
         if (status == 401) throw new ToNode("Tidal refused the token");
         var j = ParseOrNull(text);
         if (status is < 200 or > 299)
@@ -88,8 +96,34 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
             }
             throw new ServiceError(Js.Truthy(said) ? Js.Str(said) : $"Tidal answered {status}", status == 404 ? 404 : 502);
         }
-        if (ttl > 0) Cache.Set(key, ttl, j, version);
         return j;
+    }
+
+    /*
+     * A write (api.js call with a method and a form body, v0.8.44): sent once,
+     * never kept. Refused, it is the Node server's to make (ToNode): Tidal made
+     * nothing of a request it refused, so the Node server's is the one made.
+     */
+    private async Task<object?> Write(string method, string path, (string Key, string Value)[]? form)
+    {
+        var url = UrlFor(path, []);
+        var body = form == null ? null : string.Join("&", form.Select(x => Form(x.Key) + "=" + Form(x.Value)));
+        var (status, text) = await ServiceHttp.Send(method, url, [("Authorization", "Bearer " + AccessToken())], body, "application/x-www-form-urlencoded", 20000);
+        return Answered(status, text);
+    }
+
+    /*
+     * A write is made here only with a token good for [ms] more (v0.8.44): one
+     * that would want refreshing before the request is done, and the whole
+     * request is the Node server's, before anything is written — so a token is
+     * never found due partway through one, after the write.
+     */
+    public void GoodFor(double ms)
+    {
+        var t = token();
+        if (!Js.Truthy(t) || !Js.Truthy(P(t, "access"))) throw new ServiceError("Not signed in to Tidal", 401);
+        var expires = P(t, "expires");
+        if (Js.Truthy(expires) && NowMs() > Js.ToNumber(expires) - ms) throw new ToNode("Tidal's token is due to be refreshed");
     }
 
     /* Every page of a list call, as the plugin pages (api.js getAll): no limit of our own. */
@@ -121,4 +155,14 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
     public Task<object?> FeaturedAlbums(object? path, double limit = 100) => Call($"featured/{Js.Str(path)}/albums", [("limit", limit)], Hour);
     public Task<object?> NewReleases(double limit = 100) => FeaturedAlbums("new", limit);
     public Task<object?> FavouriteIds(object? userId, bool fresh, long? version) => Call($"users/{Js.Str(userId)}/favorites/ids", [], 60e3, fresh, version);
+
+    // ------------------------------------------------------------ the library's rows (v0.8.44)
+
+    /* The favourite on Tidal itself (api.js setFavourite): every answer kept forgotten first. */
+    public Task<object?> SetFavourite(object? userId, string albumId, bool on)
+    {
+        Cache.Clear();
+        if (on) return Write("POST", $"users/{Js.Str(userId)}/favorites/albums", [("albumIds", albumId), ("onArtifactNotFound", "SKIP")]);
+        return Write("DELETE", $"users/{Js.Str(userId)}/favorites/albums/{albumId}", null);
+    }
 }
