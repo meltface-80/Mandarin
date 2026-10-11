@@ -154,6 +154,17 @@ the CHANGELOG, and the version (both would call theirs 0.8.25). Proposed:
 - **`replaygain-fix` merged before anything else**: it changes `Identify/Loudness.cs`,
   `Identify/Identifier.cs` and `Jobs.cs`.
 
+Who does what (the owner's split, v0.8.37):
+
+- **Stage 2, one account:** 2a (v0.8.37) is DIDL-Lite, the queue moves, Sonos's ZoneGroupState and
+  the renderers' descriptions, sinks, events and capability profiles; 2b (v0.8.38) is the stream
+  plans, ReplayGain, the DSP filters, URL signing and the radio's memory.
+- **Stage 4's parts 1 to 4, Claude B** (v0.8.39 on): the catalogue, the library rows, the import,
+  sign-in. Not the streams (part 5).
+- **One more shared file:** `Identify/ScoreCommand.cs`, the `score` harness's dispatch. Each adds
+  its own lines there; whoever merges second keeps both.
+- **Reviews:** each account reviews the other's pull requests.
+
 ### 2.4 When the Node copies go
 
 Today the Node copy of each moved part is kept and tested. It is the fallback for a Mac, for a
@@ -175,6 +186,15 @@ updates bringing both servers together (2.1):
   that needs changing moves to C# first, and is changed there. v0.8.29's change to the updater was
   the last made in Node. The pages stay HTML, CSS and JavaScript (browsers run nothing else), and
   the tests stay in JavaScript (stage 7).
+- **Exceptions the owner has allowed:**
+  - **hand-over switches**: small Node changes that only make Node do less, so a part can move.
+    The library scans (1e, v0.8.34): the job `scan` and Node's timer and watcher left unstarted
+    (`index.js`), and the scan reports the C# server sends it, mirrored for its copy of the
+    library and `/api/status` (`lib/server/api-library.js`); and in v0.8.36 the rule for when
+    they are handed over (decision 7);
+  - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
+  - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
+    only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
 - **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as
   `test/front.test.js` does). The Node-alone run in CI keeps testing what Node still owns.
 - Deleting the frozen copies follows the rule above.
@@ -264,9 +284,12 @@ None of these touch a live player.
   Rescan, Reindex, the music folders, the folder picker, Forget folder, `/api/music-mount` and
   `/api/search-status`, and tells the Node server how each scan goes (its state about once a
   second, for `/api/status`; the albums so far; the end, after which it does what followed a scan).
-  The scan now reads tags with C#'s reader whatever the tag check says, unless the server is
-  started with `TAG_READER=node`, which keeps the scans the Node server's. Clean-up stays the Node
-  server's while Qobuz's and Tidal's albums are (stage 4).
+  The scans are handed over only where the Node server's own would already be the C# program's
+  (decided by the owner, v0.8.36; decision 7): `TAG_READER=csharp`, or the tag check passed for
+  the two readers (and not `TAG_READER=node`). Otherwise they stay the Node server's, as before,
+  its own timer and watcher with them. It is decided at the hand-over (v0.8.34 handed them over
+  whatever the check said). Clean-up stays the Node server's while Qobuz's and Tidal's albums are
+  (stage 4).
 - **1f. The covers `sharp` still draws:** an album with no cover, CMYK or colour-profiled pictures,
   outside pictures, pictures asked for by a speaker's own address. The owner chose ffmpeg, as
   `Covers.cs` does. **Built in v0.8.34** (`CoversDrawn.cs`): the placeholder (held to sharp's
@@ -291,6 +314,12 @@ Node version by the `score` harness:
 - the radio's six-month memory.
 
 This makes stages 3 and 6 much safer, and some of it is needed by 1b.
+
+Done: 2a in v0.8.37 (`Playback/` and `Renderers/`: XML, DIDL-Lite, the queue moves, the household,
+SOAP, device descriptions, sinks, events, profiles), 2b in v0.8.38 (`Playback/`: the stream plans
+and cache names, ReplayGain, the DSP filters, signing, the radio's memory, and V8's own sin, cos,
+log, log10 and pow so the numbers agree to the last bit). The C# server already running was held to
+the same tests, and put right where it differed (v0.8.38's CHANGELOG lists where).
 
 ### Stage 3: the conversions Node still makes (M)
 
@@ -405,14 +434,16 @@ use the conversions. 4 and 5 before 6, so playback is the last thing standing. 7
 1. ~~**Stage 0 first?**~~ Decided: yes, and built in v0.8.25.
 2. ~~**Macs:**~~ Decided: the C# server built for macOS and run there (2.2), built in v0.8.29;
    existing Macs move by running the install line again.
-3. **Who does what:** which account takes which stage; one stage in flight per account (2.3).
+3. ~~**Who does what:**~~ Decided (v0.8.37): stage 2 is this account's, as 2a (v0.8.37) and 2b
+   (v0.8.38); stage 4's parts 1 to 4 are Claude B's (v0.8.39 on), in parallel. See 2.3.
 4. **Playback:** the whole hub behind a switch (recommended), or the read-only state first and
    then each kind of player?
 5. **When the Node copies go:** the rule in 2.4, or another? Decided meanwhile: no more work done
    twice; new server work is C# only (2.4).
-6. **Covers:** ffmpeg as now, or an image library for what `sharp` still draws (1f)?
-7. **The tag reader:** keep using C#'s only where the check has passed, until stage 7 (as now), or
-   make it the only one sooner?
+6. ~~**Covers:**~~ Decided: ffmpeg, as `Covers.cs` already does (1f, built in v0.8.34).
+7. ~~**The tag reader:**~~ Decided: C#'s only where the tag check has passed (or
+   `TAG_READER=csharp`), until stage 7. The library scans go to the C# server on the same rule
+   (v0.8.36).
 
 ---
 

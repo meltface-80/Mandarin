@@ -59,6 +59,12 @@
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
  *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
  *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
+ *   - v0.8.37: nothing new answered by C#. Stage 2a's ports, the Sonos and renderer logic, are held to
+ *     the Node server's by test/sonos-csharp.test.js and test/renderers-csharp.test.js, and used by
+ *     nothing yet;
+ *   - v0.8.38: nothing new answered by C#. Stage 2b's ports (stream plans, gains, DSP, signing, the
+ *     radio's memory) are held to the Node server's by test/streams-csharp.test.js; a signed stream's
+ *     or cover's address checked as the Node server checks it (the same test);
  *   - v0.8.39: Qobuz's and Tidal's catalogue (new releases, the featured lists, search, an artist's
  *     albums, an album, whether it is a favourite), by C#, each held to the Node server's own answer
  *     (test/services-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode). A request

@@ -36,6 +36,102 @@ arranged. Nothing in the Android app changed (it is 0.8.39 so the version moves 
     `test/qobuz.test.js` and `test/tidal.test.js` pass with C# answering. `test/front.test.js` pins
     which server answers what (its v0.8.39 test and header line).
 
+## v0.8.38
+Stage 2b of the move to C#: the stream plans, ReplayGain, the DSP filters, the addresses signed for
+speakers and the radio's memory, written in C# and held to the Node server's answers. Holding the C#
+server already running to the same answers found a few places it differed; they're put right.
+
+- **In C#** (`server/Mandarin.Server/Playback/`), used only by the tests until stages 3 and 6:
+  - the stream plans (`lib/stream.js`): what a speaker, a streamer or the phone gets, the file as it
+    is or a conversion, its type, the levelling and DSP added to it, ffmpeg's arguments, and the
+    cache's names for it;
+  - ReplayGain: the levelling setting, an album's loudness from its tracks', each track's gain;
+  - the DSP filters (`public/biquad.js`, `lib/dsp.js`): their curves, headroom, the stored form, the
+    fingerprint in a conversion's name, and ffmpeg's filter graph;
+  - the radio's six-month memory;
+  - V8's own `sin`, `cos`, `log`, `log10` and `pow` (`JsMath.cs`): .NET's differ from them in the
+    last bit for a few in a hundred numbers, which would change a cache name or a headroom figure.
+    They're x64 Node's to the bit, on every machine. Node built for Apple silicon rounds a few of its
+    own in the last bit differently, so on a Mac a conversion with DSP or levelling that Node made
+    may, now and then, be made again under C#'s name for it once C# makes them (stage 3).
+- **Put right in the C# server already running:**
+  - **a signed address** (a stream or a cover handed to a speaker) is checked as the Node server checks
+    it: the path as the request wrote it, and `s` as Express reads the query. Before, the decoded path
+    (a cover whose name needs escaping went to the Node server) and `?S=` as well as `?s=`. Where it
+    can't be sure what the Node server would say (`s[]=`, an unusual address), the Node server decides,
+    as it did;
+  - a measured peak and an album's loudness are worked out with V8's `pow` and `log10`, so they're
+    stored as the Node server would store them, to the last bit;
+  - AutoEq's bands are rounded as JavaScript rounds (one value just under a half came out one higher);
+  - Sonos's conversion: a codec name with a letter outside ASCII is read as JavaScript reads it.
+- **Tests:** `test/streams-csharp.test.js` asks both about 207,000 cases and needs the same answers,
+  NaN and -0 included: the repo's own cases (streams, DSP, levelling, the radio, signing), every rate
+  from 8 kHz to 768 kHz and DSD64 to DSD512 at every depth, every renderer profile, every filter at
+  its extremes, and seeded generated ones. Signing is checked against the Node server's own gate.
+  The answers built on `Math` are held to Node's where its `Math` is V8's fdlibm (x64: CI's Linux
+  jobs); on Apple silicon the test checks that Node's own `Math` is within the last bits of
+  `JsMath.cs` and leaves those answers out.
+- The Android app for this version is 0.8.38 (version code 238). Nothing in it changed.
+
+## v0.8.37
+Stage 2a of the move to C#: the logic Sonos and other players are driven by, written in C# and held
+to the Node server's answers. Nothing that runs changes: the C# copies are used only by the tests
+until playback moves (stage 6).
+
+- **The Sonos logic in C#** (`server/Mandarin.Server/Playback/`): XML read as the Node server reads
+  it (`lib/xml.js`, broken documents included), DIDL-Lite built byte for byte and read back, the
+  queue's move plans, the household read from a ZoneGroupState (rooms, groups, pairs, home theatre
+  satellites), the SSDP answer's headers and this machine's LAN addresses, and the SOAP envelope
+  sent and the answer or fault read.
+  - **Tests:** `test/sonos-csharp.test.js` asks both servers about 11,700 cases and needs the same
+    answers, key order included: what the repo's fake speakers and real players send, awkward cases
+    by hand, and seeded generated and damaged ones.
+- **The renderers' logic in C#** (`server/Mandarin.Server/Renderers/`): a device's description (its
+  services' addresses resolved as Node's URL resolves them), the formats it says it takes, the events
+  it sends, and its capability profile (the rates, bits and DSD it gets, the user's own rates over
+  them).
+  - **Tests:** `test/renderers-csharp.test.js` asks both servers about 16,000 cases the same way:
+    the repo's fake renderers, real devices' documents (WiiM, Sonos, Denon, Linn, gmrender,
+    Samsung), Sonos's event shapes, and seeded generated and broken ones.
+- **The Docker image's build** copies the C# server's folder whole, so a new folder of it can't be
+  left out (the image failed to build on this branch's first push, which added `Playback/`).
+- **Who does what:** the owner's split is in the migration spec. Stage 2 is this account's (2a here,
+  2b next); stage 4's parts 1 to 4 (Qobuz and Tidal, not their streams) are Claude B's.
+- The Android app for this version is 0.8.37 (version code 237). Nothing in it changed.
+
+## v0.8.36
+The app and the browser page no longer go stale and stop answering taps after the phone has slept,
+and the library scans go to the C# server only once the tag check has passed, as the owner decided.
+
+- **A screen that went stale and stopped answering** (the Android app and the PWA alike, until
+  closed and opened again). A phone that sleeps, or moves from Wi-Fi to mobile data, can leave
+  requests on connections that never answer, and a browser keeps only six to the server: once six
+  were waiting, everything after them waited too. Several things made that likely: the room list
+  asked for every 15 seconds even in the background, with nothing to stop a new ask joining one
+  still waiting; the offline check (v0.8.23) starting another look at the server at every failed
+  request while one hung, and never looking again after; and almost nothing the page asks for had
+  a time limit. Now:
+  - every request the page makes of the server is given up after 30 s (a read) or 90 s (anything
+    else); the long jobs (Reindex, backups, an update, an import, the MusicBrainz pack) aren't;
+  - coming back to the page (shown again, or woken: its clock jumped) lets go at once of every
+    read still waiting from before, before the page asks afresh (not a write: its answer may be
+    in already, and it has its own limit);
+  - the room list and the update check aren't asked for while the page is hidden, nor the room
+    list again while one ask is waiting; it's asked for at once on coming back;
+  - the offline check looks once at a time, and an answer that takes over 8 s counts as none.
+  - **Tests:** `test/stale-page.test.js`, in a browser, with the requests a dead connection would
+    hold held for ever: one is given up; coming back lets go of a read that was waiting, not a
+    write; failed requests don't each start another look; hidden, the room list isn't asked for,
+    and shown, it is at once. On the page before, the first of them never ends.
+- **The library scans go to the C# server only once the tag check has passed** (the owner's
+  decision): where the Node server's own scans would already be made by the C# program —
+  `TAG_READER=csharp`, or the check passed for the two readers. Otherwise they stay the Node
+  server's, as before v0.8.34 (which handed them over whatever the check said). Decided when the
+  C# server takes the work over. `test/scans-csharp.test.js` holds both ways.
+  - Removing a music folder or forgetting a missing one is checked against a scan and done under
+    one lock, so the timer's or the watcher's scan can't start in between.
+- The Android app for this version is 0.8.36 (version code 236). Nothing in it changed.
+
 ## v0.8.35
 The Queue screen, quick: tapping a track further down plays from it with "Now playing" moved at
 once, and a Sonos room's queue is kept by the server instead of read whole from the speaker each
@@ -85,7 +181,8 @@ album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first
     up to date, as before.
   - The scan now reads tags with the C# reader whatever the tag check says (Settings → Library
     Scanner still runs it and lists any difference). `TAG_READER=node` keeps the scans, and the
-    music-metadata reader, the Node server's.
+    music-metadata reader, the Node server's. *(v0.8.36 puts the check back: the scans are handed
+    over only once it has passed.)*
   - Clean up stays the Node server's while Qobuz's and Tidal's albums are (stage 4).
   - `server/Mandarin.Server/Scans.cs`, `ScanRoutes.cs`, `Mounts.cs`. The Node server's part is a
     hand-over switch only (`index.js`, `lib/server/api-library.js`), as the owner allowed.
