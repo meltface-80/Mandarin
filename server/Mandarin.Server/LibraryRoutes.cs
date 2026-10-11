@@ -22,6 +22,7 @@ internal static partial class Library
     {
         ["/api/library-stats"] = Stats,
         ["/api/library/albums"] = Albums,
+        ["/api/library/mark"] = Mark,
         ["/api/library/facets"] = Facets,
         ["/api/shelf/albums"] = ShelfAlbums,
         ["/api/random-albums"] = RandomAlbums,
@@ -194,6 +195,15 @@ internal static partial class Library
         if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
         return true;
     }
+    /*
+     * GET /api/library/mark (v0.8.43): which albums there are, as the
+     * X-Mandarin-Library header carries it on every answer. The page asks
+     * when nothing else has been asked for a while, so a scan's albums still
+     * reach a screen left alone.
+     */
+    private static Task<bool> Mark(HttpContext ctx, Snapshot s, LibState st) =>
+        Send(ctx, new JsonObject { ["albums"] = s.AlbumSet });
+
     private static Task<bool> NotReady(HttpContext ctx) => Send(ctx, new JsonObject { ["error"] = "The library is still being scanned" }, 503);
 
     // req.query.x as String() makes it: undefined when absent, "a,b" when repeated.

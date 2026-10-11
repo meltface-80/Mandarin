@@ -268,6 +268,9 @@ internal static class Auth
 
     // ------------------------------------------------------------ the gate
 
+    /* Set on a request from a signed-in device (ctx.Items): what only the account's own devices are told (v0.8.43). */
+    public const string SignedIn = "mandarin.signed-in";
+
     public static async Task Gate(HttpContext ctx, Func<Task> next)
     {
         var p = ctx.Request.Path.Value ?? "/";
@@ -280,7 +283,7 @@ internal static class Auth
         if (IsOpen(p) || IsMedia(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal)) { await next(); return; }
         Account? acct; Device? dev;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
-        if (acct != null && dev != null) { await next(); return; }
+        if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }
         bool page = ctx.Request.Method == "GET" && !p.StartsWith("/api/", StringComparison.Ordinal) && !IsMedia(p)
             && !System.Text.RegularExpressions.Regex.IsMatch(p, @"\.(js|css|png|jpe?g|svg|ico|woff2?|json|map)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (page)

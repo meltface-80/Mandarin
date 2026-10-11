@@ -95,6 +95,43 @@
 })();
 
 /* ------------------------------------------------------------------ */
+/*  Albums added or taken away show up by themselves (v0.8.43). Every  */
+/*  answer from the server carries which albums there are              */
+/*  (X-Mandarin-Library, from the C# server); when that moves (a scan  */
+/*  has added some, a folder was let go) the page reads its rows again */
+/*  (window.__libraryChanged): Home's Library row at once, the Library */
+/*  wall when it is at its top. Before, the Library row was read once  */
+/*  and kept until the sort changed. When nothing has been asked for a */
+/*  while (no room playing, say), the page asks for the mark itself.   */
+/* ------------------------------------------------------------------ */
+(function libraryMark() {
+  const real = window.fetch;
+  let mark = "", seenAt = 0, timer = 0, asking = false;
+  const see = (r) => {
+    let m = null;
+    try { m = r && r.headers && r.headers.get("x-mandarin-library"); } catch (e) { return; }
+    if (!m) return;
+    seenAt = Date.now();
+    if (mark && m !== mark) {
+      // Gathered: a scan adds folder after folder.
+      clearTimeout(timer);
+      timer = setTimeout(() => { if (window.__libraryChanged) window.__libraryChanged({ live: true }); }, 1000);
+    }
+    mark = m;
+  };
+  window.fetch = function () {
+    return real.apply(this, arguments).then((r) => { see(r); return r; });
+  };
+  // Only once the server has shown it carries the mark (an older one, or the
+  // app's own copy offline, never does).
+  setInterval(() => {
+    if (!mark || asking || document.hidden || window.__musicdOffline || Date.now() - seenAt < 20000) return;
+    asking = true;
+    window.fetch("/api/library/mark", { cache: "no-store" }).catch(() => {}).then(() => { asking = false; });
+  }, 10000);
+})();
+
+/* ------------------------------------------------------------------ */
 /*  Later, once the first screen is up (v0.6.10): what the page asks   */
 /*  for at start but nothing on that screen shows waits until the page */
 /*  has loaded and settled, so the rows and covers go first.           */
@@ -5670,9 +5707,11 @@ window.__afterStart = (fn) => {
     // the very thing the row is supposed to be reflecting. A cache written
     // before this field existed has no librarySort, so it does not match and
     // the row simply loads fresh: no cache-key bump needed for that.
+    // Painted, and still read again (v0.8.43): before, the copy kept from
+    // last time counted as loaded, and albums added since stayed off the row
+    // until the sort was changed.
     if (c.library && homeLibrary && c.librarySort === libSortKey()) {
       renderHomeLibrary(c.library);
-      homeLibraryKey = c.librarySort;   // hydrated in the current order — no refetch
     }
     if (c.lotw     && homeLotw)     { renderHomeLotw(c.lotw.label, c.lotw.albums); }
     if (c.history  && homeHistory)  { renderHomeHistory(c.history); }
@@ -10454,6 +10493,19 @@ window.__afterStart = (fn) => {
   // the Home rows are marked stale and reloaded if Home is showing, and the
   // Library wall or the random wall is read again.
   window.__libraryChanged = (opts) => {
+    // Albums added or taken away under the page (v0.8.43, the server's mark
+    // moved): the Library row read again, on Home now; the Library wall read
+    // again if it is at its top (further down it stays put, and is read again
+    // when next opened). Nothing else is reshuffled.
+    if (opts && opts.live) {
+      homeLibraryKey = "";
+      if (homeView && !homeView.classList.contains("hidden")) { if (homeRowOn("library")) loadHomeLibrary(); return; }
+      if (libraryWallActive && !labelsActive) {
+        const m = document.querySelector("main");
+        if (m && m.scrollTop < m.clientHeight) showLibraryWall();
+      }
+      return;
+    }
     const gone = opts && opts.gone != null ? String(opts.gone) : null;
     if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
     homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;

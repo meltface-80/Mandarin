@@ -5,6 +5,31 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.43
+Albums added to the library show up on their own, in the Android app and the browser alike: Home's
+Library row and the Library wall take them as the scan finds them, with nothing tapped. Before, with
+the Library sorted by Recently added, new albums stayed off the row until the sort was changed and
+changed back.
+
+- **Why they didn't:** Home's Library row was read once and then kept until the sort changed, and
+  at each start it was painted from the copy kept last time and counted as read. Nothing told the
+  page that a scan had added albums: the server never said, and the page never asked again.
+- **The server says now** (the C# server): every answer to a signed-in device carries which albums
+  the library holds (`X-Mandarin-Library`: their count and a mix of their ids, moved when one comes
+  or goes, not when one is edited), and `GET /api/library/mark` answers it. Not to anyone who
+  hasn't signed in.
+- **The page listens:** when the mark moves, the Library row is read again on Home at once, and
+  the Library wall is read again when it's at its top (further down, it stays put until it's next
+  opened). Nothing else is reshuffled. A page with nothing else asking (no room playing, say) asks
+  for the mark itself every half-minute or so.
+- **At each start** the Library row painted from last time is read again, not kept.
+- **Tests:** `test/library-live.test.js`, in a browser through the C# server, with the Library
+  sorted by Recently added: the mark on a signed-in device's answers only (on the Node server's,
+  passed through, too) and moved by an album added; Home's row and the Library wall each taking a
+  new album first by themselves; and the row read again on opening after albums came while it was
+  shut. On the page before, all three page checks fail.
+- The Android app for this version is 0.8.43 (version code 243). Nothing in it changed.
+
 ## v0.8.41
 Albums found by the identification scan at **85 % alike or better are now applied** (it was 95 %),
 as the owner asked: going through about 190 proposals, most of the 85–94 % ones were right, held
