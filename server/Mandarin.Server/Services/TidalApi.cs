@@ -1,6 +1,7 @@
 // TidalApi.cs — Tidal's API as lib/tidal/api.js asks it (v0.8.39, stage 4.1):
 // the catalogue's calls; from v0.8.44 (stage 4.2) the favourite set and taken
-// away too. Each call is
+// away too; from v0.8.45 (stage 4.3) the import's lists (the favourite albums
+// and tracks, the playlists and their tracks). Each call is
 //
 //   https://api.tidal.com/v1/<call>?<the parameters>&countryCode=…   Bearer <token>
 //
@@ -126,13 +127,13 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
         if (Js.Truthy(expires) && NowMs() > Js.ToNumber(expires) - ms) throw new ToNode("Tidal's token is due to be refreshed");
     }
 
-    /* Every page of a list call, as the plugin pages (api.js getAll): no limit of our own. */
-    public async Task<List<object?>> GetAll(string path, double ttl = 0)
+    /* Every page of a list call, as the plugin pages (api.js getAll): no limit of our own; [prms] before the page's own. */
+    public async Task<List<object?>> GetAll(string path, double ttl = 0, (string Key, object? Value)[]? prms = null, double limit = Page)
     {
         var outList = new List<object?>();
-        for (double offset = 0; ; offset += Page)
+        for (double offset = 0; ; offset += limit)
         {
-            var j = Or(await Call(path, [("limit", Page), ("offset", offset)], ttl), new JsObj());
+            var j = Or(await Call(path, (prms ?? []).Concat([("limit", (object?)limit), ("offset", offset)]), ttl), new JsObj());
             var items = Items(Or(P(j, "items"), new List<object?>()));
             outList.AddRange(items);
             var total = NumOr(P(j, "totalNumberOfItems"), 0);
@@ -165,4 +166,12 @@ internal sealed class TidalApi(string? baseUrl, string? imagesUrl, Func<object?>
         if (on) return Write("POST", $"users/{Js.Str(userId)}/favorites/albums", [("albumIds", albumId), ("onArtifactNotFound", "SKIP")]);
         return Write("DELETE", $"users/{Js.Str(userId)}/favorites/albums/{albumId}", null);
     }
+
+    // ------------------------------------------------------------ the import (v0.8.45)
+
+    /* Every page of each, asked afresh each time, as api.js asks them. */
+    public Task<List<object?>> FavouriteAlbums(object? userId) => GetAll($"users/{Js.Str(userId)}/favorites/albums", 0, [("order", "DATE"), ("orderDirection", "DESC")]);
+    public Task<List<object?>> FavouriteTracks(object? userId) => GetAll($"users/{Js.Str(userId)}/favorites/tracks", 0, [("order", "DATE"), ("orderDirection", "DESC")]);
+    public Task<List<object?>> Playlists(object? userId) => GetAll($"users/{Js.Str(userId)}/playlistsAndFavoritePlaylists", 0, null, 50);
+    public Task<List<object?>> PlaylistItems(object? uuid) => GetAll($"playlists/{Js.Str(uuid)}/items");
 }

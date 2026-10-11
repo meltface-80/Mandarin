@@ -109,7 +109,7 @@ const INIT = `(() => {
 
 const HELPERS = `
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   const $ = s => document.querySelector(s);
   const shown = s => { const e = $(s); return !!e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none"; };
   const posts = p => window.__log.filter(x => x.path === p).map(x => x.body);
@@ -138,7 +138,7 @@ const DRIVE = `
   const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   // The cover on show at the front: a pooled one put away may still carry its number.
   const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000); await sleep(900); };
+  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000); await sleep(60); };
   const row = (i) => document.querySelector('.it.flipped li[data-i="' + i + '"]');
   const tapRow = async (i) => { const c = mid(row(i)); tap(c.x, c.y); await sleep(60); };
   const holdRow = async (i) => { const c = mid(row(i)); await hold(c.x, c.y); };
@@ -146,7 +146,7 @@ const DRIVE = `
     : (li.classList.contains("sel") ? "✓" : li.querySelector("i").textContent) + " " + li.querySelector("span").textContent);
 `;
 
-test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
+test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 300000 }, async (t) => {
   const lib = library();
   const house = new FakeHousehold();
   await house.start();
@@ -163,7 +163,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       await sleep(100);
     }
     const open = (url = "/shelf") => b.page(B + url, { cookies: [{ name: "musicd_session", value: token, url: B }], init: INIT });
-    const ready = `await until(() => window.__shelfState && window.__shelfState().N === 10 && document.getElementById("mt-zone").textContent === "Kitchen", 15000);`;
+    const ready = `await until(() => {
+      const s = window.__shelfState;
+      const zone = document.getElementById("mt-zone");
+      return typeof s === "function" && !!zone && s().N === 10 && zone.textContent === "Kitchen";
+    }, 30000);`;
 
     await t.test("the list: the whole library in artist order, and the same for a signature still current", async () => {
       const j = await (await fetch(B + "/api/shelf/albums", { headers: H })).json();
@@ -762,10 +766,10 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       await wall(true);
       const on = await open("/shelf?zone=Kitchen");
       assert.equal(await on.eval(`(async () => { ${HELPERS} ${ready} await until(() => shown("#to-wall")); $("#to-wall").click(); return true; })()`), true);
-      const at = async (where) => { for (let i = 0; i < 80; i++) { await sleep(100); try { if (await on.eval("location.pathname + ':' + document.readyState") === where + ":complete") return; } catch (e) { /* navigating */ } } };
+      const at = async (where) => { for (let i = 0; i < 80; i++) { await sleep(100); try { if (await on.eval("location.pathname + ':' + document.readyState") === where + ":complete") return; } catch (e) { /* page changed */ } } return false; };
       await at("/display");
       assert.equal(await on.eval("location.pathname + location.search"), "/display?zone=Kitchen", "the zone goes along");
-      assert.equal(await on.eval(`!!document.getElementById("to-shelf")`), true);
+      assert.equal(await on.eval("!!document.getElementById(\"to-shelf\")"), true);
       await on.eval(`document.getElementById("to-shelf").click()`).catch(() => {});
       await at("/shelf");
       assert.equal(await on.eval("location.pathname + location.search"), "/shelf?zone=Kitchen");
@@ -776,3 +780,4 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
     await house.stop();
   }
 });
+

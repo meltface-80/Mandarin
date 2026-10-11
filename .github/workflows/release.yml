@@ -1,4 +1,7 @@
-# Every version merged to main becomes a GitHub release — that is what the
+# A version becomes a GitHub release when asked for, never by itself (from
+# v0.8.45, CLAUDE.md section 2): a tag vX.Y.Z pushed by hand on main's commit,
+# or Run workflow on main. A tag must be the commit's own version
+# (package.json). The release is what the
 # in-app updater (Settings → Check for updates) looks for. The release carries
 # musicd-server-<version>.tar.gz: just the server (index.js, launcher.js,
 # lib/, public/, package files), so an update downloads a few hundred KB
@@ -15,7 +18,8 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -134,6 +138,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag $GITHUB_REF_NAME is not this commit's version (v$version)"
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
