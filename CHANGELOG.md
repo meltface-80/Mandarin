@@ -19,15 +19,16 @@ changed back.
   or goes, not when one is edited), and `GET /api/library/mark` answers it. Not to anyone who
   hasn't signed in.
 - **The page listens:** when the mark moves, the Library row is read again on Home at once, and
-  the Library wall is read again when it's at its top (further down, it stays put until it's next
-  opened). Nothing else is reshuffled. A page with nothing else asking (no room playing, say) asks
+  the Library wall is read again when it's at its top with no album open over it (further down,
+  or under an album, it stays put until it's next opened). Nothing else is reshuffled. A page with nothing else asking (no room playing, say) asks
   for the mark itself every half-minute or so.
 - **At each start** the Library row painted from last time is read again, not kept.
 - **Tests:** `test/library-live.test.js`, in a browser through the C# server, with the Library
   sorted by Recently added: the mark on a signed-in device's answers only (on the Node server's,
   passed through, too) and moved by an album added; Home's row and the Library wall each taking a
-  new album first by themselves; and the row read again on opening after albums came while it was
-  shut. On the page before, all three page checks fail.
+  new album first by themselves; the wall left as it is while an album is open over it; and the
+  row read again on opening after albums came while it was shut. On the page before, all three
+  page checks fail.
 - The Android app for this version is 0.8.43 (version code 243). Nothing in it changed.
 
 ## v0.8.42

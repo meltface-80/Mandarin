@@ -11,7 +11,7 @@
  *     /api/library/mark answers it; it moves when an album comes;
  *   - Home's Library row, sorted by Recently added, takes the new album
  *     first with nothing touched;
- *   - the Library wall, at its top, the same;
+ *   - the Library wall, at its top, the same (not under an album open over it);
  *   - opened again after albums came while it was shut: the row painted
  *     from last time is read again, not kept.
  */
@@ -107,6 +107,17 @@ test("albums added show up by themselves: Home's Library row and the Library wal
     await add("Third New");
     const after = await page.eval(`(async () => { ${UNTIL} return await until(() => { const r = ${ROW("#album-grid .album")}; return r[0] === "Third New" && r; }); })()`);
     assert.deepEqual(after && after.slice(0, 3), ["Third New", "Second New", "First New"], "on the wall by itself");
+    // An album open over the wall: the wall isn't rebuilt under it.
+    const under = await page.eval(`(async () => {
+      ${UNTIL}
+      const first = document.querySelector("#album-grid .album");
+      window.__openAlbum(first.__album, {});
+      await until(() => !document.getElementById("album-modal").classList.contains("hidden"));
+      window.__libraryChanged({ live: true });
+      await new Promise(r => setTimeout(r, 1500));
+      return { same: document.querySelector("#album-grid .album") === first, open: !document.getElementById("album-modal").classList.contains("hidden") };
+    })()`);
+    assert.deepEqual(under, { same: true, open: true }, "left as it is while an album is open");
     assert.deepEqual(page.errors, []);
     await page.send("Page.close").catch(() => {});
   });

@@ -10516,12 +10516,13 @@ window.__afterStart = (fn) => {
   window.__libraryChanged = (opts) => {
     // Albums added or taken away under the page (v0.8.43, the server's mark
     // moved): the Library row read again, on Home now; the Library wall read
-    // again if it is at its top (further down it stays put, and is read again
-    // when next opened). Nothing else is reshuffled.
+    // again if it is at its top and no album is open over it (further down,
+    // or under an album, it stays put, and is read again when next opened).
+    // Nothing else is reshuffled.
     if (opts && opts.live) {
       homeLibraryKey = "";
       if (homeView && !homeView.classList.contains("hidden")) { if (homeRowOn("library")) loadHomeLibrary(); return; }
-      if (libraryWallActive && !labelsActive) {
+      if (libraryWallActive && !labelsActive && (!modal || modal.classList.contains("hidden"))) {
         const m = document.querySelector("main");
         if (m && m.scrollTop < m.clientHeight) showLibraryWall();
       }
