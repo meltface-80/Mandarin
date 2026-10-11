@@ -100,6 +100,8 @@ internal sealed partial class Snapshot
     public bool LabelsOn;
     public Dictionary<string, LabelGroup> LabelGroups = [];
     public readonly Dictionary<string, List<Album>> ViewCache = [];
+    /* Which albums the library holds, as one short mark: it moves when one comes or goes, not when one is edited (v0.8.43). */
+    public string AlbumSet = "";
 
     public int Count => Albums.Count;
     public Album? Find(double id) => !double.IsNaN(id) && id == Math.Floor(id) && ById.TryGetValue((long)id, out var a) ? a : null;
@@ -518,7 +520,31 @@ internal static partial class Library
             al.LabelSource = !string.IsNullOrEmpty(name) ? source : null;
         }
         s.LabelGroups = BuildLabelGroups(s);
+        s.AlbumSet = AlbumSetOf(s.Albums);
         return s;
+    }
+
+    /*
+     * Which albums there are, as a mark (v0.8.43): their count and an
+     * order-free mix of their ids. Every answer to the page carries it
+     * (X-Mandarin-Library, Program.cs), and the page reads its rows again
+     * when it moves, so albums a scan adds (or takes away) are on screen
+     * within moments, not only once something else asks again.
+     */
+    public static string? AlbumSetNow => current?.AlbumSet;
+
+    private static string AlbumSetOf(List<Album> albums)
+    {
+        ulong h = 0;
+        foreach (var a in albums)
+        {
+            // SplitMix64's finaliser: the sum of such doesn't cancel out as plain ids would.
+            var x = (ulong)a.Id + 0x9E3779B97F4A7C15UL;
+            x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9UL;
+            x = (x ^ (x >> 27)) * 0x94D049BB133111EBUL;
+            h += x ^ (x >> 31);
+        }
+        return albums.Count.ToString(CultureInfo.InvariantCulture) + "-" + h.ToString("x", CultureInfo.InvariantCulture);
     }
 
     [GeneratedRegex(@"^(?:cd|disc|disk)\s*[-_.]?\s*([0-9]+)\s*[-–—:_.]\s*(\S[^\n\r  ]*)\z", RegexOptions.IgnoreCase)]

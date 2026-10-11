@@ -217,6 +217,8 @@ updates bringing both servers together (2.1):
     server leaves to it while Tidal's token is its to refresh (until step 4), made by the service's
     own `importLibrary()` or `watch()`, as `/internal/cpu/dsp` calls `lib/cpu.js`'s own `dsp()`;
   - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
+  - **the identification's line moved to 85 %** (v0.8.41, the owner's call): in both copies of the
+    rule, `lib/identify/score.js` and `Identify/Score.cs`, so the two servers keep the same verdicts;
   - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
     only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
 - **Tests of C#-only parts** run only through the C# server (`MANDARIN_FRONT=1`, as

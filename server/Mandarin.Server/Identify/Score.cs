@@ -21,9 +21,12 @@ internal static partial class Score
     public const double WAlbum = 2, WArtist = 2, WYear = 0.5, WTrackTitle = 2, WTrackLength = 3,
         WMissingTrack = 0.9, WUnmatchedTrack = 0.6, WNote = 0.5, WEdition = 1.5;
     private const double LengthGrace = 15, LengthMax = 30;
-    public const int ApplyPercent = 95;
-    public const double Propose = 0.15, Ambiguous = 0.02;
+    // Applied unasked from 85 % alike as the page rounds it, a distance up to 0.155 (v0.8.41, the
+    // owner's call; 95 % from v0.6.2), and nothing proposed: Propose is where applying starts.
+    public const int ApplyPercent = 85;
+    public const double Ambiguous = 0.02;
     public static readonly double Apply = 1 - (ApplyPercent - 0.5) / 100;
+    public static readonly double Propose = Apply;
 
     private const string Ws = ScanNames.Ws, Dot = ScanNames.Dot;
     // \b as JavaScript has it: between an ASCII word character and anything else.
@@ -469,7 +472,7 @@ internal static partial class Score
         return new Verdict(status, best, scored, rival != null);
     }
 
-    /* Applied without asking: 95 % alike or better, as the page shows it. */
+    /* Applied without asking: 85 % alike or better, as the page shows it (v0.8.41). */
     public static bool AppliesUnasked(double? distance) => distance is double d && Similarity(d) >= ApplyPercent;
 
     /* Why a match is short of 100 %, in words for the page. */

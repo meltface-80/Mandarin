@@ -2,8 +2,11 @@ name: Publish container image
 
 on:
   push:
-    branches: [main, "claude/**"]
-    tags: ["v*"]
+    # migration: the move to C#, stage by stage (CLAUDE.md section 4), as
+    # ghcr.io/<owner>/musicd-server:migration for the owner's own install.
+    branches: [main, migration, "claude/**"]
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 env:
