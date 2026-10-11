@@ -181,3 +181,49 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
     assert.equal(ctx.transcoder.jobs.size, 0, "none made by the Node server");
   });
 });
+
+/*
+ * 32-bit output end to end, on any machine: the C# server started behind an
+ * ffmpeg that says, when asked, that it writes 32-bit FLAC (the probe's
+ * STREAMINFO answered with 32 bits) and is otherwise the real one. The
+ * request, the plan, the name and the arguments are then the 32-bit ones,
+ * and the file the very one the real ffmpeg makes from the Node server's plan.
+ */
+test("32-bit output, end to end: an ffmpeg that writes it", { skip, timeout: 120000 }, async (t) => {
+  const STREAM = require("../lib/stream");
+  const FF = require("../lib/ffmpeg");
+  const lib = makeLibrary();
+  const wrapper = path.join(lib.root, "ffmpeg-32");
+  fs.writeFileSync(wrapper, `#!/bin/sh
+# The 32-bit FLAC probe answered yes: a STREAMINFO of 32 bits per sample. Anything else: the real ffmpeg.
+case " $* " in *" anullsrc=r=44100:cl=stereo "*) printf 'fLaC\\200\\000\\000\\042'; head -c 12 /dev/zero; printf '\\001\\360'; head -c 28 /dev/zero; exit 0;; esac
+exec "$REAL_FFMPEG" "$@"
+`, { mode: 0o755 });
+  const was = { FFMPEG_PATH: process.env.FFMPEG_PATH, REAL_FFMPEG: process.env.REAL_FFMPEG };
+  const real = FF.info().bin;   // the Node server's own, asked (and kept) before the C# server is given the wrapper
+  process.env.FFMPEG_PATH = wrapper; process.env.REAL_FFMPEG = real;
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const { createServer } = require("../index.js");
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  let ctx;
+  try { ctx = await srv.start(); }
+  finally { for (const [k, v] of Object.entries(was)) { if (v == null) delete process.env[k]; else process.env[k] = v; } }
+  t.after(() => srv.stop());
+  const token = await signIn(B);
+  await until(() => ctx.library.count === 3 && ctx.frontRuns, 30000, "the library and the hand-over");
+  const hi = ctx.db.raw.prepare("SELECT * FROM tracks WHERE title = ?").get("Hi 1");
+  const plan = { transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate: 96000, bits: 32, reason: "what the renderer was promised" };
+  const r = await fetch(B + `/stream/t${hi.id}.96000-32.flac`, { headers: { Authorization: "Bearer " + token } });
+  const body = Buffer.from(await r.arrayBuffer());
+  assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "a renderer's 32/96, converted by C#");
+  const file = path.join(lib.data, "transcode", ctx.transcoder.keyFor(hi, plan) + ".flac");
+  assert.match(path.basename(file), /-96000-32-hq\.flac$/);
+  await until(() => fs.existsSync(file), 10000, "kept as " + path.basename(file));
+  const out = path.join(lib.root, "node-made-32.flac");
+  const x = spawnSync(real, STREAM.ffmpegArgs(hi.path, plan, out));
+  assert.equal(x.status, 0, String(x.stderr));
+  const want = fs.readFileSync(out);
+  assert.ok(fs.readFileSync(file).equals(want), "the file the Node server's 32-bit plan makes, byte for byte");
+  assert.equal(body.length, want.length);
+});
+

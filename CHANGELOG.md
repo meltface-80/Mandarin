@@ -25,8 +25,9 @@ After this only Qobuz's and Tidal's tracks are converted by the Node server.
   `test/streams-csharp.test.js`) instead of its own copy of the Sonos rule.
 - **Tests:** `test/conversions-csharp.test.js` (through the C# server): a gain on Sonos's rule, on
   the 24/48 rule and on a streamer's rate; a zone's DSP alone and with a gain; a Sonos room's and an
-  unknown zone's left out; 32-bit where ffmpeg writes it (refused as before where it doesn't); what
-  is still the Node server's; and its "make these next" for a gain and a DSP made by the C# server.
+  unknown zone's left out; 32-bit where ffmpeg writes it (refused as before where it doesn't), and
+  end to end behind an ffmpeg that says it writes it (none of this machine's or CI's do); what is
+  still the Node server's; and its "make these next" for a gain and a DSP made by the C# server.
   Each file is compared with the one ffmpeg makes from the Node server's own plan, byte for byte,
   under the Node server's own name. `test/library-front.test.js` now expects these from C#.
 - The Android app for this version is 0.8.40 (version code 240). Nothing in it changed.
