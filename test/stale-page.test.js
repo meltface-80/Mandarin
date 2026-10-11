@@ -12,6 +12,10 @@
  *   - failed requests don't each start another look at the server while a
  *     look hangs (the offline check), one look at a time;
  *   - hidden, the room list isn't asked for every 15 s; shown, it is at once.
+ * And the page says, when the Android app asks (v0.8.42), how long it has
+ * been asking the server with no answer: the app reaches the server itself,
+ * and if it can while the page can't, the page's connections are stuck and
+ * the app drops them, then loads the page again.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -119,5 +123,48 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     await sleep(500);
     assert.ok(count("/api/zones") > before, "asked on coming back");
     assert.deepEqual(page.errors, []);
+  });
+
+  await t.test("the page tells the app how long it has been asking with no answer", async () => {
+    // From here every request the page makes is held, as a dead connection holds
+    // it, but /api/health, let through as the one answer.
+    page.on((msg) => {
+      if (msg.method === "Fetch.requestPaused" && new URL(msg.params.request.url).pathname === "/api/health")
+        page.send("Fetch.continueRequest", { requestId: msg.params.requestId }).catch(() => {});
+    });
+    await page.send("Fetch.enable", { patterns: [{ urlPattern: "*/api/*" }] });
+    const r = await page.eval(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms));
+      const check = () => window.__musicdPageCheck();
+      window.__musicdRequestLimits.read = 60000;
+      // Coming back starts afresh: what the page asked before (answered or not) is let go.
+      ${SHOW(true)};
+      const hidden = check().hidden;
+      ${SHOW(false)};
+      const fresh = check();
+      fetch("/api/library-stats").catch(() => {});
+      await wait(1500);
+      const stuck = check();
+      await fetch("/api/health");
+      const answered = check();
+      fetch("/api/library-stats").catch(() => {});
+      await wait(600);
+      const again = check();
+      ${SHOW(true)};
+      ${SHOW(false)};
+      const back = check();
+      window.__musicdRequestLimits.read = 1500;
+      return { hidden, fresh, stuck, answered, again, back };
+    })()`);
+    assert.equal(r.hidden, true, "says when it's hidden");
+    assert.equal(r.fresh.hidden, false);
+    // (Coming back, the page asks afresh at once: those asks are a moment old.)
+    assert.ok(r.fresh.asking < 300, "nothing held against a page just come back: " + JSON.stringify(r.fresh));
+    assert.ok(r.stuck.asking >= 1400 && r.stuck.asking < 5000, "asking with no answer: " + JSON.stringify(r.stuck));
+    assert.ok(r.stuck.waiting >= 1 && r.stuck.asked >= 0 && r.stuck.asked < 2000, JSON.stringify(r.stuck));
+    assert.equal(r.answered.asking, 0, "an answer from the server ends it: " + JSON.stringify(r.answered));
+    assert.ok(r.again.asking >= 500 && r.again.asking < 1500, "and the next ask starts it again: " + JSON.stringify(r.again));
+    assert.ok(r.back.asking < 300, "coming back starts afresh: " + JSON.stringify(r.back));
+    await page.send("Fetch.disable");
   });
 });

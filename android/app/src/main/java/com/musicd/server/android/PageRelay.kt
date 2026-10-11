@@ -53,9 +53,31 @@ object PageRelay {
         }.getOrElse { Log.w(TAG, "can't listen on $PORT: ${it.message}"); return false }
         server = s
         Thread({
-            while (!s.isClosed) {
-                val client = runCatching { s.accept() }.getOrNull() ?: continue
-                Thread({ safely(client) { relay(app, client) } }, "page-relay").apply { isDaemon = true; start() }
+            var failures = 0
+            try {
+                while (!s.isClosed) {
+                    val client = try { s.accept() } catch (e: Exception) {
+                        // No connection this time (no file handle to spare, say): a
+                        // breath before the next, not a loop spinning flat out.
+                        if (!s.isClosed) Thread.sleep(minOf(1_000L, 50L * ++failures))
+                        continue
+                    }
+                    failures = 0
+                    try {
+                        Thread({ safely(client) { relay(app, client) } }, "page-relay").apply { isDaemon = true; start() }
+                    } catch (e: Throwable) {
+                        // No thread to be had just now: this connection closed (the
+                        // page asks again), the relay carries on.
+                        runCatching { client.close() }
+                    }
+                }
+            } catch (e: Throwable) {
+                Log.w(TAG, "the relay stopped: ${e.message}")
+            } finally {
+                // However it ended, the next start() listens afresh (v0.8.42).
+                // Before, a relay that had stopped kept its port, so every
+                // request the page made was taken and never answered.
+                runCatching { s.close() }
             }
         }, "page-relay-accept").apply { isDaemon = true; start() }
         // A new route: connections on the old one are dropped (they'd only hang).

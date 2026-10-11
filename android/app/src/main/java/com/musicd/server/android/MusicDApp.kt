@@ -75,6 +75,23 @@ object CrashLog {
     }
     private const val FROZE = "Mandarin froze"
 
+    /**
+     * The page stopped and the app put it up again by itself (v0.8.42, see
+     * [MainActivity]): kept the same way, for the next start to offer —
+     * unless a crash or a freeze is already waiting to be (that says more).
+     */
+    fun keepPageNote(c: Context, what: String) {
+        runCatching {
+            val f = file(c.applicationContext)
+            if (f.exists() && !f.readText().startsWith(PAGE)) return
+            f.writeText(
+                "$PAGE ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
+                    "${Build.MANUFACTURER} ${Build.MODEL}\n${java.util.Date()}\n\n$what"
+            )
+        }
+    }
+    private const val PAGE = "Mandarin's page stopped"
+
     /** After a crash (or a freeze): say so, once, and offer the details to share. */
     fun offer(activity: Activity) {
         val f = file(activity)
@@ -82,14 +99,15 @@ object CrashLog {
         val text = runCatching { f.readText() }.getOrDefault("")
         f.delete()
         if (text.isBlank()) return
+        val page = text.startsWith(PAGE)
         AlertDialog.Builder(activity)
-            .setTitle(if (text.startsWith(FROZE)) "Mandarin froze last time" else "Mandarin stopped last time")
-            .setMessage("Sharing the details helps get it fixed.\n\n" + text.take(1200))
+            .setTitle(when { text.startsWith(FROZE) -> "Mandarin froze last time"; page -> "Mandarin's page stopped last time"; else -> "Mandarin stopped last time" })
+            .setMessage((if (page) "The app put it up again by itself. " else "") + "Sharing the details helps get it fixed.\n\n" + text.take(1200))
             .setPositiveButton("Share details") { _, _ ->
                 runCatching {
                     activity.startActivity(Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_SUBJECT, if (text.startsWith(FROZE)) "Mandarin freeze" else "Mandarin crash")
+                            .putExtra(Intent.EXTRA_SUBJECT, when { text.startsWith(FROZE) -> "Mandarin freeze"; page -> "Mandarin page stopped"; else -> "Mandarin crash" })
                             .putExtra(Intent.EXTRA_TEXT, text),
                         "Share crash details"))
                 }

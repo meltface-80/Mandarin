@@ -38,11 +38,21 @@
 /*  back (shown again, or woken: its clock jumped) every read still    */
 /*  waiting from before is let go at once, before it asks afresh. (Not */
 /*  a write: its answer may be in already, and it has its own limit.)  */
+/*                                                                     */
+/*  And the Android app asks the page now and then how it is           */
+/*  (window.__musicdPageCheck, v0.8.42): a page whose script has       */
+/*  stopped never answers, and one that has been asking the server a   */
+/*  long while with no answer, while the app reaches the server        */
+/*  itself, has stuck connections. The app puts either right itself    */
+/*  (MainActivity) rather than leaving the screen stale until it is    */
+/*  swiped away.                                                       */
 /* ------------------------------------------------------------------ */
 (function requestLimits() {
   const real = window.fetch;
   const LONG = /^\/api\/(reindex|backup|update\/apply|settings\/(qobuz|tidal)\/import|identify\/pack)/;
   const live = new Set();
+  // The first ask since the server last answered (0: none waiting), and the latest ask.
+  let askingSince = 0, askedAt = 0;
   const limits = () => Object.assign({ read: 30000, other: 90000 }, window.__musicdRequestLimits || {});
   window.fetch = function (input, init) {
     let u;
@@ -60,6 +70,8 @@
     }
     const entry = { ctl, at: Date.now(), read: method === "GET" || method === "HEAD" };
     live.add(entry);
+    askedAt = entry.at;
+    if (!askingSince) askingSince = entry.at;
     // Still running when the time is up (its answer, or its body, never came): given up.
     const timer = setTimeout(() => {
       live.delete(entry);
@@ -67,7 +79,7 @@
     }, ms);
     const done = () => { live.delete(entry); };
     return real.call(this, input, Object.assign({}, init, { signal: ctl.signal })).then(
-      (r) => { done(); return r; },
+      (r) => { done(); askingSince = 0; return r; },
       (e) => { clearTimeout(timer); done(); throw e; });
   };
   // Back (shown again, or woken): the reads still waiting from before are let go.
@@ -81,7 +93,7 @@
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }
-    if (hiddenAt) letGo(Date.now());
+    if (hiddenAt) { letGo(Date.now()); askingSince = 0; }
     hiddenAt = 0;
   });
   // A page on screen that slept without being told (its timers stopped): its
@@ -89,9 +101,55 @@
   let tick = Date.now();
   setInterval(() => {
     const now = Date.now();
-    if (now - tick > 15000 && !document.hidden) letGo(tick);
+    if (now - tick > 15000 && !document.hidden) { letGo(tick); askingSince = 0; }
     tick = now;
   }, 5000);
+  // For the app: how long the page has been asking the server with no answer
+  // at all (any answer, an error status included, ends it; so does coming
+  // back, which starts afresh), how long since it last asked, and how many
+  // asks are waiting now. Answering at all says the page's script is running.
+  window.__musicdPageCheck = () => {
+    const now = Date.now();
+    return { v: 1, hidden: !!document.hidden, asking: askingSince ? now - askingSince : 0,
+      asked: askedAt ? now - askedAt : -1, waiting: live.size };
+  };
+})();
+
+/* ------------------------------------------------------------------ */
+/*  Albums added or taken away show up by themselves (v0.8.43). Every  */
+/*  answer from the server carries which albums there are              */
+/*  (X-Mandarin-Library, from the C# server); when that moves (a scan  */
+/*  has added some, a folder was let go) the page reads its rows again */
+/*  (window.__libraryChanged): Home's Library row at once, the Library */
+/*  wall when it is at its top. Before, the Library row was read once  */
+/*  and kept until the sort changed. When nothing has been asked for a */
+/*  while (no room playing, say), the page asks for the mark itself.   */
+/* ------------------------------------------------------------------ */
+(function libraryMark() {
+  const real = window.fetch;
+  let mark = "", seenAt = 0, timer = 0, asking = false;
+  const see = (r) => {
+    let m = null;
+    try { m = r && r.headers && r.headers.get("x-mandarin-library"); } catch (e) { return; }
+    if (!m) return;
+    seenAt = Date.now();
+    if (mark && m !== mark) {
+      // Gathered: a scan adds folder after folder.
+      clearTimeout(timer);
+      timer = setTimeout(() => { if (window.__libraryChanged) window.__libraryChanged({ live: true }); }, 1000);
+    }
+    mark = m;
+  };
+  window.fetch = function () {
+    return real.apply(this, arguments).then((r) => { see(r); return r; });
+  };
+  // Only once the server has shown it carries the mark (an older one, or the
+  // app's own copy offline, never does).
+  setInterval(() => {
+    if (!mark || asking || document.hidden || window.__musicdOffline || Date.now() - seenAt < 20000) return;
+    asking = true;
+    window.fetch("/api/library/mark", { cache: "no-store" }).catch(() => {}).then(() => { asking = false; });
+  }, 10000);
 })();
 
 /* ------------------------------------------------------------------ */
@@ -5670,9 +5728,11 @@ window.__afterStart = (fn) => {
     // the very thing the row is supposed to be reflecting. A cache written
     // before this field existed has no librarySort, so it does not match and
     // the row simply loads fresh: no cache-key bump needed for that.
+    // Painted, and still read again (v0.8.43): before, the copy kept from
+    // last time counted as loaded, and albums added since stayed off the row
+    // until the sort was changed.
     if (c.library && homeLibrary && c.librarySort === libSortKey()) {
       renderHomeLibrary(c.library);
-      homeLibraryKey = c.librarySort;   // hydrated in the current order — no refetch
     }
     if (c.lotw     && homeLotw)     { renderHomeLotw(c.lotw.label, c.lotw.albums); }
     if (c.history  && homeHistory)  { renderHomeHistory(c.history); }
@@ -10454,6 +10514,20 @@ window.__afterStart = (fn) => {
   // the Home rows are marked stale and reloaded if Home is showing, and the
   // Library wall or the random wall is read again.
   window.__libraryChanged = (opts) => {
+    // Albums added or taken away under the page (v0.8.43, the server's mark
+    // moved): the Library row read again, on Home now; the Library wall read
+    // again if it is at its top and no album is open over it (further down,
+    // or under an album, it stays put, and is read again when next opened).
+    // Nothing else is reshuffled.
+    if (opts && opts.live) {
+      homeLibraryKey = "";
+      if (homeView && !homeView.classList.contains("hidden")) { if (homeRowOn("library")) loadHomeLibrary(); return; }
+      if (libraryWallActive && !labelsActive && (!modal || modal.classList.contains("hidden"))) {
+        const m = document.querySelector("main");
+        if (m && m.scrollTop < m.clientHeight) showLibraryWall();
+      }
+      return;
+    }
     const gone = opts && opts.gone != null ? String(opts.gone) : null;
     if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
     homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
@@ -18866,10 +18940,10 @@ initServiceBrowser({
   function blocks() {
     const s = st ? st.settings : null, p = st ? st.progress : null;
     const out = {};
-    out.identify = '<div class="settings-divider"></div><div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 95 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. A near miss is proposed below; the rest are left for you. Albums you edited by hand are left alone."),
+    out.identify = '<div class="settings-divider"></div><div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 85 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. The rest are left for you to match. Albums you edited by hand are left alone."),
         sw("data-id-set=\"enabled\"" + (s ? "" : " disabled"), s && s.enabled, "Identify albums")) +
       '<div class="settings-note">The right names for each album, from its files and MusicBrainz.</div>' +
-      row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 95 % alike or better, as a MusicBrainz match is; anything less is proposed. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
+      row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 85 % alike or better, as a MusicBrainz match is; anything less is left for you. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
         sw("data-id-set=\"itunes\"" + (s ? "" : " disabled"), s && s.itunes !== false, "Ask iTunes too")) +
       '<div class="settings-note">A second opinion for what MusicBrainz can’t place.</div></div>';
     out.pack = packBlock();

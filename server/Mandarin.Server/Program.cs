@@ -146,6 +146,15 @@ var app = builder.Build();
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers["X-Mandarin-Server"] = "C# " + version;
+    // Which albums the library holds, on every answer to a signed-in device,
+    // whoever made it (v0.8.43, Library.AlbumSet): the page reads its rows
+    // again when it moves.
+    if (ctx.Request.Path.StartsWithSegments("/api"))
+        ctx.Response.OnStarting(() =>
+        {
+            if (ctx.Items.ContainsKey(Auth.SignedIn) && Library.AlbumSetNow is { Length: > 0 } set) ctx.Response.Headers["X-Mandarin-Library"] = set;
+            return Task.CompletedTask;
+        });
     await next();
 });
 app.UseResponseCompression();

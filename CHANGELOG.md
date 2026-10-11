@@ -57,6 +57,92 @@ column, and answers in its words; the Node server is told and reads its library 
   list).
 - The Android app for this version is 0.8.44 (version code 244). Nothing in it changed.
 
+## v0.8.43
+Albums added to the library show up on their own, in the Android app and the browser alike: Home's
+Library row and the Library wall take them as the scan finds them, with nothing tapped. Before, with
+the Library sorted by Recently added, new albums stayed off the row until the sort was changed and
+changed back.
+
+- **Why they didn't:** Home's Library row was read once and then kept until the sort changed, and
+  at each start it was painted from the copy kept last time and counted as read. Nothing told the
+  page that a scan had added albums: the server never said, and the page never asked again.
+- **The server says now** (the C# server): every answer to a signed-in device carries which albums
+  the library holds (`X-Mandarin-Library`: their count and a mix of their ids, moved when one comes
+  or goes, not when one is edited), and `GET /api/library/mark` answers it. Not to anyone who
+  hasn't signed in.
+- **The page listens:** when the mark moves, the Library row is read again on Home at once, and
+  the Library wall is read again when it's at its top with no album open over it (further down,
+  or under an album, it stays put until it's next opened). Nothing else is reshuffled. A page with nothing else asking (no room playing, say) asks
+  for the mark itself every half-minute or so.
+- **At each start** the Library row painted from last time is read again, not kept.
+- **Tests:** `test/library-live.test.js`, in a browser through the C# server, with the Library
+  sorted by Recently added: the mark on a signed-in device's answers only (on the Node server's,
+  passed through, too) and moved by an album added; Home's row and the Library wall each taking a
+  new album first by themselves; the wall left as it is while an album is open over it; and the
+  row read again on opening after albums came while it was shut. On the page before, all three
+  page checks fail.
+- The Android app for this version is 0.8.43 (version code 243). Nothing in it changed.
+
+## v0.8.42
+The Android app no longer needs swiping away and opening again when its screen goes stale and stops
+answering taps: it watches the page, as it already watched its own screen thread, and puts it right
+itself.
+
+- **The page watched.** While the app is on screen it asks the page every 10 seconds how it is
+  (`window.__musicdPageCheck`, new in the page):
+  - **no answer twice in a row** (the page's script has stopped), or the WebView saying the page
+    hasn't handled a tap for over 10 seconds: the page's renderer is ended and the page put up
+    again in a new WebView, which is what swiping the app away and opening it again did;
+  - **asking the server for 45 seconds with no answer at all, and still asking**, while the app
+    reaches the server itself: the page's connections are stuck. They're dropped (the page's next
+    asks open new ones), and if it still has no answer 10 seconds on, the page is loaded again.
+  - At most one reload or new WebView every two minutes. What was done is kept, as a freeze is,
+    and the next start offers it to share ("Mandarin's page stopped last time").
+  - The rules are `PageWatch` in the app's core (`android/core`), with its tests.
+- **The page's renderer gone** (crashed, or ended by Android for memory while the app was behind
+  others): the page is put up again in a new WebView, loaded when the app is next on screen.
+  Before, the WebView took the whole app with it, the music playing on the phone too.
+- **Back after half a minute or more away**, the relay's connections from before are dropped before
+  the page asks afresh: kept over a sleep, they could hang rather than fail.
+- **The relay** (`PageRelay`): a connection it can't take (no thread or file handle to spare just
+  then) is closed rather than ending the relay; if the relay does stop, it closes its port, and the
+  app starts it again when it's next on screen. Before, a relay that had stopped kept the port
+  open, and every request the page made was taken and never answered.
+- **Smart Picks' Make again, asked while the picks are being made, is no longer dropped** (the C#
+  server's, `Extras/Taste.cs`): they're made once more when that build ends, from the plays as they
+  are then. It's what turned main's Mac run red after v0.8.41: the Smart Picks test's Make again
+  landed on the build that follows the library scan, which had read the plays from before.
+  `test/smart-picks.test.js` now holds a build on a slow Deezer (`test/fake-deezer.js`'s `hold`)
+  and asks again meanwhile.
+- **Tests:** `test/stale-page.test.js`, in a browser: the page says how long it has been asking
+  with no answer, an answer from the server ends it, the next ask starts it again, and coming back
+  starts afresh. `PageWatchTest` (JVM): a page that answers is left alone; a silent one is put up
+  again on the second miss; stuck connections are dropped, then the page reloaded; nothing when
+  the server can't be reached either (that's an outage, which the app's own copy of the page
+  covers), when the page has stopped asking, or when it's hidden; the two-minute spacing.
+- The Android app for this version is 0.8.42 (version code 242).
+
+## v0.8.41
+Albums found by the identification scan at **85 % alike or better are now applied** (it was 95 %),
+as the owner asked: going through about 190 proposals, most of the 85–94 % ones were right, held
+back by an edition note, track names written differently or the lengths of another pressing.
+
+- **Applied from 85 %**, as the page shows it, from MusicBrainz and iTunes alike, with Undo as
+  before. Nothing is proposed any more: anything below 85 % is left for you to match by hand,
+  as it always was.
+- **The proposals already waiting are applied** the first time the scan runs after the update,
+  as if each had been accepted (the same catch-up v0.6.3 had for its own change).
+- The few that will now be applied wrongly can be put right as before: Undo on the album, or Find
+  match.
+- Both copies of the scan's rule move together (`lib/identify/score.js` and the C# server's
+  `Identify/Score.cs`, which makes the scan), so the Node server's answers and the C# server's
+  stay the same; Settings → Library Scanner, the README and the site say 85 %.
+- **Tests:** `test/identify.test.js` holds the new line (85 % applied, 94 % applied, 84 % left
+  unidentified, nothing proposed), the proposals waiting at 85 % or more applied once, and the scan
+  end to end with its near misses applied (a track missing, a length 26 s off, from MusicBrainz and
+  from iTunes); `test/identify-csharp.test.js` holds the two servers to the same verdicts.
+- The Android app for this version is 0.8.41 (version code 241). Nothing in it changed.
+
 ## v0.8.40
 Stage 3 of the move to C#: the conversions the Node server still made, with a ReplayGain, a zone's
 DSP or 32-bit output, are made by the C# server, the files the very ones the Node server made.
