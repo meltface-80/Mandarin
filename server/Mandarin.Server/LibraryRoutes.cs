@@ -162,6 +162,9 @@ internal static partial class Library
             if (await ServiceRoute(ctx)) return;
             // And their albums opened, favourited and cleaned up (v0.8.44, ServiceRoutes.cs), likewise.
             if (await ServiceWrite(ctx)) return;
+            // And Settings → Services' state and switches, Update library now and the favourites' watch
+            // (v0.8.45, ServiceRoutes.cs), once the Node server has handed over the import.
+            if (await ServiceImport(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
@@ -542,7 +545,7 @@ internal static partial class Library
         return Send(ctx, new JsonObject { ["albums"] = AlbumList(s, albums), ["total"] = pool.Count, ["filtered"] = filtered });
     }
 
-    private sealed record TrackRow(long Id, string Title, string Artist, long? Disc, long? No, double Duration, bool Lossless, long? Bits, long? Rate, string NamesFrom);
+    private sealed record TrackRow(long Id, string Title, string Artist, long? Disc, long? No, double Duration, bool Lossless, long? Bits, long? Rate, string NamesFrom, string? Path = null);
 
     /* library.tracks(id): in playing order, corrected titles laid over the tagged ones. */
     private static List<TrackRow> Tracks(SqliteConnection c, Snapshot s, Album al)
@@ -562,7 +565,7 @@ internal static partial class Library
             if (edits != null && edits.TryGetValue($"{disc ?? 1}-{(no != null ? no.Value.ToString(CultureInfo.InvariantCulture) : "p" + (i + 1))}", out var t) && t.Length > 0) title = t;
             list.Add(new TrackRow((long)F(r, "id")!, title, Text(F(r, "artist")) ?? "", disc, no,
                 F(r, "duration") is { } du ? Convert.ToDouble(du, CultureInfo.InvariantCulture) : 0, Truthy(F(r, "lossless")),
-                Long(F(r, "bits")), Long(F(r, "sample_rate")), Text(F(r, "names_from")) ?? ""));
+                Long(F(r, "bits")), Long(F(r, "sample_rate")), Text(F(r, "names_from")) ?? "", F(r, "path") as string));
         }
         return list;
     }
