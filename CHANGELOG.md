@@ -5,6 +5,69 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.45
+Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
+favourites' watch and the service playlists are the C# server's**, handed over as the job "import".
+Each writes what the Node server wrote, row for row and mark for mark, and answers in its words; the
+Node server is told and reads its library again, as before.
+
+- **The import**: your favourites (and on Qobuz your purchases) brought into the library, every
+  album, only what is new or a week old asked of the service again; one no longer wanted let go, by
+  the ids asked for then; then the playlists. Made 20 seconds after the C# server takes the work over
+  (as the Node server made it after its start), every six hours, after a Rescan and after signing in
+  with the import on (the Node server asks the C# server for these two), and by **Update library
+  now** (`POST /api/settings/<s>/import`). What it made is kept as before (Settings → Services'
+  "updated" line).
+- **The favourites' watch**: every two minutes, and when the page comes back to Home or the Library
+  wall (`POST /api/services/watch`, not more than once in 15 seconds), an album favourited in the
+  service's own app is brought in and one taken away there let go.
+- **The service playlists**: each Qobuz or Tidal playlist, and your favourite tracks, as a playlist
+  here, the albums their tracks are from held; one gone from the service goes from here. Your own
+  playlists, and the other service's, are kept as they were.
+- **Settings → Services, signed in**: its state (`GET /api/settings/<s>`, an import running among
+  it), the stream quality and the import's switch (`POST /api/settings/<s>`): switched on, the albums
+  are back at once and the import starts; off, they are out at once. A setting written there tells
+  the Node server, so an account Tidal gave CD for hi-res is asked for hi-res again, as before.
+  Signed out, Settings → Services stays the Node server's (a Tidal sign-in under way is its), as do
+  signing in and out (stage 4.4) and playing.
+- **Tidal's token** is still refreshed by the Node server alone. An import or a watch is made by the
+  C# server only with a token good for five more minutes; otherwise, or when Tidal refuses it
+  partway, it is left to the Node server from there, which makes it with its own import or watch and
+  refreshes the token (`POST /internal/services/step`). What was brought in before stays, each album
+  written whole and kept once its rows are; the counts are then those of the Node server's run.
+- The C# server's copy of the library is now read again as soon as it tells the Node server of a
+  service's change, as the Node server's own is, rather than at the next request: an import running
+  meanwhile is never seen half made.
+- `server/Mandarin.Server/Services/Import.cs` (new), `Rows.cs`, `Catalogue.cs`, `QobuzApi.cs`,
+  `TidalApi.cs`, `ServiceRoutes.cs`, `LibraryRoutes.cs`, `LibraryChanges.cs`, `Library.cs`,
+  `Jobs.cs`. The Node server's part is the hand-over only:
+  - `index.js`: "import" added to the work it hands over; its import and watch timers left idle once
+    it is (and the first import made after all if the C# server never takes the work over); an
+    import or watch of its own running at the hand-over finished first; when the first import comes
+    and how often the watch looks handed over with the rest; and `POST /internal/services/step`, a
+    step the C# server leaves to it, made by the service's own import or watch.
+  - `lib/server/api-service.js`: the import it would start after signing in asked of the C# server
+    instead.
+  - `lib/server/api-library.js`: the imports after a Rescan asked of the C# server instead (the
+    answer still names them); and the C# server's word that a service's settings were written
+    (`settings` in `libraryChanged`): Tidal's hi-res asked for again, as its own setSettings did.
+- **Tests:** `test/services-import-csharp.test.js`, through the C# server, each held to the Node
+  server's own import, watch and answer for the same request from the same start: Settings →
+  Services' state word for word, the quality (and one not offered, refused in the same words) and the
+  switch (on: importing, the import made; off: out of the library); Update library now from nothing,
+  again with everything here (nothing fetched), with a favourite taken away on the service and with a
+  playlist gone there (every column of every album and track and the type SQLite keeps it as, the
+  kept marks with the service's own dates, Tidal's "+0000" among them, the held marks, the playlists
+  as text, yours and the other service's kept as they were, what it made, the answer); the watch;
+  the page's quick look and its 15 seconds; Tidal's token due (the import and the watch made once,
+  by the Node server, which refreshed it) and refused partway (the same library in the end); the
+  import after a Rescan and after signing in made by the C# server; and its timers, the Node
+  server's own idle. `test/qobuz.test.js` now caches Qobuz's listing with an import through the
+  front door rather than inside the Node server. `test/fake-qobuz.js` can date a favourite and a
+  purchase. `test/front.test.js` pins which server answers what (its v0.8.45 test and header line;
+  "import" in the v0.8.19 test's job list).
+- The Android app for this version is 0.8.45 (version code 245). Nothing in it changed.
+
 ## v0.8.44
 Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
 rows in the library are the C# server's**: opening one, adding it to your favourites and taking it

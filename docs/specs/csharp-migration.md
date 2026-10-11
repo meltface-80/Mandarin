@@ -1,6 +1,6 @@
 # Mandarin: moving the server to C#
 
-**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26), d (v0.8.31), and e and most of f (v0.8.34); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29); stage 2 (v0.8.37, v0.8.38), stage 3 (v0.8.40), and stage 4's parts 1 (v0.8.39) and 2 (v0.8.44). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
+**Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26), d (v0.8.31), and e and most of f (v0.8.34); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29); stage 2 (v0.8.37, v0.8.38), stage 3 (v0.8.40), and stage 4's parts 1 (v0.8.39), 2 (v0.8.44) and 3 (v0.8.45). **From v0.8.29, new server work is done in C# only** (2.4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
 and coded only once the owner is happy with it, as `roadmap-stages.md` did.
@@ -19,8 +19,9 @@ and passes everything else to the Node server behind it, which it starts itself 
 launcher.js`) on a private port. Both use the same database. The Node server still says which
 copy of the library is current and still plays. Background work the C# server does in Node's
 place (identification, the MusicBrainz pack, loudness, record labels, release days, Smart Picks,
-Tailscale, and from v0.8.34 the library scans) is handed over to it each time the Node server starts
-(`/internal/front/runs`). `server/README.md` has the details.
+Tailscale, from v0.8.34 the library scans, from v0.8.44 the month's prune of Qobuz's and Tidal's
+albums and from v0.8.45 their import and the favourites' watch) is handed over to it each time the
+Node server starts (`/internal/front/runs`). `server/README.md` has the details.
 
 ### In numbers
 
@@ -43,7 +44,9 @@ a zone's DSP and 32-bit output since v0.8.40), the phone's downloads and its Opu
 reading, the library scan itself, identification, the pack, measuring loudness, waveforms, record
 labels, release days, Smart Picks, write-ups, sharing, the album editor, backups and built-in
 Tailscale; from v0.8.39, browsing Qobuz's and Tidal's catalogue; from v0.8.44, their albums as
-library rows (opening one, favourites, a streamed album's page, their Clean up and the month's prune).
+library rows (opening one, favourites, a streamed album's page, their Clean up and the month's prune);
+from v0.8.45, their import, the favourites' watch, the service playlists and Settings → Services
+signed in.
 
 ### Still Node's, by area
 
@@ -51,7 +54,7 @@ library rows (opening one, favourites, a streamed album's page, their Clean up a
 |---|---|---|---|---|
 | **Playback**: rooms, transport, queue, grouping, radio, the phone as a zone | 35 | `lib/sonos/*` 2,200, `lib/renderers/*` 2,060, `lib/local/*` 920, `api-playback.js` and `playback.js` 750, radio and plays 520 | Sonos (SOAP on port 1400), SSDP multicast, UPnP renderers (SOAP, GENA events), LinkPlay, the audio engine, the Android app's long poll | **Large, highest risk** |
 | **Conversions Node still makes**: Qobuz and Tidal (ReplayGain, DSP and 32-bit C#'s since v0.8.40) | the `/stream` cases C# passes on | `lib/stream.js` 546, `lib/dsp.js`, `public/biquad.js` | ffmpeg; the transcode folder shared with C# | Medium |
-| **Qobuz and Tidal**: sign-in, the settings, the import, the favourites' watch and the service playlists, playing, their streams (browsing C#'s since v0.8.39; opening, favourites, a streamed album's page, their Clean up and the prune since v0.8.44) | about 16 | `lib/services/*`, `lib/qobuz/*`, `lib/tidal/*` 1,600 | qobuz.com, tidal.com (OAuth, DASH) | Large |
+| **Qobuz and Tidal**: sign-in and sign-out, Settings → Services while signed out, playing, their streams (browsing C#'s since v0.8.39; opening, favourites, a streamed album's page, their Clean up and the prune since v0.8.44; the import, the favourites' watch, the service playlists and Settings → Services signed in since v0.8.45) | about 12 | `lib/services/*`, `lib/qobuz/*`, `lib/tidal/*` 1,600 | qobuz.com, tidal.com (OAuth, DASH) | Large |
 | **Audio Devices and DSP**: the device register, per-device settings, headphone profiles | 8 | `lib/renderers/devices.js`, `registry.js`, `profiles.js`, `lib/autoeq.js`, `api-devices.js`, `api-dsp.js` 1,000 | AutoEq on GitHub; live player state | Medium (writes re-plan live queues) |
 | **Library housekeeping**: when to scan where the scans are the Node server's (timer, folder watcher, Rescan), music folders likewise, the music folders' clean-up and the counts, `/api/status`, the wall display's content (a streamed album's page and the services' clean-up C#'s since v0.8.44) | 11 | `lib/server/api-library.js` (parts), `lib/library/watch.js`, `lib/server/mounts.js`, `lib/library/index.js` | the file system | Medium |
 | **Phone downloads, the lists**: an album's download list (with ReplayGain), automatic downloads, plays sent from the phone | 4 | `lib/server/downloads.js` 297 | none | Small |
@@ -201,7 +204,18 @@ updates bringing both servers together (2.1):
     services' rows changed taken (`services` in `lib/server/api-library.js`'s `libraryChanged`):
     the library read again and the covers drawn ahead, as each service's afterChange did (an album
     opened: read again only, as opening did there), and after a favourite made there, that
-    service's kept answers forgotten, as its own favourite forgot them;
+    service's kept answers forgotten, as its own favourite forgot them. Their import, the
+    favourites' watch and the service playlists (stage 4.3, v0.8.45): the job `import` added to
+    what is handed over, the import's and the watch's timers left idle once it is (and the first
+    import made after all if the C# server never takes the work), an import or a watch running at
+    the hand-over finished first, and when the first import comes and how often the watch looks
+    handed over with the rest (`index.js`); an import the Node server would start itself after a
+    sign-in (`lib/server/api-service.js`) or a Rescan (`lib/server/api-library.js`) asked of the C#
+    server instead (`POST /internal/jobs/import`); the C# server's word that a service's settings
+    were written taken (`settings` in `libraryChanged`): Tidal's hi-res asked for again, as its own
+    setSettings did; and `POST /internal/services/step`, a step of the import or the watch the C#
+    server leaves to it while Tidal's token is its to refresh (until step 4), made by the service's
+    own `importLibrary()` or `watch()`, as `/internal/cpu/dsp` calls `lib/cpu.js`'s own `dsp()`;
   - **a bug in playback**: Queue and Play next writing over a queue that wasn't playing (v0.8.34);
   - **the Queue screen kept quick** (v0.8.35): the server's copy of each Sonos queue, read again
     only when the speaker's UpdateID moves, and Play from here answered once the room has moved.
@@ -377,7 +391,25 @@ deciding the split (`POST /internal/cpu/dsp`, answered with it).
    Tidal's lists hand their albums to the C# server's copy, so opening one asks Tidal for its
    tracks only again. The import, the favourites' watch and the service playlists (step 3) and
    playing stay the Node server's.
-3. Import, the favourites watch and the service playlists, as a job handed over.
+3. Import, the favourites watch and the service playlists, as a job handed over. **Built in
+   v0.8.45** (`Services/Import.cs`, `ServiceRoutes.cs`, `Jobs.cs`): handed over as the job "import".
+   The C# server makes the import (the favourites, and Qobuz's purchases, kept in the library as
+   rows, only what is new or a week old asked again; one no longer wanted let go by the ids asked
+   for then; the playlists after) 20 seconds after the hand-over (as the Node server set it up),
+   every six hours, and when the Node server asks for it (after a sign-in with the import on, after
+   a Rescan); the favourites' watch every two minutes; and answers `GET` and `POST
+   /api/settings/<s>` while signed in (the state, the quality and the import's switch: switched on,
+   the import started), `POST /api/settings/<s>/import` (Update library now) and `POST
+   /api/services/watch` (the page's quick look, once in 15 seconds). The service playlists are kept
+   in `userPlaylists` and the albums they need held (`<s>-held`), as `lib/services/streaming.js`
+   keeps them; each held to the Node server's own import, watch and answer from the same start
+   (`test/services-import-csharp.test.js`). The Node server is told as each service's afterChange
+   did, and the C# server's copy of the library is read again then and there too. Tidal's token
+   stays the Node server's to refresh: an import or a watch is made here only with a token good
+   for five more minutes, and one found due, or refused partway, is left to the Node server from
+   there (`POST /internal/services/step`), what was brought in here before kept whole (its counts
+   then the Node server's run's). Signed out, Settings → Services stays the Node server's (a Tidal
+   sign-in under way is its), with signing in and out (step 4) and playing.
 4. Sign-in and sign-out. **The C# server alone refreshes Tidal's token** from then on: with two
    refreshing at once, one can be left holding a token that no longer works.
 5. Their streams: fetch, copy or convert, Tidal's DASH fed to ffmpeg directly (no loopback
@@ -501,10 +533,11 @@ and `/api/image/`).
 - **Audio Devices** (`api-devices.js`): `GET /api/audio-devices`, `/api/audio-devices/:id`;
   `PATCH /api/audio-devices/:id`; `POST /api/audio-devices/rescan`, `/api/audio-devices/:id/forget`
 - **Qobuz and Tidal** (`api-service.js`, for each of `qobuz` and `tidal`): `GET` and `POST
-  /api/settings/<svc>`, `POST …/signin`, `…/signin/cancel`, `…/signout`, `…/disconnect`,
-  `…/import`; `POST /api/<svc>/play` (the `GET` catalogue routes C#'s since v0.8.39; `/favorite`,
-  `/unfavorite` and `/open` since v0.8.44, but for a request Tidal's token has to be refreshed for);
-  `POST /api/services/watch`; `GET /internal/dash/:key`
+  /api/settings/<svc>` while signed out, `POST …/signin`, `…/signin/cancel`, `…/signout`,
+  `…/disconnect`; `POST /api/<svc>/play` (the `GET` catalogue routes C#'s since v0.8.39; `/favorite`,
+  `/unfavorite` and `/open` since v0.8.44, but for a request Tidal's token has to be refreshed for;
+  `/api/settings/<svc>` signed in, `…/import` and `POST /api/services/watch` since v0.8.45, a step
+  Tidal's token has to be refreshed for left to the Node server); `GET /internal/dash/:key`
 - **Library** (`api-library.js`): `GET /api/status`, `/api/library/cleanup`, `/api/display/content`;
   `POST /api/library/cleanup` for the music folders (a service's C#'s since v0.8.44 where the scans
   are); the services part of `GET /api/search/external` (the music folders, Rescan and Reindex

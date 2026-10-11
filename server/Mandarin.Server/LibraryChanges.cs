@@ -52,6 +52,34 @@ internal static partial class Library
         }
     }
 
+    // A step the Node server makes for this one takes as long as it takes (an import: minutes).
+    private static readonly HttpClient Patient = new(new SocketsHttpHandler { UseProxy = false }) { Timeout = Timeout.InfiniteTimeSpan };
+
+    /*
+     * A step of the services' import or watch left to the Node server
+     * (Services/Import.cs, v0.8.45): its status and the text of its answer,
+     * waited for however long it takes; null when it couldn't be asked.
+     */
+    public static async Task<(int Status, string Text)?> AskNode(string path, JsonObject what)
+    {
+        if (upstream == null) return null;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))
+            {
+                Content = new StringContent(what.ToJsonString(), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Add("X-Mandarin-Front-Key", frontKey);
+            using var res = await Patient.SendAsync(req);
+            return ((int)res.StatusCode, await res.Content.ReadAsStringAsync());
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
+        {
+            Front.Log($"[library] the Node server wasn't asked ({path}): {e.Message}");
+            return null;
+        }
+    }
+
     private static long NowMs() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     /* A heart on (INSERT, kept if already there) or off, by the album's key. */

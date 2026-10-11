@@ -18,8 +18,8 @@
 // Each change is told to the Node server (POST /internal/library/changed,
 // { services }), which reads its library again as each service's own
 // afterChange does there (index.js); this server's copy follows its version.
-// Its import, the favourites' watch and the service playlists stay its own
-// (stage 4.3), and so does playing.
+// The import, the favourites' watch and the service playlists write the same
+// rows from v0.8.45 (stage 4.3, Import.cs); playing stays the Node server's.
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -44,8 +44,8 @@ internal abstract partial class Catalogue
 
     // ------------------------------------------------------------ what each service brings
 
-    /* fullAlbum(id): the album and its tracks in the plain shape, asked of the service. */
-    protected abstract Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id);
+    /* fullAlbum(id, hint): the album and its tracks in the plain shape, asked of the service; [hint] the album as a listing gave it (the import, v0.8.45). */
+    protected abstract Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint);
     /* apiFavourite(id, on): the favourite on the service itself. */
     protected abstract Task ApiFavourite(string id, bool on);
 
@@ -144,13 +144,16 @@ internal abstract partial class Catalogue
      * covers ahead ("changed"); "opened" reads it again only, as opening an
      * album there did. [favourite]: a favourite changed here, so the service's
      * answers it kept are forgotten there too, as its own setFavourite forgets
-     * them.
+     * them. This server's copy is read again then and there too (v0.8.45), as
+     * the Node server's is, not at the next request: an import running on
+     * meanwhile is never seen half made.
      */
     public async Task Changed(string what = "changed", bool favourite = false)
     {
         var o = new JsonObject { ["services"] = what };
         if (favourite) o["favourite"] = Id;
         await Library.Tell(o);
+        await Library.CurrentCopy();
     }
 
     // ------------------------------------------------------------ an album's rows
@@ -210,12 +213,13 @@ internal abstract partial class Catalogue
 
     /*
      * The album (and its tracks) as library rows, written or brought up to
-     * date (streaming.js ensureAlbum): the library's id of it.
+     * date (streaming.js ensureAlbum): the library's id of it. [hint]: the
+     * album as the service listed it, if it was, for FullAlbum to use.
      */
-    public async Task<long> EnsureAlbum(string id)
+    public async Task<long> EnsureAlbum(string id, object? hint = null)
     {
         var t0 = NowMs();
-        var (a, tracks) = await FullAlbum(id);
+        var (a, tracks) = await FullAlbum(id, hint);
         var t1 = NowMs();
         var art = await FetchArt(id, P(a, "image"));
         var t2 = NowMs();
@@ -283,22 +287,22 @@ internal abstract partial class Catalogue
 
     // ------------------------------------------------------------ kept, and why
 
-    /* Kept (on), with why and since when, or let go (streaming.js keep). */
-    private void Keep(SqliteConnection c, string albumId, bool on, string why = "favourite")
+    /* Kept (on), with why and since when (the service's own date where the listing gave one: at || now), or let go (streaming.js keep). */
+    private void Keep(SqliteConnection c, string albumId, bool on, object? why = null, object? at = null)
     {
         if (on)
         {
             var v = new JsObj();
-            v["why"] = why;
-            v["at"] = NowMs();
+            v["why"] = why ?? "favourite";
+            v["at"] = Js.Truthy(at) ? at : NowMs();
             CachePut(c, NsKept, Key + albumId, v);
         }
         else Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", NsKept), ("$k", Key + albumId));
     }
-    private void Keep(string albumId, bool on)
+    private void Keep(string albumId, bool on, object? why = null, object? at = null)
     {
         using var c = Db.Open();
-        Keep(c, albumId, on);
+        Keep(c, albumId, on, why, at);
     }
 
     /* How it is kept (streaming.js keptInfo): null when it isn't; a row from before v0.7.3 held 1, kept for no reason known. */

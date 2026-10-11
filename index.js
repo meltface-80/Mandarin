@@ -377,12 +377,15 @@ function createServer(overrides = {}) {
   // change, Rescan, the music folders' routes), where this server's own
   // would already be made by the C# program (scansGoToFront); from v0.8.44
   // the month's prune of Qobuz's and Tidal's albums only ever played from the
-  // browser (its daily timer below does nothing here). Each is
+  // browser (its daily timer below does nothing here); from v0.8.45 their
+  // import, the favourites' watch and the service playlists (the timers below
+  // do nothing here, and an import this server would start is the C#
+  // server's to make). Each is
   // stopped here for good — the album being looked at finished first — and
   // the C# server is told which, and how this one was set up. This server's
   // own requests to MusicBrainz wait their turn on the C# server's timer from
   // now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune"];
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import"];
   // The library scans go to the C# server only where this server's own would
   // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
   // or the tag check passed for the two readers (not TAG_READER=node). Else
@@ -411,6 +414,8 @@ function createServer(overrides = {}) {
     if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
     if (jobs.has("days")) passes.push(ctx.releaseDays.handOver());
     if (jobs.has("taste")) passes.push(features.handOver());
+    // A service's import or watch running here (v0.8.45): finished first.
+    if (jobs.has("import")) for (const id of SERVICES.IDS) for (const p of [ctx.services[id].importing, ctx.services[id].watching]) if (p) passes.push(p.catch(() => {}));
     if (passes.length) {
       let t;
       await Promise.race([Promise.all(passes).catch(() => {}), new Promise(r => { t = setTimeout(r, 20000); })]);
@@ -448,7 +453,9 @@ function createServer(overrides = {}) {
         // most a scan may take away unasked, and how often the library is read.
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
-        qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null
+        qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
+        // Their import and the favourites' watch (v0.8.45): when the first import is made, and how often the watch looks.
+        service_sync_delay_ms: config.qobuzSyncDelayMs == null ? null : config.qobuzSyncDelayMs, service_watch_ms: config.serviceWatchMs || null
       }
     });
   });
@@ -467,6 +474,17 @@ function createServer(overrides = {}) {
     if (!fromFront(req)) return res.status(403).end();
     CPU.dsp(!!(req.body && req.body.on));
     res.json({ cpu: CPU.plan() });
+  });
+  // A step of a service's import or watch the C# server leaves here (v0.8.45,
+  // Services/Import.cs): Tidal's token due, which only this server refreshes
+  // until it moves too. Made by the service's own import or watch, answered
+  // with what it made.
+  app.post("/internal/services/step", express.json(), async (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const b = req.body || {}, s = SERVICES.IDS.includes(b.service) ? ctx.services[b.service] : null;
+    if (!s) return res.status(400).json({ error: "service required" });
+    try { res.json({ ok: true, result: await (b.step === "watch" ? s.watch() : s.importLibrary()) }); }
+    catch (e) { res.status(e.status || 500).json({ error: e.message || String(e) }); }
   });
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
@@ -726,6 +744,8 @@ function createServer(overrides = {}) {
       if (frontRuns.has("days")) ctx.releaseDays.run().catch(() => {});
       if (frontRuns.has("taste")) features.kickSmartPicks();
       if (frontRuns.has("scan")) ctx.ownScans();
+      // The services' import, a run missed while this one waited: made now.
+      if (frontRuns.has("import") && syncMissed) serviceSync();
     };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {
@@ -777,8 +797,11 @@ function createServer(overrides = {}) {
     // The streaming services: your favourites (and purchases) brought up to
     // date soon after the start and every six hours, while signed in with
     // the import on; albums only ever played from the browser let go after
-    // a month.
+    // a month. The import and the watch: by the C# server once handed over
+    // (v0.8.45, Services/Import.cs), so these do nothing here.
+    let syncMissed = false;
     const serviceSync = () => {
+      if (ctx.madeByFront("import")) { syncMissed = true; return; }
       for (const id of SERVICES.IDS) {
         const s = ctx.services[id];
         if (!s.connected() || !s.settings().import) continue;
@@ -789,6 +812,7 @@ function createServer(overrides = {}) {
     // the ids the account wants are compared with what is kept, so an album
     // favourited or removed in the service's own app follows here unasked.
     const serviceWatch = () => {
+      if (ctx.madeByFront("import")) return;
       for (const id of SERVICES.IDS) {
         const s = ctx.services[id];
         if (!s.connected() || !s.settings().import) continue;

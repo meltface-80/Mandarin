@@ -19,11 +19,22 @@
 // A streamed album's page (GET /api/album) is LibraryRoutes.cs's, with its
 // service's favourite and why it is here (ServiceFields, below).
 //
-// The sign-in, the settings, the import and playing stay the Node server's
-// (stages 4.3, 4.4 and 6). So does a request Tidal's token has to be refreshed
-// for: only the Node server refreshes it, so a write it would be refreshed for
-// is passed on before anything is written. A body Express would read
-// otherwise, or refuse, is passed on as it came too.
+// From v0.8.45 (stage 4.3) the import, the favourites' watch and the service
+// playlists (Services/Import.cs), once the Node server has handed them over
+// (the job "import"):
+//
+//   GET  /api/settings/<s>          the account's state and settings, the import's (signed in)
+//   POST /api/settings/<s>          { quality?, import? } (signed in): the switch on, the import made
+//   POST /api/settings/<s>/import   Update library now: what it made
+//   POST /api/services/watch        the favourites looked at now (the page, coming back)
+//
+// Signed out, Settings → Services' state and switches stay the Node server's
+// (a Tidal sign-in under way is its), as do signing in and out and playing
+// (stages 4.4 and 6). So does a request Tidal's token has to be refreshed for:
+// only the Node server refreshes it, so a write it would be refreshed for is
+// passed on before anything is written, and an import or a watch is left to
+// it from there. A body Express would read otherwise, or refuse, is passed on
+// as it came too.
 // Answered here once the Node server has handed over its work; until then, by it.
 using System.Net.Http.Headers;
 using System.Text;
@@ -303,5 +314,172 @@ internal static partial class Library
         }
         catch (Exception e) when (e is not global::Mandarin.Server.Services.ToNode) { /* no note */ }
         return o;
+    }
+
+    // ------------------------------------------------------------ the import (v0.8.45)
+
+    [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import)?$")]
+    private static partial Regex ServiceSettingsPath();
+
+    /* The service, once the Node server has handed over the import. */
+    private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
+
+    /* Settings → Services' state and switches, Update library now, the favourites' watch: true when answered here. */
+    private static async Task<bool> ServiceImport(HttpContext ctx)
+    {
+        var m = ctx.Request.Method;
+        var path = ctx.Request.Path.Value ?? "";
+        if (path == "/api/services/watch")
+        {
+            if (!HttpMethods.IsPost(m) || !Jobs.Holds("import") || !BodyFits(ctx)) return false;
+            var (fine, _) = await ServiceBody(ctx);
+            return fine && await ServicesWatch(ctx);
+        }
+        var match = ServiceSettingsPath().Match(path);
+        if (!match.Success || ImportOf(match.Groups[1].Value) is not { } svc) return false;
+        var now = match.Groups[2].Value.Length > 0;
+        if (!now && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
+        {
+            try
+            {
+                // Signed out, the Node server's: a Tidal sign-in under way is its.
+                if (!svc.Connected()) return false;
+                return await SendJs(ctx, svc.Status());
+            }
+            catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted)
+            {
+                Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
+                return false;
+            }
+        }
+        if (!HttpMethods.IsPost(m) || !BodyFits(ctx)) return false;
+        var (ok, b) = await ServiceBody(ctx);
+        if (!ok) return false;
+        return now ? await ImportNow(ctx, svc) : await SaveServiceSettings(ctx, svc, b);
+    }
+
+    /* As api-service.js's wrap answers what throws, a 500 in SQLite's own words too. */
+    private static Task<bool> ImportFailed(HttpContext ctx, Exception e)
+    {
+        var status = e is ServiceError se ? se.Status : 500;
+        var said = Catalogue.Said(e);
+        var o = Jso(("error", said.Length > 0 ? said : "Error"));
+        if (status == 401) o["connected"] = false;
+        return SendJs(ctx, o, status);
+    }
+
+    /* Update library now (POST /api/settings/<s>/import): signed in, the switch on; what the import made. */
+    private static async Task<bool> ImportNow(HttpContext ctx, Catalogue svc)
+    {
+        try
+        {
+            if (!svc.Connected()) return await SignedOut(ctx, svc);
+            // Switched off, nothing is brought in (v0.7.10).
+            if (!svc.Settings().Import) return await SendJs(ctx, Jso(("error", "Switch on " + svc.Name + " in the library first"), ("import", false)), 409);
+            return await SendJs(ctx, Jso(("ok", true), ("result", await svc.ImportLibrary())));
+        }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            // Asked of the service and written as it went: answered here, as the Node server's would be.
+            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] import: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
+        }
+    }
+
+    /*
+     * The quality and the import's switch (POST /api/settings/<s>), signed in:
+     * written, the switch's albums and playlists in or out of the library at
+     * once, and switched on, brought up to date (the import started, so the
+     * state answered says so). A quality not offered is refused before
+     * anything is written.
+     */
+    private static async Task<bool> SaveServiceSettings(HttpContext ctx, Catalogue svc, object? b)
+    {
+        if (!svc.Connected()) return false;
+        var before = svc.Settings();
+        try { svc.SetSettings(Prop(b, "quality"), Undef.V); }
+        catch (ServiceError e) when (!ctx.Response.HasStarted) { return await ServiceFailed(ctx, e); }
+        catch (Exception e) when (e is SqliteException or IOException && !ctx.Response.HasStarted)
+        {
+            Front.Log($"[{svc.Id}] settings: {e.GetType().Name}: {e.Message}; passed to the Node server");
+            if (ctx.Request.Body.CanSeek) ctx.Request.Body.Position = 0;
+            return false;
+        }
+        try
+        {
+            var start = false;
+            if (Prop(b, "import") is var imp && imp is not Undef)
+            {
+                await svc.SetImport(TJs.Truthy(imp));
+                start = svc.Settings().Import && !before.Import && svc.Connected();
+            }
+            await svc.SettingsWritten();
+            // The state as the import starts, as the Node server answered it (its
+            // import then still at its first ask of the service): importing.
+            var st = svc.Status();
+            if (start) { global::Mandarin.Server.Services.Import.Later(svc); st["importing"] = true; }
+            return await SendJs(ctx, st);
+        }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            Front.Log($"[{svc.Id}] settings: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
+        }
+    }
+
+    /*
+     * The quick look at the services' favourites (POST /api/services/watch,
+     * api-library.js), when the page comes back to Home or the Library wall:
+     * each signed in with its import on, not more than once in 15 seconds;
+     * whether anything changed, so the page can redraw.
+     */
+    private static async Task<bool> ServicesWatch(HttpContext ctx)
+    {
+        var o = Jso(("changed", false));
+        var each = new JsObj();
+        o["services"] = each;
+        try
+        {
+            foreach (var svc in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal })
+            {
+                if (svc == null || !svc.Connected() || !svc.Settings().Import) continue;
+                try
+                {
+                    var r = await svc.Watch(15000);
+                    if (r != null) { each[svc.Id] = r; if (TJs.Truthy(r["changed"])) o["changed"] = true; }
+                }
+                catch (Exception e) { each[svc.Id] = Jso(("error", Catalogue.Said(e))); }
+            }
+        }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            // The account or the switch unreadable: as the route's wrap answers it there.
+            Front.Log($"[library] /api/services/watch: {e.GetType().Name}: {e.Message}");
+            return await JsError(ctx, 500, Catalogue.Said(e));
+        }
+        return await SendJs(ctx, o);
+    }
+
+    /*
+     * A service playlist's tracks as the Node server's import makes them
+     * (streaming.js importPlaylists, Services/Import.cs): each record's album
+     * as the library has it now, the track found on it by its path; one that
+     * isn't there left out.
+     */
+    internal static List<object?> ServicePlaylistTracks(SqliteConnection c, Snapshot s, IEnumerable<(long AlbumId, string Path)> items)
+    {
+        var tracks = new List<object?>();
+        var read = new Dictionary<long, List<TrackRow>>();
+        foreach (var (albumId, p) in items)
+        {
+            if (s.Find(albumId) is not { } al) continue;
+            if (!read.TryGetValue(al.Id, out var rows)) read[al.Id] = rows = Tracks(c, s, al);
+            var i = rows.FindIndex(t => t.Path == p);
+            if (i < 0) continue;
+            var t = rows[i];
+            tracks.Add(Jso(("album_offset", (double)al.Id), ("album_title", al.Title), ("album_subtitle", al.Artist), ("track_index", (double)i),
+                ("title", t.Title), ("subtitle", t.Artist.Length > 0 ? t.Artist : al.Artist), ("image_key", al.ImageKey), ("track_no", t.No is long n ? (double)n : null)));
+        }
+        return tracks;
     }
 }
