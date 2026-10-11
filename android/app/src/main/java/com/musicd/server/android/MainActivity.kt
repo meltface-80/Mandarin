@@ -8,11 +8,13 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -26,6 +28,7 @@ import android.widget.TextView
 import androidx.webkit.ProxyConfig
 import androidx.webkit.ProxyController
 import androidx.webkit.WebViewFeature
+import com.musicd.server.client.PageWatch
 
 /**
  * The app: MusicD Server's own page, full screen.
@@ -57,6 +60,10 @@ class MainActivity : Activity() {
         private const val BACKGROUND = 0xFF0E1012.toInt()
         /** How long the page waits for the WebView to say the relay is in place. */
         private const val RELAY_WAIT_MS = 2_500L
+        /** How often the page is asked how it is while it's on screen (v0.8.42). */
+        private const val PAGE_CHECK_MS = 10_000L
+        /** Back after this long away: the relay's connections from before are dropped. */
+        private const val AWAY_DROP_MS = 30_000L
 
         /**
          * Offline only, added to the page the app serves: tells the page it's
@@ -222,30 +229,7 @@ class MainActivity : Activity() {
         }
 
         root = FrameLayout(this).apply { setBackgroundColor(BACKGROUND) }
-        web = WebView(this).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(BACKGROUND)
-            settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                mediaPlaybackRequiresUserGesture = false
-                cacheMode = WebSettings.LOAD_DEFAULT
-                // Draws a little beyond what's on screen, so moving around
-                // (carousels, walls, the album sheet) has its tiles ready.
-                offscreenPreRaster = true
-                builtInZoomControls = false
-                displayZoomControls = false
-                // Tells the page it's inside this app (see index.html: the app
-                // keeps it clear of the system bars, so the page mustn't too).
-                userAgentString = "$userAgentString MusicDAndroid/${BuildConfig.VERSION_NAME}"
-            }
-            webViewClient = Client()
-            addJavascriptInterface(ShareBridge(this@MainActivity), ShareBridge.NAME)
-            addJavascriptInterface(DownloadsBridge(this@MainActivity), DownloadsBridge.NAME)
-            addJavascriptInterface(AppBridge(this@MainActivity), AppBridge.NAME)
-            addJavascriptInterface(UsbBridge(this@MainActivity), UsbBridge.NAME)
-            addJavascriptInterface(BackupBridge(this@MainActivity), BackupBridge.NAME)
-        }
+        web = makeWeb()
         root.addView(web)
         root.addView(buildErrorPanel())
         Insets.pad(root)
@@ -267,6 +251,131 @@ class MainActivity : Activity() {
         load()
     }
 
+    /** The page's WebView, set up (at the start, and whenever the page is put up afresh). */
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun makeWeb(): WebView = WebView(this).apply {
+        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        setBackgroundColor(BACKGROUND)
+        settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            cacheMode = WebSettings.LOAD_DEFAULT
+            // Draws a little beyond what's on screen, so moving around
+            // (carousels, walls, the album sheet) has its tiles ready.
+            offscreenPreRaster = true
+            builtInZoomControls = false
+            displayZoomControls = false
+            // Tells the page it's inside this app (see index.html: the app
+            // keeps it clear of the system bars, so the page mustn't too).
+            userAgentString = "$userAgentString MusicDAndroid/${BuildConfig.VERSION_NAME}"
+        }
+        webViewClient = Client()
+        addJavascriptInterface(ShareBridge(this@MainActivity), ShareBridge.NAME)
+        addJavascriptInterface(DownloadsBridge(this@MainActivity), DownloadsBridge.NAME)
+        addJavascriptInterface(AppBridge(this@MainActivity), AppBridge.NAME)
+        addJavascriptInterface(UsbBridge(this@MainActivity), UsbBridge.NAME)
+        addJavascriptInterface(BackupBridge(this@MainActivity), BackupBridge.NAME)
+        PageGuard.watchRenderer(this) {
+            if (pageWatch.stopped(SystemClock.elapsedRealtime()) == PageWatch.Action.REBUILD)
+                pageStopped("The page didn't handle a tap for over 10 s.")
+        }
+    }
+
+    /**
+     * The page has stopped (v0.8.42): its script doesn't answer the app, or
+     * it doesn't handle taps. Before, the screen stayed stale until the app
+     * was swiped away and opened again; now the app does what that did. The
+     * page's renderer is ended (onRenderProcessGone then puts the page up in
+     * a new WebView) or, where the WebView can't end it, the WebView is
+     * replaced now. Kept for the next start to offer, as a freeze is.
+     */
+    private fun pageStopped(why: String) {
+        if (isFinishing || isDestroyed) return
+        Log.w(TAG, "the page stopped: $why")
+        CrashLog.keepPageNote(this, "$why\n\n${whereNote()}")
+        if (!PageGuard.endRenderer(web)) rebuildPage()
+    }
+
+    /**
+     * The page in a new WebView, the old one gone: after its renderer has
+     * gone, or the page stopped. Loaded now on screen; behind other apps,
+     * when the app is back (a renderer Android ended for memory isn't
+     * started again in the background).
+     */
+    private fun rebuildPage() {
+        if (isFinishing || isDestroyed) return
+        val old = web
+        web = makeWeb()
+        root.addView(web, 0)
+        root.removeView(old)
+        runCatching { old.destroy() }
+        pageReady = false
+        pageWatch.reset()
+        if (onScreen) load() else loadWhenBack = true
+    }
+
+    /** Where the app was, for a note: the way to the server, and the page's. */
+    private fun whereNote(): String {
+        val away = Store.isAway(this)
+        return "Server: ${Store.active(this)?.baseUrl ?: "none"} (" +
+            (if (away) "away" + (if (Store.viaEngine(this)) ", over MusicD's own Tailscale" else "") else "home") +
+            "). The page through the relay: ${relayedFor != null}. The app's own copy of the page: $offline."
+    }
+
+    /** The page on screen, watched (v0.8.42): see [PageWatch]. */
+    private val pageWatch = PageWatch()
+    /** The page has finished loading and no other has started (only then is it asked). */
+    private var pageReady = false
+    /** Counts page loads, so an answer from a page since replaced is ignored. */
+    private var pageGen = 0
+    /** When the app last reached the server itself (the live watch); the clock counts sleep. */
+    private var serverOkAt = 0L
+    /** Between onResume and onPause. */
+    private var onScreen = false
+    /** Left the screen at (0: on it). */
+    private var leftAt = 0L
+    /** The page was put up afresh behind other apps: it's loaded on coming back. */
+    private var loadWhenBack = false
+
+    /**
+     * Every [PAGE_CHECK_MS] while on screen, the page is asked how it is
+     * (window.__musicdPageCheck): no answer twice and it has stopped;
+     * asking the server a long while with no answer, while the app reaches
+     * the server itself, and its connections are stuck — dropped, then the
+     * page loaded again. What's done when is [PageWatch]'s.
+     */
+    private val pageCheck = object : Runnable {
+        override fun run() {
+            if (isFinishing || !onScreen) return
+            web.postDelayed(this, PAGE_CHECK_MS)
+            if (!pageReady || web.visibility != View.VISIBLE) return
+            val gen = pageGen
+            val asked = web
+            PageGuard.ask(asked, PageWatch.CHECK_JS) { answer ->
+                if (isFinishing || !onScreen || gen != pageGen || asked !== web) return@ask
+                val now = SystemClock.elapsedRealtime()
+                val report = PageWatch.parse(answer)
+                val action = if (answer == null) pageWatch.noAnswer(now)
+                    else pageWatch.answered(report, !offline && serverOkAt != 0L && now - serverOkAt < 25_000, now)
+                when (action) {
+                    PageWatch.Action.DROP -> {
+                        Log.i(TAG, "the page has asked ${report?.asking} ms with no answer: its connections dropped")
+                        PageRelay.dropAll()
+                    }
+                    PageWatch.Action.RELOAD -> {
+                        Log.w(TAG, "the page still has no answer: loaded again")
+                        CrashLog.keepPageNote(this@MainActivity, "The page had asked the server for ${(report?.asking ?: 0) / 1000} s " +
+                            "with no answer while the app reached it; loaded again.\n\n${whereNote()}")
+                        load()
+                    }
+                    PageWatch.Action.REBUILD -> pageStopped("The page didn't answer the app twice in a row.")
+                    PageWatch.Action.NONE -> {}
+                }
+            }
+        }
+    }
+
     /** The USB port changed (a DAC in or out, permission answered): the page's Audio Devices follow. */
     private val onUsb: () -> Unit = {
         runOnUiThread { PhonePlayerService.current?.usbChanged() }
@@ -282,15 +391,28 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (!::web.isInitialized) return
+        onScreen = true
+        // Back after a while (v0.8.42): the relay's connections from before are
+        // dropped before the page asks afresh. Kept over a sleep they can hang
+        // rather than fail, and the page with them. (And the relay listening,
+        // should it have stopped.)
+        if (relayedFor != null) PageRelay.start(this)
+        if (leftAt != 0L && SystemClock.elapsedRealtime() - leftAt >= AWAY_DROP_MS) PageRelay.dropAll()
+        leftAt = 0L
         // The server may have been changed from the connect screen — or it
         // couldn't be reached last time (back from the offline screen): try again.
-        if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
+        // Or the page was put up afresh while the app was behind others.
+        if (loadWhenBack) { loadWhenBack = false; load() }
+        else if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
         Away.recheck(this)
         // A page that offers the app's updates with the server's does it; an older
         // one doesn't, and the app offers itself. (Given the page a moment to say.)
         web.postDelayed({ if (!AppBridge.pageOffersUpdates && !isFinishing && !Store.offlineMode(this)) AppUpdate.check(this) }, 8000)
         web.removeCallbacks(liveWatch)
         web.postDelayed(liveWatch, 15_000)
+        pageWatch.reset()
+        web.removeCallbacks(pageCheck)
+        web.postDelayed(pageCheck, 3_000)
         // Back from the Downloads screen (or anywhere): the page catches up.
         tellPageDownloadsChanged()
         // Files added to or taken from the phone's music folder meanwhile: the
@@ -416,7 +538,9 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         // Only while it's on screen.
-        if (::web.isInitialized) web.removeCallbacks(liveWatch)
+        onScreen = false
+        leftAt = SystemClock.elapsedRealtime()
+        if (::web.isInitialized) { web.removeCallbacks(liveWatch); web.removeCallbacks(pageCheck) }
         LocalMusic.foreground(this, false)
         super.onPause()
     }
@@ -524,6 +648,7 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     if (isFinishing) return@runOnUiThread
                     liveFailures = if (ok) 0 else liveFailures + 1
+                    if (ok) serverOkAt = SystemClock.elapsedRealtime()
                     if (liveFailures >= 2 && !offline && loadedBase == page) {
                         liveFailures = 0
                         Away.recheck(this@MainActivity)
@@ -709,6 +834,7 @@ class MainActivity : Activity() {
 
     private inner class Client : WebViewClient() {
         override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+            if (view === web) { pageGen++; pageReady = false }
             // The server sends a signed-out page to /login; the app signs in natively instead.
             val base = loadedBase
             if (base != null && url.startsWith("$base/login")) {
@@ -718,6 +844,7 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            if (view === web) pageReady = true
             if (!loadFailed) offlineShown = false
             if (!loadFailed && !offline) pageLoaded = true
             // From the server: keep the app's copy of the page up to date.
@@ -744,6 +871,21 @@ class MainActivity : Activity() {
                 startActivity(Intent(this@MainActivity, DownloadsActivity::class.java)
                     .putExtra(DownloadsActivity.EXTRA_OFFLINE, true))
             }
+        }
+
+        /**
+         * The page's renderer has gone (v0.8.42): it crashed, Android ended it
+         * for memory while the app was behind others, or the app ended it
+         * (the page had stopped). Unhandled, the WebView takes the whole app
+         * with it, the music playing on the phone too; now the page is put
+         * up again in a new WebView.
+         */
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            if (view !== web) { runCatching { root.removeView(view); view.destroy() }; return true }
+            Log.w(TAG, "the page's renderer has gone (crashed: ${detail.didCrash()})")
+            if (detail.didCrash()) CrashLog.keepPageNote(this@MainActivity, "The page's renderer crashed.\n\n${whereNote()}")
+            rebuildPage()
+            return true
         }
 
         /** Offline, every request to the server is answered by the app; the
