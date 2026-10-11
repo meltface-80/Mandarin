@@ -254,15 +254,24 @@ internal sealed class Taste(string? deezerBase, Action<string> log)
     }
 
     private Task? smartBuilding;
+    /* Made again while they were being made (v0.8.42): made again once that build ends. */
+    private bool smartAgain;
     public bool SmartBuilding { get { lock (gate) return smartBuilding != null; } }
 
-    /* Today's picks made, unless they are (or forced: made again). */
+    /*
+     * Today's picks made, unless they are (or forced: made again). Made again
+     * while a build is under way, they are made once more when it ends: that
+     * build may have read the plays from before, and before v0.8.42 the ask
+     * was dropped (Make again did nothing; the Smart Picks test timed out on
+     * a slow Mac, its rebuild landing on the build after the scan).
+     */
     public void Kick(Snapshot s, bool force)
     {
         var (enabled, _) = SmartSettings();
         lock (gate)
         {
-            if (!Js.Truthy(enabled) || smartBuilding != null || s.Count == 0) return;
+            if (!Js.Truthy(enabled) || s.Count == 0) return;
+            if (smartBuilding != null) { if (force) smartAgain = true; return; }
             var day = DayKey();
             if (!force && ReadPicks(day).Count > 0) return;
             var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -273,8 +282,14 @@ internal sealed class Taste(string? deezerBase, Action<string> log)
                 catch (Exception e) { log($"[smart] {e.Message}"); }
                 finally
                 {
-                    lock (gate) smartBuilding = null;
+                    bool again;
+                    lock (gate) { smartBuilding = null; again = smartAgain; smartAgain = false; }
                     done.SetResult();
+                    if (again)
+                    {
+                        try { if (await Library.CurrentCopy() is { } now) Kick(now, true); }
+                        catch (Exception e) { log($"[smart] {e.Message}"); }
+                    }
                 }
             });
         }
