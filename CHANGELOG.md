@@ -5,6 +5,45 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.42
+The Android app no longer needs swiping away and opening again when its screen goes stale and stops
+answering taps: it watches the page, as it already watched its own screen thread, and puts it right
+itself.
+
+- **The page watched.** While the app is on screen it asks the page every 10 seconds how it is
+  (`window.__musicdPageCheck`, new in the page):
+  - **no answer twice in a row** (the page's script has stopped), or the WebView saying the page
+    hasn't handled a tap for over 10 seconds: the page's renderer is ended and the page put up
+    again in a new WebView, which is what swiping the app away and opening it again did;
+  - **asking the server for 45 seconds with no answer at all, and still asking**, while the app
+    reaches the server itself: the page's connections are stuck. They're dropped (the page's next
+    asks open new ones), and if it still has no answer 10 seconds on, the page is loaded again.
+  - At most one reload or new WebView every two minutes. What was done is kept, as a freeze is,
+    and the next start offers it to share ("Mandarin's page stopped last time").
+  - The rules are `PageWatch` in the app's core (`android/core`), with its tests.
+- **The page's renderer gone** (crashed, or ended by Android for memory while the app was behind
+  others): the page is put up again in a new WebView, loaded when the app is next on screen.
+  Before, the WebView took the whole app with it, the music playing on the phone too.
+- **Back after half a minute or more away**, the relay's connections from before are dropped before
+  the page asks afresh: kept over a sleep, they could hang rather than fail.
+- **The relay** (`PageRelay`): a connection it can't take (no thread or file handle to spare just
+  then) is closed rather than ending the relay; if the relay does stop, it closes its port, and the
+  app starts it again when it's next on screen. Before, a relay that had stopped kept the port
+  open, and every request the page made was taken and never answered.
+- **Smart Picks' Make again, asked while the picks are being made, is no longer dropped** (the C#
+  server's, `Extras/Taste.cs`): they're made once more when that build ends, from the plays as they
+  are then. It's what turned main's Mac run red after v0.8.41: the Smart Picks test's Make again
+  landed on the build that follows the library scan, which had read the plays from before.
+  `test/smart-picks.test.js` now holds a build on a slow Deezer (`test/fake-deezer.js`'s `hold`)
+  and asks again meanwhile.
+- **Tests:** `test/stale-page.test.js`, in a browser: the page says how long it has been asking
+  with no answer, an answer from the server ends it, the next ask starts it again, and coming back
+  starts afresh. `PageWatchTest` (JVM): a page that answers is left alone; a silent one is put up
+  again on the second miss; stuck connections are dropped, then the page reloaded; nothing when
+  the server can't be reached either (that's an outage, which the app's own copy of the page
+  covers), when the page has stopped asking, or when it's hidden; the two-minute spacing.
+- The Android app for this version is 0.8.42 (version code 242).
+
 ## v0.8.41
 Albums found by the identification scan at **85 % alike or better are now applied** (it was 95 %),
 as the owner asked: going through about 190 proposals, most of the 85–94 % ones were right, held
