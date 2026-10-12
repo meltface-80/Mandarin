@@ -123,6 +123,15 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   hand-over carries a test's own device list (`local_devices`), so `test/local-output.test.js`'s
   end-to-end half passes through C# with a `file:` device played by the engine; the Node-alone
   run is unchanged.
+- **What was left, and the Node hub idle** (part 5): the wall display's content takes the zone's
+  track from the hub here (`/api/display/content`; `POST /internal/playback/now` is no longer
+  asked — it stays, with `/internal/devices/changed` and `/internal/playback/play`, for an older
+  C# server). With it nothing of playback is the Node server's where this server holds the job:
+  its hub never starts, its device scans never run, and it answers nothing a page or a speaker
+  asks of playback. The device list and its routes came with part 3, the rooms' part of
+  `/api/status` and `/api/health` with part 2. `test/housekeeping-csharp.test.js` holds
+  `/api/status` to the Node server's own answer with the rooms' part set aside (the Node hub
+  being idle, it counts none) and the display's content to the hub's track.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

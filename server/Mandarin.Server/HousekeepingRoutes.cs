@@ -234,8 +234,14 @@ internal static partial class Library
         bool on;
         using (var c = Db.Open()) on = Db.Setting(c, "displayEnabled") is { } v ? Js.Truthy(v) : true;
         if (!on) return await JsError(ctx, 403, "Wall display is turned off in Settings");
-        // The zone's track: the Node server's, which plays it.
-        var now = await ToNode("/internal/playback/now", new JsonObject { ["zone"] = Q(ctx, "zone") ?? "" });
+        // The zone's track: the hub's own once this server holds playback (v0.8.49); else the Node server's, which plays it.
+        JsonObject? now;
+        if (Playback.Hub.Current is { } hub)
+        {
+            var zs = hub.Zone(Q(ctx, "zone") ?? "")?.State;
+            now = new JsonObject { ["state"] = zs == null ? null : new JsonObject { ["title"] = zs.Title, ["trackId"] = zs.TrackId, ["artist"] = zs.Artist, ["album"] = zs.Album } };
+        }
+        else now = await ToNode("/internal/playback/now", new JsonObject { ["zone"] = Q(ctx, "zone") ?? "" });
         if (now == null) return false;
         if (now["state"] is not JsonObject st || (!Js.Truthy(st["title"]) && !Js.Truthy(st["trackId"])))
             return await SendJs(ctx, Jv.Obj(("artistPhotos", new List<object?>()), ("review", null), ("video", null)));

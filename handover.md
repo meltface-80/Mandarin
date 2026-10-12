@@ -76,10 +76,12 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    devices on the server through Mandarin's audio engine, with ALSA's list and the engine's
    download; `test/playback-csharp.test.js` holds parts 1 and 2 to a Node server alone, the
    speakers' command logs included; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`
-   and `test/local-output.test.js` hold parts 3 and 4). Part 5 (what is left: the wall display's
-   track from the hub, the Node hub left idle) is still to come. The ffmpeg sink for a Mac's sound
-   devices is not ported, as the spec says: on a Mac a `LOCAL_` device is refused in words by the
-   C# hub until stage 7 decides.
+   and `test/local-output.test.js` hold parts 3 and 4). **Part 5 too** (the wall display's track
+   from the hub; the Node hub idle by the hand-over alone): the five parts are built. What is
+   left of the stage is the whole suite both ways, the pull request into `migration`, the review
+   and **the owner trying it on their own household** — only then the merge. The ffmpeg sink for
+   a Mac's sound devices is not ported, as the spec says: on a Mac a `LOCAL_` device is refused
+   in words by the C# hub until stage 7 decides.
 3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
    the launcher and in-app updates in C#, the tests driving the C# binary over HTTP (those that
    reach into `ctx.*` rewritten; CI's Node-alone run goes), Macs on C# alone, the Node copies

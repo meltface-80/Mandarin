@@ -915,6 +915,14 @@ here from this part on, so `test/sonos-restart.test.js` passes through C#.
 - **Tests:** `test/audio-devices.test.js`, `test/devices-csharp.test.js` (what was "the Node server's
   own effects" now the C# server's own), `test/housekeeping-csharp.test.js` and
   `test/pages-csharp.test.js`'s health through C#.
+- **As built** (v0.8.49): most of this part came earlier — the device list, its routes and
+  `PATCH` whole with part 3, the rooms' part of `/api/status` and `/api/health` and a speaker's
+  address for a cover with part 2, the sound devices' `local` counts with part 4. Left to this
+  part: `/api/display/content`'s track from the hub (`HousekeepingRoutes.cs`), and
+  `test/housekeeping-csharp.test.js` changed to hold `/api/status` to the Node server's answer with
+  the rooms' part set aside (its hub idle, it counts none) and the display's content to the hub's
+  track. The Node hub is idle by the hand-over alone (`lib/server/playback-handover.js`): nothing
+  more was needed. The three internal routes stay for an older C# server, as planned.
 
 **Then** the whole suite both ways, the version 0.8.49 everywhere, `server/README.md`'s table, the
 CHANGELOG, this file and `handover.md`, the pull request into `migration` with the results, the
@@ -928,7 +936,7 @@ above): the stage is not merged on CI alone.
 - [x] Part 2: Sonos
 - [x] Part 3: the renderers (with the device list and its routes from part 5)
 - [x] Part 4: sound devices on the server
-- [ ] Part 5: the device list, the rooms, the Node hub idle
+- [x] Part 5: the device list, the rooms, the Node hub idle
 - [ ] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date
 - [ ] Tried on the owner's household
 
