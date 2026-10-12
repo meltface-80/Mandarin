@@ -12052,7 +12052,8 @@ window.__afterStart = (fn) => {
     while (pollTimer === ctl) {
       const zid = selectedZoneId();
       if (!zid) { renderZone(null); await new Promise(r => setTimeout(r, 1500)); continue; }
-      const wait = zid === stateZone && stateRev >= 0 ? "&wait_for=" + stateRev + "&timeout=10000" : "";
+      const since = zid === stateZone && stateRev >= 0 ? stateRev : -1;
+      const wait = since >= 0 ? "&wait_for=" + since + "&timeout=10000" : "";
       // A connection that has silently died (the phone left its Wi-Fi with
       // mobile data up: the relayed socket to the home address hangs rather
       // than fails) would hold this ask for minutes and the bar with it
@@ -12066,6 +12067,13 @@ window.__afterStart = (fn) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json();
         if (pollTimer !== ctl) return;
+        // A counter below the one waited on (v0.8.46): the server started
+        // again since (an update, a restore), or the app's own copy answered
+        // while the server couldn't be reached. Its counter is the one now.
+        // Before, every answer was taken for an old one and dropped, and the
+        // screen kept the track from before the restart while what was
+        // tapped played, until the app was closed and opened again.
+        if (since >= 0 && zid === stateZone && typeof j.revision === "number" && j.revision < since) stateRev = -1;
         // Not newer (a one-off fetch got there first, or the room changed):
         // a breath before asking again, so a mismatch can never spin.
         if (!applyState(zid, j)) await new Promise(r => setTimeout(r, 250));

@@ -82,6 +82,31 @@ tracks, as for an album of your own. Each is held to the Node server's own answe
   C# where this version moved them; "services" in the v0.8.19 test's job list).
 - The Android app for this version is 0.8.47 (version code 247). Nothing in it changed.
 
+## v0.8.46
+**Now playing follows the room again after the server has started again.** Reported on the Android
+app: left for another app, back, a track further down the queue played; it played, but Now playing
+kept the track from before (paused, it paused), and only closing the app and opening it again put the
+screen right.
+
+- Why: every answer the page polls for carries the server's change counter, and the page drops one
+  older than the last it painted (a slow one-off answer landing after a newer one). The counter starts
+  again at 1 whenever the server does (an update, a restore, the C# server starting it again), so a
+  page kept open across that took every answer after it for an old one. The screen stayed as it was,
+  and the page asked about four times a second, the server answering at once each time.
+- Now a counter below the one the page asked to wait on is taken for what it is: the server's counter
+  now (or the app's own copy's, when it answered while the server couldn't be reached). The page shows
+  the room as it is and goes back to waiting on it (`public/app.js`). Nothing on the server changed.
+- **Tests:** `test/now-playing-restart.test.js`, in a browser with a stand-in Sonos room: Now playing
+  shows track 1; the server's counter starts again; Play from here on track 3: Now playing shows it,
+  and the page waits on the server again rather than asking over and over. Without the fix it stays on
+  track 1.
+- The Android app for this version is 0.8.46 (version code 246). Nothing in it changed.
+- **The app for the migration branch** (CLAUDE.md section 4): each push to `migration` that changes
+  the app or the page puts its APK on the rolling "test-android" pre-release, at one fixed address
+  (`releases/download/test-android/mandarin-android-test.apk`), as test branches' apps already were.
+  The file there is replaced; no tag or release is made, and the app's own update check still reads
+  main's, so it's offered to nobody who didn't fetch it.
+
 ## v0.8.45
 Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
 favourites' watch and the service playlists are the C# server's**, handed over as the job "import".
