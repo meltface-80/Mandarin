@@ -61,11 +61,12 @@ internal static class Images
         return Playback.Signing.Gate(secret, raw) == true;
     }
 
-    /* auth.js speakerIps(): a request from one of the Node server's speakers' own addresses (its state, "speakers"), as its gate lets it through. */
+    /* auth.js speakerIps(): a request from one of the speakers' own addresses — the hub's once this server holds playback (v0.8.49), else the Node server's (its state, "speakers"). */
     private static async Task<bool> FromSpeaker(HttpContext ctx)
     {
-        if (await Library.CurrentState() is not var (_, st) || st.Said["speakers"] is not System.Text.Json.Nodes.JsonArray speakers) return false;
         var ip = Auth.ClientIp(ctx);
+        if (Playback.Hub.Current is { } hub) return hub.SpeakerHosts.Contains(ip);
+        if (await Library.CurrentState() is not var (_, st) || st.Said["speakers"] is not System.Text.Json.Nodes.JsonArray speakers) return false;
         return speakers.Any(s => s is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var h) && h == ip);
     }
 

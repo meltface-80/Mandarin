@@ -30,7 +30,7 @@ internal static partial class Jobs
         {
             var p = ctx.Request.Path.Value;
             if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/import" or "/internal/jobs/watch"
-                or "/internal/services/played" or "/internal/cpu/dsp" or "/internal/tailscale")) { await next(); return; }
+                or "/internal/services/played" or "/internal/cpu/dsp" or "/internal/tailscale" or "/internal/playback/revision")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
@@ -44,6 +44,18 @@ internal static partial class Jobs
             if (p == "/internal/tailscale")
             {
                 await ctx.Response.WriteAsync(Tailscale is { } t0 && Holds("tailscale") ? Tags.Js.Json(t0.Status()) ?? "{}" : "{\"handed\":false}");
+                return;
+            }
+            if (p == "/internal/playback/revision")
+            {
+                // The hub's change counter set (the tests: a server up a while, or started again), then bumped as a change would.
+                if (Playback.Hub.Current is not { } hub) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
+                JsonObject? rb = null;
+                try { rb = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
+                catch (System.Text.Json.JsonException) { /* no body: a bump alone */ }
+                if (rb?["revision"] is JsonValue rv && rv.TryGetValue<double>(out var rev)) lock (hub.Gate) hub.Revision = (long)rev;
+                hub.Bump();
+                await ctx.Response.WriteAsync(new JsonObject { ["ok"] = true, ["revision"] = hub.Revision }.ToJsonString());
                 return;
             }
             if (p == "/internal/jobs/after-scan")

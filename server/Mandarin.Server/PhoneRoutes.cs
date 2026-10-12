@@ -23,7 +23,7 @@ internal static partial class PlaybackRoutes
     }
 
     /* The phone's DSP setting, the register's copy or the default until the phone is in it (devices.js dspFor). */
-    private static JsObj DspFor(SqliteConnection c, string id)
+    internal static JsObj DspFor(SqliteConnection c, string id)
     {
         var r = Register.Get(c, id);
         if (r == null || r.Kind == "sonos") return Biquad.Normalise(null);
@@ -76,6 +76,8 @@ internal static partial class PlaybackRoutes
                 var hello = phones.Hello(dev.Id, name);
                 var uid = Js.Str(hello["zone_id"]);
                 phones.SetAway(uid, req.Away);
+                // The register learns of the phone now, not at the sync's next tick: its page in Audio Devices is there at once.
+                req.Hub.SyncKnown();
                 // A DSP setting changed on the phone while it couldn't reach the server: the phone's is the newer, so it is kept here.
                 if (req.Body["dsp"] is JsonObject sent) PhoneDsp(req, uid, name, sent);
                 var dsp = DspFor(req.C, uid);

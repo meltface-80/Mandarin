@@ -45,6 +45,37 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   the suites that drive the fake household (`test/phone.test.js` among them) wait for part 2.
   Split for the length gate: `Jobs.Internal.cs` (the internal routes) out of `Jobs.cs`,
   `ServiceRoutes.Play.cs` out of `ServiceRoutes.cs`.
+- **Sonos** (part 2): the player (`lib/sonos/device.js` and the sending half of `soap.js`: a
+  keep-alive pool of four, the SOAPACTION header, the ten-second timeout, one retry on a
+  connection the player closed, every failure one UPnPError), discovery and the household
+  (`topology.js`: M-SEARCH from every LAN address, the seeds and the players that answered last
+  time asked first, the household from any one player — the first known alone, then the rest at
+  once — the models fetched, the signature, `sonosKnownHosts` kept as the Node server kept it),
+  and the Sonos half of the hub (`zones.js`: the three loops — discovery every minute, the
+  household every thirty seconds, the poll every second with the watched, playing and
+  every-fifth rule — the group read into the zone's state, the volumes, the queue read from the
+  speaker and kept until its UpdateID moves, enqueue in the Node server's exact order, sixteen
+  tracks a round trip and one at a time on older firmware, each command read back promptly,
+  `playFromHere` read back before answering, every queue edit, the play modes, volume and mute,
+  pause-all, grouping and ungrouping, moving music between any two kinds, a room's queue planned
+  again for its levelling) — in C#. With them the rooms' part of `/api/status`, `/api/health`'s
+  rooms and a speaker's own address for a cover (`Images.cs`) are the hub's, and Sonos rooms and
+  phones go into the device register from the hub (`devices.js` `syncKnown`, every ten seconds
+  and at a phone's hello), so a phone's page in Audio Devices is there; a device write's effects
+  (a phone told its DSP or levelling, a room's queue planned again) are the hub's too
+  (`DeviceRoutes.cs`). `Playback/SonosDevice.cs`, `SonosTopology.cs`, `Hub.Sonos.cs`,
+  `Hub.SonosCommands.cs`, `Hub.Register.cs` (new); `POST /internal/playback/revision` for the
+  tests (the hub's change counter set). Tests: `test/playback-csharp.test.js` extended — a fake
+  household for each server, and after each scenario (played to, every transport command, the
+  queue added to, moved, played from, cut and cleared, the play modes, volume and mute, a
+  stopped room, pause-all, grouping and ungrouping, music moved from the phone to a room and back)
+  the commands each speaker was sent compared action for action, as well as every answer;
+  `test/e2e.test.js`, `test/queue-screen.test.js`, `test/play-next.test.js`,
+  `test/sonos-restart.test.js`, `test/now-playing-restart.test.js` (its counter set through the
+  internal route where C# holds playback), `test/phone.test.js` whole, `test/dsp.test.js`,
+  `test/stream.test.js` and `test/playlists.test.js` pass through C#. The suites that bring a
+  renderer (`queue-stopped`, `audio-devices`, `devices-csharp`, `renderers-csharp`,
+  `local-output`) wait for parts 3 and 4.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

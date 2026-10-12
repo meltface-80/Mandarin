@@ -805,8 +805,15 @@ answers null for both, so the routes ask `ContainsKey` first (`PlaybackRoutes.Nu
   compared), the kept queue's row the same, the `plays` row the same after a play, the long poll's
   commands the same in order. `front.test.js`'s pins.
 
-**Part 2: Sonos** (`Playback/SonosDevice.cs`, `Playback/SonosTopology.cs`, `Playback/SonosZones.cs`,
-`Playback/SonosQueue.cs`).
+**Part 2: Sonos** (`Playback/SonosDevice.cs`, `Playback/SonosTopology.cs`, `Playback/Hub.Sonos.cs`,
+`Playback/Hub.SonosCommands.cs`; `Playback/Hub.Register.cs` for the register's sync, brought
+forward from part 5 because the phone's page in Audio Devices needs the row). Built in v0.8.49:
+the fake household drives both servers in `test/playback-csharp.test.js`, each speaker's command
+log compared action for action. Three things worth knowing: a room that isn't there answers
+`/api/queue` with an empty queue, not a refusal (zones.js `queue()`); two "playpause" in a row
+both pause, because the second comes before the room has been read again — kept, as there; and
+the rooms' part of `/api/status`, `/api/health` and `Images.cs`'s speaker addresses read the hub
+here from this part on, so `test/sonos-restart.test.js` passes through C#.
 - **`SonosDevice`** (`device.js`, `soap.js`'s `call` and `httpGet`): a keep-alive pool of four, the
   SOAPACTION header, the envelope as `Soap.cs` builds it and the fault as it reads it, the ten-second
   timeout, one retry on a connection the player closed, `UPnPError`'s words.
@@ -889,7 +896,7 @@ above): the stage is not merged on CI alone.
 
 - [x] Plan written; version 0.8.49
 - [x] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
-- [ ] Part 2: Sonos
+- [x] Part 2: Sonos
 - [ ] Part 3: the renderers
 - [ ] Part 4: sound devices on the server
 - [ ] Part 5: the device list, the rooms, the Node hub idle

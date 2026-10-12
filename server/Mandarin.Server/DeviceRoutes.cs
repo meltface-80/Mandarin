@@ -206,9 +206,16 @@ internal static partial class Library
         return await SendJs(ctx, answer, said.Value.Status);
     }
 
-    /* The Node server told (index.js /internal/devices/changed), and the device as its page shows it. */
-    private static Task<(int Status, string Text)?> DevicesChanged(string id, List<string> changed) =>
-        AskNode("/internal/devices/changed", TJs.Json(Jv.Obj(("id", id), ("changed", changed.Select(x => (object?)x).ToList()))) ?? "{}");
+    /*
+     * What each write did: by the hub here once this server holds playback
+     * (v0.8.49, stage 6), and the Node server told (index.js /internal/devices/changed)
+     * — for the device as its page shows it, until the device list moves (part 5).
+     */
+    private static async Task<(int Status, string Text)?> DevicesChanged(string id, List<string> changed)
+    {
+        if (Playback.Hub.Current is { } hub) await hub.DeviceChanged(id, changed);
+        return await AskNode("/internal/devices/changed", TJs.Json(Jv.Obj(("id", id), ("changed", changed.Select(x => (object?)x).ToList()))) ?? "{}");
+    }
 
     // ------------------------------------------------------------------ registry.js
 

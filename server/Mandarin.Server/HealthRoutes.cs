@@ -25,7 +25,8 @@ internal static partial class Library
             ["ok"] = true,
             ["version"] = Front.Version,
             ["albums"] = s.Count,
-            ["rooms"] = st.Said["rooms"] is JsonValue r && r.TryGetValue<double>(out var rooms) ? rooms : 0,
+            // The rooms found: the hub's own once this server holds playback (v0.8.49), else as the Node server says them.
+            ["rooms"] = Playback.Hub.Current is { } hub ? hub.RoomCount : st.Said["rooms"] is JsonValue r && r.TryGetValue<double>(out var rooms) ? rooms : 0,
             ["ffmpeg"] = Transcoder.FfOk,
             ["soxr"] = Transcoder.Soxr,
             ["transcode_cache"] = new JsonObject { ["files"] = files, ["bytes"] = bytes, ["running"] = running, ["queued"] = queued },

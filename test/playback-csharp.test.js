@@ -8,8 +8,10 @@
  * each with a fresh copy of the fixture library. Every answer and refusal is
  * compared as JSON, with what can't be the same taken out (the phone's zone
  * id, the row ids, the signed addresses, the clock), and every answer here
- * is checked to be the C# server's. The phone is the one player that tests
- * the hub end to end without a speaker: Sonos rooms (part 2) and renderers
+ * is checked to be the C# server's. The phone first (part 1), the one player
+ * that tests the hub end to end without a speaker; then the Sonos rooms (part
+ * 2): a fake household for each server, and after each scenario the commands
+ * each speaker was sent, in order, compared as well as the answers. Renderers
  * (part 3) have their own suites. Skipped unless the suite goes through the
  * C# server (MANDARIN_FRONT=1).
  */
@@ -19,6 +21,7 @@ const assert = require("node:assert");
 const path = require("path");
 const { spawn } = require("child_process");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
+const { FakeHousehold } = require("./fake-sonos");
 const { signIn, post } = require("./auth-helper");
 
 const skip = (process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)")
@@ -36,10 +39,10 @@ async function until(fn, ms = 10000, what = "") {
 }
 
 /* A Node server alone, in a child: no C# server in front, so its playback is its own hub. */
-function nodeAlone(port, lib) {
+function nodeAlone(port, lib, sonosHost) {
   const env = Object.assign({}, process.env, {
     PORT: String(port), MUSIC_DIR: lib.music, DATA_DIR: lib.data, SERVER_IP: "127.0.0.1",
-    SONOS_HOSTS: "", UPNP_DISCOVERY: "0", IDENTIFY: "0", LOCAL_AUDIO: "0", MANDARIN_FRONT_RUNS: ""
+    SONOS_HOSTS: sonosHost, UPNP_DISCOVERY: "0", IDENTIFY: "0", LOCAL_AUDIO: "0", MANDARIN_FRONT_RUNS: ""
   });
   for (const k of ["MANDARIN_FRONT", "MANDARIN_SERVER_SCAN", "MANDARIN_SERVER_DB", "MANDARIN_SERVER_BIN", "MANDARIN_LOOPBACK_ONLY", "TAG_READER", "INTERNAL_PORT"]) delete env[k];
   const proc = spawn(process.execPath, ["index.js"], { cwd: ROOT, env, stdio: ["ignore", "ignore", "inherit"] });
@@ -81,15 +84,23 @@ function norm(v, S) {
   }));
 }
 
-test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node server's own", { skip, timeout: 300000 }, async (t) => {
+test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, every answer and every command the Node server's own", { skip, timeout: 300000 }, async (t) => {
   // Two servers, two libraries: this suite's behind the C# server, and a Node server alone.
   const libF = makeLibrary(), libN = makeLibrary();
   const PORT = ports.port(), PORT2 = ports.port();
   const { createServer } = require("../index.js");
-  const options = { port: PORT, musicDir: libF.music, dataDir: libF.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false };
+  // A fake household for each (part 2): the same rooms, on loopback addresses of their own.
+  const houseF = new FakeHousehold();
+  const houseN = new FakeHousehold([
+    { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: ports.host(2) },
+    { uid: "RINCON_STUDY001400", name: "Study", ip: ports.host(3), model: "Sonos Era 100" }
+  ]);
+  await houseF.start();
+  await houseN.start();
+  const options = { port: PORT, musicDir: libF.music, dataDir: libF.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false };
   let srv = createServer(options);
   let ctx = await srv.start();
-  const node = nodeAlone(PORT2, libN);
+  const node = nodeAlone(PORT2, libN, ports.host(2));
   const F = { name: "C#", base: "http://127.0.0.1:" + PORT, zone: "", tracks: new Map(), albums: new Map(), covers: new Map() };
   const N = { name: "Node", base: "http://127.0.0.1:" + PORT2, zone: "", tracks: new Map(), albums: new Map(), covers: new Map() };
   const both = [F, N];
@@ -149,6 +160,11 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
       S.album = (title) => albums.find(a => a.title === title).offset;
     }
     assert.ok(F.tracks.size >= 6 && N.tracks.size >= 6, "the tracks' ids known, by their titles");
+    // Both households read, each room with its model, before anything is compared.
+    await Promise.all(both.map(S => until(async () => {
+      const zones = (await call(S, S.other, "GET", "/api/zones")).json.zones.filter(z => !z.is_phone);
+      return zones.length === 2 && zones.every(z => z.outputs.every(o => o.model && o.volume.value != null)) && zones;
+    }, 30000, S.name + "'s rooms")));
 
     await t.test("hello: a zone of its own; the Node server behind the C# one never starts its hub", async () => {
       assert.equal((await call(F, F.other, "POST", "/api/phone/hello", { name: "iPad" })).status, 403, "only the Android app");
@@ -170,8 +186,8 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
       await same("phone", "GET", "/api/shortcut/zones");
       await zoneState("other");
       const [f] = await same("other", "GET", "/api/zones");
-      assert.deepEqual(f.json.zones.map(z => [z.display_name, z.is_phone]), [["Pixel 8", true]]);
-      assert.deepEqual((await same("phone", "GET", "/api/zones"))[0].json.zones.map(z => z.display_name), ["This phone"]);
+      assert.deepEqual(f.json.zones.filter(z => z.is_phone).map(z => [z.display_name, z.is_phone]), [["Pixel 8", true]]);
+      assert.deepEqual((await same("phone", "GET", "/api/zones"))[0].json.zones.filter(z => z.is_phone).map(z => z.display_name), ["This phone"]);
     });
 
     await t.test("played to, controlled: the app's commands, in order", async () => {
@@ -330,7 +346,7 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
       const TAILNET = { "X-Forwarded-For": "100.101.102.103" };
       await same("phone", "GET", () => `/api/phone/commands?after=${seq}`, null, { headers: TAILNET });
       const [f] = await same("other", "GET", "/api/zones");
-      assert.deepEqual(f.json.zones, [], "away: hidden");
+      assert.ok(!f.json.zones.some(z => z.is_phone), "away: hidden");
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: S.zone, command: "play" }));
       await same("other", "GET", S => "/api/zone-state?zone=" + S.zone);
       await same("other", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "play_now" }));
@@ -346,7 +362,7 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
       seq = lf.seq;
       // Home again.
       await same("phone", "GET", () => `/api/phone/commands?after=${seq}`);
-      assert.equal((await same("other", "GET", "/api/zones"))[0].json.zones.length, 1, "home: listed again");
+      assert.equal((await same("other", "GET", "/api/zones"))[0].json.zones.filter(z => z.is_phone).length, 1, "home: listed again");
       // The queue the next steps expect: the same album on both again.
       await same("phone", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "play_now" }));
       await same("phone", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "queue" }));
@@ -403,6 +419,132 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
       assert.deepEqual([kept.kind, kept.name, kept.index, kept.state], ["phone", "Pixel 8", 1, "paused"]);
     });
 
+    // The rooms (part 2): the same requests, the same answers, and the same commands to the speaker, action for action.
+    const WRITES = new Set(["SetAVTransportURI", "Seek", "Play", "Pause", "Stop", "Next", "Previous", "RemoveAllTracksFromQueue", "AddMultipleURIsToQueue",
+      "AddURIToQueue", "ReorderTracksInQueue", "RemoveTrackFromQueue", "SetPlayMode", "SetVolume", "SetMute", "BecomeCoordinatorOfStandaloneGroup"]);
+    const writes = (room) => room.log.filter(a => WRITES.has(a));
+    const sameLog = (name, expected) => {
+      const f = writes(houseF.room(name)), n = writes(houseN.room(name));
+      houseF.room(name).log.length = 0; houseN.room(name).log.length = 0;
+      assert.deepEqual(f, n, name + ": the commands to the speaker, in order");
+      if (expected) assert.deepEqual(f, expected, name + ": the commands expected");
+    };
+    const rooms = (S) => ({ kitchen: "RINCON_KITCHEN01400", study: "RINCON_STUDY001400" });
+    const settled = (name, fn) => Promise.all([houseF, houseN].map(h => until(async () => fn(h.room(name)), 10000, name + " to settle")));
+    const roomState = (who = "other") => same(who, "GET", S => "/api/zone-state?zone=" + rooms(S).kitchen);
+    const roomQueue = () => same("other", "GET", S => "/api/queue?zone=" + rooms(S).kitchen);
+
+    await t.test("a Sonos room played to: the speaker told the same things in the same order", async () => {
+      await same("other", "GET", "/api/outputs");
+      for (const h of [houseF, houseN]) for (const r of h.rooms) r.log.length = 0;
+      await same("other", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: rooms(S).kitchen, kind: "play_now" }));
+      await settled("Kitchen", r => r.queue.length === 3 && r.state === "PLAYING");
+      sameLog("Kitchen", ["RemoveAllTracksFromQueue", "AddMultipleURIsToQueue", "SetAVTransportURI", "Seek", "Play", "AddMultipleURIsToQueue"]);
+      await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zone-state?zone=" + rooms(S).kitchen)).json.zone.state === "playing", 10000, S.name + " playing")));
+      await roomState();
+      await roomQueue();
+      await same("other", "GET", S => "/api/album/now-playing?zone=" + rooms(S).kitchen);
+      // Transport.
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "pause" }));
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "play" }));
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "next" }));
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "previous" }));
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "playpause" }));
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "playpause" }));
+      await same("other", "POST", "/api/seek", S => ({ zone_or_output_id: rooms(S).kitchen, how: "absolute", seconds: 2 }));
+      await same("other", "POST", "/api/seek", S => ({ zone_or_output_id: rooms(S).kitchen, how: "relative", seconds: 1 }));
+      // "previous" within the first seconds goes back a track; the second "playpause" comes before the room has been read again, so it pauses again, as it did there.
+      sameLog("Kitchen", ["Pause", "Play", "Next", "Previous", "Pause", "Pause", "Seek", "Seek"]);
+      await settled("Kitchen", r => r.state === "PAUSED_PLAYBACK");
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "play" }));
+      sameLog("Kitchen", ["Play"]);
+      await settled("Kitchen", r => r.state === "PLAYING");
+      await roomState();
+    });
+
+    await t.test("a Sonos room's queue: added to, moved, played from, cut and cleared alike", async () => {
+      await same("other", "POST", "/api/play", S => ({ offset: S.album("Hi Res"), zone_or_output_id: rooms(S).kitchen, kind: "play_next" }));
+      await same("other", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: rooms(S).kitchen, kind: "queue" }));
+      await settled("Kitchen", r => r.queue.length === 8);
+      sameLog("Kitchen", ["AddMultipleURIsToQueue", "AddMultipleURIsToQueue"]);
+      await roomQueue();
+      await same("other", "POST", "/api/play-from-here", S => ({ zone_or_output_id: rooms(S).kitchen, queue_item_id: 4 }));
+      await settled("Kitchen", r => r.track === 4);
+      sameLog("Kitchen", ["Seek", "Play"]);
+      await roomQueue();
+      await same("other", "POST", "/api/queue/move", S => ({ zone_or_output_id: rooms(S).kitchen, queue_item_ids: [7, 6] }));
+      sameLog("Kitchen", ["ReorderTracksInQueue", "ReorderTracksInQueue"]);
+      await roomQueue();
+      await same("other", "POST", "/api/queue/remove", S => ({ zone_or_output_id: rooms(S).kitchen, queue_item_ids: [8, 1] }));
+      sameLog("Kitchen", ["RemoveTrackFromQueue", "RemoveTrackFromQueue"]);
+      await roomQueue();
+      await same("other", "POST", "/api/zone-settings", S => ({ zone_or_output_id: rooms(S).kitchen, shuffle: true, loop: "loop" }));
+      await same("other", "POST", "/api/zone-settings", S => ({ zone_or_output_id: rooms(S).kitchen, loop: "disabled" }));
+      await same("other", "POST", "/api/zone-settings", S => ({ zone_or_output_id: rooms(S).kitchen, shuffle: false }));
+      sameLog("Kitchen", ["SetPlayMode", "SetPlayMode", "SetPlayMode"]);
+      await settled("Kitchen", r => r.playMode === "NORMAL");
+      await same("other", "GET", "/api/zones");
+      // Volume and mute belong to the room.
+      await same("other", "POST", "/api/volume", S => ({ output_id: rooms(S).kitchen, how: "absolute", value: 33 }));
+      await same("other", "POST", "/api/volume", S => ({ output_id: rooms(S).kitchen, how: "relative", value: -3 }));
+      await same("other", "POST", "/api/volume", S => ({ zone_or_output_id: rooms(S).kitchen, mute: true }));
+      await same("other", "POST", "/api/volume", S => ({ output_id: rooms(S).kitchen, mute: false }));
+      sameLog("Kitchen", ["SetVolume", "SetVolume", "SetMute", "SetMute"]);
+      await settled("Kitchen", r => r.volume === 30 && !r.muted);
+      await roomState();
+      // Stopped with music in its queue: what's added joins it, nothing is started; cleared, it is empty.
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "stop" }));
+      await settled("Kitchen", r => r.state === "STOPPED");
+      await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zone-state?zone=" + rooms(S).kitchen)).json.zone.state === "stopped", 10000, S.name + " stopped")));
+      sameLog("Kitchen", ["Stop"]);
+      await same("other", "POST", "/api/play", S => ({ offset: S.album("Hi Res"), zone_or_output_id: rooms(S).kitchen, kind: "queue" }));
+      await settled("Kitchen", r => r.queue.length === 8);
+      sameLog("Kitchen", ["AddMultipleURIsToQueue"]);
+      await same("other", "POST", "/api/queue/clear", S => ({ zone_or_output_id: rooms(S).kitchen }));
+      await settled("Kitchen", r => r.queue.length === 0);
+      sameLog("Kitchen", ["RemoveAllTracksFromQueue"]);
+      await roomQueue();
+      // An empty room queued to: started.
+      await same("other", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: rooms(S).kitchen, kind: "queue" }));
+      await settled("Kitchen", r => r.queue.length === 3 && r.state === "PLAYING");
+      sameLog("Kitchen", ["AddMultipleURIsToQueue", "SetAVTransportURI", "Seek", "Play"]);
+      await same("other", "POST", "/api/pause-all", {});
+      await settled("Kitchen", r => r.state === "PAUSED_PLAYBACK");
+      sameLog("Kitchen", ["Pause"]);
+      await commands(["pause"]);
+    });
+
+    await t.test("grouping and moving music: the rooms joined and freed, the queue carried across", async () => {
+      for (const h of [houseF, houseN]) for (const r of h.rooms) r.log.length = 0;
+      await same("other", "POST", "/api/group-outputs", S => ({ output_ids: [rooms(S).kitchen, rooms(S).study] }));
+      await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zones")).json.zones.some(z => z.display_name === "Kitchen + Study"), 15000, S.name + " grouped")));
+      sameLog("Study", ["SetAVTransportURI"]);
+      await same("other", "GET", "/api/zones");
+      await same("other", "GET", "/api/outputs");
+      await same("other", "POST", "/api/ungroup-outputs", S => ({ output_ids: [rooms(S).study] }));
+      await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zones")).json.zones.filter(z => !z.is_phone).length === 2, 15000, S.name + " ungrouped")));
+      sameLog("Study", ["BecomeCoordinatorOfStandaloneGroup"]);
+      await same("other", "POST", "/api/group-outputs", S => ({ output_ids: [rooms(S).kitchen, S.zone] }));
+      // From the phone to the room and back: the same queue, the same place.
+      await same("phone", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "play_now" }));
+      await commands(["load"]);
+      await report({ index: 1, position: 1, duration: 3, state: "playing", volume: 40 });
+      for (const h of [houseF, houseN]) h.room("Kitchen").log.length = 0;
+      await same("phone", "POST", "/api/transfer-zone", S => ({ from: S.zone, to: rooms(S).kitchen }));
+      await settled("Kitchen", r => r.queue.length === 3 && r.state === "PLAYING" && r.track === 2);
+      sameLog("Kitchen", ["RemoveAllTracksFromQueue", "AddMultipleURIsToQueue", "SetAVTransportURI", "Seek", "Seek", "Play", "AddMultipleURIsToQueue"]);
+      await commands(["stop"]);
+      // Read back (the second track) before it moves again.
+      await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zone-state?zone=" + rooms(S).kitchen)).json.zone.now_playing.line1 === "Song 2", 10000, S.name + " on the second track")));
+      await same("phone", "POST", "/api/transfer-zone", S => ({ from: rooms(S).kitchen, to: S.zone }));
+      const got = await commands(["load"]);
+      assert.deepEqual([got.commands[0].items.length, got.commands[0].index], [3, 1]);
+      await settled("Kitchen", r => r.state === "STOPPED");
+      sameLog("Kitchen", ["Stop"]);
+      await same("phone", "POST", "/api/transfer-zone", S => ({ from: "RINCON_nowhere", to: S.zone }));
+      await report({ index: 1, position: 40, duration: 60, state: "paused", volume: 25 });
+    });
+
     await t.test("the C# server restarted (an update): the phone's queue and place are kept", async () => {
       await report({ index: 2, position: 12, duration: 60, state: "playing", volume: 40 });
       await new Promise(r => setTimeout(r, 600));
@@ -425,5 +567,7 @@ test("v0.8.49 (stage 6, part 1): a phone zone by C#, every answer the Node serve
   } finally {
     await srv.stop();
     await node.stop();
+    await houseF.stop();
+    await houseN.stop();
   }
 });

@@ -57,9 +57,15 @@ test("Now playing follows the room after the server started again", { skip, time
   const room = house.room("Kitchen");
   assert.equal((await api("play", { offset: one.offset, zone_or_output_id: kitchen, kind: "play_now" })).status, 200);
   assert.ok(await until(() => room.queue.length === 3 && room.state === "PLAYING"), "playing");
+  // The server's change counter set by hand: the Node hub's, or the C# hub's where it holds playback (v0.8.49).
+  const counter = async (revision) => {
+    if (ctx.frontRuns && ctx.frontRuns.has("playback")) {
+      const r = await fetch(B + "/internal/playback/revision", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ revision }) });
+      assert.equal(r.status, 200, "the C# hub's counter set");
+    } else { ctx.zones.revision = revision; ctx.zones.bump(); }
+  };
   // A server that has been up a while: its counter well along.
-  ctx.zones.revision = 5000;
-  ctx.zones.bump();
+  await counter(5000);
 
   const b = await Browser.launch({ width: 390, height: 844 });
   t.after(() => b.close());
@@ -70,8 +76,7 @@ test("Now playing follows the room after the server started again", { skip, time
   assert.ok(await shows("Song 1", 20000), "Now playing: " + await page.eval(TITLE));
 
   // The server started again: its counter from 1. Then a track further down the queue, played.
-  ctx.zones.revision = 1;
-  ctx.zones.bump();
+  await counter(1);
   assert.equal((await api("play-from-here", { zone_or_output_id: kitchen, queue_item_id: 3 })).status, 200);
   assert.ok(await shows("Song 3", 15000), "Now playing follows it: " + await page.eval(TITLE));
   // And the page waits on the server again, rather than asking over and over.

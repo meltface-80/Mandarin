@@ -93,6 +93,8 @@ internal sealed partial class Hub
         Current = hub;
         History.Wire(hub);
         hub.RestoreQueues();
+        hub.StartSonos();
+        hub.StartRegister();
         return hub;
     }
 
@@ -102,6 +104,7 @@ internal sealed partial class Hub
         if (hub == null) return;
         Current = null;
         hub.Stopped = true;
+        hub.StopSonos();
         hub.Phones.Stop();
         hub.Store?.Flush(id => hub.SnapshotOf(id));
     }
@@ -201,7 +204,7 @@ internal sealed partial class Hub
             }
         }
         if (changed) Bump();
-        // A Sonos queue kept here whose length changed: read again now (part 2).
+        // A Sonos queue kept here whose length changed (added to here or from the Sonos app): read again now.
         if (prev.QueueLength != next.QueueLength && next.OnQueue && !Phones.IsPhoneId(uid) && !IsUpnp(uid)) QueueChanged(uid);
         if (track) OnTrack?.Invoke(uid, next);
         if (played) OnPlayed?.Invoke(uid, next);
@@ -301,10 +304,10 @@ internal sealed partial class Hub
         return SonosZone(zoneOrOutputId);
     }
 
-    public QueueView Queue(string zoneId)
+    public Task<QueueView> Queue(string zoneId)
     {
-        if (Phones.IsPhoneId(zoneId)) return Phones.Queue(zoneId);
-        if (IsUpnp(zoneId)) return UpnpQueue(zoneId);
+        if (Phones.IsPhoneId(zoneId)) return Task.FromResult(Phones.Queue(zoneId));
+        if (IsUpnp(zoneId)) return Task.FromResult(UpnpQueue(zoneId));
         return SonosQueue(zoneId);
     }
 }

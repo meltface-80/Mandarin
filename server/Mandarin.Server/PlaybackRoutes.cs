@@ -122,7 +122,7 @@ internal static partial class PlaybackRoutes
         return r == null || r.Kind != "phone" || !Tags.Js.StrictEq(r.Settings["shared"], false);
     }
     /* A zone is offered while any of its outputs is switched on. */
-    private static bool Shown(SqliteConnection c, ZoneInfo z) => z.IsPhone || z.Outputs.Any(o => IsEnabled(c, o.OutputId));
+    internal static bool Shown(SqliteConnection c, ZoneInfo z) => z.IsPhone || z.Outputs.Any(o => IsEnabled(c, o.OutputId));
     private static bool Reachable(Req req, string id) => !req.Away && !req.Hub.Phones.IsAway(id) && Shared(req.C, id);
     private static bool Own(Req req, ZoneInfo z) => req.Device?.Id == z.DeviceId;
     private static bool Mine(Req req, ZoneInfo z) => z.IsPhone ? (Own(req, z) || Reachable(req, z.ZoneId)) : !req.Away && Shown(req.C, z);
@@ -250,7 +250,7 @@ internal static partial class PlaybackRoutes
     private static async Task<bool> QueueRoute(Req req)
     {
         var zoneId = Need(req.Q("zone") is { } z ? JsonValue.Create(z) : null, "zone required");
-        var q = req.Hub.Queue(zoneId);
+        var q = await req.Hub.Queue(zoneId);
         var s = await Library.CurrentCopy();
         JsonObject Row(QueueEntry it)
         {

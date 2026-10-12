@@ -571,7 +571,7 @@ test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams
     // Playback is C#'s too since v0.8.49 (stage 6, test/playback-csharp.test.js): the rooms, playing from the library, the queue.
     assert.deepEqual((await by("/api/zones")).slice(0, 2), [200, "C#"]);
     assert.deepEqual(await by("/api/play", { offset: 999999, zone_or_output_id: "x", kind: "play_now" }), [404, "C#", { error: "That album is no longer in the library" }]);
-    assert.deepEqual(await by("/api/queue?zone=x"), [500, "C#", { error: "That room isn't available" }]);
+    assert.deepEqual(await by("/api/queue?zone=x"), [200, "C#", { items: [], history: [] }]);
     // The Node server's part of playing a service album stays for an older C# server, unasked by this one (and never from outside).
     const NODE = "http://127.0.0.1:" + ctx.listeningOn;
     assert.equal((await fetch(NODE + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 403);
