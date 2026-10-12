@@ -117,6 +117,15 @@ Node). The parts as they are built:
   from the disk counted and cleaned; with `TAG_READER=node`, the scans started by the C# server and
   made by the Node server's scanner, the library the same as its own scan makes; `test/front.test.js`
   and `test/scans-csharp.test.js` brought up to date.
+- **A speaker's cover** (part 5, in part). A Sonos speaker fetches a cover by its own address, with
+  no sign-in and no signature; the Node server's gate knows its speakers and lets them through. The
+  C# server now does the same: the speakers' addresses come with the Node server's state, and a
+  cover one asks for is sent by the C# server like any other. `server/Mandarin.Server/Images.cs`;
+  `index.js` (`speakers` with the state). Tests: `test/covers-csharp.test.js`, a cover asked for
+  from a speaker's address and from a stranger's, each answered as the Node server answers it. The
+  pictures in another colour space than sRGB (CMYK, or carrying a profile of their own) still go to
+  the Node server to draw, as before: drawing them the same needs the colour maths libvips does, and
+  how to have that in the C# server is put to the owner (`docs/specs/csharp-migration.md`, part 5).
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47

@@ -10,7 +10,10 @@
  *     (no drawtext: CI's static build, Homebrew's), the Node server's, as
  *     before;
  *   - a picture from elsewhere ("u-" and its address): fetched and drawn;
- *     one that can't be had is a 404, as the Node server answers it.
+ *     one that can't be had is a 404, as the Node server answers it;
+ *   - a speaker asking by its own address (v0.8.48, stage 5 part 5): let
+ *     through and sent by the C# server, as the Node server's gate lets a
+ *     speaker through — their addresses come with its state.
  *
  * Through the C# server only (MANDARIN_FRONT=1): the Node server's own
  * drawing is test/artwork's, and unchanged.
@@ -23,6 +26,7 @@ const path = require("path");
 const http = require("http");
 const { spawnSync } = require("child_process");
 const { makeLibrary, haveFfmpeg, haveDrawtext } = require("./fixtures");
+const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
@@ -62,8 +66,12 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
   const at = (p) => `http://127.0.0.1:${site.address().port}${p}`;
   const keyOf = (url) => "u-" + Buffer.from(url).toString("base64url");
 
+  // A household: its speakers fetch covers by their own addresses.
+  const house = new FakeHousehold();
+  await house.start();
+  t.after(() => house.stop());
   const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const H = { headers: { Authorization: "Bearer " + await signIn(B) } };
@@ -127,5 +135,28 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
       assert.equal(r.status, 404, key);
     }
     assert.equal((await fetch(`${B}/api/image/${keyOf(at("/station.png"))}?size=300`)).status, 401, "signed in only");
+  });
+
+  await t.test("a speaker asking by its own address: let through and sent here, as the Node server's gate lets it through", async () => {
+    // The rooms found, their addresses with the Node server's state.
+    for (let i = 0; i < 300; i++) { if ((await (await fetch(B + "/api/zones", H)).json()).zones.length >= 2) break; await new Promise(r => setTimeout(r, 100)); }
+    const withCover = albums.find(a => a.title === "Album One");
+    const ask = (localAddress, base) => new Promise((resolve, reject) => {
+      const u = new URL(`${base || B}/api/image/${withCover.image_key}?size=300`);
+      http.get({ host: u.hostname, port: u.port, path: u.pathname + u.search, localAddress }, (res) => {
+        const chunks = [];
+        res.on("data", c => chunks.push(c));
+        res.on("end", () => resolve({ status: res.statusCode, by: res.headers["x-mandarin-answered"] || null, type: res.headers["content-type"], body: Buffer.concat(chunks) }));
+      }).on("error", reject);
+    });
+    // No token, no signature: from a speaker's address, sent by the C# server; from any other, the Node server's gate turns it away.
+    const speaker = await ask(ports.host(0));
+    assert.deepEqual([speaker.status, speaker.by, speaker.type], [200, "C#", "image/jpeg"]);
+    assert.equal(dims(speaker.body), "300,300");
+    const stranger = await ask("127.0.0.1");
+    assert.deepEqual([stranger.status, stranger.by], [401, null], "not a speaker: the Node server's refusal");
+    // The Node server's own gate says the same of each.
+    assert.equal((await ask(ports.host(0), "http://127.0.0.1:" + ctx.listeningOn)).status, 200);
+    assert.equal((await ask("127.0.0.1", "http://127.0.0.1:" + ctx.listeningOn)).status, 401);
   });
 });

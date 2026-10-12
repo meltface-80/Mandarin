@@ -586,7 +586,9 @@ function createServer(overrides = {}) {
       csharp_update: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null,
       // For /api/status, answered by the C# server (v0.8.48, HousekeepingRoutes.cs): the rooms' part.
       zone_count: zones.zones().filter(z => !ctx.devices || ctx.devices.zoneShown(z)).length,
-      sonos: { rooms: zones.topology.rooms().length, discovered: zones.discovered, searching: zones.searching, error: zones.topology.lastError || null }
+      sonos: { rooms: zones.topology.rooms().length, discovered: zones.discovered, searching: zones.searching, error: zones.topology.lastError || null },
+      // The speakers' own addresses (auth.js speakerIps): a cover one asks for is sent by the C# server (v0.8.48, Images.cs).
+      speakers: zones.topology.hosts
     });
   });
   // A library scan made here at the C# server's ask (v0.8.48, Scans.cs): where

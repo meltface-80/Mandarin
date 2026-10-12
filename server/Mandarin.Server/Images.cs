@@ -11,9 +11,10 @@
 // differently — is passed to the Node server, which draws and keeps it, and
 // the next ask is answered here.
 //
-// Who may see one: a signed-in device, or an address the Node server signed
-// (a cover handed to a speaker). Anything else is passed on as it came: the
-// Node server knows the speakers, which fetch covers by their own address.
+// Who may see one: a signed-in device, an address the Node server signed (a
+// cover handed to a speaker), or a speaker asking by its own address (v0.8.48:
+// the Node server, which knows its speakers, says their addresses with its
+// state). Anything else is passed on as it came, for the Node server's gate.
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -60,10 +61,19 @@ internal static class Images
         return Playback.Signing.Gate(secret, raw) == true;
     }
 
+    /* auth.js speakerIps(): a request from one of the Node server's speakers' own addresses (its state, "speakers"), as its gate lets it through. */
+    private static async Task<bool> FromSpeaker(HttpContext ctx)
+    {
+        if (await Library.CurrentState() is not var (_, st) || st.Said["speakers"] is not System.Text.Json.Nodes.JsonArray speakers) return false;
+        var ip = Auth.ClientIp(ctx);
+        return speakers.Any(s => s is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var h) && h == ip);
+    }
+
     private static async Task<bool> Answer(HttpContext ctx, string path, string key)
     {
-        using (var c = Db.Open())
-            if (!Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+        bool may;
+        using (var c = Db.Open()) may = Signed(ctx, c) || Auth.DeviceOf(ctx, c) != null;
+        if (!may && !await FromSpeaker(ctx)) return false;   // the Node server's to decide
 
         // A record label's logo, as kept: its address changes with it.
         if (key.StartsWith("label-", StringComparison.Ordinal))

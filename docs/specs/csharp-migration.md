@@ -660,6 +660,18 @@ uncertain piece of the stage, so a stop there costs least.
   the owner (another library, or ffmpeg's colours) and these pictures stay the Node server's.
 - Tests: `test/covers-csharp.test.js` extended: a CMYK JPEG, one with a Display P3 profile, and a
   speaker's own address.
+- **Built in part.** A speaker asking by its own address is the C# server's (`speakers` with the
+  Node server's state; `Images.cs`), tested. **CMYK and colour-profiled pictures are put to the
+  owner** and stay the Node server's for now: holding them to sharp's drawing near enough pixel for
+  pixel means doing what libvips does with lcms2 — the picture's own profile, or libvips's built-in
+  CMYK profile for a JPEG without one, through an ICC transform to sRGB — and a port of that (the
+  matrix profiles are small; the CMYK ones are lookup tables) is days of work with an uncertain
+  match. Three ways, the owner's to choose, before stage 7 can drop Node: (1) link lcms2 into the C#
+  server and carry libvips's CMYK profile with it, the same maths; (2) accept ffmpeg's colours for
+  these pictures (ffmpeg applies no profile; a CMYK JPEG comes out plainly wrong, a Display P3 one a
+  little flat) and draw them here like the rest; (3) a .NET imaging library (ImageSharp does ICC
+  transforms from 3.1) for these pictures alone, held to sharp's by test. Covers like these are
+  rare (a scanned sleeve saved from a design program); nothing else waits on it.
 
 **Also in this stage:** `test/menu.test.js` waits for the side menu to have finished sliding in
 before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before the menu was there).
@@ -674,7 +686,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 - [x] Part 4: Admin (the update, the processor split)
 - [x] Part 1: Audio Devices, the writes
 - [x] Part 2: library housekeeping
-- [ ] Part 5: the covers the Node server still draws
+- [x] Part 5: the covers the Node server still draws (a speaker's own address; CMYK and profiled pictures put to the owner)
 - [ ] `test/menu.test.js` waits for the menu
 - [ ] The whole suite both ways; README, CHANGELOG and this file brought up to date
 
