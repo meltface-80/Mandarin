@@ -68,15 +68,17 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    UPnP renderers, sound devices on the server, the phone as a zone, the queue, history, plays,
    radio, the device list and `/api/status`'s rooms. Order within it is in the spec. It merges
    once every playback test passes through C#, **and the owner has tried it on their own household**,
-   so stop and ask them before merging it. **Parts 1 and 2 are built and pushed on
+   so stop and ask them before merging it. **Parts 1, 2 and 3 are built and pushed on
    `stage-6-playback`** (the hub, the queue store, the phone as a zone, history, the radio, every
    playback route; Sonos whole, with the register's sync and the rooms' part of status and
-   health; `test/playback-csharp.test.js` holds both to a Node server alone, the speakers'
-   command logs included). Parts 3–5 (the renderers, sound devices, the device list) are still
-   to come; until then the suites that bring a renderer (`test/queue-stopped.test.js`,
-   `audio-devices`, `devices-csharp`, `devices-hide`, `renderers-csharp`, `local-output`,
-   `renderer-playback`) fail through C# — they wait for a device the stubbed renderer half never
-   finds. Expected on the branch, not on migration.
+   health; the UPnP renderers whole — discovery, GENA, gapless, LinkPlay — with the device list,
+   its routes and the switch and the radio on a PATCH, which the spec had in part 5;
+   `test/playback-csharp.test.js` holds parts 1 and 2 to a Node server alone, the speakers'
+   command logs included; `test/renderer-playback.test.js` and `test/devices-csharp.test.js`
+   hold part 3). Parts 4 and 5 (sound devices on the server through the engine; the sound
+   devices' counts in the list and the Node hub left idle) are still to come; until then
+   `test/local-output.test.js`'s end-to-end half fails through C# — it waits for a `LOCAL_`
+   device the hub can't play yet. Expected on the branch, not on migration.
 3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
    the launcher and in-app updates in C#, the tests driving the C# binary over HTTP (those that
    reach into `ctx.*` rewritten; CI's Node-alone run goes), Macs on C# alone, the Node copies

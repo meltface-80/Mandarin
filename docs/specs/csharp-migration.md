@@ -853,6 +853,23 @@ here from this part on, so `test/sonos-restart.test.js` passes through C#.
   `setSettings`, `forget`, the name overlay: the reads DeviceRoutes.cs already makes, one class.
 - **Tests:** `test/renderer-playback.test.js`, `test/audio-devices.test.js`'s renderer half and
   `test/devices-hide.test.js` through C#; the fake renderer's log held to the Node server's.
+- **As built** (v0.8.49): `Players.cs` (the players, `targetFor`, `replan`, the zones, `drop`),
+  `Players.Poll.cs` (GENA, the poll), `Players.Commands.cs` (`verify`, `ready`, `armNext`,
+  `jump`, every command), `Renderer.cs` (the SOAP renderer behind `IRenderer`, which part 4's
+  engine output answers too), `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`; the
+  sending half of `soap.js` as `Playback/SoapHttp.cs`, shared with Sonos; `Hub.Upnp.cs` hands
+  every `UPNP_`/`LOCAL_` id to the players; `UpnpEventRoutes.cs` answers `NOTIFY /upnp/event/:id`.
+  The register stays `Playback/Register.cs` (stage 5's class, grown). Part 5's device list came
+  with this part rather than after it, because the renderers' page needs `online`, `events` and
+  `last_error` from the hub that drives them: `Renderers/Devices.cs` (`json`, `list`, `get`,
+  `online`, `enabled`, the scan loop, `forget`) and `DeviceRoutes.Read.cs` (`GET`, `GET /:id`,
+  `POST /rescan`, `POST /:id/forget`, away from home), and `DeviceRoutes.cs`'s PATCH takes
+  `enabled` and `radio` and answers from the hub; `/internal/devices/changed` is no longer asked
+  (it stays for an older C# server). Part 5 keeps the rooms' `zone_count` and `sonos` (done in
+  part 2), the sound devices' `local` counts (part 4) and leaving the Node hub idle.
+  `test/devices-csharp.test.js` was changed with it: where C# holds playback the effects are the
+  C# hub's (never the Node server's players), the switch and the radio are held to the Node
+  server's rows and answers, and a renderer hidden while playing must be sent Stop.
 
 **Part 4: sound devices on the server** (`Local/EngineOutput.cs`, `Local/LocalDevices.cs`).
 - **The engine driver** (`lib/local/engine.js`): the program found in the same order
@@ -897,7 +914,7 @@ above): the stage is not merged on CI alone.
 - [x] Plan written; version 0.8.49
 - [x] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
 - [x] Part 2: Sonos
-- [ ] Part 3: the renderers
+- [x] Part 3: the renderers (with the device list and its routes from part 5)
 - [ ] Part 4: sound devices on the server
 - [ ] Part 5: the device list, the rooms, the Node hub idle
 - [ ] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date

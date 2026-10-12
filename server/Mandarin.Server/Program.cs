@@ -179,6 +179,8 @@ Mandarin.Server.Tags.TagReader.UseInternal(app);
 Mandarin.Server.Identify.Lookups.UseInternal(app);
 // The Node server's word that a library scan has ended: what follows it is made here (Jobs.cs).
 Jobs.UseInternal(app);
+// A renderer's NOTIFY, once this server holds playback (UpnpEventRoutes.cs).
+UpnpEventRoutes.Use(app);
 
 var invoker = Front.Invoker();
 var transformer = new ForwardTransformer();

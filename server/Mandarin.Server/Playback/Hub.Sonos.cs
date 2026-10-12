@@ -60,7 +60,7 @@ internal sealed partial class Hub
     }
 
     /* Each loop runs, waits, runs again: never two at once, never piling up. */
-    private void Loop(string name, int every, Func<Task> fn, int firstDelay)
+    internal void Loop(string name, int every, Func<Task> fn, int firstDelay)
     {
         var cts = new CancellationTokenSource();
         lock (loops) loops.Add(cts);

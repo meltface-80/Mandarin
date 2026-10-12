@@ -12,10 +12,12 @@
 // answers the device as its page shows it (online, its state, its events: live
 // there), which is sent on.
 //
-// Playback's own stay with the Node server: a PATCH with enabled or radio is
-// passed on whole, as are the list, a device's page, Look again and Forget
-// (stage 6). Away from home only the phone the app is on may be changed, by
-// the Node server as before: passed on.
+// Once this server holds playback (v0.8.49, stage 6, Playback/Hub.cs) the hub
+// here does what each write did, the switch (enabled) and the radio are
+// written here too, and the device is answered as its page shows it from
+// Renderers/Devices.cs; away from home only the phone the app is on may be
+// changed. Until then a PATCH with enabled or radio is passed on whole, as is
+// one made away from home.
 using System.Text;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Scan;
@@ -56,8 +58,9 @@ internal static partial class Library
         var id = p[DevicePrefix.Length..];
         // One plain segment, as Express's :id takes it; anything else (empty, a further segment, an escape) is the Node server's to read.
         if (id.Length == 0 || id.Contains('/') || id.Contains('%')) return false;
-        // Away, only the phone the app is on, by the device it signed in as: the Node server's, as before.
-        if (Auth.IsAway(ctx) || !BodyFits(ctx)) return false;
+        var hub = Playback.Hub.Current;
+        // Away, only the phone the app is on, by the device it signed in as: the Node server's until the hub is here.
+        if ((hub == null && Auth.IsAway(ctx)) || !BodyFits(ctx)) return false;
         // Kept, so the request can still go on as it came.
         ctx.Request.EnableBuffering();
         object? b = new JsObj();
@@ -77,9 +80,14 @@ internal static partial class Library
                 catch (JsError) { return false; }
             }
         }
-        // Switching a player on or off, and the radio: playback's (stage 6).
-        if (Prop(b, "enabled") is not Undef || Prop(b, "radio") is not Undef) return false;
-        try { return await DevicePatch(ctx, id, b); }
+        // Switching a player on or off, and the radio: playback's, so the Node server's until the hub is here.
+        if (hub == null && (Prop(b, "enabled") is not Undef || Prop(b, "radio") is not Undef)) return false;
+        if (hub != null && Auth.IsAway(ctx))
+        {
+            using var c = Db.Open();
+            if (hub.Devices.OwnPhone(c, Auth.DeviceOf(ctx, c)) != id) return await SendJs(ctx, Jso(("error", "Away from home, only this phone can be changed"), ("away", true)), 403);
+        }
+        try { return await DevicePatch(ctx, id, b, hub); }
         catch (Exception e) when (e is not DeviceRefusal && !ctx.Response.HasStarted)
         {
             // wrap(): e.status || 500, with its words.
@@ -88,8 +96,8 @@ internal static partial class Library
         }
     }
 
-    /* The PATCH, write by write in the route's order; the Node server told, and its answer sent on. */
-    private static async Task<bool> DevicePatch(HttpContext ctx, string id, object? b)
+    /* The PATCH, write by write in the route's order; what each did done by the hub here, or the Node server told and its answer sent on. */
+    private static async Task<bool> DevicePatch(HttpContext ctx, string id, object? b, Hub? hub)
     {
         var changed = new List<string>();
         try
@@ -103,6 +111,14 @@ internal static partial class Library
                 if (d.Kind == "phone") throw new DeviceRefusal(400, "A phone is named in the app on the phone");
                 DeviceRename(c, d, s);
                 changed.Add("name");
+            }
+            var enabled = Prop(b, "enabled");
+            if (enabled is not Undef && hub != null)
+            {
+                // devices.js setEnabled: switched off while playing, a renderer is stopped and its queue let go (Hub.Register.cs, told below).
+                if (d.Kind == "phone") throw new DeviceRefusal(400, "A phone is always its own player");
+                DeviceSettings(c, d, Jv.Obj(("enabled", TJs.Truthy(enabled))));
+                changed.Add("enabled");
             }
             var hidden = Prop(b, "hidden");
             if (hidden is not Undef)
@@ -170,6 +186,16 @@ internal static partial class Library
                 DeviceSettings(c, d, Jv.Obj(("levelling", next)));
                 changed.Add("levelling");
             }
+            var radio = Prop(b, "radio");
+            if (radio is not Undef && hub != null)
+            {
+                // Random Album Radio is per zone (History.cs); switched on in a silent zone, it starts.
+                var zone = hub.Devices.ZoneIdOf(id);
+                var on = TJs.Truthy(radio);
+                Playback.History.SetRadio(c, zone, on);
+                var st = hub.Zone(zone)?.State;
+                if (on && st != null && st.State != "playing") _ = Playback.History.RadioTopUp(hub, zone, true).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+            }
             var caps = Prop(b, "caps");
             if (TJs.Truthy(caps) && Prop(caps, "user") is var u && u is not Undef)
             {
@@ -194,9 +220,16 @@ internal static partial class Library
         }
         catch (DeviceRefusal r)
         {
-            // A write made before the refusal stays, as there: the Node server told of it all the same.
+            // A write made before the refusal stays, as there: what it did is done all the same.
             if (changed.Count > 0) await DevicesChanged(id, changed);
             return await JsError(ctx, r.Status, r.Message);
+        }
+        if (hub != null)
+        {
+            await hub.DeviceChanged(id, changed);
+            using var c = Db.Open();
+            var d = hub.Devices.Get(c, id);
+            return d == null ? await JsError(ctx, 404, "No such device") : await SendJs(ctx, hub.Devices.WithRadio(c, d, id));
         }
         var said = await DevicesChanged(id, changed);
         if (said == null) return await JsError(ctx, 502, "The Node server didn't answer");
@@ -208,12 +241,12 @@ internal static partial class Library
 
     /*
      * What each write did: by the hub here once this server holds playback
-     * (v0.8.49, stage 6), and the Node server told (index.js /internal/devices/changed)
-     * — for the device as its page shows it, until the device list moves (part 5).
+     * (v0.8.49, stage 6), else the Node server told (index.js /internal/devices/changed)
+     * and asked for the device as its page shows it.
      */
     private static async Task<(int Status, string Text)?> DevicesChanged(string id, List<string> changed)
     {
-        if (Playback.Hub.Current is { } hub) await hub.DeviceChanged(id, changed);
+        if (Playback.Hub.Current is { } hub) { await hub.DeviceChanged(id, changed); return null; }
         return await AskNode("/internal/devices/changed", TJs.Json(Jv.Obj(("id", id), ("changed", changed.Select(x => (object?)x).ToList()))) ?? "{}");
     }
 

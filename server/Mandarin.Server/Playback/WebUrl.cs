@@ -46,7 +46,7 @@ internal static class WebUrl
     /* new URL(input).hostname ("" for a URL without a host), or null where the constructor throws. */
     public static string? Hostname(string input) => Parse(input, null) is { } r ? r.Host ?? "" : null;
 
-    private sealed class Record
+    internal sealed class Record
     {
         public string Scheme = "", Username = "", Password = "";
         public string? Host;                 // serialized; null for none
@@ -184,7 +184,7 @@ internal static class WebUrl
         return cp.ToArray();
     }
 
-    private static Record? Parse(string input, Record? b)
+    internal static Record? Parse(string input, Record? b)
     {
         var cp = Prepare(input);
         var n = cp.Length;

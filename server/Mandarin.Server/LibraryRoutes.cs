@@ -160,8 +160,8 @@ internal static partial class Library
             if (await PowerRoute(ctx)) return;
             // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
             if (await UpdateRoute(ctx)) return;
-            // Audio Devices, the writes (v0.8.48, DeviceRoutes.cs): the Node server told, and its word on the device sent on.
-            if (await DeviceRoute(ctx)) return;
+            // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
+            if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.

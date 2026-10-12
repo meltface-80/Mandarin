@@ -76,6 +76,34 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   `test/stream.test.js` and `test/playlists.test.js` pass through C#. The suites that bring a
   renderer (`queue-stopped`, `audio-devices`, `devices-csharp`, `renderers-csharp`,
   `local-output`) wait for parts 3 and 4.
+- **The renderers** (part 3): the UPnP players (`lib/renderers/players.js`: the queue kept here,
+  `jump`, the next track armed once its file is complete — the conversion's state, a prefetch
+  when it has none — the device that ignores SetNextAVTransportURI noticed and started by hand,
+  three stops before a track ever plays reported rather than looped, shuffle's played set and
+  loop, the poll with the track found by its URI, the LinkPlay check of what a WiiM is really
+  playing, GENA subscriptions renewed in time and `NOTIFY /upnp/event/:id` answered before the
+  gate, the target a stream is planned to — the profile's effective chips, ffmpeg's 32-bit, the
+  DSD mimes, the zone's DSP — `replan`, `restore`, `drop`, every command and the fixed-volume
+  rule), discovery (`discovery.js`, `ssdp.js`, `linkplay.js`: M-SEARCH for MediaRenderer from
+  every LAN address, Sonos answers left aside, the location cache and its ten-minute re-check,
+  a known renderer that missed a round checked directly, the Sink read, LinkPlay's probe —
+  https then http, the certificate unverified — and the seeds), the device list's model
+  (`devices.js`: the scan every minute, `json`, `list`, `get`, `online`, `enabled`, `forget`) and
+  with it `GET /api/audio-devices`, a device's page, Look again and Forget, the switch
+  (`enabled`) and the radio on a PATCH, and the away-from-home rule — in C#, the hub's. A device
+  write's every effect is the hub's now (a renderer switched off or hidden while playing stopped
+  and let go, its queue planned again for its DSP or levelling), so the Node server is no longer
+  told of one. `Renderers/Players.cs`, `Players.Poll.cs`, `Players.Commands.cs`, `Renderer.cs`,
+  `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`, `Devices.cs`, `Playback/SoapHttp.cs`
+  (the sending half of `soap.js`, shared with Sonos), `Playback/Hub.Upnp.cs`,
+  `UpnpEventRoutes.cs`, `DeviceRoutes.Read.cs` (new). Tests: `test/renderer-playback.test.js`
+  (bit-perfect and gapless, SetNext ignored, the next file waited for, transport, the queue,
+  volume, shuffle and loop, upsampling, DSP, events, fixed volume, DSD, a restart) and
+  `test/audio-devices.test.js`'s renderer half pass through C#, with `test/devices-hide.test.js`,
+  `test/queue-stopped.test.js` and `test/renderers-csharp.test.js`; `test/devices-csharp.test.js`
+  holds the switch and the radio to the Node server's own answers and rows too, and a renderer
+  hidden while playing to a Stop on the fake device. `test/local-output.test.js`'s end-to-end
+  half waits for part 4.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

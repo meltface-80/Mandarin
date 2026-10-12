@@ -4,7 +4,7 @@
 // radio hang off (a track started, one played long enough to count, the queue
 // near its end), and the queues the server keeps itself put back after a
 // restart. Sonos rooms (SonosZones, part 2), phones (Phones.cs) and UPnP
-// renderers (part 3) each answer the same methods; this class holds what they
+// renderers (Hub.Upnp.cs, part 3) each answer the same methods; this class holds what they
 // share and hands each id to its kind. The Node server's hub never starts
 // where this one holds the job "playback" (index.js).
 using System.Text.Json.Nodes;
@@ -72,6 +72,7 @@ internal sealed partial class Hub
         Config = config;
         Log = log;
         Phones = new Phones(this);
+        StartRenderers();
         startedAt = Now();
     }
 
@@ -94,6 +95,7 @@ internal sealed partial class Hub
         History.Wire(hub);
         hub.RestoreQueues();
         hub.StartSonos();
+        hub.Devices.Start();
         hub.StartRegister();
         return hub;
     }
@@ -105,6 +107,7 @@ internal sealed partial class Hub
         Current = null;
         hub.Stopped = true;
         hub.StopSonos();
+        hub.Upnp.Stop();
         hub.Phones.Stop();
         hub.Store?.Flush(id => hub.SnapshotOf(id));
     }

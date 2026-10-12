@@ -6,9 +6,6 @@
 // pool of four connections, the SOAPACTION header, the ten-second timeout, one
 // retry on a connection the player closed (a Sonos does after a while), and
 // every failure — a fault, a timeout, a refused connection — one UPnPError.
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Playback;
@@ -50,56 +47,17 @@ internal sealed class SonosDevice(string ip, string uid = "", string name = "")
         return "NORMAL";
     }
 
-    // Keep-alive, four connections a player at most, as soap.js's agent; the timeout is each call's own.
-    private static readonly HttpClient Http = new(new SocketsHttpHandler
-    {
-        UseProxy = false, MaxConnectionsPerServer = 4, PooledConnectionIdleTimeout = TimeSpan.FromSeconds(60), AllowAutoRedirect = false
-    }) { Timeout = Timeout.InfiniteTimeSpan };
-
     public string Ip => ip;
     public string Uid => uid;
     public string Name => name;
     public string BaseUrl => $"http://{ip}:{Port}";
 
     /* One action: its answer's arguments by name, or the UPnPError (the player's fault, or that it couldn't be reached). */
-    public async Task<JsObj> Call(string service, string action, JsObj? args = null, int timeoutMs = 10000, int attempt = 0)
-    {
-        var url = BaseUrl + ControlPaths[service];
-        var payload = Soap.BuildRequest(service, action, args ?? new JsObj());
-        try
-        {
-            using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(payload, Encoding.UTF8) };
-            req.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/xml") { CharSet = "\"utf-8\"" };
-            req.Headers.TryAddWithoutValidation("SOAPACTION", $"\"{service}#{action}\"");
-            using var cts = new CancellationTokenSource(timeoutMs);
-            using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseContentRead, cts.Token);
-            var text = await res.Content.ReadAsStringAsync(cts.Token);
-            if ((int)res.StatusCode >= 400 && !text.Contains("Fault")) throw UPnPError.Of(501, $"HTTP {(int)res.StatusCode} from {url}");
-            return Soap.ParseResponse(text, action);
-        }
-        catch (OperationCanceledException) { throw UPnPError.Of(501, $"Sonos player at {ip}:{Port} is not responding: timed out"); }
-        catch (HttpRequestException e)
-        {
-            // A connection the player closed after answering an earlier call: once more on a fresh one (soap.js, v0.7.1).
-            if (attempt == 0 && e.InnerException is IOException or SocketException { SocketErrorCode: SocketError.ConnectionReset })
-                return await Call(service, action, args, timeoutMs, 1);
-            throw UPnPError.Of(501, $"Sonos player at {ip}:{Port} is not responding: {e.Message}");
-        }
-    }
+    public Task<JsObj> Call(string service, string action, JsObj? args = null, int timeoutMs = 10000) =>
+        SoapHttp.Call(BaseUrl + ControlPaths[service], service, action, args, timeoutMs);
 
     /* httpGet(): a document from the player (its description), the text; a UPnPError when it isn't 200. */
-    public static async Task<string> HttpGet(string url, int timeoutMs = 8000)
-    {
-        try
-        {
-            using var cts = new CancellationTokenSource(timeoutMs);
-            using var res = await Http.GetAsync(url, cts.Token);
-            if (res.StatusCode != HttpStatusCode.OK) throw UPnPError.Of(501, $"HTTP {(int)res.StatusCode} fetching {url}");
-            return await res.Content.ReadAsStringAsync(cts.Token);
-        }
-        catch (OperationCanceledException) { throw UPnPError.Of(501, "timed out"); }
-        catch (HttpRequestException e) { throw UPnPError.Of(501, e.Message); }
-    }
+    public static Task<string> HttpGet(string url, int timeoutMs = 8000) => SoapHttp.HttpGet(url, timeoutMs);
 
     private static JsObj Args(params (string Key, object? Value)[] kv)
     {
