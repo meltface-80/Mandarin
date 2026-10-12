@@ -157,7 +157,7 @@ internal static partial class Library
     [GeneratedRegex("m4a|mp4|isom|m4b|alac", RegexOptions.IgnoreCase)] private static partial Regex RxMp4();
     [GeneratedRegex("wavpack", RegexOptions.IgnoreCase)] private static partial Regex RxWavPack();
     [GeneratedRegex("ape|monkey", RegexOptions.IgnoreCase)] private static partial Regex RxApe();
-    private static string? FormatName(string? container, bool lossless)
+    internal static string? FormatName(string? container, bool lossless)
     {
         var c = container ?? "";
         if (RxMpeg().IsMatch(c) && !lossless) return "MP3";
@@ -333,7 +333,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------- the build
 
-    private static List<object?[]> Rows(SqliteConnection c, string sql, params object[] args)
+    internal static List<object?[]> Rows(SqliteConnection c, string sql, params object[] args)
     {
         using var cmd = c.CreateCommand();
         cmd.CommandText = sql;

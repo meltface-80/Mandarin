@@ -26,7 +26,7 @@
       "lines": 502
     },
     "index.js": {
-      "lines": 984
+      "lines": 980
     },
     "lib/identify/identifier.js": {
       "lines": 739
@@ -121,9 +121,6 @@
     "server/Mandarin.Server/Identify/Score.cs": {
       "lines": 514
     },
-    "server/Mandarin.Server/Jobs.cs": {
-      "lines": 424
-    },
     "server/Mandarin.Server/Library.cs": {
       "lines": 626
     },
@@ -152,7 +149,7 @@
       "lines": 602
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 572
+      "lines": 532
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
       "lines": 507

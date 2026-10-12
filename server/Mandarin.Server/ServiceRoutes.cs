@@ -214,46 +214,6 @@ internal static partial class Library
     }
 
     /*
-     * Playing an album from the browser (api-service.js POST /api/<s>/play,
-     * v0.8.47): its rows written (asked of the service each time), the Node
-     * server told and its library read again, then its tracks played there —
-     * the album, or one track of it (now, next, at the end) — as that route
-     * plays them (POST /internal/playback/play). The Node server's answer is
-     * the answer.
-     */
-    private static async Task<bool> PlayAlbum(HttpContext ctx, Catalogue svc, string albumId, object? b)
-    {
-        var zone = Prop(b, "zone_or_output_id");
-        if (!TJs.Truthy(zone)) return await JsError(ctx, 400, "zone_or_output_id required");
-        var k = Prop(b, "kind");
-        var kind = k is "play_now" or "play_next" or "queue" or "shuffle" ? (string)k : "play_now";
-        var offset = await svc.EnsureAlbum(albumId);
-        await svc.Changed("opened");
-        var ask = new JsObj();
-        ask["zone_or_output_id"] = zone;
-        ask["offset"] = (double)offset;
-        ask["kind"] = kind;
-        if (Prop(b, "track") is var track && track is not Undef) ask["track"] = track;
-        if (await AskNode("/internal/playback/play", TJs.Json(ask) ?? "{}") is not var (status, text)) return await JsError(ctx, 500, "fetch failed");
-        return await SendNodeJson(ctx, text, status);
-    }
-
-    /* An answer the Node server made (res.json's text), sent on as it is, with its status, as Express would send it. */
-    private static async Task<bool> SendNodeJson(HttpContext ctx, string text, int status)
-    {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        var tag = "W/\"" + bytes.Length.ToString("x") + "-" + Convert.ToBase64String(System.Security.Cryptography.SHA1.HashData(bytes))[..27] + "\"";
-        var h = ctx.Response.Headers;
-        h["X-Mandarin-Answered"] = "C#";
-        h.ETag = tag;
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.ContentLength = bytes.Length;
-        await ctx.Response.Body.WriteAsync(bytes);
-        return true;
-    }
-
-    /*
      * The album as library rows (transient until favourited), so its page here
      * opens. One already known is answered as it is: no asking the service
      * again, no library reload, for every tap in the browser.

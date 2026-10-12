@@ -157,7 +157,7 @@ internal static class Topology
     }
     private static bool IsPrivate(object? ip) => InRange(ip, "10.0.0.0", 8) || InRange(ip, "172.16.0.0", 12) || InRange(ip, "192.168.0.0", 16);
     private static bool IsLinkLocal(object? ip) => InRange(ip, "169.254.0.0", 16);
-    private static bool IsCgnat(object? ip) => InRange(ip, "100.64.0.0", 10);   // Tailscale's addresses, carrier NAT
+    internal static bool IsCgnat(object? ip) => InRange(ip, "100.64.0.0", 10);   // Tailscale's addresses, carrier NAT
 
     /* Object.entries() of what JSON can carry. */
     private static IEnumerable<(string, object?)> Entries(object? o) => o switch

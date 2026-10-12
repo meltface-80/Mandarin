@@ -38,6 +38,7 @@ const FF = require("./lib/ffmpeg");
 const META = require("./lib/meta");
 const shareLinks = require("./lib/share-links");
 const { Playback, trackIdFromUri, planFor } = require("./lib/server/playback");
+const PLAYBACK = require("./lib/server/playback-handover");
 const { Features } = require("./lib/server/features");
 
 const list = v => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -306,6 +307,8 @@ function createServer(overrides = {}) {
   zones.upnp.callbackBase = () => ctx.baseUrl();
   zones.upnp.localBase = () => ctx.localBase();
   zones.upnp.dataDir = config.dataDir;
+  // The hub here, started once — never where the C# server holds playback (v0.8.49, stage 6).
+  const playback = PLAYBACK.starter({ zones, devices: ctx.devices, log });
   // Mandarin's audio engine for sound devices on this computer (v0.8.0): the
   // image's, else (in Docker, or asked for) downloaded once in the background.
   // Until it is here, or without it, devices play as before.
@@ -404,7 +407,8 @@ function createServer(overrides = {}) {
   // own requests to MusicBrainz wait their turn on the C# server's timer from
   // now on.
   // The in-app update and the processor split (v0.8.48, stage 5 part 4): "update" and "cpu".
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu"];
+  // Playback whole (v0.8.49, stage 6): "playback" — the hub here never starts where the C# server names it (lib/server/playback-handover.js).
+  const FRONT_JOBS =["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
   // The library scans go to the C# server only where this server's own would
   // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
   // or the tag check passed for the two readers (not TAG_READER=node). Else
@@ -431,6 +435,8 @@ function createServer(overrides = {}) {
     if (jobs.has("mbpack")) ctx.mbpack.handOver();
     if (jobs.has("loudness")) ctx.loudness.handOver();
     if (jobs.has("scan") && ctx.handOverScans) ctx.handOverScans();
+    // A C# server that doesn't take playback (an older one): the hub here, now (v0.8.49).
+    if (!jobs.has("playback")) playback.start();
     // A pass running now stops after the album (or batch) it is on: waited for, twenty seconds at most.
     const passes = [];
     if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
@@ -500,6 +506,8 @@ function createServer(overrides = {}) {
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
         // Whether the C# program is trusted with the tags (v0.8.48): its own scan then, else this server's at its ask.
         scan_program: scansGoToFront(),
+        // Playback (v0.8.49): what the hub here was set up with, for the C# server's own.
+        ...PLAYBACK.handOverConfig(config, knownHosts),
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
         qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
         // Tidal's sign-in (v0.8.47): where it is asked.
@@ -544,19 +552,8 @@ function createServer(overrides = {}) {
       res.json(ctx.deviceShown ? ctx.deviceShown(d) : d);
     } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
-  // A Qobuz or Tidal album the C# server wrote the rows of, played here
-  // (v0.8.47, ServiceRoutes.cs): what api-service.js's play does once the
-  // album is in the library, answered as that route answers.
-  app.post("/internal/playback/play", express.json(), async (req, res) => {
-    if (!fromFront(req)) return res.status(403).end();
-    const b = req.body || {};
-    try { res.json(await require("./lib/server/api-service").play(ctx, b.zone_or_output_id, b.offset, b.kind, b.track)); }
-    catch (e) {
-      const status = e.status || 500, out = { error: e.message || String(e) };
-      if (status === 401) out.connected = false;
-      res.status(status).json(out);
-    }
-  });
+  // A Qobuz or Tidal album the C# server wrote the rows of, played here (v0.8.47, ServiceRoutes.cs).
+  app.post("/internal/playback/play", express.json(), PLAYBACK.internalPlay(ctx, fromFront));
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
@@ -789,10 +786,8 @@ function createServer(overrides = {}) {
 
   async function start() {
     library.reload();
-    // What was queued on the phones and the renderers when the server last
-    // ran: back before anything asks, so an update's restart loses nothing.
-    const kept = zones.restoreQueues();
-    if (kept) log(`[musicd] put back the queue of ${kept} player(s) from before the restart`);
+    // Playback's hub here (v0.8.49, stage 6): the kept queues put back — unless the C# server holds playback.
+    if (playback.here) playback.restore();
     const ff = FF.info();
     log(`[musicd] Mandarin ${pkg.version} — music in ${config.musicDir}, data in ${config.dataDir}`);
     const parent = path.dirname(config.musicDir), base = path.basename(config.musicDir);
@@ -823,8 +818,7 @@ function createServer(overrides = {}) {
     });
     if (config.listenPort != null) log(`[musicd] behind Mandarin's C# server: this one on 127.0.0.1:${ctx.listeningOn}`);
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
-    zones.start();
-    ctx.devices.start();
+    if (playback.here) playback.start();
     // Started by the C# server, which makes these itself (MANDARIN_FRONT_RUNS,
     // v0.8.19): not started here — unless it never says so (/internal/front/runs).
     const frontRuns = new Set(String(process.env.MANDARIN_FRONT_RUNS || "").split(",").map(x => x.trim()).filter(Boolean));
@@ -854,6 +848,8 @@ function createServer(overrides = {}) {
       // The in-app update's own checks (v0.8.48): started here after all. The
       // processor split was never anyone else's: nothing to start.
       if (frontRuns.has("update") && ctx.startUpdateChecks) ctx.startUpdateChecks();
+      // Playback (v0.8.49): the hub here after all.
+      if (frontRuns.has("playback")) playback.start();
     };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {

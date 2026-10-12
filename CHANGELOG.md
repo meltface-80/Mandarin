@@ -11,6 +11,41 @@ whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sono
 and sound devices on this computer — each part held to the Node server's own answers and command
 order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
 
+- **The hub, the queue store, the phone as a zone, history, the radio and the play routes**
+  (part 1): the zone hub (`lib/sonos/zones.js`: one state per zone, the revision the long polls
+  wait on, the three hooks — a track started, one played long enough to count, the queue near its
+  end — the kept queues put back after a restart), the phone (`phones.js`: hello, the commands long
+  poll, the report with the phone's own list, its USB DAC and its volume steps, every command), the
+  queue store (`queue-store.js`: the same `queue:<id>` rows, the same debounce and position writes,
+  so a queue one server kept is put back by the other across an update), the items (`playback.js`:
+  signed addresses, DIDL, each track's gain, the prefetch), history and the radio (`features.js`'s
+  playback half: a play into `plays` with its album's id, Listen later's album coming off the
+  list, Random Album Radio with its six-month memory and 60-day preference), and every playback
+  and phone route (`api-playback.js`, `api-phone.js`: the gate, the name overlay, now playing and
+  its badge, Random Album, the history-to-queue routes, `/api/radio`) — in C#, answered from this
+  server's first request wherever it holds the new job `playback`. Playing a Qobuz or Tidal album
+  from its browser plays through the hub here too, the Node server no longer asked
+  (`/internal/playback/play` stays for an older C# server). `server/Mandarin.Server/Playback/`
+  (`Hub.cs`, `Hub.Commands.cs`, `Phones.cs`, `Phones.Report.cs`, `Phones.Commands.cs`,
+  `QueueStore.cs`, `Items.cs`, `Item.cs`, `Tracks.cs`, `History.cs`, `NowPlaying.cs`,
+  `Register.cs`, `ZoneState.cs`), `PlaybackRoutes.cs`, `PlaybackRoutes.Commands.cs`,
+  `PlaybackRoutes.Play.cs`, `PhoneRoutes.cs`, `ServiceRoutes.Play.cs`. The Node server's part is
+  the hand-over only (`lib/server/playback-handover.js`, new): its hub never starts where the C#
+  server names the job, and starts after all at a hand-over that leaves it out or when none comes;
+  the hand-over's `config` carries what the hub was set up with (the Sonos hosts, the server's
+  address, the include and exclude lists, the renderer hosts, multicast, the offline wait, local
+  audio). Sonos rooms (part 2) and renderers (part 3) are stubbed meanwhile: a Sonos id is refused
+  as an unavailable room. Tests: `test/playback-csharp.test.js` (new): the same requests to this
+  suite's server (behind C#) and to a Node server alone in a child process, for a phone zone, every
+  answer and refusal compared as JSON — hello, the lists, playing and controlling, the report and
+  now playing, the badge's every word, transport, queue and volume commands in order, the phone's
+  volume steps, the radio switch and its memory, away from home, the phone's own list, the queue
+  handed back with a hello and the kept row in the database, and the queue kept across a restart
+  of the C# server. `test/radio-memory.test.js` and `test/queue-moves.test.js` pass through C#;
+  the suites that drive the fake household (`test/phone.test.js` among them) wait for part 2.
+  Split for the length gate: `Jobs.Internal.cs` (the internal routes) out of `Jobs.cs`,
+  `ServiceRoutes.Play.cs` out of `ServiceRoutes.cs`.
+
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
 but play moves to the C# server**, part by part, each held to the Node server's own answers and

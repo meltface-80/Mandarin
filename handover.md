@@ -68,7 +68,13 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    UPnP renderers, sound devices on the server, the phone as a zone, the queue, history, plays,
    radio, the device list and `/api/status`'s rooms. Order within it is in the spec. It merges
    once every playback test passes through C#, **and the owner has tried it on their own household**,
-   so stop and ask them before merging it.
+   so stop and ask them before merging it. **Part 1 is built and pushed on `stage-6-playback`**
+   (the hub, the queue store, the phone as a zone, history, the radio, every playback route;
+   `test/playback-csharp.test.js` holds it to a Node server alone). Parts 2–5 (Sonos, the
+   renderers, sound devices, the device list and the rooms) are still to come; until part 2 the
+   suites that drive the fake household (`test/phone.test.js`, `play-next`, `queue-stopped`,
+   `now-playing-restart`, `phone-music`, the Sonos and renderer suites) fail through C# — they wait
+   for two rooms that the stubbed Sonos half never lists. Expected on the branch, not on migration.
 3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
    the launcher and in-app updates in C#, the tests driving the C# binary over HTTP (those that
    reach into `ctx.*` rewritten; CI's Node-alone run goes), Macs on C# alone, the Node copies

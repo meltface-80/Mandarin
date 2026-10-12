@@ -754,8 +754,18 @@ the server (part 4) with the engine, and last the device list, the rooms and the
 (part 5), which needs every kind of player in place.
 
 **Part 1: the hub, the queue store, the phone as a zone, history, the radio, the play routes**
-(`Playback/Hub.cs`, `Playback/Phones.cs`, `Playback/QueueStore.cs`, `Playback/Items.cs`,
-`Playback/History.cs`, `Playback/ZoneJson.cs`, `PlaybackRoutes.cs`, `PhoneRoutes.cs`).
+(`Playback/Hub.cs` and `Hub.Commands.cs`, `Playback/Phones.cs` with `Phones.Report.cs` and
+`Phones.Commands.cs`, `Playback/QueueStore.cs`, `Playback/Items.cs` and `Item.cs`,
+`Playback/Tracks.cs`, `Playback/History.cs`, `Playback/NowPlaying.cs`, `Playback/Register.cs`,
+`Playback/ZoneState.cs`, `PlaybackRoutes.cs` with `PlaybackRoutes.Commands.cs` and
+`PlaybackRoutes.Play.cs`, `PhoneRoutes.cs`, `ServiceRoutes.Play.cs`; `Playback/Hub.Stubs.cs` holds
+the Sonos and renderer halves until parts 2 and 3; the Node side in `lib/server/playback-handover.js`).
+Built in v0.8.49: every answer held to a Node server alone, request for request, in
+`test/playback-csharp.test.js` (the two servers side by side, a phone zone on each). Two traps it
+found, kept here for the parts to come: a key a body doesn't carry is JavaScript's `undefined`
+(`Number(undefined)` is NaN, "offset required"), not `null` (`Number(null)` is 0) — `JsonObject`
+answers null for both, so the routes ask `ContainsKey` first (`PlaybackRoutes.Num`); and a
+`JsonNode` moved into another object is gone from the first (the hello's `resume`).
 - **The hub** (`lib/sonos/zones.js`'s `ZoneManager`): one state per zone, the revision and its
   waiters (`/api/zone-state?wait_for=`, 20 s), `applyState` with its three hooks (`track`, `played`
   at the halfway-or-30-seconds mark, `queue-low` 25 s from the end of the last track), `positionNow`,
@@ -878,7 +888,7 @@ above): the stage is not merged on CI alone.
 **Checklist** (ticked as each part is committed and pushed):
 
 - [x] Plan written; version 0.8.49
-- [ ] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
+- [x] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
 - [ ] Part 2: Sonos
 - [ ] Part 3: the renderers
 - [ ] Part 4: sound devices on the server

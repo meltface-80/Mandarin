@@ -221,7 +221,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["cpu", "days", "identify", "import", "labels", "loudness", "mbpack", "prune", "scan", "services", "tailscale", "taste", "update"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["cpu", "days", "identify", "import", "labels", "loudness", "mbpack", "playback", "prune", "scan", "services", "tailscale", "taste", "update"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -525,7 +525,7 @@ test("v0.8.45: Qobuz's and Tidal's import, the watch and Settings → Services s
   } finally { await srv.stop(); }
 });
 
-test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams) answered by C#; playback still the Node server's", { skip, timeout: 60000 }, async () => {
+test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams) answered by C#; playback C#'s too since v0.8.49", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
@@ -568,11 +568,11 @@ test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams
     const tr = ctx.db.raw.prepare("SELECT id FROM tracks WHERE path = 'qobuz://track/9'").get().id;
     const sr = await fetch(B + `/stream/t${tr}.flac`, { headers: H });
     assert.deepEqual([sr.status, sr.headers.get("x-mandarin-answered")], [403, "C#"], "no stream without the account");
-    // Playback stays the Node server's (stage 6): the rooms, playing from the library, the queue.
-    assert.deepEqual((await by("/api/zones")).slice(0, 2), [200, "Node"]);
-    assert.deepEqual((await by("/api/play", { offset: 999999, zone_or_output_id: "x", kind: "play_now" }))[1], "Node");
-    assert.deepEqual((await by("/api/queue?zone=x"))[1], "Node");
-    // And its part of playing a service album, from the C# server only.
+    // Playback is C#'s too since v0.8.49 (stage 6, test/playback-csharp.test.js): the rooms, playing from the library, the queue.
+    assert.deepEqual((await by("/api/zones")).slice(0, 2), [200, "C#"]);
+    assert.deepEqual(await by("/api/play", { offset: 999999, zone_or_output_id: "x", kind: "play_now" }), [404, "C#", { error: "That album is no longer in the library" }]);
+    assert.deepEqual(await by("/api/queue?zone=x"), [500, "C#", { error: "That room isn't available" }]);
+    // The Node server's part of playing a service album stays for an older C# server, unasked by this one (and never from outside).
     const NODE = "http://127.0.0.1:" + ctx.listeningOn;
     assert.equal((await fetch(NODE + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 403);
     assert.equal((await fetch(B + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 404, "stopped at the C# server's door");

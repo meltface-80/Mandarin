@@ -154,8 +154,8 @@ internal static partial class Library
                 try { await UnmergeLabel(ctx, source); return; }
                 catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[library] unmerge: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
             }
-            // Backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
-            if (await AdminRoute(ctx)) return;
+            // Playback (v0.8.49, stage 6, PlaybackRoutes.cs: once this server holds the job); backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
+            if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
             if (await PowerRoute(ctx)) return;
             // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
