@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      # The app's own dependencies first: the checked modules import them, and tsc
+      # has to find them to read their shapes.
+      - run: npm ci --no-audit --no-fund
       - name: The development tools (tools/lint only, never the app's dependencies)
         run: npm run tools
       - name: File length, @ts-check and tsc, ESLint against its suppressions
