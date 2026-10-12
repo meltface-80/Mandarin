@@ -77,9 +77,10 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    download; `test/playback-csharp.test.js` holds parts 1 and 2 to a Node server alone, the
    speakers' command logs included; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`
    and `test/local-output.test.js` hold parts 3 and 4). **Part 5 too** (the wall display's track
-   from the hub; the Node hub idle by the hand-over alone): the five parts are built. What is
-   left of the stage is the whole suite both ways, the pull request into `migration`, the review
-   and **the owner trying it on their own household** — only then the merge. The ffmpeg sink for
+   from the hub; the Node hub idle by the hand-over alone): the five parts are built, the whole
+   suite passes both ways, and **PR #209 into `migration` carries the results**. What is left is
+   the owner trying it on their own household (the `:stage-6-playback` image, section 6) — only
+   then the squash-merge. The ffmpeg sink for
    a Mac's sound devices is not ported, as the spec says: on a Mac a `LOCAL_` device is refused
    in words by the C# hub until stage 7 decides.
 3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
