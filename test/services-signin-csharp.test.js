@@ -300,11 +300,17 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       before = tidal.refreshes;
       r = await post("settings/tidal/import");
       assert.deepEqual([r.status, r.by, r.j.ok, tidal.refreshes], [200, "C#", true, before + 1], r.text);
-      // The import runs on after its answer, and the watch looks at nothing while it does: let it finish.
+      // The import runs on after its answer, and the watch looks at nothing while one runs (it answers null for the service then):
+      // asked until it has looked — the server's own first import, scheduled when the switch went on, may run just after the one asked for.
       await until(async () => !(await get("settings/tidal")).j.importing, 20000, "Tidal's import");
-      due();
-      const w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
-      assert.deepEqual([w.ok, w.services.tidal.failed, tidal.refreshes], [true, 0, before + 2], JSON.stringify(w));
+      const w = await until(async () => {
+        due();
+        const r0 = tidal.refreshes;
+        const x = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
+        if (!x.services || !x.services.tidal) return null;
+        return Object.assign(x, { refreshed: tidal.refreshes - r0 });
+      }, 20000, "the watch, once no import runs");
+      assert.deepEqual([w.ok, w.services.tidal.failed, w.refreshed], [true, 0, 1], "the watch refreshed the token due, once: " + JSON.stringify(w));
     } finally { ctx.db.setSetting("tidalSettings", { quality: "hires", import: false }); ctx.library.reload(); }
     assert.ok(refreshed.own - node >= 3, "the Node server's own, for its own requests");
     assert.equal(refreshed.else, 0, "and never for a request through C#");
