@@ -160,6 +160,8 @@ internal static partial class Library
             if (await PowerRoute(ctx)) return;
             // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
             if (await UpdateRoute(ctx)) return;
+            // Audio Devices, the writes (v0.8.48, DeviceRoutes.cs): the Node server told, and its word on the device sent on.
+            if (await DeviceRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.

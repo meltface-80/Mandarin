@@ -613,6 +613,11 @@ uncertain piece of the stage, so a stop there costs least.
 - Tests: `test/devices-csharp.test.js`: each write held to the Node server's own (the row and the
   answer), each refusal word for word, the Node server's own effects seen (a name in `/api/zones`,
   a renderer's queue planned again).
+- **Built** as planned. The Node server's part (`AudioDevices.changed`, `Registry.refreshName`, the
+  internal route) does what each write did there from the row as written, and a refusal that comes
+  after a write still tells it of that write, so a name written before a refused switch is the
+  room's everywhere at once, as it was. A body the Node server's parser would turn down (bad JSON)
+  is passed on for it to turn down.
 
 **Part 2: library housekeeping** (`Scans.cs`, `ScanRoutes.cs`, `HousekeepingRoutes.cs`).
 - **When to scan, everywhere**: the job `scan` handed over whatever the tag reader. Where the C#
@@ -655,7 +660,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 - [x] Part 3: the phone's download lists, what is left
 - [x] Part 6: Last.fm, what is left
 - [x] Part 4: Admin (the update, the processor split)
-- [ ] Part 1: Audio Devices, the writes
+- [x] Part 1: Audio Devices, the writes
 - [ ] Part 2: library housekeeping
 - [ ] Part 5: the covers the Node server still draws
 - [ ] `test/menu.test.js` waits for the menu

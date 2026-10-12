@@ -76,6 +76,22 @@ Node). The parts as they are built:
   server asked to start again with 75; without a launcher, the files laid in. `test/cpu.test.js`: the
   C# server's decision held to `lib/cpu.js`'s for the same cores, followed by the Node server, both
   moving when DSP takes and gives back its second core.
+- **Audio Devices, the writes** (part 1). What you change on a device's page in Settings → Audio
+  Devices is written by the C# server now: its name, hidden, sharing (a phone's), output (mode, bits,
+  volume), DSP, Volume Levelling and the rates, depths and DSD you tick, each checked and written as
+  the Node server wrote it, in the same order and with the same words for a refusal (a write made
+  before a refusal stays, as before). The Node server is then told, so what each write did there
+  still happens (the name everywhere, a renderer's or sound device's queue planned again with its
+  new DSP or levelling, a phone told its own, a Sonos room's queue planned again, a device hidden
+  while on switched off and let go), and answers the device as its page shows it, which the C#
+  server sends on. Switching a player on or off and the radio stay the Node server's until playback
+  moves (stage 6), as do the list, a device's page, Look again and Forget. Away from home, only the
+  phone the app is on, by the Node server as before. `server/Mandarin.Server/DeviceRoutes.cs` (new),
+  `LibraryRoutes.cs`; the Node server's part is the hand-over (`lib/renderers/devices.js` `changed`,
+  `registry.js` `refreshName`, `index.js` `/internal/devices/changed`). Tests:
+  `test/devices-csharp.test.js` (new): every write and refusal made from the same row through the
+  C# server and by the Node server itself, the rows and answers compared; the Node server's effects
+  seen.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47

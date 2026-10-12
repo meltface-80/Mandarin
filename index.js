@@ -525,6 +525,18 @@ function createServer(overrides = {}) {
     CPU.follow((req.body || {}).cpu);
     res.json({ ok: true, cpu: CPU.plan() });
   });
+  // A device's settings written by the C# server (v0.8.48, DeviceRoutes.cs):
+  // the row read again here, what each write did here done, and the device
+  // answered as its page shows it (api-devices.js).
+  app.post("/internal/devices/changed", express.json(), async (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const b = req.body || {};
+    try {
+      const d = await ctx.devices.changed(String(b.id || ""), Array.isArray(b.changed) ? b.changed.map(String) : []);
+      if (!d) return res.status(404).json({ error: "No such device" });
+      res.json(ctx.deviceShown ? ctx.deviceShown(d) : d);
+    } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+  });
   // A Qobuz or Tidal album the C# server wrote the rows of, played here
   // (v0.8.47, ServiceRoutes.cs): what api-service.js's play does once the
   // album is in the library, answered as that route answers.
