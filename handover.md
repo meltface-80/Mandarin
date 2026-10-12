@@ -4,7 +4,8 @@ For the next Claude session picking up the migration. Read this first, then `CLA
 `docs/specs/csharp-migration.md` (section 2.4 and "What is left: the fewest steps"), then
 `server/README.md` and the top of `CHANGELOG.md`. Update this file whenever the state below changes.
 
-Written 12 October 2026, at stage 4b's merge.
+Written 12 October 2026, at stage 4b's merge; brought up to date the same day with stage 5 built
+and its PR open.
 
 ---
 
@@ -38,9 +39,8 @@ Written 12 October 2026, at stage 4b's merge.
 | | |
 |---|---|
 | `main` | v0.8.44, `32f62a8`. `:latest`. Don't touch. |
-| `migration` | v0.8.46 (`d96e71a`) before stage 4b; **v0.8.47** once PR #204 is merged. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
-| PR #204 | `stage-4b-services-in-csharp` → `migration`, stage 4b (v0.8.47): Qobuz and Tidal wholly the C# server's. Squash-merge when CI is green, if not already done. |
-| `stage-5-everything-but-playback` | Stage 5 (v0.8.48), in progress. Branched from stage 4b's head `1e89f33`, so merge `origin/migration` into it once #204 is in. **Its checklist is in the spec's stage 5 section**: each part is committed and pushed as it's finished, so resume from the branch. |
+| `migration` | **v0.8.47** (`b82aeda`): PR #204 (stage 4b) and #205 (its token-test fix) squash-merged; CI green. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
+| `stage-5-everything-but-playback` | Stage 5 (v0.8.48), **built**: every part of the spec's stage 5 checklist is ticked and pushed (parts 8, 7, 3, 6, 4, 1, 2, 5 and the menu test's wait), `origin/migration` merged in (`51100f7`). Its PR into `migration` is **#206** (see section 3 for what's left of it). |
 
 Stale branches the git proxy wouldn't let us delete (the owner was asked to delete them on
 GitHub): `stage-4.3-import-watch-playlists`, `fix-mbpack-download-race`.
@@ -49,12 +49,17 @@ GitHub): `stage-4.3-import-watch-playlists`, `fix-mbpack-download-race`.
 
 From the spec's "fewest steps", decided by the owner after v0.8.47:
 
-1. **Stage 5 (v0.8.48): everything but playback.** Audio Devices' writes, library housekeeping,
-   the phone's download lists, admin (update/restart/shut down, the processor split), the covers
-   Node draws with `sharp`, what's left of Last.fm, the pages `/login` `/display` and deep links,
-   `/api/health`, and the database's tables and migrations created by C#. Also make
-   `test/menu.test.js` wait for the drawer to settle instead of `sleep(400)` (it failed once on
-   the Mac runner: `tapAt` got null). After it, Node is playback and nothing else.
+1. **Stage 5 (v0.8.48): everything but playback — built, PR #206 open.** Audio Devices' writes,
+   library housekeeping (`/api/status`, Clean up, the wall display's content, the scans started
+   by C# whatever the tag reader), the phone's download lists, admin (the in-app update and the
+   processor split decided by C#; restart/shut down were C#'s already), a speaker's cover, what's
+   left of Last.fm, the pages `/login` `/display` and deep links, `/api/health`, the database's
+   tables and migrations created by C#, and `test/menu.test.js` waiting for the drawer. What's
+   left of the stage: CI green on #206, a review of the diff, the squash-merge, the Dockge note.
+   **One thing is put to the owner** (spec, stage 5 part 5): covers in CMYK or with a colour
+   profile of their own still go to Node's `sharp`; drawing them the same in C# needs libvips's
+   colour maths (lcms2). Three ways are laid out in the spec; stage 7 can't drop Node until one
+   is chosen. After stage 5, Node is playback (and those few covers) and nothing else.
 2. **Stage 6: playback, whole, in one stage** (the largest and riskiest): the zone hub, Sonos,
    UPnP renderers, sound devices on the server, the phone as a zone, the queue, history, plays,
    radio, the device list and `/api/status`'s rooms. Order within it is in the spec. It merges
@@ -78,10 +83,23 @@ Per the spec, each stage is planned in detail (in the spec) before it's coded.
   has actually taken it: `ctx.frontRuns.has(job)` (see `ctx.servicesHanded()` in index.js).
   Otherwise there's a window of up to two minutes at start-up when nobody does it.
 - Node is told about changes the C# server makes through `/internal/...` routes guarded by the
-  front key (`fromFront`), e.g. `/internal/playback/play`, `/internal/devices/changed`.
+  front key (`fromFront`), e.g. `/internal/playback/play`, `/internal/devices/changed`,
+  `/internal/cpu/plan`, `/internal/scan` (a scan made by Node's scanner at C#'s ask, its state
+  streamed back line by line), `/internal/playback/now`. The hand-over's `config` carries what the
+  C# server needs from Node's environment (`scan_program`, `via_launcher`, `update_api`…), and
+  `/internal/library` what only Node knows (`rooms`, `zone_count`, `sonos`, `speakers`, `cpu`,
+  `csharp_update`).
 - Parity tests compare the C# answer with Node's directly (`ctx.listeningOn`, header
-  `X-Mandarin-Front-Key: ctx.frontKey`). Good models: `test/services-signin-csharp.test.js`,
-  `test/services-import-csharp.test.js`.
+  `X-Mandarin-Front-Key: ctx.frontKey`, or the same bearer token). Good models:
+  `test/services-signin-csharp.test.js`, `test/devices-csharp.test.js` (a write made twice from the
+  same row, the rows and answers compared), `test/housekeeping-csharp.test.js`.
+- **Traps found in stage 5:** `PowerRoute` answers only where the C# server started Node itself
+  (`Front.RunsNode`); the suite's Node server is the test's own, so a route that must answer in the
+  suite goes before that check (as `/api/cpu` does now). The suite's C# server is given the test
+  process's cores (`MANDARIN_CPUS`, test/setup.js) because the Node server pins itself before
+  spawning it. `MANDARIN_CPU_HOLD_MS` shortens DSP's ten-minute hold for tests. The fixture library
+  has **7 files** in 3 albums; moving a folder *within* the music root reads as "moved", not gone —
+  move it out (`lib.root`) to get `offline_dirs`.
 
 ## 5. How to finish a stage
 
@@ -93,8 +111,8 @@ Per the spec, each stage is planned in detail (in the spec) before it's coded.
 3. Run the whole suite **both ways**, each to a file:
    `node --require ./test/setup.js --test --test-concurrency=3 test/*.test.js` with
    `MANDARIN_FRONT` unset (Node alone), then with `MANDARIN_FRONT=1` (through C#).
-   Wrap it in `timeout`. Recent counts: Node alone 507 tests (478 pass, 29 skipped); through C#
-   566 tests.
+   Wrap it in `timeout`; both runs take 25–40 minutes together on this box, so run them in the
+   background and do docs meanwhile. Recent counts (stage 5): see PR #206's description.
 4. Push, open a PR into `migration` with a plain summary and test results, then watch CI. CI
    jobs: **test (20)** (Node alone), **test (22)** (through C#), **Tests on a Mac** (through C#),
    **Build image**, and Android's **APK / Core tests (JVM) / Tailscale engine tests**. A run takes

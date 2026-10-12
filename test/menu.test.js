@@ -29,8 +29,16 @@ const DRIVER = `(async () => {
   window.MusicdDownloads = { settings: () => JSON.stringify(settings), set: (k, v) => { settings[k] = v; } };
   const overlay = $("menu-overlay"), drawer = overlay.querySelector(".menu-drawer");
   const open = () => !overlay.classList.contains("hidden");
+  // The menu open and its drawer done sliding in (style.css menuSlideIn), then a frame: on a
+  // slow runner a fixed wait tapped before it was there (v0.8.48).
+  const menuIn = async () => {
+    for (let i = 0; i < 300; i++) {
+      if (open() && drawer.getAnimations().every(a => a.playState === "finished")) { await new Promise(r => requestAnimationFrame(r)); return; }
+      await sleep(16);
+    }
+  };
   const tapAt = (x, y) => { const el = document.elementFromPoint(x, y); el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y })); return el; };
-  $("menu-toggle").click(); await sleep(400);
+  $("menu-toggle").click(); await menuIn();
   out.opened = open();
   const d = drawer.getBoundingClientRect();
   const home = overlay.querySelector('.menu-item[data-action="later"]');
@@ -54,7 +62,7 @@ const DRIVER = `(async () => {
   home.click(); await sleep(100);
   out.open_after_item = open();
   // Beside the menu: closes.
-  $("menu-toggle").click(); await sleep(400);
+  $("menu-toggle").click(); await menuIn();
   tapAt(window.innerWidth - 10, window.innerHeight / 2); await sleep(100);
   out.open_after_outside = open();
   return out;
@@ -114,7 +122,11 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
       const page = await b.page(B2 + "/", { cookies: [{ name: "musicd_session", value: token, url: B2 }] });
       r = await page.eval(`(async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
-        document.getElementById("menu-toggle").click(); await sleep(400);
+        document.getElementById("menu-toggle").click();
+        // The menu open and its drawer done sliding in, then a frame (as above).
+        const overlay = document.getElementById("menu-overlay"), drawer = overlay.querySelector(".menu-drawer");
+        for (let i = 0; i < 300 && (overlay.classList.contains("hidden") || drawer.getAnimations().some(a => a.playState !== "finished")); i++) await sleep(16);
+        await new Promise(r => requestAnimationFrame(r));
         document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click(); await sleep(600);
         const btn = document.querySelector("#content-count .playlists-import");
         if (!btn) return { shown: false };
