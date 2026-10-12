@@ -200,7 +200,7 @@ internal static partial class Jobs
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub here from now on, set up as the Node server's was.
-        if (handed.Contains("playback")) Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log); else Playback.Hub.Stop();
+        if (handed.Contains("playback")) await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log); else Playback.Hub.Stop();
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily, while handed over.
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers, while handed over.
@@ -257,7 +257,7 @@ internal static partial class Jobs
                     if (handed.Contains("scan") && startedWith is { } w) Scans.Start(c.Config, w.DataDir);
                     else Scans.Stop();
                     // Playback: the hub here stays as it is (the Node server started again never starts its own); started now if it wasn't.
-                    if (handed.Contains("playback")) { if (Playback.Hub.Current == null && startedWith is { } hw) Playback.Hub.Start(Playback.HubConfig.Of(c.Config, hw.DataDir, hw.Port), Front.Log); }
+                    if (handed.Contains("playback")) { if (Playback.Hub.Current == null && startedWith is { } hw) _ = Playback.Hub.Start(Playback.HubConfig.Of(c.Config, hw.DataDir, hw.Port), Front.Log); }
                     else Playback.Hub.Stop();
                     // The services' import: its first run after the Node server's start, as there.
                     Services.Import.Start(c.Config);

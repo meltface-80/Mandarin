@@ -154,7 +154,7 @@ internal static partial class PlaybackRoutes
 
     // ------------------------------------------------------------ a zone's JSON
 
-    private static JsonObject ZoneJson(Req req, ZoneInfo z, string name, List<(OutputInfo O, string Name)> outputs)
+    private static async Task<JsonObject> ZoneJson(Req req, ZoneInfo z, string name, List<(OutputInfo O, string Name)> outputs)
     {
         var st = z.State;
         var onQueue = st.OnQueue;
@@ -173,7 +173,7 @@ internal static partial class PlaybackRoutes
         if (onQueue) o["queue_items_remaining"] = Math.Max(0, st.QueueLength - st.TrackNumber);
         o["settings"] = z.Settings;
         o["outputs"] = new JsonArray(outputs.Select(x => { var j = x.O.Short(); j["display_name"] = x.Name; return (JsonNode)j; }).ToArray());
-        o["now_playing"] = NowPlaying.Of(req.C, z);
+        o["now_playing"] = await NowPlaying.Of(req.C, z);
         return o;
     }
 
@@ -244,7 +244,7 @@ internal static partial class PlaybackRoutes
         // Remember the room people are looking at: the Android app's lock screen, widget and tile mean this one.
         if (Str(Db.Setting(req.C, "lastZone")) != z.ZoneId) QueueStore.SetSetting(req.C, "lastZone", z.ZoneId);
         var (name, outs) = Named(req, z);
-        return await Send(req.Ctx, new JsonObject { ["revision"] = revision, ["zone"] = ZoneJson(req, z, name, outs) });
+        return await Send(req.Ctx, new JsonObject { ["revision"] = revision, ["zone"] = await ZoneJson(req, z, name, outs) });
     }
 
     private static async Task<bool> QueueRoute(Req req)

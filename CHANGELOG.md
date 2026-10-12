@@ -130,7 +130,10 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   its hub never starts, its device scans never run, and it answers nothing a page or a speaker
   asks of playback. A speaker asking for a stream or a cover by its own address, unsigned (a
   queue made before an update), is vouched for by the hub here (`Streams.cs`, `Images.cs`): the
-  Node server no longer knows the speakers and would turn it away. The device list and its routes came with part 3, the rooms' part of
+  Node server no longer knows the speakers and would turn it away. The hub never holds a thread
+  waiting on the library's copy (now playing, a play recorded, a queue rebuilt for another player,
+  the kept queues put back): each is asynchronous, so a busy machine with few cores can't be
+  starved into a hang — CI's runners were. The device list and its routes came with part 3, the rooms' part of
   `/api/status` and `/api/health` with part 2. `test/housekeeping-csharp.test.js` holds
   `/api/status` to the Node server's own answer with the rooms' part set aside (the Node hub
   being idle, it counts none) and the display's content to the hub's track.

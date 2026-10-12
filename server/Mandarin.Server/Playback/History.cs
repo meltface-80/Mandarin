@@ -54,17 +54,17 @@ internal static class History
     /* features.wire(): the hub's hooks. */
     public static void Wire(Hub hub)
     {
-        hub.OnPlayed += (zoneId, st) => RecordPlay(hub, zoneId, st);
+        hub.OnPlayed += (zoneId, st) => _ = RecordPlay(hub, zoneId, st).ContinueWith(t => hub.Log($"[history] {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
         hub.OnQueueLow += (zoneId, st) => _ = RadioTopUp(hub, zoneId).ContinueWith(t => { if (t.Exception != null) hub.Log($"[radio] {t.Exception.InnerException?.Message}"); }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     // ------------------------------------------------------------- history
 
-    private static void RecordPlay(Hub hub, string zoneId, ZoneState e)
+    private static async Task RecordPlay(Hub hub, string zoneId, ZoneState e)
     {
         try
         {
-            var s = Library.CurrentCopy().GetAwaiter().GetResult();
+            var s = await Library.CurrentCopy();
             using var c = Db.Open();
             var t = e.TrackId != null && s != null ? Tracks.Of(c, s, e.TrackId.Value) : null;
             var al = t != null && s != null ? s.Find(t.AlbumId) : null;

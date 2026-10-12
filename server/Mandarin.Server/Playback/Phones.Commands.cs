@@ -55,7 +55,7 @@ internal sealed partial class Phones
     }
 
     /* The queue's items built again for the phone's target as it is now, and handed back in place. */
-    private void Replan(PhoneRec p)
+    private async Task Replan(PhoneRec p)
     {
         List<long> ids;
         lock (zm.Gate)
@@ -65,7 +65,7 @@ internal sealed partial class Phones
             ids = p.Queue.Select(it => it.TrackId!.Value).ToList();
         }
         List<PhoneItem> items;
-        try { items = zm.RebuildItems(ids, p.Uid).Select(ToItem).ToList(); } catch (Exception e) when (e is HubError or JsError) { return; }
+        try { items = (await zm.RebuildItems(ids, p.Uid)).Select(ToItem).ToList(); } catch (Exception e) when (e is HubError or JsError) { return; }
         lock (zm.Gate)
         {
             if (items.Count != p.Queue.Count) return;

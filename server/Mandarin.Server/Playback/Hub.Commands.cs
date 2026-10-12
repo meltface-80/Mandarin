@@ -120,7 +120,7 @@ internal sealed partial class Hub
             if (IsUpnp(fromZone)) { ids = UpnpTrackIds(fromZone); st = StateOf(fromZone) ?? new ZoneState(); }
             else if (Phones.IsPhoneId(fromZone)) { ids = Phones.ItemsFor(fromZone).Select(it => it.Phone!.TrackId ?? 0).ToList(); st = StateOf(fromZone) ?? new ZoneState(); }
             else (ids, st) = await SonosTrackIds(fromZone);
-            var items = RebuildItems(ids.Where(id => id > 0).ToList(), toZone);
+            var items = await RebuildItems(ids.Where(id => id > 0).ToList(), toZone);
             if (items.Count == 0) throw new HubError(500, "Nothing queued there is from the library");
             var startAt = Math.Min(items.Count - 1, Math.Max(0, (st.TrackNumber > 0 ? st.TrackNumber : 1) - 1));
             await Enqueue(toZone, items, "play_now", startAt, PositionNow(st));

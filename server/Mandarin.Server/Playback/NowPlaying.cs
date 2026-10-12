@@ -13,11 +13,11 @@ internal static class NowPlaying
     public static string ForeignKey(string url) =>
         Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(url)).TrimEnd('=').Replace('+', '-').Replace('/', '_') is var b ? "u-" + b : "";
 
-    public static JsonObject? Of(SqliteConnection c, ZoneInfo z)
+    public static async Task<JsonObject?> Of(SqliteConnection c, ZoneInfo z)
     {
         var st = z.State;
         if (st.TrackUri.Length == 0 && st.Title.Length == 0) return null;
-        var s = Library.CurrentCopy().GetAwaiter().GetResult();
+        var s = await Library.CurrentCopy();
         var t = st.TrackId != null && s != null ? Tracks.Of(c, s, st.TrackId.Value) : null;
         var al = t != null && s != null ? s.Find(t.AlbumId) : null;
         var line1 = t?.Title is { Length: > 0 } tt ? tt : st.Title.Length > 0 ? st.Title : st.StreamContent;

@@ -55,12 +55,12 @@ internal sealed partial class Hub
             }
             if (k == "dsp")
             {
-                if (streamer) Upnp.Replan(id);
+                if (streamer) await Upnp.Replan(id);
                 if (r.Kind == "phone") { JsObj next; using (var c = Db.Open()) next = PlaybackRoutes.DspFor(c, id); Phones.DspChanged(id, next); }
             }
             if (k == "levelling")
             {
-                if (streamer) Upnp.Replan(id);
+                if (streamer) await Upnp.Replan(id);
                 if (r.Kind == "phone") { JsObj next; using (var c = Db.Open()) next = Items.LevellingFor(c, id); Phones.LevellingChanged(id, next); }
                 if (r.Kind == "sonos") _ = ReplanSonos(id).ContinueWith(t => Log("[levelling] " + t.Exception?.InnerException?.Message), TaskContinuationOptions.OnlyOnFaulted);
             }

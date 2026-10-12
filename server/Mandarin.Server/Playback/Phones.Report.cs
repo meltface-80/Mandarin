@@ -94,7 +94,7 @@ internal sealed partial class Phones
             var caps = UsbCaps(r["usb_caps"]);
             if (TJs.Json(caps) != TJs.Json(p.UsbCaps)) { p.UsbCaps = caps; replan = true; }
         }
-        if (replan) Replan(p);
+        if (replan) _ = Replan(p).ContinueWith(t => zm.Log("[phones] replan: " + t.Exception?.InnerException?.Message), TaskContinuationOptions.OnlyOnFaulted);
     }
 
     // ------------------------------------------------------------ zones

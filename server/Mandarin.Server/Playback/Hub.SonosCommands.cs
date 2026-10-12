@@ -118,7 +118,7 @@ internal sealed partial class Hub
         var q = await c.BrowseQueue(0, QueueMax);
         var ids = q.Items.Select(it => Phones.TrackIdFromUri(Str(it["uri"]))).ToList();
         if (ids.Count == 0 || ids.Any(x => x == null)) return false;
-        var items = RebuildItems(ids.Select(x => x!.Value).ToList(), c.Uid);
+        var items = await RebuildItems(ids.Select(x => x!.Value).ToList(), c.Uid);
         if (items.Count != ids.Count) return false;
         static string Unsigned(string u) => u.Split("&s=")[0].Split("?s=")[0];
         if (items.Select((it, i) => Unsigned(it.Uri) == Unsigned(Str(q.Items[i]["uri"]))).All(x => x)) return false;

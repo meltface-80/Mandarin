@@ -231,7 +231,7 @@ internal sealed partial class Players
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */
-    public bool Replan(string id)
+    public async Task<bool> Replan(string id)
     {
         Player? p;
         List<long> ids;
@@ -240,7 +240,7 @@ internal sealed partial class Players
             if (!map.TryGetValue(id, out p) || p.Queue.Count == 0) return false;
             ids = p.Queue.Select(it => it.TrackId ?? 0).ToList();
         }
-        var items = zm.RebuildItems(ids.Where(x => x > 0).ToList(), id);
+        var items = await zm.RebuildItems(ids.Where(x => x > 0).ToList(), id);
         lock (gate)
         {
             if (items.Count != p.Queue.Count) return false;

@@ -108,12 +108,13 @@ internal sealed partial class Hub
 
     // ------------------------------------------------------------ lifecycle
 
-    public static Hub Start(HubConfig config, Action<string> log)
+    /* The hub, running: Current from the first line, so a request never waits on the start; the kept queues back before the loops begin. */
+    public static async Task<Hub> Start(HubConfig config, Action<string> log)
     {
         var hub = new Hub(config, log) { Store = new QueueStore(log) };
         Current = hub;
         History.Wire(hub);
-        hub.RestoreQueues();
+        await hub.RestoreQueues();
         hub.StartSonos();
         hub.Devices.Start();
         hub.StartRegister();
@@ -269,7 +270,7 @@ internal sealed partial class Hub
     }
 
     /* After a start: every phone and renderer queue kept from before, put back with its items rebuilt from the library. */
-    public int RestoreQueues()
+    public async Task<int> RestoreQueues()
     {
         if (Store == null) return 0;
         var n = 0;
@@ -277,7 +278,7 @@ internal sealed partial class Hub
         {
             try
             {
-                var items = RebuildItems(snap.Ids.Where(x => x != null).Select(x => x!.Value).ToList(), snap.Id);
+                var items = await RebuildItems(snap.Ids.Where(x => x != null).Select(x => x!.Value).ToList(), snap.Id);
                 if (items.Count == 0) { Store.Forget(snap.Id); continue; }
                 if (snap.Kind == "phone") Phones.Restore(snap, items);
                 else if (snap.Kind == "upnp" && UpnpRestore(snap, items)) { }
@@ -294,9 +295,9 @@ internal sealed partial class Hub
     }
 
     /* A queue moving between players is rebuilt for the player it goes to (index.js rebuildItems). */
-    public List<PlayItem> RebuildItems(List<long> ids, string zoneId)
+    public async Task<List<PlayItem>> RebuildItems(List<long> ids, string zoneId)
     {
-        var s = Library.CurrentCopy().GetAwaiter().GetResult();
+        var s = await Library.CurrentCopy();
         if (s == null) return [];
         using var c = Db.Open();
         var tracks = ids.Select(id => Tracks.Of(c, s, id)).Where(t => t != null).Select(t => t!).ToList();
