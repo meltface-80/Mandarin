@@ -99,6 +99,8 @@ const config = {
   // tag reader is the one the scan uses: said by the C# server that starts
   // this one, with the scan protocol it speaks (an older one says neither).
   serverBin: process.env.MANDARIN_SERVER_SCAN === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
+  // And the database's tables and migrations (v0.8.48): made by it, said by the C# server that starts this one.
+  dbProgram: process.env.MANDARIN_SERVER_DB === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -112,7 +114,7 @@ function createServer(overrides = {}) {
   CPU.init({ log });
   // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
   require("./lib/backup").swapStaged(config.dataDir, log);
-  const db = DB.open(config.dataDir, { log });
+  const db = DB.open(config.dataDir, { log, program: config.dbProgram });
   // Where a record's write-up is asked (lib/meta.js).
   META.configure(config);
   const library = new Library(db, { musicRoot: config.musicDir, log });
@@ -401,13 +403,17 @@ function createServer(overrides = {}) {
   // the C# server is told which, and how this one was set up. This server's
   // own requests to MusicBrainz wait their turn on the C# server's timer from
   // now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services"];
+  // The in-app update and the processor split (v0.8.48, stage 5 part 4): "update" and "cpu".
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu"];
   // The library scans go to the C# server only where this server's own would
   // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
   // or the tag check passed for the two readers (not TAG_READER=node). Else
   // they stay here, as before v0.8.34. Decided at the hand-over.
   const scansGoToFront = () => !!scanner.program();
-  const handsOver = (j) => FRONT_JOBS.includes(j) && (j !== "scan" || scansGoToFront());
+  // The scans are handed over whatever reads the tags (v0.8.48): where the
+  // program isn't trusted with them, each scan the C# server starts is made
+  // by this server's own scanner at its ask (/internal/scan).
+  const handsOver = (j) => FRONT_JOBS.includes(j);
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
@@ -446,6 +452,18 @@ function createServer(overrides = {}) {
     const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
     // Tailscale built in (v0.8.22): the engine run there, and the phones' away address asked of it.
     if (jobs.has("tailscale")) ctx.tailscale.handOver(front ? { url: front, key: ctx.frontKey } : null);
+    // The processor split (v0.8.48): decided there and sent here (/internal/cpu/plan),
+    // this server following it; a DSP conversion made here told to it. Else its own, as before.
+    if (jobs.has("cpu") && front) {
+      CPU.tellDspTo(async (on) => {
+        try {
+          const r = await fetch(front + "/internal/cpu/dsp", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ on }), signal: AbortSignal.timeout(10000) });
+          const j = r.ok ? await r.json() : null;
+          if (j && j.cpu) CPU.follow(j.cpu);
+        } catch (e) { log(`[cpu] the C# server wasn't told of a DSP conversion: ${e.message}`); }
+      });
+    } else CPU.unfollow();
     if (front) {
       META.useMbSlot(async () => {
         const r = await fetch(front + "/internal/mb/slot", { headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(60000) });
@@ -467,6 +485,12 @@ function createServer(overrides = {}) {
         wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null,
         tailscale_bin: config.tailscaleBin || null, tailscale_dir: path.join(config.dataDir, "tailscale"), tailscale_port: config.port,
         tailscale_watchdog: config.tailscaleWatchdog || null,
+        // The in-app update (v0.8.48): under the launcher or not, where GitHub is asked
+        // (the tests' stand-in), and whether to check by itself.
+        via_launcher: process.env.MUSICD_VIA_LAUNCHER === "1", update_repo: process.env.UPDATE_REPO || null,
+        update_api: process.env.UPDATE_API || null, update_check: process.env.UPDATE_CHECK !== "false",
+        // The processor split (v0.8.48): the DSP conversions under way here, for the C# server to count from the start.
+        cpu_dsp: CPU.running(),
         // Last.fm (v0.8.26): where it is asked, and the key from the environment (LASTFM_KEY).
         lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
         // Headphone profiles (v0.8.26): where AutoEq's results are.
@@ -474,6 +498,8 @@ function createServer(overrides = {}) {
         // The library scans (v0.8.34): the music folder it was started with, the
         // most a scan may take away unasked, and how often the library is read.
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
+        // Whether the C# program is trusted with the tags (v0.8.48): its own scan then, else this server's at its ask.
+        scan_program: scansGoToFront(),
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
         qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
         // Tidal's sign-in (v0.8.47): where it is asked.
@@ -488,7 +514,7 @@ function createServer(overrides = {}) {
   app.post("/internal/front/restart", (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     res.json({ ok: true });
-    log("[musicd] restarting for the C# server (a backup restored)");
+    log(`[musicd] restarting for the C# server (${req.query.why === "update" ? "an update staged" : "a backup restored"})`);
     setTimeout(() => ctx.restartServer(), 50);
   });
   // A conversion with DSP the C# server is making (v0.8.40): playback has its
@@ -498,6 +524,25 @@ function createServer(overrides = {}) {
     if (!fromFront(req)) return res.status(403).end();
     CPU.dsp(!!(req.body && req.body.on));
     res.json({ cpu: CPU.plan() });
+  });
+  // The split as the C# server decided it (v0.8.48, Cpu.cs): kept to here, for
+  // playback's own processes (the audio engine, its decoder, a conversion made here).
+  app.post("/internal/cpu/plan", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    CPU.follow((req.body || {}).cpu);
+    res.json({ ok: true, cpu: CPU.plan() });
+  });
+  // A device's settings written by the C# server (v0.8.48, DeviceRoutes.cs):
+  // the row read again here, what each write did here done, and the device
+  // answered as its page shows it (api-devices.js).
+  app.post("/internal/devices/changed", express.json(), async (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const b = req.body || {};
+    try {
+      const d = await ctx.devices.changed(String(b.id || ""), Array.isArray(b.changed) ? b.changed.map(String) : []);
+      if (!d) return res.status(404).json({ error: "No such device" });
+      res.json(ctx.deviceShown ? ctx.deviceShown(d) : d);
+    } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
   // A Qobuz or Tidal album the C# server wrote the rows of, played here
   // (v0.8.47, ServiceRoutes.cs): what api-service.js's play does once the
@@ -536,8 +581,37 @@ function createServer(overrides = {}) {
       // The day and week on this server's clock (its time zone): Home's rows turn over with them.
       day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
       // Which cores playback keeps (lib/cpu.js): the C# server keeps to them too (Cpu.cs).
-      cpu: CPU.plan()
+      cpu: CPU.plan(),
+      // For /api/health, answered by the C# server (v0.8.48): the rooms found, and
+      // how bringing the C# server to this one's version went.
+      rooms: zones.topology.rooms().length,
+      csharp_update: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null,
+      // For /api/status, answered by the C# server (v0.8.48, HousekeepingRoutes.cs): the rooms' part.
+      zone_count: zones.zones().filter(z => !ctx.devices || ctx.devices.zoneShown(z)).length,
+      sonos: { rooms: zones.topology.rooms().length, discovered: zones.discovered, searching: zones.searching, error: zones.topology.lastError || null },
+      // The speakers' own addresses (auth.js speakerIps): a cover one asks for is sent by the C# server (v0.8.48, Images.cs).
+      speakers: zones.topology.hosts
     });
+  });
+  // A library scan made here at the C# server's ask (v0.8.48, Scans.cs): where
+  // its program isn't trusted with the tags, this server's own scanner, its
+  // state sent back line by line as the program's is, the result at the end.
+  app.post("/internal/scan", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" });
+    const line = (o) => { try { res.write(JSON.stringify(o) + "\n"); } catch (e) { /* gone */ } };
+    const tick = setInterval(() => line({ type: "state", state: scanner.state }), 1000);
+    log("[scan] a scan at the C# server's ask: made here");
+    scanner.scan({ force: !!(req.body || {}).force })
+      .then(r => line({ type: "result", result: r, state: scanner.state }), e => line({ type: "error", message: e.message }))
+      .finally(() => { clearInterval(tick); res.end(); });
+  });
+  // What a zone is playing, for the wall display's content (v0.8.48, HousekeepingRoutes.cs).
+  app.post("/internal/playback/now", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const z = zones.zone(String((req.body || {}).zone || ""));
+    const st = z && z._state;
+    res.json({ state: st ? { title: st.title || "", trackId: st.trackId == null ? null : st.trackId, artist: st.artist || "", album: st.album || "" } : null });
   });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);
@@ -777,6 +851,9 @@ function createServer(overrides = {}) {
       if (frontRuns.has("scan")) ctx.ownScans();
       // The services' import, a run missed while this one waited: made now.
       if (frontRuns.has("import") && syncMissed) serviceSync();
+      // The in-app update's own checks (v0.8.48): started here after all. The
+      // processor split was never anyone else's: nothing to start.
+      if (frontRuns.has("update") && ctx.startUpdateChecks) ctx.startUpdateChecks();
     };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {
@@ -823,7 +900,7 @@ function createServer(overrides = {}) {
       if (ctx.watcher) { ctx.watcher.stop(); ctx.watcher = null; }
       if (scanner.running) scanner.stop();
     };
-    if (!frontRuns.has("scan") || !scansGoToFront()) ctx.ownScans();
+    if (!frontRuns.has("scan")) ctx.ownScans();
     ctx.scanTimers = [];
     // The streaming services: your favourites (and purchases) brought up to
     // date soon after the start and every six hours, while signed in with

@@ -180,25 +180,29 @@ test("the library read on the C# server's timer, and when the music folders chan
 // Node server's own would already be its program — TAG_READER=csharp, or the
 // tag check passed. Otherwise they stay the Node server's, as before v0.8.34.
 // (Last in this file: a server's settings stay with the next one started here.)
-test("the scans stay with the Node server where its own wouldn't be the C# program's", { skip, timeout: 120000 }, async (t) => {
+/*
+ * Where the Node server's own scan wouldn't be the C# program's (v0.8.48,
+ * stage 5 part 2; before, the scans stayed with the Node server then): the
+ * scans are handed over all the same, started by the C# server and made by
+ * the Node server's own scanner at its ask (POST /internal/scan), and the
+ * routes are the C# server's. test/housekeeping-csharp.test.js holds that
+ * scan to the Node server's own.
+ */
+test("the scans are the C# server's to start where its program isn't trusted with the tags, made by the Node server's scanner at its ask", { skip, timeout: 120000 }, async (t) => {
   for (const [what, overrides] of [["TAG_READER=node", { tagReader: "node" }], ["the tag check not passed", { tagReader: "auto" }]]) {
     await t.test(what, async (t) => {
       const lib = makeLibrary();
-      const s = await serve(t, lib, {}, overrides);
-      await until(async () => (await albums(s)) === 3 && idle(s), 30000, "the first scan, the Node server's");
+      const s = await serve(t, lib, { MANDARIN_WATCH_QUIET_MS: "600000" }, overrides);
+      await until(async () => (await albums(s)) === 3 && idle(s), 30000, "the first scan, the Node server's at the C# server's ask");
       assert.ok(s.ctx.frontRuns, "the rest handed over");
-      assert.ok(!s.ctx.frontRuns.has("scan"), "but not the scans");
-      assert.ok(s.ctx.ownScanTimers, "the Node server's own timer runs");
+      assert.ok(s.ctx.frontRuns.has("scan"), "and the scans");
+      assert.equal(s.ctx.ownScanTimers, null, "the Node server's own timer doesn't run");
+      assert.equal(s.ctx.scanner.programNow(), null, "its scanner isn't the C# program");
+      assert.ok(s.ctx.scanner.state.lastResult, "its own scanner made the scan");
       const f = await s.get("/api/library/folders");
-      assert.deepEqual([f.status, f.by], [200, null], "the music folders answered by the Node server");
-      // Asked again while a scan of the Node server's own runs (its watcher's, on a busy machine): "busy", from it too.
-      let r = await s.post("/api/library/rescan");
-      for (let i = 0; i < 20 && r.j && r.j.status === "busy"; i++) {
-        assert.deepEqual([r.status, r.by], [200, null], "busy, said by the Node server");
-        await until(() => idle(s), 30000, "its scan to end");
-        r = await s.post("/api/library/rescan");
-      }
-      assert.deepEqual([r.status, r.by, r.j.status], [200, null, "fresh"], JSON.stringify(r.j));
+      assert.deepEqual([f.status, f.by], [200, "C#"], "the music folders answered by the C# server");
+      const r = await s.post("/api/library/rescan");
+      assert.deepEqual([r.status, r.by, r.j.status], [200, "C#", "fresh"], JSON.stringify(r.j));
     });
   }
 });

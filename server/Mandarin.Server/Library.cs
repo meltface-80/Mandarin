@@ -71,6 +71,8 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
     public bool Scanning { get; init; }
     // When the Node server last read the library (the label wall's builtAt).
     public double? BuiltAt { get; init; }
+    // The state as the Node server said it, whole: what only it knows (its rooms, v0.8.48).
+    public JsonObject Said { get; init; } = [];
 
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
 }
@@ -266,7 +268,8 @@ internal static partial class Library
             {
                 Day = JsString(j["day"]) ?? "", BaseUrl = JsString(j["base_url"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
                 Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning,
-                BuiltAt = j["built_at"] is JsonValue bv && bv.TryGetValue<double>(out var built) ? built : null
+                BuiltAt = j["built_at"] is JsonValue bv && bv.TryGetValue<double>(out var built) ? built : null,
+                Said = j
             };
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException)

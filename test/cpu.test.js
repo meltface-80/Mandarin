@@ -5,7 +5,9 @@
  * while DSP is in use — from the machine and PLAYBACK_CORES / PLAYBACK_CORE;
  * each kind of work started where it belongs; the server itself, and anything
  * running, moved when DSP takes or gives back its second core; and, through
- * the C# server (MANDARIN_FRONT=1), that server keeping to the same split.
+ * the C# server (MANDARIN_FRONT=1), the split decided by that server (v0.8.48,
+ * Cpu.cs: the same decision, the DSP conversions of both servers counted),
+ * this one following it, both keeping to it.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -153,7 +155,7 @@ test("for real: this process off playback's core, children where they belong, mo
 
 const skipFront = process.env.MANDARIN_FRONT !== "1" ? "the suite isn't going through the C# server (MANDARIN_FRONT=1)" : skipReal;
 
-test("the C# server keeps to the split, and moves with it", { skip: skipFront, timeout: 60000 }, async () => {
+test("the split decided by the C# server: the same decision, followed here, both keeping to it and moving with DSP", { skip: skipFront, timeout: 90000 }, async () => {
   CPU.reset();
   const { signIn } = require("./auth-helper");
   const os = require("os");
@@ -162,13 +164,18 @@ test("the C# server keeps to the split, and moves with it", { skip: skipFront, t
   fs.mkdirSync(music);
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const before = allowedOf(process.pid);
+  // DSP's second core held briefly after its last conversion (the C# server's hold, lib/cpu.js's ten minutes otherwise).
+  process.env.MANDARIN_CPU_HOLD_MS = "300";
   const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   try {
+    // A DSP conversion under way here before the C# server takes the split: counted to it at the
+    // hand-over (cpu_dsp), so its first decision keeps playback's second core; given back once it ends.
+    CPU.dsp(true);
     await srv.start();
     const H = { Authorization: "Bearer " + await signIn(B) };
-    const p = await (await fetch(B + "/api/cpu", { headers: H })).json();
-    assert.equal(p.split, true);
+    const cpu = async () => { const r = await fetch(B + "/api/cpu", { headers: H }); return { by: r.headers.get("x-mandarin-answered"), plan: await r.json() }; };
+    assert.equal((await cpu()).plan.split, true);
     // The C# server: this process's child of that name.
     const cs = fs.readdirSync("/proc").filter(d => /^\d+$/.test(d)).find(d => {
       try {
@@ -177,15 +184,88 @@ test("the C# server keeps to the split, and moves with it", { skip: skipFront, t
       } catch (e) { return false; }
     });
     assert.ok(cs, "the C# server found");
-    // Within the five seconds it asks the library's state in: every thread of it on the rest.
+    // Once it holds "cpu": /api/cpu answered there, the decision lib/cpu.js
+    // makes for the cores this process started with; followed here.
+    const all = CPU.plan().cores;
+    const want = CPU.decide({ platform: "linux", taskset: true, cores: all, env: process.env, dsp: false });
+    const first = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
+    assert.deepEqual([first.dsp, first.playback], [true, all.slice(-2)], "the conversion under way at the hand-over counted there: " + JSON.stringify(first));
+    assert.equal(CPU.running(), 0, "and no longer here");
+    CPU.dsp(false);
+    await until(() => CPU.plan().playback.length === 1, 5000, "the second core given back once it ends");
+    const after0 = await cpu();
+    assert.equal(after0.by, "C#");
+    const p = after0.plan;
+    assert.deepEqual([p.split, p.cores, p.playback, p.background, p.core, p.dsp], [want.split, want.cores, want.playback, want.background, want.core, false], "as lib/cpu.js decides it");
+    assert.deepEqual(CPU.plan().playback, p.playback, "followed here");
+    assert.deepEqual(CPU.plan().cores, all);
+    // Every thread of it on the rest, and this process too.
     await until(() => threadsOf(cs).every(t => t === CPU.compact(p.background)), 15000, "the C# server on the rest: " + threadsOf(cs).join(" "));
+    assert.equal(allowedOf(process.pid), CPU.compact(p.background), "this process on the rest");
+    // A DSP conversion made here: told to the C# server, which gives playback
+    // its second core; followed here, both moving off it.
     CPU.dsp(true);
-    const d = CPU.plan();
+    const d = await until(() => { const x = CPU.plan(); return x.playback.length === 2 && x.dsp && x; }, 10000, "the split with DSP, from the C# server");
+    assert.deepEqual(d.playback, all.slice(-2));
+    assert.deepEqual(d.background, all.slice(0, -2));
+    const withDsp = await cpu();
+    assert.deepEqual([withDsp.by, withDsp.plan.playback, withDsp.plan.dsp], ["C#", d.playback, true]);
     await until(() => threadsOf(cs).every(t => t === CPU.compact(d.background)), 15000, "the C# server moved for DSP: " + threadsOf(cs).join(" "));
-    assert.deepEqual((await (await fetch(B + "/api/cpu", { headers: H })).json()).playback, d.playback);
+    assert.equal(allowedOf(process.pid), CPU.compact(d.background), "this process moved with it");
+    assert.equal(CPU.slots(), d.background.length);
+    // Ended: held a while, then given back by the C# server; followed here again.
+    CPU.dsp(false);
+    await sleep(100);
+    assert.deepEqual(CPU.plan().playback, all.slice(-2), "held after the last DSP conversion");
+    await until(() => CPU.plan().playback.length === 1, 5000, "the second core given back");
+    assert.equal(CPU.plan().dsp, false);
+    const after = await cpu();
+    assert.deepEqual([after.plan.playback, after.plan.dsp], [p.playback, false]);
+    await until(() => threadsOf(cs).every(t => t === CPU.compact(p.background)), 15000, "the C# server back on the rest: " + threadsOf(cs).join(" "));
+    assert.equal(allowedOf(process.pid), CPU.compact(p.background));
   } finally {
+    delete process.env.MANDARIN_CPU_HOLD_MS;
     await srv.stop().catch(() => {});
     spawnSync("taskset", ["-a", "-p", "-c", before, String(process.pid)], { stdio: "ignore" });
+    CPU.reset();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// Nothing to split (PLAYBACK_CORES=0 here; a Mac, or a machine of two cores,
+// is the same): what the C# server tells the Node server carries whether DSP
+// is in use as well as the split, so the Node server still hears when a
+// conversion starts and ends, though the split never changes (v0.8.48, found
+// on the Mac: the conversions test waited for it in vain).
+test("nothing to split: the Node server is still told when DSP starts and ends", { skip: process.env.MANDARIN_FRONT !== "1" ? "the suite isn't going through the C# server (MANDARIN_FRONT=1)" : false, timeout: 60000 }, async () => {
+  CPU.reset();
+  const { signIn } = require("./auth-helper");
+  const os = require("os");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-cpu0-"));
+  const music = path.join(root, "music"), data = path.join(root, "data");
+  fs.mkdirSync(music);
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  process.env.PLAYBACK_CORES = "0";
+  process.env.MANDARIN_CPU_HOLD_MS = "300";
+  const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
+    sonosHosts: [], upnpMulticast: false, identify: false });
+  try {
+    await srv.start();
+    const H = { Authorization: "Bearer " + await signIn(B) };
+    const cpu = async () => { const r = await fetch(B + "/api/cpu", { headers: H }); return { by: r.headers.get("x-mandarin-answered"), plan: await r.json() }; };
+    const p = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
+    assert.deepEqual([p.split, p.playback, p.dsp], [false, [], false], "nothing split, no DSP: " + JSON.stringify(p));
+    assert.equal(CPU.plan().split, false, "followed here");
+    CPU.dsp(true);
+    await until(() => CPU.plan().dsp === true, 10000, "the Node server told DSP started");
+    assert.equal((await cpu()).plan.dsp, true);
+    CPU.dsp(false);
+    await until(() => CPU.plan().dsp === false, 5000, "and that it ended, once the hold is over");
+    assert.equal((await cpu()).plan.dsp, false);
+  } finally {
+    delete process.env.PLAYBACK_CORES;
+    delete process.env.MANDARIN_CPU_HOLD_MS;
+    await srv.stop().catch(() => {});
     CPU.reset();
     fs.rmSync(root, { recursive: true, force: true });
   }

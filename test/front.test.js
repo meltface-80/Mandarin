@@ -100,7 +100,10 @@
  *     part of the search from Home, each held to the Node server's own answer, write and bytes
  *     (test/services-signin-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode).
  *     Playback itself (the rooms, the queue, /api/play…) is still the Node server's (the v0.8.47 test
- *     here; the job list in the v0.8.19 one).
+ *     here; the job list in the v0.8.19 one);
+ *   - v0.8.48 (stage 5, everything but playback): the database made and brought up to date by C#
+ *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
+ *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -145,7 +148,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.deepEqual([x.status, x.by], [200, "C#"], "the library: read by C# " + JSON.stringify([x.status, x.by]));
     assert.equal((await x.r.json()).total, 3);
     x = await by("/api/status", { headers: H });
-    assert.deepEqual([x.status, x.by], [200, "Node"], "the server's state: passed on, signed in by C#'s token");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "the server's state: the C# server's since v0.8.48 (the scans are its), signed in by C#'s token");
     // The Node server's private address for the C# server: not from outside, and not without its key.
     x = await by("/internal/library", { headers: H });
     assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/library answered 404 at the door");
@@ -187,9 +190,10 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
+    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/pages-csharp.test.js).
     for (const p of ["/login", "/display", "/library"]) {
       x = await by(p, { headers: H, redirect: "manual" });
-      assert.equal(x.by, "Node", p + ": a Node route or the page for a deep link, passed on");
+      assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");
     }
     // v0.8.16: hearts, Listen later and label changes made by C# (an album that isn't there, said by C#).
     const J = Object.assign({ "Content-Type": "application/json" }, H);
@@ -204,7 +208,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     x = await by("/api/settings/label-folder-depth", { method: "POST", headers: J, body: JSON.stringify({ depth: -1 }) });
     assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
-    assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "health, open, by C# since v0.8.48");
   } finally { await srv.stop(); }
 });
 
@@ -217,7 +221,7 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
   const ctx = await srv.start();
   try {
     // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "import", "labels", "loudness", "mbpack", "prune", "scan", "services", "tailscale", "taste"]);
+    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["cpu", "days", "identify", "import", "labels", "loudness", "mbpack", "prune", "scan", "services", "tailscale", "taste", "update"]);
     assert.equal(ctx.identifier.handedOver, true);
     ctx.identifier.start();
     assert.equal(ctx.identifier.timer, null, "not started again here");
@@ -476,8 +480,9 @@ test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean 
     assert.equal(page[2].album.service_why, undefined, "signed out: nothing of the service");
     // Clean up of a service's albums where the scans are C#'s: signed out, every one goes.
     assert.deepEqual(await by("/api/library/cleanup", { kind: "qobuz" }), [200, "C#", { ok: true, kind: "qobuz", removed: 1, count: 3 }]);
-    assert.deepEqual((await by("/api/library/cleanup", { kind: "files" })).slice(0, 2), [200, "Node"], "the music folders' kind, the Node server's");
-    assert.deepEqual((await by("/api/library/cleanup")).slice(0, 2), [200, "Node"], "the counts, the Node server's");
+    // The music folders' kind and the counts: the C# server's too since v0.8.48 (HousekeepingRoutes.cs).
+    assert.deepEqual(await by("/api/library/cleanup", { kind: "files" }), [200, "C#", { ok: true, kind: "files", removed: 0, albums: 0, count: 3 }], "the music folders' kind");
+    assert.deepEqual(await by("/api/library/cleanup"), [200, "C#", { files: { albums: 0, tracks: 0, folders: 0 }, qobuz: { albums: 0, signed_in: false }, tidal: { albums: 0, signed_in: false } }], "the counts");
   } finally { await srv.stop(); }
 });
 

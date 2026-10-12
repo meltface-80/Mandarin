@@ -24,6 +24,8 @@ internal static partial class Front
 
     /* This program's version (Program.cs). */
     public static string Version = "0.0.0";
+    /* The data folder, shared with the Node server (Program.cs). */
+    public static string DataDir = "";
     private static volatile string? nodeVersion;
 
     /* The Node server's version, as it says with its state (Library.cs). */
@@ -142,6 +144,8 @@ internal static partial class Front
         {
             psi.Environment["MANDARIN_SERVER_BIN"] = self;
             psi.Environment["MANDARIN_SERVER_SCAN"] = Scan.ScanCommand.Protocol;
+            // And the database's tables and migrations (v0.8.48, Schema.cs): `mandarin-server db`.
+            psi.Environment["MANDARIN_SERVER_DB"] = "1";
         }
         psi.Environment["MANDARIN_TAG_READER"] = Tags.TagReader.Version;
         // What this server makes in the Node server's place from the start (Jobs.cs): it doesn't start them itself.

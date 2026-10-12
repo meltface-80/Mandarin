@@ -1,10 +1,13 @@
 // Pages.cs — the page and its files (public/), moved from index.js in v0.8.3.
 //
-// Only what is a file in public/ is served here, behind the gate: the page,
-// its script and stylesheets, the icons and fonts, and Shelf's page at /shelf
-// (v0.8.28). Every other address still goes to the Node server, which has
-// routes outside /api (/login, /display, the streams) and opens the page
-// itself for any deep link.
+// What is a file in public/ is served here, behind the gate: the page, its
+// script and stylesheets, the icons and fonts, and Shelf's page at /shelf
+// (v0.8.28). Since v0.8.48 (stage 5 part 7) the rest of the Node server's
+// pages too: the sign-in page (/login) and the wall display's (/display),
+// sent as the files they are, and the page for any other address it opens
+// (a deep link: a GET outside /api/, /stream/, /internal/ and /upnp/ that
+// names no file), as its app.get("*") sent it; a folder of public/ asked for
+// without its slash is sent there, as express.static sent it.
 //
 // The Android app's WebView gets two files of its own, as before: the page
 // without viewport-fit=cover, and the stylesheet with every safe-area
@@ -42,6 +45,11 @@ internal static partial class Pages
         // the app's WebView too. The route takes /shelf/ as well (a second
         // route for it would be the same one twice, and neither would answer).
         app.MapMethods("/shelf", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "shelf.html"));
+        // The sign-in page (open) and the wall display's (v0.8.48), likewise; the route takes /display/ too.
+        app.MapMethods("/login", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "login.html"));
+        app.MapMethods("/display", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "display.html"));
+        Dir = publicDir;
+        Files = files;
 
         // The Android app's stylesheet; everyone else's is the file as it is.
         app.Use(async (ctx, next) =>
@@ -80,6 +88,76 @@ internal static partial class Pages
         });
     }
 
+    private static string? Dir;
+    private static IFileProvider? Files;
+
+    /*
+     * After the routes are chosen (Program.cs): a request no route of this
+     * server's took, which the Node server would have answered with the page
+     * (app.get("*")) or a folder's redirect (express.static). Everything else
+     * goes on to it.
+     */
+    public static void UseDeepLinks(WebApplication app)
+    {
+        app.Use(async (ctx, next) =>
+        {
+            if (Dir != null && Files != null && Unclaimed(ctx) && (HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method)))
+            {
+                var p = ctx.Request.Path.Value ?? "/";
+                bool nodes = p == "/api" || p.StartsWith("/api/", StringComparison.Ordinal) || p.StartsWith("/stream/", StringComparison.Ordinal)
+                    || p.StartsWith("/internal/", StringComparison.Ordinal) || p.StartsWith("/upnp/", StringComparison.Ordinal);
+                if (!nodes)
+                {
+                    if (FolderWithoutSlash(p)) { await RedirectToFolder(ctx); return; }
+                    await SendApp(ctx, Dir, Files);
+                    return;
+                }
+            }
+            await next();
+        });
+    }
+
+    /* No route here took it: the one that passes everything else to the Node server would. */
+    private static bool Unclaimed(HttpContext ctx) => ctx.GetEndpoint() switch
+    {
+        null => true,
+        Microsoft.AspNetCore.Routing.RouteEndpoint re => re.RoutePattern.RawText == "/{**catch-all}",
+        _ => false
+    };
+
+    /* A folder of public/, named without its last slash (serve-static sends it there). */
+    private static bool FolderWithoutSlash(string p)
+    {
+        if (p.EndsWith('/') || p.Split('/').Any(seg => seg.StartsWith('.'))) return false;
+        try
+        {
+            var full = Path.GetFullPath(Path.Combine(Dir!, p.TrimStart('/')));
+            return full.StartsWith(Path.GetFullPath(Dir!).TrimEnd('/') + "/", StringComparison.Ordinal) && Directory.Exists(full);
+        }
+        catch (Exception e) when (e is ArgumentException or IOException or NotSupportedException) { return false; }
+    }
+
+    /* serve-static's redirect for a folder: 301 to the address with its slash, a short page saying so. */
+    private static async Task RedirectToFolder(HttpContext ctx)
+    {
+        var raw = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget ?? (ctx.Request.Path + ctx.Request.QueryString).ToString();
+        var q = raw.IndexOf('?');
+        var path = q < 0 ? raw : raw[..q];
+        var loc = "/" + (path + "/").TrimStart('/') + (q < 0 ? "" : raw[q..]);
+        var doc = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Redirecting</title>\n</head>\n<body>\n<pre>Redirecting to "
+            + System.Net.WebUtility.HtmlEncode(loc) + "</pre>\n</body>\n</html>\n";
+        var bytes = Encoding.UTF8.GetBytes(doc);
+        var h = ctx.Response.Headers;
+        ctx.Response.StatusCode = 301;
+        h["X-Mandarin-Answered"] = "C#";
+        h.ContentType = "text/html; charset=UTF-8";
+        h["Content-Security-Policy"] = "default-src 'none'";
+        h["X-Content-Type-Options"] = "nosniff";
+        h.Location = loc;
+        ctx.Response.ContentLength = bytes.Length;
+        if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
+    }
+
     private static async Task SendApp(HttpContext ctx, string publicDir, IFileProvider files)
     {
         ctx.Response.Headers.Vary = "User-Agent";
@@ -94,13 +172,16 @@ internal static partial class Pages
     {
         var info = files.GetFileInfo(name);
         if (!info.Exists) { ctx.Response.StatusCode = 404; return; }
-        var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + info.LastModified.ToUnixTimeMilliseconds().ToString("x") + "\"", isWeak: true);
+        // The time to the nearest millisecond, as Node's fs.Stats gives it (send's tag).
+        var ms = (long)Math.Floor((info.LastModified.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10000.0 + 0.5);
+        var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + ms.ToString("x") + "\"", isWeak: true);
         ctx.Response.Headers.ETag = etag.ToString();
         ctx.Response.Headers.LastModified = info.LastModified.ToString("R");
         ctx.Response.Headers.CacheControl = "public, max-age=0";
+        ctx.Response.Headers.AcceptRanges = "bytes";
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
         if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(etag.Tag.ToString(), StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return; }
-        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.ContentType = "text/html; charset=UTF-8";
         ctx.Response.ContentLength = info.Length;
         if (HttpMethods.IsHead(ctx.Request.Method)) return;
         await ctx.Response.SendFileAsync(info);

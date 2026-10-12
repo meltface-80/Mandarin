@@ -59,6 +59,9 @@ if (args.Length >= 1 && args[0] == "tags")
 // `mandarin-server scan`: one library scan (Scan/ScanCommand.cs), started by
 // the Node server: its job on standard input, what it says on standard output.
 if (args.Length >= 1 && args[0] == "scan") return Mandarin.Server.Scan.ScanCommand.Run();
+// `mandarin-server db <data folder>`: the database made, or brought up to date
+// (Schema.cs, v0.8.48): run by the Node server as it opens it behind this one.
+if (args.Length == 2 && args[0] == "db") return Schema.Command(args[1]);
 // `mandarin-server score`: the identification scan's scorer asked directly, a
 // line of JSON in and one out (Identify/ScoreCommand.cs), for the tests.
 if (args.Length >= 1 && args[0] == "score") return Mandarin.Server.Identify.ScoreCommand.Run();
@@ -76,20 +79,29 @@ string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 // (/internal/library): given to the Node server it starts, or by the tests.
 string frontKey = Environment.GetEnvironmentVariable("MANDARIN_FRONT_KEY") is { Length: > 0 } fk ? fk
     : Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+// The database, shared with the Node server (<data>/musicd.db). Made and
+// brought up to date here (Schema.cs, v0.8.48) before the Node server starts;
+// the Node server asks this program again as it opens it (a backup put back
+// is swapped in then). Before v0.8.48 the Node server made it.
+string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
+    : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
+Db.File = Path.Combine(dataDir, "musicd.db");
+Front.DataDir = dataDir;
 Process? node = null;
 if (string.IsNullOrEmpty(upstream))
 {
+    try { Schema.Bring(dataDir, Front.Log); }
+    catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
+    {
+        // Left to the Node server, which tries again (its own code, should this program's fail there too).
+        Front.Log($"[server] the database couldn't be brought up to date here ({e.Message}); the Node server tries");
+    }
     int internalPort = Front.FreeLoopbackPort();
     string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
     node = Front.StartNode(appDir, internalPort, frontKey, port);
     upstream = $"http://127.0.0.1:{internalPort}";
 }
 var upstreamUri = new Uri(upstream);
-// The database the Node server keeps (lib/library/db.js), shared: the Node
-// server makes it and brings its tables up to date before this one reads it.
-string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
-    : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
-Db.File = Path.Combine(dataDir, "musicd.db");
 Library.Init(upstreamUri, frontKey);
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
@@ -207,6 +219,8 @@ Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();
+// A deep link, the page for any address it opens, once no route here took it (v0.8.48, Pages.cs).
+Pages.UseDeepLinks(app);
 
 // What C# answers itself. Everything else goes to the Node server.
 Routes.Map(app, version);

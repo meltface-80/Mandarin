@@ -458,6 +458,16 @@ internal abstract partial class Catalogue
         return rows.Count;
     }
 
+    /* streaming.js stale: how many albums Clean up would remove now (Settings → Library Scanner's counts, v0.8.48). */
+    public int Stale()
+    {
+        using var c = OpenRows();
+        var on = Connected();
+        var kept = Keys(c, NsKept);
+        var held = Keys(c, NsHeld);
+        return OwnAlbums(c).Count(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key)));
+    }
+
     /*
      * Transient albums nobody has played in a month (streaming.js
      * pruneTransient): their rows go — neither kept nor held, and neither

@@ -87,10 +87,17 @@ jobs:
           node --check index.js
           node --check public/app.js
           for f in lib/*.js lib/*/*.js; do node --check "$f"; done
+      # Kept to a file as well: the tests that failed are said again at the end
+      # (the step after), where a log read from its tail finds them.
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
           MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee "$RUNNER_TEMP/tests.log"
+      - name: The tests that failed, again
+        if: failure()
+        run: .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
 
   # A Mac (v0.8.29): the C# server built for it and the whole suite through
   # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
@@ -158,7 +165,12 @@ jobs:
       - name: Tests, through the C# server
         env:
           MANDARIN_FRONT: "1"
-        run: node --require ./test/setup.js --test --test-concurrency=2 test/*.test.js
+        run: |
+          set -o pipefail
+          node --require ./test/setup.js --test --test-concurrency=2 test/*.test.js 2>&1 | tee "$RUNNER_TEMP/tests.log"
+      - name: The tests that failed, again
+        if: failure()
+        run: .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
 
   docker:
     name: Build image
