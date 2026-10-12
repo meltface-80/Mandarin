@@ -99,6 +99,8 @@ const config = {
   // tag reader is the one the scan uses: said by the C# server that starts
   // this one, with the scan protocol it speaks (an older one says neither).
   serverBin: process.env.MANDARIN_SERVER_SCAN === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
+  // And the database's tables and migrations (v0.8.48): made by it, said by the C# server that starts this one.
+  dbProgram: process.env.MANDARIN_SERVER_DB === "1" && process.env.MANDARIN_SERVER_BIN ? process.env.MANDARIN_SERVER_BIN : null,
   identify: process.env.IDENTIFY !== "0",
   debug: !!process.env.DEBUG
 };
@@ -112,7 +114,7 @@ function createServer(overrides = {}) {
   CPU.init({ log });
   // A database restored from a backup (Settings → Backup & restore) goes in now, before it opens.
   require("./lib/backup").swapStaged(config.dataDir, log);
-  const db = DB.open(config.dataDir, { log });
+  const db = DB.open(config.dataDir, { log, program: config.dbProgram });
   // Where a record's write-up is asked (lib/meta.js).
   META.configure(config);
   const library = new Library(db, { musicRoot: config.musicDir, log });

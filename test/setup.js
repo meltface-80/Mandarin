@@ -48,6 +48,8 @@ if (process.env.MANDARIN_FRONT === "1") {
   // scans are made by the C# server — a scanner a test makes itself too.
   process.env.MANDARIN_SERVER_BIN = bin;
   process.env.MANDARIN_SERVER_SCAN = "1";
+  // And the database made by it (v0.8.48), as the C# server has the Node server make it.
+  process.env.MANDARIN_SERVER_DB = "1";
   // Nor anything off this machine from the C# server (v0.8.19): its lookups
   // (MusicBrainz, iTunes, the pack) are kept to loopback as fetch is above.
   if (!process.env.ALLOW_NETWORK) process.env.MANDARIN_LOOPBACK_ONLY = "1";

@@ -641,8 +641,8 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 
 **Checklist** (ticked as each part is committed and pushed):
 
-- [ ] Plan written; version 0.8.48
-- [ ] Part 8: the database's tables and migrations
+- [x] Plan written; version 0.8.48
+- [x] Part 8: the database's tables and migrations
 - [ ] Part 7: the pages, the deep links and `/api/health`
 - [ ] Part 3: the phone's download lists, what is left
 - [ ] Part 6: Last.fm, what is left

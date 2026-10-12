@@ -5,6 +5,29 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.48
+Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
+but play moves to the C# server**, part by part, each held to the Node server's own answers and
+writes. After it the Node server is playback and nothing else (stage 6 moves that; stage 7 removes
+Node). The parts as they are built:
+
+- **The database** (part 8): made and brought up to date by the C# server, as the Node server made
+  it, statement for statement: its tables and indexes, the columns added since a table first
+  shipped, a database made by something else moved aside (`musicd.old-<ms>.db`) and what is worth
+  keeping carried over, the album edits read back from `album-edits.json` or written there, and
+  Smart Picks' and the radio's tables. The C# server does it before it starts the Node server, and
+  the Node server asks it again as it opens the database (`mandarin-server db`), so a backup put back
+  is brought up to date by C# too. `server/Mandarin.Server/Schema.cs` (new), `Program.cs`, `Front.cs`.
+  The Node server's part is the hand-over only: `lib/library/db.js` asks the program when the C#
+  server that started it has it (`MANDARIN_SERVER_DB=1`), checks the tables have what it needs, and
+  only then leaves out its own; `lib/server/features.js` makes none of its tables then; a Mac on
+  Node alone, an older C# server or a program that fails, its own code as before. Tests:
+  `test/db-csharp.test.js` (new): a new database, one from before the added columns, one made by
+  something else, one from a newer version, and `album-edits.json` both ways, each made by the C#
+  program and by `lib/library/db.js` from the same start and compared file for file; through the
+  server, the Node server's database is the program's, and with a program that fails its own.
+- The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
+
 ## v0.8.47
 Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
 C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
