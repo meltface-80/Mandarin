@@ -100,7 +100,10 @@
  *     part of the search from Home, each held to the Node server's own answer, write and bytes
  *     (test/services-signin-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode).
  *     Playback itself (the rooms, the queue, /api/play…) is still the Node server's (the v0.8.47 test
- *     here; the job list in the v0.8.19 one).
+ *     here; the job list in the v0.8.19 one);
+ *   - v0.8.48 (stage 5, everything but playback): the database made and brought up to date by C#
+ *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
+ *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -187,9 +190,10 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
+    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/pages-csharp.test.js).
     for (const p of ["/login", "/display", "/library"]) {
       x = await by(p, { headers: H, redirect: "manual" });
-      assert.equal(x.by, "Node", p + ": a Node route or the page for a deep link, passed on");
+      assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");
     }
     // v0.8.16: hearts, Listen later and label changes made by C# (an album that isn't there, said by C#).
     const J = Object.assign({ "Content-Type": "application/json" }, H);
@@ -204,7 +208,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     x = await by("/api/settings/label-folder-depth", { method: "POST", headers: J, body: JSON.stringify({ depth: -1 }) });
     assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
-    assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "health, open, by C# since v0.8.48");
   } finally { await srv.stop(); }
 });
 

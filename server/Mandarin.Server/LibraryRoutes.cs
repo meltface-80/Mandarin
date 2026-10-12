@@ -22,6 +22,8 @@ internal static partial class Library
     private static readonly Dictionary<string, Handler> Gets = new()
     {
         ["/api/library-stats"] = Stats,
+        // The server's health, open (v0.8.48, HealthRoutes.cs).
+        ["/api/health"] = Health,
         ["/api/library/albums"] = Albums,
         ["/api/library/mark"] = Mark,
         ["/api/library/facets"] = Facets,

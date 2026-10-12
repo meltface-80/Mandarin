@@ -86,6 +86,7 @@ string frontKey = Environment.GetEnvironmentVariable("MANDARIN_FRONT_KEY") is { 
 string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
     : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
 Db.File = Path.Combine(dataDir, "musicd.db");
+Front.DataDir = dataDir;
 Process? node = null;
 if (string.IsNullOrEmpty(upstream))
 {
@@ -218,6 +219,8 @@ Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any
 // request a route has already matched, and the catch-all below matches all.
 app.UseRouting();
+// A deep link, the page for any address it opens, once no route here took it (v0.8.48, Pages.cs).
+Pages.UseDeepLinks(app);
 
 // What C# answers itself. Everything else goes to the Node server.
 Routes.Map(app, version);

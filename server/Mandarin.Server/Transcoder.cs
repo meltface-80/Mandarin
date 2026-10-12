@@ -153,6 +153,19 @@ internal static partial class Transcoder
     /* ffmpeg is there and runs (ffmpeg.js info().ok). */
     public static bool FfOk => Ff.Value.Ok;
 
+    /* The cache as /api/health says it (lib/stream.js cacheStats): its FLAC files, their size, what is being made and what waits. */
+    public static (int Files, double Bytes, int Running, int Queued) CacheStats()
+    {
+        try
+        {
+            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal)).ToList();
+            int queued;
+            lock (Queue) queued = Queue.Count;
+            return (files.Count, files.Sum(f => (double)f.Length), Jobs.Count, queued);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return (0, 0, 0, 0); }
+    }
+
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
     public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");

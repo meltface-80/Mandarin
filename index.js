@@ -538,7 +538,11 @@ function createServer(overrides = {}) {
       // The day and week on this server's clock (its time zone): Home's rows turn over with them.
       day: library.dayKey(), day_start: library.dayStart(), week: library.weekKey(),
       // Which cores playback keeps (lib/cpu.js): the C# server keeps to them too (Cpu.cs).
-      cpu: CPU.plan()
+      cpu: CPU.plan(),
+      // For /api/health, answered by the C# server (v0.8.48): the rooms found, and
+      // how bringing the C# server to this one's version went.
+      rooms: zones.topology.rooms().length,
+      csharp_update: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null
     });
   });
   app.use(express.json({ limit: "2mb" }));

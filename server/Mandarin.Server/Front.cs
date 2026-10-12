@@ -24,6 +24,8 @@ internal static partial class Front
 
     /* This program's version (Program.cs). */
     public static string Version = "0.0.0";
+    /* The data folder, shared with the Node server (Program.cs). */
+    public static string DataDir = "";
     private static volatile string? nodeVersion;
 
     /* The Node server's version, as it says with its state (Library.cs). */

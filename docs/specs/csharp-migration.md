@@ -643,7 +643,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 
 - [x] Plan written; version 0.8.48
 - [x] Part 8: the database's tables and migrations
-- [ ] Part 7: the pages, the deep links and `/api/health`
+- [x] Part 7: the pages, the deep links and `/api/health`
 - [ ] Part 3: the phone's download lists, what is left
 - [ ] Part 6: Last.fm, what is left
 - [ ] Part 4: Admin (the update, the processor split)
@@ -768,8 +768,8 @@ and `/api/image/`).
   Qobuz or Tidal track's C#'s since v0.8.47, the Node server handing such a speaker's conversion and
   play report to C#); `/api/image/` for an album with no cover, a
   picture only `sharp` reads well, or an outside picture
-- **Node's own:** `NOTIFY /upnp/event/:id`, `GET /api/health`, `/login`, `/display`, and every deep
-  link (`/shelf` C#'s since v0.8.28)
+- **Node's own:** `NOTIFY /upnp/event/:id` (`GET /api/health`, `/login`, `/display` and every deep
+  link C#'s since v0.8.48; `/shelf` since v0.8.28)
 
 ## Appendix B: corrections found while surveying
 

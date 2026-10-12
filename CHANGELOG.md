@@ -26,6 +26,18 @@ Node). The parts as they are built:
   something else, one from a newer version, and `album-edits.json` both ways, each made by the C#
   program and by `lib/library/db.js` from the same start and compared file for file; through the
   server, the Node server's database is the program's, and with a program that fails its own.
+- **The pages** (part 7): the sign-in page (`/login`), the wall display's page (`/display`), and the
+  page for any other address it opens (a deep link, the Android app's form of it too), sent by the C#
+  server as the Node server sent them (the same file, tag and caching); a folder of the page's files
+  asked for without its slash is sent there (301), as before. `/api/health` (Docker's health check)
+  by the C# server too, field for field: the rooms found and how bringing the C# server to the Node
+  server's version went, as the Node server says them with its state; the library's count, ffmpeg,
+  the conversions under way and the audio engine there. `server/Mandarin.Server/HealthRoutes.cs`
+  (new), `Pages.cs` (a page's tag now gives its time to the nearest millisecond, as Node's does:
+  Shelf's page's tag changes once), `Program.cs`, `Library.cs`, `Transcoder.cs`. The Node server's
+  part: two fields more in `/internal/library` (`rooms`, `csharp_update`). Tests:
+  `test/pages-csharp.test.js` (new), each page, deep link, redirect and `/api/health` held to the
+  Node server's own answer; `test/front.test.js`'s pins moved on to C#.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47
