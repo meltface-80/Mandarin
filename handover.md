@@ -151,6 +151,11 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 - **Each later stage:** wait until `:migration` is published (the docker-publish run after CI on
   the merge), then open the stack → **Update**. Check `http://<server>:3500/api/health` shows the
   new version.
+- **A stage tried before its merge** (stage 6's rule): the image for a `stage-*` branch is
+  published as `:<branch>` after CI passes on its last push (`.github/workflows/docker-publish.yml`),
+  so set the tag to, say, `:stage-6-playback` → **Save** → **Update**; once the stage is
+  squash-merged, back to `:migration` and **Update** as usual. The queues one server kept are
+  put back by the other, so nothing is lost across the switch.
 - **Going back:** set the tag to `:latest` (v0.8.44) and **Update**.
 - **Android:** the test app is the `.apk` on GitHub's **test-android** pre-release (Releases page).
 
