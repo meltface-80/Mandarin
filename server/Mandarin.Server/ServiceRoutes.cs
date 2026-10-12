@@ -353,7 +353,7 @@ internal static partial class Library
         return o;
     }
 
-    // ------------------------------------------------------------ the import (v0.8.45)
+    // ------------------------------------------------------------ the import (v0.8.45), and the accounts (v0.8.47)
 
     [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
     private static partial Regex ServiceSettingsPath();
@@ -363,7 +363,7 @@ internal static partial class Library
     /* The service, once the Node server has handed over its account too (v0.8.47): signed in or not. */
     private static Catalogue? AccountOf(string id) => !Jobs.Holds("services") ? null : ImportOf(id);
 
-    /* Settings → Services' state and switches, Update library now, the favourites' watch: true when answered here. */
+    /* Settings → Services' state and switches, signing in and out, Update library now, the favourites' watch: true when answered here. */
     private static async Task<bool> ServiceImport(HttpContext ctx)
     {
         var m = ctx.Request.Method;
