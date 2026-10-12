@@ -28,13 +28,24 @@
 //   POST /api/settings/<s>/import   Update library now: what it made
 //   POST /api/services/watch        the favourites looked at now (the page, coming back)
 //
-// Signed out, Settings → Services' state and switches stay the Node server's
-// (a Tidal sign-in under way is its), as do signing in and out and playing
-// (stages 4.4 and 6). So does a request Tidal's token has to be refreshed for:
-// only the Node server refreshes it, so a write it would be refreshed for is
-// passed on before anything is written, and an import or a watch is left to
-// it from there. A body Express would read otherwise, or refuse, is passed on
-// as it came too.
+// and from v0.8.47 (stage 4.4) the accounts, once the Node server has handed
+// over the services too (the job "services"; Services/Accounts.cs):
+//
+//   GET  /api/settings/<s>          signed out too, a Tidal sign-in under way among it
+//   POST /api/settings/<s>          signed out too
+//   POST /api/settings/<s>/signin   Qobuz: { username, password } → signed in (the password not kept);
+//                                   Tidal: → { pending: { url, code } }, the sign-in on tidal.com
+//   POST /api/settings/<s>/signin/cancel   Tidal: the link and code let go
+//   POST /api/settings/<s>/signout · /disconnect
+//   POST /api/<s>/play { album_id, zone_or_output_id, kind, track? }: the album's rows
+//                                   written, then its tracks played by the Node server
+//                                   (POST /internal/playback/play; playback is its until stage 6)
+//
+// and the services' part of the search from Home (GET /api/search/external).
+// Tidal's token is this server's alone to refresh (TidalApi.cs), and a
+// service's streams are made here too (Streams.cs): the Node server never asks
+// Qobuz or Tidal for anything. A body Express would read otherwise, or refuse,
+// is passed on as it came (the Node server answers it without asking either).
 // Answered here once the Node server has handed over its work; until then, by it.
 using System.Net.Http.Headers;
 using System.Text;
@@ -110,19 +121,11 @@ internal static partial class Library
                     return await SendJs(ctx, Jso(("connected", true), ("favourite", await svc.IsFavourite(albumId, ask))));
             }
         }
-        catch (ToNode) when (!ctx.Response.HasStarted)
-        {
-            // Tidal's token to be refreshed: the Node server's to do, and so this request.
-            return false;
-        }
-        catch (Exception e) when (e is ServiceError or Tags.JsError && !ctx.Response.HasStarted)
-        {
-            return await ServiceFailed(ctx, e);
-        }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
-            return false;
+            // Answered here whatever it is: passed on, the Node server would ask the service itself.
+            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
         }
     }
 
@@ -140,7 +143,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the library's rows (v0.8.44)
 
-    [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite|play)$")]
     private static partial Regex ServiceWritePath();
 
     [GeneratedRegex(@"^SQLite Error \d+: '(.*)'\.$", RegexOptions.Singleline)]
@@ -175,7 +178,7 @@ internal static partial class Library
         catch (Tags.JsError) { return (false, null); }
     }
 
-    /* Opening an album, favouriting it, Clean up: true when answered here. */
+    /* Opening an album, favouriting it, playing it (v0.8.47), Clean up: true when answered here. */
     private static async Task<bool> ServiceWrite(HttpContext ctx)
     {
         if (!HttpMethods.IsPost(ctx.Request.Method)) return false;
@@ -183,6 +186,8 @@ internal static partial class Library
         if (path == "/api/library/cleanup") return await ServiceCleanUp(ctx);
         var match = ServiceWritePath().Match(path);
         if (!match.Success || CatalogueOf(match.Groups[1].Value) is not { } svc || !BodyFits(ctx)) return false;
+        var what = match.Groups[2].Value;
+        if (what == "play" && !Jobs.Holds("services")) return false;
         var (ok, b) = await ServiceBody(ctx);
         if (!ok) return false;
         try
@@ -191,25 +196,59 @@ internal static partial class Library
             var given = Prop(b, "album_id");
             if (!TJs.Truthy(given)) return await JsError(ctx, 400, "album_id required");
             var albumId = TJs.Str(given);
-            return match.Groups[2].Value == "open" ? await OpenAlbum(ctx, svc, albumId) : await Favourite(ctx, svc, albumId, match.Groups[2].Value == "favorite");
-        }
-        catch (ToNode) when (!ctx.Response.HasStarted)
-        {
-            // Tidal's token to be refreshed: the Node server's to do, and so this request, as it came.
-            ctx.Request.Body.Position = 0;
-            return false;
-        }
-        catch (Exception e) when (e is ServiceError or Tags.JsError && !ctx.Response.HasStarted)
-        {
-            return await ServiceFailed(ctx, e);
+            return what switch
+            {
+                "open" => await OpenAlbum(ctx, svc, albumId),
+                "play" => await PlayAlbum(ctx, svc, albumId, b),
+                _ => await Favourite(ctx, svc, albumId, what == "favorite")
+            };
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            // Before anything was written (the album's rows are one transaction): the Node server's to make.
-            Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
-            ctx.Request.Body.Position = 0;
-            return false;
+            // Answered here whatever it is: passed on, the Node server would ask the service itself.
+            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
         }
+    }
+
+    /*
+     * Playing an album from the browser (api-service.js POST /api/<s>/play,
+     * v0.8.47): its rows written (asked of the service each time), the Node
+     * server told and its library read again, then its tracks played there —
+     * the album, or one track of it (now, next, at the end) — as that route
+     * plays them (POST /internal/playback/play). The Node server's answer is
+     * the answer.
+     */
+    private static async Task<bool> PlayAlbum(HttpContext ctx, Catalogue svc, string albumId, object? b)
+    {
+        var zone = Prop(b, "zone_or_output_id");
+        if (!TJs.Truthy(zone)) return await JsError(ctx, 400, "zone_or_output_id required");
+        var k = Prop(b, "kind");
+        var kind = k is "play_now" or "play_next" or "queue" or "shuffle" ? (string)k : "play_now";
+        var offset = await svc.EnsureAlbum(albumId);
+        await svc.Changed("opened");
+        var ask = new JsObj();
+        ask["zone_or_output_id"] = zone;
+        ask["offset"] = (double)offset;
+        ask["kind"] = kind;
+        if (Prop(b, "track") is var track && track is not Undef) ask["track"] = track;
+        if (await AskNode("/internal/playback/play", TJs.Json(ask) ?? "{}") is not var (status, text)) return await JsError(ctx, 500, "fetch failed");
+        return await SendNodeJson(ctx, text, status);
+    }
+
+    /* An answer the Node server made (res.json's text), sent on as it is, with its status, as Express would send it. */
+    private static async Task<bool> SendNodeJson(HttpContext ctx, string text, int status)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        var tag = "W/\"" + bytes.Length.ToString("x") + "-" + Convert.ToBase64String(System.Security.Cryptography.SHA1.HashData(bytes))[..27] + "\"";
+        var h = ctx.Response.Headers;
+        h["X-Mandarin-Answered"] = "C#";
+        h.ETag = tag;
+        ctx.Response.StatusCode = status;
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+        ctx.Response.ContentLength = bytes.Length;
+        await ctx.Response.Body.WriteAsync(bytes);
+        return true;
     }
 
     /*
@@ -239,14 +278,13 @@ internal static partial class Library
      * The favourite on the service, then the album kept in the library (its
      * rows written first) or let go. Once the service has made it, a failure is
      * answered here as the Node server's wrap() answers it, rather than passed
-     * on to be made twice; but a token Tidal refuses (revoked meanwhile) still
-     * goes to the Node server, whose favourite again changes nothing there.
+     * on to be made twice.
      */
     private static async Task<bool> Favourite(HttpContext ctx, Catalogue svc, string albumId, bool on)
     {
         await svc.SetFavouriteThere(albumId, on);
         try { await svc.SetFavouriteHere(albumId, on); }
-        catch (Exception e) when (e is not (global::Mandarin.Server.Services.ToNode or ServiceError or Tags.JsError) && !ctx.Response.HasStarted)
+        catch (Exception e) when (e is not (ServiceError or Tags.JsError) && !ctx.Response.HasStarted)
         {
             Front.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, NodeWords(e));
@@ -289,8 +327,7 @@ internal static partial class Library
      * A streamed album's page, signed in (api-library.js GET /api/album): its
      * favourite on the service, the library brought into line with it first
      * (reconcile), and why it is here — its release day too when that is
-     * still to come. Each failure leaves its part out, as there; a token Tidal
-     * wants refreshed passes the whole page on (ToNode).
+     * still to come. Each failure leaves its part out, as there.
      */
     private static async Task<JsObj> ServiceFields(Catalogue svc, Album al, LibState st)
     {
@@ -304,7 +341,7 @@ internal static partial class Library
             o["service_favourite"] = fav;
             o[svc.Id + "_favourite"] = fav;
         }
-        catch (Exception e) when (e is not global::Mandarin.Server.Services.ToNode) { /* unknown: no item */ }
+        catch (Exception) { /* unknown: no item */ }
         try
         {
             var why = svc.Why(id);
@@ -312,17 +349,19 @@ internal static partial class Library
             var today = DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             if (!string.IsNullOrEmpty(al.Date) && string.CompareOrdinal(al.Date, today) > 0) why["releases"] = al.Date;
         }
-        catch (Exception e) when (e is not global::Mandarin.Server.Services.ToNode) { /* no note */ }
+        catch (Exception) { /* no note */ }
         return o;
     }
 
     // ------------------------------------------------------------ the import (v0.8.45)
 
-    [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import)?$")]
+    [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
     private static partial Regex ServiceSettingsPath();
 
     /* The service, once the Node server has handed over the import. */
     private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
+    /* The service, once the Node server has handed over its account too (v0.8.47): signed in or not. */
+    private static Catalogue? AccountOf(string id) => !Jobs.Holds("services") ? null : ImportOf(id);
 
     /* Settings → Services' state and switches, Update library now, the favourites' watch: true when answered here. */
     private static async Task<bool> ServiceImport(HttpContext ctx)
@@ -336,16 +375,13 @@ internal static partial class Library
             return fine && await ServicesWatch(ctx);
         }
         var match = ServiceSettingsPath().Match(path);
-        if (!match.Success || ImportOf(match.Groups[1].Value) is not { } svc) return false;
-        var now = match.Groups[2].Value.Length > 0;
-        if (!now && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
+        if (!match.Success) return false;
+        var sub = match.Groups[2].Value;
+        // Update library now: once the import is handed over; the rest once the account is too.
+        if ((sub == "/import" ? ImportOf(match.Groups[1].Value) : AccountOf(match.Groups[1].Value)) is not { } svc) return false;
+        if (sub.Length == 0 && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
         {
-            try
-            {
-                // Signed out, the Node server's: a Tidal sign-in under way is its.
-                if (!svc.Connected()) return false;
-                return await SendJs(ctx, svc.Status());
-            }
+            try { return await SendJs(ctx, svc.Status()); }
             catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted)
             {
                 Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
@@ -355,7 +391,57 @@ internal static partial class Library
         if (!HttpMethods.IsPost(m) || !BodyFits(ctx)) return false;
         var (ok, b) = await ServiceBody(ctx);
         if (!ok) return false;
-        return now ? await ImportNow(ctx, svc) : await SaveServiceSettings(ctx, svc, b);
+        return sub switch
+        {
+            "/import" => await ImportNow(ctx, svc),
+            "/signin" => await SignIn(ctx, svc, b),
+            "/signin/cancel" => await CancelSignIn(ctx, svc),
+            "/signout" or "/disconnect" => await SignOut(ctx, svc),
+            _ => await SaveServiceSettings(ctx, svc, b)
+        };
+    }
+
+    /*
+     * Signing in (api-service.js POST /api/settings/<s>/signin): Qobuz with a
+     * username and a password, then its import made when switched on; Tidal's
+     * sign-in on tidal.com begun (the link and the code), its import made once
+     * it lands (Accounts.cs). Refused in the service's words.
+     */
+    private static async Task<bool> SignIn(HttpContext ctx, Catalogue svc, object? b)
+    {
+        try
+        {
+            if (svc is QobuzCatalogue q)
+            {
+                await SendJs(ctx, await q.SignIn(Prop(b, "username"), Prop(b, "password")));
+                if (q.Settings().Import) global::Mandarin.Server.Services.Import.Later(q);
+                return true;
+            }
+            return await SendJs(ctx, await ((TidalCatalogue)svc).BeginSignIn());
+        }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] sign-in: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
+        }
+    }
+
+    /* A Tidal sign-in let go (POST …/signin/cancel): the state, as it is then (Qobuz's as it is). */
+    private static Task<bool> CancelSignIn(HttpContext ctx, Catalogue svc)
+    {
+        if (svc is TidalCatalogue t) t.CancelSignIn();
+        return SendJs(ctx, svc.Status());
+    }
+
+    /* Signed out (POST …/signout, …/disconnect): the state, signed out. */
+    private static async Task<bool> SignOut(HttpContext ctx, Catalogue svc)
+    {
+        try { return await SendJs(ctx, await svc.SignOut()); }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] sign-out: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
+        }
     }
 
     /* As api-service.js's wrap answers what throws, a 500 in SQLite's own words too. */
@@ -387,15 +473,14 @@ internal static partial class Library
     }
 
     /*
-     * The quality and the import's switch (POST /api/settings/<s>), signed in:
-     * written, the switch's albums and playlists in or out of the library at
-     * once, and switched on, brought up to date (the import started, so the
-     * state answered says so). A quality not offered is refused before
+     * The quality and the import's switch (POST /api/settings/<s>): written,
+     * the switch's albums and playlists in or out of the library at once, and
+     * switched on while signed in, brought up to date (the import started, so
+     * the state answered says so). A quality not offered is refused before
      * anything is written.
      */
     private static async Task<bool> SaveServiceSettings(HttpContext ctx, Catalogue svc, object? b)
     {
-        if (!svc.Connected()) return false;
         var before = svc.Settings();
         try { svc.SetSettings(Prop(b, "quality"), Undef.V); }
         catch (ServiceError e) when (!ctx.Response.HasStarted) { return await ServiceFailed(ctx, e); }

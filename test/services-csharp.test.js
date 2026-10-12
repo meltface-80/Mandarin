@@ -7,9 +7,10 @@
  *   - every catalogue route, signed out and signed in, held to the Node
  *     server's own answer to the same request (asked of it directly), its
  *     refusals word for word;
- *   - a favourite changed on the Node server (still its own) seen at once;
- *   - Tidal's token refreshed by the Node server alone: a request it must be
- *     refreshed for is the Node server's to answer, and the next is C#'s again.
+ *   - a favourite changed on the Node server (asked of it directly) seen at once;
+ *   - Tidal's token refreshed by the C# server alone (v0.8.47): a request it
+ *     must be refreshed for is answered by C# all the same, the Node server
+ *     never asked to refresh it.
  *
  * Through the C# server only (MANDARIN_FRONT=1): test/qobuz.test.js and
  * test/tidal.test.js are the services' own, both ways.
@@ -118,7 +119,7 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
   });
 
   // Opening and favouriting are the C# server's since v0.8.44 (test/services-rows-csharp.test.js);
-  // the Node server still makes them for a request passed to it (Tidal's token), and its import and watch.
+  // the Node server still makes them for a request asked of it directly, as here.
   await t.test("an album opened, and a favourite changed, on the Node server: seen at once", async () => {
     const open = await call(NODE, "qobuz/open", { album_id: "q100" });
     assert.equal(open.by, null, "made by the Node server");
@@ -138,21 +139,27 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
     }
   });
 
-  await t.test("Tidal's token: refreshed by the Node server alone", async () => {
+  await t.test("Tidal's token: refreshed by the C# server alone, the Node server never asked", async () => {
     const before = tidal.refreshes;
-    // Refused by Tidal: the Node server refreshes it and answers.
-    tidal.expireAccess();
-    const r = await get("tidal/search?q=t");
-    assert.deepEqual([r.status, r.by], [200, null], JSON.stringify(r.j));
-    assert.equal(tidal.refreshes, before + 1, "refreshed once");
-    assert.equal((await get("tidal/search?q=t&offset=1")).by, "C#", "then C#'s again, with the new token");
-    // About to expire: the same, without asking Tidal first (an answer kept from before needs no token: not asked).
-    const acc = ctx.tidal.account();
-    acc.token.expires = Date.now() + 1000;
-    ctx.tidal.db.setSetting("tidal", acc);
-    const s = await get("tidal/search?q=album");
-    assert.deepEqual([s.status, s.by], [200, null], JSON.stringify(s.j));
-    assert.equal(tidal.refreshes, before + 2);
-    assert.equal((await get("tidal/search?q=album&offset=1")).by, "C#");
+    let asked = 0;
+    const own = ctx.tidal.api.refresh;
+    ctx.tidal.api.refresh = (...a) => { asked++; return own(...a); };
+    try {
+      // Refused by Tidal: refreshed by C#, and the request asked again.
+      tidal.expireAccess();
+      const r = await get("tidal/search?q=t");
+      assert.deepEqual([r.status, r.by], [200, "C#"], JSON.stringify(r.j));
+      assert.equal(tidal.refreshes, before + 1, "refreshed once");
+      assert.equal(ctx.db.setting("tidal").token.access, tidal.access, "the new token kept");
+      // About to expire: refreshed first (an answer kept from before needs no token: not asked).
+      const acc = ctx.tidal.account();
+      acc.token.expires = Date.now() + 1000;
+      ctx.tidal.db.setSetting("tidal", acc);
+      const s = await get("tidal/search?q=album");
+      assert.deepEqual([s.status, s.by], [200, "C#"], JSON.stringify(s.j));
+      assert.equal(tidal.refreshes, before + 2);
+      assert.ok(ctx.db.setting("tidal").token.expires > Date.now() + 3000e3, "good for the hour again");
+      assert.equal(asked, 0, "the Node server's own refresh never asked");
+    } finally { ctx.tidal.api.refresh = own; }
   });
 });

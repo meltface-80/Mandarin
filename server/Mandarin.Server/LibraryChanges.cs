@@ -52,22 +52,23 @@ internal static partial class Library
         }
     }
 
-    // A step the Node server makes for this one takes as long as it takes (an import: minutes).
+    // What the Node server does for this one takes as long as it takes (playing to a room: its speakers' answers).
     private static readonly HttpClient Patient = new(new SocketsHttpHandler { UseProxy = false }) { Timeout = Timeout.InfiniteTimeSpan };
 
     /*
-     * A step of the services' import or watch left to the Node server
-     * (Services/Import.cs, v0.8.45): its status and the text of its answer,
-     * waited for however long it takes; null when it couldn't be asked.
+     * The Node server asked to do something and answer as its own route would
+     * (v0.8.47: a service album's tracks played, ServiceRoutes.cs): its
+     * status and the text of its answer, waited for however long it takes;
+     * null when it couldn't be asked. [json]: the body, as JSON.
      */
-    public static async Task<(int Status, string Text)?> AskNode(string path, JsonObject what)
+    public static async Task<(int Status, string Text)?> AskNode(string path, string json)
     {
         if (upstream == null) return null;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))
             {
-                Content = new StringContent(what.ToJsonString(), Encoding.UTF8, "application/json")
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
             req.Headers.Add("X-Mandarin-Front-Key", frontKey);
             using var res = await Patient.SendAsync(req);

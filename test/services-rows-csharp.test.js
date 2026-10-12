@@ -14,8 +14,8 @@
  *     answers forgotten;
  *   - a streamed album's page: the service's fields word for word and in the
  *     Node server's order, a favourite let go or kept as the page opens;
- *   - Tidal's token about to expire, or refused: the request answered by the
- *     Node server (which refreshes it), the write made there, and once;
+ *   - Tidal's token about to expire, or refused: refreshed by the C# server
+ *     (v0.8.47), the write made once, the Node server never asked;
  *   - Clean up, signed in and signed out;
  *   - the month's prune: albums a month old, unplayed, neither kept nor held,
  *     go; the others stay.
@@ -348,8 +348,8 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     await stale();
   });
 
-  await t.test("Tidal's token about to expire, or refused: the Node server's, the write made once", async () => {
-    let accepted = 0, posts = 0;
+  await t.test("Tidal's token about to expire, or refused: refreshed by the C# server, the write made once", async () => {
+    let accepted = 0, posts = 0, asked = 0;
     const seen = (req) => {
       if (req.method !== "POST" || !/\/favorites\/albums$/.test(req.url.split("?")[0])) return;
       posts++;
@@ -357,42 +357,46 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
       if (bearer === tidal.access && !tidal.expiredTokens.has(bearer)) accepted++;
     };
     tidal.server.on("request", seen);
+    // The Node server's own refresh, counted: never asked (v0.8.47).
+    const own = ctx.tidal.api.refresh;
+    ctx.tidal.api.refresh = (...a) => { asked++; return own(...a); };
     try {
-      // About to expire: passed on before anything is asked of Tidal.
+      // About to expire: refreshed here first, then written.
       const before = tidal.refreshes;
       const due = () => { const acc = ctx.tidal.account(); acc.token.expires = Date.now() + 1000; ctx.tidal.db.setSetting("tidal", acc); };
       due();
       forget("tidal:2004");
       let r = await post("tidal/favorite", { album_id: "2004" });
-      assert.deepEqual([r.status, r.by, r.j], [200, null, { ok: true, album_id: "2004", favourite: true }], r.text);
-      assert.equal(tidal.refreshes, before + 1, "refreshed by the Node server");
+      assert.deepEqual([r.status, r.by, r.j], [200, "C#", { ok: true, album_id: "2004", favourite: true }], r.text);
+      assert.equal(tidal.refreshes, before + 1, "refreshed by the C# server");
       assert.deepEqual([posts, accepted], [1, 1], "asked of Tidal once");
-      assert.ok(tidal.favourites.has("2004") && cacheRow("tidal-kept", "tidal:2004") && albumRow("tidal:2004"), "made, by the Node server");
-      // Then C#'s again, with the new token.
+      assert.ok(tidal.favourites.has("2004") && cacheRow("tidal-kept", "tidal:2004") && albumRow("tidal:2004"), "made");
       r = await post("tidal/unfavorite", { album_id: "2004" });
       assert.deepEqual([r.status, r.by], [200, "C#"]);
-      // Refused: Tidal makes nothing of it, and the Node server makes it.
+      // Refused: Tidal makes nothing of it; refreshed, and asked again, so made once.
       posts = accepted = 0;
       tidal.expireAccess();
       r = await post("tidal/favorite", { album_id: "2004" });
-      assert.deepEqual([r.status, r.by], [200, null], r.text);
+      assert.deepEqual([r.status, r.by], [200, "C#"], r.text);
       assert.equal(tidal.refreshes, before + 2);
-      assert.equal(accepted, 1, `made once (${posts} asks, the refused ones made nothing)`);
+      assert.deepEqual([posts, accepted], [2, 1], "made once (the refused ask made nothing)");
       assert.ok(tidal.favourites.has("2004"));
       await post("tidal/unfavorite", { album_id: "2004" });
       // An album opened, and a page, likewise.
       due();
       forget("tidal:2004");
       r = await post("tidal/open", { album_id: "2004" });
-      assert.deepEqual([r.status, r.by], [200, null], r.text);
-      assert.equal(r.j.offset, albumRow("tidal:2004").id, "written, by the Node server");
+      assert.deepEqual([r.status, r.by], [200, "C#"], r.text);
+      assert.equal(r.j.offset, albumRow("tidal:2004").id, "written");
+      assert.equal(tidal.refreshes, before + 3);
       due();
       ctx.library.reload();
       r = await get("album?offset=" + albumRow("tidal:2003").id);
-      assert.deepEqual([r.status, r.by], [200, null], "the page asks Tidal: the Node server's");
+      assert.deepEqual([r.status, r.by], [200, "C#"], "the page asks Tidal, the token refreshed first");
       assert.equal(r.j.album.service_favourite, false);
-      assert.equal((await get("album?offset=" + albumRow("tidal:2003").id)).by, "C#", "then C#'s again");
-    } finally { tidal.server.off("request", seen); }
+      assert.equal(tidal.refreshes, before + 4);
+      assert.equal(asked, 0, "the Node server never asked to refresh it");
+    } finally { tidal.server.off("request", seen); ctx.tidal.api.refresh = own; }
   });
 
   await t.test("Clean up, signed in and signed out, as the Node server's", async () => {

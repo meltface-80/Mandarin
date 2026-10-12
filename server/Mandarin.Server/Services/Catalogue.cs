@@ -2,16 +2,16 @@
 // stage 4.1 of docs/specs/csharp-migration.md), from lib/qobuz/index.js,
 // lib/tidal/index.js and lib/services/streaming.js, rule for rule: new
 // releases, the featured lists, search, an artist's albums, an album and its
-// tracks, and whether an album is in the account's favourites. The account
-// (signed in by the Node server), the albums kept and those in the library are
-// read from the database it writes; the library's rows written here from
-// v0.8.44 are Rows.cs, the import and the watch from v0.8.45 Import.cs.
+// tracks, and whether an album is in the account's favourites. The account,
+// the albums kept and those in the library are read from the database; the
+// library's rows written here from v0.8.44 are Rows.cs, the import and the
+// watch from v0.8.45 Import.cs, signing in and out from v0.8.47 Accounts.cs
+// and the streams ServiceStreams.cs.
 //
 // The favourites' ids are kept a minute, as api.js keeps them, and no longer
 // than the Node server's library stays as it was: a favourite added or taken
-// away (a request passed to the Node server for Tidal's token, or a step of
-// the import left to it) reads the library again, so the next list here asks
-// the service afresh rather than show it stale.
+// away reads the library again, so the next list here asks the service afresh
+// rather than show it stale.
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
@@ -33,7 +33,7 @@ internal abstract partial class Catalogue(string id, string name)
 
     // ------------------------------------------------------------ the account, as the Node server keeps it
 
-    /* db.setting(<service>): the account, or undefined. */
+    /* db.setting(<service>): the account (written here since v0.8.47, Accounts.cs), or undefined. */
     public object? Account() => Extras.Labels.Setting(Id);
     /* streaming.js connected(): a token and a user. */
     public bool Connected()
@@ -107,7 +107,7 @@ internal abstract partial class Catalogue(string id, string name)
     {
         HashSet<string> ids = [];
         try { ids = await FavouriteIdSet(ask); }
-        catch (Exception e) when (e is not ToNode) { /* unmarked */ }
+        catch (Exception) { /* unmarked */ }
         var kept = KeptSet();
         var inLib = LibraryKeys();
         foreach (var a in albums)
@@ -317,11 +317,30 @@ internal sealed partial class TidalCatalogue : Catalogue
     public TidalApi Api { get; }
     private bool listsLogged;
 
-    public TidalCatalogue(string? baseUrl, string? imagesUrl) : base("tidal", "Tidal")
+    public TidalCatalogue(string? baseUrl, string? imagesUrl, string? authUrl) : base("tidal", "Tidal")
     {
-        Api = new TidalApi(baseUrl, imagesUrl,
-            () => Account() is var a && Js.Truthy(a) ? P(a, "token") : null,
+        Api = new TidalApi(baseUrl, imagesUrl, authUrl,
+            () => Or(P(Or(Account(), new JsObj()), "token"), null),
+            OnToken,
             () => Or(P(Or(P(Or(Account(), new JsObj()), "user"), new JsObj()), "countryCode"), "US"));
+    }
+
+    /*
+     * A refreshed token kept (index.js onToken): the account's token brought
+     * up to date (the refresh token kept when Tidal sent none), the rest of
+     * the account as it was.
+     */
+    private void OnToken(JsObj t)
+    {
+        if (Account() is not JsObj a) return;
+        var was = a["token"];
+        var token = new JsObj();
+        if (was is JsObj w) foreach (var k in w.Keys) token[k] = w[k];
+        token["access"] = t["access"];
+        token["refresh"] = Or(t["refresh"], P(was, "refresh"));
+        token["expires"] = t["expires"];
+        a["token"] = token;
+        Extras.Labels.SetSetting(Id, a);
     }
 
     private object? UserId() => Or(P(Or(Account(), new JsObj()), "userId"), null);
@@ -396,7 +415,7 @@ internal sealed partial class TidalCatalogue : Catalogue
     private async Task<object?> WithFavs(Task<object?> p, Ask ask)
     {
         var favs = FavouriteIdSet(ask);
-        try { await favs; } catch (Exception e) when (e is not ToNode) { /* asked again when marking */ }
+        try { await favs; } catch (Exception) { /* asked again when marking */ }
         return await p;
     }
 
@@ -483,14 +502,6 @@ internal sealed partial class TidalCatalogue : Catalogue
         return (album, list.Where(t => !(P(t, "allowStreaming") is false) && !(P(t, "streamReady") is false)).Select(t => NormTrack(t, a)).ToList());
     }
 
-    /*
-     * The favourite on Tidal itself, made here only with a token good for the
-     * whole of the request (five minutes is far more than it takes): else the
-     * Node server's, which refreshes it, before anything is written.
-     */
-    protected override async Task ApiFavourite(string id, bool on)
-    {
-        Api.GoodFor(5 * 60e3);
-        await Api.SetFavourite(UserId(), id, on);
-    }
+    /* The favourite on Tidal itself (its token refreshed here when due, v0.8.47). */
+    protected override async Task ApiFavourite(string id, bool on) => await Api.SetFavourite(UserId(), id, on);
 }

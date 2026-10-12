@@ -165,7 +165,10 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
     assert.equal(own({ path: song.path }, { transcode: true, rate: 44100, bits: 24, gain: -3 }), true, "a gain");
     assert.equal(own({ path: song.path }, { transcode: true, rate: 48000, bits: 24, hq: true, dsp: { hash: "x" } }), true, "a DSP");
     assert.equal(own({ path: song.path }, { transcode: true, rate: 96000, bits: 32, hq: true }), FF.info().flac32, "32 bits, where ffmpeg writes them");
-    assert.equal(own({ path: "qobuz://track/1" }, { transcode: true, rate: 44100, bits: 24, gain: -3 }), false, "a service's track: still made by the Node server");
+    assert.equal(own({ path: "qobuz://track/1" }, { transcode: true, rate: 44100, bits: 24, gain: -3 }), true, "a service's track: made by C# too since v0.8.47, the services handed over");
+    ctx.frontRuns.delete("services");
+    try { assert.equal(own({ path: "qobuz://track/1" }, { transcode: true, rate: 44100, bits: 24, gain: -3 }), false, "…and the Node server's while they aren't"); }
+    finally { ctx.frontRuns.add("services"); }
     const items = [
       { track: song, plan: STREAM.withGain(planFor(song), info(song), null, -9) },
       { track: hi, plan: Object.assign(STREAM.withGain({ transcode: true, hq: true, rate: 88200, bits: 24, reason: "what the renderer was promised" }, info(hi), null, 1.5), { hq: true }) }
