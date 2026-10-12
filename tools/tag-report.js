@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 /*
  * tag-report.js — what tags, identifiers and loudness (ReplayGain) the music files carry, for a

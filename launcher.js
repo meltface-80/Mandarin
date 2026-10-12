@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 // launcher.js — supervises index.js and applies in-app updates across restarts.
 // (Taken from MusicD Remote.)
 //

@@ -376,7 +376,6 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     // The phone's downloads and its Opus away (v0.8.12): made by C#, the
     // same audio as ffmpeg makes with the Node server's settings (Opus is
     // compared decoded: its Ogg wrapper is numbered afresh each time).
-    const DL = require("../lib/server/downloads").Downloads;
     const decodedBuf = buf => { const f = path.join(lib.root, "decode-" + Date.now() + ".opus"); fs.writeFileSync(f, buf); return decoded(f); };
     const decoded = file => spawnSync(require("../lib/ffmpeg").info().bin, ["-v", "error", "-i", file, "-f", "f32le", "-"], { maxBuffer: 1 << 28 }).stdout;
     const nodeDownload = (t, quality) => {

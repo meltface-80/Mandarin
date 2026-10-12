@@ -14,9 +14,9 @@ or a red test stops the `:migration` image. A test that doesn't block a merge is
 | Gate | Command | Catches | Starts as | Tightens to |
 |---|---|---|---|---|
 | Tests that block | `npm test` | Regressions | The suite on Node 20 alone, Node 22 and a Mac through the C# server; CI, the image waits | — |
-| File length | `npm run lines` | Files too big to reason about | Watch line 400, cap 500 (800 for a test); 57 files over the watch line in `tools/quality/allowance.json`, 44 of them over the cap and exempt from it, all shrink-only | The allowance empty |
-| Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on every server module that passes; the rest listed in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, then the pages |
-| ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's findings in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
+| File length | `npm run lines` | Files too big to reason about | Watch line 400, cap 500 (800 for a test); 62 files over the watch line in `tools/quality/allowance.json`, 47 of them over the cap and exempt from it, all shrink-only | The allowance empty |
+| Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on the 48 of 105 server modules that pass; the 57 that don't yet are in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, strict on, then the pages |
+| ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's 121 findings in 37 files, in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
 | C# | `./server/build.sh`, `./engine/build.sh` | Warnings | Warnings are errors, nullable on (already) | — |
 
 `npm run tools` installs the development tools once per clone (the Claude Code session hook does
@@ -80,6 +80,10 @@ suppressions file: what the rules found on the day the gate came, per file and r
 - `npm test` runs the whole suite; CI runs it on every push, on Node 20 alone and on Node 22
   and a Mac through the C# server, and a red test stops the image. The migration's rule stands:
   never skip, disable or loosen a test to get green.
+- A hang is a failure with a name, not a cancelled job: the runner gives every test five
+  minutes (`--test-timeout`) and exits a test file whose process lingers once its tests are
+  done (`--test-force-exit`). Before that, one hung child held a CI job to its 25-minute limit
+  with nothing in the log to say which test it was.
 - A test is worth what it refuses. For any test that matters, break the code on purpose once
   and watch the test fail; a test that passes against broken code is a suggestion. The gates'
   own tests (`test/quality-gates.test.js`) run on synthetic trees under a real `git init`, and

@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 /*
  * make-icons.js — Mandarin's icon at every size it's used (v0.6.9): the duck

@@ -26,13 +26,13 @@
       "lines": 502
     },
     "index.js": {
-      "lines": 907
+      "lines": 984
     },
     "lib/identify/identifier.js": {
       "lines": 739
     },
     "lib/library/db.js": {
-      "lines": 483
+      "lines": 524
     },
     "lib/library/index.js": {
       "lines": 1089
@@ -44,13 +44,16 @@
       "lines": 429
     },
     "lib/meta.js": {
-      "lines": 1004
+      "lines": 1005
+    },
+    "lib/renderers/devices.js": {
+      "lines": 421
     },
     "lib/renderers/players.js": {
       "lines": 773
     },
     "lib/server/api-library.js": {
-      "lines": 1309
+      "lines": 1312
     },
     "lib/server/api-playback.js": {
       "lines": 591
@@ -85,11 +88,17 @@
     "server/Mandarin.Server/Admin/Tailscale.cs": {
       "lines": 435
     },
+    "server/Mandarin.Server/Admin/Updater.cs": {
+      "lines": 626
+    },
     "server/Mandarin.Server/Auth.cs": {
       "lines": 573
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
+    },
+    "server/Mandarin.Server/Cpu.cs": {
+      "lines": 470
     },
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
       "lines": 432
@@ -112,11 +121,14 @@
     "server/Mandarin.Server/Identify/Score.cs": {
       "lines": 514
     },
+    "server/Mandarin.Server/Jobs.cs": {
+      "lines": 424
+    },
     "server/Mandarin.Server/Library.cs": {
-      "lines": 623
+      "lines": 626
     },
     "server/Mandarin.Server/LibraryRoutes.cs": {
-      "lines": 918
+      "lines": 926
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
@@ -134,7 +146,10 @@
       "lines": 1044
     },
     "server/Mandarin.Server/Scans.cs": {
-      "lines": 470
+      "lines": 540
+    },
+    "server/Mandarin.Server/Schema.cs": {
+      "lines": 602
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
       "lines": 572
@@ -146,7 +161,7 @@
       "lines": 694
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 540
+      "lines": 550
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431
@@ -170,7 +185,7 @@
       "lines": 598
     },
     "server/Mandarin.Server/Transcoder.cs": {
-      "lines": 465
+      "lines": 480
     }
   }
 }

@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 /*
  * artist-report.js — for one artist: every tag the files carry, what
