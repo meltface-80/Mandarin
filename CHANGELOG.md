@@ -104,6 +104,25 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   holds the switch and the radio to the Node server's own answers and rows too, and a renderer
   hidden while playing to a Stop on the fake device. `test/local-output.test.js`'s end-to-end
   half waits for part 4.
+- **Sound devices on this computer** (part 4): the engine's driver (`lib/local/engine.js`:
+  Mandarin's audio engine found in the same order — `AUDIO_ENGINE_BIN`, the image's, the one
+  downloaded into the data folder, each asked for `protocol 1` — fetched once in the background
+  where the image lacks it and that is allowed, checked against its SHA256SUMS, and driven over
+  its stdin and stdout as before: the commands, the events — `pos`, `format`, `ended`, `xrun`,
+  `error` — what it was given mapped back to the track the player knows, the gain on the audio
+  taper, the engine on playback's own core at a raised priority where the system allows, `halt`),
+  the device list (`lib/local/devices.js`: ALSA's cards from `/proc/asound` and `/dev/snd` with a
+  USB DAC's own rates and depths, a Mac's outputs from `system_profiler`, the id from the name,
+  `hw_params` for the verified tick) and the scan every half minute into the register
+  (`devices.js` `scanLocal`, with the list's `local` counts) — in C#, the hub's. A sound device's
+  volume is kept in the register (`local_volume`) and its queue put back after a restart, stopped,
+  as before. `Local/AudioEngine.cs` (grown out of `HealthRoutes.cs`), `Local/EngineOutput.cs`,
+  `Local/LocalDevices.cs`, `Cpu.Engine.cs` (new). Not ported, as planned: `lib/local/output.js`,
+  the ffmpeg sink a device was played through before the engine — a Mac's sound devices are
+  listed and not played from this server (the Node server plays them until stage 7 decides). The
+  hand-over carries a test's own device list (`local_devices`), so `test/local-output.test.js`'s
+  end-to-end half passes through C# with a `file:` device played by the engine; the Node-alone
+  run is unchanged.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

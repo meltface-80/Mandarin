@@ -435,8 +435,8 @@ function createServer(overrides = {}) {
     if (jobs.has("mbpack")) ctx.mbpack.handOver();
     if (jobs.has("loudness")) ctx.loudness.handOver();
     if (jobs.has("scan") && ctx.handOverScans) ctx.handOverScans();
-    // A C# server that doesn't take playback (an older one): the hub here, now (v0.8.49).
-    if (!jobs.has("playback")) playback.start();
+    // A C# server that doesn't take playback (an older one): the hub here, now (v0.8.49); one that does: a test's own sound devices for its hub.
+    const localDevices = jobs.has("playback") ? await PLAYBACK.localDevicesFor(config) : (playback.start(), null);
     // A pass running now stops after the album (or batch) it is on: waited for, twenty seconds at most.
     const passes = [];
     if (jobs.has("labels")) passes.push(ctx.labelLookup.handOver(), ctx.labelLogos.handOver());
@@ -507,7 +507,7 @@ function createServer(overrides = {}) {
         // Whether the C# program is trusted with the tags (v0.8.48): its own scan then, else this server's at its ask.
         scan_program: scansGoToFront(),
         // Playback (v0.8.49): what the hub here was set up with, for the C# server's own.
-        ...PLAYBACK.handOverConfig(config, knownHosts),
+        ...PLAYBACK.handOverConfig(config, knownHosts, process.env, localDevices),
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
         qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
         // Tidal's sign-in (v0.8.47): where it is asked.

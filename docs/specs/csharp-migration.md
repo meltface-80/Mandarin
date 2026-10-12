@@ -886,6 +886,18 @@ here from this part on, so `test/sonos-restart.test.js` passes through C#.
 - **Tests:** `test/local-output.test.js`'s end-to-end half through C#, a `file:` device played by
   the engine (as `test/engine.test.js` plays one), the list from the fake `/proc/asound`; the sink's
   own unit tests stay the Node server's.
+- **As built** (v0.8.49): `Local/AudioEngine.cs` (the finder grown out of `HealthRoutes.cs`, with
+  `Ensure`, the download — its own temporary name, so a Node server fetching at the same time never
+  writes the same file — `Plays` and `Reset`), `Local/EngineOutput.cs` (`IRenderer`, with `Sink` and
+  `Sent` for the verified tick), `Local/LocalDevices.cs` (`ListLinux`, `ParseMac`, `HwParams`,
+  `List`), `Cpu.Engine.cs` (`Core`, `PlaceRealtime`: playback's cores, `nice -n -10` where
+  allowed). The scan loop is `Renderers/Devices.cs`'s (`ScanLocal`, every 30 s and first in Look
+  again), its counts the list's `local`. The hub starts the engine's finder (and the download where
+  Docker or `AUDIO_ENGINE_DOWNLOAD=1` allows it) once it holds playback. A test's own device list
+  reaches the hub through the hand-over (`local_devices`, `lib/server/playback-handover.js`
+  `localDevicesFor`), the one piece of Node plumbing. Without the engine (a Mac, or not yet
+  downloaded) a `LOCAL_` device is refused in words ("can't be played from this server: Mandarin's
+  audio engine isn't here"); the ffmpeg sink is not ported, as planned.
 
 **Part 5: the device list, the rooms, the Node hub idle** (`Renderers/Devices.cs`,
 `DeviceRoutes.cs`, `HousekeepingRoutes.cs`, `HealthRoutes.cs`, `Images.cs`).
@@ -915,7 +927,7 @@ above): the stage is not merged on CI alone.
 - [x] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
 - [x] Part 2: Sonos
 - [x] Part 3: the renderers (with the device list and its routes from part 5)
-- [ ] Part 4: sound devices on the server
+- [x] Part 4: sound devices on the server
 - [ ] Part 5: the device list, the rooms, the Node hub idle
 - [ ] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date
 - [ ] Tried on the owner's household

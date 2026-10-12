@@ -11,6 +11,7 @@
 // URI the renderer reports (our stream URLs carry the track id), never from
 // its metadata. A sound device on this computer is one of these too (kind
 // "local", part 4). The commands are Players.Commands.cs's.
+using Mandarin.Server.Local;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 
@@ -55,11 +56,26 @@ internal sealed partial class Players
     // GENA subscriptions: id -> { url, sid, expires, failedAt }. Without a callback address there are no events and the renderer is simply polled.
     private readonly Dictionary<string, (string Url, string Sid, double Expires, double FailedAt)> subs = [];
     private bool stopped;
-    /* A sound device on this computer, played by the engine (part 4): made here when the kind is "local". */
-    public Func<Player, DeviceRecord, IRenderer>? LocalOutput { get; set; }
-    public Func<string, (double Rate, double Bits)?>? HwParams { get; set; }
+    /* A sound device on this computer, played by the engine (Local/EngineOutput.cs): made here when the kind is "local"; what ALSA has it open at. */
+    public Func<Player, DeviceRecord, IRenderer> LocalOutput { get; set; }
+    public Func<string, (double Rate, string Format)?> HwParams { get; set; } = loc => LocalDevices.HwParams(loc);
 
-    public Players(Hub hub) { zm = hub; }
+    public Players(Hub hub)
+    {
+        zm = hub;
+        LocalOutput = (p, r) =>
+        {
+            var name = r.Name ?? r.NetworkName;
+            // The engine where it is here and plays this device; without it (a Mac, or not yet downloaded) the device can't be played from this server.
+            var eng = AudioEngine.Plays(r.Location) ? AudioEngine.Find(zm.Config.DataDir) : null;
+            if (eng == null) throw new HubError(409, $"{name} can't be played from this server: Mandarin's audio engine isn't here");
+            // The stream is this server's own: fetched over loopback, whatever address it was given out at.
+            var o = new EngineOutput(name, r.Location, eng.Bin, Transcoder.Bin, Log, LocalVolume(r), () => FixedVolume(Record(p.Id)),
+                u => System.Text.RegularExpressions.Regex.Replace(u, "^https?://[^/]+", $"http://127.0.0.1:{zm.Config.Port}"));
+            p.Volume = (o.Volume, false);
+            return o;
+        };
+    }
     private Action<string> Log => zm.Log;
     private Devices Devices => zm.Devices;
 
@@ -168,12 +184,7 @@ internal sealed partial class Players
             if (p.Renderer == null || p.Location != location)
             {
                 p.Renderer?.Halt();
-                if (r?.Kind == "local")
-                {
-                    if (LocalOutput == null) throw new HubError(409, $"{r.Name ?? r.NetworkName} isn't connected to this computer");
-                    p.Renderer = LocalOutput(p, r);
-                    p.Volume = (p.Volume.Value, false);
-                }
+                if (r?.Kind == "local") p.Renderer = LocalOutput(p, r);
                 else p.Renderer = new Renderer(p.Id, r?.Name ?? r?.NetworkName ?? p.Id, r?.Caps["services"] as JsObj);
                 p.Location = location;
             }

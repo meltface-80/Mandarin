@@ -6,6 +6,7 @@
 // has a durable identity, a network name, the name you gave it, and its
 // capabilities in layers (Profiles.cs). Here too: whether a device is on, on
 // the network, playing, and the device as its page shows it.
+using Mandarin.Server.Local;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
@@ -14,14 +15,15 @@ namespace Mandarin.Server.Renderers;
 
 internal sealed class Devices
 {
-    private const int ScanMs = 60000;
+    private const int ScanMs = 60000, LocalMs = 30000;
     private readonly Hub hub;
     private readonly double offlineMs;
     private readonly object gate = new();
-    private Task? scanning;
+    private Task? scanning, scanningLocal;
+    private readonly Func<Task<LocalList>> localList;
     public readonly RendererDiscovery Discovery;
     public double LastScan;
-    /* This computer's sound devices (part 4): the platform, how many, how many hidden. */
+    /* This computer's sound devices (Local/LocalDevices.cs): the platform, how many, how many hidden, whether they are turned off. */
     public JsObj Local = Jv.Obj(("platform", OperatingSystem.IsMacOS() ? "darwin" : "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
 
     public Devices(Hub hub)
@@ -34,9 +36,16 @@ internal sealed class Devices
             using var c = Db.Open();
             return Register.All(c).Where(r => r.Kind == "upnp" && r.Location.Length > 0 && Hub.Now() - r.LastSeen < 3600000).Select(r => r.Location).ToList();
         });
+        // This computer's sound devices: lib/local/devices.js's list, or a test's stand-in from the hand-over.
+        var given = hub.Config.LocalDevices;
+        localList = given != null ? () => Task.FromResult(given) : () => LocalDevices.List(hub.Config.LocalAudio);
     }
 
-    public void Start() => hub.Loop("scan", ScanMs, Scan, 2000);
+    public void Start()
+    {
+        hub.Loop("scan", ScanMs, Scan, 2000);
+        hub.Loop("local", LocalMs, ScanLocal, 500);
+    }
     public bool Scanning { get { lock (gate) return scanning != null; } }
 
     /* One discovery round now (the page's "Look again" waits for it). */
@@ -54,6 +63,7 @@ internal sealed class Devices
     {
         try
         {
+            try { await ScanLocal(); } catch (Exception e) when (e is SqliteException or IOException) { hub.Log($"[local] {e.Message}"); }
             var found = await Discovery.Scan();
             using (var c = Db.Open()) foreach (var rec in found) Register.Seen(c, rec);
             LastScan = Hub.Now();
@@ -61,6 +71,35 @@ internal sealed class Devices
         }
         catch (Exception e) when (e is SqliteException or IOException) { hub.Log($"[renderers] {e.Message}"); }
         finally { lock (gate) scanning = null; }
+    }
+
+    /*
+     * This computer's sound devices, every half minute: each into the register
+     * as it is found, so a DAC unplugged goes offline as a renderer that left
+     * the network does.
+     */
+    public Task ScanLocal()
+    {
+        lock (gate)
+        {
+            if (scanningLocal != null) return scanningLocal;
+            scanningLocal = LocalRound();
+            return scanningLocal;
+        }
+    }
+
+    private async Task LocalRound()
+    {
+        try
+        {
+            var r = await localList();
+            using (var c = Db.Open()) foreach (var rec in r.Devices) Register.Seen(c, rec);
+            var before = Jv.Num(Local["count"]);
+            Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)r.Devices.Count),
+                ("docker", Local["docker"]), ("off", r.Off));
+            if (r.Devices.Count > 0 || before > 0) hub.Bump();
+        }
+        finally { lock (gate) scanningLocal = null; }
     }
 
     /*

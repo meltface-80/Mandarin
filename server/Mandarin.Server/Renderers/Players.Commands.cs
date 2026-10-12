@@ -47,10 +47,11 @@ internal sealed partial class Players
         }
     }
 
-    /* A sound device on Linux: ALSA says the rate the device is open at; the same as sent, and it is confirmed. */
+    /* A sound device on Linux: ALSA says the rate the device is open at (/proc/asound/…/hw_params); the same as the engine's and as sent, and it is confirmed. */
     private async Task VerifyLocal(Player p, DeviceRecord rec, UpnpItem item)
     {
-        if (item.Sent == null || item.Sent.Rate == 0 || HwParams == null) return;
+        var sink = (p.Renderer as Local.EngineOutput)?.Sink;
+        if (item.Sent == null || item.Sent.Rate == 0 || sink == null) return;
         var key = p.Index + ":" + item.Uri;
         lock (gate) { if (p.Verifying == key) return; }
         ZoneState? st;
@@ -59,7 +60,7 @@ internal sealed partial class Players
         lock (gate) p.Verifying = key;
         var hw = HwParams(rec.Location);
         if (hw == null || hw.Value.Rate == 0) return;
-        var ok = hw.Value.Rate == item.Sent.Rate;
+        var ok = hw.Value.Rate == sink.Value.Rate && sink.Value.Rate == item.Sent.Rate;
         var bump = false;
         lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
         if (bump) zm.Bump();

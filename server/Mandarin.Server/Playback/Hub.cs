@@ -26,6 +26,8 @@ internal sealed class HubConfig
     public bool UpnpMulticast = true;
     public double UpnpOfflineMs = 150000;
     public bool LocalAudio = true;
+    /* A test's stand-in for this computer's sound devices (index.js localAudio.list), handed over whole. */
+    public Local.LocalList? LocalDevices;
     public int Port = 3500;
     public string DataDir = "";
 
@@ -41,8 +43,26 @@ internal sealed class HubConfig
             Include = Strings(cfg["sonos_include"]), Exclude = Strings(cfg["sonos_exclude"]),
             UpnpHosts = Strings(cfg["upnp_hosts"]), UpnpMulticast = On(cfg["upnp_multicast"]),
             UpnpOfflineMs = cfg["upnp_offline_ms"] is JsonValue om && om.TryGetValue<double>(out var ms) && ms > 0 ? ms : 150000,
-            LocalAudio = On(cfg["local_audio"]), Port = port, DataDir = dataDir
+            LocalAudio = On(cfg["local_audio"]), LocalDevices = cfg["local_devices"] is JsonObject ld ? LocalListOf(ld) : null, Port = port, DataDir = dataDir
         };
+    }
+
+    /* The stand-in's devices, as lib/local/devices.js lists them: id, kind, names, location, playable and the advertised caps. */
+    private static Local.LocalList LocalListOf(JsonObject ld)
+    {
+        var list = new Local.LocalList { Platform = ld["platform"] is JsonValue pv && pv.TryGetValue<string>(out var ps) ? ps : "", Off = ld["off"] is JsonValue ov && ov.TryGetValue<bool>(out var ob) && ob };
+        list.Hidden = ld["hidden"] is JsonValue hv && hv.TryGetValue<double>(out var hn) ? (int)hn : 0;
+        foreach (var n in ld["devices"] as JsonArray ?? [])
+        {
+            if (n is not JsonObject d || Scan.JsJson.Parse(d.ToJsonString()) is not JsObj o) continue;
+            static string? S(object? v) => Jv.T(v) ? Jv.Str(v) : null;
+            list.Devices.Add(new SeenInfo
+            {
+                Id = Jv.Str(o["id"]), Kind = S(o["kind"]) ?? "local", Family = S(o["family"]), NetworkName = S(o["network_name"]), Manufacturer = S(o["manufacturer"]),
+                Model = S(o["model"]), Location = S(o["location"]), Playable = o["playable"] is bool pb ? pb : null, Caps = o["caps"] as JsObj
+            });
+        }
+        return list;
     }
 }
 
@@ -97,6 +117,8 @@ internal sealed partial class Hub
         hub.StartSonos();
         hub.Devices.Start();
         hub.StartRegister();
+        // Mandarin's audio engine for sound devices on this computer (v0.8.0): the image's, else fetched once in the background where that is allowed.
+        if (config.LocalAudio) Local.AudioEngine.StartUp(config.DataDir, Front.Version, log);
         return hub;
     }
 
