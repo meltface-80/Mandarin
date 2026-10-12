@@ -257,6 +257,7 @@ internal static partial class Cpu
     private static long dspUntil;          // and the second core kept until then (Environment.TickCount64)
     private static Timer? holdTimer;
     private static Split decided = new(false, [], [], []);
+    private static bool toldDsp;           // whether the Node server was last told DSP is in use
     private static readonly Lazy<bool> Raise = new(() => Tools.Value.Nice && MayRaise());
 
     /* The split is decided here (the Node server handed "cpu" over). */
@@ -371,13 +372,18 @@ internal static partial class Cpu
     }
 
     // Under Deciding_: decided again, kept to, and the Node server told when it changed (or [force]).
+    // Whether DSP is in use is part of what it is told (lib/cpu.js follow keeps it as its own
+    // dspActive), so a change in that alone is told too: where nothing is split (a Mac, two
+    // cores, PLAYBACK_CORES=0) the split never changes, and the Node server would never hear.
     private static void Recompute(bool force)
     {
         Func<string, string?> env = Environment.GetEnvironmentVariable;
-        var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), DspActive());
+        var dsp = DspActive();
+        var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), dsp);
         var next = new Split(d.Split, d.Playback, d.Background, d.Cores);
-        var same = next.On == decided.On && Compact(next.Playback) == Compact(decided.Playback);
+        var same = next.On == decided.On && Compact(next.Playback) == Compact(decided.Playback) && dsp == toldDsp;
         decided = next;
+        toldDsp = dsp;
         Keep(next);
         if (!same || force) _ = TellNode();
     }
