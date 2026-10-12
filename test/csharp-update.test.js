@@ -16,6 +16,7 @@
  * the new version is in place first, or the update stops with nothing changed.
  */
 const ports = require("./ports");
+const { stopServer } = require("./fixtures");
 const PORT = ports.port(), FAKE = ports.port(), NODE = ports.port();
 process.env.UPDATE_API = "http://127.0.0.1:" + FAKE;
 
@@ -83,7 +84,7 @@ function install(opts = {}) {
 
 test("the C# server brought up to the Node server's version", async (t) => {
   await new Promise(r => server.listen(FAKE, "127.0.0.1", r));
-  t.after(() => server.close());
+  t.after(() => stopServer(server));
 
   await t.test("in front of another version: the release's program checked, put in place, and everything started again", async () => {
     fake.front = "9.9.8";
@@ -374,7 +375,7 @@ test("the C# server: its version, everything passed on to a Node server of anoth
       });
     });
     await new Promise(r => fakeNode.listen(NODE, "127.0.0.1", r));
-    t.after(() => fakeNode.close());
+    t.after(() => stopServer(fakeNode));
     const data = fs.mkdtempSync(path.join(os.tmpdir(), "csharp-front-"));
     const c = run({ MANDARIN_UPSTREAM: "http://127.0.0.1:" + NODE, MANDARIN_FRONT_KEY: "k", DATA_DIR: data, MANDARIN_APP_DIR: path.join(__dirname, "..") });
     let r = await ask("/api/library/albums");

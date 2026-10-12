@@ -43,7 +43,7 @@ class FakeITunes {
     return new Promise(r => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; r(this); }));
   }
   get baseUrl() { return `http://127.0.0.1:${this.port}`; }
-  stop() { return new Promise(r => this.server ? this.server.close(r) : r()); }
+  stop() { return require("./fixtures").stopServer(this.server); }
 }
 
 module.exports = { FakeITunes };

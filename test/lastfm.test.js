@@ -20,7 +20,7 @@ const assert = require("node:assert/strict");
 const http = require("http");
 const path = require("path");
 const { createLastfm, pickImage, siteUrl, PLACEHOLDER } = require("../lib/lastfm");
-const { haveFfmpeg, gen } = require("./fixtures");
+const { haveFfmpeg, gen, stopServer } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
@@ -235,7 +235,7 @@ function lastfmServer() {
     parentPort.on("message", (m) => {
       if (m === "start") server.listen(0, "127.0.0.1", () => parentPort.postMessage({ base: "http://127.0.0.1:" + server.address().port + "/2.0/" }));
       if (m === "calls") parentPort.postMessage({ calls });
-      if (m === "stop") server.close(() => parentPort.postMessage({ stopped: true }));
+      if (m === "stop") { server.closeAllConnections(); server.close(() => parentPort.postMessage({ stopped: true })); }
     });
   `, { eval: true, workerData: { STAR, MUSE_ART } });
   const ask = (m, key) => new Promise((resolve) => {
@@ -427,7 +427,7 @@ test("Last.fm answered by the C# server with nothing handed over, from its own e
     res.writeHead(502); res.end();
   });
   await new Promise(r => node.listen(0, "127.0.0.1", r));
-  t.after(() => node.close());
+  t.after(() => stopServer(node));
   const port2 = ports.port();
   const front = spawn(bin, [], { env: Object.assign({}, process.env, { PORT: String(port2), MANDARIN_UPSTREAM: "http://127.0.0.1:" + node.address().port,
     MANDARIN_FRONT_KEY: "k", DATA_DIR: data, LASTFM_URL: base, LASTFM_KEY: "good" }), stdio: "ignore" });

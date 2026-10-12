@@ -100,7 +100,7 @@ internal static partial class PlaybackRoutes
             {
                 var uid = Phones.UidFor(dev.Id);
                 phones.SetAway(uid, req.Away);
-                phones.Report(uid, req.Body);
+                await phones.Report(uid, req.Body);
                 return await Send(req.Ctx, new JsonObject { ["ok"] = true });
             }
             default: return false;

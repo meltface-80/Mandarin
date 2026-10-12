@@ -28,17 +28,25 @@ jobs:
       - name: The gates' own tests
         run: node --test test/quality-gates.test.js
 
+  # The suite, in parts that run at once (v0.8.49): on Node 20 the Node server
+  # alone (one job, three minutes); on Node 22 every test's server behind the
+  # C# server, as the image runs it, the test files dealt out to three jobs
+  # (node's --test-shard, each file in one of them), so the whole run takes
+  # the time of a third of it rather than nine minutes end to end.
   test:
+    name: test (${{ matrix.node-version }}${{ matrix.shard != '1/1' && format(', part {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
-    # whole hour; nothing here should take half of that. 25, not 15 (v0.8.28):
-    # the suite through the C# server takes about 14 minutes on its own now,
-    # and 15 cancelled a run whose tests had all passed.
-    timeout-minutes: 25
+    # whole hour; nothing here should take half of that.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        node-version: ["20", "22"]
+        include:
+          - { node-version: "20", shard: "1/1" }
+          - { node-version: "22", shard: "1/3" }
+          - { node-version: "22", shard: "2/3" }
+          - { node-version: "22", shard: "3/3" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,6 +86,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      # The packages the two builds restore, kept between runs (v0.8.49).
+      - name: Restore the .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj') }}
       - name: Build the audio engine
         run: ./engine/build.sh
       # Mandarin's server in C# (server/, v0.8.1): on Node 22 every test's
@@ -95,20 +109,26 @@ jobs:
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
           MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
+          TEST_SHARD: ${{ matrix.shard }}
         run: |
           set -o pipefail
-          npm test 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log"
       - name: The tests that failed, again
         if: failure()
         run: .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
 
   # A Mac (v0.8.29): the C# server built for it and the whole suite through
   # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
-  # silicon; ffmpeg from Homebrew, as the installer has it.
+  # silicon; ffmpeg from Homebrew, as the installer has it. The test files are
+  # dealt out to two jobs (v0.8.49), as the Linux ones are to three.
   macos:
-    name: Tests on a Mac
+    name: Tests on a Mac (part ${{ matrix.shard }})
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -133,6 +153,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      - name: Restore the .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj') }}
       - name: Build the C# server
         run: |
           ./server/build.sh
@@ -168,9 +193,11 @@ jobs:
       - name: Tests, through the C# server
         env:
           MANDARIN_FRONT: "1"
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_CONCURRENCY: "2"
         run: |
           set -o pipefail
-          node --require ./test/setup.js --test --test-concurrency=2 --test-timeout=300000 --test-force-exit test/*.test.js 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log"
       - name: The tests that failed, again
         if: failure()
         run: .github/failed-tests.sh "$RUNNER_TEMP/tests.log"

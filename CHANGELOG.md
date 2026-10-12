@@ -137,6 +137,17 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   `/api/status` and `/api/health` with part 2. `test/housekeeping-csharp.test.js` holds
   `/api/status` to the Node server's own answer with the rooms' part set aside (the Node hub
   being idle, it counts none) and the display's content to the hub's track.
+- **The suite, steady and quicker.** A phone's report that brings a USB DAC (or takes it away) is
+  answered once its queue has been planned again, so the app's next poll has the new queue (the
+  replanning had been left running after the answer, and a poll straight after found nothing).
+  The parity test for the Sonos rooms compares a room's state until both hubs have read it, never
+  once (each reads its room on a timer of its own), and reads the room paused before moving its
+  music back to the phone (the fixture's tracks are three seconds long). A test's request to a
+  server fails after a minute and a half naming its address (`test/setup.js`), so a server that
+  never answers is a failure with a name rather than a file held to its five-minute timeout. CI
+  deals the test files out to three Linux jobs and two Mac jobs (`npm run test:shard`, node's
+  `--test-shard`) and keeps the .NET packages between runs: the whole run takes the time of a
+  part.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

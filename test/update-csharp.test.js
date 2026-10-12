@@ -23,7 +23,7 @@ const zlib = require("zlib");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
 const pkg = require("../package.json");
-const { makeLibrary } = require("./fixtures");
+const { makeLibrary, stopServer } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const ROOT = path.join(__dirname, "..");
@@ -145,7 +145,7 @@ const api = (s, p, post) => s.api(p, post);
 
 test("the in-app update, made by the C# server", { skip, timeout: 180000 }, async (t) => {
   await new Promise(r => gh.listen(FAKE, "127.0.0.1", r));
-  t.after(() => new Promise(r => gh.close(r)));
+  t.after(() => stopServer(gh));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-upd-gh-"));
   const realBin = fs.statSync(BIN);
 

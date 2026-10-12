@@ -24,8 +24,8 @@ internal sealed partial class Phones
 
     private static string JsText(JsonNode? v) => v == null ? "" : v is JsonValue jv && jv.TryGetValue<string>(out var s) ? s : AJs.Str(v);
 
-    /* What the app says it is doing. */
-    public void Report(string uid, JsonObject r)
+    /* What the app says it is doing. Answered once what follows (a DAC come or gone: the queue planned again) is done, so the app's next poll has it. */
+    public async Task Report(string uid, JsonObject r)
     {
         ZoneState prev, next;
         PhoneRec p;
@@ -94,7 +94,11 @@ internal sealed partial class Phones
             var caps = UsbCaps(r["usb_caps"]);
             if (TJs.Json(caps) != TJs.Json(p.UsbCaps)) { p.UsbCaps = caps; replan = true; }
         }
-        if (replan) _ = Replan(p).ContinueWith(t => zm.Log("[phones] replan: " + t.Exception?.InnerException?.Message), TaskContinuationOptions.OnlyOnFaulted);
+        if (replan)
+        {
+            try { await Replan(p); }
+            catch (Exception e) when (e is HubError or JsError or Microsoft.Data.Sqlite.SqliteException) { zm.Log("[phones] replan: " + e.Message); }
+        }
     }
 
     // ------------------------------------------------------------ zones

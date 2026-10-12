@@ -233,7 +233,7 @@ class FakeTidal {
 
   stop() {
     try { fs.rmSync(this.tmp, { recursive: true, force: true }); } catch (e) { /* tmp */ }
-    return new Promise(r => this.server ? this.server.close(() => r()) : r());
+    return require("./fixtures").stopServer(this.server);
   }
 }
 
