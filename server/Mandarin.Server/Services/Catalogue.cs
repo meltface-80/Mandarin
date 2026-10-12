@@ -5,13 +5,13 @@
 // tracks, and whether an album is in the account's favourites. The account
 // (signed in by the Node server), the albums kept and those in the library are
 // read from the database it writes; the library's rows written here from
-// v0.8.44 are Rows.cs, the import and the watch from v0.8.45 Import.cs.
+// v0.8.44 are Rows.cs.
 //
 // The favourites' ids are kept a minute, as api.js keeps them, and no longer
 // than the Node server's library stays as it was: a favourite added or taken
-// away (a request passed to the Node server for Tidal's token, or a step of
-// the import left to it) reads the library again, so the next list here asks
-// the service afresh rather than show it stale.
+// away there (its import and watch, or a request passed to it for Tidal's
+// token) reads the library again, so the next list here asks the service
+// afresh rather than show it stale.
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
@@ -142,7 +142,7 @@ internal abstract partial class Catalogue(string id, string name)
 }
 
 /* Qobuz's catalogue (lib/qobuz/index.js). */
-internal sealed partial class QobuzCatalogue : Catalogue
+internal sealed class QobuzCatalogue : Catalogue
 {
     public QobuzApi Api { get; }
 
@@ -267,15 +267,10 @@ internal sealed partial class QobuzCatalogue : Catalogue
 
     // ------------------------------------------------------------ rows in the library (the hooks, v0.8.44)
 
-    /*
-     * The album and its tracks in the plain shape (index.js fullAlbum): the
-     * tracks from the album's own answer when it has them all. [hint]: the
-     * album as a listing gave it (the import, v0.8.45), used when it has its tracks.
-     */
-    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint)
+    /* The album and its tracks in the plain shape (index.js fullAlbum): the tracks from the album's own answer when it has them all. */
+    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id)
     {
-        var a = hint;
-        if (!Js.Truthy(a) || !Js.Truthy(P(a, "tracks"))) a = await Api.Album(id);
+        var a = await Api.Album(id);
         var listed = P(a, "tracks");
         var items = AndP(listed, "items");
         List<object?> tracks;
@@ -468,12 +463,11 @@ internal sealed partial class TidalCatalogue : Catalogue
      * The album and its tracks in the plain shape (index.js fullAlbum). The
      * tracks and the cover (640 px, kept beside the database) are fetched side
      * by side, so an album opens in the time of the slower of the two. An
-     * album a list gave is known already (Listed): its tracks only are asked;
-     * so is one the import's listing gave ([hint] with its title, v0.8.45).
+     * album a list gave is known already (Listed): its tracks only are asked.
      */
-    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint)
+    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id)
     {
-        var a = Js.Truthy(hint) && Js.Truthy(P(hint, "title")) ? hint : await Api.Album(id);
+        var a = await Api.Album(id);
         var album = NormAlbum(a) ?? throw new JsError("Cannot set properties of null (setting 'image')");
         album["image"] = Api.Image(P(a, "cover"), "640x640");
         var tracks = Api.AlbumTracks(id);
