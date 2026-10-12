@@ -500,7 +500,11 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       try { out = await fn(); } finally { tidal.server.off("request", trip); tidal.refreshToken = refresh; }
       return Object.assign(out, { tripped, first: asked[0] === "2007" ? "T Seventh" : "T Eighth" });
     };
-    const start = async () => { await post("settings/tidal/import"); tidal.favourites.add("2007"); tidal.favourites.add("2008"); };
+    const start = async () => {
+      tidal.favourites.delete("2007"); tidal.favourites.delete("2008");
+      await post("settings/tidal/import");
+      tidal.favourites.add("2007"); tidal.favourites.add("2008");
+    };
     const [a, b] = await both("tidal", start, tripping(async () => {
       const w = (await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: K })).json()).services.tidal;
       const titles = (await get("library/albums?sort=album")).j.albums.filter(x => x.source === "tidal").map(x => x.title);

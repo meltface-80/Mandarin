@@ -461,12 +461,29 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     assert.deepEqual(mine.map(x => x.which + ":" + x.event.track_id), ["start:5001", "end:5001", "start:5002"]);
     assert.deepEqual(mine, theirs, "the same reports");
     assert.deepEqual([mine[0].event.user_id, mine[0].event.credential_id, mine[0].event.format_id, mine[0].event.intent, mine[0].event.device_id], [4242, 77, 6, "streaming", 9001]);
+    // A speaker asking the Node server itself (by its own address, unsigned): the file made by C#, the play reported there.
+    await settle();
+    clear();
+    qobuz.reports.length = 0;
+    let played = 0;
+    const own0 = ctx.qobuz.played.bind(ctx.qobuz);
+    ctx.qobuz.played = (...a) => { played++; return own0(...a); };
+    const three = trackId("qobuz://track/5003");
+    try {
+      const r = await fetchStream(NODE, `/stream/t${three}.flac`);
+      assert.deepEqual([r.status, r.by], [200, null]);
+      assert.ok(r.body.length > 0);
+      await until(() => qobuz.reports.some(x => x.which === "start" && x.event.track_id === 5003), 10000, "reported by C#");
+      assert.equal(played, 0, "not reported by the Node server");
+      assert.equal(ctx.transcoder.jobs.size, 0, "nor made there");
+      assert.ok(fs.readdirSync(made).some(f => f.startsWith(three + "-") && f.endsWith(".flac")), "made by C#");
+    } finally { ctx.qobuz.played = own0; }
     // Signing out ends the play under way: reported, as the Node server's sign-out does.
     await ctx.qobuz.stop();
     qobuz.reports.length = 0;
     const acc = setting("qobuz");
     assert.equal((await post("settings/qobuz/signout")).by, "C#");
-    assert.deepEqual(qobuz.reports.map(x => x.which + ":" + x.event.track_id), ["end:5002"], "the play under way reported over");
+    assert.deepEqual(qobuz.reports.map(x => x.which + ":" + x.event.track_id), ["end:5003"], "the play under way reported over");
     ctx.db.setSetting("qobuz", JSON.parse(acc));
     // Signed out, nothing of Qobuz streams, made already or not.
     ctx.db.setSetting("qobuz", null);
