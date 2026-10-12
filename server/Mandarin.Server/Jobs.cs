@@ -6,8 +6,7 @@
 // v0.8.22 the built-in Tailscale engine (Admin/Tailscale.cs), which stays up
 // while the Node server starts again; from v0.8.34 the library scans (Scans.cs);
 // from v0.8.44 the month's prune of Qobuz's and Tidal's albums only ever played
-// from the browser (Services/Rows.cs); from v0.8.45 their import, the
-// favourites' watch and the service playlists (Services/Import.cs).
+// from the browser (Services/Rows.cs).
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -28,7 +27,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -174,8 +173,6 @@ internal static class Jobs
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily, while handed over.
         Services.Prune.Start();
-        // Their import and the favourites' watch (v0.8.45): on the Node server's timers, while handed over.
-        Services.Import.Start(cfg);
         Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the Node server said yes: what follows it, made now.
         _ = Task.Run(async () =>
@@ -201,18 +198,15 @@ internal static class Jobs
      * graph built again now, from the plays as they are; the tests, after
      * writing plays: it is otherwise built once a day), POST /internal/jobs/prune
      * (the services' month's prune made now, as the daily timer makes it: the
-     * tests), POST /internal/jobs/import (the Node server, an import it would
-     * have started itself: ?service=<s> after a sign-in, ?after=rescan after a
-     * Rescan), POST /internal/jobs/watch (the services' favourites looked at
-     * now, as the watch's timer looks: the tests) and GET /internal/tailscale
-     * (how the engine run here is: the Node server gives phones its address).
+     * tests), and GET /internal/tailscale (how the engine run here is: the
+     * Node server gives phones its address).
      */
     public static void UseInternal(WebApplication app)
     {
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value;
-            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/import" or "/internal/jobs/watch" or "/internal/tailscale")) { await next(); return; }
+            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/tailscale")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
@@ -232,22 +226,6 @@ internal static class Jobs
             {
                 await AfterScan();
                 await ctx.Response.WriteAsync("{\"ok\":true}");
-                return;
-            }
-            if (p == "/internal/jobs/import")
-            {
-                var made = Services.Import.Now(ctx.Request.Query["service"].ToString(), ctx.Request.Query["after"].ToString() == "rescan");
-                if (!made) ctx.Response.StatusCode = 409;
-                await ctx.Response.WriteAsync(made ? "{\"ok\":true}" : "{\"ok\":false}");
-                return;
-            }
-            if (p == "/internal/jobs/watch")
-            {
-                if (await Services.Import.WatchNow() is not { } seen) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
-                var looked = new Tags.JsObj();
-                looked["ok"] = true;
-                looked["services"] = seen;
-                await ctx.Response.WriteAsync(Tags.Js.Json(looked) ?? "{}");
                 return;
             }
             if (p == "/internal/jobs/prune")
@@ -304,8 +282,6 @@ internal static class Jobs
                     // The library scans: one now, as one started with the Node server — or its own again.
                     if (handed.Contains("scan") && startedWith is { } w) Scans.Start(c.Config, w.DataDir);
                     else Scans.Stop();
-                    // The services' import: its first run after the Node server's start, as there.
-                    Services.Import.Start(c.Config);
                     Front.Log("[jobs] the Node server started again; its work stays here");
                 }
             }
@@ -319,8 +295,6 @@ internal static class Jobs
         if (upstream == null) return;
         // A scan under way ended first: the database it writes is about to be put back.
         Scans.Halt();
-        // The services' import and watch likewise, at their next album (v0.8.45).
-        await Services.Import.HaltRuns();
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart"));
@@ -335,7 +309,6 @@ internal static class Jobs
     {
         Scans.Stop();
         Services.Prune.Stop();
-        Services.Import.Stop();
         Tailscale?.Stop();
         Identify?.Stop();
         Packs?.Stop();

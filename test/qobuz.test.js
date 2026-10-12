@@ -246,9 +246,8 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false, "off the walls as the page says");
       // An import while the listing still has it (a cached page, a lagging
       // service) goes by the ids asked for now: still let go.
-      // The listing cached with it in, by the server that imports (the C# server's from v0.8.45).
       qobuz.favourites.add("1003");
-      assert.equal((await api("settings/qobuz/import", {})).status, 200);
+      await ctx.services.qobuz.api.favouriteAlbums();   // the listing cached with it in
       qobuz.favourites.delete("1003");
       const imp = await api("settings/qobuz/import", {});
       assert.equal(imp.result.dropped, 1, "the listing's page still lists it, so it is imported again, and the ids let it go: " + JSON.stringify(imp.result));

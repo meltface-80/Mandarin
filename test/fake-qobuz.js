@@ -22,7 +22,6 @@ class FakeQobuz {
     this.token = "tok-" + crypto.randomBytes(6).toString("hex");
     this.favourites = new Set();
     this.purchases = new Set();
-    this.dates = new Map();     // album id -> when it was made a favourite or bought, in seconds (favorited_at, purchased_at)
     this.reports = [];          // { which, event }
     this.fileUrlCalls = [];     // { track_id, format_id, sig_ok }
     this.fetches = [];          // stream fetches
@@ -119,8 +118,7 @@ class FakeQobuz {
               return json(200, { tracks: { total: list.length, offset, limit, items: list.slice(offset, offset + limit) } });
             }
             const list = [...this.favourites].map(id => find(id)).filter(Boolean);
-            const dated = (a) => Object.assign(this.albumJson(a, false), this.dates.has(String(a.id)) ? { favorited_at: this.dates.get(String(a.id)) } : {});
-            return json(200, { albums: { total: list.length, offset, limit, items: list.slice(offset, offset + limit).map(dated) } });
+            return json(200, { albums: { total: list.length, offset, limit, items: list.slice(offset, offset + limit).map(a => this.albumJson(a, false)) } });
           }
           case "playlist/getUserPlaylists": return json(200, { playlists: { total: this.playlists.length, items: this.playlists.map(p => ({ id: p.id, name: p.name, tracks_count: p.tracks.length, owner: { id: 4242 } })) } });
           case "playlist/get": {
@@ -132,8 +130,7 @@ class FakeQobuz {
           }
           case "purchase/getUserPurchases": {
             const list = [...this.purchases].map(id => find(id)).filter(Boolean);
-            const dated = (a) => Object.assign(this.albumJson(a, false), this.dates.has(String(a.id)) ? { purchased_at: this.dates.get(String(a.id)) } : {});
-            return json(200, { albums: { total: list.length, items: list.map(dated) } });
+            return json(200, { albums: { total: list.length, items: list.map(a => this.albumJson(a, false)) } });
           }
           case "favorite/getUserFavoriteIds": return json(200, { albums: [...this.favourites], tracks: [], artists: [] });
           case "purchase/getUserPurchasesIds": return json(200, { albums: { total: this.purchases.size, items: [...this.purchases].map(id => ({ id })) }, tracks: { total: 0, items: [] } });

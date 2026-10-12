@@ -278,9 +278,6 @@ internal static partial class Library
     /* The Node server asked how it is (its version among it), before anything is answered (Program.cs). */
     public static async Task Ask() => await State();
 
-    /* The Node server's library version now, for what is kept no longer than it stays (Services/); null when it can't say. */
-    public static async Task<long?> NodeVersion() => (await State())?.Version;
-
     /* The current copy, for the covers (Images.cs); null when the Node server can't say. */
     public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;
 
