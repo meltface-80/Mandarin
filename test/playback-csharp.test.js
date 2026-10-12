@@ -449,12 +449,20 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "play" }));
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "next" }));
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "previous" }));
+      // "playpause" goes by the state last read from the room: each one after the room has been read again, so the first pauses and the second plays, on any machine.
+      const seen = (state) => Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zone-state?zone=" + rooms(S).kitchen)).json.zone.state === state, 10000, S.name + " " + state)));
+      await seen("playing");
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "playpause" }));
+      await seen("paused");
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "playpause" }));
+      await seen("playing");
       await same("other", "POST", "/api/seek", S => ({ zone_or_output_id: rooms(S).kitchen, how: "absolute", seconds: 2 }));
       await same("other", "POST", "/api/seek", S => ({ zone_or_output_id: rooms(S).kitchen, how: "relative", seconds: 1 }));
-      // "previous" within the first seconds goes back a track; the second "playpause" comes before the room has been read again, so it pauses again, as it did there.
-      sameLog("Kitchen", ["Pause", "Play", "Next", "Previous", "Pause", "Pause", "Seek", "Seek"]);
+      // "previous" within the first seconds goes back a track.
+      sameLog("Kitchen", ["Pause", "Play", "Next", "Previous", "Pause", "Play", "Seek", "Seek"]);
+      await settled("Kitchen", r => r.state === "PLAYING");
+      await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "pause" }));
+      sameLog("Kitchen", ["Pause"]);
       await settled("Kitchen", r => r.state === "PAUSED_PLAYBACK");
       await same("other", "POST", "/api/control", S => ({ zone_or_output_id: rooms(S).kitchen, command: "play" }));
       sameLog("Kitchen", ["Play"]);

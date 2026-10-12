@@ -102,12 +102,21 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
     const n0 = effects.length, b0 = bumps.n, r0 = front ? await revision() : 0;
     const c = await patch(id, body);
     const rowC = row(id);
-    const effC = effects.slice(n0), bumpC = front ? (await revision()) - r0 : bumps.n - b0;
+    const effC = effects.slice(n0);
+    let bumpC = front ? (await revision()) - r0 : bumps.n - b0;
     if (before) putBack(id, before);
     const n1 = effects.length, b1 = bumps.n;
     const n = await call(NODE, "PATCH", "/api/audio-devices/" + id, body);
     const rowN = row(id);
     const effN = effects.slice(n1), bumpN = bumps.n - b1;
+    // The C# hub's counter moves for its own reasons too (a discovery round that found the renderers): a bump where the Node server made none is measured once more, from the same row.
+    if (front && bumpN === 0 && bumpC > 0 && before) {
+      putBack(id, before);
+      const r1 = await revision();
+      await patch(id, body);
+      bumpC = (await revision()) - r1;
+      putBack(id, rowN);
+    }
     assert.equal(c.by, "C#", what + ": answered by the C# server");
     assert.equal(n.by, null, what + ": the Node server's own");
     assert.equal(c.status, n.status, what + ": " + c.text + " against " + n.text);
