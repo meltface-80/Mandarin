@@ -496,6 +496,163 @@ Everything the Node server still does but play, moved in one version:
 
 After it, the Node server is playback and nothing else.
 
+#### The plan in detail (branch `stage-5-everything-but-playback`)
+
+Built from stage 4b's head (`1e89f33`). Each part is built, tested both ways (Node alone, and through
+the C# server), committed and pushed on its own, and ticked off in the checklist at the end of this
+section, so the work can be taken up again from the branch alone. The rules are the ones every move
+has kept (section 3): rule for rule, held to the Node server's own answers and writes, pinned in
+`test/front.test.js`, the Node copy kept (deleted in stage 7, 2.4), and in the Node server nothing
+but hand-over plumbing.
+
+**A job is handed over only once the C# server has taken it.** The lesson from stage 4b's review:
+`ctx.madeByFront(job)` is true while the Node server is still waiting for the hand-over (the
+`MANDARIN_FRONT_RUNS` window, up to two minutes). Anything that answers a request, or that would
+otherwise not happen at all in that window, keeps being done by the Node server until
+`ctx.frontRuns.has(job)`, as `ctx.servicesHanded()` does; only a timer's work (a scan, a check) may
+wait for the hand-over.
+
+**The order, and why it differs from the list above.** 8 first, since the others build on the
+database being the C# server's. Then the small ones, which the code shows are nearly done already
+(their routes moved in v0.8.26 and v0.8.34; only fallbacks are left): 7, 3 and 6, so they are banked
+early. Then 4, 1 and 2, each with new hand-over plumbing in the Node server. 5 last: drawing a CMYK
+or colour-profiled picture as sharp draws it needs colour management ffmpeg doesn't have, the most
+uncertain piece of the stage, so a stop there costs least.
+
+**Part 8: the database's tables and migrations** (`Schema.cs`).
+- The C# server makes the database and brings it up to date as `lib/library/db.js` does, statement
+  for statement (the same `CREATE` text, so `sqlite_master` reads the same): the tables and indexes,
+  the columns added since a table first shipped, `user_version`; a database made by something else
+  (another program, an older project on the same volume) moved aside as `musicd.old-<ms>.db` and
+  what is worth keeping carried over; the album edits read back from `album-edits.json` into an
+  empty table, and that file written where there are edits and none; and the three tables the
+  `Features` constructor made (`smart_blocks`, `smart_picks`, `radio_played`).
+- `mandarin-server db <data folder>` does it and says how it went (one line of JSON). The C# server
+  does it itself before it starts the Node server.
+- Hand-over (Node): `DB.open` asks the C# program when the C# server that started it has it
+  (`MANDARIN_SERVER_DB=1`, with `MANDARIN_SERVER_BIN`), checks the tables then have every column it
+  needs, and only then leaves out its own; the `Features` constructor creates nothing then. A Mac on
+  Node alone, an older C# server, or the program failing: its own code, as before. A backup put back
+  (swapped in as the Node server starts again) is so brought up to date by C# too.
+- Tests: `test/db-csharp.test.js`: a new database, one from before the added columns, one made by
+  something else, and `album-edits.json` both ways, each made by the C# program and by
+  `lib/library/db.js` and compared (tables, indexes, columns, version, rows, files); through the C#
+  server, the servers' own databases are its.
+
+**Part 7: the pages, the deep links and `/api/health`** (`Pages.cs`, `HealthRoutes.cs`).
+- `/login`, `/display` and `/display/` sent as the files they are; any other address the page opens
+  (a deep link: a `GET` or `HEAD` outside `/api/`, `/stream/`, `/internal/` and `public/`) answered
+  with the page, as the Node server's `app.get("*")` did, the Android app's form of it included.
+- `/api/health` (open, Docker's health check): `{ ok, version, albums, rooms, ffmpeg, soxr,
+  transcode_cache, audio_engine, csharp }`, the rooms and the C# server's own update state as the
+  Node server last said them (two fields more in `/internal/library`), the rest here.
+- Tests: `test/pages-csharp.test.js`: each page and a deep link byte for byte with the Node
+  server's, signed out sent to `/login?next=…`; `/api/health` field for field. `front.test.js`'s pins.
+
+**Part 3: the phone's download lists, what is left** (`DownloadListRoutes.cs`, `Downloads.cs`).
+- Answered here too: a streamed album's list (its tracks planned as FLAC, as the Node server plans
+  them), a streamed track asked for (403, "Streamed tracks can't be downloaded"), a track no longer
+  there (404), a file gone from the disk, and `ids` that aren't a list (500, as Express answers the
+  TypeError in the image, `NODE_ENV=production`).
+- Tests: `test/library-front.test.js`'s download checks extended to these.
+
+**Part 6: Last.fm, what is left** (`LastfmRoutes.cs`, `Jobs.cs`).
+- Its routes moved in v0.8.26 and its pictures in v0.8.34. Left: the routes waited for the hand-over,
+  since its address and the environment's key came with it. Now the C# server has them from its own
+  environment (`LASTFM_URL`, `LASTFM_KEY`, the same container) from the start, the Node server's word
+  taking over when it comes.
+- Tests: `test/lastfm.test.js` both ways, unchanged; a check that the routes answer here before the
+  hand-over.
+
+**Part 4: Admin** (`Admin/Updater.cs`, `Cpu.cs`, `PowerRoutes.cs`).
+- **The in-app update**, a job handed over (`update`): Settings → Updates' status, Check now and
+  Install, and the check every twelve hours, as `lib/updater.js` makes them (GitHub's latest release,
+  or the highest tag; only ever forwards; the bundle downloaded, unpacked with `tar`, checked for
+  `index.js`, `package.json` and the package's name), the C# server of the new version fetched,
+  checked and put in place first (`csharp-update.js`'s `prepare`, with the release's SHA-256 sums and
+  `--version`); then staged for `launcher.js` (`.update/READY`) and the Node server asked to start
+  again (code 75): the launcher lays the new files in, the new Node server finds this program of
+  another version and asks it to start again from the new file (code 76), as before. With no launcher
+  (the tests' own Node server) the files are laid in here, as `applyStaged` does. Hand-over (Node):
+  `update` in `FRONT_JOBS`, its twelve-hourly check not started once handed over, and whether it runs
+  under the launcher said in the hand-over's settings.
+- **Restart and shut down**: the C# server's since v0.8.31 wherever it started the Node server (every
+  install). Nothing else moves: the tests' own Node server, which the C# server didn't start, is one
+  it can't start again.
+- **The processor split**, a job handed over (`cpu`): decided here (`lib/cpu.js`'s `decide`, the DSP
+  conversions counted and playback's second core kept ten minutes after the last), and sent to the
+  Node server (`POST /internal/cpu/plan`), which follows it for playback's own processes (the audio
+  engine, its decoder) and tells this server of a DSP conversion it makes itself (`POST
+  /internal/cpu/dsp` here). `/api/cpu` answered from this decision. Hand-over (Node): `cpu` in
+  `FRONT_JOBS`; `lib/cpu.js` follows a plan given to it.
+- Tests: `test/update-csharp.test.js` (a stand-in GitHub: the status, a check, an install staged as
+  the Node server stages it with the C# program fetched first, each refusal word for word);
+  `test/cpu.test.js`: the decision held to `lib/cpu.js`'s for the same machine and settings, the Node
+  server following it.
+
+**Part 1: Audio Devices, the writes** (`DeviceRoutes.cs`).
+- `PATCH /api/audio-devices/:id`: the name, hidden, sharing, output (mode, bits, volume), DSP
+  (through `Biquad.normalise`, `Playback/Biquad.cs`), levelling (`loudness.js`'s `levellingPatch`)
+  and the user's rates, depths and DSD, checked and written to `audio_devices` as `registry.js`
+  writes them, in the same order and with the same refusals (a write before a refusal stays, as
+  there). Then the Node server told (`POST /internal/devices/changed`, `{ id, changed }`): it reads
+  its names again and does what each write did there (the zones bumped; a renderer's or sound
+  device's queue planned again; a phone told its DSP or levelling; a Sonos room's queue re-planned;
+  a device hidden while on switched off and let go), and answers the device as its page shows it
+  (online, state, events: live), which C# sends on. Switching a player on or off and the radio are
+  playback's: a `PATCH` with `enabled` or `radio` is passed on whole, as are the list, a device's
+  page, Look again and Forget (stage 6). Away, only the phone the app is on, as before.
+- Tests: `test/devices-csharp.test.js`: each write held to the Node server's own (the row and the
+  answer), each refusal word for word, the Node server's own effects seen (a name in `/api/zones`,
+  a renderer's queue planned again).
+
+**Part 2: library housekeeping** (`Scans.cs`, `ScanRoutes.cs`, `HousekeepingRoutes.cs`).
+- **When to scan, everywhere**: the job `scan` handed over whatever the tag reader. Where the C#
+  program is trusted with the tags (the tag check passed, or `TAG_READER=csharp`) the scan is it, as
+  since v0.8.34; where not, each scan this server starts (its timer, its watcher, Rescan, Reindex, a
+  folder added) is made by the Node server's own scanner at its ask (`POST /internal/scan`, its state
+  sent back line by line as the program's are, the result and the count at the end). Hand-over
+  (Node): the internal route, and `scan` no longer kept back when the program isn't trusted.
+- **Clean up of the music folders and its counts**: `GET /api/library/cleanup` and `POST
+  /api/library/cleanup` `{ kind: "files" }` (the services' kind is C#'s since v0.8.44).
+- **`/api/status`**: the library's part here (the scan's state, the music folders, the count, the
+  data folder kept or not), the rooms' part (`zone_count`, `sonos`) as the Node server says it with
+  its state (`/internal/library`).
+- **The wall display's content** (`/api/display/content`): the zone's track asked of the Node server
+  (`GET /internal/playback/now?zone=`), the artist's photos (MusicBrainz, then FanArt.tv, kept a
+  week), the album's write-up, the artists' stories and more by the artist from here.
+- Tests: `test/housekeeping-csharp.test.js`: each answer held to the Node server's own; a scan made
+  by the Node server's scanner at the C# server's ask, the library the same as its own scan makes.
+
+**Part 5: the covers the Node server still draws** (`Images.cs`, `Covers.cs`).
+- **A speaker asking by its own address**: the Node server's speakers' addresses come with its state
+  (`/internal/library`, `speakers`), and a cover asked for from one is sent here, as the gate there
+  lets it through.
+- **CMYK and colour-profiled pictures**: drawn here, converted to sRGB as sharp converts them (the
+  picture's own profile, or sharp's default for CMYK). ffmpeg neither keeps a JPEG's CMYK values nor
+  applies a profile, so the decoding and the colour conversion are this server's own. Held to sharp's
+  drawing near enough pixel for pixel, as the placeholder is. If it can't be held to it, it is put to
+  the owner (another library, or ffmpeg's colours) and these pictures stay the Node server's.
+- Tests: `test/covers-csharp.test.js` extended: a CMYK JPEG, one with a Display P3 profile, and a
+  speaker's own address.
+
+**Also in this stage:** `test/menu.test.js` waits for the side menu to have finished sliding in
+before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before the menu was there).
+
+**Checklist** (ticked as each part is committed and pushed):
+
+- [ ] Plan written; version 0.8.48
+- [ ] Part 8: the database's tables and migrations
+- [ ] Part 7: the pages, the deep links and `/api/health`
+- [ ] Part 3: the phone's download lists, what is left
+- [ ] Part 6: Last.fm, what is left
+- [ ] Part 4: Admin (the update, the processor split)
+- [ ] Part 1: Audio Devices, the writes
+- [ ] Part 2: library housekeeping
+- [ ] Part 5: the covers the Node server still draws
+- [ ] `test/menu.test.js` waits for the menu
+- [ ] The whole suite both ways; README, CHANGELOG and this file brought up to date
+
 ### Stage 6: playback, in one stage (L)
 
 The zone hub, Sonos, the UPnP renderers, sound devices on the server, the phone as a zone, the
