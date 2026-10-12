@@ -86,7 +86,7 @@ test("the C# server not answering: the scan reads the tags itself, said once", {
 /* The C# server's /internal/tags as far as the check's first question goes: which reader it is. */
 function readerSays(version) {
   const server = http.createServer(async (req, res) => {
-    for await (const c of req) { /* drained */ }
+    for await (const _ of req) { /* drained */ }
     if (req.url !== "/internal/tags" || req.headers["x-mandarin-front-key"] !== "key") { res.statusCode = 404; return res.end(); }
     res.setHeader("Content-Type", "application/json");
     if (server.version) res.setHeader("X-Tag-Reader", server.version);

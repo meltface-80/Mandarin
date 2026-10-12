@@ -36,7 +36,6 @@ test("a record's write-up and links: the same from either server", { skip: !have
   await Promise.all([mb.start(), web.start()]);
   const W = web.base;
   const pfUrl = W + "/reviews/albums/artist-a-album-one/";
-  const qzUrl = W + "/us-en/album/album-one-artist-a/abc123";
   const wikiAlbumUrl = "https://en.wikipedia.org/wiki/Album_One_(Artist_A_album)";
   const wikiArtistUrl = "https://en.wikipedia.org/wiki/Artist_A_(band)";
   Object.assign(web.pages, {

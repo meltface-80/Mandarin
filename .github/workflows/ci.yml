@@ -6,6 +6,28 @@ on:
   pull_request:
 
 jobs:
+  # The quality gates (docs/quality-plan.md): the file-length ratchet, lint
+  # against its baseline, and the type check. A minute; red blocks the merge.
+  check:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # The app's own dependencies first: the checked modules import them, and tsc
+      # has to find them to read their shapes.
+      - run: npm ci --no-audit --no-fund
+      - name: The development tools (tools/lint only, never the app's dependencies)
+        run: npm run tools
+      - name: File length, @ts-check and tsc, ESLint against its suppressions
+        run: npm run gates
+      - name: The gates' own tests
+        run: node --test test/quality-gates.test.js
+
   test:
     runs-on: ubuntu-latest
     # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
@@ -148,7 +170,7 @@ jobs:
           MANDARIN_FRONT: "1"
         run: |
           set -o pipefail
-          node --require ./test/setup.js --test --test-concurrency=2 test/*.test.js 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          node --require ./test/setup.js --test --test-concurrency=2 --test-timeout=300000 --test-force-exit test/*.test.js 2>&1 | tee "$RUNNER_TEMP/tests.log"
       - name: The tests that failed, again
         if: failure()
         run: .github/failed-tests.sh "$RUNNER_TEMP/tests.log"

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 "use strict";
 /*
  * reset-password.js — forgot the password? Run this on the server:

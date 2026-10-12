@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 /*
  * tag-from-folders.js — for FLAC files with no artist tag: the artist from

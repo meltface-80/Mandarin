@@ -119,7 +119,7 @@ test("damaged and foreign files are refused in the same words", { skip }, async 
   const out = csharp({ reads });
   const want = [];
   for (const r of reads) want.push(plain(await nodeRead(r.file, r.db ? r.db.replace(".cs.db", ".node.db") : undefined)));
-  for (const [i, r] of reads.entries()) assert.deepStrictEqual(out.read[i], want[i], (names[i] || "withdb") + ": " + JSON.stringify(want[i].error || "read"));
+  for (const i of reads.keys()) assert.deepStrictEqual(out.read[i], want[i], (names[i] || "withdb") + ": " + JSON.stringify(want[i].error || "read"));
   const said = Object.fromEntries(reads.map((r, i) => [names[i] || "withdb", want[i].error || "ok"]));
   assert.deepStrictEqual([said.good, said.zeroPadded, said.notGzip, said.cutHalf, said.notOurs, said.badJson, said.withdb],
     ["ok", "ok", "incorrect header check", "unexpected end of file", "That isn't a Mandarin backup", "The backup's manifest.json is unreadable", "A database copy wasn't expected here"]);

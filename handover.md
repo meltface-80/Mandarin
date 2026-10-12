@@ -4,8 +4,8 @@ For the next Claude session picking up the migration. Read this first, then `CLA
 `docs/specs/csharp-migration.md` (section 2.4 and "What is left: the fewest steps"), then
 `server/README.md` and the top of `CHANGELOG.md`. Update this file whenever the state below changes.
 
-Written 12 October 2026, at stage 4b's merge; brought up to date the same day with stage 5 built
-and its PR open.
+Written 12 October 2026, at stage 4b's merge; brought up to date the same day with stage 5 merged
+and the quality gates added.
 
 ---
 
@@ -33,29 +33,33 @@ and its PR open.
   `public/` or `android/` (a version bump does) puts its APK on the rolling **test-android**
   pre-release (android.yml). No tag is made.
 - Write for the owner in plain words; the CHANGELOG opens each version with what they'll notice.
+- **The quality gates** (`docs/quality-plan.md`, CLAUDE.md section 5, since stage 5): `npm run
+  check` green before every push; the ratchet's files and the baselines only shrink; every new
+  server module opens with `// @ts-check`. The owner asked for the same gates in both their
+  repositories; Rouen's are in its `dev` branch (its PR #202, `dev/quality.md`), and these match
+  them in shape and in command names.
 
 ## 2. Where things are
 
 | | |
 |---|---|
 | `main` | v0.8.44, `32f62a8`. `:latest`. Don't touch. |
-| `migration` | **v0.8.47** (`b82aeda`): PR #204 (stage 4b) and #205 (its token-test fix) squash-merged; CI green. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
-| `stage-5-everything-but-playback` | Stage 5 (v0.8.48), **built**: every part of the spec's stage 5 checklist is ticked and pushed (parts 8, 7, 3, 6, 4, 1, 2, 5 and the menu test's wait), `origin/migration` merged in (`51100f7`). Its PR into `migration` is **#206** (see section 3 for what's left of it). |
+| `migration` | **v0.8.48** (`6120001`): PR #206 (stage 5) squash-merged on 12 October 2026 with CI green; before it #204 (stage 4b) and #205. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
+| `gates-quality` | The quality gates (`docs/quality-plan.md`), no change to the app: PR into `migration`. |
 
-Stale branches the git proxy wouldn't let us delete (the owner was asked to delete them on
-GitHub): `stage-4.3-import-watch-playlists`, `fix-mbpack-download-race`.
+The stale branches named here before were deleted by the owner on GitHub.
 
 ## 3. What's left
 
 From the spec's "fewest steps", decided by the owner after v0.8.47:
 
-1. **Stage 5 (v0.8.48): everything but playback — built, PR #206 open.** Audio Devices' writes,
+1. **Stage 5 (v0.8.48): everything but playback — merged (#206).** Audio Devices' writes,
    library housekeeping (`/api/status`, Clean up, the wall display's content, the scans started
    by C# whatever the tag reader), the phone's download lists, admin (the in-app update and the
    processor split decided by C#; restart/shut down were C#'s already), a speaker's cover, what's
    left of Last.fm, the pages `/login` `/display` and deep links, `/api/health`, the database's
-   tables and migrations created by C#, and `test/menu.test.js` waiting for the drawer. What's
-   left of the stage: CI green on #206, a review of the diff, the squash-merge, the Dockge note.
+   tables and migrations created by C#, and `test/menu.test.js` waiting for the drawer. The
+   review of its diff found four things, all fixed before the merge (the PR says what).
    **One thing is put to the owner** (spec, stage 5 part 5): covers in CMYK or with a colour
    profile of their own still go to Node's `sharp`; drawing them the same in C# needs libvips's
    colour maths (lcms2). Three ways are laid out in the spec; stage 7 can't drop Node until one
@@ -108,7 +112,9 @@ Per the spec, each stage is planned in detail (in the spec) before it's coded.
    the version checks in `test/front.test.js`. Add a CHANGELOG entry at the top, in the same style.
 2. Rebuild **both** `./engine/build.sh` and `./server/build.sh` after the bump; the engine test
    checks the engine's version.
-3. Run the whole suite **both ways**, each to a file:
+3. `npm run gates` (the file-length ratchet, `@ts-check` and `tsc`, ESLint against its
+   suppressions; `npm run tools` once per clone first). A file that grew past its allowance is
+   split, never re-accepted; a new module carries `// @ts-check`. Then the whole suite **both ways**, each to a file:
    `node --require ./test/setup.js --test --test-concurrency=3 test/*.test.js` with
    `MANDARIN_FRONT` unset (Node alone), then with `MANDARIN_FRONT=1` (through C#).
    Wrap it in `timeout`; both runs take 25–40 minutes together on this box, so run them in the
@@ -146,7 +152,20 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 - **node_modules is a symlink** in worktrees, ignored through `.git/info/exclude`. Add files by
   name: `git add -A` fails on it.
 - `pkill -f <pattern>` can match your own shell; kill by PID from `pgrep`.
-- The git proxy refuses deleting remote branches; `gh` isn't signed in. Use the GitHub MCP tools.
+- The git proxy refuses deleting remote branches and writes to the repository's settings
+  (rulesets); `gh api` reads work, `gh api` job-log downloads don't. Use the GitHub MCP tools; a
+  job's log comes back as its last 5,000 lines at most, which is why every test job prints the
+  failed tests again at the end (`.github/failed-tests.sh`): read the tail for them.
+- A test that hangs no longer holds a CI job to its 25-minute limit: the runner gives each test
+  five minutes and exits a file whose process lingers (`--test-timeout`, `--test-force-exit`, in
+  `npm test` and ci.yml). One such hang, in a child that never printed, happened on stage 5's
+  last run and passed on a re-run; if it comes back it will now fail by name.
 - `test/lastfm.test.js` measures Last.fm's spacing at the far end (≥ 240 ms). C# spaces asks from
   the *answer* now (v0.8.47).
+- **test (20) has twice failed `test/backup.test.js` with EADDRINUSE** on its own port, at the
+  server started after a restore's restart, while the next test's server took the same port a
+  moment later. Not reproduced here (twelve runs under load; a thousand close-and-listen-again
+  rounds in one process), and the same commit passed in its other CI run. The test's `server()`
+  now puts `lsof`'s view of the port in the error, so the next failure names the holder: read it
+  before anything else.
 - Never skip, disable or loosen a test to get green; find the cause.

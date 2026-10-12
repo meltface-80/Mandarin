@@ -14,3 +14,7 @@ engine/**/bin
 server/bin
 server/**/obj
 server/**/bin
+# Development-only quality tooling, hooks and developer notes: never read at run time (docs/quality-plan.md).
+tools
+.githooks
+.claude

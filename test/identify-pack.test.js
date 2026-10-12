@@ -57,7 +57,7 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: "http://127.0.0.1:9", itunesBaseUrl: "http://127.0.0.1:9" });
-  const ctx = await srv.start();
+  await srv.start();
   const token = await signIn(base);
   const api = async (p, body) => {
     const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
