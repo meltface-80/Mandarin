@@ -24,6 +24,11 @@ screen right.
   and the page waits on the server again rather than asking over and over. Without the fix it stays on
   track 1.
 - The Android app for this version is 0.8.46 (version code 246). Nothing in it changed.
+- **The app for the migration branch** (CLAUDE.md section 4): each push to `migration` that changes
+  the app or the page puts its APK on the rolling "test-android" pre-release, at one fixed address
+  (`releases/download/test-android/mandarin-android-test.apk`), as test branches' apps already were.
+  The file there is replaced; no tag or release is made, and the app's own update check still reads
+  main's, so it's offered to nobody who didn't fetch it.
 
 ## v0.8.45
 Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
