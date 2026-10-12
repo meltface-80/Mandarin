@@ -18,8 +18,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run check
+      - name: The development tools (tools/lint only, never the app's dependencies)
+        run: npm run tools
+      - name: File length, @ts-check and tsc, ESLint against its suppressions
+        run: npm run gates
       - name: The gates' own tests
         run: node --test test/quality-gates.test.js
 

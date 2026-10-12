@@ -1,30 +1,48 @@
 # The quality gates
 
 What a machine checks on every commit, so the code can't quietly get worse while it is built
-by an agent. Modelled on [filepawl](https://github.com/ohshitgorillas/filepawl)'s gates and the
-note that led to them: a model writes code that works, not code that stays readable, and the
-cure is boring structural rules a tool enforces, not rules in a prompt that get skipped.
+by an agent. Modelled on [filepawl](https://github.com/ohshitgorillas/filepawl)'s gates, the
+note that led to them, and Rouen's `dev/quality.md` (its PR #202), so the owner's two
+repositories work the same way: a model writes code that works, not code that stays readable,
+and the cure is boring structural rules a tool enforces, not rules in a prompt that get skipped.
 
-`npm run check` is the bar, green before every commit, and CI runs it before the tests on every
-push. `npm test` is the other half: a test that doesn't block a merge is a suggestion.
+`npm run check` is the bar: the gates (`npm run gates`: file length, `@ts-check` and `tsc`,
+ESLint) and then the whole suite. The pre-commit hook runs the gates (about fifteen seconds);
+CI runs them as its own job on every push and the image waits for the whole run, so a red gate
+or a red test stops the `:migration` image. A test that doesn't block a merge is a suggestion.
+
+| Gate | Command | Catches | Starts as | Tightens to |
+|---|---|---|---|---|
+| Tests that block | `npm test` | Regressions | The suite on Node 20 alone, Node 22 and a Mac through the C# server; CI, the image waits | — |
+| File length | `npm run lines` | Files too big to reason about | Watch line 400, cap 500 (800 for a test); 57 files over the watch line in `tools/quality/allowance.json`, 44 of them over the cap and exempt from it, all shrink-only | The allowance empty |
+| Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on every server module that passes; the rest listed in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, then the pages |
+| ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's findings in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
+| C# | `./server/build.sh`, `./engine/build.sh` | Warnings | Warnings are errors, nullable on (already) | — |
+
+`npm run tools` installs the development tools once per clone (the Claude Code session hook does
+it). They live in `tools/lint/package.json`, never in the root `package.json`: the root file's
+dependencies are what the image and an in-app update install (`npm ci --omit=dev`), and
+`tools/`, `.githooks/` and `.claude/` are in `.dockerignore`.
 
 ## 1. The file-length ratchet
 
-`node tools/quality/file-length.js` (`npm run ratchet`). Policy in `tools/quality/policy.json`;
+`node tools/quality/file-length.js` (`npm run lines`). Policy in `tools/quality/policy.json`;
 state in `tools/quality/allowance.json`, written by the tool and never by hand.
 
 - A file under the **watch line** (400 lines) is free.
 - Over it, the file needs an **allowance entry** recording its length. The entry only ever
   comes down: a file that grows past it fails until it is split, one that shrinks must have
-  its entry lowered (`accept` does that, and never raises one).
+  its entry lowered (`npm run lines -- accept` does that, and never raises one).
 - A **hard cap** (500 lines, 800 for a test file) refuses any file, watched or not, from
   growing past it. The files that were over the cap on the day the gate came are listed under
   `exempt` in the policy with that reason: the cap doesn't apply to them, the ratchet does, so
   they only ever shrink. Nothing is added to that list without a reason beside it.
-- `check` lists every finding, one per line, and ends with the `accept` command when one would
-  settle any of them. `accept [PATH...] [--reason TEXT]` brings the allowance to the tree.
-- The stale audit catches an allowance for a file that is gone, untracked, moved into `test/`,
-  or back under the watch line.
+- `check` (the default) lists every finding, one per line, and ends with the `accept` command
+  when one would settle any of them. `accept [PATH...] [--reason TEXT]` brings the allowance to
+  the tree. The stale audit catches an allowance for a file that is gone, untracked, moved into
+  `test/`, or back under the watch line.
+- Measured: the server and its tools, the pages, the tests, the C# of the server and the
+  engine, the Android app's Kotlin and Go.
 
 **At edit time**, Claude Code runs the same gate as a hook before every Write and Edit
 (`.claude/settings.json`): under the watch line it says nothing; over it, it says where the
@@ -35,52 +53,47 @@ down, so the split is planned at the first edit rather than discovered at commit
 with the file's neighbours. The watch line below it is where a file starts to earn an entry,
 so the list of what needs splitting is explicit and visible in a diff.
 
-## 2. Lint with a baseline that only goes down
+## 2. Types without a rewrite
 
-`node tools/quality/lint.js` (`npm run lint`), ESLint's recommended rules (`eslint.config.js`)
-over the server, the tools, the tests and the pages.
+`npm run typecheck`: `tools/quality/tscheck.js` holds every server module (`index.js`,
+`launcher.js`, `reset-password.js`, `lib/**`, `tools/**`) to a `// @ts-check` first line, then
+`tsc -p tools/lint/tsconfig.json` checks the files that carry it as the JavaScript they are, with
+JSDoc on what they export. The modules that didn't pass when the gate came are listed in
+`tools/quality/ts-baseline.json`; the list only shrinks, and a listed module that gains the
+pragma must leave it. A new module always carries it. The pages (`public/`) come later.
 
-- What the rules found on the day the gate came is in `tools/quality/lint-baseline.json`, per
-  file and rule. A file may never have more of a rule's findings than its entry says; a new
-  finding anywhere fails.
-- An entry only ever comes down: a file that got cleaner must have its entry lowered
-  (`accept`); nothing raises one and nothing adds one. `init` wrote the baseline once.
-- Rules get stricter as the baseline empties, never looser. A rule a file breaks on purpose
-  is turned off for that file in the config, with the reason beside it, not baselined.
+## 3. Lint with suppressions that only go down
 
-## 3. Type checking without a rewrite
+`npm run lint`: ESLint's recommended rules (`tools/lint/eslint.config.js`) over the server, the
+tools, the tests and the pages, against `tools/lint/eslint-suppressions.json`, ESLint's own
+suppressions file: what the rules found on the day the gate came, per file and rule.
 
-`tsc -p jsconfig.json` (`npm run typecheck`). A JavaScript file opts in with `// @ts-check` on
-its first line and JSDoc on what it exports; the checker then holds it to its types, and the
-"renamed variable" class of bug is caught before the file runs. `checkJs` is off, so a file
-that hasn't opted in is read for what the checked files import, not judged.
-
-Every new module opts in. A module touched for a change opts in when the change is in it
-anyway. The quality tools are checked; `lib/` follows as it is split.
+- A new finding anywhere fails. A suppressed finding that is fixed fails too, until
+  `npm run lint:prune` takes it out of the file, so the file only ever shrinks.
+- Nothing raises or adds a suppression. A rule a file breaks on purpose is turned off for that
+  file in the config, with the reason beside it (the page scripts' shared globals, the control
+  characters stripped from names on purpose).
+- Rules get stricter as the suppressions empty, never looser.
 
 ## 4. Tests that block, and tests that prove something
 
 - `npm test` runs the whole suite; CI runs it on every push, on Node 20 alone and on Node 22
-  and a Mac through the C# server, and a red test stops a merge. The migration's rule stands:
+  and a Mac through the C# server, and a red test stops the image. The migration's rule stands:
   never skip, disable or loosen a test to get green.
 - A test is worth what it refuses. For any test that matters, break the code on purpose once
   and watch the test fail; a test that passes against broken code is a suggestion. The gates'
-  own tests (`test/quality-gates.test.js`) run on synthetic trees under a real `git init`.
+  own tests (`test/quality-gates.test.js`) run on synthetic trees under a real `git init`, and
+  each gate was broken on purpose once to see them fail.
 - Logic that matters lives in a small module with its own tests, not inside a page or route
   file.
 
-## 5. C#
-
-The C# projects build with warnings as errors and nullable reference types on, and the ratchet
-measures `.cs` files like the rest. The Kotlin and Go of the Android app are measured too.
-
-## 6. CLAUDE.md shrinks as the tools take over
+## 5. CLAUDE.md shrinks as the tools take over
 
 A rule a tool can check leaves CLAUDE.md and becomes a gate: a lint rule, a test, a line in the
 policy. What stays in CLAUDE.md is what no tool can check: who merges what, where releases
 come from, what is put to the owner.
 
-## 7. What is not here yet
+## 6. What is not here yet
 
 - A directory-count gate (how many files sit in one folder). `test/` and
   `server/Mandarin.Server/` hold more files than filepawl's default allows; it comes once
@@ -88,18 +101,21 @@ come from, what is put to the owner.
 - filepawl's other gates (barrels, nesting, return shapes, the test-suite gates) are Python
   only. The ratchet and the baselines above are the same idea in Node, so the repository needs
   nothing it doesn't already have.
+- Rouen's `no-use-before-define` and `.innerHTML` rules are Rouen's bug classes; this
+  repository's lint grows from its own.
 
-## 8. The migration
+## 7. The migration
 
 The gates landed between stage 5 and stage 6 of the move to C#. What they mean for it:
 
 - `index.js` and the Node modules are in the ratchet and only shrink, which is the direction
-  the migration takes them anyway; stage 7 deletes most of the allowance list.
+  the migration takes them anyway; stage 7 deletes most of the allowance list and the
+  `@ts-check` baseline with it.
 - New C# files come in under the watch line, or under the cap with an entry; the playback port
   (stage 6) is split into modules as it is written rather than added to `LibraryRoutes.cs`,
   `Library.cs` or `Scanner.cs`, which only shrink.
 - `public/app.js` is exempt from the cap (the owner's rule: the pages stay HTML/JS, one file)
   and in the ratchet: a change to the page must not add net lines. A feature that needs more
   takes lines out elsewhere in the file, or moves a part to its own script.
-- Each stage's CI gains the `check` job (about a minute). Nothing changes in the owner's
-  Dockge flow.
+- Each stage's CI gains the gates job (about a minute). Nothing changes in the owner's Dockge
+  flow.
