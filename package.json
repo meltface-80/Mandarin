@@ -16,10 +16,13 @@
   "scripts": {
     "start": "node launcher.js",
     "test": "node --require ./test/setup.js --test --test-concurrency=4 test/*.test.js",
-    "check": "node tools/quality/file-length.js check && node tools/quality/lint.js && tsc -p jsconfig.json",
-    "lint": "node tools/quality/lint.js",
-    "ratchet": "node tools/quality/file-length.js",
-    "typecheck": "tsc -p jsconfig.json"
+    "tools": "npm ci --prefix tools/lint --no-audit --no-fund",
+    "lines": "node tools/quality/file-length.js",
+    "lint": "tools/lint/node_modules/.bin/eslint -c tools/lint/eslint.config.js --suppressions-location tools/lint/eslint-suppressions.json .",
+    "lint:prune": "tools/lint/node_modules/.bin/eslint -c tools/lint/eslint.config.js --suppressions-location tools/lint/eslint-suppressions.json --prune-suppressions .",
+    "typecheck": "node tools/quality/tscheck.js && tools/lint/node_modules/.bin/tsc -p tools/lint/tsconfig.json",
+    "gates": "npm run lines && npm run typecheck && npm run lint",
+    "check": "npm run gates && npm test"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
@@ -28,12 +31,5 @@
     "fast-xml-parser": "^5.11.1",
     "music-metadata": "^11.13.0",
     "sharp": "^0.34.3"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^22.20.5",
-    "eslint": "^10.12.0",
-    "globals": "^16.5.0",
-    "typescript": "^7.0.2"
   }
 }

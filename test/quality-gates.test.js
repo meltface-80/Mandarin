@@ -2,7 +2,7 @@
 /*
  * The quality gates (docs/quality-plan.md): the file-length ratchet (an
  * allowance that only comes down, a cap, exemptions from the cap alone, the
- * stale audit, the edit-time hook) and the lint baseline's arithmetic. Each
+ * stale audit, the edit-time hook) and the @ts-check ratchet's decision. Each
  * run is on a synthetic tree under a real `git init`, as the gate measures
  * what git tracks.
  */
@@ -15,7 +15,7 @@ const { spawnSync } = require("child_process");
 
 const GATE = path.resolve(__dirname, "..", "tools", "quality", "file-length.js");
 const { countLines, globToRegExp, lengthAfter } = require("../tools/quality/file-length");
-const lint = require("../tools/quality/lint");
+const tscheck = require("../tools/quality/tscheck");
 
 /* A repository with the gate's policy: [files] written and committed, the caps small enough to test. */
 function repo(files, policy) {
@@ -137,13 +137,11 @@ test("the edit-time hook: silent under the watch line, a notice over it, an edit
   assert.deepEqual([lengthAfter({ content: "a\nb\n" }, ""), lengthAfter({ old_string: "b", new_string: "b\nc" }, "a\nb\n"), lengthAfter({ edits: [{ old_string: "a", new_string: "a\na" }, { old_string: "b", new_string: "" }] }, "a\nb\n"), lengthAfter({ old_string: "x", new_string: "y", replace_all: true }, "x\nx\n"), lengthAfter({}, "a\n")], [2, 3, 3, 2, null]);
 });
 
-test("the lint baseline: more of a rule in a file fails, fewer must be accepted, accept never raises", () => {
-  const base = { "a.js": { "no-empty": 2, "no-undef": 1 }, "b.js": { "no-empty": 1 } };
-  const now = { "a.js": { "no-empty": 3 }, "c.js": { "no-unused-vars": 1 } };
-  assert.deepEqual(lint.compare(now, base), {
-    over: [{ file: "a.js", rule: "no-empty", n: 3, b: 2 }, { file: "c.js", rule: "no-unused-vars", n: 1, b: 0 }],
-    lower: [{ file: "a.js", rule: "no-undef", n: 0, b: 1 }, { file: "b.js", rule: "no-empty", n: 0, b: 1 }]
-  });
-  assert.deepEqual(lint.accept(now, base), { "a.js": { "no-empty": 2 } }, "lowered to what is there, dropped where clean, nothing new let in");
-  assert.deepEqual(lint.compare({}, {}), { over: [], lower: [] });
+test("the @ts-check ratchet: a module without the pragma fails unless listed; a listed one that gains it, or is gone, must leave the list", () => {
+  const { judge, PRAGMA } = tscheck;
+  assert.deepEqual(judge({ "lib/a.js": true, "lib/b.js": false }, ["lib/b.js"]), []);
+  assert.deepEqual(judge({ "lib/a.js": false }, []), ["lib/a.js: must open with // @ts-check (line 1, or line 2 after a #! line)"]);
+  assert.deepEqual(judge({ "lib/a.js": true }, ["lib/a.js"]), ["lib/a.js: now carries // @ts-check; take it out of tools/quality/ts-baseline.json"]);
+  assert.deepEqual(judge({}, ["lib/gone.js"]), ["lib/gone.js: gone, but still in tools/quality/ts-baseline.json"]);
+  assert.deepEqual([PRAGMA.test("// @ts-check\n\"use strict\";\n"), PRAGMA.test("#!/usr/bin/env node\n// @ts-check\n"), PRAGMA.test("\"use strict\";\n// @ts-check\n"), PRAGMA.test("// @ts-check")], [true, true, false, false]);
 });
