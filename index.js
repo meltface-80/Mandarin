@@ -403,7 +403,8 @@ function createServer(overrides = {}) {
   // the C# server is told which, and how this one was set up. This server's
   // own requests to MusicBrainz wait their turn on the C# server's timer from
   // now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services"];
+  // The in-app update and the processor split (v0.8.48, stage 5 part 4): "update" and "cpu".
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu"];
   // The library scans go to the C# server only where this server's own would
   // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
   // or the tag check passed for the two readers (not TAG_READER=node). Else
@@ -448,6 +449,18 @@ function createServer(overrides = {}) {
     const front = typeof b.url === "string" && /^http:\/\/127\.0\.0\.1:\d+$/.test(b.url) ? b.url : ctx.frontUrl;
     // Tailscale built in (v0.8.22): the engine run there, and the phones' away address asked of it.
     if (jobs.has("tailscale")) ctx.tailscale.handOver(front ? { url: front, key: ctx.frontKey } : null);
+    // The processor split (v0.8.48): decided there and sent here (/internal/cpu/plan),
+    // this server following it; a DSP conversion made here told to it. Else its own, as before.
+    if (jobs.has("cpu") && front) {
+      CPU.tellDspTo(async (on) => {
+        try {
+          const r = await fetch(front + "/internal/cpu/dsp", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ on }), signal: AbortSignal.timeout(10000) });
+          const j = r.ok ? await r.json() : null;
+          if (j && j.cpu) CPU.follow(j.cpu);
+        } catch (e) { log(`[cpu] the C# server wasn't told of a DSP conversion: ${e.message}`); }
+      });
+    } else CPU.unfollow();
     if (front) {
       META.useMbSlot(async () => {
         const r = await fetch(front + "/internal/mb/slot", { headers: { "X-Mandarin-Front-Key": ctx.frontKey }, signal: AbortSignal.timeout(60000) });
@@ -469,6 +482,10 @@ function createServer(overrides = {}) {
         wikipedia_url: config.wikipediaBaseUrl || null, pitchfork_url: config.pitchforkBaseUrl || null, qobuz_web_url: config.qobuzWebUrl || null,
         tailscale_bin: config.tailscaleBin || null, tailscale_dir: path.join(config.dataDir, "tailscale"), tailscale_port: config.port,
         tailscale_watchdog: config.tailscaleWatchdog || null,
+        // The in-app update (v0.8.48): under the launcher or not, where GitHub is asked
+        // (the tests' stand-in), and whether to check by itself.
+        via_launcher: process.env.MUSICD_VIA_LAUNCHER === "1", update_repo: process.env.UPDATE_REPO || null,
+        update_api: process.env.UPDATE_API || null, update_check: process.env.UPDATE_CHECK !== "false",
         // Last.fm (v0.8.26): where it is asked, and the key from the environment (LASTFM_KEY).
         lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
         // Headphone profiles (v0.8.26): where AutoEq's results are.
@@ -490,7 +507,7 @@ function createServer(overrides = {}) {
   app.post("/internal/front/restart", (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     res.json({ ok: true });
-    log("[musicd] restarting for the C# server (a backup restored)");
+    log(`[musicd] restarting for the C# server (${req.query.why === "update" ? "an update staged" : "a backup restored"})`);
     setTimeout(() => ctx.restartServer(), 50);
   });
   // A conversion with DSP the C# server is making (v0.8.40): playback has its
@@ -500,6 +517,13 @@ function createServer(overrides = {}) {
     if (!fromFront(req)) return res.status(403).end();
     CPU.dsp(!!(req.body && req.body.on));
     res.json({ cpu: CPU.plan() });
+  });
+  // The split as the C# server decided it (v0.8.48, Cpu.cs): kept to here, for
+  // playback's own processes (the audio engine, its decoder, a conversion made here).
+  app.post("/internal/cpu/plan", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    CPU.follow((req.body || {}).cpu);
+    res.json({ ok: true, cpu: CPU.plan() });
   });
   // A Qobuz or Tidal album the C# server wrote the rows of, played here
   // (v0.8.47, ServiceRoutes.cs): what api-service.js's play does once the
@@ -783,6 +807,9 @@ function createServer(overrides = {}) {
       if (frontRuns.has("scan")) ctx.ownScans();
       // The services' import, a run missed while this one waited: made now.
       if (frontRuns.has("import") && syncMissed) serviceSync();
+      // The in-app update's own checks (v0.8.48): started here after all. The
+      // processor split was never anyone else's: nothing to start.
+      if (frontRuns.has("update") && ctx.startUpdateChecks) ctx.startUpdateChecks();
     };
     if (frontRuns.size) {
       ctx.frontRunsWait = setTimeout(() => {

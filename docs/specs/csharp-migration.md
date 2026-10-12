@@ -589,6 +589,14 @@ uncertain piece of the stage, so a stop there costs least.
   the Node server stages it with the C# program fetched first, each refusal word for word);
   `test/cpu.test.js`: the decision held to `lib/cpu.js`'s for the same machine and settings, the Node
   server following it.
+- **Built** as planned. Two things found on the way: `/api/cpu` is answered from the decision
+  wherever the C# server holds `cpu`, the Node server started by it or not (the other power routes
+  keep to an install, where it did; the suite's Node server is the test's own), and the hand-over's
+  settings carry `update_repo`, `update_api` and `update_check` besides `via_launcher`, so the
+  tests' stand-in GitHub reaches the C# server the way the Node server's environment reached its own
+  updater. The suite's C# server is given the test process's cores (`MANDARIN_CPUS`, `test/setup.js`)
+  as it would find them starting first, not the rest the Node server has kept itself to; the hold
+  after DSP's last conversion is `MANDARIN_CPU_HOLD_MS` for the tests.
 
 **Part 1: Audio Devices, the writes** (`DeviceRoutes.cs`).
 - `PATCH /api/audio-devices/:id`: the name, hidden, sharing, output (mode, bits, volume), DSP
@@ -646,7 +654,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 - [x] Part 7: the pages, the deep links and `/api/health`
 - [x] Part 3: the phone's download lists, what is left
 - [x] Part 6: Last.fm, what is left
-- [ ] Part 4: Admin (the update, the processor split)
+- [x] Part 4: Admin (the update, the processor split)
 - [ ] Part 1: Audio Devices, the writes
 - [ ] Part 2: library housekeeping
 - [ ] Part 5: the covers the Node server still draws

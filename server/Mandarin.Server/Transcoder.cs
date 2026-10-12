@@ -292,6 +292,8 @@ internal static partial class Transcoder
         {
             var on = Volatile.Read(ref dspRunning) > 0;
             if (on == dspTold) return;
+            // Decided here (v0.8.48, Cpu.cs): counted here, the Node server sent the split.
+            if (Cpu.Deciding) { dspTold = on; Cpu.Dsp(on); return; }
             if (await Library.ToNode("/internal/cpu/dsp", new JsonObject { ["on"] = on }) is { } said)
             {
                 dspTold = on;

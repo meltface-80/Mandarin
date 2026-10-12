@@ -158,6 +158,8 @@ internal static partial class Library
             if (await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
             if (await PowerRoute(ctx)) return;
+            // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
+            if (await UpdateRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.

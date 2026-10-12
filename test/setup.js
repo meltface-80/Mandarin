@@ -57,7 +57,7 @@ if (process.env.MANDARIN_FRONT === "1") {
   // As the C# server starts the Node server in the image (Front.cs, v0.8.22
   // here): the work it takes over isn't started by the Node server first —
   // Tailscale's engine among it, which would otherwise start twice.
-  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale,scan,prune,import,services";
+  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale,scan,prune,import,services,update,cpu";
   require("../lib/library/scanner").Scanner.program = bin;
   const listening = (port, ms) => new Promise((resolve, reject) => {
     const until = Date.now() + ms;
@@ -82,8 +82,13 @@ if (process.env.MANDARIN_FRONT === "1") {
       let front = null;
       s.start = async () => {
         const ctx = await start();
+        // The cores the machine gave this process, as the C# server would find them
+        // starting first (v0.8.48: it decides the split): not the rest this one has
+        // already kept itself to.
+        const cpus = require("../lib/cpu").plan().cores;
         front = spawn(bin, [], {
-          env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn, MANDARIN_FRONT_KEY: ctx.frontKey, DATA_DIR: ctx.config.dataDir }),
+          env: Object.assign({}, process.env, { PORT: String(port), MANDARIN_UPSTREAM: "http://127.0.0.1:" + ctx.listeningOn, MANDARIN_FRONT_KEY: ctx.frontKey, DATA_DIR: ctx.config.dataDir },
+            cpus.length ? { MANDARIN_CPUS: cpus.join(",") } : {}),
           stdio: ["ignore", "inherit", "inherit"]
         });
         front.on("exit", (code) => { if (code && front) console.log(`# the C# server exited (${code})`); });

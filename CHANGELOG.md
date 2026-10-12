@@ -52,6 +52,30 @@ Node). The parts as they are built:
   so a Node server starting again no longer takes Last.fm with it for a moment. `Jobs.cs`,
   `LastfmRoutes.cs`. Tests: `test/lastfm.test.js`, a C# server in front of a stand-in that hands
   nothing over, answering Last.fm from its own environment, the stand-in never asked.
+- **The in-app update and the processor split** (part 4). Settings → Updates is the C# server's once
+  the Node server hands it over (the job `update`): the status, Check now, Install and the check every
+  twelve hours, as the Node server made them, with the same words for each refusal (GitHub turning the
+  check down, no update, a download that fails, a bundle that isn't Mandarin's). An install fetches
+  and checks the C# server of the new version first and stops with nothing changed if it can't be
+  had, as before; then the bundle is staged for the launcher and the Node server asked to start again,
+  on which the launcher lays the new files in and the new Node server asks this program to start again
+  from its new file, as before. `server/Mandarin.Server/Admin/Updater.cs` (new, `lib/updater.js` and
+  `csharp-update.js`'s `prepare` rule for rule), `UpdateRoutes.cs` (new), `Jobs.cs`. The processor
+  split (which cores playback keeps, the rest for everything else; two for playback while DSP
+  converts and ten minutes after) is decided by the C# server now (the job `cpu`), from the same rule
+  as `lib/cpu.js` and counting both servers' DSP conversions, and sent to the Node server, which
+  follows it for playback's own processes (the audio engine, its decoder) and tells the C# server of a
+  DSP conversion it makes itself; `/api/cpu` (Settings → Library Scanner) answers from that decision.
+  `Cpu.cs`, `PowerRoutes.cs`, `Transcoder.cs`. The Node server's part is the hand-over: `update` and
+  `cpu` in `FRONT_JOBS`, its own update checks not started once handed over, where GitHub is asked
+  and whether it runs under the launcher said in the hand-over's settings (`index.js`,
+  `lib/server/api-playlists.js`), and `lib/cpu.js` following a split given to it (`follow`,
+  `unfollow`, `tellDspTo`). Tests: `test/update-csharp.test.js` (new): a stand-in GitHub, the server
+  through the C# server on a copy of the app and of the program, every refusal word for word, then an
+  install staged under the launcher with the program of the new version in place first and the Node
+  server asked to start again with 75; without a launcher, the files laid in. `test/cpu.test.js`: the
+  C# server's decision held to `lib/cpu.js`'s for the same cores, followed by the Node server, both
+  moving when DSP takes and gives back its second core.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47
