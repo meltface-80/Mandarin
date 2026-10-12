@@ -45,6 +45,13 @@ Node). The parts as they are built:
   download refused for a streamed track says "can't" with its apostrophe, as the Node server wrote it
   (`\u0027` before). `DownloadListRoutes.cs`, `Downloads.cs`. Tests: `test/library-front.test.js`'s
   download checks, each of these held to the Node server's own answer.
+- **Last.fm, what was left** (part 6): its routes moved in v0.8.26 and its pictures in v0.8.34, but
+  they waited for the Node server's hand-over, which brought Last.fm's address and the environment's
+  key. The C# server now has both from its own environment (`LASTFM_URL`, `LASTFM_KEY`, the same
+  container) from its start, the Node server's word taking over when it comes (the tests' stand-in),
+  so a Node server starting again no longer takes Last.fm with it for a moment. `Jobs.cs`,
+  `LastfmRoutes.cs`. Tests: `test/lastfm.test.js`, a C# server in front of a stand-in that hands
+  nothing over, answering Last.fm from its own environment, the stand-in never asked.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47

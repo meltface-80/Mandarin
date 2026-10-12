@@ -645,7 +645,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 - [x] Part 8: the database's tables and migrations
 - [x] Part 7: the pages, the deep links and `/api/health`
 - [x] Part 3: the phone's download lists, what is left
-- [ ] Part 6: Last.fm, what is left
+- [x] Part 6: Last.fm, what is left
 - [ ] Part 4: Admin (the update, the processor split)
 - [ ] Part 1: Audio Devices, the writes
 - [ ] Part 2: library housekeeping

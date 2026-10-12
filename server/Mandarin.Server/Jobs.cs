@@ -42,9 +42,14 @@ internal static class Jobs
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
     public static Admin.Tailscale? Tailscale { get; private set; }
-    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked, and the key the Node server was started with (LASTFM_KEY).
-    public static Lastfm? Lastfm { get; private set; }
-    public static string? LastfmEnvKey { get; private set; }
+    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked, and the key from the environment (LASTFM_KEY).
+    // This server's own from its start (v0.8.48: LASTFM_URL, LASTFM_KEY, the same container's), so its
+    // routes never wait for the hand-over; the Node server's word (a test's stand-in, a key it was
+    // given) takes over when it comes.
+    private static Lastfm? lastfm;
+    public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
+    public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
+    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Front.Version + " (+https://github.com/meltface-80/Mandarin)");
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -157,7 +162,8 @@ internal static class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
+        // Kept (its answers and its spacing with it) unless the Node server asks Last.fm elsewhere.
+        if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
         // Tailscale built in (v0.8.22): the engine, its folder and the port it serves, as the Node server was set up.
