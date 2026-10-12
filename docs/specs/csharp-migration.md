@@ -636,6 +636,18 @@ uncertain piece of the stage, so a stop there costs least.
   week), the album's write-up, the artists' stories and more by the artist from here.
 - Tests: `test/housekeeping-csharp.test.js`: each answer held to the Node server's own; a scan made
   by the Node server's scanner at the C# server's ask, the library the same as its own scan makes.
+- **Built** as planned. The hand-over says whether the program is trusted (`scan_program`); where it
+  isn't, the C# server's timer, watcher, Rescan, Reindex and a folder added each ask the Node
+  server's scanner (`POST /internal/scan`, its state line by line, the result at the end) and the
+  C# server mirrors what it says, telling the Node server only what it doesn't have (the end, a
+  folder let go, Clean up's). The Node server's `scanner.scan()` still picks the program itself the
+  moment the tag check passes, so trust gained later needs no new hand-over. The wall display's
+  artist photos ask MusicBrainz and FanArt.tv at the addresses the hand-over gives (the Node server
+  asked the real ones by name, which the suite can't reach). `/internal/library` carries the rooms'
+  part of `/api/status` (`zone_count`, `sonos`), and `POST /internal/playback/now` answers a zone's
+  track for the display. `test/front.test.js` and `test/scans-csharp.test.js` pinned the old truth
+  (`/api/status` and the files' Clean up the Node server's, the scans kept back) and were brought up
+  to the new.
 
 **Part 5: the covers the Node server still draws** (`Images.cs`, `Covers.cs`).
 - **A speaker asking by its own address**: the Node server's speakers' addresses come with its state
@@ -661,7 +673,7 @@ before it taps (it waited a fixed 400 ms, and on a slow Mac runner tapped before
 - [x] Part 6: Last.fm, what is left
 - [x] Part 4: Admin (the update, the processor split)
 - [x] Part 1: Audio Devices, the writes
-- [ ] Part 2: library housekeeping
+- [x] Part 2: library housekeeping
 - [ ] Part 5: the covers the Node server still draws
 - [ ] `test/menu.test.js` waits for the menu
 - [ ] The whole suite both ways; README, CHANGELOG and this file brought up to date

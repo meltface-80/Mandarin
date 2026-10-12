@@ -410,7 +410,10 @@ function createServer(overrides = {}) {
   // or the tag check passed for the two readers (not TAG_READER=node). Else
   // they stay here, as before v0.8.34. Decided at the hand-over.
   const scansGoToFront = () => !!scanner.program();
-  const handsOver = (j) => FRONT_JOBS.includes(j) && (j !== "scan" || scansGoToFront());
+  // The scans are handed over whatever reads the tags (v0.8.48): where the
+  // program isn't trusted with them, each scan the C# server starts is made
+  // by this server's own scanner at its ask (/internal/scan).
+  const handsOver = (j) => FRONT_JOBS.includes(j);
   app.post("/internal/front/runs", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
     const b = req.body || {};
@@ -493,6 +496,8 @@ function createServer(overrides = {}) {
         // The library scans (v0.8.34): the music folder it was started with, the
         // most a scan may take away unasked, and how often the library is read.
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
+        // Whether the C# program is trusted with the tags (v0.8.48): its own scan then, else this server's at its ask.
+        scan_program: scansGoToFront(),
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
         qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
         // Tidal's sign-in (v0.8.47): where it is asked.
@@ -578,8 +583,31 @@ function createServer(overrides = {}) {
       // For /api/health, answered by the C# server (v0.8.48): the rooms found, and
       // how bringing the C# server to this one's version went.
       rooms: zones.topology.rooms().length,
-      csharp_update: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null
+      csharp_update: ctx.csharpUpdate ? ctx.csharpUpdate.status() : null,
+      // For /api/status, answered by the C# server (v0.8.48, HousekeepingRoutes.cs): the rooms' part.
+      zone_count: zones.zones().filter(z => !ctx.devices || ctx.devices.zoneShown(z)).length,
+      sonos: { rooms: zones.topology.rooms().length, discovered: zones.discovered, searching: zones.searching, error: zones.topology.lastError || null }
     });
+  });
+  // A library scan made here at the C# server's ask (v0.8.48, Scans.cs): where
+  // its program isn't trusted with the tags, this server's own scanner, its
+  // state sent back line by line as the program's is, the result at the end.
+  app.post("/internal/scan", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" });
+    const line = (o) => { try { res.write(JSON.stringify(o) + "\n"); } catch (e) { /* gone */ } };
+    const tick = setInterval(() => line({ type: "state", state: scanner.state }), 1000);
+    log("[scan] a scan at the C# server's ask: made here");
+    scanner.scan({ force: !!(req.body || {}).force })
+      .then(r => line({ type: "result", result: r, state: scanner.state }), e => line({ type: "error", message: e.message }))
+      .finally(() => { clearInterval(tick); res.end(); });
+  });
+  // What a zone is playing, for the wall display's content (v0.8.48, HousekeepingRoutes.cs).
+  app.post("/internal/playback/now", express.json(), (req, res) => {
+    if (!fromFront(req)) return res.status(403).end();
+    const z = zones.zone(String((req.body || {}).zone || ""));
+    const st = z && z._state;
+    res.json({ state: st ? { title: st.title || "", trackId: st.trackId == null ? null : st.trackId, artist: st.artist || "", album: st.album || "" } : null });
   });
   app.use(express.json({ limit: "2mb" }));
   app.use(auth.gate);
@@ -868,7 +896,7 @@ function createServer(overrides = {}) {
       if (ctx.watcher) { ctx.watcher.stop(); ctx.watcher = null; }
       if (scanner.running) scanner.stop();
     };
-    if (!frontRuns.has("scan") || !scansGoToFront()) ctx.ownScans();
+    if (!frontRuns.has("scan")) ctx.ownScans();
     ctx.scanTimers = [];
     // The streaming services: your favourites (and purchases) brought up to
     // date soon after the start and every six hours, while signed in with

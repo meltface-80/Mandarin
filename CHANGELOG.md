@@ -92,6 +92,31 @@ Node). The parts as they are built:
   `test/devices-csharp.test.js` (new): every write and refusal made from the same row through the
   C# server and by the Node server itself, the rows and answers compared; the Node server's effects
   seen.
+- **Library housekeeping** (part 2). The library scans are the C# server's to start whatever reads
+  the tags: where it is trusted with them (the tag check passed, or `TAG_READER=csharp`) its own
+  program scans, as since v0.8.34; where not (`TAG_READER=node`, or the check still to pass) each
+  scan it starts (its timer, the music folders' watcher, Rescan, Reindex, a folder added) is made by
+  the Node server's own scanner at its ask, which says how it is going line by line, as the program
+  does. Before, the scans stayed with the Node server then, with Rescan, Reindex and the music
+  folders' routes. `/api/status` (what the setup screen and the pages poll) is the C# server's: the
+  library's part from it (the scan's state, the music folders, the count, whether the data folder is
+  a Docker volume), the rooms' part as the Node server says it with its state. Clean up (Settings →
+  Library Scanner): what could go counted by the C# server — the albums whose folder has gone from
+  the disk, and each service's — and the music folders' kind made there (the albums removed with
+  their edits, hearts and Listen later, the Node server's copy read again; a service's kind the C#
+  server's since v0.8.44); each refusal in the same words. The wall display's content: the zone's
+  track asked of the Node server, the artist's photos (MusicBrainz for the act, FanArt.tv for the
+  pictures, kept a week), the album's write-up, the artists' stories and more by the artist from the
+  C# server. `server/Mandarin.Server/HousekeepingRoutes.cs` (new), `Scans.cs`, `ScanRoutes.cs`,
+  `LibraryChanges.cs`, `Services/Rows.cs`, `WriteUpRoutes.cs`, `Jobs.cs`. The Node server's part is
+  the hand-over: the scans handed over whatever the tag reader, whether the program is trusted said
+  with it, its scanner at the C# server's ask (`index.js` `/internal/scan`), a zone's track
+  (`/internal/playback/now`), the rooms' part with its state, and Clean up's word
+  (`lib/server/api-library.js`). Tests: `test/housekeeping-csharp.test.js` (new): `/api/status`, the
+  counts, Clean up and the display's content held to the Node server's own answers; a folder gone
+  from the disk counted and cleaned; with `TAG_READER=node`, the scans started by the C# server and
+  made by the Node server's scanner, the library the same as its own scan makes; `test/front.test.js`
+  and `test/scans-csharp.test.js` brought up to date.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47

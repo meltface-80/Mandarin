@@ -46,6 +46,9 @@ internal static class Jobs
     public static Admin.Tailscale? Tailscale { get; private set; }
     // The in-app update (v0.8.48, UpdateRoutes.cs), once handed over.
     public static Admin.Updater? Updater { get; private set; }
+    // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
+    public static MusicBrainz? Mb { get; private set; }
+    public static string FanartBase { get; private set; } = LabelLogos.FanartBase;
     // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked, and the key from the environment (LASTFM_KEY).
     // This server's own from its start (v0.8.48: LASTFM_URL, LASTFM_KEY, the same container's), so its
     // routes never wait for the hand-over; the Node server's word (a test's stand-in, a key it was
@@ -154,6 +157,8 @@ internal static class Jobs
         // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
         // itself (no pack), Discogs, FanArt.tv and Deezer where the Node server says.
         var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        Mb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        FanartBase = (Text(cfg["fanart_url"]) ?? LabelLogos.FanartBase).TrimEnd('/');
         var pause = Pause(cfg["logo_pause_ms"], 1100);
         Labels.Lookup = new LabelLookup(labelsMb, Text(cfg["discogs_url"]), pause, version, Log) { Ready = () => Holds("labels"), OnDone = Library.AfterLookups };
         Labels.Logos = new LabelLogos(dataDir, labelsMb, Text(cfg["discogs_url"]), Text(cfg["fanart_url"]), pause, version, Log) { Ready = () => Holds("labels") };
