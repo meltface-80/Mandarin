@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "allowance": {
+    "android/app/src/main/java/com/musicd/server/android/DownloadStore.kt": {
+      "lines": 522
+    },
+    "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
+      "lines": 466
+    },
+    "android/app/src/main/java/com/musicd/server/android/MainActivity.kt": {
+      "lines": 954
+    },
+    "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
+      "lines": 437
+    },
+    "android/app/src/main/java/com/musicd/server/android/OfflineApi.kt": {
+      "lines": 477
+    },
+    "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": {
+      "lines": 1440
+    },
+    "android/musicdnet/main.go": {
+      "lines": 401
+    },
+    "engine/Mandarin.Audio/Engine.cs": {
+      "lines": 502
+    },
+    "index.js": {
+      "lines": 907
+    },
+    "lib/identify/identifier.js": {
+      "lines": 739
+    },
+    "lib/library/db.js": {
+      "lines": 483
+    },
+    "lib/library/index.js": {
+      "lines": 1089
+    },
+    "lib/library/scanner.js": {
+      "lines": 1074
+    },
+    "lib/local/output.js": {
+      "lines": 429
+    },
+    "lib/meta.js": {
+      "lines": 1004
+    },
+    "lib/renderers/players.js": {
+      "lines": 773
+    },
+    "lib/server/api-library.js": {
+      "lines": 1309
+    },
+    "lib/server/api-playback.js": {
+      "lines": 591
+    },
+    "lib/services/streaming.js": {
+      "lines": 523
+    },
+    "lib/sonos/phones.js": {
+      "lines": 581
+    },
+    "lib/sonos/zones.js": {
+      "lines": 837
+    },
+    "lib/stream.js": {
+      "lines": 546
+    },
+    "public/app.js": {
+      "lines": 19638
+    },
+    "public/display.js": {
+      "lines": 654
+    },
+    "public/sharecard.js": {
+      "lines": 582
+    },
+    "public/shelf.js": {
+      "lines": 2062
+    },
+    "server/Mandarin.Server/Admin/Backup.cs": {
+      "lines": 810
+    },
+    "server/Mandarin.Server/Admin/Tailscale.cs": {
+      "lines": 435
+    },
+    "server/Mandarin.Server/Auth.cs": {
+      "lines": 573
+    },
+    "server/Mandarin.Server/Covers.cs": {
+      "lines": 559
+    },
+    "server/Mandarin.Server/Extras/LabelLogos.cs": {
+      "lines": 432
+    },
+    "server/Mandarin.Server/Extras/ShareBlob.cs": {
+      "lines": 512
+    },
+    "server/Mandarin.Server/Extras/Taste.cs": {
+      "lines": 475
+    },
+    "server/Mandarin.Server/Extras/WriteUps.cs": {
+      "lines": 553
+    },
+    "server/Mandarin.Server/Identify/Identifier.cs": {
+      "lines": 1195
+    },
+    "server/Mandarin.Server/Identify/Pack.cs": {
+      "lines": 723
+    },
+    "server/Mandarin.Server/Identify/Score.cs": {
+      "lines": 514
+    },
+    "server/Mandarin.Server/Library.cs": {
+      "lines": 623
+    },
+    "server/Mandarin.Server/LibraryRoutes.cs": {
+      "lines": 918
+    },
+    "server/Mandarin.Server/Playback/JsMath.cs": {
+      "lines": 615
+    },
+    "server/Mandarin.Server/Playback/StreamPlans.cs": {
+      "lines": 401
+    },
+    "server/Mandarin.Server/Playback/WebUrl.cs": {
+      "lines": 767
+    },
+    "server/Mandarin.Server/Playback/Xml.cs": {
+      "lines": 634
+    },
+    "server/Mandarin.Server/Scan/Scanner.cs": {
+      "lines": 1044
+    },
+    "server/Mandarin.Server/Scans.cs": {
+      "lines": 470
+    },
+    "server/Mandarin.Server/ServiceRoutes.cs": {
+      "lines": 572
+    },
+    "server/Mandarin.Server/Services/Catalogue.cs": {
+      "lines": 507
+    },
+    "server/Mandarin.Server/Services/Import.cs": {
+      "lines": 694
+    },
+    "server/Mandarin.Server/Services/Rows.cs": {
+      "lines": 540
+    },
+    "server/Mandarin.Server/Services/ServiceStreams.cs": {
+      "lines": 431
+    },
+    "server/Mandarin.Server/Tags/Case.cs": {
+      "lines": 3132
+    },
+    "server/Mandarin.Server/Tags/Collector.cs": {
+      "lines": 620
+    },
+    "server/Mandarin.Server/Tags/Formats.cs": {
+      "lines": 813
+    },
+    "server/Mandarin.Server/Tags/Id3.cs": {
+      "lines": 730
+    },
+    "server/Mandarin.Server/Tags/Mp4.cs": {
+      "lines": 632
+    },
+    "server/Mandarin.Server/Tags/TagReader.cs": {
+      "lines": 598
+    },
+    "server/Mandarin.Server/Transcoder.cs": {
+      "lines": 465
+    }
+  }
+}

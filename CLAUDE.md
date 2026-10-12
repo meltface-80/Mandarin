@@ -54,3 +54,16 @@ New features will adopt the above process from step 1 down to 3 and adopt my pro
 At the time of writing this branch v0.8.43 and v0.8.44 are green and getting merge by order of build number. Next will be v0.8.45 and you will follow step 4 explicitly. Advise immediately if step 4 cannot happen.
 
 You will also remove all tags/releases on main in the v0.8.x range except v0.8.44. That will remain the :latest on main for now until migration work is fully completed. Acknowledge this on next session
+
+---
+
+## 5. Quality gates (machine-enforced)
+
+`docs/quality-plan.md` says what they are and why. The rules no tool can check:
+
+* **`npm run check` and `npm test` are green before every commit.** CI runs both on every push; a red check or test blocks the merge. Never `--no-verify`, never a hook-config edit to get past a gate.
+* **The ratchet's files only shrink.** A file in `tools/quality/allowance.json`, or under `exempt` in `tools/quality/policy.json`, is never grown: what a change needs goes in a new module under 400 lines, or the file is split first. `allowance.json` and `lint-baseline.json` are written by their tools (`accept`), never by hand, and never raised.
+* **Never loosen a rule to get green.** A lint rule a file breaks on purpose is turned off for that file in `eslint.config.js`, with the reason beside it. A test is never skipped, disabled or loosened; find the cause.
+* **New JavaScript modules opt into type checking** (`// @ts-check` and JSDoc on what they export). A module touched for a change opts in when the change is in it anyway.
+* **A test proves something:** break the code once and watch it fail before trusting it.
+* **This file shrinks as the tools take over.** A rule a tool can check moves out of here and into a gate.
