@@ -169,6 +169,9 @@ test("the split decided by the C# server: the same decision, followed here, both
   const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   try {
+    // A DSP conversion under way here before the C# server takes the split: counted to it at the
+    // hand-over (cpu_dsp), so its first decision keeps playback's second core; given back once it ends.
+    CPU.dsp(true);
     await srv.start();
     const H = { Authorization: "Bearer " + await signIn(B) };
     const cpu = async () => { const r = await fetch(B + "/api/cpu", { headers: H }); return { by: r.headers.get("x-mandarin-answered"), plan: await r.json() }; };
@@ -185,7 +188,14 @@ test("the split decided by the C# server: the same decision, followed here, both
     // makes for the cores this process started with; followed here.
     const all = CPU.plan().cores;
     const want = CPU.decide({ platform: "linux", taskset: true, cores: all, env: process.env, dsp: false });
-    const p = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
+    const first = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
+    assert.deepEqual([first.dsp, first.playback], [true, all.slice(-2)], "the conversion under way at the hand-over counted there: " + JSON.stringify(first));
+    assert.equal(CPU.running(), 0, "and no longer here");
+    CPU.dsp(false);
+    await until(() => CPU.plan().playback.length === 1, 5000, "the second core given back once it ends");
+    const after0 = await cpu();
+    assert.equal(after0.by, "C#");
+    const p = after0.plan;
     assert.deepEqual([p.split, p.cores, p.playback, p.background, p.core, p.dsp], [want.split, want.cores, want.playback, want.background, want.core, false], "as lib/cpu.js decides it");
     assert.deepEqual(CPU.plan().playback, p.playback, "followed here");
     assert.deepEqual(CPU.plan().cores, all);

@@ -489,6 +489,8 @@ function createServer(overrides = {}) {
         // (the tests' stand-in), and whether to check by itself.
         via_launcher: process.env.MUSICD_VIA_LAUNCHER === "1", update_repo: process.env.UPDATE_REPO || null,
         update_api: process.env.UPDATE_API || null, update_check: process.env.UPDATE_CHECK !== "false",
+        // The processor split (v0.8.48): the DSP conversions under way here, for the C# server to count from the start.
+        cpu_dsp: CPU.running(),
         // Last.fm (v0.8.26): where it is asked, and the key from the environment (LASTFM_KEY).
         lastfm_url: config.lastfmBaseUrl || null, lastfm_key: config.lastfmKey || null,
         // Headphone profiles (v0.8.26): where AutoEq's results are.

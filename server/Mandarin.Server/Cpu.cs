@@ -253,6 +253,7 @@ internal static partial class Cpu
     private static volatile bool deciding;
     private static readonly object Deciding_ = new();
     private static int dspRunning;         // DSP conversions under way, this server's and the Node server's
+    private static int dspNode;            // of which the Node server's (its count given at the hand-over, then each told)
     private static long dspUntil;          // and the second core kept until then (Environment.TickCount64)
     private static Timer? holdTimer;
     private static Split decided = new(false, [], [], []);
@@ -315,12 +316,21 @@ internal static partial class Cpu
 
     private static bool DspActive() => Volatile.Read(ref dspRunning) > 0 || Environment.TickCount64 < Volatile.Read(ref dspUntil);
 
-    /* The split decided from now on (the Node server told, and again whenever it changes); Stop: its own word followed again. */
-    public static void StartDeciding()
+    /*
+     * The split decided from now on (the Node server told, and again whenever it
+     * changes); Stop: its own word followed again. [nodeRunning]: the DSP
+     * conversions under way on the Node server at the hand-over (its count in
+     * the hand-over's settings, cpu_dsp), counted from the start: each of them
+     * ending is told here, and playback keeps its second core until the last.
+     * A Node server started again hands over afresh: its old count goes.
+     */
+    public static void StartDeciding(int nodeRunning = 0)
     {
         lock (Deciding_)
         {
             deciding = true;
+            dspRunning = Math.Max(0, dspRunning - dspNode) + Math.Max(0, nodeRunning);
+            dspNode = Math.Max(0, nodeRunning);
             Recompute(force: true);
         }
     }
@@ -340,10 +350,11 @@ internal static partial class Cpu
      * server (lib/cpu.js dsp): while any runs, and for a while after, playback
      * has its second core.
      */
-    public static void Dsp(bool on)
+    public static void Dsp(bool on, bool node = false)
     {
         lock (Deciding_)
         {
+            if (node) dspNode = on ? dspNode + 1 : Math.Max(0, dspNode - 1);
             if (on) dspRunning++;
             else
             {

@@ -207,9 +207,15 @@ internal sealed partial class Updater
                 return;
             }
             if (code != 200) throw new UpdateError("download HTTP " + code);
-            await using var f = File.Create(dest);
-            await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
-            await body.CopyToAsync(f, cts.Token);
+            // The body under the same ten minutes, and the same words when it stops short.
+            try
+            {
+                await using var f = File.Create(dest);
+                await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
+                await body.CopyToAsync(f, cts.Token);
+            }
+            catch (OperationCanceledException) { throw new UpdateError("download timed out"); }
+            catch (HttpRequestException e) { throw new UpdateError(e.InnerException?.Message ?? e.Message); }
         }
     }
 
@@ -329,12 +335,17 @@ internal sealed partial class Updater
 
     // ------------------------------------------------------------------- apply
 
-    /* apply: the update made, or why not (apply.phase "error"). A phase in the middle of one: left to it. */
+    /*
+     * apply: the update made, or why not (apply.phase "error"). A phase in the
+     * middle of one: left to it (the check it starts with too: two asks at once
+     * would download the same file twice, which lib/updater.js, on one thread,
+     * never had to fear).
+     */
     public async Task Apply()
     {
         lock (gate)
         {
-            if (Busy.Contains(phase)) return;
+            if (Busy.Contains(phase) || phase == "checking") return;
             phase = "checking"; applyError = null; applyVersion = null;
         }
         bool have;
@@ -398,7 +409,9 @@ internal sealed partial class Updater
             }
             _ = Task.Delay(400).ContinueWith(_ => Jobs.RestartNode("update"), TaskScheduler.Default);
         }
-        catch (Exception e) when (e is UpdateError or LookupError or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        // Whatever stopped it (lib/updater.js catches everything): the phase ends in
+        // "error", never left in the middle, where every later ask would be turned away.
+        catch (Exception e)
         {
             lock (gate) { phase = "error"; applyError = e.Message; applyVersion = target; }
             Debug("apply failed: " + e.Message);
@@ -511,7 +524,7 @@ internal sealed partial class Updater
         log($"[update] fetching the C# server {target} before the update");
         string next;
         try { next = await FetchProgram(bin, target, mac); }
-        catch (Exception e) when (e is UpdateError or LookupError or IOException or UnauthorizedAccessException)
+        catch (Exception e)
         {
             throw new UpdateError($"the C# server {target} couldn't be fetched ({e.Message}); nothing was changed");
         }

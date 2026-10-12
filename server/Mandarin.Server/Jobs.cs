@@ -188,8 +188,9 @@ internal static class Jobs
         held = c.Boot;
         seen ??= c.Boot;
         if (handed.Contains("update")) Updater.Start();
-        // The processor split (v0.8.48): decided here from now on, the Node server told; else its own, followed as before.
-        if (handed.Contains("cpu")) Cpu.StartDeciding(); else Cpu.StopDeciding();
+        // The processor split (v0.8.48): decided here from now on (the Node server's DSP conversions
+        // under way counted from the start), the Node server told; else its own, followed as before.
+        if (handed.Contains("cpu")) Cpu.StartDeciding(Pause(cfg["cpu_dsp"], 0)); else Cpu.StopDeciding();
         if (cfg["identify"] is JsonValue on && on.TryGetValue<bool>(out var yes) && yes) Identify.Start();
         Packs.Start();
         Loudness.Start();
@@ -269,7 +270,7 @@ internal static class Jobs
                 JsonObject? body = null;
                 try { body = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
                 catch (System.Text.Json.JsonException) { /* no body: off */ }
-                Cpu.Dsp(body?["on"] is JsonValue ov && ov.TryGetValue<bool>(out var dspOn) && dspOn);
+                Cpu.Dsp(body?["on"] is JsonValue ov && ov.TryGetValue<bool>(out var dspOn) && dspOn, node: true);
                 await ctx.Response.WriteAsync(new JsonObject { ["ok"] = true, ["cpu"] = Cpu.Plan() }.ToJsonString());
                 return;
             }
@@ -361,8 +362,22 @@ internal static class Jobs
                     // The in-app update: the checks go on here (or not, for a Node server that keeps them).
                     if (handed.Contains("update")) Updater?.Start(); else Updater?.Stop();
                     // The processor split: the Node server started again is sent it, or decides again itself.
-                    if (handed.Contains("cpu")) Cpu.StartDeciding(); else Cpu.StopDeciding();
+                    if (handed.Contains("cpu")) Cpu.StartDeciding(Pause(c.Config["cpu_dsp"], 0)); else Cpu.StopDeciding();
                     Front.Log("[jobs] the Node server started again; its work stays here");
+                }
+                else if (refused)
+                {
+                    // The Node server started again is of another version (its files updated
+                    // from Settings before this program is): its work is its own, the new
+                    // way, until the C# server of its version starts (Front.cs, code 76).
+                    // Nothing is answered or decided for it here meanwhile, and nothing
+                    // asked of GitHub twice.
+                    handed = [];
+                    held = boot;
+                    Cpu.StopDeciding();
+                    Updater?.Stop();
+                    Scans.Stop();
+                    Front.Log("[jobs] the Node server started again is of another version; its work stays with it");
                 }
             }
             finally { Interlocked.Exchange(ref claiming, 0); }
