@@ -10,7 +10,9 @@
 // favourites' watch and the service playlists (Services/Import.cs); from
 // v0.8.47 their accounts (signing in and out, Tidal's token refreshed here
 // alone), their streams and playing an album from their browser
-// (Services/Accounts.cs, ServiceStreams.cs): "services".
+// (Services/Accounts.cs, ServiceStreams.cs): "services"; from v0.8.48 the
+// in-app update (Admin/Updater.cs): "update", and the processor split, decided
+// here and sent to the Node server (Cpu.cs): "cpu".
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -31,7 +33,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -42,9 +44,19 @@ internal static class Jobs
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
     public static Admin.Tailscale? Tailscale { get; private set; }
-    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked, and the key the Node server was started with (LASTFM_KEY).
-    public static Lastfm? Lastfm { get; private set; }
-    public static string? LastfmEnvKey { get; private set; }
+    // The in-app update (v0.8.48, UpdateRoutes.cs), once handed over.
+    public static Admin.Updater? Updater { get; private set; }
+    // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
+    public static MusicBrainz? Mb { get; private set; }
+    public static string FanartBase { get; private set; } = LabelLogos.FanartBase;
+    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked, and the key from the environment (LASTFM_KEY).
+    // This server's own from its start (v0.8.48: LASTFM_URL, LASTFM_KEY, the same container's), so its
+    // routes never wait for the hand-over; the Node server's word (a test's stand-in, a key it was
+    // given) takes over when it comes.
+    private static Lastfm? lastfm;
+    public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
+    public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
+    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Front.Version + " (+https://github.com/meltface-80/Mandarin)");
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -145,6 +157,8 @@ internal static class Jobs
         // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
         // itself (no pack), Discogs, FanArt.tv and Deezer where the Node server says.
         var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        Mb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        FanartBase = (Text(cfg["fanart_url"]) ?? LabelLogos.FanartBase).TrimEnd('/');
         var pause = Pause(cfg["logo_pause_ms"], 1100);
         Labels.Lookup = new LabelLookup(labelsMb, Text(cfg["discogs_url"]), pause, version, Log) { Ready = () => Holds("labels"), OnDone = Library.AfterLookups };
         Labels.Logos = new LabelLogos(dataDir, labelsMb, Text(cfg["discogs_url"]), Text(cfg["fanart_url"]), pause, version, Log) { Ready = () => Holds("labels") };
@@ -157,7 +171,8 @@ internal static class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
+        // Kept (its answers and its spacing with it) unless the Node server asks Last.fm elsewhere.
+        if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
         // Tailscale built in (v0.8.22): the engine, its folder and the port it serves, as the Node server was set up.
@@ -166,9 +181,16 @@ internal static class Jobs
             Text(cfg["tailscale_bin"]) ?? (Environment.GetEnvironmentVariable("MUSICDNET_BIN") is { Length: > 0 } eb ? eb : "/usr/local/bin/musicdnet"),
             Text(cfg["tailscale_dir"]) ?? Path.Combine(dataDir, "tailscale"), Int(cfg["tailscale_port"], frontPort), version, Log,
             Int(watchdog?["rebindMs"], 60000), Int(watchdog?["restartMs"], 240000));
+        // The in-app update (v0.8.48): where GitHub is asked and whether the Node server runs under its launcher, as it was set up.
+        Updater?.Stop();
+        Updater = new Admin.Updater(cfg, Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), version, Log);
         handed = c.Jobs;
         held = c.Boot;
         seen ??= c.Boot;
+        if (handed.Contains("update")) Updater.Start();
+        // The processor split (v0.8.48): decided here from now on (the Node server's DSP conversions
+        // under way counted from the start), the Node server told; else its own, followed as before.
+        if (handed.Contains("cpu")) Cpu.StartDeciding(Pause(cfg["cpu_dsp"], 0)); else Cpu.StopDeciding();
         if (cfg["identify"] is JsonValue on && on.TryGetValue<bool>(out var yes) && yes) Identify.Start();
         Packs.Start();
         Loudness.Start();
@@ -209,8 +231,10 @@ internal static class Jobs
      * Rescan), POST /internal/jobs/watch (the services' favourites looked at
      * now, as the watch's timer looks: the tests), POST /internal/services/played
      * (the Node server, a streamed track a speaker fetched from it by its own
-     * address: the play reported here, v0.8.47) and GET /internal/tailscale
-     * (how the engine run here is: the Node server gives phones its address).
+     * address: the play reported here, v0.8.47), POST /internal/cpu/dsp (the
+     * Node server, a DSP conversion of its own started or ended, { on }: the
+     * split decided here answered, v0.8.48) and GET /internal/tailscale (how
+     * the engine run here is: the Node server gives phones its address).
      */
     public static void UseInternal(WebApplication app)
     {
@@ -218,7 +242,7 @@ internal static class Jobs
         {
             var p = ctx.Request.Path.Value;
             if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/import" or "/internal/jobs/watch"
-                or "/internal/services/played" or "/internal/tailscale")) { await next(); return; }
+                or "/internal/services/played" or "/internal/cpu/dsp" or "/internal/tailscale")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
@@ -238,6 +262,16 @@ internal static class Jobs
             {
                 await AfterScan();
                 await ctx.Response.WriteAsync("{\"ok\":true}");
+                return;
+            }
+            if (p == "/internal/cpu/dsp")
+            {
+                if (!Cpu.Deciding || !Holds("cpu")) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
+                JsonObject? body = null;
+                try { body = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
+                catch (System.Text.Json.JsonException) { /* no body: off */ }
+                Cpu.Dsp(body?["on"] is JsonValue ov && ov.TryGetValue<bool>(out var dspOn) && dspOn, node: true);
+                await ctx.Response.WriteAsync(new JsonObject { ["ok"] = true, ["cpu"] = Cpu.Plan() }.ToJsonString());
                 return;
             }
             if (p == "/internal/jobs/import")
@@ -325,15 +359,37 @@ internal static class Jobs
                     else Scans.Stop();
                     // The services' import: its first run after the Node server's start, as there.
                     Services.Import.Start(c.Config);
+                    // The in-app update: the checks go on here (or not, for a Node server that keeps them).
+                    if (handed.Contains("update")) Updater?.Start(); else Updater?.Stop();
+                    // The processor split: the Node server started again is sent it, or decides again itself.
+                    if (handed.Contains("cpu")) Cpu.StartDeciding(Pause(c.Config["cpu_dsp"], 0)); else Cpu.StopDeciding();
                     Front.Log("[jobs] the Node server started again; its work stays here");
+                }
+                else if (refused)
+                {
+                    // The Node server started again is of another version (its files updated
+                    // from Settings before this program is): its work is its own, the new
+                    // way, until the C# server of its version starts (Front.cs, code 76).
+                    // Nothing is answered or decided for it here meanwhile, and nothing
+                    // asked of GitHub twice.
+                    handed = [];
+                    held = boot;
+                    Cpu.StopDeciding();
+                    Updater?.Stop();
+                    Scans.Stop();
+                    Front.Log("[jobs] the Node server started again is of another version; its work stays with it");
                 }
             }
             finally { Interlocked.Exchange(ref claiming, 0); }
         });
     }
 
-    /* The Node server started again (a restore: it reads everything afresh, and swaps in a staged database). */
-    public static async Task RestartNode()
+    /*
+     * The Node server started again: a restore (it reads everything afresh,
+     * and swaps in a staged database), or an update staged for its launcher
+     * to lay in (v0.8.48, [why] "update": its launcher applies it, Admin/Updater.cs).
+     */
+    public static async Task RestartNode(string why = "backup")
     {
         if (upstream == null) return;
         // A scan under way ended first: the database it writes is about to be put back.
@@ -342,7 +398,7 @@ internal static class Jobs
         await Services.Import.HaltRuns();
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart"));
+            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart" + (why == "update" ? "?why=update" : "")));
             req.Headers.Add("X-Mandarin-Front-Key", key);
             using var res = await Http.SendAsync(req);
             if (!res.IsSuccessStatusCode) Front.Log($"[jobs] the Node server didn't restart (HTTP {(int)res.StatusCode})");
@@ -352,6 +408,7 @@ internal static class Jobs
 
     public static void Stop()
     {
+        Updater?.Stop();
         Scans.Stop();
         Services.Prune.Stop();
         Services.Import.Stop();

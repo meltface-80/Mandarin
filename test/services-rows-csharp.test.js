@@ -431,10 +431,11 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     assert.deepEqual(edits(), [0, 0, 0, 0]);
     // Nothing stale: nothing removed, the Node server not told.
     assert.equal((await same("library/cleanup", { kind: "qobuz" })).j.removed, 0);
-    // The music folders' kind, and one it refuses: the Node server's.
-    assert.equal((await post("library/cleanup", { kind: "files" })).by, null);
-    const nope = await post("library/cleanup", { kind: "nope" });
-    assert.deepEqual([nope.status, nope.by], [400, null]);
+    // The music folders' kind, and one it refuses: the C# server's too (v0.8.48), word for word
+    // the Node server's.
+    const files = await same("library/cleanup", { kind: "files" });
+    assert.deepEqual([files.status, files.j.ok, files.j.kind, files.j.removed], [200, true, "files", 0], files.text);
+    assert.equal((await same("library/cleanup", { kind: "nope" })).status, 400);
     // Signed out of Tidal: every Tidal album goes, the kept and held marks, and Tidal's playlists.
     const lists = [{ id: "mine", name: "Mine", tracks: [] }, { id: "tidal-pl-x", name: "Long drive", service: "tidal", tracks: [] }, { id: "qobuz-pl-1", name: "Road trip", qobuz: true, tracks: [] }, { id: "", name: "Nameless" }];
     const signedOut = () => {

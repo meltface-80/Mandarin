@@ -133,6 +133,21 @@ internal static partial class Library
         return await SendJs(ctx, o);
     }
 
+    /* artistBio(name, album): the act's own article, kept a month (a miss too); the wall display's too (HousekeepingRoutes.cs). */
+    private static async Task<object?> ArtistBioOf(WriteUpSources w, string artist, string album)
+    {
+        var key = Fold2(artist, album);
+        if (BioMemo.TryGet(key, out var bio)) return bio;
+        bio = Taste.CacheGet("artist-bio", key, ThirtyDays);
+        if (bio is Undef)
+        {
+            bio = await Quietly(w.WikiArtist(artist, album.Length > 0 ? album : null));
+            Taste.CachePut("artist-bio", key, TJs.Truthy(bio) ? bio : null);
+        }
+        BioMemo.Set(key, bio);
+        return bio;
+    }
+
     /* GET /api/artist-bio?artist=[&album=]: the act's own article, kept a month (a miss too). */
     private static async Task<bool> ArtistBio(HttpContext ctx, Snapshot s, LibState st)
     {
@@ -140,18 +155,7 @@ internal static partial class Library
         var artist = TJs.Trim(Q(ctx, "artist") ?? "");
         if (artist.Length == 0) return await JsError(ctx, 400, "artist required");
         var album = TJs.Trim(Q(ctx, "album") ?? "");
-        var key = Fold2(artist, album);
-        object? bio;
-        if (!BioMemo.TryGet(key, out bio))
-        {
-            bio = Taste.CacheGet("artist-bio", key, ThirtyDays);
-            if (bio is Undef)
-            {
-                bio = await Quietly(w.WikiArtist(artist, album.Length > 0 ? album : null));
-                Taste.CachePut("artist-bio", key, TJs.Truthy(bio) ? bio : null);
-            }
-            BioMemo.Set(key, bio);
-        }
+        var bio = await ArtistBioOf(w, artist, album);
         var o = new JsObj();
         if (!TJs.Truthy(bio) || !TJs.Truthy(Field(bio, "description"))) { o["bio"] = null; return await SendJs(ctx, o); }
         var b = new JsObj();

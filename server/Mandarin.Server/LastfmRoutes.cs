@@ -8,8 +8,11 @@
 // (its errors 10 and 26) is said so, the one failure the user can fix;
 // anything else leaves the sections out. Whether an artist or an album is in
 // the library is decided here, before the tap. Last.fm's pictures go through
-// this server's image address ("u-" keys, drawn by the Node server).
-// Answered here once the Node server has handed over its work; until then, by it.
+// this server's image address ("u-" keys, drawn here since v0.8.34).
+// Answered here once the Node server had handed over its work, until v0.8.48;
+// since then from the start (stage 5 part 6), its address and the
+// environment's key this server's own until the Node server says otherwise
+// (Jobs.cs). Nothing of Last.fm is the Node server's any more.
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
@@ -21,7 +24,7 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private static Lastfm? HeldLastfm => Jobs.Held ? Jobs.Lastfm : null;
+    private static Lastfm? HeldLastfm => Jobs.Lastfm;
 
     /* The key saved in Settings: absent (null) until one is, even an empty one. */
     private static string? SavedLastfmKey()

@@ -77,7 +77,7 @@ test("Restart and Shut down through the C# server: both servers, as an install r
     assert.deepEqual(await r.json(), { restart: true, shutdown: true, docker: false, start_again: "manual" });
   });
 
-  await t.test("the processor split, as the Node server decides it", async () => {
+  await t.test("the processor split (v0.8.48: decided by the C# server once the Node server hands it over)", async () => {
     const r = await get("/api/cpu");
     assert.equal(r.headers.get("x-mandarin-answered"), "C#");
     const plan = await r.json();

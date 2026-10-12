@@ -5,6 +5,129 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.48
+Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
+but play moves to the C# server**, part by part, each held to the Node server's own answers and
+writes. After it the Node server is playback and nothing else (stage 6 moves that; stage 7 removes
+Node). The parts as they are built:
+
+- **The database** (part 8): made and brought up to date by the C# server, as the Node server made
+  it, statement for statement: its tables and indexes, the columns added since a table first
+  shipped, a database made by something else moved aside (`musicd.old-<ms>.db`) and what is worth
+  keeping carried over, the album edits read back from `album-edits.json` or written there, and
+  Smart Picks' and the radio's tables. The C# server does it before it starts the Node server, and
+  the Node server asks it again as it opens the database (`mandarin-server db`), so a backup put back
+  is brought up to date by C# too. `server/Mandarin.Server/Schema.cs` (new), `Program.cs`, `Front.cs`.
+  The Node server's part is the hand-over only: `lib/library/db.js` asks the program when the C#
+  server that started it has it (`MANDARIN_SERVER_DB=1`), checks the tables have what it needs, and
+  only then leaves out its own; `lib/server/features.js` makes none of its tables then; a Mac on
+  Node alone, an older C# server or a program that fails, its own code as before. Tests:
+  `test/db-csharp.test.js` (new): a new database, one from before the added columns, one made by
+  something else, one from a newer version, and `album-edits.json` both ways, each made by the C#
+  program and by `lib/library/db.js` from the same start and compared file for file; through the
+  server, the Node server's database is the program's, and with a program that fails its own.
+- **The pages** (part 7): the sign-in page (`/login`), the wall display's page (`/display`), and the
+  page for any other address it opens (a deep link, the Android app's form of it too), sent by the C#
+  server as the Node server sent them (the same file, tag and caching); a folder of the page's files
+  asked for without its slash is sent there (301), as before. `/api/health` (Docker's health check)
+  by the C# server too, field for field: the rooms found and how bringing the C# server to the Node
+  server's version went, as the Node server says them with its state; the library's count, ffmpeg,
+  the conversions under way and the audio engine there. `server/Mandarin.Server/HealthRoutes.cs`
+  (new), `Pages.cs` (a page's tag now gives its time to the nearest millisecond, as Node's does:
+  Shelf's page's tag changes once), `Program.cs`, `Library.cs`, `Transcoder.cs`. The Node server's
+  part: two fields more in `/internal/library` (`rooms`, `csharp_update`). Tests:
+  `test/pages-csharp.test.js` (new), each page, deep link, redirect and `/api/health` held to the
+  Node server's own answer; `test/front.test.js`'s pins moved on to C#.
+- **The phone's download lists, what was left** (part 3): a streamed album's download list (its
+  tracks planned as FLAC, as before; the phone is then refused each one, as before), a track whose file
+  is gone from the disk (404), and the phone's albums or offline plays sent as something that can't be
+  read as a list (Express's own 500 page, as in the image), all answered by the C# server now. A
+  download refused for a streamed track says "can't" with its apostrophe, as the Node server wrote it
+  (`\u0027` before). `DownloadListRoutes.cs`, `Downloads.cs`. Tests: `test/library-front.test.js`'s
+  download checks, each of these held to the Node server's own answer.
+- **Last.fm, what was left** (part 6): its routes moved in v0.8.26 and its pictures in v0.8.34, but
+  they waited for the Node server's hand-over, which brought Last.fm's address and the environment's
+  key. The C# server now has both from its own environment (`LASTFM_URL`, `LASTFM_KEY`, the same
+  container) from its start, the Node server's word taking over when it comes (the tests' stand-in),
+  so a Node server starting again no longer takes Last.fm with it for a moment. `Jobs.cs`,
+  `LastfmRoutes.cs`. Tests: `test/lastfm.test.js`, a C# server in front of a stand-in that hands
+  nothing over, answering Last.fm from its own environment, the stand-in never asked.
+- **The in-app update and the processor split** (part 4). Settings → Updates is the C# server's once
+  the Node server hands it over (the job `update`): the status, Check now, Install and the check every
+  twelve hours, as the Node server made them, with the same words for each refusal (GitHub turning the
+  check down, no update, a download that fails, a bundle that isn't Mandarin's). An install fetches
+  and checks the C# server of the new version first and stops with nothing changed if it can't be
+  had, as before; then the bundle is staged for the launcher and the Node server asked to start again,
+  on which the launcher lays the new files in and the new Node server asks this program to start again
+  from its new file, as before. `server/Mandarin.Server/Admin/Updater.cs` (new, `lib/updater.js` and
+  `csharp-update.js`'s `prepare` rule for rule), `UpdateRoutes.cs` (new), `Jobs.cs`. The processor
+  split (which cores playback keeps, the rest for everything else; two for playback while DSP
+  converts and ten minutes after) is decided by the C# server now (the job `cpu`), from the same rule
+  as `lib/cpu.js` and counting both servers' DSP conversions, and sent to the Node server, which
+  follows it for playback's own processes (the audio engine, its decoder) and tells the C# server of a
+  DSP conversion it makes itself; `/api/cpu` (Settings → Library Scanner) answers from that decision.
+  `Cpu.cs`, `PowerRoutes.cs`, `Transcoder.cs`. The Node server's part is the hand-over: `update` and
+  `cpu` in `FRONT_JOBS`, its own update checks not started once handed over, where GitHub is asked
+  and whether it runs under the launcher said in the hand-over's settings (`index.js`,
+  `lib/server/api-playlists.js`), and `lib/cpu.js` following a split given to it (`follow`,
+  `unfollow`, `tellDspTo`). Tests: `test/update-csharp.test.js` (new): a stand-in GitHub, the server
+  through the C# server on a copy of the app and of the program, every refusal word for word, then an
+  install staged under the launcher with the program of the new version in place first and the Node
+  server asked to start again with 75; without a launcher, the files laid in. `test/cpu.test.js`: the
+  C# server's decision held to `lib/cpu.js`'s for the same cores, followed by the Node server, both
+  moving when DSP takes and gives back its second core.
+- **Audio Devices, the writes** (part 1). What you change on a device's page in Settings → Audio
+  Devices is written by the C# server now: its name, hidden, sharing (a phone's), output (mode, bits,
+  volume), DSP, Volume Levelling and the rates, depths and DSD you tick, each checked and written as
+  the Node server wrote it, in the same order and with the same words for a refusal (a write made
+  before a refusal stays, as before). The Node server is then told, so what each write did there
+  still happens (the name everywhere, a renderer's or sound device's queue planned again with its
+  new DSP or levelling, a phone told its own, a Sonos room's queue planned again, a device hidden
+  while on switched off and let go), and answers the device as its page shows it, which the C#
+  server sends on. Switching a player on or off and the radio stay the Node server's until playback
+  moves (stage 6), as do the list, a device's page, Look again and Forget. Away from home, only the
+  phone the app is on, by the Node server as before. `server/Mandarin.Server/DeviceRoutes.cs` (new),
+  `LibraryRoutes.cs`; the Node server's part is the hand-over (`lib/renderers/devices.js` `changed`,
+  `registry.js` `refreshName`, `index.js` `/internal/devices/changed`). Tests:
+  `test/devices-csharp.test.js` (new): every write and refusal made from the same row through the
+  C# server and by the Node server itself, the rows and answers compared; the Node server's effects
+  seen.
+- **Library housekeeping** (part 2). The library scans are the C# server's to start whatever reads
+  the tags: where it is trusted with them (the tag check passed, or `TAG_READER=csharp`) its own
+  program scans, as since v0.8.34; where not (`TAG_READER=node`, or the check still to pass) each
+  scan it starts (its timer, the music folders' watcher, Rescan, Reindex, a folder added) is made by
+  the Node server's own scanner at its ask, which says how it is going line by line, as the program
+  does. Before, the scans stayed with the Node server then, with Rescan, Reindex and the music
+  folders' routes. `/api/status` (what the setup screen and the pages poll) is the C# server's: the
+  library's part from it (the scan's state, the music folders, the count, whether the data folder is
+  a Docker volume), the rooms' part as the Node server says it with its state. Clean up (Settings →
+  Library Scanner): what could go counted by the C# server — the albums whose folder has gone from
+  the disk, and each service's — and the music folders' kind made there (the albums removed with
+  their edits, hearts and Listen later, the Node server's copy read again; a service's kind the C#
+  server's since v0.8.44); each refusal in the same words. The wall display's content: the zone's
+  track asked of the Node server, the artist's photos (MusicBrainz for the act, FanArt.tv for the
+  pictures, kept a week), the album's write-up, the artists' stories and more by the artist from the
+  C# server. `server/Mandarin.Server/HousekeepingRoutes.cs` (new), `Scans.cs`, `ScanRoutes.cs`,
+  `LibraryChanges.cs`, `Services/Rows.cs`, `WriteUpRoutes.cs`, `Jobs.cs`. The Node server's part is
+  the hand-over: the scans handed over whatever the tag reader, whether the program is trusted said
+  with it, its scanner at the C# server's ask (`index.js` `/internal/scan`), a zone's track
+  (`/internal/playback/now`), the rooms' part with its state, and Clean up's word
+  (`lib/server/api-library.js`). Tests: `test/housekeeping-csharp.test.js` (new): `/api/status`, the
+  counts, Clean up and the display's content held to the Node server's own answers; a folder gone
+  from the disk counted and cleaned; with `TAG_READER=node`, the scans started by the C# server and
+  made by the Node server's scanner, the library the same as its own scan makes; `test/front.test.js`
+  and `test/scans-csharp.test.js` brought up to date.
+- **A speaker's cover** (part 5, in part). A Sonos speaker fetches a cover by its own address, with
+  no sign-in and no signature; the Node server's gate knows its speakers and lets them through. The
+  C# server now does the same: the speakers' addresses come with the Node server's state, and a
+  cover one asks for is sent by the C# server like any other. `server/Mandarin.Server/Images.cs`;
+  `index.js` (`speakers` with the state). Tests: `test/covers-csharp.test.js`, a cover asked for
+  from a speaker's address and from a stranger's, each answered as the Node server answers it. The
+  pictures in another colour space than sRGB (CMYK, or carrying a profile of their own) still go to
+  the Node server to draw, as before: drawing them the same needs the colour maths libvips does, and
+  how to have that in the C# server is put to the owner (`docs/specs/csharp-migration.md`, part 5).
+- The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
+
 ## v0.8.47
 Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
 C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an

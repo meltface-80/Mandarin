@@ -27,8 +27,9 @@
 // program started the Node server itself (an install); otherwise (the tests'
 // own Node server behind it) passed on as before.
 //
-// The processor split is still decided by the Node server (lib/cpu.js) until
-// playback moves; /api/cpu answers with it as last sent (Cpu.cs Follow).
+// The processor split: decided here once the Node server has handed it over
+// (v0.8.48, Cpu.cs), /api/cpu answering with the decision; before that, with
+// the Node server's as last sent (Cpu.cs Follow).
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -67,11 +68,15 @@ internal static partial class Library
     /* The power and processor routes: true when answered here. */
     private static async Task<bool> PowerRoute(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         var m = ctx.Request.Method;
         var p = ctx.Request.Path.Value ?? "";
         try
         {
+            // The split decided here (v0.8.48): answered here wherever it is, the
+            // Node server started here or not (the tests' isn't); the rest only
+            // where this server runs the Node server, as an install does.
+            if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/cpu" && Cpu.Deciding && Jobs.Holds("cpu")) return await Send(ctx, Cpu.Plan());
+            if (!Front.RunsNode) return false;
             return (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/system/power" ? await SystemPower(ctx)
                 : (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/cpu" ? await CpuPlan(ctx)
                 : HttpMethods.IsPost(m) && p == "/api/system/restart" ? await SystemRestart(ctx)
@@ -148,9 +153,10 @@ internal static partial class Library
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or TimeoutException) { return false; }
     }
 
-    /* GET /api/cpu: the split as the Node server decides it, asked afresh. */
+    /* GET /api/cpu: the split as decided here (v0.8.48), or as the Node server decides it, asked afresh. */
     private static async Task<bool> CpuPlan(HttpContext ctx)
     {
+        if (Cpu.Deciding && Jobs.Holds("cpu")) return await Send(ctx, Cpu.Plan());
         await Ask();
         return Cpu.Last is { } plan ? await Send(ctx, plan.DeepClone()) : false;
     }

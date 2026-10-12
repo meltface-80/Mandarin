@@ -11,7 +11,8 @@
 //   GET  /api/music-mount             whether the music is there
 //   GET  /api/search-status           how far the library has been read
 //
-// Clean up stays the Node server's: Qobuz's and Tidal's albums are its.
+// Clean up: a service's kind in ServiceRoutes.cs (v0.8.44), the music folders'
+// kind and the counts in HousekeepingRoutes.cs (v0.8.48), with /api/status.
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Scan;

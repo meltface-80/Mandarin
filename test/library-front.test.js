@@ -446,6 +446,51 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
     };
     await samePost("/api/download/albums", { ids: ids.concat([999999, String(ids[0]), null, 1.5, "x", true]) }, "the phone's albums: ");
     await samePost("/api/download/albums", {}, "the phone's albums: ");
+    // What was left to the Node server until v0.8.48 (stage 5 part 3): a streamed album's list (its
+    // tracks planned as FLAC; each then refused), a file gone from the disk, and what Express refused
+    // with its own error page (ids or plays that can't be read as a list).
+    {
+      const now = Date.now();
+      raw.prepare(`INSERT INTO albums(key, title, artist, dir, track_count, added_at, updated_at) VALUES('qobuz:77', 'Q', 'QA', 'qobuz://album/77', 2, ?, ?)`).run(now, now);
+      const qal = raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:77'").get().id;
+      for (const [n, rate] of [[1, 44100], [2, 96000]]) raw.prepare(`INSERT INTO tracks(album_id, path, mtime, size, title, track_no, duration, sample_rate, bits, channels) VALUES(?, ?, 0, 0, ?, ?, 181.5, ?, 24, 2)`).run(qal, "qobuz://track/77" + n, "Q" + n, n, rate);
+      ctx.library.reload();
+      for (const q of ["", "&quality=opus"]) await same("/api/download/album?offset=" + qal + q, "a streamed album's download list: ");
+      const qt = raw.prepare("SELECT id FROM tracks WHERE path = 'qobuz://track/771'").get().id;
+      const both = async (p, init = {}) => Promise.all([B, N].map(async base => {
+        const r = await fetch(base + p, Object.assign({ headers: H }, init));
+        return { status: r.status, by: r.headers.get("x-mandarin-answered") || "Node", type: r.headers.get("content-type"), ext: r.headers.get("x-download-ext"),
+          cache: r.headers.get("cache-control"), csp: r.headers.get("content-security-policy"), body: await r.text() };
+      }));
+      let [c, n] = await both("/api/download/t" + qt);
+      assert.deepEqual([c.status, c.by, JSON.parse(c.body)], [403, "C#", { error: "Streamed tracks can't be downloaded" }]);
+      assert.deepEqual([c.status, c.body], [n.status, n.body], "a streamed track refused, as the Node server refuses it");
+      // A file gone: an MP3 the phone plays as it is, named in the library but not on the disk.
+      const hunter = rowOf("Hunter");
+      raw.prepare(`INSERT INTO tracks(album_id, path, mtime, size, title, track_no, duration, codec, sample_rate, bits, channels) VALUES(?, ?, 0, 0, 'Gone', 9, 1, 'MPEG 1 Layer 3', 44100, 16, 2)`)
+        .run(hunter.album_id, path.join(lib.music, "Bjork", "Homogenic", "09 Gone.mp3"));
+      const gone = raw.prepare("SELECT id FROM tracks WHERE title = 'Gone'").get().id;
+      [c, n] = await both("/api/download/t" + gone + "?quality=original");
+      assert.equal(c.by, "C#");
+      for (const k of ["status", "type", "ext", "cache", "body"]) assert.deepEqual(c[k], n[k], "a file gone: " + k);
+      assert.equal(c.status, 404);
+      raw.prepare("DELETE FROM tracks WHERE id = ?").run(gone);
+      ctx.library.reload();
+      // Express's 500, as in the image (NODE_ENV=production: no stack in the page).
+      const page = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Internal Server Error</pre>\n</body>\n</html>\n";
+      for (const [p, body] of [["/api/download/albums", { ids: "12" }], ["/api/download/albums", { ids: { 0: 1 } }], ["/api/phone/plays", { plays: { track_id: abbey.id } }], ["/api/phone/plays", { plays: true }]]) {
+        [c, n] = await both(p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) });
+        assert.deepEqual([c.status, c.by, c.type, c.csp, c.body], [500, "C#", "text/html; charset=utf-8", "default-src 'none'", page], p + " " + JSON.stringify(body));
+        assert.deepEqual([n.status, n.type, n.csp], [500, "text/html; charset=utf-8", "default-src 'none'"], "the Node server's: " + p);
+      }
+      // Text for plays is read letter by letter there: none of them a play.
+      [c, n] = await both("/api/phone/plays", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ plays: "abc" }) });
+      assert.deepEqual([c.status, c.by, JSON.parse(c.body)], [200, "C#", { ok: true, recorded: 0 }]);
+      assert.deepEqual([n.status, JSON.parse(n.body)], [200, { ok: true, recorded: 0 }]);
+      raw.prepare("DELETE FROM tracks WHERE album_id = ?").run(qal);
+      raw.prepare("DELETE FROM albums WHERE id = ?").run(qal);
+      ctx.library.reload();
+    }
     // Plays made with no server: written by C# as the Node server writes them (its corrected title too).
     const before = raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
     const at = Date.now() - 3600000;
@@ -468,8 +513,10 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
       await x.arrayBuffer();
     }
 
-    // What hasn't moved is still passed on.
+    // The status is the C# server's since v0.8.48 (HousekeepingRoutes.cs); what hasn't moved (playback's zones) is still passed on.
     const st = await fetch(B + "/api/status", { headers: H });
-    assert.equal(st.headers.get("x-mandarin-answered"), null, "the status: still the Node server's");
+    assert.equal(st.headers.get("x-mandarin-answered"), "C#", "the status: the C# server's");
+    const zs = await fetch(B + "/api/zones", { headers: H });
+    assert.equal(zs.headers.get("x-mandarin-answered"), null, "the zones: still the Node server's");
   } finally { await srv.stop(); }
 });
