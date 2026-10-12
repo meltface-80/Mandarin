@@ -275,7 +275,8 @@ internal static class Auth
     {
         var p = ctx.Request.Path.Value ?? "/";
         // The Node server's loopback-only routes (a Tidal stream's pieces for
-        // ffmpeg): it fetches them from its own port, never through here.
+        // its own ffmpeg, where it still streams Tidal): it fetches them from
+        // its own port, never through here.
         if (p.StartsWith("/internal/", StringComparison.Ordinal)) { ctx.Response.StatusCode = 404; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return; }
         // Streams and covers: the Node server's to decide (signatures, the
         // speakers). A renderer's NOTIFY (UPnP eventing): a device can't sign

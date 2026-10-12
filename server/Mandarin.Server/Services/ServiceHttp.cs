@@ -20,13 +20,6 @@ internal sealed class ServiceError(string message, int status) : Exception(messa
     public int Status { get; } = status;
 }
 
-/*
- * The Node server must answer this request itself: Tidal's access token wants
- * refreshing, and only the Node server refreshes it (until stage 4.4 moves the
- * sign-in), so that two servers never hold different tokens.
- */
-internal sealed class ToNode(string why) : Exception(why);
-
 internal static class ServiceHttp
 {
     private static readonly HttpClient Http = new(new SocketsHttpHandler
@@ -119,6 +112,45 @@ internal static class ServiceHttp
         catch (Exception e) when (e is HttpRequestException or UriFormatException or InvalidOperationException or IOException or ArgumentException)
         {
             throw new JsError("fetch failed");
+        }
+    }
+
+    /*
+     * fetch(url, { signal: AbortSignal.timeout(ms) }) piped on (a piece of a
+     * Tidal DASH stream, v0.8.47): its body written to [into] as it comes. Not
+     * found or refused, "segment HTTP <status>", as index.js's /internal/dash
+     * said it; fetch's own failures in its words.
+     */
+    public static async Task CopyTo(string url, Stream into, int timeoutMs)
+    {
+        try { Identify.Lookups.Allowed(url); }
+        catch (Identify.LookupError e) { throw new JsError(e.Message); }
+        using var cts = new CancellationTokenSource(timeoutMs);
+        HttpResponseMessage res;
+        try { res = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token); }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested) { throw new JsError("The operation was aborted due to timeout"); }
+        catch (Exception e) when (e is HttpRequestException or UriFormatException or InvalidOperationException or IOException or ArgumentException) { throw new JsError("fetch failed"); }
+        using (res)
+        {
+            if (!res.IsSuccessStatusCode) throw new JsError("segment HTTP " + (int)res.StatusCode);
+            Stream body;
+            try { body = await res.Content.ReadAsStreamAsync(cts.Token); }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested) { throw new JsError("The operation was aborted due to timeout"); }
+            catch (Exception e) when (e is HttpRequestException or IOException) { throw new JsError("fetch failed"); }
+            await using (body)
+            {
+                var buf = new byte[64 * 1024];
+                while (true)
+                {
+                    int n;
+                    try { n = await body.ReadAsync(buf, cts.Token); }
+                    catch (OperationCanceledException) when (cts.IsCancellationRequested) { throw new JsError("The operation was aborted due to timeout"); }
+                    catch (Exception e) when (e is HttpRequestException or IOException) { throw new JsError("terminated"); }
+                    if (n == 0) break;
+                    // ffmpeg gone (it stopped reading): the caller's to see.
+                    await into.WriteAsync(buf.AsMemory(0, n));
+                }
+            }
         }
     }
 

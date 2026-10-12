@@ -134,11 +134,11 @@ function createServer(overrides = {}) {
   // Behind Mandarin's C# server (v0.8.11): it makes the conversions of the
   // music folders' own files; this one hands it its "make these next". Called
   // with where it listens (MANDARIN_FRONT_URL, or the tests'). With a zone's
-  // DSP, a ReplayGain and 32-bit output too since v0.8.40 (stage 3); only the
-  // services' tracks are still made here.
+  // DSP, a ReplayGain and 32-bit output too since v0.8.40 (stage 3); Qobuz's
+  // and Tidal's tracks too since v0.8.47, once the services are handed over.
   const useFront = (url) => {
     transcoder.delegate = !url ? null : {
-      owns: (t, p) => !SERVICES.isStreamed(t.path) && !!p.transcode && !p.copy &&
+      owns: (t, p) => (!SERVICES.isStreamed(t.path) || ctx.servicesHanded()) && !!p.transcode && !p.copy &&
         (p.bits === 16 || p.bits === 24 || (p.bits === 32 && FF.info().flac32)) && p.rate >= 8000 && p.rate <= 768000,
       prefetch: (items) => {
         fetch(url + "/internal/transcode/prefetch", {
@@ -215,6 +215,10 @@ function createServer(overrides = {}) {
     // over (/internal/front/runs), or about to be — started by it, which hasn't
     // asked yet (MANDARIN_FRONT_RUNS, for two minutes at most).
     madeByFront: (job) => !!(ctx.frontRuns && ctx.frontRuns.has(job)) || !!(ctx.frontRunsWait && ctx.frontRunsAsked && ctx.frontRunsAsked.has(job)),
+    // Qobuz and Tidal (v0.8.47) once the C# server has taken them, not while
+    // it is still to: a stream, a refresh or a play report asked before then
+    // is made here, as before, rather than left to a server not yet ready.
+    servicesHanded: () => !!(ctx.frontRuns && ctx.frontRuns.has("services")),
     // The C# server told something (v0.8.20: a library scan ended): on 127.0.0.1, with the key.
     tellFront: (p) => {
       if (!ctx.frontJobsUrl) return;
@@ -239,6 +243,14 @@ function createServer(overrides = {}) {
   ctx.tidal = new (require("./lib/tidal").Tidal)({ db, library, dataDir: config.dataDir, log, baseUrl: config.tidalBaseUrl || undefined,
     authUrl: config.tidalAuthUrl || undefined, imagesUrl: config.tidalImagesUrl || undefined, localBase: () => ctx.localBase(), afterChange });
   ctx.services = { qobuz: ctx.qobuz, tidal: ctx.tidal, of: p => { const id = SERVICES.ofPath(p); return id ? ctx.services[id] : null; } };
+  // Tidal's token: refreshed by the C# server alone once the services are
+  // handed over (v0.8.47), so two never hold different ones. Never asked of
+  // this one then; refused here should anything ask.
+  {
+    const refresh = ctx.tidal.api.refresh.bind(ctx.tidal.api);
+    ctx.tidal.api.refresh = () => ctx.servicesHanded()
+      ? Promise.reject(Object.assign(new Error("Tidal's token is the C# server's to refresh"), { status: 401 })) : refresh();
+  }
   // The transcoder asks the service where a streamed track's audio is, when
   // a device comes to fetch one (or the next is made ready behind it).
   transcoder.resolve = {
@@ -380,12 +392,16 @@ function createServer(overrides = {}) {
   // browser (its daily timer below does nothing here); from v0.8.45 their
   // import, the favourites' watch and the service playlists (the timers below
   // do nothing here, and an import this server would start is the C#
-  // server's to make). Each is
+  // server's to make); from v0.8.47 the services themselves: their accounts
+  // (signing in and out, Tidal's token, refused here from then on), their
+  // streams (made by the C# server, handed over like any conversion) and
+  // playing an album from their browser (the C# server writes its rows, then
+  // asks /internal/playback/play here). Each is
   // stopped here for good — the album being looked at finished first — and
   // the C# server is told which, and how this one was set up. This server's
   // own requests to MusicBrainz wait their turn on the C# server's timer from
   // now on.
-  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import"];
+  const FRONT_JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services"];
   // The library scans go to the C# server only where this server's own would
   // already be its program (v0.8.36, the owner's decision): TAG_READER=csharp,
   // or the tag check passed for the two readers (not TAG_READER=node). Else
@@ -416,6 +432,12 @@ function createServer(overrides = {}) {
     if (jobs.has("taste")) passes.push(features.handOver());
     // A service's import or watch running here (v0.8.45): finished first.
     if (jobs.has("import")) for (const id of SERVICES.IDS) for (const p of [ctx.services[id].importing, ctx.services[id].watching]) if (p) passes.push(p.catch(() => {}));
+    // The services (v0.8.47): a Tidal sign-in under way here let go, a refresh of its token finished first, a Qobuz play reported over.
+    if (jobs.has("services")) {
+      ctx.tidal.cancelSignIn();
+      if (ctx.tidal.api.refreshing) passes.push(ctx.tidal.api.refreshing.catch(() => {}));
+      passes.push(ctx.qobuz.stop().catch(() => {}));
+    }
     if (passes.length) {
       let t;
       await Promise.race([Promise.all(passes).catch(() => {}), new Promise(r => { t = setTimeout(r, 20000); })]);
@@ -454,6 +476,8 @@ function createServer(overrides = {}) {
         music_dir: config.musicDir, mass_removal: scanner.massRemoval, scan_hours: config.scanHours,
         // Qobuz's and Tidal's catalogue (v0.8.39): where each is asked.
         qobuz_url: config.qobuzBaseUrl || null, tidal_url: config.tidalBaseUrl || null, tidal_images_url: config.tidalImagesUrl || null,
+        // Tidal's sign-in (v0.8.47): where it is asked.
+        tidal_auth_url: config.tidalAuthUrl || null,
         // Their import and the favourites' watch (v0.8.45): when the first import is made, and how often the watch looks.
         service_sync_delay_ms: config.qobuzSyncDelayMs == null ? null : config.qobuzSyncDelayMs, service_watch_ms: config.serviceWatchMs || null
       }
@@ -475,16 +499,18 @@ function createServer(overrides = {}) {
     CPU.dsp(!!(req.body && req.body.on));
     res.json({ cpu: CPU.plan() });
   });
-  // A step of a service's import or watch the C# server leaves here (v0.8.45,
-  // Services/Import.cs): Tidal's token due, which only this server refreshes
-  // until it moves too. Made by the service's own import or watch, answered
-  // with what it made.
-  app.post("/internal/services/step", express.json(), async (req, res) => {
+  // A Qobuz or Tidal album the C# server wrote the rows of, played here
+  // (v0.8.47, ServiceRoutes.cs): what api-service.js's play does once the
+  // album is in the library, answered as that route answers.
+  app.post("/internal/playback/play", express.json(), async (req, res) => {
     if (!fromFront(req)) return res.status(403).end();
-    const b = req.body || {}, s = SERVICES.IDS.includes(b.service) ? ctx.services[b.service] : null;
-    if (!s) return res.status(400).json({ error: "service required" });
-    try { res.json({ ok: true, result: await (b.step === "watch" ? s.watch() : s.importLibrary()) }); }
-    catch (e) { res.status(e.status || 500).json({ error: e.message || String(e) }); }
+    const b = req.body || {};
+    try { res.json(await require("./lib/server/api-service").play(ctx, b.zone_or_output_id, b.offset, b.kind, b.track)); }
+    catch (e) {
+      const status = e.status || 500, out = { error: e.message || String(e) };
+      if (status === 401) out.connected = false;
+      res.status(status).json(out);
+    }
   });
   // A change the C# server made to the library (v0.8.16): read again here.
   app.post("/internal/library/changed", express.json(), (req, res) => {
@@ -568,8 +594,13 @@ function createServer(overrides = {}) {
     }
     // A streamed track fetched by a device is a play (reported, on Qobuz) —
     // and nothing of a service plays without the account, cached or not.
+    // The C# server's to report once the services are (v0.8.47): a speaker
+    // asking here by its own address, told to it; the file made there too.
     if (svc && !svc.connected()) return res.status(403).end();
-    if (svc && req.method === "GET") svc.played(t, p);
+    if (svc && req.method === "GET") {
+      if (ctx.servicesHanded()) ctx.tellFront(`/internal/services/played?track=${t.id}&rate=${encodeURIComponent(p.rate || "")}`);
+      else svc.played(t, p);
+    }
     const job = transcoder.start(Object.assign({}, t, svc ? { mtime: svc.tier() } : {}), p);
     if (job.done && !job.failed) {
       res.set("Content-Type", p.mime);

@@ -19,7 +19,9 @@
 // { services }), which reads its library again as each service's own
 // afterChange does there (index.js); this server's copy follows its version.
 // The import, the favourites' watch and the service playlists write the same
-// rows from v0.8.45 (stage 4.3, Import.cs); playing stays the Node server's.
+// rows from v0.8.45 (stage 4.3, Import.cs), and playing an album from the
+// browser from v0.8.47 (ServiceRoutes.cs), its tracks then played by the Node
+// server's playback (stage 6).
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -82,7 +84,7 @@ internal abstract partial class Catalogue
         _ => throw new JsError("SQLite3 can only bind numbers, strings, bigints, buffers, and null")
     };
 
-    private static int Run(SqliteConnection c, string sql, params (string Name, object? Value)[] args)
+    protected static int Run(SqliteConnection c, string sql, params (string Name, object? Value)[] args)
     {
         using var cmd = c.CreateCommand();
         cmd.CommandText = sql;

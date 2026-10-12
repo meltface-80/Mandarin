@@ -12,12 +12,14 @@
 // This side makes the conversions of the music folders' own files: since
 // v0.8.40 (stage 3) with a ReplayGain, a zone's DSP and 32-bit output too, the
 // name and ffmpeg's arguments as lib/stream.js writes them
-// (Playback/StreamPlans.cs). The Node server still makes a track fetched from
-// Qobuz or Tidal (a service's track has its own id, so their names never
-// meet). It hands its "make these next" for the rest to this side
-// (POST /internal/transcode/prefetch), so one file is only ever made by one.
-// While a conversion with DSP runs, the Node server is told (it gives
-// playback its second core, lib/cpu.js) and its split is kept to at once.
+// (Playback/StreamPlans.cs). Since v0.8.47 (stage 4.5) a track fetched from
+// Qobuz or Tidal too: the service asked where its audio is first
+// (Services/ServiceStreams.cs), then copied as it comes or converted like a
+// file, Tidal's DASH pieces fed to ffmpeg one after another. The Node server
+// hands its "make these next" to this side (POST /internal/transcode/prefetch),
+// so one file is only ever made by one. While a conversion with DSP runs, the
+// Node server is told (it gives playback its second core, lib/cpu.js) and its
+// split is kept to at once.
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -38,11 +40,14 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public double Gain { get; init; }
     public JsObj? Dsp { get; init; }
     public double InRate { get; init; }
+    // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
+    public bool Copy { get; init; }
 
     /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
     public JsObj ToJs()
     {
         var o = Jv.Obj(("transcode", true), ("rate", (double)Rate), ("bits", (double)Bits), ("reason", Reason));
+        if (Copy) o["copy"] = true;
         if (Hq) o["hq"] = true;
         if (Exact) o["exact"] = true;
         if (Dsp != null) { o["dsp"] = Dsp; o["inRate"] = InRate; }
@@ -198,41 +203,64 @@ internal static partial class Transcoder
             job.Finished.TrySetResult();
             Prune();
         }
-        try
+        void Begin(string src, ConvPlan plan, List<string>? pieces)
         {
-            var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
-            foreach (var a in Args(t.Path, p, job.Part)) psi.ArgumentList.Add(a);
-            // On playback's cores (Cpu.cs): made ahead, not waited for, just below what a device is waiting for.
-            var kind = background ? CpuKind.Ahead : CpuKind.Playback;
-            Cpu.Place(psi, kind);
-            var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
-            proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
-            // DSP: playback has a second core while it runs, and for a while after (lib/cpu.js, the Node server's to decide).
-            if (p.Dsp != null) { dspOn = true; DspStarted(); }
-            proc.Start();
-            Cpu.Adopt(proc, kind);
-            proc.StandardInput.Close();
-            proc.BeginErrorReadLine();
-            Front.Log($"[stream] {Path.GetFileName(t.Path)}: {p.Reason} → FLAC {p.Bits}/{(p.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz");
-            // A reader waiting for more is woken as the .part grows.
+            try
+            {
+                var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
+                foreach (var a in Args(src, plan, job.Part)) psi.ArgumentList.Add(a);
+                // On playback's cores (Cpu.cs): made ahead, not waited for, just below what a device is waiting for.
+                var kind = background ? CpuKind.Ahead : CpuKind.Playback;
+                Cpu.Place(psi, kind);
+                var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+                proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
+                proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
+                // DSP: playback has a second core while it runs, and for a while after (lib/cpu.js, the Node server's to decide).
+                if (plan.Dsp != null) { dspOn = true; DspStarted(); }
+                proc.Start();
+                Cpu.Adopt(proc, kind);
+                // Tidal's DASH: its pieces written in, one after another, as ffmpeg reads them.
+                if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
+                else proc.StandardInput.Close();
+                proc.BeginErrorReadLine();
+                Front.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                // A reader waiting for more is woken as the .part grows.
+                _ = Task.Run(async () =>
+                {
+                    long last = -1;
+                    while (!job.Done)
+                    {
+                        await Task.Delay(100);
+                        long len = 0;
+                        try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
+                        if (len != last) { last = len; job.Wake(); }
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                err.Append(e.Message);
+                Finish(-1);
+            }
+        }
+        // A track whose audio has to be asked for first (Qobuz's, Tidal's): the
+        // service says where it is, and whether it can be copied as it is.
+        if (Services.Catalogue.IsStreamed(t.Path))
+        {
             _ = Task.Run(async () =>
             {
-                long last = -1;
-                while (!job.Done)
+                (string Src, ConvPlan Plan, List<string>? Pieces) from;
+                try { from = await Services.Catalogue.Source(t, p); }
+                catch (Exception e)
                 {
-                    await Task.Delay(100);
-                    long len = 0;
-                    try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
-                    if (len != last) { last = len; job.Wake(); }
+                    err.Append(Services.Catalogue.Said(e));
+                    Finish(-1);
+                    return;
                 }
+                Begin(from.Src, from.Plan, from.Pieces);
             });
         }
-        catch (Exception e)
-        {
-            err.Append(e.Message);
-            Finish(-1);
-        }
+        else Begin(t.Path, p, null);
         return job;
     }
 
@@ -412,8 +440,10 @@ internal static partial class Transcoder
         var id = Num(t["id"]);
         var rate = Num(p["rate"]);
         var bits = Num(p["bits"]);
-        if (path.Length == 0 || path.Contains("://", StringComparison.Ordinal) || double.IsNaN(id) || !Truthy(p["transcode"])) return null;
-        if (Truthy(p["copy"])) return null;   // a service's, as it comes: the Node server's
+        // A Qobuz or Tidal track (v0.8.47): made here once its service is this server's.
+        var streamed = Services.Catalogue.Of(path) != null;
+        if (path.Length == 0 || (path.Contains("://", StringComparison.Ordinal) && !streamed) || double.IsNaN(id) || !Truthy(p["transcode"])) return null;
+        if (Truthy(p["copy"])) return null;   // copied as it comes is decided as it is made, never asked for
         if (!(bits is 16 or 24 || (bits == 32 && Flac32)) || !(rate >= 8000 && rate <= 768000)) return null;
         // A ReplayGain and a zone's DSP (v0.8.40), as the Node server planned them: its fingerprint names the file.
         var gain = Truthy(p["gain"]) ? Num(p["gain"]) : 0;

@@ -5,6 +5,87 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.47
+Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
+C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
+album from their browser and their streams join the catalogue, the rows and the import moved before.
+With the C# server in front and the services handed over, the Node server doesn't ask Qobuz or Tidal
+for anything, refresh a token or make a service's stream: for a service album it plays the library's
+tracks, as for an album of your own. (Before the hand-over, in its first seconds, it makes them as it
+always did, so nothing a speaker asks for meanwhile goes unanswered.) Each is held to the Node server's own answer, write and bytes.
+
+- **Signing in** (Settings → Services): Qobuz with your username and password, asked of Qobuz once,
+  the token kept and never the password; Tidal with a link and a code, Tidal asked every few seconds
+  until you have signed in on tidal.com, the code expires or you let it go, then your account, name
+  and subscription kept. Turned down in the services' own words, as before. Signed in with the
+  import switched on, your favourites are brought in at once, by the C# server.
+- **Signing out** and Disconnect: a Qobuz play under way reported over first, the account let go.
+- **Settings → Services signed out** (`GET` and `POST /api/settings/<s>`), a Tidal sign-in under way
+  among it.
+- **Tidal's token** is refreshed by the C# server alone: when it is due within the minute, before the
+  request; when Tidal turns it down, then the request asked once more; one refresh at a time, the
+  others waiting for it; the refresh token kept when Tidal sends none. A refresh Tidal refuses is
+  said as before. An import or a favourites' watch is now made whole by the C# server however the
+  token stands (v0.8.45 left a step to the Node server for it).
+- **Playing an album from the browser** (`POST /api/qobuz/play`, `/api/tidal/play`): its rows
+  written by the C# server (asked of the service each time, as before), then its tracks played by the
+  Node server's playback, the album or one track of it, now, next or at the end.
+- **Their streams**: a Qobuz or Tidal track a speaker, a streamer or the phone fetches is fetched,
+  copied or converted by the C# server, into the same transcode folder, under the same name, with the
+  same ffmpeg arguments: as it comes where the service already sends what was planned (or less, for
+  Sonos: never upsampled), converted like a file otherwise (with a ReplayGain, a zone's DSP, 32 bits
+  where taken). Qobuz: one signed ask per track for the format the device takes and the account
+  allows, and every play reported (Start as a device starts fetching, End when the next starts, it
+  has played through, or you sign out). Tidal: its playbackinfo, CD from one address, hi-res from
+  MPEG-DASH, its pieces fetched one after another and fed straight to ffmpeg (no address of the
+  server's in between); an account Tidal answers a hi-res ask with CD for is asked for CD from then
+  on, until a setting is written; and the rows corrected to what Tidal really streams. The next
+  tracks made ready behind the one playing are made by the C# server too. Signed out, nothing of a
+  service streams, made already or not.
+- **The search from Home**: Qobuz's and Tidal's albums and artists beside the library's
+  (`GET /api/search/external`), asked by the C# server.
+- `server/Mandarin.Server/Services/Accounts.cs` and `ServiceStreams.cs` (new), `TidalApi.cs`,
+  `QobuzApi.cs`, `Catalogue.cs`, `Import.cs`, `Rows.cs`, `ServiceHttp.cs`, `ServiceRoutes.cs`,
+  `Streams.cs`, `Transcoder.cs`, `WriteUpRoutes.cs`, `LibraryRoutes.cs`, `LibraryChanges.cs`, `Jobs.cs`,
+  `Auth.cs`. Gone: the hand-backs that existed only because the Node server owned Tidal's token
+  (`ToNode`, `TidalApi.GoodFor`, `Import`'s step left to the Node server). The Node server's part is
+  the hand-over only:
+  - `index.js`: "services" added to the work it hands over; once it is, a service's track handed to
+    the C# server to make like any conversion, a speaker fetching one from the Node server itself
+    told to it (`/internal/services/played`) rather than reported to Qobuz, and Tidal's token refused
+    a refresh there; at the hand-over a Tidal sign-in under way let go, a refresh under way finished
+    first and a Qobuz play reported over; where Tidal's sign-in is asked handed over with the rest;
+    `POST /internal/services/step` removed; and `POST /internal/playback/play`, a service album the
+    C# server wrote played here, as `api-service.js`'s play does once the album is in the library.
+  - `lib/server/api-service.js`: that part of its play route made one function (`play`), so both
+    run the same lines.
+- **Tests:** `test/services-signin-csharp.test.js` (new), through the C# server, each held to the
+  Node server's own answer, write or file for the same request from the same start: Settings →
+  Services signed out and its switches word for word; Qobuz's sign-in, refused (each way) and made
+  (the answer, the account kept, never the password); Tidal's sign-in begun, asked again, approved
+  (the account, its user and subscription), let go, and expired by the clock and by Tidal's word;
+  signing out and Disconnect; Tidal's token due for a request, an import and a watch, three asking at
+  once and one refresh, and one Tidal refuses (a request, a favourite, Update library now) in the
+  same words; playing an album, a track of it now and at the end, and refused, with the same rows,
+  the same answer and the same queue on a stand-in Sonos room; the streams, each file the very one
+  the Node server makes and the answers' headers the same (Qobuz's CD as it comes, 24/96 to Sonos at
+  24/48, to a streamer as it comes and promised 192 kHz, with a ReplayGain; Tidal's CD, its hi-res from
+  DASH, the Node server's loopback address never asked; the CD an account without hi-res gets, the
+  rows learnt the same); Qobuz's play reports, the same events; a speaker asking the Node server
+  itself; and, through it all, the Node server asking Qobuz and Tidal for nothing and refreshing
+  nothing. Adjusted, as this version changes what they pinned: the token cases in
+  `test/services-csharp.test.js`, `test/services-rows-csharp.test.js` and
+  `test/services-import-csharp.test.js` (refreshed by the C# server, the Node server never asked; its
+  step's route gone; Settings → Services signed out and signing in now the C# server's), and
+  `test/conversions-csharp.test.js` (a service's track handed over too). `test/fake-tidal.js` can
+  make a sign-in's code short-lived and hold a refresh back. `test/front.test.js` pins which server
+  answers what (its v0.8.47 test and header line; the v0.8.21, v0.8.39 and v0.8.45 tests moved on to
+  C# where this version moved them; "services" in the v0.8.19 test's job list).
+- Last.fm: the quarter of a second between two asks is counted from the answer, not the ask, so a
+  first ask that opens its connection slowly can't reach Last.fm closer than that to the next (a test
+  measuring it at Last.fm's end saw 235 ms on a busy machine).
+- The Android app for this version is 0.8.47 (version code 247). Nothing in it changed.
+
 ## v0.8.46
 **Now playing follows the room again after the server has started again.** Reported on the Android
 app: left for another app, back, a track further down the queue played; it played, but Now playing

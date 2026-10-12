@@ -18,11 +18,13 @@
  *     playlist gone there;
  *   - the watch: an album favourited on the service brought in, one removed
  *     let go; the page's POST /api/services/watch, and its 15 seconds;
- *   - Tidal's token due, or refused partway: left to the Node server, which
- *     refreshes it, the step made once, and the same rows in the end;
- *   - an import the Node server would have started itself (a sign-in, a
- *     Rescan) made by the C# server, and the timers: the first import after
- *     the hand-over and the watch, the Node server's own idle.
+ *   - Tidal's token due, or refused partway: refreshed by the C# server
+ *     (v0.8.47), the import made here whole, the same rows as the Node
+ *     server's own run makes; refused even so, the album it was asked for
+ *     failed, what was brought in before told; the Node server never asked;
+ *   - an import after a Rescan (the Node server asks) or a sign-in (the C#
+ *     server's own since v0.8.47) made by the C# server, and the timers: the
+ *     first import after the hand-over and the watch, the Node server's own idle.
  *
  * Through the C# server only (MANDARIN_FRONT=1): test/qobuz.test.js and
  * test/tidal.test.js are the services' own, both ways.
@@ -134,8 +136,17 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     s.importLibrary = (...a) => { made.import++; return imp(...a); };
     s.watch = (...a) => { made.watch++; return watch(...a); };
   }
-  // The Node server's own for one request: the import, its to make for that moment.
-  const own = async (fn) => { ctx.frontRuns.delete("import"); try { return await fn(); } finally { ctx.frontRuns.add("import"); } };
+  // The Node server's own for one request: the import (and the services, so it may refresh Tidal's token), its to make for that moment.
+  const own = async (fn) => {
+    ctx.frontRuns.delete("import"); ctx.frontRuns.delete("services");
+    try { return await fn(); } finally { ctx.frontRuns.add("import"); ctx.frontRuns.add("services"); }
+  };
+  // The Node server's own refresh of Tidal's token, counted: asked only for its own run.
+  const refreshed = { node: 0 };
+  {
+    const r = ctx.tidal.api.refresh;
+    ctx.tidal.api.refresh = (...a) => { refreshed.node++; return r(...a); };
+  }
 
   await until(() => ctx.frontRuns, 30000, "the work handed over");
   assert.ok(ctx.frontRuns.has("import"), "the import handed over");
@@ -215,17 +226,19 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
   };
   const importOn = (s, on) => { ctx.db.setSetting(s + "Settings", { quality: s === "qobuz" ? "hires192" : "hires", import: on }); ctx.library.reload(); };
 
-  await t.test("signed out: Settings → Services the Node server's", async () => {
+  // Signed out, Settings → Services is the C# server's since v0.8.47 (test/services-signin-csharp.test.js holds it word for word).
+  await t.test("signed out: Settings → Services by C#, as the Node server's", async () => {
     for (const s of ["qobuz", "tidal"]) {
       const r = await get("settings/" + s);
-      assert.deepEqual([r.status, r.by, r.j.connected], [200, null, false]);
-      assert.deepEqual([(await post("settings/" + s, { import: true })).by, (await post("settings/" + s, { import: false })).by], [null, null]);
+      assert.deepEqual([r.status, r.by, r.j.connected], [200, "C#", false]);
+      assert.equal(r.text, (await call(NODE, "settings/" + s)).text);
+      assert.deepEqual([(await post("settings/" + s, { import: true })).by, (await post("settings/" + s, { import: false })).by], ["C#", "C#"]);
       const n = await post(`settings/${s}/import`);
       assert.deepEqual([n.status, n.by, n.j], [401, "C#", { error: "Not signed in to " + (s === "qobuz" ? "Qobuz" : "Tidal"), connected: false }]);
     }
   });
 
-  // Signed in on the Node server, as from Settings → Services (the import's switch off: nothing brought in).
+  // Signed in, as from Settings → Services (the import's switch off: nothing brought in).
   assert.equal((await post("settings/qobuz/signin", { username: "tester@example.com", password: "pw" })).status, 200);
   assert.equal((await post("settings/tidal/signin", {})).status, 200);
   tidal.approve();
@@ -390,19 +403,22 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     assert.equal((await fetch(B + "/internal/jobs/watch", { method: "POST" })).status, 404, "not without the key");
   });
 
-  await t.test("Tidal's token due, or refused partway: the step the Node server's, made once, the same library", async () => {
+  await t.test("Tidal's token due, or refused partway: refreshed by the C# server, the same library as the Node server's run", async () => {
     importOn("qobuz", false);
     const due = () => { const acc = ctx.tidal.account(); acc.token.expires = Date.now() + 1000; ctx.db.setSetting("tidal", acc); };
-    // Due: Update library now left to the Node server, which refreshes it; answered here with what it made.
-    reset("tidal");
-    due();
+    // Due: Update library now refreshes it first, here; the same as the Node server's own run from the same start.
+    const node = refreshed.node;
     let refreshes = tidal.refreshes, before = made.import;
-    const r = await post("settings/tidal/import");
-    assert.deepEqual([r.status, r.by, r.j.ok], [200, "C#", true], r.text);
-    assert.equal(tidal.refreshes, refreshes + 1, "refreshed by the Node server");
-    assert.equal(made.import, before + 1, "made once, by the Node server");
-    assert.equal(r.j.result.albums, 2);
+    let [a, b] = await both("tidal", due, async () => {
+      const r = await post("settings/tidal/import");
+      return Object.assign(r, { refreshes: tidal.refreshes - refreshes, node: made.import - before });
+    }, () => own(() => call(NODE, "settings/tidal/import", {})));
+    assert.deepEqual([a.r.status, a.r.by, a.r.j.ok, a.r.refreshes, a.r.node], [200, "C#", true, 1, 0], a.r.text);
+    assert.equal(a.r.j.result.albums, 2);
+    assert.equal(sansNow(a.r.text), sansNow(b.r.text), "the same answer");
+    same(a.st, b.st, "the same library");
     assert.equal(ctx.db.setting("tidal").token.access, tidal.access, "the new token kept");
+    assert.ok(ctx.db.setting("tidal").token.expires > Date.now() + 3000e3, "good for the hour again");
     // The watch likewise.
     due();
     tidal.favourites.add("2005");
@@ -411,28 +427,25 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     const w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: K })).json();
     tidal.favourites.delete("2005");
     assert.deepEqual(w.services.tidal, { added: 1, dropped: 0, failed: 0, changed: true });
-    assert.deepEqual([tidal.refreshes, made.watch], [refreshes + 1, before + 1], "the watch the Node server's");
-    // Then the C# server's again, with the new token.
-    before = made.import;
-    assert.equal((await post("settings/tidal/import")).by, "C#");
-    assert.equal(made.import, before, "made here");
-    // Refused partway (the token revoked meanwhile): what was brought in here stays whole, the Node server makes the rest.
+    assert.deepEqual([tidal.refreshes, made.watch], [refreshes + 1, before], "refreshed and made here");
+    // Refused partway (the token revoked meanwhile): refreshed, asked again, the import made whole; as the Node server's own run.
     tidal.favourites.add("2005");
     tidal.favourites.add("2006");
     let tripped = false;
     const trip = (req) => { if (!tripped && /\/v1\/albums\/2006\/tracks/.test(req.url)) { tripped = true; tidal.expireAccess(); } };
-    const [a, b] = await both("tidal", null, async () => {
-      tidal.server.on("request", trip);
-      try { before = made.import; const x = await post("settings/tidal/import"); return Object.assign(x, { node: made.import - before }); }
-      finally { tidal.server.off("request", trip); }
-    }, () => call(NODE, "settings/tidal/import", {}));
+    const tripping = (fn) => async () => { tripped = false; tidal.server.on("request", trip); try { return await fn(); } finally { tidal.server.off("request", trip); } };
+    [a, b] = await both("tidal", null, tripping(async () => {
+      before = made.import;
+      const x = await post("settings/tidal/import");
+      return Object.assign(x, { node: made.import - before, tripped });
+    }), tripping(async () => Object.assign(await own(() => call(NODE, "settings/tidal/import", {})), { tripped })));
     tidal.favourites.delete("2005");
     tidal.favourites.delete("2006");
-    assert.ok(tripped, "refused partway");
-    assert.deepEqual([a.r.status, a.r.by, a.r.node], [200, "C#", 1], a.r.text);
-    assert.deepEqual([a.r.j.result.albums, a.r.j.result.added], [4, 1], "the Node server's run from there: what it brought in");
-    same(a.st, Object.assign({}, b.st, { last: a.st.last }), "the same library in the end");
-    assert.deepEqual([a.st.last.albums, b.st.last.albums], [4, 4]);
+    assert.deepEqual([a.r.status, a.r.by, a.r.node, a.r.tripped, b.r.tripped], [200, "C#", 0, true, true], a.r.text);
+    assert.deepEqual([a.r.j.result.albums, a.r.j.result.added, a.r.j.result.failed], [4, 4, 0], "every album brought in");
+    assert.equal(sansNow(a.r.text), sansNow(b.r.text), "the same answer");
+    same(a.st, b.st, "the same library in the end");
+    assert.equal(refreshed.node - node, 2, "the Node server's own refresh asked for its own runs only");
     importOn("qobuz", true);
   });
 
@@ -444,51 +457,66 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     assert.deepEqual(r.j.services, ["Qobuz", "Tidal"], "the answer names what follows");
     await until(() => at("qobuz") > was.qobuz && at("tidal") > was.tidal, 30000, "both brought up to date");
     assert.equal(made.import, before, "by the C# server");
-    // Signed in with the switch on: brought in at once, by the C# server.
+    // Signed in with the switch on: brought in at once, by the C# server (signing in its own since v0.8.47).
     await post("settings/qobuz/signout", {});
     reset("qobuz");
     importOn("qobuz", true);
     const t0 = Date.now();
-    assert.equal((await post("settings/qobuz/signin", { username: "tester@example.com", password: "pw" })).by, null, "signing in, the Node server's");
+    assert.equal((await post("settings/qobuz/signin", { username: "tester@example.com", password: "pw" })).by, "C#", "signing in, the C# server's");
     await until(() => at("qobuz") >= t0, 20000, "the import after signing in");
     assert.equal(made.import, before, "by the C# server");
     assert.equal((await get("library/albums?sort=album")).j.albums.filter(a => a.source === "qobuz").length, 3);
   });
 
-  await t.test("the Node server's step: from the C# server only", async () => {
-    assert.equal((await fetch(NODE + "/internal/services/step", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 403);
-    const r = await fetch(NODE + "/internal/services/step", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, K), body: JSON.stringify({ service: "nope" }) });
-    assert.deepEqual([r.status, await r.json()], [400, { error: "service required" }]);
+  // The Node server's step (v0.8.45) is gone with v0.8.47: Tidal's token is the C# server's alone, nothing left to it.
+  await t.test("no step left to the Node server: its route gone, its import never asked", async () => {
+    const before = made.import;
+    for (const headers of [{ "Content-Type": "application/json" }, Object.assign({ "Content-Type": "application/json" }, K)]) {
+      const r = await fetch(NODE + "/internal/services/step", { method: "POST", headers, body: JSON.stringify({ service: "tidal", step: "import" }) });
+      assert.notEqual(r.status, 200, "no such route: " + r.status);
+    }
+    assert.equal(made.import, before, "nothing made there");
   });
 
-  await t.test("the Node server's step failing: what was brought in here before is told, and on the walls", async () => {
+  await t.test("a refresh Tidal refuses partway: the album it was asked for failed, what was brought in before told, as the Node server's watch", async () => {
     importOn("qobuz", false);
-    reset("tidal");
-    await post("settings/tidal/import");
     // Two albums new to both servers (nothing of them kept a minute), favourited on Tidal; refused
-    // at the second, and the Node server can't get a new token either.
+    // at the second, and no new token to be had either.
     const file = tidal.albums[0].tracks[0].file;
     tidal.albums.push({ id: 2007, title: "T Seventh", artist: "T Artist", year: 2025, hires: false, tracks: [{ id: 8601, title: "T Seventh One", file, duration: 3 }] },
       { id: 2008, title: "T Eighth", artist: "T Artist", year: 2025, hires: false, tracks: [{ id: 8701, title: "T Eighth One", file, duration: 3 }] });
-    tidal.favourites.add("2007");
-    tidal.favourites.add("2008");
-    const refresh = tidal.refreshToken, asked = [];
-    let tripped = false;
-    const trip = (req) => {
-      const m = /\/v1\/albums\/(2007|2008)\b/.exec(req.url);
-      if (!m || tripped) return;
-      if (!asked.includes(m[1])) asked.push(m[1]);
-      if (asked.length === 2) { tripped = true; tidal.expireAccess(); tidal.refreshToken = "rt-refused"; }
+    const refresh = tidal.refreshToken;
+    const tripping = (fn) => async () => {
+      const asked = [];
+      let tripped = false;
+      const trip = (req) => {
+        const m = /\/v1\/albums\/(2007|2008)\b/.exec(req.url);
+        if (!m || tripped) return;
+        if (!asked.includes(m[1])) asked.push(m[1]);
+        if (asked.length === 2) { tripped = true; tidal.expireAccess(); tidal.refreshToken = "rt-refused"; }
+      };
+      tidal.server.on("request", trip);
+      let out;
+      try { out = await fn(); } finally { tidal.server.off("request", trip); tidal.refreshToken = refresh; }
+      return Object.assign(out, { tripped, first: asked[0] === "2007" ? "T Seventh" : "T Eighth" });
     };
-    tidal.server.on("request", trip);
-    let w;
-    try { w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: K })).json(); }
-    finally { tidal.server.off("request", trip); tidal.refreshToken = refresh; tidal.favourites.delete("2007"); tidal.favourites.delete("2008"); }
-    assert.ok(tripped, "refused partway");
-    assert.ok(w.services.tidal.error, "the Node server's step failed: " + JSON.stringify(w));
-    const first = asked[0] === "2007" ? "T Seventh" : "T Eighth";
-    const titles = (await get("library/albums?sort=album")).j.albums.filter(a => a.source === "tidal").map(a => a.title);
-    assert.ok(titles.includes(first), `${first}, brought in here before, on the walls: ${JSON.stringify(titles)}`);
+    const start = async () => {
+      tidal.favourites.delete("2007"); tidal.favourites.delete("2008");
+      await post("settings/tidal/import");
+      tidal.favourites.add("2007"); tidal.favourites.add("2008");
+    };
+    const [a, b] = await both("tidal", start, tripping(async () => {
+      const w = (await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: K })).json()).services.tidal;
+      const titles = (await get("library/albums?sort=album")).j.albums.filter(x => x.source === "tidal").map(x => x.title);
+      return { w, titles };
+    }), tripping(async () => ({ w: await own(() => ctx.services.tidal.watch()) })));
+    tidal.favourites.delete("2007");
+    tidal.favourites.delete("2008");
+    assert.ok(a.r.tripped && b.r.tripped, "refused partway");
+    assert.deepEqual(a.r.w, { added: 1, dropped: 0, failed: 1, changed: true }, JSON.stringify(a.r.w));
+    assert.deepEqual(a.r.w, b.r.w, "as the Node server's watch");
+    same(a.st, b.st, "the same library");
+    assert.ok(a.r.titles.includes(a.r.first), `${a.r.first}, brought in before, on the walls: ${JSON.stringify(a.r.titles)}`);
     importOn("qobuz", true);
   });
 });

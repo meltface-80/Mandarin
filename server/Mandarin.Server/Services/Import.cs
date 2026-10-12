@@ -18,16 +18,14 @@
 // The work is a job the Node server hands over ("import", Jobs.cs): the first
 // import shortly after the hand-over, one every six hours and the watch every
 // couple of minutes (Import, below), as index.js's timers made them; an import
-// it would have started itself (a sign-in, a Rescan) it asks for here (POST
-// /internal/jobs/import). Each change is told to it (/internal/library/changed,
+// it would have started itself (a Rescan) it asks for here (POST
+// /internal/jobs/import), and one after signing in is started here (v0.8.47,
+// Accounts.cs). Each change is told to it (/internal/library/changed,
 // services), and it reads its library again, as each service's afterChange did.
 //
-// Tidal's token stays the Node server's to refresh (until stage 4.4): an
-// import or a watch that finds it due, or that Tidal refuses, is left to the
-// Node server from there (POST /internal/services/step), which makes it with
-// its own import or watch. What was made here before stays: each album is
-// written in one transaction and kept once its rows are, and nothing else is
-// written until every ask of Tidal is made.
+// Tidal's token is refreshed here as the import or the watch asks (v0.8.47,
+// TidalApi.cs), as the Node server's own refreshed it there: one Tidal
+// refuses fails the album it was asked for, as there.
 using System.Data;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -66,8 +64,10 @@ internal abstract partial class Catalogue
     protected abstract Task<List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)>> ListPlaylists();
     /* describe(out): the user on the status, for the page. */
     protected abstract void Describe(JsObj o);
-    /* Before an import or a watch asks the service (Tidal: its token good for a while yet, else the Node server's step). */
-    protected virtual void BeforeAsking() { }
+    /* What the status says beyond (Tidal: a sign-in under way, Accounts.cs). */
+    protected virtual void StatusMore(JsObj o) { }
+    /* A setting written: what was learnt from the old ones forgotten (Tidal's setSettings: hi-res asked for again). */
+    protected virtual void SettingsChanged() { }
     /* The settings written here: what the Node server learnt from the old ones forgotten there (Tidal, below). */
     public virtual Task SettingsWritten() => Task.CompletedTask;
 
@@ -94,6 +94,7 @@ internal abstract partial class Catalogue
         var o = new JsObj();
         o["quality"] = next.Quality;
         o["import"] = next.Import;
+        SettingsChanged();
         Extras.Labels.SetSetting(Id + "Settings", o);
         return next;
     }
@@ -130,6 +131,7 @@ internal abstract partial class Catalogue
         o["last_import"] = last is Undef ? null : last;
         o["kept"] = (double)KeptSet().Count;
         if (connected) Describe(o);
+        StatusMore(o);
         return o;
     }
 
@@ -173,22 +175,7 @@ internal abstract partial class Catalogue
     private async Task<JsObj> RunImport()
     {
         var gen = generation;
-        var wrote = false;
-        try { return await ImportHere(gen, () => wrote = true); }
-        catch (ToNode)
-        {
-            // Left to the Node server from here; its run tells it of what it
-            // changed. One that fails tells it nothing, so what was written
-            // here before is told now.
-            try { return await NodeStep("import") as JsObj ?? new JsObj(); }
-            catch { if (wrote) await Changed(); throw; }
-        }
-    }
-
-    private async Task<JsObj> ImportHere(int gen, Action wrote)
-    {
         var t0 = NowMs();
-        BeforeAsking();
         var want = await Wanted();
         var before = KeptSet();
         double added = 0, failed = 0, fetched = 0;
@@ -198,12 +185,11 @@ internal abstract partial class Catalogue
             try
             {
                 // Only what is new, or a week old (v0.7.10): an album here and read this week is kept as it is.
-                if (FreshAlbumId(id) == null) { await EnsureAlbum(id, hint); wrote(); fetched++; }
+                if (FreshAlbumId(id) == null) { await EnsureAlbum(id, hint); fetched++; }
                 if (!before.Contains(Key + id)) added++;
                 Keep(id, true, Or(hint["kept_as"], "favourite"), Or(hint["kept_at"], null));
-                wrote();
             }
-            catch (Exception e) when (e is not ToNode)
+            catch (Exception e)
             {
                 failed++;
                 Front.Log($"[{Id}] import {id}: {Said(e)}");
@@ -214,7 +200,7 @@ internal abstract partial class Catalogue
         // can lag a removal made moments ago in the service's own app.
         HashSet<string> drop;
         try { drop = (await WantedIds(new Ask(await Library.NodeVersion()), true)).Keys.ToHashSet(StringComparer.Ordinal); }
-        catch (Exception e) when (e is not ToNode) { drop = want.Select(w => w.Id).ToHashSet(StringComparer.Ordinal); }
+        catch (Exception) { drop = want.Select(w => w.Id).ToHashSet(StringComparer.Ordinal); }
         Going(gen);
         double dropped = 0;
         using (var c = Db.Open())
@@ -223,13 +209,12 @@ internal abstract partial class Catalogue
             {
                 if (drop.Contains(key.Length >= Key.Length ? key[Key.Length..] : "")) continue;
                 Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", NsKept), ("$k", key));
-                wrote();
                 dropped++;
             }
         }
         (double Playlists, double Held) pl = (0, 0);
-        try { pl = await ImportPlaylists(gen, wrote); }
-        catch (Exception e) when (e is not ToNode) { Front.Log($"[{Id}] playlists: {Said(e)}"); }
+        try { pl = await ImportPlaylists(gen); }
+        catch (Exception e) { Front.Log($"[{Id}] playlists: {Said(e)}"); }
         Going(gen);
         var result = new JsObj();
         result["at"] = NowMs();
@@ -255,7 +240,7 @@ internal abstract partial class Catalogue
      * here so the tracks play, off the walls unless favourites — and a
      * playlist gone from the service goes from here.
      */
-    private async Task<(double Playlists, double Held)> ImportPlaylists(int gen, Action wrote)
+    private async Task<(double Playlists, double Held)> ImportPlaylists(int gen)
     {
         var lists = new List<(string Id, string Name, List<(long AlbumId, string Path)> Items)>();
         var held = new List<string>();
@@ -271,19 +256,19 @@ internal abstract partial class Catalogue
                 try
                 {
                     // Here and read this week: as it is (v0.7.10, as the import).
-                    if (!albumsSeen.ContainsKey(aid)) { albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid); wrote(); }
+                    if (!albumsSeen.ContainsKey(aid)) albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid);
                 }
-                catch (Exception e) when (e is not ToNode) { Front.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
+                catch (Exception e) { Front.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
                 if (heldSeen.Add(Key + aid)) held.Add(Key + aid);
                 o.Add((albumsSeen[aid], TrackPath + tid));
             }
             return o;
         }
         List<(string AlbumId, string TrackId)> favs;
-        try { favs = await ListFavouriteTracks(); } catch (Exception e) when (e is not ToNode) { favs = []; }
+        try { favs = await ListFavouriteTracks(); } catch (Exception) { favs = []; }
         if (favs.Count > 0) lists.Add((PlFav, Name + " favourite tracks", await Records(favs)));
         List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)> pls;
-        try { pls = await ListPlaylists(); } catch (Exception e) when (e is not ToNode) { pls = []; }
+        try { pls = await ListPlaylists(); } catch (Exception) { pls = []; }
         foreach (var p in pls)
         {
             if (Js.IsNullish(p.Id)) continue;
@@ -358,29 +343,6 @@ internal abstract partial class Catalogue
     private async Task<JsObj?> RunWatch()
     {
         var gen = generation;
-        double added = 0;
-        try { return await WatchHere(gen, n => added = n); }
-        catch (ToNode)
-        {
-            // Left to the Node server from here: what it brings in, and what
-            // was brought in here before, told whether its run makes it or not.
-            object? r;
-            try { r = await NodeStep("watch"); }
-            finally { if (added > 0) await Changed(); }
-            if (r is not JsObj o) return null;
-            if (added > 0)
-            {
-                o["added"] = Js.ToNumber(o["added"]) + added;
-                o["changed"] = true;
-            }
-            lastWatch = NowMs();
-            return o;
-        }
-    }
-
-    private async Task<JsObj> WatchHere(int gen, Action<double> broughtIn)
-    {
-        BeforeAsking();
         // Asked now, and kept the minute as the catalogue's are: no longer than the library stays as it is.
         var want = await WantedIds(new Ask(await Library.NodeVersion()), true);
         var before = KeptSet();
@@ -389,8 +351,8 @@ internal abstract partial class Catalogue
         {
             if (before.Contains(Key + id)) continue;
             Going(gen);
-            try { await EnsureAlbum(id); Keep(id, true, why); added++; broughtIn(added); }
-            catch (Exception e) when (e is not ToNode) { failed++; Front.Log($"[{Id}] watch {id}: {Said(e)}"); }
+            try { await EnsureAlbum(id); Keep(id, true, why); added++; }
+            catch (Exception e) { failed++; Front.Log($"[{Id}] watch {id}: {Said(e)}"); }
         }
         Going(gen);
         using (var c = Db.Open())
@@ -440,24 +402,6 @@ internal abstract partial class Catalogue
     private void Going(int gen)
     {
         if (gen != generation) throw new OperationCanceledException("stopped: a backup is being put back");
-    }
-
-    // ------------------------------------------------------------ left to the Node server
-
-    /*
-     * A step Tidal's token has to be refreshed for: made by the Node server's
-     * own import or watch (index.js /internal/services/step), which refreshes
-     * it; what it made, or its failure in its words.
-     */
-    private async Task<object?> NodeStep(string step)
-    {
-        Front.Log($"[{Id}] {step}: {Name}'s token is due to be refreshed; made by the Node server");
-        if (await Library.AskNode("/internal/services/step", new JsonObject { ["service"] = Id, ["step"] = step }) is not var (status, text))
-            throw new JsError("fetch failed");
-        var j = ParseOrNull(text);
-        if (status is < 200 or > 299)
-            throw new ServiceError(Js.Truthy(AndP(j, "error")) ? Js.Str(P(j, "error")) : $"The Node server answered {status}", status);
-        return Js.Truthy(j) && P(j, "result") is var r && r is not Undef ? r : null;
     }
 
     // ------------------------------------------------------------ the words
@@ -586,9 +530,8 @@ internal sealed partial class TidalCatalogue
             var p = Js.Truthy(x) && Js.Truthy(P(x, "playlist")) ? P(x, "playlist") : x;
             if (!Js.Truthy(p) || !Js.Truthy(P(p, "uuid"))) continue;
             List<object?> items;
-            // A token due is the Node server's step, never "no tracks".
             try { items = await Api.PlaylistItems(P(p, "uuid")); }
-            catch (Exception e) when (e is not ToNode) { items = []; }
+            catch (Exception) { items = []; }
             var tracks = items.Where(i => Js.Truthy(i) && (P(i, "type") is "track" || !Js.Truthy(P(i, "type"))) && Js.Truthy(P(i, "item"))
                     && Js.Truthy(P(P(i, "item"), "album")) && !Js.IsNullish(P(P(P(i, "item"), "album"), "id")) && !(P(P(i, "item"), "allowStreaming") is false))
                 .Select(i => (Js.Str(P(P(P(i, "item"), "album"), "id")), Js.Str(P(P(i, "item"), "id")))).ToList();
@@ -614,13 +557,6 @@ internal sealed partial class TidalCatalogue
         o["lossless"] = hires || Js.Str(Or(P(sub, "highestSoundQuality"), "")).Contains("LOSSLESS", StringComparison.Ordinal)
             || Regex.IsMatch(Js.Str(Or(P(sub, "type"), "")), "HIFI|PREMIUM_PLUS");
     }
-
-    /*
-     * An import or a watch is made here only with a token good for five more
-     * minutes (one ask after another, it is seldom longer): else it is the
-     * Node server's, which refreshes it, before anything is asked or written.
-     */
-    protected override void BeforeAsking() => Api.GoodFor(5 * 60e3);
 
     /* The settings written here: an account given CD for hi-res is asked for hi-res again there, as its own setSettings does. */
     public override Task SettingsWritten() => Library.Tell(new JsonObject { ["settings"] = Id });

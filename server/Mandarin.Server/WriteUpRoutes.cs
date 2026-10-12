@@ -286,7 +286,12 @@ internal static partial class Library
         return await SendJs(ctx, o);
     }
 
-    /* GET /api/search/external?q=&parts=pitchfork: Pitchfork's reviews the words find (the services' parts are the Node server's). */
+    /*
+     * GET /api/search/external?q=&parts=: Pitchfork's reviews the words find,
+     * and (v0.8.47) Qobuz's and Tidal's albums and artists, signed in, each
+     * asked side by side (api-library.js): `parts=` names which (qobuz, tidal,
+     * services for both, pitchfork); a service that fails answers null.
+     */
     private static async Task<bool> SearchExternal(HttpContext ctx, Snapshot s, LibState st)
     {
         if (HeldWriteUps is not { } w) return false;
@@ -299,15 +304,29 @@ internal static partial class Library
             return await SendJs(ctx, o);
         }
         var parts = (Q(ctx, "parts") is { } p0 && p0.Length > 0 ? p0 : "services,pitchfork").Split(',');
-        if (parts.Any(p => p is "services" or "qobuz" or "tidal")) return false;
-        List<object?> pf = [];
-        if (parts.Contains("pitchfork"))
+        async Task<List<object?>> Pitchfork()
         {
+            if (!parts.Contains("pitchfork")) return [];
             var search = w.SearchReviews(q, 6);
-            if (await Task.WhenAny(search, Task.Delay(10000)) == search)
-                try { pf = (await search).Select(x => (object?)x).ToList(); } catch (Exception) { pf = []; }
+            if (await Task.WhenAny(search, Task.Delay(10000)) != search) return [];
+            try { return (await search).Select(x => (object?)x).ToList(); } catch (Exception) { return []; }
         }
-        o["qobuz"] = null; o["qobuz_artists"] = null; o["tidal"] = null; o["tidal_artists"] = null;
+        async Task<JsObj?> Ask(Services.Catalogue? svc)
+        {
+            if (svc == null || !svc.Connected() || !(parts.Contains("services") || parts.Contains(svc.Id))) return null;
+            try
+            {
+                var j = await svc.Search(q, 0, new Services.Ask(st.Version), 12);
+                var a = global::Mandarin.Server.Services.ServiceHttp.Or(j["artists"], new List<object?>());
+                return Jso(("albums", global::Mandarin.Server.Services.ServiceHttp.Or(j["albums"], new List<object?>())), ("artists", a is List<object?> l ? l.Take(8).ToList() : a));
+            }
+            catch (Exception) { return null; }
+        }
+        var pfAsked = Pitchfork();
+        var qzAsked = Ask(CatalogueOf("qobuz"));
+        var tdAsked = Ask(CatalogueOf("tidal"));
+        var (pf, qz, td) = (await pfAsked, await qzAsked, await tdAsked);
+        o["qobuz"] = qz?["albums"]; o["qobuz_artists"] = qz?["artists"]; o["tidal"] = td?["albums"]; o["tidal_artists"] = td?["artists"];
         o["pitchfork"] = pf;
         return await SendJs(ctx, o);
     }

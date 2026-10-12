@@ -7,7 +7,10 @@
 // while the Node server starts again; from v0.8.34 the library scans (Scans.cs);
 // from v0.8.44 the month's prune of Qobuz's and Tidal's albums only ever played
 // from the browser (Services/Rows.cs); from v0.8.45 their import, the
-// favourites' watch and the service playlists (Services/Import.cs).
+// favourites' watch and the service playlists (Services/Import.cs); from
+// v0.8.47 their accounts (signing in and out, Tidal's token refreshed here
+// alone), their streams and playing an album from their browser
+// (Services/Accounts.cs, ServiceStreams.cs): "services".
 //
 // The Node server is told so before any of it starts (POST
 // /internal/front/runs): it stops its own loops — waiting for an album it is
@@ -28,7 +31,7 @@ namespace Mandarin.Server;
 
 internal static class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services"];
     // What a Node server from before v0.8.20 hands over: it doesn't say which.
     private static readonly string[] FirstNames = ["identify", "mbpack", "loudness"];
 
@@ -151,9 +154,9 @@ internal static class Jobs
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
         LastfmEnvKey = Text(cfg["lastfm_key"]);
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as the Node server was set up (the tests' fakes).
-        // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database.
+        // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
-        Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"])) { DataDir = dataDir };
+        Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
         Lastfm = new Lastfm(Text(cfg["lastfm_url"]), Library.LastfmKey, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)");
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the Node server says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
@@ -204,7 +207,9 @@ internal static class Jobs
      * tests), POST /internal/jobs/import (the Node server, an import it would
      * have started itself: ?service=<s> after a sign-in, ?after=rescan after a
      * Rescan), POST /internal/jobs/watch (the services' favourites looked at
-     * now, as the watch's timer looks: the tests) and GET /internal/tailscale
+     * now, as the watch's timer looks: the tests), POST /internal/services/played
+     * (the Node server, a streamed track a speaker fetched from it by its own
+     * address: the play reported here, v0.8.47) and GET /internal/tailscale
      * (how the engine run here is: the Node server gives phones its address).
      */
     public static void UseInternal(WebApplication app)
@@ -212,7 +217,8 @@ internal static class Jobs
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value;
-            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/import" or "/internal/jobs/watch" or "/internal/tailscale")) { await next(); return; }
+            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/import" or "/internal/jobs/watch"
+                or "/internal/services/played" or "/internal/tailscale")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             var method = p == "/internal/tailscale" ? HttpMethods.IsGet(ctx.Request.Method) : HttpMethods.IsPost(ctx.Request.Method);
@@ -239,6 +245,19 @@ internal static class Jobs
                 var made = Services.Import.Now(ctx.Request.Query["service"].ToString(), ctx.Request.Query["after"].ToString() == "rescan");
                 if (!made) ctx.Response.StatusCode = 409;
                 await ctx.Response.WriteAsync(made ? "{\"ok\":true}" : "{\"ok\":false}");
+                return;
+            }
+            if (p == "/internal/services/played")
+            {
+                // As the Node server's /stream would have: the play reported (Qobuz), as a device fetching it here is.
+                var q = ctx.Request.Query;
+                var row = long.TryParse(q["track"].ToString(), out var tid) ? Services.Catalogue.Row(tid) : null;
+                var svc = row == null ? null : Services.Catalogue.Of(row.Path);
+                if (svc == null || !Holds("services")) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
+                var plan = new Tags.JsObj();
+                if (double.TryParse(q["rate"].ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var rate)) plan["rate"] = rate;
+                svc.Played(row!, plan);
+                await ctx.Response.WriteAsync("{\"ok\":true}");
                 return;
             }
             if (p == "/internal/jobs/watch")
@@ -336,6 +355,8 @@ internal static class Jobs
         Scans.Stop();
         Services.Prune.Stop();
         Services.Import.Stop();
+        // What was playing from Qobuz reported over (v0.8.47), as the Node server's stop did: a few seconds at most.
+        try { Qobuz?.Stop().Wait(TimeSpan.FromSeconds(5)); } catch (AggregateException) { /* reported or not, stopping */ }
         Tailscale?.Stop();
         Identify?.Stop();
         Packs?.Stop();
