@@ -38,6 +38,13 @@ Node). The parts as they are built:
   part: two fields more in `/internal/library` (`rooms`, `csharp_update`). Tests:
   `test/pages-csharp.test.js` (new), each page, deep link, redirect and `/api/health` held to the
   Node server's own answer; `test/front.test.js`'s pins moved on to C#.
+- **The phone's download lists, what was left** (part 3): a streamed album's download list (its
+  tracks planned as FLAC, as before; the phone is then refused each one, as before), a track whose file
+  is gone from the disk (404), and the phone's albums or offline plays sent as something that can't be
+  read as a list (Express's own 500 page, as in the image), all answered by the C# server now. A
+  download refused for a streamed track says "can't" with its apostrophe, as the Node server wrote it
+  (`\u0027` before). `DownloadListRoutes.cs`, `Downloads.cs`. Tests: `test/library-front.test.js`'s
+  download checks, each of these held to the Node server's own answer.
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47

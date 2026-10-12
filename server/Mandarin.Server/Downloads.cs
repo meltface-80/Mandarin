@@ -11,8 +11,9 @@
 //   GET /stream/t<id>.<ext>?q=opus      away from home: the track as Opus, the
 //                                       album's next two made ready behind it
 //
-// The album's list for a download (with its ReplayGain numbers) and the
-// automatic downloads are still the Node server's; neither makes a file.
+// The album's list for a download (with its ReplayGain numbers), the
+// automatic downloads, the phone's albums and its offline plays are
+// DownloadListRoutes.cs's (v0.8.26; whole since v0.8.48).
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -230,12 +231,15 @@ internal static partial class Downloads
         });
     }
 
+    private static readonly System.Text.Json.JsonSerializerOptions Relaxed = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     private static Task Error(HttpContext ctx, int status, string message)
     {
         ctx.Response.StatusCode = status;
         ctx.Response.ContentType = "application/json; charset=utf-8";
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        return ctx.Response.WriteAsync(new JsonObject { ["error"] = message }.ToJsonString());
+        // As res.json writes it: an apostrophe as it is, not \u0027.
+        return ctx.Response.WriteAsync(new JsonObject { ["error"] = message }.ToJsonString(Relaxed));
     }
 
     private static async Task<bool> DownloadTrack(HttpContext ctx, long id)
@@ -249,8 +253,17 @@ internal static partial class Downloads
         (string Path, string Ext, string Mime) f;
         try { f = await FileFor(t, q is "original" or "opus" ? q : "original"); }
         catch (IOException e) { await Error(ctx, 500, e.Message); return true; }
-        if (!System.IO.File.Exists(f.Path)) return false;   // the Node server says so, as before
         ctx.Response.Headers["X-Download-Ext"] = f.Ext;
+        if (!System.IO.File.Exists(f.Path))
+        {
+            // Gone from the disk: 404 and nothing more, its type and the rest already set, as sendFile's error left it there.
+            ctx.Response.StatusCode = 404;
+            ctx.Response.ContentType = f.Mime;
+            ctx.Response.Headers.CacheControl = "no-store";
+            ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+            ctx.Response.ContentLength = 0;
+            return true;
+        }
         return await Streams.SendFile(ctx, f.Path, f.Mime);
     }
 
