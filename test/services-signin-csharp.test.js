@@ -300,6 +300,8 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       before = tidal.refreshes;
       r = await post("settings/tidal/import");
       assert.deepEqual([r.status, r.by, r.j.ok, tidal.refreshes], [200, "C#", true, before + 1], r.text);
+      // The import runs on after its answer, and the watch looks at nothing while it does: let it finish.
+      await until(async () => !(await get("settings/tidal")).j.importing, 20000, "Tidal's import");
       due();
       const w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
       assert.deepEqual([w.ok, w.services.tidal.failed, tidal.refreshes], [true, 0, before + 2], JSON.stringify(w));
