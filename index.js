@@ -138,7 +138,7 @@ function createServer(overrides = {}) {
   // and Tidal's tracks too since v0.8.47, once the services are handed over.
   const useFront = (url) => {
     transcoder.delegate = !url ? null : {
-      owns: (t, p) => (!SERVICES.isStreamed(t.path) || ctx.madeByFront("services")) && !!p.transcode && !p.copy &&
+      owns: (t, p) => (!SERVICES.isStreamed(t.path) || ctx.servicesHanded()) && !!p.transcode && !p.copy &&
         (p.bits === 16 || p.bits === 24 || (p.bits === 32 && FF.info().flac32)) && p.rate >= 8000 && p.rate <= 768000,
       prefetch: (items) => {
         fetch(url + "/internal/transcode/prefetch", {
@@ -215,6 +215,10 @@ function createServer(overrides = {}) {
     // over (/internal/front/runs), or about to be — started by it, which hasn't
     // asked yet (MANDARIN_FRONT_RUNS, for two minutes at most).
     madeByFront: (job) => !!(ctx.frontRuns && ctx.frontRuns.has(job)) || !!(ctx.frontRunsWait && ctx.frontRunsAsked && ctx.frontRunsAsked.has(job)),
+    // Qobuz and Tidal (v0.8.47) once the C# server has taken them, not while
+    // it is still to: a stream, a refresh or a play report asked before then
+    // is made here, as before, rather than left to a server not yet ready.
+    servicesHanded: () => !!(ctx.frontRuns && ctx.frontRuns.has("services")),
     // The C# server told something (v0.8.20: a library scan ended): on 127.0.0.1, with the key.
     tellFront: (p) => {
       if (!ctx.frontJobsUrl) return;
@@ -244,7 +248,7 @@ function createServer(overrides = {}) {
   // this one then; refused here should anything ask.
   {
     const refresh = ctx.tidal.api.refresh.bind(ctx.tidal.api);
-    ctx.tidal.api.refresh = () => ctx.madeByFront("services")
+    ctx.tidal.api.refresh = () => ctx.servicesHanded()
       ? Promise.reject(Object.assign(new Error("Tidal's token is the C# server's to refresh"), { status: 401 })) : refresh();
   }
   // The transcoder asks the service where a streamed track's audio is, when
@@ -594,7 +598,7 @@ function createServer(overrides = {}) {
     // asking here by its own address, told to it; the file made there too.
     if (svc && !svc.connected()) return res.status(403).end();
     if (svc && req.method === "GET") {
-      if (ctx.madeByFront("services")) ctx.tellFront(`/internal/services/played?track=${t.id}&rate=${encodeURIComponent(p.rate || "")}`);
+      if (ctx.servicesHanded()) ctx.tellFront(`/internal/services/played?track=${t.id}&rate=${encodeURIComponent(p.rate || "")}`);
       else svc.played(t, p);
     }
     const job = transcoder.start(Object.assign({}, t, svc ? { mtime: svc.tier() } : {}), p);

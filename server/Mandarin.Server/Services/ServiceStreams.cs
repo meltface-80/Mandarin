@@ -166,6 +166,9 @@ internal sealed partial class QobuzCatalogue
     }
     private readonly object playsGate = new();
     private readonly Dictionary<string, Play> plays = new(StringComparer.Ordinal);
+    // A start being reported: a second fetch of the same track meanwhile (a
+    // speaker asking again) isn't reported as a second start.
+    private readonly HashSet<string> starting = new(StringComparer.Ordinal);
 
     /* A device is fetching this track to play it: reported to Qobuz, once (index.js played). */
     public override void Played(StreamTrack t, JsObj p)
@@ -184,9 +187,15 @@ internal sealed partial class QobuzCatalogue
         List<string> others;
         lock (playsGate)
         {
-            if (plays.ContainsKey(trackId)) return;
+            if (plays.ContainsKey(trackId) || !starting.Add(trackId)) return;
             others = plays.Keys.ToList();
         }
+        try { await StartNow(trackId, t, formatId, others); }
+        finally { lock (playsGate) starting.Remove(trackId); }
+    }
+
+    private async Task StartNow(string trackId, StreamTrack t, double formatId, List<string> others)
+    {
         foreach (var id in others) await End(id, "next track");
         var a = Or(Account(), new JsObj());
         var u = Or(P(a, "user"), new JsObj());

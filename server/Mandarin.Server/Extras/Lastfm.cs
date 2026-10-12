@@ -126,6 +126,10 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
                 req.Headers.TryAddWithoutValidation("User-Agent", userAgent);
                 req.Headers.TryAddWithoutValidation("Accept", "application/json");
                 using var res = await Http.SendAsync(req, cts.Token);
+                // The quarter of a second counted from the answer, not the ask
+                // (v0.8.47): a first ask that opens its connection slowly
+                // otherwise reaches Last.fm closer than that to the next.
+                lastCallAt = Now;
                 status = res.StatusCode;
                 ok = res.IsSuccessStatusCode;
                 try { j = JsonNode.Parse(await res.Content.ReadAsStringAsync(cts.Token)) as JsonObject; }

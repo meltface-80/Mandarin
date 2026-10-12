@@ -9,9 +9,10 @@ Versioning: each set of changes is a development build and takes the next third 
 Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
 C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
 album from their browser and their streams join the catalogue, the rows and the import moved before.
-With the C# server in front, the Node server never asks Qobuz or Tidal for anything, never holds or
-refreshes a token and never makes a service's stream: for a service album it plays the library's
-tracks, as for an album of your own. Each is held to the Node server's own answer, write and bytes.
+With the C# server in front and the services handed over, the Node server doesn't ask Qobuz or Tidal
+for anything, refresh a token or make a service's stream: for a service album it plays the library's
+tracks, as for an album of your own. (Before the hand-over, in its first seconds, it makes them as it
+always did, so nothing a speaker asks for meanwhile goes unanswered.) Each is held to the Node server's own answer, write and bytes.
 
 - **Signing in** (Settings → Services): Qobuz with your username and password, asked of Qobuz once,
   the token kept and never the password; Tidal with a link and a code, Tidal asked every few seconds
@@ -80,6 +81,9 @@ tracks, as for an album of your own. Each is held to the Node server's own answe
   make a sign-in's code short-lived and hold a refresh back. `test/front.test.js` pins which server
   answers what (its v0.8.47 test and header line; the v0.8.21, v0.8.39 and v0.8.45 tests moved on to
   C# where this version moved them; "services" in the v0.8.19 test's job list).
+- Last.fm: the quarter of a second between two asks is counted from the answer, not the ask, so a
+  first ask that opens its connection slowly can't reach Last.fm closer than that to the next (a test
+  measuring it at Last.fm's end saw 235 ms on a busy machine).
 - The Android app for this version is 0.8.47 (version code 247). Nothing in it changed.
 
 ## v0.8.46

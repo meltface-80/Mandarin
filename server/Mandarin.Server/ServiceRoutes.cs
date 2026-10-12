@@ -43,9 +43,11 @@
 //
 // and the services' part of the search from Home (GET /api/search/external).
 // Tidal's token is this server's alone to refresh (TidalApi.cs), and a
-// service's streams are made here too (Streams.cs): the Node server never asks
-// Qobuz or Tidal for anything. A body Express would read otherwise, or refuse,
-// is passed on as it came (the Node server answers it without asking either).
+// service's streams are made here too (Streams.cs): once the services are
+// handed over, the Node server asks Qobuz and Tidal nothing in the ordinary way
+// of things. Before then (its first seconds) it makes them as it always did;
+// and a body Express would read otherwise, or refuse, is passed on as it came,
+// to be answered there (a request the page never makes).
 // Answered here once the Node server has handed over its work; until then, by it.
 using System.Net.Http.Headers;
 using System.Text;

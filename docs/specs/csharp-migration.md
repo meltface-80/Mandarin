@@ -23,7 +23,9 @@ Tailscale, from v0.8.34 the library scans, from v0.8.44 the month's prune of Qob
 albums, from v0.8.45 their import and the favourites' watch, and from v0.8.47 the services
 themselves: their accounts, Tidal's token and their streams) is handed over to it each time the
 Node server starts (`/internal/front/runs`). `server/README.md` has the details. With the C# server
-in front, the Node server no longer talks to Qobuz or Tidal at all.
+in front, once the services are handed over, the Node server no longer talks to Qobuz or Tidal in
+the ordinary way of things (only in its first seconds, before the hand-over, or for a request the
+page never makes, passed to it as it came).
 
 ### In numbers
 
