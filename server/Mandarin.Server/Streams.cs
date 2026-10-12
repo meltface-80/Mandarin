@@ -120,7 +120,8 @@ internal static partial class Streams
         Track? t = null;
         using (var c = Db.Open())
         {
-            if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+            // Unsigned and not signed in: a speaker asking by its own address (the hub's once this server holds playback, v0.8.49), else the Node server's to decide.
+            if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null && !await Images.FromSpeaker(ctx)) return false;
             using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime, duration FROM tracks WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);

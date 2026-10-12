@@ -347,13 +347,16 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
         await until(() => room.queue.length >= want.length, 15000, what + ": the queue");
         return { r, rows: rows(key), queue: titles() };
       };
-      const mine = await run(B), theirs = await run(NODE);
+      // Where the C# server holds playback (v0.8.49, stage 6) the Node server's hub never starts, so its own play can't be run for comparison: the C# server's is held to what the room must be sent.
+      const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
+      const mine = await run(B), theirs = front ? null : await run(NODE);
       assert.deepEqual([mine.r.status, mine.r.by, mine.r.j.ok, mine.r.j.offset], [200, "C#", true, mine.rows.id], what + ": " + mine.r.text);
       assert.deepEqual(mine.r.j.action, ["play_now", "play_next", "queue", "shuffle"].includes(body.kind) ? body.kind : "play_now");
+      assert.deepEqual(mine.queue, want, what + ": the room's queue");
+      if (!theirs) continue;
       assert.equal(mine.r.text.replace(`"offset":${mine.rows.id}`, `"offset":"ID"`), theirs.r.text.replace(`"offset":${theirs.rows.id}`, `"offset":"ID"`), what + ": the same answer");
       assert.deepEqual(mine.rows.album, theirs.rows.album, what + ": the album's row");
       assert.deepEqual(mine.rows.tracks, theirs.rows.tracks, what + ": its tracks' rows");
-      assert.deepEqual(mine.queue, want, what + ": the room's queue");
       assert.deepEqual(mine.queue, theirs.queue, what + ": as the Node server queues it");
     }
     // Refused, in the same words: signed in but asked wrongly.

@@ -512,10 +512,10 @@ test("the library in C# answers as the Node server does", { skip, timeout: 12000
       await x.arrayBuffer();
     }
 
-    // The status is the C# server's since v0.8.48 (HousekeepingRoutes.cs); what hasn't moved (playback's zones) is still passed on.
+    // The status is the C# server's since v0.8.48 (HousekeepingRoutes.cs); playback's zones since v0.8.49, where it holds the job (stage 6).
     const st = await fetch(B + "/api/status", { headers: H });
     assert.equal(st.headers.get("x-mandarin-answered"), "C#", "the status: the C# server's");
     const zs = await fetch(B + "/api/zones", { headers: H });
-    assert.equal(zs.headers.get("x-mandarin-answered"), null, "the zones: still the Node server's");
+    assert.equal(zs.headers.get("x-mandarin-answered"), ctx.frontRuns.has("playback") ? "C#" : null, "the zones: the server that holds playback");
   } finally { await srv.stop(); }
 });

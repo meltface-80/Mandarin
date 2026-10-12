@@ -44,7 +44,13 @@ internal static class Images
             var m = ctx.Request.Method;
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/api/image/", StringComparison.Ordinal) && p.Length > 11 && p.IndexOf('/', 11) < 0)
             {
-                try { if (await Answer(ctx, p, p[11..])) return; }
+                try
+                {
+                    if (await Answer(ctx, p, p[11..])) return;
+                    // A speaker asking by its own address for a cover there isn't, once this server holds playback (v0.8.49): 404, as the Node server's route
+                    // answered past its gate — the Node server no longer knows the speakers, and would turn the request away as unsigned.
+                    if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
+                }
                 catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[art] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
             }
             await next();
@@ -62,7 +68,7 @@ internal static class Images
     }
 
     /* auth.js speakerIps(): a request from one of the speakers' own addresses — the hub's once this server holds playback (v0.8.49), else the Node server's (its state, "speakers"). */
-    private static async Task<bool> FromSpeaker(HttpContext ctx)
+    public static async Task<bool> FromSpeaker(HttpContext ctx)
     {
         var ip = Auth.ClientIp(ctx);
         if (Playback.Hub.Current is { } hub) return hub.SpeakerHosts.Contains(ip);
