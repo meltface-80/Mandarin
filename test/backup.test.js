@@ -35,13 +35,25 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // stopping and went on while its port was still held, and the next server on
 // it failed with EADDRINUSE.
 const restarted = async (exits) => { for (let i = 0; i < 300 && !exits.length; i++) await sleep(50); };
+// Twice on CI (Node 20, this server alone) the server after a restore's
+// restart found its port held, though the one before had closed its own and
+// the next test's server took the port a moment later; a thousand close-and-
+// listen-again rounds in one process never fail. The holder is named here,
+// so the next time says who it was.
+const whoHolds = (e) => {
+  if (e.code !== "EADDRINUSE") return e;
+  const r = require("child_process").spawnSync("lsof", ["-nP", "-iTCP:" + PORT], { encoding: "utf8" });
+  e.message += "; held by: " + ((r.stdout || "").trim() || (r.error ? r.error.message : "no one lsof can see"));
+  return e;
+};
 
 async function server(lib, exits) {
   delete require.cache[require.resolve("../index.js")];
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
     upnpMulticast: false, identify: false, exitProcess: c => exits.push(c), powerEnv: {}, powerPlatform: "linux" });
-  const ctx = await srv.start();
+  let ctx;
+  try { ctx = await srv.start(); } catch (e) { throw whoHolds(e); }
   return { srv, ctx };
 }
 

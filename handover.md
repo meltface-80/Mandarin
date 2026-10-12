@@ -162,4 +162,10 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
   last run and passed on a re-run; if it comes back it will now fail by name.
 - `test/lastfm.test.js` measures Last.fm's spacing at the far end (≥ 240 ms). C# spaces asks from
   the *answer* now (v0.8.47).
+- **test (20) has twice failed `test/backup.test.js` with EADDRINUSE** on its own port, at the
+  server started after a restore's restart, while the next test's server took the same port a
+  moment later. Not reproduced here (twelve runs under load; a thousand close-and-listen-again
+  rounds in one process), and the same commit passed in its other CI run. The test's `server()`
+  now puts `lsof`'s view of the port in the error, so the next failure names the holder: read it
+  before anything else.
 - Never skip, disable or loosen a test to get green; find the cause.
