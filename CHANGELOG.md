@@ -82,6 +82,18 @@ whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sono
 and sound devices on this computer — each part held to the Node server's own answers and command
 order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
 
+**Fixed after the merge (#209): no sound anywhere without `SERVER_IP`.** With no `SERVER_IP`
+set, as in the Docker install, the C# hub handed every speaker and phone `http://127.0.0.1:3500/…`
+for the music: Sonos rooms took the queue and played nothing, and the phone showed the album with no
+sound. The Node server's `lanAddresses()` reads this machine's network interfaces when it is given
+none (`os.networkInterfaces()`, its default); the C# copy read none, so its answer was always
+loopback. It reads them now (`Playback/Topology.cs`), which also brings back the search for speakers
+from every LAN interface, a renderer's event address and the phone's away-from-home address over
+Tailscale. Every test pinned `SERVER_IP` to 127.0.0.1, so none saw it; `test/stream-address.test.js`
+holds both servers to the rule with none set (the queue and the phone's track on this machine's LAN
+address, and the audio fetched from there), and `test/sonos-csharp.test.js` compares the two
+readings of this machine's own interfaces.
+
 - **The hub, the queue store, the phone as a zone, history, the radio and the play routes**
   (part 1): the zone hub (`lib/sonos/zones.js`: one state per zone, the revision the long polls
   wait on, the three hooks — a track started, one played long enough to count, the queue near its
