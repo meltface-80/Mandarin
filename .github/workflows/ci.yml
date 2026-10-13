@@ -3,7 +3,15 @@ name: CI
 on:
   push:
     branches: ["**"]
+  # Once per commit (v0.9.7): a pull request shows its branch's push run, so
+  # it isn't run again, but for one into main (a release on its way), which
+  # runs the Mac's tests too. Weekly (main's copy of this file), and by hand
+  # ("Run workflow", any branch), which run them as well.
   pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
 
 jobs:
   # The quality gates (docs/quality-plan.md): the file-length ratchet, lint
@@ -119,8 +127,15 @@ jobs:
   # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
   # silicon; ffmpeg from Homebrew, as the installer has it. The test files are
   # dealt out to two jobs (v0.8.49), as the Linux ones are to three.
+  #
+  # Off the test builds' path (v0.9.7, a trial): GitHub's Macs are few, and a
+  # test build waited up to an hour for one. Run on main and a pull request
+  # into it (before anything reaches a release), weekly and by hand; skipped
+  # on every other branch, so neither a merge into migration nor its image
+  # (.github/wait-for-ci.sh: a skipped job is no failure) waits on a Mac.
   macos:
     name: Tests on a Mac (part ${{ matrix.shard }})
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     timeout-minutes: 30
     strategy:
