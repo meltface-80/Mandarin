@@ -174,64 +174,72 @@ test("without the engine (a source install) it says so and stays out of the way"
   }
 });
 
-test("an install updated in place downloads the engine, checked, once per server version", { skip: built(), timeout: 180000 }, async (t) => {
+/*
+ * An install updated in place (no engine in the image): the server, and a
+ * release site (here, a server of our own) with the engine and its checksums.
+ * `fetched()`: how often the engine was downloaded; `sums`: what the site
+ * says the checksums are.
+ */
+async function engineSite(t) {
   const eng = stubEngine();
   const zlib = require("zlib"), crypto = require("crypto"), http = require("http");
   const gz = zlib.gzipSync(fs.readFileSync(eng.bin));
   const arch = { x64: "amd64", arm64: "arm64" }[process.arch];
   const good = crypto.createHash("sha256").update(gz).digest("hex") + "  musicdnet-linux-" + arch + ".gz\n";
-  let sums = good, fetched = 0;
-  const site = http.createServer((req, res) => {
-    if (req.url === "/SHA256SUMS") return res.end(sums);
-    if (req.url === "/musicdnet-linux-" + arch + ".gz") { fetched++; return res.end(gz); }
+  const site = { sums: good, good, arch, fetches: 0 };
+  const web = http.createServer((req, res) => {
+    if (req.url === "/SHA256SUMS") return res.end(site.sums);
+    if (req.url === "/musicdnet-linux-" + arch + ".gz") { site.fetches++; return res.end(gz); }
     res.writeHead(404); res.end();
   });
-  await new Promise(r => site.listen(0, "127.0.0.1", r));
-  t.after(() => { site.close(); delete process.env.TS_ENGINE_URL; });
-  // Not in the image: fetched from the release (here, the site above).
-  const srv = server("/nonexistent/musicdnet", { TS_ENGINE_URL: "http://127.0.0.1:" + site.address().port });
+  await new Promise(r => web.listen(0, "127.0.0.1", r));
+  t.after(() => { web.close(); delete process.env.TS_ENGINE_URL; });
+  const srv = server("/nonexistent/musicdnet", { TS_ENGINE_URL: "http://127.0.0.1:" + web.address().port });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(B);
-  const bin = path.join(ctx.config.dataDir, "bin", "musicdnet");
+  return { site, ctx, token, bin: path.join(ctx.config.dataDir, "bin", "musicdnet") };
+}
+
+test("an install updated in place downloads the engine, checked, once per server version", { skip: built() || (process.platform !== "linux" && "the engine is built for Linux only"), timeout: 180000 }, async (t) => {
+  const { site, ctx, token, bin } = await engineSite(t);
   const version = require("../package.json").version;
-
-  // The engine is built for Linux only: anywhere else (a Mac) it isn't
-  // offered even with somewhere to fetch it from, and nothing is fetched.
-  if (process.platform !== "linux") {
-    const s = await tailscaleOf(token);
-    assert.equal(s.available, false);
-    assert.equal(s.state, "Stopped");
-    assert.equal(fetched, 0);
-    assert.ok(!fs.existsSync(bin));
-    return;
-  }
-
   const waiting = () => until(async () => { const s = await tailscaleOf(token); return s.state === "NeedsLogin" && s; }, 30000);
   assert.equal((await waiting()).available, true);
-  assert.equal(fetched, 1);
+  assert.equal(site.fetches, 1);
   assert.ok(fs.existsSync(bin));
   assert.equal(fs.readFileSync(bin + ".version", "utf8"), version, "fetched for this version of the server");
 
   // The same version again: nothing fetched.
   await ctx.restart(token);
   await waiting();
-  assert.equal(fetched, 1);
+  assert.equal(site.fetches, 1);
 
   // The server updated (the engine there was fetched for an older one): fetched again.
   // A damaged download is refused, and the old engine still runs.
   fs.writeFileSync(bin + ".version", "0.3.21");
-  sums = "0".repeat(64) + "  musicdnet-linux-" + arch + ".gz\n";
+  site.sums = "0".repeat(64) + "  musicdnet-linux-" + site.arch + ".gz\n";
   await ctx.restart(token);
   assert.match((await waiting()).error || "", /checksum/);
-  assert.equal(fetched, 2);
+  assert.equal(site.fetches, 2);
   assert.equal(fs.readFileSync(bin + ".version", "utf8"), "0.3.21");
   // Mended: taken, and noted for this version.
-  sums = good;
+  site.sums = site.good;
   await ctx.restart(token);
   assert.equal((await waiting()).error, null);
-  assert.equal(fetched, 3);
+  assert.equal(site.fetches, 3);
   assert.equal(fs.readFileSync(bin + ".version", "utf8"), version);
+});
+
+// The engine is built for Linux only: anywhere else (a Mac) it isn't offered
+// even with somewhere to fetch it from, and nothing is fetched.
+test("off Linux the engine isn't offered, and nothing is fetched", { skip: built() || (process.platform === "linux" && "Linux has the engine"), timeout: 60000 }, async (t) => {
+  const { site, token, bin } = await engineSite(t);
+  const s = await tailscaleOf(token);
+  assert.equal(s.available, false);
+  assert.equal(s.state, "Stopped");
+  assert.equal(site.fetches, 0);
+  assert.ok(!fs.existsSync(bin));
 });
 
 // The watchdog (v0.7.2): an engine that says Running but isn't online on the
