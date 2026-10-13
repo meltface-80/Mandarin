@@ -37,9 +37,6 @@
     "public/shelf.js": {
       "lines": 2062
     },
-    "server/Mandarin.Server/Admin/Backup.cs": {
-      "lines": 810
-    },
     "server/Mandarin.Server/Admin/Tailscale.cs": {
       "lines": 435
     },
@@ -64,9 +61,6 @@
     "server/Mandarin.Server/Extras/WriteUps.cs": {
       "lines": 553
     },
-    "server/Mandarin.Server/Identify/Identifier.cs": {
-      "lines": 1195
-    },
     "server/Mandarin.Server/Identify/Pack.cs": {
       "lines": 723
     },
@@ -75,9 +69,6 @@
     },
     "server/Mandarin.Server/Library.cs": {
       "lines": 581
-    },
-    "server/Mandarin.Server/LibraryRoutes.cs": {
-      "lines": 907
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
