@@ -5,6 +5,39 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.6
+**The touch layout** (`v0.9.6-touch-layout`): on a phone or a tablet, either way round. A desktop
+(a mouse) is as it was.
+
+- **A row along the foot of the screen:** Menu on the left, then Home, Library, and Search on the
+  right. Home and Library light up on their own screens; a second tap goes back to the top. From an
+  album's page, Home or Library closes it first. The row shows on every screen but Now playing.
+- **The mini player sits above the row.** Everything that kept room for it (the page's foot, the
+  volume sheet, an album's page) keeps room for both.
+- **Home has no top bar:** the date and the greeting are at the top of the screen. The menu and the
+  glass moved to the row; other screens keep their top bar (Back, Filter, Select, Shuffle).
+- **The grid screens** (Library, Random albums, a genre, Listen later, Playlists, Smart Picks, a
+  label, an artist) have no top bar's strip: the albums scroll up to the screen's edge, and the
+  bar's buttons float where they were (‹ on the left; Shuffle, a label's logo on the right). The
+  screen's title is the page's heading, at the top of the grid.
+- **The Library:** Focus and Sort move up into ‹'s line, on the right, and say just "Focus" and
+  "Sort ⌄" (the order chosen is in the sheet Sort opens); its glass gives way to
+  Search in the row, which opens the Library's filter ("starts with") as the glass did, with the
+  strip back under the field while it is open. **The Labels list** likewise: #–Z alone on the
+  right in ‹'s line, and Search finds a label.
+- **Search** opens the top bar again with the field across the whole screen, and the page moves
+  down under it, so no result is behind it. While a field has the keyboard up, the keyboard goes
+  over the row and the mini player (in the Android app, whose page shrinks above the keyboard,
+  they step aside).
+- **Offline** is a small sign between Home and Library; a tap says what the matter is, as before.
+  **The library scan's progress** is a thin brass line along the top edge of the screen.
+- `public/touchnav.js` works the page's own controls (the menu, Home, the Library wall, the search),
+  so each does what it did; the app bundles it for offline. `test/touch-nav.test.js` holds the
+  layout at phone and tablet sizes, both ways round, and a desktop's. The Offline, Settings and UI
+  Settings tests check the phone's and tablet's places for what moved (the Offline sign in the row;
+  the top bar's disc measured on ‹; the Library's Focus and Sort in ‹'s line, no glass), and still
+  the desktop's.
+
 ## v0.9.5
 **The Android app installed over itself plays what it was playing** (`v0.9.5-rc1-phone-queue-after-reinstall`).
 

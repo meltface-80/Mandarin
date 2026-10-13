@@ -34,7 +34,6 @@ const DRIVER = `(async () => {
   out.list = { w: width(), left: Math.round(sheet().getBoundingClientRect().left) };
   // Settings' × and every page's ‹: the brass disc the top bar's buttons have, at their size (v0.7.1).
   const disc = el => { const r = el.getBoundingClientRect(); const c = getComputedStyle(el); return { w: Math.round(r.width), h: Math.round(r.height), bg: c.backgroundColor, radius: c.borderRadius }; };
-  out.bar_disc = disc(document.getElementById("menu-toggle"));
   out.close_disc = disc(document.querySelector("#settings-overlay .settings-app-close"));
   document.querySelector('#settings-overlay .settings-nav-item[data-pane="account"]').click(); await step(300);
   out.back_disc = disc(document.querySelector('#settings-overlay .settings-pane:not(.hidden) .settings-back'));
@@ -68,6 +67,11 @@ const DRIVER = `(async () => {
   document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await step(200);
   document.querySelector("#settings-overlay .settings-backdrop").click(); await step(300);
   out.closed = document.getElementById("settings-overlay").classList.contains("hidden");
+  // The top bar's disc: the menu's; on a phone or a tablet the menu is in the row along the
+  // foot (v0.9.6), so ‹ on a grid screen, the same bar's same disc.
+  const menu = document.getElementById("menu-toggle");
+  if (menu.getBoundingClientRect().width) out.bar_disc = disc(menu);
+  else { window.__showWall(); await step(400); out.bar_disc = disc(document.getElementById("topbar-back")); }
   return out;
 })()`;
 
