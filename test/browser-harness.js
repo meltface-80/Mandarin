@@ -46,6 +46,8 @@ const MOUSE = "--blink-settings=primaryPointerType=4,availablePointerTypes=4,pri
 // reports on Linux. On a Mac it reports the machine's own mouse otherwise,
 // and a phone's or a tablet's run would measure a desktop.
 const NO_MOUSE = "--blink-settings=primaryPointerType=1,availablePointerTypes=1,primaryHoverType=1,availableHoverTypes=1";
+// The longest the browser is given to answer a DevTools command, or a page to load (send, page).
+const CALL_MS = 90000;
 
 class Browser {
   constructor(proc, dir, size) {
@@ -102,12 +104,22 @@ class Browser {
     throw last;
   }
 
+  /*
+   * One DevTools command → its result. Bounded: a call the browser never
+   * answers fails the test with its name (and the test's finally closes the
+   * browser and its server), rather than holding it until its own timeout.
+   */
   send(method, params = {}, sessionId) {
     const id = ++this.id;
     const msg = { id, method, params };
     if (sessionId) msg.sessionId = sessionId;
     return new Promise((resolve, reject) => {
-      this.waiting.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        if (!this.waiting.delete(id)) return;
+        reject(new Error(`the browser didn't answer ${method} within ${CALL_MS / 1000} s`));
+      }, CALL_MS);
+      const done = (fn) => (v) => { clearTimeout(timer); fn(v); };
+      this.waiting.set(id, { resolve: done(resolve), reject: done(reject) });
       this.proc.stdio[3].write(JSON.stringify(msg) + "\0");
     });
   }
@@ -140,7 +152,9 @@ class Browser {
       if (msg.sessionId === sessionId && msg.method === "Page.loadEventFired") resolve();
     }));
     await s("Page.navigate", { url });
-    await loaded;
+    let timer;
+    const late = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error("the page didn't load within " + CALL_MS / 1000 + " s: " + url)), CALL_MS); });
+    try { await Promise.race([loaded, late]); } finally { clearTimeout(timer); }
     return {
       errors,
       /* A DevTools command for this tab (Fetch.enable, say), and its events. */

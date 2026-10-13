@@ -26,6 +26,20 @@ const built = () => fs.existsSync(BIN) ? false : "the C# server isn't built (ser
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+/*
+ * The servers this process started, by port: a test that times out never
+ * reaches its finally, and its server would hold the port for the next one
+ * (and answer it in its place). The next start on that port ends it first,
+ * and none outlives the test's process.
+ */
+const live = new Map();
+process.on("exit", () => { for (const p of live.values()) { try { p.kill("SIGKILL"); } catch (e) { /* gone */ } } });
+
+/* Whether anything answers /server-info on the port. */
+async function answers(base) {
+  try { await fetch(base + "/server-info", { signal: AbortSignal.timeout(1000) }); return true; } catch (e) { return false; }
+}
+
 /**
  * The server started and answering on [port]; [env] over the suite's. [bin]: a copy of the program to run
  * instead (an update's test: the copy is what the update replaces). exited(): how it ended, once it has.
@@ -41,7 +55,18 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
   // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.
   for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_RUNS", "INTERNAL_PORT", "MANDARIN_SERVER_BIN"]) delete e[k];
   fs.mkdirSync(dataDir, { recursive: true });
+  const base = "http://127.0.0.1:" + port;
+  const left = live.get(port);
+  if (left && left.exitCode === null && left.signalCode === null) {
+    const gone = new Promise(r => left.once("exit", r));
+    left.kill("SIGKILL");
+    await Promise.race([gone, sleep(5000)]);
+  }
+  // Whatever answers on the port must be the server started here.
+  if (await answers(base)) throw new Error("port " + port + " is taken: another server answers there");
   const proc = spawn(bin, [], { env: e, stdio: ["ignore", "pipe", "pipe"] });
+  live.set(port, proc);
+  proc.on("exit", () => { if (live.get(port) === proc) live.delete(port); });
   const logs = [];
   for (const [from, to] of [[proc.stdout, process.stdout], [proc.stderr, process.stderr]]) {
     let rest = "";
@@ -54,7 +79,6 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
   }
   let exited = null;
   proc.on("exit", (code, signal) => { exited = { code, signal }; });
-  const base = "http://127.0.0.1:" + port;
   const t0 = Date.now();
   for (;;) {
     if (exited) throw new Error(`the C# server exited before it listened (code ${exited.code}, signal ${exited.signal})`);
