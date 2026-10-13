@@ -3,41 +3,35 @@
  * The covers the Node server drew with sharp, drawn by the C# server
  * (v0.8.34, stage 1f; server/Mandarin.Server/CoversDrawn.cs), with ffmpeg:
  *
- *   - an album with no cover of its own: its placeholder, held to the Node
- *     server's own drawing of it (lib/library/artwork.js) — the same colours
- *     and layout, near enough pixel for pixel (fonts are drawn by two
- *     different libraries, so not to the byte). Where ffmpeg can't draw text
- *     (no drawtext: CI's static build, Homebrew's), the Node server's, as
- *     before;
+ *   - an album with no cover of its own: its placeholder — a colour of its
+ *     own from its title and artist (lib/library/artwork.js's rule, kept),
+ *     a gradient to a darker one, the words where ffmpeg can draw text (no
+ *     drawtext: CI's static build, some Homebrew builds — then without them,
+ *     v0.8.50);
  *   - a picture from elsewhere ("u-" and its address): fetched and drawn;
- *     one that can't be had is a 404, as the Node server answers it;
+ *     one that can't be had is a 404, as the Node server answered it;
  *   - a speaker asking by its own address (v0.8.48, stage 5 part 5): let
- *     through and sent by the C# server, as the Node server's gate lets a
- *     speaker through — their addresses come with its state.
- *
- * Through the C# server only (MANDARIN_FRONT=1): the Node server's own
- * drawing is test/artwork's, and unchanged.
+ *     through and sent; anyone else unsigned turned away at the gate.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const fs = require("fs");
-const path = require("path");
 const http = require("http");
 const { spawnSync } = require("child_process");
 const { makeLibrary, haveFfmpeg, haveDrawtext } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
-const skip = (process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1") || (!haveFfmpeg() && "ffmpeg is not installed");
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
-/* A JPEG as w × h grey levels (0–255), to compare two drawings. */
-function grey(jpg, w = 120, h = 120) {
-  const r = spawnSync(FFMPEG, ["-v", "error", "-i", "pipe:0", "-vf", `scale=${w}:${h},format=gray`, "-f", "rawvideo", "pipe:1"], { input: jpg, maxBuffer: 1 << 24 });
-  assert.equal(r.status, 0, String(r.stderr));
-  return r.stdout;
+/* artwork.js's placeholder colours: the title and artist's MD5, its first byte as a hue; hsl(h, 38%, 30%) to hsl(h + 40, 45%, 14%). */
+function placeholderColours(title, artist) {
+  const hue = Math.round(require("crypto").createHash("md5").update(title + "|" + artist).digest()[0] / 255 * 360);
+  const rgb = (h, s, l) => [0, 8, 4].map(n => { const k = (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); return Math.round((l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255); });
+  return { top: rgb(hue, 0.38, 0.30), bottom: rgb((hue + 40) % 360, 0.45, 0.14) };
 }
 /* A JPEG's average red, green and blue in a square of it. */
 function rgbAt(jpg, x, y, n, size) {
@@ -70,9 +64,8 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
-  const ctx = await srv.start();
+  await srv.start();
   t.after(() => srv.stop());
   const H = { headers: { Authorization: "Bearer " + await signIn(B) } };
   for (let i = 0; i < 100; i++) { const st = await (await fetch(B + "/api/status", H)).json(); if (st.index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
@@ -82,36 +75,25 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
   assert.ok(one && one.image_key, "an album without a cover");
 
   const drawtext = haveDrawtext();
-  await t.test("an album with no cover: its placeholder, drawn here, as the Node server draws it (by the Node server where ffmpeg can't draw text)", async () => {
+  await t.test("an album with no cover: its placeholder, drawn here — its own colours, the words where ffmpeg draws text", async () => {
+    const want = placeholderColours("Hi Res", "Artist B");
     for (const size of [120, 800]) {
       const r = await fetch(`${B}/api/image/${one.image_key}?size=${size}`, H);
       assert.equal(r.status, 200);
-      if (!drawtext) {
-        // Passed on: the Node server's own drawing, kept where the C# server finds it next time.
-        assert.equal(r.headers.get("x-mandarin-answered"), null, "this ffmpeg has no drawtext: the Node server's");
-        assert.equal(dims(Buffer.from(await r.arrayBuffer())), `${size},${size}`);
-        assert.ok(fs.existsSync(path.join(lib.data, "art", `${one.image_key}@${size}.jpg`)));
-        continue;
-      }
       assert.equal(r.headers.get("x-mandarin-answered"), "C#");
       assert.equal(r.headers.get("content-type"), "image/jpeg");
       const mine = Buffer.from(await r.arrayBuffer());
       assert.equal(dims(mine), `${size},${size}`);
-      // The Node server's own drawing of it, at the same size, for comparison.
-      const kept = path.join(lib.data, "art", `${one.image_key}@${size}.jpg`);
-      fs.rmSync(kept);
-      const theirs = fs.readFileSync((await ctx.artwork.get(one.image_key, size)).file);
-      // The same colours: the gradient's corners and middle.
-      for (const [x, y] of [[0, 0], [100, 20], [50, 50], [100, 100]]) {
-        const a = rgbAt(mine, x, y, 16, 120), b = rgbAt(theirs, x, y, 16, 120);
-        for (let i = 0; i < 3; i++) assert.ok(Math.abs(a[i] - b[i]) <= 10, `${size}px at ${x},${y}: ${a} against the Node server's ${b}`);
-      }
-      // The same picture, near enough: text drawn by two font libraries.
-      const ga = grey(mine), gb = grey(theirs);
-      let sum = 0;
-      for (let i = 0; i < ga.length; i++) sum += Math.abs(ga[i] - gb[i]);
-      const mean = sum / ga.length;
-      assert.ok(mean < 8, `${size}px: on average ${mean.toFixed(1)} apart (of 255)`);
+      // The gradient's colours: the title and artist's own at the top left, the darker one at the bottom right.
+      const near = (got, want, what) => { for (let i = 0; i < 3; i++) assert.ok(Math.abs(got[i] - want[i]) <= 12, `${size}px ${what}: ${got} against ${want}`); };
+      near(rgbAt(mine, 0, 0, 8, 120), want.top, "top left");
+      near(rgbAt(mine, 112, 112, 8, 120), want.bottom, "bottom right");
+      // The title, in white, where CoversDrawn.cs puts it (x 40, its baseline 470 of 600: "Hi" at 50–90 × 434–470),
+      // makes that square lighter than the plain gradient there (its colour at the square's middle, (X+Y)/1198 along).
+      const title = rgbAt(mine, 10, 86, 8, 120);
+      const plain = want.top.map((v, i) => Math.round(v + (want.bottom[i] - v) * (70 + 450) / 1198));
+      if (drawtext) assert.ok(title.every((v, i) => v > plain[i] + 20), `${size}px: the title drawn in white over the gradient: ${title} against ${plain}`);
+      else assert.ok(title.every((v, i) => Math.abs(v - plain[i]) <= 12), `${size}px: no drawtext, the gradient alone: ${title} against ${plain}`);
     }
   });
 
@@ -137,8 +119,8 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     assert.equal((await fetch(`${B}/api/image/${keyOf(at("/station.png"))}?size=300`)).status, 401, "signed in only");
   });
 
-  await t.test("a speaker asking by its own address: let through and sent here, as the Node server's gate lets it through", async () => {
-    // The rooms found, their addresses with the Node server's state.
+  await t.test("a speaker asking by its own address: let through and sent here; anyone else unsigned turned away at the gate", async () => {
+    // The rooms found, their addresses the hub's.
     for (let i = 0; i < 300; i++) { if ((await (await fetch(B + "/api/zones", H)).json()).zones.length >= 2) break; await new Promise(r => setTimeout(r, 100)); }
     const withCover = albums.find(a => a.title === "Album One");
     const ask = (localAddress, base) => new Promise((resolve, reject) => {
@@ -149,14 +131,11 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
         res.on("end", () => resolve({ status: res.statusCode, by: res.headers["x-mandarin-answered"] || null, type: res.headers["content-type"], body: Buffer.concat(chunks) }));
       }).on("error", reject);
     });
-    // No token, no signature: from a speaker's address, sent by the C# server; from any other, the Node server's gate turns it away.
+    // No token, no signature: from a speaker's address, sent; from any other, the gate's refusal (auth.js gate, Auth.Media.cs).
     const speaker = await ask(ports.host(0));
     assert.deepEqual([speaker.status, speaker.by, speaker.type], [200, "C#", "image/jpeg"]);
     assert.equal(dims(speaker.body), "300,300");
     const stranger = await ask("127.0.0.1");
-    assert.deepEqual([stranger.status, stranger.by], [401, null], "not a speaker: the Node server's refusal");
-    // The Node server's own gate says the same of each.
-    assert.equal((await ask(ports.host(0), "http://127.0.0.1:" + ctx.listeningOn)).status, 200);
-    assert.equal((await ask("127.0.0.1", "http://127.0.0.1:" + ctx.listeningOn)).status, 401);
+    assert.deepEqual([stranger.status, stranger.by, JSON.parse(stranger.body.toString()).sign_in_required], [401, "C#", true], "not a speaker: turned away");
   });
 });
