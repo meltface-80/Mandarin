@@ -108,7 +108,7 @@ const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tail
  *   ctx.config             the options as given
  *   ctx.logs               every line the program has printed (start's logs)
  *   ctx.internal(p, body)  one of the program's private addresses asked (POST, the front key): { status, ...its JSON }
- *   ctx.restart(token)     Settings → Restart, and the program's next run waited for (a new boot id on /server-info)
+ *   ctx.restart(token)     Settings → Restart, and the program's next run waited for (a new boot id on /server-info, its first scan done)
  * An option the program has no reading of is refused, so a test says what it does without it.
  * @param {Record<string, any>} overrides
  */
@@ -159,8 +159,13 @@ function createServer(overrides = {}) {
       const before = await boot();
       const r = await fetch(ctx.base + "/api/system/restart", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" });
       if (r.status !== 200) throw new Error("restart refused: " + r.status + " " + await r.text());
-      for (let i = 0; i < 300; i++) { const b = await boot(); if (b && b !== before) return b; await sleep(100); }
-      throw new Error("the server didn't start again");
+      let now = null;
+      for (let i = 0; i < 300 && !now; i++) { const b = await boot(); if (b && b !== before) now = b; else await sleep(100); }
+      if (!now) throw new Error("the server didn't start again");
+      // Its first scan done, as at any start (a Clean up or a rescan asked meanwhile is refused while it runs): the last one known again.
+      const scan = async () => { try { return (await (await fetch(ctx.base + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).scan; } catch (e) { return null; } };
+      for (let i = 0; i < 600; i++) { const s = await scan(); if (s && s.last && !s.running) return now; await sleep(100); }
+      throw new Error("the server's first scan after starting again didn't end");
     },
     auth: {
       signUrl(url) {

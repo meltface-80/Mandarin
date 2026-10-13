@@ -501,7 +501,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(cu.qobuz.albums, 3);
       const playsBefore = ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
       const r2 = await api("library/cleanup", { kind: "qobuz" });
-      assert.equal(r2.removed, 3);
+      assert.equal(r2.removed, 3, JSON.stringify(r2));
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM albums WHERE key LIKE 'qobuz:%'").get().n, 0);
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n, playsBefore, "plays stay");
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE 'qobuz-%'").get().n, 0);
