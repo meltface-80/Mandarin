@@ -15,6 +15,11 @@
  * arguments, the download list's signing and combining, the loudness summary,
  * AutoEq's bands) is held to the same answers. Nothing here changes what runs.
  * Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept (test/golden/streams-csharp.json, made with
+ * RECORD_STREAMS=1 while lib/ was here) and the C# program alone held to them; what a case is made of that the
+ * Node server worked out (a plan, a gain, a renderer's chips, a signed address) is asked of the C# program first,
+ * held the same way. public/biquad.js, the page's own, is still asked live.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -22,38 +27,35 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { createRequire } = require("module");
-const parseurl = require("parseurl");
-const { compileQueryParser } = require("express/lib/utils");
-const FF = require("../lib/ffmpeg");
-const DSP = require("../lib/dsp");
 const Biquad = require("../public/biquad");
-const LOUD = require("../lib/loudness");
-const { planFor } = require("../lib/server/playback");
-const SV = require("../lib/services");
-const { createRadioMemory, radioKey, SIX_MONTHS_MS } = require("../lib/radio-memory");
-const PROFILES = require("../lib/renderers/profiles");
+const { answers } = require("./golden");
 
+const RECORD = process.env.RECORD_STREAMS === "1";
+const kept = answers("streams-csharp", RECORD);
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_STREAMS=1 made it)");
+// Every kept answer asked for, where every test ran (on Node without fdlibm's Math some are left out: below).
+test.after(() => { if (!skip && !onlyFdlibm()) kept.done(); });
+const DAY = 24 * 60 * 60 * 1000;
+const SIX_MONTHS_MS = 183 * DAY;   // lib/radio-memory.js's window
 
-/* lib/stream.js as it is, with the functions it keeps to itself. */
-function internals(file, names) {
-  const src = fs.readFileSync(file, "utf8");
+/* The Node server's modules, asked while recording (lib/, until v0.8.50): lib/stream.js with the functions it keeps to itself. */
+const NODE = RECORD ? (() => {
+  const { createRequire } = require("module");
+  const file = path.join(__dirname, "..", "lib", "stream.js");
   const mod = { exports: {} };
-  return new Function("require", "module", "exports", "__filename", "__dirname", src + `\n;return { ${names.join(", ")} };`)(
+  const names = ["plan", "rendererPlan", "rendererMime", "nativeMime", "mimeForExt", "family", "repack", "withDsp", "withGain", "ffmpegArgs", "Transcoder"];
+  const S = new Function("require", "module", "exports", "__filename", "__dirname", fs.readFileSync(file, "utf8") + `\n;return { ${names.join(", ")} };`)(
     createRequire(file), mod, mod.exports, file, path.dirname(file));
-}
-const S = internals(path.join(__dirname, "..", "lib", "stream.js"),
-  ["plan", "rendererPlan", "rendererMime", "nativeMime", "mimeForExt", "family", "repack", "withDsp", "withGain", "ffmpegArgs", "Transcoder"]);
-const keyFor = (track, p) => S.Transcoder.prototype.keyFor.call(null, track, p);
-
-/* ffmpegArgs as it runs with an ffmpeg that has libsoxr, or hasn't. */
-function withSoxr(soxr, fn) {
-  const real = FF.info;
-  FF.info = () => ({ ok: true, bin: "ffmpeg", soxr: !!soxr, flac32: false });
-  try { return fn(); } finally { FF.info = real; }
-}
+  const FF = require("../lib/ffmpeg");
+  return {
+    S, FF, DSP: require("../lib/dsp"), LOUD: require("../lib/loudness"), planFor: require("../lib/server/playback").planFor, SV: require("../lib/services"),
+    ...require("../lib/radio-memory"), PROFILES: require("../lib/renderers/profiles"),
+    keyFor: (track, p) => S.Transcoder.prototype.keyFor.call(null, track, p),
+    // ffmpegArgs as it runs with an ffmpeg that has libsoxr, or hasn't.
+    withSoxr(soxr, fn) { const real = FF.info; FF.info = () => ({ ok: true, bin: "ffmpeg", soxr: !!soxr, flac32: false }); try { return fn(); } finally { FF.info = real; } }
+  };
+})() : null;
 
 // ------------------------------------------------------------------ the wire
 
@@ -123,13 +125,19 @@ const fdlibm = () => (mathHere = mathHere || mathProbe()).differ === 0;
 const onlyFdlibm = () => skip || (!fdlibm() && `this Node's Math isn't V8's fdlibm (${process.arch}: ${mathHere.differ} of ${mathHere.cases} differ in the last bits); held to the bit on x64`);
 
 let compared = 0;
-/* Both answers, case by case; the first that differs is shown with its seed. */
+/* Both answers, case by case, the other asked here (public/biquad.js, Node itself); the first that differs is shown with its seed. */
 function same(what, cases, got, want, seed) {
   assert.ok(Array.isArray(got), what + ": no answers from the C# server");
   assert.equal(got.length, cases.length, what + ": one answer for each case");
   for (let i = 0; i < cases.length; i++) {
     assert.deepStrictEqual(got[i], want[i], `${what} #${i}${seed != null ? ` (seed ${seed})` : ""}: ${JSON.stringify(cases[i], enc)}\n  C#:   ${JSON.stringify(got[i])}\n  Node: ${JSON.stringify(want[i])}`);
   }
+  compared += cases.length;
+}
+/* The C# server's answers held to the Node server's, kept ([want] asked while recording). */
+function held(what, cases, got, want, seed) {
+  assert.ok(Array.isArray(got), what + ": no answers from the C# server");
+  kept.same(what, cases.map(() => seed != null ? "seed " + seed : "by hand"), cases.map(c => JSON.parse(JSON.stringify(c ?? null, enc))), got, RECORD && want);
   compared += cases.length;
 }
 
@@ -139,7 +147,8 @@ function rng(seed) {
 }
 const pick = (r, list) => list[Math.floor(r() * list.length)];
 const some = (r, list, p = 0.5) => list.filter(() => r() < p);
-const DAY = 24 * 60 * 60 * 1000;
+/* A C# answer as the Node server's value: NaN, the infinities and −0 back from { $js }. */
+const unmark = v => JSON.parse(JSON.stringify(v), dec);
 
 // ------------------------------------------------------------------ tracks and devices
 
@@ -200,9 +209,8 @@ function dspSetting(r) {
   return d;
 }
 
-/* A device's target as lib/renderers/players.js targetFor makes it, from a register record. */
-function targetFrom(r, record, flac32) {
-  const caps = PROFILES.effective(record);
+/* A device's target as lib/renderers/players.js targetFor makes it, from a register record and its chips. */
+function targetFrom(record, caps, flac32, rest) {
   const rates = caps.rates.filter(x => x.on).map(x => x.hz);
   const bits = caps.bits.filter(x => x.on).map(x => x.n);
   const most = bits.length ? Math.max(...bits) : 24;
@@ -214,9 +222,21 @@ function targetFrom(r, record, flac32) {
       dsf: mimes.find(m => /^audio\/(x-)?dsf$/.test(m)) || mimes.find(m => /^audio\/(x-)?dsd$/.test(m)) || null,
       dff: mimes.find(m => /^audio\/(x-)?dff$/.test(m)) || mimes.find(m => /^audio\/(x-)?dsd$/.test(m)) || null
     },
-    mode: pick(r, ["original", "x2", "x4", "max"]), bits: pick(r, ["auto", 24, 32]),
-    dsp: r() < 0.2 ? dspSetting(r) : null, id: "UPNP_" + Math.floor(r() * 1000)
+    mode: rest.mode, bits: rest.bits, dsp: rest.dsp, id: rest.id
   };
+}
+/* profiles.js's tables and each record's chips, the C# server's (held to the Node server's). */
+let TABLES = null;
+function tables() {
+  if (TABLES) return TABLES;
+  const got = csharp({ fn: "profiles", lookups: [], records: [] }), P = RECORD && NODE.PROFILES;
+  held("profiles' tables (to make cases)", ["rates", "bits", "dsd"], [got.rates, got.bits, got.dsd], RECORD && (() => [P.RATES, P.BITS, P.DSD]));
+  return (TABLES = { RATES: got.rates, BITS: got.bits, DSD: got.dsd });
+}
+function effectiveOf(records) {
+  const got = csharp({ fn: "profiles", lookups: [], records: records.map(record => ({ record })) }).effective;
+  held("effective (to make cases)", records, got, RECORD && (() => records.map(x => JSON.parse(JSON.stringify(NODE.PROFILES.effective(x))))));
+  return got;
 }
 const CONTAINER_SETS = [[], ["flac"], ["flac", "wav"], ["mp3"], ["flac", "mp3", "aac", "alac", "wav", "aiff", "ogg", "opus", "dsd"],
   ["dsd", "flac"], ["aac", "alac"], ["ogg", "opus"], ["wav", "aiff"], ["flac", "dsd", "mp3"]];
@@ -229,13 +249,14 @@ const MODELS = [
 ];
 /* Every renderer profile, with what it advertises and what its owner ticked. */
 function profileTargets(r) {
-  const out = [];
+  const made = [], T = tables();
   for (const m of MODELS) for (const containers of CONTAINER_SETS) for (const flac32 of [false, true]) {
-    const user = r() < 0.3 ? { rates: some(r, PROFILES.RATES), bits: some(r, PROFILES.BITS), dsd: some(r, PROFILES.DSD) } : null;
+    const user = r() < 0.3 ? { rates: some(r, T.RATES), bits: some(r, T.BITS), dsd: some(r, T.DSD) } : null;
     const record = Object.assign({ kind: "upnp", name: m.model || m.kind, caps: { advertised: { containers, mimes: pick(r, MIME_SETS), rates: some(r, RATES, 0.1) }, user } }, m);
-    out.push(targetFrom(r, record, flac32));
+    made.push({ record, flac32, rest: { mode: pick(r, ["original", "x2", "x4", "max"]), bits: pick(r, ["auto", 24, 32]), dsp: r() < 0.2 ? dspSetting(r) : null, id: "UPNP_" + Math.floor(r() * 1000) } });
   }
-  return out;
+  const caps = effectiveOf(made.map(x => x.record));
+  return made.map((x, i) => targetFrom(x.record, caps[i], x.flac32, x.rest));
 }
 /* A target of any shape at all. */
 function oddTarget(r) {
@@ -305,21 +326,22 @@ function plansJob(r, n) {
     plan_for: [], service: [], held_mime: [], held_sonos: [], held_keys: [], held_args: [] };
   const targets = profileTargets(r);
   const anyTarget = () => { const x = r(); return x < 0.3 ? null : x < 0.7 ? pick(r, targets) : oddTarget(r); };
+  // Plans and gains made of the cases' tracks: worked out after (planned below), in place.
+  const toPlan = [], toGain = [];
   for (let i = 0; i < n; i++) {
     const t = track(r);
     job.native.push(t);
     job.plan.push([t, anyTarget()]);
     job.renderer_mime.push([t, some(r, ["flac", "mp3", "aac", "alac", "wav", "aiff", "ogg", "opus", "dsd"])]);
     // A plan as the Node server makes them, then some it never would.
-    let p;
-    try { p = S.plan(wire(t), wire(anyTarget())); } catch (e) { p = { transcode: true, rate: 44100, bits: 16 }; }
-    if (r() < 0.2) Object.assign(p, pick(r, [{ exact: true }, { dsd: 64 }, { gain: -3 }, { upsampled: 2 }, { transcode: false }, { bits: 16 }, { rate: "44100" }, { copy: true }, { hq: true }, { bits: 32 }]));
+    const p = {};
+    toPlan.push({ p, t, target: anyTarget(), extra: r() < 0.2 ? pick(r, [{ exact: true }, { dsd: 64 }, { gain: -3 }, { upsampled: 2 }, { transcode: false }, { bits: 16 }, { rate: "44100" }, { copy: true }, { hq: true }, { bits: 32 }]) : null });
     const junk = pick(r, [null, "plan", {}, { transcode: true }, { transcode: 1, rate: 44100, bits: 24 }, []]);
     job.repack.push([r() < 0.9 ? p : junk, t]);
     job.with_gain.push([r() < 0.95 ? p : junk, t, r() < 0.5 ? null : anyTarget(), r() < 0.7 ? Math.round((r() * 40 - 24) * 1000) / 1000 : pick(r, GAINS)]);
     if (p && typeof p === "object" && !Array.isArray(p)) job.with_dsp.push([p, r() < 0.95 ? Object.assign({}, anyTarget() || {}, { dsp: dspSetting(r) }) : null, pick(r, [44100, 0, undefined, "96000", 48000])]);
-    let gp;
-    try { gp = S.withGain(wire(p), wire(t), null, pick(r, [-3.2, 4, 0, -11.75])); } catch (e) { gp = p; }
+    const gp = {};
+    toGain.push({ gp, p, t, g: pick(r, [-3.2, 4, 0, -11.75]) });
     job.args.push([pick(r, ["/m/a.flac", "qobuz://track/1", "/m/Ünïcode 😀.wav"]), r() < 0.9 ? gp : junk, "/tmp/out.flac.part", r() < 0.5]);
     job.keys.push([{ id: pick(r, [1, 42, 1234567, "7", null]), mtime: pick(r, [0, 1700000000000, 1700000000123.75, -1.5, null, "1700000000000", NaN, -0.5]) }, gp]);
     const row = { id: i + 1, path: pick(r, [t.path, t.path, "qobuz://track/" + i, "tidal://track/" + i]), codec: t.codec, sample_rate: t.sampleRate, bits: t.bitsPerSample, channels: t.channels };
@@ -338,11 +360,27 @@ function plansJob(r, n) {
   job.held_mime = ["flac", "FLAC", "fla", "mp3", "m4a", "mp4", "alac", "m4b", "aac", "ogg", "oga", "opus", "wav", "wave", "aif", "aiff", "aifc",
     "wma", "dsf", "DSF", "dff", "ape", "x", "Ogg", "OPUS", "0", "m4A"];
   job.family = RATES.concat(DSD_RATES, [0, -0, -44100, NaN, Infinity, -Infinity, 88200.5, 1e300, 132300, 4410, "44100", null]);
+  plansMade(toPlan, toGain);
   return job;
 }
 
-/* Node's answers for a plans job. */
+/* A plans job's own plans and gains, as the C# server works them out (held to the Node server's), laid into the
+ * objects its cases hold: a plan that throws is a plain conversion, a gain that throws leaves the plan as it was. */
+function plansMade(toPlan, toGain) {
+  if (!toPlan.length) return;
+  const pairs = toPlan.map(x => [x.t, x.target]);
+  const plans = csharp(wire({ fn: "plans", plan: pairs })).plan;
+  held("plans.plan (to make cases)", pairs, plans, RECORD && (() => run(wire(pairs), ([t, target]) => NODE.S.plan(t, target))));
+  toPlan.forEach((x, i) => Object.assign(x.p, plans[i] && plans[i].$throws ? { transcode: true, rate: 44100, bits: 16 } : unmark(plans[i]), x.extra || {}));
+  const gains = toGain.map(x => [x.p, x.t, null, x.g]);
+  const gained = csharp(wire({ fn: "plans", with_gain: gains })).with_gain;
+  held("plans.with_gain (to make cases)", gains, gained, RECORD && (() => run(wire(gains), ([p, t, target, g]) => NODE.S.withGain(p, t, target, g))));
+  toGain.forEach((x, i) => Object.assign(x.gp, gained[i] && gained[i].$throws ? JSON.parse(JSON.stringify(x.p)) : unmark(gained[i])));
+}
+
+/* Node's answers for a plans job (recording). */
 function plansNode(job) {
+  const { S, keyFor, withSoxr, planFor, SV } = NODE;
   return {
     native: run(job.native, t => S.nativeMime(t)),
     ext_mime: run(job.ext_mime, e => S.mimeForExt(e)),
@@ -364,10 +402,11 @@ function plansNode(job) {
   };
 }
 
+const PLAN_KEYS = ["native", "ext_mime", "family", "renderer_mime", "plan", "repack", "with_gain", "with_dsp", "args", "keys", "plan_for", "service", "held_mime", "held_sonos", "held_keys", "held_args"];
 function comparePlans(job, seed) {
-  const got = csharp(job);
-  const want = plansNode(wire(job));
-  for (const k of Object.keys(want)) same("plans." + k, job[k], got[k], want[k], seed);
+  const got = csharp(wire(job));
+  const want = RECORD ? plansNode(wire(job)) : null;
+  for (const k of PLAN_KEYS) held("plans." + k, job[k], got[k], RECORD && (() => want[k]), seed);
 }
 
 test("V8's Math as JsMath.cs has it: Node's to the bit on x64, within the last bits on arm64", { skip }, (t) => {
@@ -385,7 +424,9 @@ test("stream plans: the repo's own cases, then every rate, depth, container and 
   // stream.test.js: a gain changes the samples, so a repack is no longer exact.
   const wav = { path: "/m/a.wav", codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
   const dac = { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] };
-  job.with_gain = [[S.plan(wav, dac), wav, dac, -3]];
+  const toPlan = [{ p: {}, t: wav, target: dac }];
+  plansMade(toPlan, []);
+  job.with_gain = [[toPlan[0].p, wav, dac, -3]];
   // Every rate × depth × container (as a file and as its codec says) × each kind of device.
   const kinds = [["/m/a.flac", "FLAC"], ["/m/a.wav", "pcm_s24le"], ["/m/a.wav", "PCM"], ["/m/a.aiff", "PCM"], ["/m/a.aif", ""], ["/m/a.m4a", "ALAC"],
     ["/m/a.m4a", "AAC"], ["/m/a.mp3", "MPEG 1 Layer 3"], ["/m/a.ogg", "Vorbis"], ["/m/a.opus", "Opus"], ["/m/a.ape", "Monkey's Audio"],
@@ -440,7 +481,8 @@ function dspJob(r, n) {
   return job;
 }
 
-function dspNode(job) {
+/* The page's own biquad.js, asked here: what both servers' DSP is held to. */
+function dspPage(job) {
   const N = x => Number(x);
   const normalised = f => x => { try { return f(x); } catch (e) { return { error: e.message }; } };
   return {
@@ -456,18 +498,26 @@ function dspNode(job) {
     active: run(job.active, d => Biquad.active(d)),
     fingerprint: run(job.fingerprint, ([d, fs]) => Biquad.fingerprint(d, fs)),
     num: run(job.num, v => (Math.round(v * 1000) / 1000).toString()),
-    band_filter: run(job.band_filter, b => DSP.bandFilter(b)),
-    filters: run(job.filters, ([d, inRate, rate, soxr]) => DSP.filters(d, { inRate, rate, soxr })),
-    plan_part: run(job.plan_part, ([d, rate]) => DSP.planPart(d, rate)),
     // AutoEq's typed twin keeps no −0 (a page never shows one): compared as plain JSON.
     held_autoeq: (job.held_autoeq || []).map(([type, freq, gain, q]) => { try { return JSON.parse(JSON.stringify(Biquad.normaliseBand({ type, freq, gain, q }))); } catch (e) { return { error: e.message }; } })
+  };
+}
+/* The Node server's lib/dsp.js (recording). */
+function dspNode(job) {
+  const { DSP } = NODE;
+  return {
+    band_filter: run(job.band_filter, b => DSP.bandFilter(b)),
+    filters: run(job.filters, ([d, inRate, rate, soxr]) => DSP.filters(d, { inRate, rate, soxr })),
+    plan_part: run(job.plan_part, ([d, rate]) => DSP.planPart(d, rate))
   };
 }
 
 function compareDsp(job, seed) {
   const got = csharp(job);
-  const want = dspNode(wire(job));
-  for (const k of Object.keys(want)) same("dsp." + k, job[k], got[k], want[k], seed);
+  const page = dspPage(wire(job));
+  for (const k of Object.keys(page)) same("dsp." + k, job[k], got[k], page[k], seed);
+  const want = RECORD ? dspNode(wire(job)) : null;
+  for (const k of ["band_filter", "filters", "plan_part"]) held("dsp." + k, job[k], got[k], RECORD && (() => want[k]), seed);
 }
 
 test("the DSP: the repo's own settings, every filter type at its extremes, and generated ones", { skip: onlyFdlibm() }, () => {
@@ -513,8 +563,9 @@ test("the DSP: the repo's own settings, every filter type at its extremes, and g
 
 // ------------------------------------------------------------------ ReplayGain
 
-/* Loudness's own methods, the database stood in for by what the case says it holds. */
+/* Loudness's own methods, the database stood in for by what the case says it holds (recording). */
 function loudness(measured, albums) {
+  const { LOUD } = NODE;
   const self = {
     q: { measured: { get: id => (measured || {})[id] }, album: { all: id => (albums || {})[id] || [] } },
     albumOf: LOUD.Loudness.prototype.albumOf, infoOf: LOUD.Loudness.prototype.infoOf, gainOf: LOUD.Loudness.prototype.gainOf
@@ -560,6 +611,7 @@ function gainJob(r, n) {
 }
 
 function gainNode(job) {
+  const { LOUD } = NODE;
   const patch = ([cur, p]) => { try { return LOUD.levellingPatch(cur, p); } catch (e) { return { error: e.message, status: e.status }; } };
   return {
     levelling: run(job.levelling, v => LOUD.levelling(v)),
@@ -584,23 +636,23 @@ test("ReplayGain: the repo's own cases, then generated settings, tags, measureme
     [{ track_gain: -6, track_peak: 0.5, album_gain: null }, "album"], [{ track_gain: 10, track_peak: 0.5 }, "track"],
     [{ track_gain: -6, track_peak: 0.5 }, "track", 4], [{ track_gain: -6, track_peak: 0.5 }, "track", -7],
     [{ track_gain: null, album_gain: null }, "track"], [{ track_gain: null, album_gain: null }, "track", 4, -5], [{ track_gain: 0.02 }, "track"]);
+  const KEYS = ["levelling", "patch", "ebur", "combine", "held_combine", "album", "info", "gain_of", "gains_for"];
   const got = csharp(job);
-  const want = gainNode(wire(job));
-  for (const k of Object.keys(want)) same("gain." + k, job[k === "held_combine" ? "combine" : k], got[k], want[k], 1800);
+  const want = RECORD ? gainNode(wire(job)) : null;
+  for (const k of KEYS) held("gain." + k, job[k === "held_combine" ? "combine" : k], got[k], RECORD && (() => want[k]), 1800);
   for (const seed of [21, 22, 23]) {
     const g = gainJob(rng(seed), 800);
     const gotG = csharp(g);
-    const wantG = gainNode(wire(g));
-    for (const k of Object.keys(wantG)) same("gain." + k, g[k === "held_combine" ? "combine" : k], gotG[k], wantG[k], seed);
+    const wantG = RECORD ? gainNode(wire(g)) : null;
+    for (const k of KEYS) held("gain." + k, g[k === "held_combine" ? "combine" : k], gotG[k], RECORD && (() => wantG[k]), seed);
   }
 });
 
 // ------------------------------------------------------------------ signing
 
-const QP = compileQueryParser("extended");
-/* The Node server's gate on a media address: let through by its signature, or not. */
+/* The Node server's gate on a media address (recording): let through by its signature, or not. */
 function nodeGate(auth, url) {
-  const u = parseurl({ url });
+  const QP = require("express/lib/utils").compileQueryParser("extended"), u = require("parseurl")({ url });
   const req = { url, originalUrl: url, method: "GET", headers: {}, socket: { remoteAddress: "198.51.100.7" }, path: u.pathname, query: QP(u.query) };
   let passed = false;
   const res = { status() { return this; }, json() { return this; }, redirect() { return this; }, set() { return this; } };
@@ -609,16 +661,13 @@ function nodeGate(auth, url) {
 }
 
 test("URL signing: the addresses the Node server signs, and the gate's decision on them", { skip }, () => {
-  const { createAuth } = require("../lib/server/auth");
-  const DB = require("../lib/library/db");
   const secrets = ["5f0c1e2d3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d", "sécret 😀", "x", "\ud800lone"];
   let vouched = 0, declined = 0;
   for (const [si, secret] of secrets.entries()) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-sign-"));
-    const db = DB.open(dir, { log: () => {} });
+    // The Node server's auth, with this secret, while recording.
+    const dir = RECORD ? fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-sign-")) : null, db = RECORD ? require("../lib/library/db").open(dir, { log: () => {} }) : null;
     try {
-      db.setSetting("authSecret", secret);
-      const auth = createAuth({ db, log: () => {} });
+      const auth = RECORD ? (db.setSetting("authSecret", secret), require("../lib/server/auth").createAuth({ db, log: () => {} })) : null;
       const r = rng(900 + si);
       const keys = ["al-1-0", "u-0123abcd", "label-columbia", "a b", "Ünïcode 😀", "%2F", "a?b", "50%", "x#y", "", "~!*'()"];
       const paths = [];
@@ -629,7 +678,9 @@ test("URL signing: the addresses the Node server signs, and the gate's decision 
             : pick(r, ["http://192.168.1.2:4400/stream/t1.flac", "https://h/api/image/x?size=600", "x://", "http://host", "http://h/p?a=1?b=2", "", "?", "/", "http://h/a%20b", "ftp://h/a/b?c"]));
       }
       const urls = paths.concat(["/api/image/al-1-0?size=200", "/api/image/" + "k" + "?size=300", "/stream/t1.orig.flac"]);
-      const signed = urls.map(u => auth.signUrl(u));
+      // The addresses signed by the C# server (held to the Node server's), then every way of getting one wrong.
+      const signed = csharp({ fn: "sign", secret, urls }).urls;
+      held("sign.urls", urls, signed, RECORD && (() => urls.map(u => auth.signUrl(u))), si);
       const targets = [];
       for (const s of signed) {
         const at = s.indexOf("/", s.indexOf("://") >= 0 ? s.indexOf("://") + 3 : 0);
@@ -654,23 +705,16 @@ test("URL signing: the addresses the Node server signs, and the gate's decision 
       same("sign.sigs", job.sigs, got.sigs, job.sigs.map(sig), si);
       same("sign.urls", job.urls, got.urls, signed, si);
       same("sign.valid", job.valid, got.valid, job.valid.map(([p, s]) => /^[A-Za-z0-9_-]{22}$/.test(s) && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(sig(p)))), si);
-      // The C# server says yes or no only where it can say it as the Node server does; elsewhere the Node server decides.
-      for (let i = 0; i < targets.length; i++) {
-        const node = nodeGate(auth, targets[i]);
-        if (got.targets[i] === null) { declined++; continue; }
-        vouched++;
-        assert.equal(got.targets[i], node, `sign.targets #${i} (seed ${si}): ${targets[i]}`);
-      }
-      compared += targets.length;
-      for (let i = 0; i < job.queries.length; i++) {
-        if (got.queries[i] === null) continue;
-        assert.equal(got.queries[i], String(QP(job.queries[i]).s || ""), `sign.queries #${i}: ${job.queries[i]}`);
-      }
-      compared += job.queries.length;
+      // The C# server says yes or no only where it can say it as the Node server does (the recording keeps where).
+      for (const v of got.targets) if (v === null) declined++; else vouched++;
+      held("sign.targets", targets, got.targets, RECORD && (() => targets.map((t, i) => got.targets[i] === null ? null : nodeGate(auth, t))), si);
+      held("sign.queries", job.queries, got.queries, RECORD && (() => {
+        const QP = require("express/lib/utils").compileQueryParser("extended");
+        return job.queries.map((q, i) => got.queries[i] === null ? null : String(QP(q).s || ""));
+      }), si);
       same("sign.decode", job.decode, got.decode, job.decode.map(s => { try { return decodeURIComponent(s); } catch (e) { return null; } }), si);
     } finally {
-      db.raw.close();
-      fs.rmSync(dir, { recursive: true, force: true });
+      if (RECORD) { db.raw.close(); fs.rmSync(dir, { recursive: true, force: true }); }
     }
   }
   assert.ok(vouched > declined, `the C# server decides most addresses itself (${vouched} decided, ${declined} left to the Node server)`);
@@ -682,6 +726,7 @@ const ALBUM_NAMES = ["Kid A", "Abbey Road", "ABBEY ROAD", "÷", "+", "テスト"
 const ARTISTS = ["Radiohead", "The Beatles", "Beatles", "Ed Sheeran", "Someone", "Joni Mitchell", "Kate Bush", "", "  ", "The", "the the", "Prince", "Ünïcode 😀", "÷"];
 
 function radioNode(run) {
+  const { createRadioMemory, radioKey } = NODE;
   let clock = run.start, written = null;
   const m = createRadioMemory({ load: () => run.saved, save: o => { written = o; }, now: () => clock, windowMs: run.window });
   const results = [];
@@ -742,8 +787,8 @@ test("the radio's six-month memory: the repo's own sequences, then generated one
   for (const [i, j] of all.entries()) {
     const got = csharp(j);
     const w = wire(j);
-    same("radio.keys", j.keys, got.keys, run(w.keys, al => radioKey(al)), i === 0 ? 183 : 30 + i);
-    same("radio.runs", j.runs, got.runs, run(w.runs, radioNode), i === 0 ? 183 : 30 + i);
+    held("radio.keys", j.keys, got.keys, RECORD && (() => run(w.keys, al => NODE.radioKey(al))), i === 0 ? 183 : 30 + i);
+    held("radio.runs", j.runs, got.runs, RECORD && (() => run(w.runs, radioNode)), i === 0 ? 183 : 30 + i);
   }
 });
 
