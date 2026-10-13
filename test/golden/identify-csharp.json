@@ -1,0 +1,20 @@
+{
+ "answers": {
+  "names": {
+   "n": 161,
+   "per": 32,
+   "sums": "0c33169dfca1221fe8aba4f8d11467bef73b4481b4f1f113"
+  },
+  "pairs": {
+   "n": 483,
+   "per": 32,
+   "sums": "d3fab5921d70f2a75563fe48fc342ec3ed516a70832c2214462efab5eca6878a1a2af823869f463ee098ee773675ae8a0b6dea0c4184e3faddca1bfa7444615d"
+  },
+  "decide": {
+   "n": 700,
+   "per": 32,
+   "sums": "8c654d007814bde4a27055aa945a839bfc52675dc9478e4615afe49270d2794f5c34fcd2b08192838c8148e60865fedcd698aedeec87fedce11f38e58aa1194fb854c15d8968dd03c7a683a51cce787dfc56ef9ed4c5f408"
+  }
+ },
+ "inputs": {}
+}

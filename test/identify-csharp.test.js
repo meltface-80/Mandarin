@@ -7,7 +7,14 @@
  * releases, every number, part, pair and verdict compared; and a file's
  * waveform (lib/waveform.js) decoded both ways, bucket for bucket. The scan
  * itself, the pack and loudness measuring are run against the C# server by
- * their own tests in MANDARIN_FRONT=1. Skipped where the C# server isn't built.
+ * their own tests. Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/identify-csharp.json), made with
+ * RECORD_IDENTIFY=1 while lib/ was here; the cases are still made here,
+ * seeded, and the C# program alone is held to them case for case. A waveform
+ * is held to the Node server's rule as test/waveform-rule.js keeps it, on
+ * this machine's ffmpeg.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -15,11 +22,18 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const SCORE = require("../lib/identify/score");
 const { haveFfmpeg, gen } = require("./fixtures");
+const { answers } = require("./golden");
+const { waveformOf } = require("./waveform-rule");
+
+const RECORD = process.env.RECORD_IDENTIFY === "1";
+// The Node server's scorer, asked while recording (lib/, until v0.8.50).
+const SCORE = RECORD ? require("../lib/identify/score") : null;
+const kept = answers("identify-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_IDENTIFY=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
 
 /* Ask the C# scorer: one line of JSON per job, one back per job. */
 function csharp(jobs) {
@@ -31,6 +45,8 @@ function csharp(jobs) {
   return lines;
 }
 const plain = v => JSON.parse(JSON.stringify(v));
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, labels, cases, got, want) => kept.same(what, labels, cases, got, RECORD && (() => plain(want())));
 
 // A small seeded generator, so a failure can be run again.
 function rng(seed) {
@@ -60,10 +76,7 @@ const NAMES = [
 
 test("the scorer's names: tidied, bare, clean, compared, edition years, disc marks — the same both ways", { skip }, () => {
   const [c] = csharp([{ fn: "names", names: NAMES }]);
-  NAMES.forEach((n, i) => {
-    const want = { tidy: SCORE.tidy(n), bare: SCORE.bare(n), clean: SCORE.clean(n), cmp: SCORE.cmp(n), edition_year: SCORE.editionYear(n), disc: SCORE.discOf(n) };
-    assert.deepStrictEqual(c.names[i], plain(want), JSON.stringify(n));
-  });
+  same("names", NAMES, NAMES, c.names, () => NAMES.map(n => ({ tidy: SCORE.tidy(n), bare: SCORE.bare(n), clean: SCORE.clean(n), cmp: SCORE.cmp(n), edition_year: SCORE.editionYear(n), disc: SCORE.discOf(n) })));
 });
 
 test("the scorer's distances between names, and suspect artists — the same both ways", { skip }, () => {
@@ -71,10 +84,7 @@ test("the scorer's distances between names, and suspect artists — the same bot
   const pairs = [];
   for (let i = 0; i < NAMES.length; i++) pairs.push([NAMES[i], NAMES[(i + 1) % NAMES.length]], [NAMES[i], NAMES[i]], [NAMES[i], NAMES[Math.floor(r() * NAMES.length)]]);
   const [c] = csharp([{ fn: "pairs", pairs }]);
-  pairs.forEach(([a, b], i) => {
-    const want = { string: SCORE.stringDist(a, b), title: SCORE.titleDist(a, b), levenshtein: SCORE.levenshtein(a, b), suspect: SCORE.artistSuspect(a, b) };
-    assert.deepStrictEqual(c.pairs[i], plain(want), JSON.stringify([a, b]));
-  });
+  same("pairs", pairs.map(() => "pair"), pairs, c.pairs, () => pairs.map(([a, b]) => ({ string: SCORE.stringDist(a, b), title: SCORE.titleDist(a, b), levenshtein: SCORE.levenshtein(a, b), suspect: SCORE.artistSuspect(a, b) })));
 });
 
 /* Albums and the releases that could be them: the same record, other pressings, near misses and strangers. */
@@ -123,20 +133,25 @@ function cases(seed, n) {
 test("the scorer's verdicts over generated albums: every distance, part, pair and verdict the same both ways", { skip }, () => {
   const all = cases(19, 700);
   const got = csharp(all.map(c => ({ fn: "decide", album: c.album, candidates: c.candidates })));
-  all.forEach((c, i) => {
+  same("decide", all.map((c, i) => "case " + i), all.map(c => c.album), got, () => all.map(c => {
     const v = SCORE.decide(plain(c.album), plain(c.candidates));
-    const want = {
+    return {
       status: v.status, ambiguous: !!v.ambiguous,
       scored: v.scored.map(s => ({ candidate: Object.assign({}, s.candidate, { parts: s.parts, pairs: s.pairs }), distance: s.distance })),
       why: v.best ? SCORE.why(v.best.parts, { year: c.album.year }) : [],
       exact: !!(v.best && SCORE.exact(v.best)), unasked: !!(v.best && SCORE.appliesUnasked(v.best))
     };
-    assert.deepStrictEqual(got[i], plain(want), "case " + i + ": " + JSON.stringify(c.album).slice(0, 300));
-  });
+  }));
 });
 
-test("a waveform decoded by the C# server is the Node server's, bucket for bucket", { skip: skip || (!haveFfmpeg() && "ffmpeg is not installed"), timeout: 60000 }, async () => {
-  const { decodeWaveform } = require("../lib/waveform-decode");
+test("a waveform decoded by the C# server is the Node server's, bucket for bucket", { skip: (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!haveFfmpeg() && "ffmpeg is not installed"), timeout: 60000 }, async () => {
+  // The Node server's own decoder while recording, beside the rule kept from it: the two alike.
+  const decodeWaveform = RECORD ? require("../lib/waveform-decode").decodeWaveform : null;
+  const node = async (f, expectSeconds) => {
+    const kept = waveformOf(f, expectSeconds);
+    if (RECORD) { const w = await decodeWaveform(f, { expectSeconds }); assert.equal(kept, w == null ? null : Buffer.from(w).toString("base64"), "the rule kept is the Node server's: " + f); }
+    return kept;
+  };
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-wave-"));
   try {
     const files = [
@@ -148,17 +163,18 @@ test("a waveform decoded by the C# server is the Node server's, bucket for bucke
     for (const [name, opts] of files) {
       const f = path.join(dir, name);
       gen(f, opts);
-      const node = await decodeWaveform(f, { expectSeconds: 0 });
+      const want = await node(f, 0);
       const r = spawnSync(BIN, ["waveform", f, "0"]);
-      assert.equal(String(r.stdout).trim(), Buffer.from(node).toString("base64"), name);
+      assert.ok(want, name + ": a waveform");
+      assert.equal(String(r.stdout).trim(), want, name);
     }
     // One said to be far longer than it is: no waveform either way.
     const f = path.join(dir, "sine.flac");
-    assert.equal(await decodeWaveform(f, { expectSeconds: 60 }), null);
+    assert.equal(await node(f, 60), null);
     assert.equal(String(spawnSync(BIN, ["waveform", f, "60"]).stdout).trim(), "null");
     // Not audio at all.
     fs.writeFileSync(path.join(dir, "junk.flac"), "not audio");
-    assert.equal(await decodeWaveform(path.join(dir, "junk.flac"), {}), null);
+    assert.equal(await node(path.join(dir, "junk.flac"), 0), null);
     assert.equal(String(spawnSync(BIN, ["waveform", path.join(dir, "junk.flac")]).stdout).trim(), "null");
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

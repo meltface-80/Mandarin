@@ -10,19 +10,31 @@
  * `mandarin-server score`, over generated pages of every shape the code
  * reads, deepStrictEqual. The routes run against the C# server in
  * test/writeups.test.js. Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/writeups-csharp.json), made with
+ * RECORD_WRITEUPS=1 while lib/ was here; the cases are still made here,
+ * seeded, and the C# program alone is held to them case for case (the few
+ * names a case is made from read through it, held the same way).
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const META = require("../lib/meta");
-const wikiMatch = require("../lib/wiki-match");
-const qobuzDeep = require("../lib/qobuz-deeplink");
-const P = META.pure;
+const { answers } = require("./golden");
+
+const RECORD = process.env.RECORD_WRITEUPS === "1";
+// The Node server's modules, asked while recording (lib/, until v0.8.50).
+const META = RECORD ? require("../lib/meta") : null;
+const wikiMatch = RECORD ? require("../lib/wiki-match") : null;
+const qobuzDeep = RECORD ? require("../lib/qobuz-deeplink") : null;
+const P = RECORD ? META.pure : null;
+const kept = answers("writeups-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_WRITEUPS=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
   const r = spawnSync(BIN, ["score"], { input: JSON.stringify(job) + "\n", maxBuffer: 512 * 1024 * 1024 });
@@ -33,6 +45,15 @@ function csharp(job) {
 }
 const plain = v => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const copy = v => JSON.parse(JSON.stringify(v));
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, cases, got, want) => kept.same(what, cases.map((_, i) => what + " " + i), cases, got, RECORD && (() => JSON.parse(JSON.stringify(want(), (k, v) => v === undefined ? null : v))));
+/* One of the C# server's answers for each of a few names (asked as [ask], answered as [key]), held to the Node server's ([node]), as a lookup. */
+function through(ask, key, names, node) {
+  const got = csharp({ fn: "writeups", [ask]: names })[key];
+  same(key + " (to make cases)", names, got, () => names.map(node));
+  const map = new Map(names.map((n, i) => [n, got[i]]));
+  return n => map.get(n);
+}
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -78,19 +99,17 @@ test("text: entities, HTML, the name guards, slugs, titles", { skip }, () => {
   for (let i = 0; i < 600; i++) pageTitles.push([pick(TITLES.concat(names)), pick(titles.concat(TITLES.map(t => t + " (" + pick(ARTISTS) + " album)")))]);
   const job = { fn: "writeups", normalize: names, decode, strip, first: names, lead: leads, slug: names.concat(["Don't Stop", "Don’t Stop", "--a--", "a  b"]), title_base: titles, pairs, page_titles: pageTitles };
   const got = csharp(job);
-  assert.deepStrictEqual(got.normalize, names.map(n => META.normalize(n)));
-  decode.forEach((x, i) => assert.equal(got.decode[i], META.decodeEntities(x), JSON.stringify(x)));
-  strip.forEach((x, i) => assert.equal(got.strip[i], META.stripHtml(x), JSON.stringify(x)));
-  assert.deepStrictEqual(got.first, names.map(n => P.firstSignificantToken(n)));
-  leads.forEach((x, i) => assert.equal(got.lead[i], P.leadArtistOf(x), JSON.stringify(x)));
-  assert.deepStrictEqual(got.slug, job.slug.map(n => P.slugifyForPitchfork(n)));
-  assert.deepStrictEqual(got.title_base, titles.map(t => P.wikiTitleBase(t)));
-  assert.deepStrictEqual(got.disambiguator, titles.map(t => wikiMatch.stripDisambiguator(t)));
-  pairs.forEach(([a, b], i) => {
-    assert.equal(got.loose[i], META.namesEqualLoose(a, b), JSON.stringify([a, b]));
-    assert.equal(got.overlap[i], META.namesOverlap(a, b), JSON.stringify([a, b]));
-  });
-  pageTitles.forEach(([a, b], i) => assert.equal(got.page_title[i], wikiMatch.albumPageTitleMatches(a, b), JSON.stringify([a, b])));
+  same("normalize", names, got.normalize, () => names.map(n => META.normalize(n)));
+  same("decode", decode, got.decode, () => decode.map(x => META.decodeEntities(x)));
+  same("strip", strip, got.strip, () => strip.map(x => META.stripHtml(x)));
+  same("first", names, got.first, () => names.map(n => P.firstSignificantToken(n)));
+  same("lead", leads, got.lead, () => leads.map(x => P.leadArtistOf(x)));
+  same("slug", job.slug, got.slug, () => job.slug.map(n => P.slugifyForPitchfork(n)));
+  same("title_base", titles, got.title_base, () => titles.map(t => P.wikiTitleBase(t)));
+  same("disambiguator", titles, got.disambiguator, () => titles.map(t => wikiMatch.stripDisambiguator(t)));
+  same("loose", pairs, got.loose, () => pairs.map(([a, b]) => META.namesEqualLoose(a, b)));
+  same("overlap", pairs, got.overlap, () => pairs.map(([a, b]) => META.namesOverlap(a, b)));
+  same("page_title", pageTitles, got.page_title, () => pageTitles.map(([a, b]) => wikiMatch.albumPageTitleMatches(a, b)));
 });
 
 /* Qobuz's slugs, as it files an album: lower case, hyphens, its own idea of punctuation. */
@@ -127,8 +146,8 @@ test("Qobuz: the search's album, and what its page says", { skip }, () => {
   }
   searches.push(["", "Kid A", "Radiohead"], ["<a href=\"/album/kid-a-radiohead/abc\">", "Kid A", ""]);
   const got = csharp({ fn: "writeups", qobuz_search: searches, qobuz_pages: pages });
-  searches.forEach((a, i) => assert.deepStrictEqual(got.qobuz_pick[i], P.qobuzPick(...a), JSON.stringify(a)));
-  pages.forEach((a, i) => assert.deepStrictEqual(got.qobuz_page[i], plain(P.qobuzAlbumPage(...a)), JSON.stringify(a)));
+  same("qobuz_pick", searches, got.qobuz_pick, () => searches.map(a => P.qobuzPick(...a)));
+  same("qobuz_page", pages, got.qobuz_page, () => pages.map(a => plain(P.qobuzAlbumPage(...a))));
 });
 
 const LEADS = [
@@ -162,18 +181,19 @@ test("Wikipedia: the extract, the album rule, the artist rules", { skip }, () =>
     wikiAlbums.push([pageTitle, { title: pageTitle, description: pick(LEADS)(r() < 0.7 ? title : pick(TITLES)).replace("the band", r() < 0.5 ? artist : "someone"), url: "u" }, title, artist]);
   }
   const artistNames = [...ARTISTS, "A / B / C", "AC/DC", "Crosby, Stills, Nash", " Low ", "x,y"];
+  const primaryOf = through("artist_names", "artist_primary", artistNames, n => P.wikiArtistPrimary(n));
   const artistTitles = [];
   for (let i = 0; i < 600; i++) {
-    const primary = P.wikiArtistPrimary(pick(artistNames));
+    const primary = primaryOf(pick(artistNames));
     artistTitles.push([pick([primary, primary + " (band)", primary + " (musician)", primary + " (disambiguation)", primary + " discography", "The " + primary, pick(ARTISTS), primary + " (album)", undefined]), primary]);
   }
   const artistExtracts = Array.from({ length: 400 }, () => ({ title: "t", description: pick(LEADS)(pick(TITLES)) + maybe(0.3, " " + text(3)), url: "u" }));
   const got = csharp({ fn: "writeups", extracts, wiki_albums: wikiAlbums, artist_names: artistNames, artist_titles: artistTitles, artist_extracts: artistExtracts });
-  extracts.forEach((d, i) => assert.deepStrictEqual(got.extract[i], plain(P.wikiExtractOf(d)), JSON.stringify(d)));
-  wikiAlbums.forEach((a, i) => assert.equal(got.wiki_album[i], P.wikiAlbumAccepts(...a), JSON.stringify(a)));
-  assert.deepStrictEqual(got.artist_primary, artistNames.map(n => P.wikiArtistPrimary(n)));
-  artistTitles.forEach((a, i) => assert.equal(got.artist_title[i], P.wikiArtistTitleOk(...a), JSON.stringify(a)));
-  artistExtracts.forEach((e, i) => assert.equal(got.artist_extract[i], P.wikiArtistExtractOk(e), JSON.stringify(e)));
+  same("extract", extracts, got.extract, () => extracts.map(d => plain(P.wikiExtractOf(d))));
+  same("wiki_album", wikiAlbums, got.wiki_album, () => wikiAlbums.map(a => P.wikiAlbumAccepts(...a)));
+  same("artist_primary", artistNames, got.artist_primary, () => artistNames.map(n => P.wikiArtistPrimary(n)));
+  same("artist_title", artistTitles, got.artist_title, () => artistTitles.map(a => P.wikiArtistTitleOk(...a)));
+  same("artist_extract", artistExtracts, got.artist_extract, () => artistExtracts.map(e => P.wikiArtistExtractOk(e)));
 });
 
 function pitchforkPage(artist) {
@@ -191,17 +211,18 @@ function pitchforkPage(artist) {
 
 test("Pitchfork: a review page's score and Best New Music, and whose review it is", { skip }, () => {
   const pages = [], verdicts = [], artists = [];
+  const pfPrimary = through("pf_artists", "pf_primary", ARTISTS, a => P.pitchforkPrimary(a));
   for (let i = 0; i < 500; i++) {
     const artist = pick(ARTISTS);
     const page = pitchforkPage(artist);
     pages.push(page);
     artists.push(pick([artist, artist + " feat. X", artist + " / B", artist + ", C", artist + " & D", " " + artist + " ", "", null]));
-    verdicts.push([page, P.pitchforkPrimary(pick(ARTISTS)), "https://pitchfork.com/reviews/albums/x-" + i + "/"]);
+    verdicts.push([page, pfPrimary(pick(ARTISTS)), "https://pitchfork.com/reviews/albums/x-" + i + "/"]);
   }
   const got = csharp({ fn: "writeups", pf_pages: pages, pf_artists: artists, pf_verdicts: verdicts });
-  pages.forEach((h, i) => assert.deepStrictEqual(got.pf_parse[i], plain(P.parsePitchforkReviewHtml(h)), h));
-  assert.deepStrictEqual(got.pf_primary, artists.map(a => P.pitchforkPrimary(a)));
-  verdicts.forEach((a, i) => assert.deepStrictEqual(got.pf_verdict[i], plain(P.pitchforkVerdict(...a)), JSON.stringify(a)));
+  same("pf_parse", pages, got.pf_parse, () => pages.map(h => plain(P.parsePitchforkReviewHtml(h))));
+  same("pf_primary", artists, got.pf_primary, () => artists.map(a => P.pitchforkPrimary(a)));
+  same("pf_verdict", verdicts, got.pf_verdict, () => verdicts.map(a => plain(P.pitchforkVerdict(...a))));
 });
 
 test("the three sources made one: the write-up shown, its source and link, the artist's story, every page found", { skip }, () => {
@@ -215,7 +236,7 @@ test("the three sources made one: the write-up shown, its source and link, the a
     combines.push([pf, qz, wk, pick([pick(ARTISTS), "", null])]);
   }
   const got = csharp({ fn: "writeups", combines });
-  combines.forEach((a, i) => assert.deepStrictEqual(got.combine[i], plain(P.combineBios(...copy(a))), JSON.stringify(a)));
+  same("combine", combines, got.combine, () => combines.map(a => plain(P.combineBios(...copy(a)))));
 });
 
 function reviewNode(i) {
@@ -256,24 +277,23 @@ test("Pitchfork's lists: the listing's state, the RSS feed, the artist from an a
     }
     rss.push(x + "<items>not one</items></channel></rss>");
   }
+  const slugOf = through("slug", "slug", TITLES, t => P.slugifyForPitchfork(t));
   const reviewUrls = Array.from({ length: 200 }, () => {
     const t = pick(TITLES);
-    return [pick(["https://pitchfork.com/reviews/albums/" + qslug(pick(ARTISTS)) + "-" + P.slugifyForPitchfork(t) + "/", "/reviews/albums/" + P.slugifyForPitchfork(t) + "/", "https://pitchfork.com/news/x", "", null, "/reviews/albums/-a--b/?x"]), pick([t, "", null])];
+    return [pick(["https://pitchfork.com/reviews/albums/" + qslug(pick(ARTISTS)) + "-" + slugOf(t) + "/", "/reviews/albums/" + slugOf(t) + "/", "https://pitchfork.com/news/x", "", null, "/reviews/albums/-a--b/?x"]), pick([t, "", null])];
   });
   const items = Array.from({ length: 200 }, (_, i) => ({ url: "u" + i, album: pick(["", "A", null, 0]), artist: pick([null, "", "B"]), cover: pick([null, "", "c"]), score: pick([null, undefined, 0, 7.5]), isBestNewMusic: pick([0, 1, true, null]), date: pick([null, "", "d"]) }));
   const sorts = Array.from({ length: 100 }, () => Array.from({ length: Math.floor(r() * 8) }, (_, i) => ({ url: "u" + i, date: pick(["2026-10-01T00:00:00Z", "2026-10-02", "", null, "Wed, 07 Oct 2026", 5, "2025-12-31T23:59:59Z"]) })));
   const lists = () => Array.from({ length: Math.floor(r() * 10) }, (_, i) => ({ url: "u" + Math.floor(r() * 12), album: pick(TITLES), artist: pick([pick(ARTISTS), null, ""]) }));
   const matches = Array.from({ length: 200 }, () => [lists(), lists(), pick(["kid", "The", "", "radio", "ünï", "a", "who sell", null]), pick([6, 1, 3])]);
   const got = csharp({ fn: "writeups", listings, rss, review_urls: reviewUrls, items, sorts, matches });
-  listings.forEach((h, i) => {
-    assert.equal(got.state[i], P.extractPreloadedState(h), h);
-    assert.deepStrictEqual(got.listing[i], plain(P.pitchforkListingItems(h, "/x")), h);
-  });
-  rss.forEach((x, i) => assert.deepStrictEqual(got.rss[i], plain(P.parsePitchforkRss(x)), x));
-  reviewUrls.forEach((a, i) => assert.equal(got.from_url[i], P.artistFromReviewUrl(...a), JSON.stringify(a)));
-  items.forEach((x, i) => assert.deepStrictEqual(got.item_out[i], plain(P.pfItemOut(x)), JSON.stringify(x)));
-  sorts.forEach((l, i) => assert.deepStrictEqual(got.newest[i], plain(P.sortPfNewestFirst(copy(l))), JSON.stringify(l)));
-  matches.forEach((a, i) => assert.deepStrictEqual(got.match[i], plain(P.matchPitchfork(...copy(a))), JSON.stringify(a)));
+  same("state", listings, got.state, () => listings.map(h => P.extractPreloadedState(h)));
+  same("listing", listings, got.listing, () => listings.map(h => plain(P.pitchforkListingItems(h, "/x"))));
+  same("rss", rss, got.rss, () => rss.map(x => plain(P.parsePitchforkRss(x))));
+  same("from_url", reviewUrls, got.from_url, () => reviewUrls.map(a => P.artistFromReviewUrl(...a)));
+  same("item_out", items, got.item_out, () => items.map(x => plain(P.pfItemOut(x))));
+  same("newest", sorts, got.newest, () => sorts.map(l => plain(P.sortPfNewestFirst(copy(l)))));
+  same("match", matches, got.match, () => matches.map(a => plain(P.matchPitchfork(...copy(a)))));
 });
 
 test("MusicBrainz's year, and the Qobuz app's link", { skip }, () => {
@@ -294,7 +314,7 @@ test("MusicBrainz's year, and the Qobuz app's link", { skip }, () => {
   }
   albumIds.push(["", "gb-en", "x", ""], [null, "gb-en", "a", "b"]);
   const got = csharp({ fn: "writeups", years, canon, album_ids: albumIds });
-  years.forEach((j, i) => assert.equal(got.year[i], P.pickAlbumYear(copy(j)), JSON.stringify(j)));
-  assert.deepStrictEqual(got.canon, canon.map(c => qobuzDeep.canon(c)));
-  albumIds.forEach((a, i) => assert.equal(got.album_id[i], qobuzDeep.pickAlbumId(...a), JSON.stringify(a)));
+  same("year", years, got.year, () => years.map(j => P.pickAlbumYear(copy(j))));
+  same("canon", canon, got.canon, () => canon.map(c => qobuzDeep.canon(c)));
+  same("album_id", albumIds, got.album_id, () => albumIds.map(a => qobuzDeep.pickAlbumId(...a)));
 });
