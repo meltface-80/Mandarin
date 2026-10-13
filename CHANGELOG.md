@@ -5,6 +5,14 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.50
+Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
+stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the
+tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
+owner's merge to `main` is v0.9.0. The parts as they are built:
+
+- **Plan**: the five parts in the spec, each committed on its own.
+
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
 whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sonos, UPnP renderers

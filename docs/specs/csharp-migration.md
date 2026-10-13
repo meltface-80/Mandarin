@@ -937,8 +937,10 @@ above): the stage is not merged on CI alone.
 - [x] Part 3: the renderers (with the device list and its routes from part 5)
 - [x] Part 4: sound devices on the server
 - [x] Part 5: the device list, the rooms, the Node hub idle
-- [ ] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date
-- [ ] Tried on the owner's household
+- [x] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date
+- [x] Merged into `migration` (PR #209, v0.8.49). The owner's own test moved to the end of stage 7
+      by the owner's decision: one final test from `migration` once Node is gone, rather than one
+      per stage.
 
 ### Stage 7: Node removed → the v0.9.0 candidate (M)
 
@@ -952,6 +954,82 @@ above): the stage is not merged on CI alone.
 - **Macs** run the C# server alone, and **the Node copies** of every part are deleted (2.4).
 
 Then the owner tests it from `migration` until happy, and merges it to `main` as v0.9.0.
+
+#### The plan in detail (branch `stage-7-node-removed`, v0.8.50)
+
+The C# server answers everything a page, a phone or a speaker asks since stage 6. What is left
+is the scaffolding that assumes a Node server behind it (the hand-over, the Node server's library
+state, the launcher), the tests that reach into that Node server, and the image and the files.
+The order: the server stands on its own first (parts 1 and 2), so the suite can be moved onto it
+(part 4) while the launcher and updates move (part 3); the deletion last (part 5), because the
+parity suites need the Node copies until the suite no longer compares against them. v0.8.50 is
+the last v0.8.x; the owner's merge to `main` is v0.9.0.
+
+**Part 1: the C# server on its own** (`Config.cs`, `Library.State.cs`, `Jobs.cs`, `Program.cs`).
+- **The configuration** index.js reads from the environment (`PORT`, `MUSIC_DIR`, `DATA_DIR`,
+  `SERVER_IP`/`BRIDGE_IP`, `SONOS_HOSTS`, `UPNP_HOSTS`, `UPNP_DISCOVERY`, `INCLUDE_ZONES`,
+  `EXCLUDE_ZONES`, `SCAN_INTERVAL_HOURS`, `TRANSCODE_CACHE_GB`, `MUSICDNET_BIN`, the `*_URL`
+  stand-ins, `IDENTIFY`, `IDENTIFY_TICK_MS`, `LOUDNESS_TICK_MS`, `LASTFM_KEY`, `LOCAL_AUDIO`,
+  `AUDIO_ENGINE*`, `UPDATE_*`, `TAG_READER`, `DEBUG`) read here, into the same object the
+  hand-over's `config` carries today (`Claimed.Config`), so `Jobs.Start` and everything under it
+  take it unchanged: the hand-over becomes a call.
+- **The library's state** (`/internal/library`) the server's own: `version` and `marks` counted
+  here (bumped where `/internal/library/changed` was sent), `building`, `progress`, `scanning`,
+  `built_at` from `Scans.cs`, the label rules from the settings, `day`, `day_start`, `week` on
+  this clock, `base_url` from the configuration; `rooms`, `zone_count`, `sonos`, `speakers` are
+  the hub's already; `csharp_update` and `app_version` go (nothing to bring to a version).
+- **Every job held from the first request** when no Node server is to be started
+  (`MANDARIN_NODE=0`, or no `index.js` beside the program): `Jobs.Holds` true, no claim loop, the
+  hub started from the configuration. With a Node server still there (the transition), as today.
+- **`/api/health`** without `csharp` (nothing to match), and a `--health` subcommand for the
+  image's health check (one GET of `/api/health`, exit 0 or 1).
+- **Tests:** `test/server.js` (new): starts the binary alone on a port, with a test's
+  environment, waits for it, stops it; `test/csharp-alone.test.js` (new): sign-in, the scan, the
+  pages, the rooms from a fake household, a phone's hello, a renderer, with no Node server
+  anywhere. `test/front.test.js`'s pins read "C#" for everything.
+
+**Part 2: the last routes.** The suite run against the server alone (part 4's helper, file by
+file) says what is still passed on or missing; each becomes the server's: `/api/tagcheck` and
+`/api/tagcheck/report` go with the tag check (the C# reader is the reader; the Library Scanner
+page's panel with them), `reset-password` as a subcommand (`mandarin-server reset-password`),
+Settings → Updates' `mac_node_only` gone, `/internal/*` gone but `/internal/library/changed`
+(kept, front-key only, for a test that changed the database by hand) and the tests' revision
+route. Covers in CMYK or with a profile of their own: as the owner decides (section 6; until
+then drawn by ffmpeg without the profile, said in the CHANGELOG).
+
+**Part 3: the launcher and updates in C#** (`Admin/Updater.cs`, `Program.cs`, `Dockerfile`,
+the Mac installer). The update lays the staged bundle in itself (the running program carries on
+from the old file; the new one is started as `Front.StartAgain` starts it today) — no
+`.update/READY`, no launcher; the image's `CMD` runs `mandarin-server` under tini; the Mac
+installer's start script runs the binary; `test/update*.test.js` through the binary alone.
+
+**Part 4: the tests drive the binary.** 33 files reach into the Node server (`ctx.db.raw`,
+`ctx.db.setSetting`/`setting`, `ctx.library.reload`, `ctx.frontRuns`, `ctx.listeningOn`,
+`ctx.tidal.api`, `ctx.scanner.state`, `ctx.features.insertPlay`, `ctx.devices.registry`,
+`ctx.transcoder.*`, `ctx.downloads.*`, `ctx.auth.signUrl`…). `test/server.js` gives each what
+it needs over HTTP or the database file: `db` (better-sqlite3 opened on `musicd.db`, a dev
+dependency from now on), `setting`/`setSetting` through it, `reload` (`POST
+/internal/library/changed`), the front key, `signUrl` (`Playback/Signing.cs`'s rule, in the
+helper), the scanner's state from `/api/status`. The `*-csharp.test.js` parity suites keep their
+assertions on the C# answers and lose their Node halves; CI's Node-alone job goes with them, the
+Mac jobs run the binary alone.
+
+**Part 5: the image and the repository.** The Dockerfile without the node stages and npm
+packages (the engines, the binary, `public/`); `package.json` with dev dependencies only (the
+tests' `better-sqlite3`, the gates' tools); `index.js`, `launcher.js`, `reset-password.js` and
+`lib/` deleted, the ratchet's allowance and the `@ts-check` baseline shrunk by their tools; CI
+without the Node matrix (Node 22 for the tests alone); `README.md`, `server/README.md`'s table,
+the CHANGELOG, this file and `handover.md`; the pull request into `migration` for the owner's
+final test from `:migration`.
+
+**Checklist** (ticked as each part is committed and pushed):
+
+- [x] Plan written; version 0.8.50
+- [ ] Part 1: the C# server on its own
+- [ ] Part 2: the last routes
+- [ ] Part 3: the launcher and updates in C#
+- [ ] Part 4: the tests drive the binary
+- [ ] Part 5: the image and the repository; docs; the pull request
 
 ### The order, and why
 
