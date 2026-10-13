@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write   # the APK reaches main through a pull request (v1.0.0)
   actions: read     # to see CI's runs (.github/wait-for-ci.sh)
 
 defaults:
@@ -171,8 +172,13 @@ jobs:
 
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can
-      # link straight at it. From main only. Pushed with GITHUB_TOKEN, which
-      # does not trigger workflows, so this cannot loop.
+      # link straight at it. From main only. main takes changes only through a
+      # pull request (the "Protect main and migration" ruleset), so the two files
+      # go to a branch of their own, publish-apk/<version>, and a pull request
+      # into main that this job merges (no approval is required). That needs
+      # Settings → Actions → General → "Allow GitHub Actions to create and
+      # approve pull requests". Made with GITHUB_TOKEN, which does not trigger
+      # workflows, so this cannot loop. (v1.0.0; a direct push to main before.)
       #
       # Without the signing secrets the published APK (a release build) is
       # signed with the committed key: the same every build, so updates
@@ -194,6 +200,8 @@ jobs:
         working-directory: .
         env:
           APK: ${{ steps.name.outputs.apk }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           # One fixed name, so the README and the site link straight at the file.
@@ -212,5 +220,10 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Publish $OUT ($APK)" -m "Built from ${GITHUB_SHA}."
-          git pull --rebase origin "$GITHUB_REF_NAME"
-          git push origin "HEAD:$GITHUB_REF_NAME"
+          branch="publish-apk/$version"
+          git push --force origin "HEAD:refs/heads/$branch"
+          # Run again (a re-run, or the next commit), the pull request already open is used.
+          pr=$(gh pr list --head "$branch" --base "$GITHUB_REF_NAME" --state open --json url -q '.[0].url')
+          [ -n "$pr" ] || pr=$(gh pr create --base "$GITHUB_REF_NAME" --head "$branch" --title "Publish $OUT ($APK)" \
+            --body "The Android app $version for dist/, built from ${GITHUB_SHA} once CI passed on it. Opened and merged by the Android workflow.")
+          gh pr merge "$pr" --squash --delete-branch
