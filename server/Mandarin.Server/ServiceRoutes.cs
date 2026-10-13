@@ -258,7 +258,7 @@ internal static partial class Library
      * Clean up of a service's albums, where the scans are this server's
      * (Scans.cs): its own scan is the one Clean up waits for, and none starts
      * while it is made. The music folders' kind ("files") and the counts (GET)
-     * stay the Node server's, as does a kind it would refuse.
+     * are HousekeepingRoutes.cs's.
      */
     private static async Task<bool> ServiceCleanUp(HttpContext ctx)
     {
@@ -269,18 +269,10 @@ internal static partial class Library
         try
         {
             if (Scans.Running) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
-            if (!svc.CleanUpFits()) return false;
             if (!Scans.WhileNoScan(() => removed = svc.CleanUp())) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }
-        catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted)
-        {
-            // Nothing written (the transaction undone): the Node server's to make.
-            Front.Log($"[{svc.Id}] Clean up: {e.GetType().Name}: {e.Message}; passed to the Node server");
-            ctx.Request.Body.Position = 0;
-            return false;
-        }
-        // Made: told and answered here from now on. Passed on after this, the
-        // Node server would clean up again and answer that nothing went.
+        // Nothing written (the transaction undone): why, as the Node server's route answered it (its playlists not a list, the database held).
+        catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
         if (removed > 0) await svc.Changed();
         return await Send(ctx, new JsonObject { ["ok"] = true, ["kind"] = kind, ["removed"] = removed, ["count"] = await CountNow() });
     }
@@ -344,11 +336,7 @@ internal static partial class Library
         if (sub.Length == 0 && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
         {
             try { return await SendJs(ctx, svc.Status()); }
-            catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted)
-            {
-                Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
-                return false;
-            }
+            catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
         }
         if (!HttpMethods.IsPost(m) || !BodyFits(ctx)) return false;
         var (ok, b) = await ServiceBody(ctx);
@@ -446,12 +434,7 @@ internal static partial class Library
         var before = svc.Settings();
         try { svc.SetSettings(Prop(b, "quality"), Undef.V); }
         catch (ServiceError e) when (!ctx.Response.HasStarted) { return await ServiceFailed(ctx, e); }
-        catch (Exception e) when (e is SqliteException or IOException && !ctx.Response.HasStarted)
-        {
-            Front.Log($"[{svc.Id}] settings: {e.GetType().Name}: {e.Message}; passed to the Node server");
-            if (ctx.Request.Body.CanSeek) ctx.Request.Body.Position = 0;
-            return false;
-        }
+        catch (Exception e) when (e is SqliteException or IOException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
         try
         {
             var start = false;

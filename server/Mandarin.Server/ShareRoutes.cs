@@ -25,14 +25,21 @@ internal static partial class Library
     private static readonly string AppVersion = (typeof(Library).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
 
     private static bool IsJsonBody(HttpContext ctx) => (ctx.Request.ContentType ?? "").Contains("json", StringComparison.OrdinalIgnoreCase);
-    private static bool BodyFits(HttpContext ctx) => !IsJsonBody(ctx) || ctx.Request.ContentLength is long n && n <= JsonLimit;
+    // Sent without a length (chunked), it fits until it's read past the limit (JsBody).
+    private static bool BodyFits(HttpContext ctx) => !IsJsonBody(ctx) || ctx.Request.ContentLength is not long n || n <= JsonLimit;
 
-    /* req.body: a JSON body as JSON.parse makes it (its byte-order mark dropped, empty as {}), {} for any other; Bad JSON a 400 (Answered). */
+    /* req.body: a JSON body as JSON.parse makes it (its byte-order mark dropped, empty as {}), {} for any other; Bad JSON a 400, past the limit a 413 (Answered). */
     private static async Task<(object? Body, bool Answered)> JsBody(HttpContext ctx)
     {
         if (!IsJsonBody(ctx)) return (new JsObj(), false);
         using var ms = new MemoryStream();
-        await ctx.Request.Body.CopyToAsync(ms);
+        var buf = new byte[64 * 1024];
+        int got;
+        while ((got = await ctx.Request.Body.ReadAsync(buf)) > 0)
+        {
+            if (ms.Length + got > JsonLimit) { await JsError(ctx, 413, "request entity too large"); return (null, true); }
+            ms.Write(buf, 0, got);
+        }
         var text = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         if (text.StartsWith('﻿')) text = text[1..];
         if (text.Length == 0) return (new JsObj(), false);

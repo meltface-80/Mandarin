@@ -45,7 +45,8 @@ internal static class Images
                     // answered past its gate — the Node server no longer knows the speakers, and would turn the request away as unsigned.
                     if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
                 }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[art] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                // Absent, as the Node server answered a cover it couldn't draw.
+                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[art] {p}: {e.GetType().Name}: {e.Message}"); Absent(ctx); return; }
             }
             await next();
         });

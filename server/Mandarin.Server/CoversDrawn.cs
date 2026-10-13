@@ -134,7 +134,7 @@ internal static partial class Covers
                     null, 8 << 20, TimeSpan.FromSeconds(30));
                 if (code != 0 || jpg.Length == 0)
                 {
-                    Front.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)}); passed to the Node server");
+                    Front.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
                     return null;
                 }
                 return jpg;

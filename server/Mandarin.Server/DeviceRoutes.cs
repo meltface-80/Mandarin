@@ -56,7 +56,7 @@ internal static partial class Library
         var p = ctx.Request.Path.Value ?? "";
         if (!p.StartsWith(DevicePrefix, StringComparison.Ordinal)) return false;
         var id = p[DevicePrefix.Length..];
-        // One plain segment, as Express's :id takes it; anything else (empty, a further segment, an escape) is the Node server's to read.
+        // One plain segment, as Express's :id takes it; anything else (empty, a further segment, an escape) isn't a device ("No such endpoint", Pages.NotThere.cs).
         if (id.Length == 0 || id.Contains('/') || id.Contains('%')) return false;
         var hub = Playback.Hub.Current;
         // Away, only the phone the app is on, by the device it signed in as: the Node server's until the hub is here.

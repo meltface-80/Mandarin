@@ -409,19 +409,6 @@ internal abstract partial class Catalogue
     }
 
     /*
-     * Clean up can be made here as the Node server makes it: false where the
-     * playlists it would rewrite (signed out) aren't a list — there it fails
-     * in its own words, so it is its to answer.
-     */
-    public bool CleanUpFits()
-    {
-        if (Connected()) return true;
-        using var c = Db.Open();
-        var v = SettingOf(c, "userPlaylists");
-        return v is Undef || !Js.Truthy(v) || v is List<object?>;
-    }
-
-    /*
      * Albums no longer wanted (streaming.js stale and cleanUp): signed out,
      * every one; signed in, those neither kept nor held. Removed with their
      * edits, hearts and Listen later (plays stay, as text); signed out, the

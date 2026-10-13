@@ -135,7 +135,7 @@ internal static partial class Library
             cmd.Parameters.AddWithValue("$k", source);
             n = cmd.ExecuteNonQuery();
         }
-        // Read again by the Node server either way, as it did.
+        // The copy read again either way, as the Node server did.
         await Tell(new JsonObject { ["merges"] = true, ["unmerged"] = true });
         if (n == 0) return await Send(ctx, new JsonObject { ["error"] = "Not a merged label" }, 404);
         return await Send(ctx, new JsonObject { ["ok"] = true });
@@ -168,16 +168,15 @@ internal static partial class Library
         return await Send(ctx, new JsonObject { ["ok"] = true, ["depth"] = depth, ["rescanning"] = false });
     }
 
-    /* DELETE /api/labels/merge/<one segment>, as Express's route takes it; anything else is the Node server's. */
+    /* DELETE /api/labels/merge/<one segment>, as Express's route took it: a key of any shape (none merged: "Not a merged label"). */
     private static bool UnmergeAddress(HttpContext ctx, out string source)
     {
         source = "";
         var p = ctx.Request.Path.Value ?? "";
         const string Prefix = "/api/labels/merge/";
         if (!HttpMethods.IsDelete(ctx.Request.Method) || !p.StartsWith(Prefix, StringComparison.Ordinal)) return false;
-        // A label's key is letters and digits only: anything else is the Node server's to turn away.
         var seg = p[Prefix.Length..];
-        if (!LabelKeyShape().IsMatch(seg)) return false;
+        if (seg.Length == 0 || seg.Contains('/')) return false;
         source = seg;
         return true;
     }
