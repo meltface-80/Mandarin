@@ -254,6 +254,10 @@ the owner asked, everything is based on `migration`:
   AES-GCM, the key derived from the passphrase with PBKDF2. Restore asks for it. Backups without
   a passphrase restore as before. The page says plainly what a backup holds.
 - **Branch:** `audit/security-hardening`
+- **Done:** `Admin/Backup.Seal.cs`, `AdminRestoreRoutes.cs` (the restore routes split out of
+  `AdminRoutes.cs`, at its cap), the page and the app. A whole database's copy is scrubbed of the
+  keys and of what a restore never takes from it, with `secure_delete`. Tested in
+  `test/backup-sealed.test.js` and `test/backup-page.test.js`.
 
 ### S2. Pages can be framed by another site (Medium)
 
@@ -266,6 +270,7 @@ the owner asked, everything is based on `migration`:
   `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin` on every page answer. A test
   reads them. The Android WebView loads the page at top level, so it isn't affected.
 - **Branch:** `audit/security-hardening`
+- **Done:** `Pages.cs` (`Guarded`). Tested in `test/security.test.js`.
 
 ### S3. A development package with known vulnerabilities (Low)
 
@@ -274,6 +279,7 @@ the owner asked, everything is based on `migration`:
   in the image and not in the tests.
 - **Fix:** `sharp` 0.35.5, by `npm install`, so the lock file is written by its tool.
 - **Branch:** `audit/security-hardening`
+- **Done:** `sharp` 0.35.5; `npm audit` finds nothing. `tools/icons/make-icons.js` checked on a copy.
 
 ### S4. NuGet's vulnerability audit is switched off (Low)
 
@@ -282,6 +288,7 @@ the owner asked, everything is based on `migration`:
 - **Fix:** turn it on, so an advisory against `Microsoft.Data.Sqlite` or its SQLite build fails CI
   rather than going unseen.
 - **Branch:** `audit/security-hardening`
+- **Done:** on; checked by restoring with a package that has an advisory (NU1903, the build fails).
 
 ### S5. The server fetches addresses it is given (Low)
 
@@ -294,6 +301,8 @@ the owner asked, everything is based on `migration`:
 - **Fix:** refuse loopback and link-local addresses for the album editor's fetch (each redirect
   hop checked too), and keep LAN addresses for speakers' art.
 - **Branch:** `audit/security-hardening`
+- **Done:** `Addresses.cs` (`CheckArt` on every hop, `ArtConnect` where the connection is made).
+  Foreign covers keep LAN addresses, as the finding says. Tested in `test/security.test.js`.
 
 ### S6. Any certificate accepted from LinkPlay devices (Low)
 
@@ -303,6 +312,8 @@ the owner asked, everything is based on `migration`:
 - **Fix:** keep it, for private-network addresses only (RFC 1918, link-local, ULA). Suppress the
   analyzer with that reason where it stands.
 - **Branch:** `audit/security-hardening`
+- **Done:** `Addresses.LinkPlayCert`: a sound certificate from anywhere, the player's own from a
+  private address only. Tested in `test/security.test.js`.
 
 ### S7. Hashes the analyzers call weak, used for non-security purposes (Info)
 

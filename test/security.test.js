@@ -14,6 +14,8 @@
  *    the rules (server/Mandarin.Server/Addresses.cs) are asked directly.
  *  - S6: a LinkPlay player's self-signed certificate is taken from a private
  *    network's address, and only there.
+ * S1, a backup sealed with a passphrase: test/backup-sealed.test.js and
+ * test/backup-page.test.js.
  */
 const ports = require("./ports");
 const test = require("node:test");

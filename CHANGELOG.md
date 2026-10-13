@@ -73,7 +73,16 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
   stand-ins wrote a line, so files started together could be noted out of order on a busy
   machine; it reads the processes' order now.
 - **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
-  `test/security.test.js`):
+  `test/security.test.js`, `test/backup-sealed.test.js` and `test/backup-page.test.js`):
+  - **A backup sealed with a passphrase** (Settings → Backup & restore, 8 characters or more).
+    The API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity go into one
+    sealed part (AES-256-GCM, its key from the passphrase by PBKDF2-SHA256, 600 000 rounds). A
+    whole database's copy leaves them out too, with what a restore never takes from it (the
+    account, the signed-in devices, the signing secret), deleted so they leave no trace in the
+    file. Restoring the keys or the whole database asks for the passphrase: without it, or
+    with another, nothing changes. Everything else in a sealed backup restores without it, and
+    a backup without a passphrase is as before. The list marks a sealed backup; the app sends
+    the passphrase with a file (`X-Mandarin-Passphrase`). The page says what a backup holds.
   - Every page that acts (the page, sign-in, Shelf) may be framed only by Mandarin itself
     (`frame-ancestors 'self'`, `X-Frame-Options`), so another site can't steer clicks on
     Settings or Restart. The wall display may still be framed. Every file is taken as the type
@@ -85,6 +94,7 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
   - A WiiM's own (self-signed) certificate is taken from a private network's address only
     (RFC 1918, link-local, IPv6 unique local).
   - NuGet's vulnerability audit is on: a package with a known advisory fails the build.
+  - The restore routes moved to `AdminRestoreRoutes.cs` (`AdminRoutes.cs` was at its length cap).
   - `sharp` (used by `tools/icons` only, not in the image) is 0.35.5, out of libvips' advisories.
 
 ## v0.8.50
