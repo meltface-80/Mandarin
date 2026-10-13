@@ -3,7 +3,7 @@
  * The album editor's cover search (v0.8.22): the C# server's (server/
  * Mandarin.Server/Extras/ArtFind.cs) held to lib/library/artfind.js — the
  * same names compared the same way, and whole searches over the same canned
- * catalogue answers (as test/artfind.test.js gives them) ending in the same
+ * catalogue answers ending in the same
  * candidates, scored, ordered and cut alike; odd answers (a field missing, a
  * list that isn't one, a release group with no cover) doing the same there as
  * here. Through `mandarin-server score`; skipped where the C# server isn't
@@ -160,6 +160,9 @@ test("names compared as artfind.js compares them", { skip }, () => {
   same("sameText", PAIRS, out.text, RECORD && PAIRS.map(([a, b]) => ArtFind.sameText(a, b)));
   same("sameArtist", PAIRS, out.artist, RECORD && PAIRS.map(([a, b]) => ArtFind.sameArtist(a, b)));
   same("trackMatch", MATCHES, out.tracks, RECORD && MATCHES.map(([l, r]) => ArtFind.trackMatch(l, r)));
+  // Track names compared without their brackets and edition notes; nothing to compare, no score.
+  assert.equal(out.tracks[0], 1);
+  assert.equal(out.tracks[1], null);
 });
 
 test("whole searches over the same answers end in the same candidates", { skip }, async () => {
@@ -169,6 +172,13 @@ test("whole searches over the same answers end in the same candidates", { skip }
   same("find", CASES.map(c => c.album), out.found, want);
   // The searches said something worth checking: sure picks, cut at twelve, dead groups gone.
   assert.equal(out.found[0].sure.url, "https://is1.example/1/1200x1200bb.jpg");
+  assert.equal(out.found[0].sure.match.tracks, 1);
+  assert.equal(out.found[0].candidates.length, 2);
+  // A title-and-artist match with no track list is only a suggestion; the right tracks under the wrong artist aren't sure.
+  assert.equal(out.found[1].sure, null);
+  assert.equal(out.found[1].candidates[0].url, "https://dz.example/9.jpg");
+  assert.equal(out.found[2].sure, null);
+  assert.equal(out.found[2].candidates.length, 1);
   assert.equal(out.found[3].candidates.length, 12);
   assert.equal(out.found[8].candidates.length, 12);
   assert.deepEqual(out.found[9].candidates.map(c => c.url), ["https://coverartarchive.org/release-group/has/front-1200"], "a release group with no cover isn't offered");

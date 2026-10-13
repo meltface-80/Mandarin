@@ -1,8 +1,9 @@
 "use strict";
-/* What the server can see of the machine's drives and shares (lib/server/mounts.js). */
+/* What the server can see of the machine's drives and shares (server/Mandarin.Server/Mounts.cs; lib/server/mounts.js until v0.8.50). */
 const test = require("node:test");
 const assert = require("node:assert");
-const M = require("../lib/server/mounts");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const INFO = [
   "23 28 0:22 / /proc rw - proc proc rw",
@@ -17,17 +18,18 @@ const INFO = [
   "47 28 8:1 /x /etc/hosts rw - ext4 /dev/sda1 rw"
 ].join("\n");
 
-test("the drives and shares mounted into the container, and a share it can't see", () => {
-  const m = M.musicMounts({ mountinfo: INFO, dataDir: "/app/data" });
-  assert.deepEqual(m.map(x => [x.path, x.type, x.waiting]), [
+test("the drives and shares mounted into the container, and a share it can't see", { skip: built() }, () => {
+  const { mounts, hints } = score({ fn: "mounts", mountinfo: INFO, dataDir: "/app/data",
+    hints: [["/mnt/nas", 0, true], ["/mnt/share", 3, true], ["/srv", 0, true], ["/srv", 0, false]] });
+  assert.deepEqual(mounts.map(x => [x.path, x.type, x.waiting]), [
     ["/mnt", "ext4", false],
     ["/mnt/nas", "autofs", true],          // DietPi's on-demand share, not here
     ["/mnt/share", "cifs", false],         // the same kind, mounted: fine
     ["/mnt/usb drive", "ext4", false],
     ["/music", "ext4", false]
   ]);
-  assert.match(M.hintFor("/mnt/nas", m, { entries: 0, docker: true }), /rslave/);
-  assert.equal(M.hintFor("/mnt/share", m, { entries: 3, docker: true }), null);
-  assert.match(M.hintFor("/srv", m, { entries: 0, docker: true }), /Nothing from the machine is mounted here/);
-  assert.equal(M.hintFor("/srv", m, { entries: 0, docker: false }), null);
+  assert.match(hints[0], /rslave/);
+  assert.equal(hints[1], null);
+  assert.match(hints[2], /Nothing from the machine is mounted here/);
+  assert.equal(hints[3], null);
 });

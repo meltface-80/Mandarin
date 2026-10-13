@@ -9,7 +9,8 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const SH = require("../lib/server/share");
+const { built } = require("./server");
+const { score } = require("./score");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
@@ -17,16 +18,17 @@ const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("the share blob is MusicD Remote's: MDRP1, gzip, JSPF", () => {
-  const built = SH.buildShareDoc({ name: "Mine" }, [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "" }]);
-  assert.equal(built.track_count, 1); assert.equal(built.skipped, 1);
-  const blob = SH.encodeSharePayload(built.doc);
+test("the share blob is MusicD Remote's: MDRP1, gzip, JSPF", { skip: built() }, () => {
+  // The C# server's (Extras/ShareBlob.cs; lib/server/share.js until v0.8.50).
+  const made = score({ fn: "blob", docs: [{ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "" }] }] }).doc[0];
+  assert.equal(made.track_count, 1); assert.equal(made.skipped, 1);
+  const blob = score({ fn: "blob", encodes: [made.doc] }).encoded[0];
   assert.match(blob, /^MDRP1:[A-Za-z0-9_-]+$/);
   // Pasted with words around it, wrapped, and the marker lower-cased by a phone.
-  const doc = SH.decodeSharePayload("Here you go:\n" + blob.replace("MDRP1", "mdrp1").replace(/(.{40})/g, "$1\n") + "\nEnjoy");
-  assert.equal(doc.playlist.title, "Mine");
-  assert.deepEqual(doc.playlist.track[0], { title: "Song 1", creator: "Artist A", album: "Album One", trackNum: 1 });
-  assert.throws(() => SH.decodeSharePayload("nothing here"), /MusicD Remote playlist/);
+  const [pasted, nothing] = score({ fn: "blob", decodes: ["Here you go:\n" + blob.replace("MDRP1", "mdrp1").replace(/(.{40})/g, "$1\n") + "\nEnjoy", "nothing here"] }).decoded;
+  assert.equal(pasted.doc.playlist.title, "Mine");
+  assert.deepEqual(pasted.doc.playlist.track[0], { title: "Song 1", creator: "Artist A", album: "Album One", trackNum: 1 });
+  assert.match(nothing.error, /MusicD Remote playlist/);
 });
 
 test("playlists", { skip, timeout: 60000 }, async (t) => {
@@ -104,12 +106,12 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       assert.equal(saved.track_total, 7);
       // What MusicD Remote writes: the same document, its own generator stamp, and
       // a track whose album this library doesn't have under that name.
-      const theirs = SH.buildShareDoc({ name: "From Roon" }, [
+      const theirs = score({ fn: "blob", docs: [{ name: "From Roon", tracks: [
         { title: "Song 3", artist: "Artist A", album: "Album One (Deluxe)", track_no: 3 },
         { title: "Never Heard", artist: "Nobody", album: "Nothing" }
-      ]).doc;
+      ] }] }).doc[0].doc;
       theirs.playlist.extension["https://musicbrainz.org/doc/jspf#playlist"].additional_metadata.generator = "MusicD Remote";
-      const imp2 = await api("share/import", { blob: SH.encodeSharePayload(theirs) });
+      const imp2 = await api("share/import", { blob: score({ fn: "blob", encodes: [theirs] }).encoded[0] });
       assert.equal(imp2.name, "From Roon");
       assert.equal(imp2.resolved.length, 1);
       assert.deepEqual(imp2.substituted.map(s => [s.title, s.found_album]), [["Song 3", "Album One"]], "found by title and artist, the album substitution reported");

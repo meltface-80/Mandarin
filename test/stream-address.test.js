@@ -16,9 +16,11 @@ const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 const { start, built } = require("./server");
-const { localIp, lanAddresses } = require("../lib/sonos/topology");
+const { score } = require("./score");
 
-const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!lanAddresses().length && "this machine has no LAN address") ||
+// This machine's addresses as the C# server ranks them (Playback/Topology.cs; lib/sonos/topology.js until v0.8.50).
+const ranked = built() ? null : score({ fn: "topology", lans: [require("os").networkInterfaces()], locals: [[null, require("os").networkInterfaces()]] });
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!ranked.lans[0].length && "this machine has no LAN address") ||
   (process.env.SERVER_IP && "SERVER_IP is set in this environment");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -44,7 +46,7 @@ test("no SERVER_IP: speakers and phones are handed this machine's LAN address, a
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
   };
-  const lan = localIp();
+  const lan = ranked.locals[0];
   assert.notEqual(lan, "127.0.0.1");
   await until(async () => (await api("status")).index_count === 3);
   const album = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");

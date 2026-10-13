@@ -70,7 +70,7 @@ internal static partial class Downloads
     [GeneratedRegex(@"\.opus\z", RegexOptions.IgnoreCase)] private static partial Regex OpusFile();
 
     /* What Android (ExoPlayer, no extensions) plays as it is. */
-    private static bool PhonePlays(Track t)
+    internal static bool PhonePlays(Track t)
     {
         var ext = Ext(t.Path);
         var codec = t.Codec.ToLowerInvariant();

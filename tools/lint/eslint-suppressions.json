@@ -180,13 +180,5 @@
     "preserve-caught-error": {
       "count": 1
     }
-  },
-  "tools/identify-probe.js": {
-    "no-empty": {
-      "count": 1
-    },
-    "no-useless-assignment": {
-      "count": 1
-    }
   }
 }

@@ -10,13 +10,16 @@ const assert = require("node:assert");
 const fs = require("fs");
 const { haveFfmpeg, makeLibrary, probe } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { phonePlays } = require("../lib/server/downloads");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("what a phone can play as it is", () => {
+test("what a phone can play as it is", { skip: built() }, () => {
+  // The C# server's (Downloads.cs; lib/server/downloads.js until v0.8.50).
+  const phonePlays = t => score({ fn: "phoneplays", tracks: [t] }).plays[0];
   assert.equal(phonePlays({ path: "/m/a.flac", codec: "FLAC", channels: 2 }), true);
   assert.equal(phonePlays({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3" }), true);
   assert.equal(phonePlays({ path: "/m/a.m4a", codec: "AAC" }), true);

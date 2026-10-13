@@ -388,11 +388,11 @@ internal static partial class Cpu
         if (!same || force) _ = TellNode();
     }
 
-    /* The split as decided here (lib/cpu.js plan()): for /api/cpu, and for the Node server to follow. */
+    /* The split as decided here (lib/cpu.js plan()), with the DSP it was decided for (not a hold just over, its split still to follow): for /api/cpu. */
     public static JsonObject Plan()
     {
-        Split p;
-        lock (Deciding_) p = decided;
+        Split p; bool dsp;
+        lock (Deciding_) { p = decided; dsp = deciding ? toldDsp : DspActive(); }
         var t = Tools.Value;
         return new JsonObject
         {
@@ -401,7 +401,7 @@ internal static partial class Cpu
             ["playback"] = new JsonArray(p.Playback.Select(c => (JsonNode)c).ToArray()),
             ["background"] = new JsonArray(p.Background.Select(c => (JsonNode)c).ToArray()),
             ["core"] = p.On && p.Playback.Length > 0 ? CoreOf(p) : null,
-            ["dsp"] = DspActive(),
+            ["dsp"] = dsp,
             ["raised"] = Raise.Value,
             ["tools"] = new JsonObject { ["taskset"] = t.Taskset, ["nice"] = t.Nice, ["ionice"] = t.Ionice }
         };
