@@ -71,7 +71,7 @@
       "lines": 546
     },
     "public/app.js": {
-      "lines": 19638
+      "lines": 19584
     },
     "public/display.js": {
       "lines": 654
@@ -89,10 +89,10 @@
       "lines": 435
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 626
+      "lines": 624
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 573
+      "lines": 557
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559

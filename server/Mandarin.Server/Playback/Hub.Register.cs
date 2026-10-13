@@ -50,8 +50,7 @@ internal sealed partial class Hub
         {
             if (k == "enabled" && streamer && !Renderers.Devices.Enabled(r))
             {
-                try { await Upnp.ClearQueue(id); } catch (Exception e) when (e is HubError or Renderers.RendererError or UPnPError) { /* let go all the same */ }
-                Upnp.Drop(id);
+                try { await Upnp.LetGo(id); } catch (Exception e) when (e is HubError or Renderers.RendererError or UPnPError) { /* let go all the same */ }
             }
             if (k == "dsp")
             {

@@ -295,6 +295,31 @@ internal sealed partial class Players
     public List<long> TrackIds(string id) { var p = Get(id); lock (gate) return p.Queue.Select(it => it.TrackId ?? 0).Where(x => x > 0).ToList(); }
     public (double At, string Message)? ErrorOf(string id) { lock (gate) return map.TryGetValue(id, out var p) ? p.LastError : null; }
 
+    /* Its queue emptied, the renderer stopped, the room blank and kept so. */
+    private async Task Emptied(Player p)
+    {
+        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.ExpectStop = true; }
+        try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
+        lock (zm.Gate) zm.State[p.Id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
+        zm.Bump();
+        zm.Persist(p.Id);
+    }
+
+    /*
+     * devices.js setEnabled: switched off, or hidden, while playing — stopped
+     * and its queue let go. The route writes the switch before the hub hears
+     * of it, so the player is had as Get has it, all but the switch.
+     */
+    public async Task LetGo(string id)
+    {
+        try
+        {
+            var r = Record(id);
+            if (IsStreamer(r) && Devices.Online(r!) && Jv.T(r!.Caps["playable"]) && TakesFlac(r)) await Emptied(PlayerOf(id));
+        }
+        finally { Drop(id); }
+    }
+
     public void Drop(string id)
     {
         (string Url, string Sid, double Expires, double FailedAt) s;

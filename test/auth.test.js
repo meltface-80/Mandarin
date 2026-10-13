@@ -21,7 +21,7 @@ const B = "http://127.0.0.1:" + PORT;
 async function startServer(dataDir) {
   const music = path.join(dataDir, "..", "music");
   fs.mkdirSync(music, { recursive: true });
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: music, dataDir, serverIp: "127.0.0.1", sonosHosts: [] });
   const ctx = await srv.start();
   return { srv, ctx };
@@ -164,18 +164,17 @@ test("a queue made before the update keeps playing: speakers need no signature",
   await house.start();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-auth-sonos-"));
   fs.mkdirSync(path.join(tmp, "music"));
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const port = ports.port();
   const srv = createServer({ port, musicDir: path.join(tmp, "music"), dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] });
-  const ctx = await srv.start();
+  await srv.start();
   const from = (ip) => new Promise((resolve) => {
     const r = http.get({ host: "127.0.0.1", port, path: "/api/image/al-1-0", localAddress: ip, agent: false }, (x) => { x.resume(); resolve(x.statusCode); });
     r.on("error", (e) => resolve(e.message));
   });
   try {
-    // The household read: by the C# hub where it holds playback (v0.8.49; /api/health counts its rooms), else the Node server's.
-    const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
-    const known = async () => front ? (await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()).rooms >= 2 : ctx.zones.topology.hosts.includes(ports.host(1));
+    // The household read by the hub (v0.8.49; /api/health counts its rooms).
+    const known = async () => (await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()).rooms >= 2;
     for (let i = 0; i < 50 && !(await known()); i++) await new Promise(r => setTimeout(r, 200));
     assert.notEqual(await from(ports.host(1)), 401, "a speaker gets through unsigned");
     assert.equal(await from(ports.host(3)), 401, "anything else needs to sign in");

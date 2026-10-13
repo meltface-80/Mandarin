@@ -226,7 +226,7 @@ internal static partial class Library
     private static volatile Snapshot? current;
     private static readonly SemaphoreSlim Building = new(1, 1);
 
-    public static void Init(Uri node, string key)
+    public static void Init(Uri? node, string key)
     {
         upstream = node;
         frontKey = key;
@@ -245,7 +245,7 @@ internal static partial class Library
 
     private static async Task<LibState?> State()
     {
-        if (upstream == null) return null;
+        if (upstream == null) return LocalState();
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, new Uri(upstream, "/internal/library"));
@@ -306,7 +306,7 @@ internal static partial class Library
                 {
                     var t0 = Environment.TickCount64;
                     s = await Task.Run(() => Build(st));
-                    current = s;
+                    current = s; builtAt = NowMs();
                     var ms = Environment.TickCount64 - t0;
                     if (ms > 500) Front.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
                 }

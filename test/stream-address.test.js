@@ -7,8 +7,7 @@
  * C# hub hand out loopback addresses: Sonos rooms took the queue and played
  * nothing, and the phone showed the album with no sound.
  *
- * Held both ways: the Node server alone, and through the C# server, whose hub
- * plays (MANDARIN_FRONT=1).
+ * Held on the C# server alone (test/server.js), as the image runs it.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -16,9 +15,10 @@ const assert = require("node:assert");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
+const { start, built } = require("./server");
 const { localIp, lanAddresses } = require("../lib/sonos/topology");
 
-const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!lanAddresses().length && "this machine has no LAN address") ||
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!lanAddresses().length && "this machine has no LAN address") ||
   (process.env.SERVER_IP && "SERVER_IP is set in this environment");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -36,9 +36,8 @@ test("no SERVER_IP: speakers and phones are handed this machine's LAN address, a
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
-  await srv.start();
+  // SERVER_IP left unset (the harness pins it to 127.0.0.1 for every other test).
+  const srv = await start({ port: PORT, musicDir: lib.music, dataDir: lib.data, env: { SERVER_IP: "", SONOS_HOSTS: ports.host(0) } });
   t.after(async () => { await srv.stop(); await house.stop(); });
   const token = await signIn(B);
   const api = async (p, body) => {

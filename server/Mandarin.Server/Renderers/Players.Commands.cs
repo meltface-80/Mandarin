@@ -337,15 +337,7 @@ internal sealed partial class Players
         return plan;
     }
 
-    public async Task ClearQueue(string id)
-    {
-        var p = Get(id);
-        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.ExpectStop = true; }
-        try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
-        lock (zm.Gate) zm.State[id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
-        zm.Bump();
-        zm.Persist(id);
-    }
+    public Task ClearQueue(string id) => Emptied(Get(id));
 
     public void SetSettings(string id, bool? shuffle, string? loop)
     {

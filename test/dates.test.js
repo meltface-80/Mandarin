@@ -160,7 +160,6 @@ test("the days found after a library scan, through the server (behind the C# ser
   if (!haveFfmpeg()) return t.skip("ffmpeg is not installed");
   const { signIn } = require("./auth-helper");
   const { FakeMusicBrainz } = require("./fake-musicbrainz");
-  const FRONT = process.env.MANDARIN_FRONT === "1";
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // Album One (1997) and Hi Res (2020) are tagged to the year; Dated to the day.
   const lib = makeLibrary();
@@ -172,7 +171,7 @@ test("the days found after a library scan, through the server (behind the C# ser
   ]);
   await mb.start();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, mbBaseUrl: mb.baseUrl });
   const ctx = await srv.start();
   try {
@@ -187,18 +186,13 @@ test("the days found after a library scan, through the server (behind the C# ser
     const asked = mb.requests.map((u, i) => [decodeURIComponent(u), mb.agents[i]]).filter(([u]) => u.startsWith("/ws/2/release-group/?query="));
     assert.ok(asked.some(([u]) => u.includes('releasegroup:"Hi Res" AND artist:"Artist B"') && u.includes('releasegroup:"Album One"')), JSON.stringify(asked));
     assert.ok(!asked.some(([u]) => u.includes('"Dated"')), "an album with its day isn't asked about");
-    if (FRONT) {
-      assert.ok(asked.every(([, ua]) => /^Mandarin\//.test(ua)), "asked by the C# server: " + JSON.stringify(asked));
-      assert.equal(ctx.releaseDays.handedOver, true);
-    }
+    assert.ok(asked.every(([, ua]) => /^Mandarin\//.test(ua)), "asked by the C# server: " + JSON.stringify(asked));
     // Kept across a reload, and not asked again within the month.
     const n = mb.requests.length;
-    ctx.library.reload();
+    await ctx.library.reload();
     assert.deepEqual(await order(), ["Album One", "Dated", "Hi Res", "Best Of"]);
-    if (FRONT) {
-      assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST" })).status, 404, "not without the key");
-      assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).status, 200);
-    } else await ctx.releaseDays.run();
+    assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST" })).status, 404, "not without the key");
+    assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).status, 200);
     await sleep(300);
     assert.equal(mb.requests.length, n, "nothing asked twice");
   } finally { await srv.stop(); await mb.stop(); }

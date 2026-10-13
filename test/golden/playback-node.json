@@ -1,0 +1,5673 @@
+[
+ {
+  "label": "POST /api/phone/hello",
+  "v": {
+   "status": 200,
+   "json": {
+    "zone_id": "<zone>",
+    "seq": 0,
+    "resume": null,
+    "away": false,
+    "away_address": null,
+    "dsp": {
+     "enabled": false,
+     "headphone": null,
+     "peq": null,
+     "headroom": "auto"
+    },
+    "replaygain": {
+     "mode": "off",
+     "target": -14,
+     "unknown": -5
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "This phone",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": null,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "Pixel 8",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": null,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/shortcut/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "stopped",
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "is_phone": false
+     }
+    ],
+    "last_zone": "RINCON_KITCHEN01400"
+   }
+  }
+ },
+ {
+  "label": "GET /api/outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "outputs": [
+     {
+      "output_id": "RINCON_KITCHEN01400",
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "model": "Sonos Five",
+      "stereo_pair": false,
+      "is_muted": false,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 20,
+       "soft_limit": 100,
+       "is_muted": false
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Kitchen"
+     },
+     {
+      "output_id": "RINCON_STUDY001400",
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "model": "Sonos Era 100",
+      "stereo_pair": false,
+      "is_muted": false,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 20,
+       "soft_limit": 100,
+       "is_muted": false
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Study"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/shortcut/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "stopped",
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "is_phone": false
+     }
+    ],
+    "last_zone": "RINCON_KITCHEN01400"
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "Pixel 8",
+     "state": "stopped",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": false,
+     "is_previous_allowed": false,
+     "is_seek_allowed": false,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "Pixel 8",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": null,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": null
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "Pixel 8",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": null,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "This phone",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": null,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 2,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 1
+    },
+    {
+     "op": "pause",
+     "seq": 2
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 404,
+   "json": {
+    "error": "That album is no longer in the library"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "offset required"
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "invalid command, allowed: play, pause, playpause, stop, previous, next"
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 500,
+   "json": {
+    "error": "That room isn't available"
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_nowhere",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [],
+    "history": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=RINCON_nowhere",
+  "v": {
+   "status": 200,
+   "json": {
+    "zone": null,
+    "revision": "<revision>"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play-unheard",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "zone_or_output_id required"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play-unheard",
+  "v": {
+   "status": 200,
+   "json": null
+  }
+ },
+ {
+  "label": "random album",
+  "v": 3
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 4,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 4
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "plays",
+  "v": [
+   {
+    "title": "Song 2",
+    "artist": "Artist A",
+    "album": "Album One",
+    "zone": "<zone>",
+    "has_album": 1
+   }
+  ]
+ },
+ {
+  "label": "GET /api/album/now-playing?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "album": {
+     "offset": "<Album One>",
+     "title": "Album One",
+     "subtitle": "Artist A",
+     "image_key": "<Album One>",
+     "source": null,
+     "quality": "16/44.1",
+     "year": 1997
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "opus",
+       "text": "256kbps"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "opus",
+       "text": "256 · 24/48 · DSP"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · DSP"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · DSP · USB 24/44.1"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · USB 24/96 ✓"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · USB DSD64 ✓"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · USB DoP DSD128 ✓"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/seek",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 8,
+   "commands": [
+    {
+     "op": "pause",
+     "seq": 5
+    },
+    {
+     "op": "seek",
+     "seconds": "<clock>",
+     "seq": 6
+    },
+    {
+     "op": "volume",
+     "value": 25,
+     "seq": 7
+    },
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 8
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "paused",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 4,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 25,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · USB DoP DSD128 ✓"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_next",
+    "offset": "<Hi Res>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 9,
+   "commands": [
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "items": [
+      {
+       "url": "<base>/stream/t<Hi 1>.flac?s=<sig>",
+       "track_id": "<Hi 1>",
+       "title": "Hi 1",
+       "artist": "Artist B",
+       "album": "Hi Res",
+       "art_url": "<base>/api/image/<Hi Res>?size=600&s=<sig>",
+       "duration": 4,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Hi 2>.flac?s=<sig>",
+       "track_id": "<Hi 2>",
+       "title": "Hi 2",
+       "artist": "Artist B",
+       "album": "Hi Res",
+       "art_url": "<base>/api/image/<Hi Res>?size=600&s=<sig>",
+       "duration": 4,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 9
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Hi 1",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Hi 2",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 7,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 8,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/move",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "kind": "play_next",
+    "moved": 1,
+    "first": 3
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 11,
+   "commands": [
+    {
+     "op": "remove",
+     "index": 5,
+     "seq": 10
+    },
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 11
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Hi 1",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Hi 2",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 7,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 8,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play-from-here",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/play-from-here",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "queue_item_id is required"
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/remove",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "removed": 2
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/remove",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "queue_item_ids required"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 14,
+   "commands": [
+    {
+     "op": "jump",
+     "index": 2,
+     "seq": 12
+    },
+    {
+     "op": "remove",
+     "index": 4,
+     "seq": 13
+    },
+    {
+     "op": "remove",
+     "index": 3,
+     "seq": 14
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 3,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 2",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 2
+     },
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/zone-settings",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "random_album_radio_stands_down": false
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 15,
+   "commands": [
+    {
+     "op": "mode",
+     "shuffle": true,
+     "loop": "loop_one",
+     "seq": 15
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "loading",
+      "settings": {
+       "shuffle": true,
+       "loop": "loop_one",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "This phone",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 25,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/zone-settings",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "random_album_radio_stands_down": false
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 16,
+   "commands": [
+    {
+     "op": "mode",
+     "shuffle": false,
+     "loop": "disabled",
+     "seq": 16
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/mute-all",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "outputs": 2
+   }
+  }
+ },
+ {
+  "label": "POST /api/pause-all",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 17,
+   "commands": [
+    {
+     "op": "pause",
+     "seq": 17
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/queue/clear",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 18,
+   "commands": [
+    {
+     "op": "clear",
+     "seq": 18
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [],
+    "history": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "stopped",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": false,
+     "is_previous_allowed": false,
+     "is_seek_allowed": false,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 25,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": null
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 20,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 19
+    },
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 20
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "paused",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 4,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 6.666666666666667,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 21,
+   "commands": [
+    {
+     "op": "volume",
+     "value": 53,
+     "seq": 21
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "paused",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 4,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 6.666666666666667,
+        "value": 53,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 22,
+   "commands": [
+    {
+     "op": "volume",
+     "value": 60,
+     "seq": 22
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 23,
+   "commands": [
+    {
+     "op": "volume",
+     "value": 51,
+     "seq": 23
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 25,
+   "commands": [
+    {
+     "op": "volume",
+     "value": 1,
+     "seq": 24
+    },
+    {
+     "op": "volume",
+     "value": 30,
+     "seq": 25
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "paused",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 4,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 30,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/radio?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "enabled": false,
+    "zones": []
+   }
+  }
+ },
+ {
+  "label": "POST /api/radio",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "enabled": true,
+    "radios": {
+     "own": true,
+     "roon": false
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/radio?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "enabled": true,
+    "zones": [
+     "<zone>"
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/radio",
+  "v": {
+   "status": 200,
+   "json": {
+    "enabled": false,
+    "zones": [
+     "<zone>"
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/radio",
+  "v": {
+   "status": 400,
+   "json": {
+    "error": "zone required"
+   }
+  }
+ },
+ {
+  "label": "the radio",
+  "v": 26
+ },
+ {
+  "label": "POST /api/radio",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "enabled": false,
+    "radios": {
+     "own": false,
+     "roon": false
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/radio?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "enabled": false,
+    "zones": []
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/remove",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "removed": 3
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 28,
+   "commands": [
+    {
+     "op": "remove",
+     "index": 7,
+     "seq": 27
+    },
+    {
+     "op": "remove",
+     "index": 6,
+     "seq": 28
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/phone/commands?after=28",
+  "v": {
+   "status": 200,
+   "json": {
+    "seq": 28,
+    "commands": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 403,
+   "json": {
+    "error": "That phone isn't playing for other devices right now"
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 403,
+   "json": {
+    "error": "That phone isn't playing for other devices right now"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 403,
+   "json": {
+    "error": "That phone isn't playing for other devices right now"
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": true,
+    "zones": [
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "paused",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "This phone",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 30,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "outputs": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/shortcut/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "zones": [
+     {
+      "zone_id": "<zone>",
+      "display_name": "This phone",
+      "state": "paused",
+      "is_phone": true
+     }
+    ],
+    "last_zone": "<zone>"
+   }
+  }
+ },
+ {
+  "label": "GET /api/shortcut/play-random",
+  "v": {
+   "status": 200,
+   "json": null
+  }
+ },
+ {
+  "label": "away: a random album",
+  "v": 29
+ },
+ {
+  "label": "GET /api/phone/commands?after=29",
+  "v": {
+   "status": 200,
+   "json": {
+    "seq": 29,
+    "commands": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "loading",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "Pixel 8",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 30,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "stopped",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 31,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 30
+    },
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 31
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": false,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 0,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Closing",
+      "line2": "Someone",
+      "line3": "A Purchase",
+      "artists": [
+       {
+        "name": "Someone",
+        "linkable": false
+       }
+      ],
+      "image_key": "phone-abc123",
+      "length": 180,
+      "seek_position": "<clock>",
+      "track_id": null,
+      "album_offset": "phone:abc123",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless · DSP"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Closing",
+      "subtitle": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "length": 180
+     }
+    ],
+    "history": [
+     {
+      "track": "Opening",
+      "artist": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "duration": 200,
+      "elapsed": 200,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 32,
+   "commands": [
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "local": true,
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 32
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Closing",
+      "subtitle": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "length": 180
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Opening",
+      "artist": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "duration": 200,
+      "elapsed": 200,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_next",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 33,
+   "commands": [
+    {
+     "op": "insert",
+     "at": "<clock>",
+     "local": true,
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "play": false,
+     "seq": 33
+    }
+   ]
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": false,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 0,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 1",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 180,
+      "seek_position": "<clock>",
+      "track_id": "<Song 1>",
+      "album_offset": "<Album One>",
+      "format": null
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 3,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Closing",
+      "artist": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "duration": 180,
+      "elapsed": 180,
+      "played": true,
+      "queue_item_id": 2
+     },
+     {
+      "track": "Opening",
+      "artist": "Someone",
+      "album": "A Purchase",
+      "image_key": "phone-abc123",
+      "duration": 200,
+      "elapsed": 200,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 34,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 34
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 2,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 40,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 1",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 1>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/hello",
+  "v": {
+   "status": 200,
+   "json": {
+    "zone_id": "<zone>",
+    "seq": 34,
+    "resume": {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 1,
+     "seconds": "<clock>",
+     "play": false
+    },
+    "away": false,
+    "away_address": null,
+    "dsp": {
+     "enabled": false,
+     "headphone": null,
+     "peq": null,
+     "headroom": "auto"
+    },
+    "replaygain": {
+     "mode": "off",
+     "target": -14,
+     "unknown": -5
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/zone-state?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "<zone>",
+     "display_name": "This phone",
+     "state": "paused",
+     "is_play_allowed": true,
+     "is_pause_allowed": false,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 1,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "<zone>",
+       "display_name": "This phone",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 25,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 60,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=<zone>",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "the kept queue",
+  "v": {
+   "kind": "phone",
+   "deviceId": "<device>",
+   "name": "Pixel 8",
+   "ids": [
+    "<Song 1>",
+    "<Song 2>",
+    "<Song 3>"
+   ],
+   "index": 1,
+   "seconds": 40,
+   "state": "paused",
+   "shuffle": false,
+   "loop": "disabled",
+   "volume": {
+    "value": 25,
+    "muted": false
+   },
+   "at": "<clock>"
+  }
+ },
+ {
+  "label": "GET /api/outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "outputs": [
+     {
+      "output_id": "RINCON_KITCHEN01400",
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "model": "Sonos Five",
+      "stereo_pair": false,
+      "is_muted": true,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 20,
+       "soft_limit": 100,
+       "is_muted": true
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Kitchen"
+     },
+     {
+      "output_id": "RINCON_STUDY001400",
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "model": "Sonos Era 100",
+      "stereo_pair": false,
+      "is_muted": true,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 20,
+       "soft_limit": 100,
+       "is_muted": true
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Study"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "RemoveAllTracksFromQueue",
+   "AddMultipleURIsToQueue",
+   "SetAVTransportURI",
+   "Seek",
+   "Play",
+   "AddMultipleURIsToQueue"
+  ]
+ },
+ {
+  "label": "GET /api/zone-state?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "RINCON_KITCHEN01400",
+     "display_name": "Kitchen",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 2,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "RINCON_KITCHEN01400",
+       "display_name": "Kitchen",
+       "is_muted": true,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 20,
+        "soft_limit": 100,
+        "is_muted": true
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 1",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 3,
+      "seek_position": "<clock>",
+      "track_id": "<Song 1>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 1,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 2,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": []
+   }
+  }
+ },
+ {
+  "label": "GET /api/album/now-playing?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "album": {
+     "offset": "<Album One>",
+     "title": "Album One",
+     "subtitle": "Artist A",
+     "image_key": "<Album One>",
+     "source": null,
+     "quality": "16/44.1",
+     "year": 1997
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/seek",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/seek",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Pause",
+   "Play",
+   "Next",
+   "Previous",
+   "Pause",
+   "Play",
+   "Seek",
+   "Seek"
+  ]
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Pause"
+  ]
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Play"
+  ]
+ },
+ {
+  "label": "GET /api/zone-state?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "RINCON_KITCHEN01400",
+     "display_name": "Kitchen",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 2,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "RINCON_KITCHEN01400",
+       "display_name": "Kitchen",
+       "is_muted": true,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 20,
+        "soft_limit": 100,
+        "is_muted": true
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 1",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 3,
+      "seek_position": "<clock>",
+      "track_id": "<Song 1>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_next",
+    "offset": "<Hi Res>"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "AddMultipleURIsToQueue",
+   "AddMultipleURIsToQueue"
+  ]
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 1,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 2,
+      "title": "Hi 1",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 3,
+      "title": "Hi 2",
+      "subtitle": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "length": 4
+     },
+     {
+      "queue_item_id": 4,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 7,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 8,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": []
+   }
+  }
+ },
+ {
+  "label": "POST /api/play-from-here",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Seek",
+   "Play"
+  ]
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 4,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 7,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 8,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Hi 2",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 3
+     },
+     {
+      "track": "Hi 1",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 2
+     },
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/move",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "kind": "play_next",
+    "moved": 2,
+    "first": 5
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "ReorderTracksInQueue",
+   "ReorderTracksInQueue"
+  ]
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 4,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 7,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 8,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Hi 2",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 3
+     },
+     {
+      "track": "Hi 1",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 2
+     },
+     {
+      "track": "Song 1",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/queue/remove",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "removed": 2
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "RemoveTrackFromQueue",
+   "RemoveTrackFromQueue"
+  ]
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [
+     {
+      "queue_item_id": 4,
+      "title": "Song 2",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 5,
+      "title": "Song 1",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     },
+     {
+      "queue_item_id": 6,
+      "title": "Song 3",
+      "subtitle": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "length": 3
+     }
+    ],
+    "history": [
+     {
+      "track": "Song 2",
+      "artist": "Artist A",
+      "album": "Album One",
+      "image_key": "<Album One>",
+      "duration": 3,
+      "elapsed": 3,
+      "played": true,
+      "queue_item_id": 3
+     },
+     {
+      "track": "Hi 2",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 2
+     },
+     {
+      "track": "Hi 1",
+      "artist": "Artist B",
+      "album": "Hi Res",
+      "image_key": "<Hi Res>",
+      "duration": 4,
+      "elapsed": 4,
+      "played": true,
+      "queue_item_id": 1
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/zone-settings",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "random_album_radio_stands_down": false
+   }
+  }
+ },
+ {
+  "label": "POST /api/zone-settings",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "random_album_radio_stands_down": false
+   }
+  }
+ },
+ {
+  "label": "POST /api/zone-settings",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "random_album_radio_stands_down": false
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "SetPlayMode",
+   "SetPlayMode",
+   "SetPlayMode"
+  ]
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "state": "playing",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "paused",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "Pixel 8",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 25,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     },
+     {
+      "zone_id": "RINCON_STUDY001400",
+      "display_name": "Study",
+      "state": "paused",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_STUDY001400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/volume",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "SetVolume",
+   "SetVolume",
+   "SetMute",
+   "SetMute"
+  ]
+ },
+ {
+  "label": "GET /api/zone-state?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "revision": "<revision>",
+    "zone": {
+     "zone_id": "RINCON_KITCHEN01400",
+     "display_name": "Kitchen",
+     "state": "playing",
+     "is_play_allowed": false,
+     "is_pause_allowed": true,
+     "is_next_allowed": true,
+     "is_previous_allowed": true,
+     "is_seek_allowed": true,
+     "queue_items_remaining": 2,
+     "settings": {
+      "shuffle": false,
+      "loop": "disabled",
+      "auto_radio": false
+     },
+     "outputs": [
+      {
+       "output_id": "RINCON_KITCHEN01400",
+       "display_name": "Kitchen",
+       "is_muted": false,
+       "volume": {
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "value": 30,
+        "soft_limit": 100,
+        "is_muted": false
+       }
+      }
+     ],
+     "now_playing": {
+      "line1": "Song 2",
+      "line2": "Artist A",
+      "line3": "Album One",
+      "artists": [
+       {
+        "name": "Artist A",
+        "linkable": true
+       }
+      ],
+      "image_key": "<Album One>",
+      "length": 3,
+      "seek_position": "<clock>",
+      "track_id": "<Song 2>",
+      "album_offset": "<Album One>",
+      "format": {
+       "kind": "lossless",
+       "text": "Lossless"
+      }
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Stop"
+  ]
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Hi Res>"
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "AddMultipleURIsToQueue"
+  ]
+ },
+ {
+  "label": "POST /api/queue/clear",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "RemoveAllTracksFromQueue"
+  ]
+ },
+ {
+  "label": "GET /api/queue?zone=RINCON_KITCHEN01400",
+  "v": {
+   "status": 200,
+   "json": {
+    "items": [],
+    "history": []
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "queue",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "AddMultipleURIsToQueue",
+   "SetAVTransportURI",
+   "Seek",
+   "Play"
+  ]
+ },
+ {
+  "label": "POST /api/pause-all",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Pause"
+  ]
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 35,
+   "commands": [
+    {
+     "op": "pause",
+     "seq": 35
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/group-outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Study",
+  "v": [
+   "SetAVTransportURI"
+  ]
+ },
+ {
+  "label": "GET /api/zones",
+  "v": {
+   "status": 200,
+   "json": {
+    "away": false,
+    "zones": [
+     {
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen + Study",
+      "state": "paused",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "RINCON_KITCHEN01400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Kitchen",
+        "model": "Sonos Five",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 30,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       },
+       {
+        "output_id": "RINCON_STUDY001400",
+        "zone_id": "RINCON_KITCHEN01400",
+        "display_name": "Study",
+        "model": "Sonos Era 100",
+        "stereo_pair": false,
+        "is_muted": true,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 20,
+         "soft_limit": 100,
+         "is_muted": true
+        },
+        "can_group_with_output_ids": [
+         "RINCON_KITCHEN01400",
+         "RINCON_STUDY001400"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": false
+     },
+     {
+      "zone_id": "<zone>",
+      "display_name": "Pixel 8",
+      "state": "paused",
+      "settings": {
+       "shuffle": false,
+       "loop": "disabled",
+       "auto_radio": false
+      },
+      "outputs": [
+       {
+        "output_id": "<zone>",
+        "zone_id": "<zone>",
+        "display_name": "Pixel 8",
+        "model": "Phone",
+        "stereo_pair": false,
+        "is_muted": false,
+        "volume": {
+         "type": "number",
+         "min": 0,
+         "max": 100,
+         "step": 1,
+         "value": 25,
+         "soft_limit": 100,
+         "is_muted": false
+        },
+        "can_group_with_output_ids": [
+         "<zone>"
+        ],
+        "source_controls": []
+       }
+      ],
+      "is_phone": true
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "GET /api/outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "outputs": [
+     {
+      "output_id": "RINCON_KITCHEN01400",
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Kitchen",
+      "model": "Sonos Five",
+      "stereo_pair": false,
+      "is_muted": false,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 30,
+       "soft_limit": 100,
+       "is_muted": false
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Kitchen + Study"
+     },
+     {
+      "output_id": "RINCON_STUDY001400",
+      "zone_id": "RINCON_KITCHEN01400",
+      "display_name": "Study",
+      "model": "Sonos Era 100",
+      "stereo_pair": false,
+      "is_muted": true,
+      "volume": {
+       "type": "number",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "value": 20,
+       "soft_limit": 100,
+       "is_muted": true
+      },
+      "can_group_with_output_ids": [
+       "RINCON_KITCHEN01400",
+       "RINCON_STUDY001400"
+      ],
+      "source_controls": [],
+      "zone_name": "Kitchen + Study"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "label": "POST /api/ungroup-outputs",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Study",
+  "v": [
+   "BecomeCoordinatorOfStandaloneGroup"
+  ]
+ },
+ {
+  "label": "POST /api/group-outputs",
+  "v": {
+   "status": 500,
+   "json": {
+    "error": "A phone plays on its own — it can't be grouped with Sonos rooms"
+   }
+  }
+ },
+ {
+  "label": "POST /api/play",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true,
+    "action": "play_now",
+    "offset": "<Album One>"
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 36,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 0,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 36
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/transfer-zone",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "RemoveAllTracksFromQueue",
+   "AddMultipleURIsToQueue",
+   "SetAVTransportURI",
+   "Seek",
+   "Seek",
+   "Play",
+   "AddMultipleURIsToQueue"
+  ]
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 37,
+   "commands": [
+    {
+     "op": "stop",
+     "seq": 37
+    }
+   ]
+  }
+ },
+ {
+  "label": "POST /api/control",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/transfer-zone",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "commands",
+  "v": {
+   "seq": 38,
+   "commands": [
+    {
+     "op": "load",
+     "items": [
+      {
+       "url": "<base>/stream/t<Song 1>.flac?s=<sig>",
+       "track_id": "<Song 1>",
+       "title": "Song 1",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 2>.flac?s=<sig>",
+       "track_id": "<Song 2>",
+       "title": "Song 2",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      },
+      {
+       "url": "<base>/stream/t<Song 3>.flac?s=<sig>",
+       "track_id": "<Song 3>",
+       "title": "Song 3",
+       "artist": "Artist A",
+       "album": "Album One",
+       "art_url": "<base>/api/image/<Album One>?size=600&s=<sig>",
+       "duration": 3,
+       "gain_db": null
+      }
+     ],
+     "index": 1,
+     "seconds": "<clock>",
+     "play": true,
+     "seq": 38
+    }
+   ]
+  }
+ },
+ {
+  "label": "the speaker: Kitchen",
+  "v": [
+   "Pause",
+   "Stop"
+  ]
+ },
+ {
+  "label": "POST /api/transfer-zone",
+  "v": {
+   "status": 500,
+   "json": {
+    "error": "That room isn't available"
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ },
+ {
+  "label": "POST /api/phone/state",
+  "v": {
+   "status": 200,
+   "json": {
+    "ok": true
+   }
+  }
+ }
+]

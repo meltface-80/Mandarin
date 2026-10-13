@@ -44,8 +44,8 @@ and the quality gates added.
 | | |
 |---|---|
 | `main` | v0.8.44, `32f62a8`. `:latest`. Don't touch. |
-| `migration` | **v0.8.48** (`6120001`): PR #206 (stage 5) squash-merged on 12 October 2026 with CI green; before it #204 (stage 4b) and #205. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
-| `gates-quality` | The quality gates (`docs/quality-plan.md`), no change to the app: PR into `migration`. |
+| `migration` | **v0.8.49** (`e2474dc`): PR #209 (stage 6, playback whole) squash-merged on 13 October 2026 with CI green; before it #206 (stage 5), #204 and #205. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
+| `stage-7-node-removed` | **v0.8.50, stage 7 (Node removed)**, from `migration`: the plan in the spec, the parts as they are built. PR into `migration` when done, for the owner's one final test. |
 
 The stale branches named here before were deleted by the owner on GitHub.
 
@@ -64,29 +64,22 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    profile of their own still go to Node's `sharp`; drawing them the same in C# needs libvips's
    colour maths (lcms2). Three ways are laid out in the spec; stage 7 can't drop Node until one
    is chosen. After stage 5, Node is playback (and those few covers) and nothing else.
-2. **Stage 6: playback, whole, in one stage** (the largest and riskiest): the zone hub, Sonos,
-   UPnP renderers, sound devices on the server, the phone as a zone, the queue, history, plays,
-   radio, the device list and `/api/status`'s rooms. Order within it is in the spec. It merges
-   once every playback test passes through C#, **and the owner has tried it on their own household**,
-   so stop and ask them before merging it. **Parts 1 to 4 are built and pushed on
-   `stage-6-playback`** (the hub, the queue store, the phone as a zone, history, the radio, every
-   playback route; Sonos whole, with the register's sync and the rooms' part of status and
-   health; the UPnP renderers whole — discovery, GENA, gapless, LinkPlay — with the device list,
-   its routes and the switch and the radio on a PATCH, which the spec had in part 5; sound
-   devices on the server through Mandarin's audio engine, with ALSA's list and the engine's
-   download; `test/playback-csharp.test.js` holds parts 1 and 2 to a Node server alone, the
-   speakers' command logs included; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`
-   and `test/local-output.test.js` hold parts 3 and 4). **Part 5 too** (the wall display's track
-   from the hub; the Node hub idle by the hand-over alone): the five parts are built, the whole
-   suite passes both ways, and **PR #209 into `migration` carries the results**. What is left is
-   the owner trying it on their own household (the `:stage-6-playback` image, section 6) — only
-   then the squash-merge. The ffmpeg sink for
-   a Mac's sound devices is not ported, as the spec says: on a Mac a `LOCAL_` device is refused
-   in words by the C# hub until stage 7 decides.
-3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
-   the launcher and in-app updates in C#, the tests driving the C# binary over HTTP (those that
-   reach into `ctx.*` rewritten; CI's Node-alone run goes), Macs on C# alone, the Node copies
-   deleted. Then the owner tests from migration and merges to main as v0.9.0 themselves.
+2. **Stage 6 (v0.8.49): playback, whole — merged (#209).** The zone hub, Sonos, UPnP renderers,
+   sound devices on the server (through Mandarin's audio engine), the phone as a zone, the queue,
+   history, plays, the radio, the device list and `/api/status`'s rooms, each held to the Node
+   server's own answers and command order (`test/playback-csharp.test.js` with a fake household
+   for each server; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`,
+   `test/local-output.test.js`). **The owner decided to try it at home once, after stage 7**,
+   rather than per stage: the merge went on CI green. The ffmpeg sink for a Mac's sound devices
+   is not ported, as the spec says: on a Mac a `LOCAL_` device is refused in words by the C# hub
+   until stage 7 decides. With the merge the suite was made steady (the races CI found fixed
+   where they live: `docs/quality-plan.md` section 4 says what the rules are now) and CI quicker
+   (the files dealt out to three Linux jobs and two Mac jobs; a failed file run once more on its
+   own, `.github/retry-failed.sh`).
+3. **Stage 7 (v0.8.50): Node removed → the v0.9.0 candidate**, on `stage-7-node-removed`: the
+   plan in detail is in the spec (five parts: the C# server on its own; the last routes; the
+   launcher and updates in C#; the tests drive the binary; the image and the repository without
+   Node). Then the owner tests from `migration` and merges to `main` as v0.9.0 themselves.
 
 Per the spec, each stage is planned in detail (in the spec) before it's coded.
 
@@ -152,7 +145,8 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 - **Each later stage:** wait until `:migration` is published (the docker-publish run after CI on
   the merge), then open the stack → **Update**. Check `http://<server>:3500/api/health` shows the
   new version.
-- **A stage tried before its merge** (stage 6's rule): the image for a `stage-*` branch is
+- **A stage tried before its merge** (if the owner asks; they chose one final test after stage 7
+  instead): the image for a `stage-*` branch is
   published as `:<branch>` after CI passes on its last push (`.github/workflows/docker-publish.yml`),
   so set the tag to, say, `:stage-6-playback` → **Save** → **Update**; once the stage is
   squash-merged, back to `:migration` and **Update** as usual. The queues one server kept are
@@ -162,10 +156,11 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 
 ## 7. Things that will trip you up here
 
-- **4 cores.** Use `--test-concurrency=3`; heavier runs make timing tests flaky. The
-  test-runner's child for `services-import-csharp.test.js` hung once (20+ minutes) under
-  concurrency 3 and passed alone and on a rerun; if a run stops producing output, look at the
-  process tree, don't just wait.
+- **4 cores.** `npm test` runs four files at once; `MANDARIN_FRONT=1 npm test` takes six to
+  seven minutes here. The whole-file hangs seen before (a fake's `close()` waiting on a
+  connection the C# server still held) are fixed (v0.8.49, `test/fixtures.js` `stopServer`), and
+  a request a server never answers fails after a minute and a half naming its address
+  (`test/setup.js`): if a run stops producing output, read the log for that line.
 - **Agents you start share the account's usage limit** and have hit it mid-task. Make them commit
   and push after every part.
 - **node_modules is a symlink** in worktrees, ignored through `.git/info/exclude`. Add files by

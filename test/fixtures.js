@@ -19,6 +19,23 @@ function haveDrawtext() {
   try { const r = spawnSync(FFMPEG, ["-hide_banner", "-filters"], { encoding: "utf8" }); return r.status === 0 && /\sdrawtext\s/.test(r.stdout); } catch (e) { return false; }
 }
 
+/* Whether this ffmpeg has libsoxr, which decides the resampler a conversion asks for (lib/ffmpeg.js's rule, kept). */
+function haveSoxr() {
+  try { return /--enable-libsoxr/.test(spawnSync(FFMPEG, ["-version"], { encoding: "utf8" }).stdout || ""); } catch (e) { return false; }
+}
+
+/* Whether this ffmpeg writes 32-bit FLAC (6.1 quietly caps it at 24): a fifth of a second of silence, its STREAMINFO read back (lib/ffmpeg.js's rule, kept). */
+function haveFlac32() {
+  try {
+    const r = spawnSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
+      "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-"], { timeout: 10000, maxBuffer: 4 * 1024 * 1024 });
+    const b = r.stdout;
+    if (r.status !== 0 || !b || b.length <= 42 || b.toString("ascii", 0, 4) !== "fLaC") return false;
+    const si = b.subarray(8, 8 + 34);
+    return ((((si[12] & 1) << 4) | (si[13] >> 4)) + 1) === 32;
+  } catch (e) { return false; }
+}
+
 function gen(out, { seconds = 3, freq = 440, rate = 44100, fmt = "s16", codecArgs = [], tags = {} }) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const meta = Object.entries(tags).flatMap(([k, v]) => ["-metadata", `${k}=${v}`]);
@@ -93,4 +110,4 @@ function stopServer(server) {
   });
 }
 
-module.exports = { haveFfmpeg, haveDrawtext, makeLibrary, gen, probe, writeDsf, stopServer, FFMPEG };
+module.exports = { haveFfmpeg, haveDrawtext, haveSoxr, haveFlac32, makeLibrary, gen, probe, writeDsf, stopServer, FFMPEG };

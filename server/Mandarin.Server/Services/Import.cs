@@ -575,9 +575,9 @@ internal static class Import
     private static Timer? first, every, watch;
     private const long SixHours = 6 * 3600 * 1000;
 
-    private static IEnumerable<Catalogue> Services() => new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal }.OfType<Catalogue>();
+    internal static IEnumerable<Catalogue> Services() => new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal }.OfType<Catalogue>();
     /* Signed in, with the import on. */
-    private static bool Wants(Catalogue s) => s.Connected() && s.Settings().Import;
+    internal static bool Wants(Catalogue s) => s.Connected() && s.Settings().Import;
 
     private static long Ms(double ms) => (long)Math.Min(ms, 4294967294);
 

@@ -28,13 +28,14 @@ jobs:
       - name: The gates' own tests
         run: node --test test/quality-gates.test.js
 
-  # The suite, in parts that run at once (v0.8.49): on Node 20 the Node server
-  # alone (one job, three minutes); on Node 22 every test's server behind the
-  # C# server, as the image runs it, the test files dealt out to three jobs
-  # (node's --test-shard, each file in one of them), so the whole run takes
-  # the time of a third of it rather than nine minutes end to end.
+  # The suite, in parts that run at once (v0.8.49): the test files dealt out to
+  # three jobs (node's --test-shard, each file in one of them), so the whole run
+  # takes the time of a third of it rather than nine minutes end to end. Since
+  # v0.8.50 (stage 7) the tests start the C# server alone (test/server.js); the
+  # few left on the Node server run it behind the C# server, as the image did
+  # (MANDARIN_FRONT=1), until it goes. The Node-alone job went with it.
   test:
-    name: test (${{ matrix.node-version }}${{ matrix.shard != '1/1' && format(', part {0}', matrix.shard) || '' }})
+    name: test (${{ matrix.node-version }}, part ${{ matrix.shard }})
     runs-on: ubuntu-latest
     # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
     # whole hour; nothing here should take half of that.
@@ -43,7 +44,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { node-version: "20", shard: "1/1" }
           - { node-version: "22", shard: "1/3" }
           - { node-version: "22", shard: "2/3" }
           - { node-version: "22", shard: "3/3" }
@@ -94,9 +94,9 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj') }}
       - name: Build the audio engine
         run: ./engine/build.sh
-      # Mandarin's server in C# (server/, v0.8.1): on Node 22 every test's
-      # server sits behind it, as in the image (test/setup.js, MANDARIN_FRONT);
-      # on Node 20 the suite talks to the Node server directly. Both must pass.
+      # Mandarin's server in C# (server/, v0.8.1): the server the tests start
+      # (test/server.js), and the one in front of the Node server where a test
+      # still runs that (test/setup.js, MANDARIN_FRONT).
       - name: Build the C# server
         run: ./server/build.sh
       - name: Syntax check
@@ -110,7 +110,7 @@ jobs:
       # run, a race on a busy runner to fix in its turn; a failure again is red.
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
-          MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
+          MANDARIN_FRONT: "1"
           TEST_SHARD: ${{ matrix.shard }}
         run: |
           set -o pipefail
@@ -227,6 +227,10 @@ jobs:
           docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
           # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
           test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
+          # The image's health check is the C# server asking itself (v0.8.50): 0 with the server
+          # up on PORT, 1 with nothing on the port it is told.
+          docker exec smoke /app/server/bin/mandarin-server --health | grep -q '"ok":true'
+          if docker exec -e PORT=9 smoke /app/server/bin/mandarin-server --health; then echo "--health passed with nothing on port 9"; exit 1; fi
           # Measure ReplayGain works with the image's own ffmpeg: its options, as
           # the servers ask, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
           F=$(sed -n 's/^const FILTER = "\(.*\)";$/\1/p' lib/loudness.js)

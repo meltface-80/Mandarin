@@ -52,8 +52,7 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
   album("Plain", "Plain Album", {});                             // only a search by name would find it
   fs.mkdirSync(lib.data, { recursive: true });
   writePack(path.join(lib.data, "mbpack.sqlite"));
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: "http://127.0.0.1:9", itunesBaseUrl: "http://127.0.0.1:9" });
@@ -65,10 +64,8 @@ test("the pack places what it can while musicbrainz.org is down; the rest waits"
   };
   try {
     await until(async () => (await api("status")).index_count === 2);
-    if (process.env.MANDARIN_FRONT === "1") {
-      const h = await fetch(base + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
-      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the scan is the C# server's");
-    }
+    const h = await fetch(base + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
+    assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the scan is the C# server's");
     await api("identify/settings", { schedule: false, itunes: false });
     // The barcoded album first, from the pack, though musicbrainz.org never answers.
     const r = await until(async () => { const j = await api("identify"); return j.applied.length === 1 && j; });

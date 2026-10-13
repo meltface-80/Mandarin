@@ -56,7 +56,7 @@ internal static class Db
 internal sealed record Account(string Username, string Salt, string Verifier, int Iterations);
 internal sealed record Device(string Id, string Name, string Kind, long LastSeen);
 
-internal static class Auth
+internal static partial class Auth
 {
     public const string Cookie = "musicd_session";
     private const long Year = 365 * 86400;
@@ -281,7 +281,7 @@ internal static class Auth
         // Streams and covers: the Node server's to decide (signatures, the
         // speakers). A renderer's NOTIFY (UPnP eventing): a device can't sign
         // in, and the Node server takes it before its own gate, as before.
-        if (IsOpen(p) || IsMedia(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal)) { await next(); return; }
+        if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && (!Front.Alone || await MediaAllowed(ctx)))) { await next(); return; }
         Account? acct; Device? dev;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
         if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }
@@ -492,22 +492,6 @@ internal static class Auth
 
     // The request's JSON body, as the Node server's parser reads it: {} when
     // there is none or it isn't JSON; a 400 (and null) when it says JSON but isn't.
-    public static async Task<JsonObject?> Body(HttpContext ctx)
-    {
-        var type = ctx.Request.ContentType ?? "";
-        if (!type.Contains("json", StringComparison.OrdinalIgnoreCase)) return [];
-        try
-        {
-            var n = await JsonNode.ParseAsync(ctx.Request.Body);
-            return n as JsonObject ?? [];
-        }
-        catch (JsonException)
-        {
-            await Error(ctx, 400, "Bad JSON");
-            return null;
-        }
-    }
-
     public static Task Json(HttpContext ctx, int status, JsonObject o)
     {
         ctx.Response.StatusCode = status;

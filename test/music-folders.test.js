@@ -11,8 +11,9 @@ const fs = require("fs");
 const path = require("path");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
@@ -33,8 +34,6 @@ test("music folders are added, browsed and removed in Settings", { skip }, async
   fs.mkdirSync(other, { recursive: true });
   fs.renameSync(path.join(lib.music, "Artist B"), path.join(other, "Artist B"));
 
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [] });
   await srv.start();
   try {

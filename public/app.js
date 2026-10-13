@@ -13679,12 +13679,6 @@ window.__musicdAppUpd = (function () {
           // The C# server in front of another version (v0.8.25): being brought
           // up to this one, or (couldn't be) to be brought by a new image.
           const cs = s.csharp;
-          // A Mac still on the Node server alone (v0.8.29): the install line
-          // pasted again brings the C# server in front, as in the image.
-          if (s.mac_node_only) {
-            versionEl.textContent += " · paste the Mac install line again to bring in the C# server";
-            versionEl.title = "New server features come in Mandarin's C# server, which this Mac doesn't run yet. See Install on a Mac in the README.";
-          }
           if (cs && cs.version && cs.matched === false) {
             versionEl.textContent += going(cs) ? " · bringing its C# server up to date"
               : " · C# server v" + cs.version + (s.is_docker ? " (pull the image again to update it)" : "");
@@ -18653,7 +18647,6 @@ initServiceBrowser({
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
   let lists = null;      // the albums in each state, the first of each (v0.8.17): { proposed, …, counts, at }
-  let tagcheck = null;   // the tag readers' check (v0.8.13)
   let cpu = null;        // how the processor is shared out (v0.8.13)
   let pack = null;       // the MusicBrainz pack (v0.6.4)
   let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
@@ -18663,13 +18656,13 @@ initServiceBrowser({
   const KEPT = "mandarin.scanner.v1";
   try {
     const k = JSON.parse(localStorage.getItem(KEPT) || "null");
-    if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; tagcheck = k.tagcheck || null; cpu = k.cpu || null; pack = k.pack || null; }
+    if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; cpu = k.cpu || null; pack = k.pack || null; }
   } catch (e) { /* none kept */ }
   let keepTimer = null;
   const keep = () => {
     clearTimeout(keepTimer);
     keepTimer = setTimeout(() => {
-      try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, tagcheck, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
+      try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
     }, 1000);
   };
 
@@ -18693,7 +18686,6 @@ initServiceBrowser({
       .then(() => { if (!busy) render(); });
     get("/api/identify?lists=0", v => { st = v; err = ""; if (opening || listsMoved()) loadLists(); });
     get("/api/loudness", v => { loud = v; });
-    get("/api/tagcheck", v => { tagcheck = v; });
     get("/api/cpu", v => { cpu = v; });
     if (opening || ++quiet % 6 === 0) get("/api/library/cleanup", v => { cleanup = v; });
     if (opening || (pack && pack.checking)) get("/api/identify/pack" + (opening ? "?check=1" : ""), v => {
@@ -18942,7 +18934,7 @@ initServiceBrowser({
    */
   // The schedule first (v0.8.24), then what it runs, in the order it runs it:
   // identification (with the pack and its progress), then ReplayGain.
-  const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "tagcheck", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
+  const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
   const drawn = {};
   const wait = '<span class="id-wait">…</span>';
   function blocks() {
@@ -18997,39 +18989,12 @@ initServiceBrowser({
         row("Tidal albums no longer wanted", gone(td, "tidal")) +
         '<div class="settings-note">' + (!cleanup ? "…" : qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
-    // The tag readers' check (v0.8.13): the C# reader against this one, on every file.
-    // About how long it has to go (v0.8.15), at its pace of the last few minutes.
-    const timeLeft = (ms) => {
-      const min = Math.round(ms / 60000);
-      if (min < 2) return "a minute or two to go";
-      if (min < 60) return "about " + min + " minutes to go";
-      const h = Math.round(min / 60);
-      return h === 1 ? "about an hour to go" : "about " + h + " hours to go";
-    };
-    out.tagcheck = "";
-    if (tagcheck && tagcheck.available) {
-      const t = tagcheck;
-      const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
-      const said = { checking: "Reading your files both ways, in the background.", paused: "Waits while the library is being scanned.",
-        waiting: "Starts in a few minutes.", done: odd ? "Done. Please send the report." : "Done. Every file reads the same." }[t.state] || "";
-      // Who reads the scan's tags (v0.8.14).
-      const reader = t.reader === "csharp" ? "The scanner now reads tags with the new reader."
-        : odd ? "The scanner keeps the old reader until these are fixed."
-        : "The scanner moves to the new reader once every file reads the same.";
-      out.tagcheck = '<div class="settings-divider"></div><div class="settings-block">' +
-        row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared, a few at a time on the cores playback doesn’t keep, more gently while something is playing. Once every file reads the same, the scanner reads tags with the new reader. The check starts again only when one of the readers changes. Nothing in your library changes. Copy the report and send it to the developer."),
-          '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
-        '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
-          (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") +
-          (t.time_left ? " · " + timeLeft(t.time_left) : "") + "</div>" +
-        '<div class="settings-note">' + said + " " + reader + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
-    }
     // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.
     {
       const cores = k => k + " core" + (k === 1 ? "" : "s");
       const known = cpu && Array.isArray(cpu.cores);
       out.cpu = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Processor' +
-        info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain, the tag check and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
+        info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
         '<div class="id-progress">' + (!known ? wait : cpu.split
           ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
           : cores(cpu.cores.length) + ", shared") + "</div>" +
@@ -19086,25 +19051,6 @@ initServiceBrowser({
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
-    if (e.target.closest("[data-tagcheck-copy]")) {
-      (async () => {
-        let text = "";
-        try { text = await (await fetch("/api/tagcheck/report", { cache: "no-store" })).text(); }
-        catch (x) { return toast("Couldn’t get the report", "error"); }
-        // execCommand first: navigator.clipboard needs https, and the server is usually plain http.
-        const ta = document.createElement("textarea");
-        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        let ok = false;
-        try { ok = !!(document.execCommand && document.execCommand("copy")); } catch (x) { /* below */ }
-        ta.remove();
-        if (!ok) { try { await navigator.clipboard.writeText(text); ok = true; } catch (x) { /* below */ } }
-        if (ok) toast("Report copied. Paste it into a message to the developer.");
-        else window.open("/api/tagcheck/report", "_blank", "noopener");
-      })();
-      return;
-    }
     const cu = e.target.closest("[data-cleanup]");
     if (cu) {
       const kind = cu.getAttribute("data-cleanup");

@@ -17,10 +17,9 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const http = require("http");
 const path = require("path");
 const { createLastfm, pickImage, siteUrl, PLACEHOLDER } = require("../lib/lastfm");
-const { haveFfmpeg, gen, stopServer } = require("./fixtures");
+const { haveFfmpeg, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
@@ -267,7 +266,7 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
   const fake = lastfmServer();
   const base = await fake.start();
   const lib = library();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   // Started with LASTFM_KEY or without (createServer's lastfmKey): the key from the
   // environment is the server's from its start, on either server (v0.8.26).
   let srv, token;
@@ -335,12 +334,10 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       const asked = (await fake.calls()).filter(c => c.method !== "artist.getInfo").map(c => c.at);
       assert.ok(asked.length >= 4);
       for (let i = 1; i < asked.length; i++) assert.ok(asked[i] - asked[i - 1] >= 240, `${asked[i] - asked[i - 1]} ms apart`);
-      // Behind the C# server (v0.8.26): answered by it.
-      if (process.env.MANDARIN_FRONT === "1") {
-        for (const p of ["/api/settings/lastfm-key", "/api/lastfm/similar-artists?artist=Radiohead", "/api/lastfm/similar-albums?artist=Radiohead"]) {
-          const r = await fetch(B + p, { headers: H() });
-          assert.equal(r.headers.get("x-mandarin-answered"), "C#", p);
-        }
+      // Answered by the C# server (v0.8.26), from its own environment (v0.8.48: LASTFM_URL, LASTFM_KEY; nothing handed over).
+      for (const p of ["/api/settings/lastfm-key", "/api/lastfm/similar-artists?artist=Radiohead", "/api/lastfm/similar-albums?artist=Radiohead"]) {
+        const r = await fetch(B + p, { headers: H() });
+        assert.equal(r.headers.get("x-mandarin-answered"), "C#", p);
       }
     });
 
@@ -396,49 +393,3 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
   }
 });
 
-/*
- * Nothing of Last.fm is the Node server's (v0.8.48, stage 5 part 6): the C#
- * server answers its routes from its own start, its address and the key from
- * its own environment (LASTFM_URL, LASTFM_KEY), with no hand-over at all —
- * here in front of a stand-in for the Node server that says its state and
- * hands nothing over, and is never asked about Last.fm.
- */
-test("Last.fm answered by the C# server with nothing handed over, from its own environment", {
-  skip: process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1", timeout: 60000
-}, async (t) => {
-  const fs = require("fs"), os = require("os");
-  const { spawn, spawnSync } = require("child_process");
-  const bin = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-  const fake = lastfmServer();
-  const base = await fake.start();
-  t.after(() => fake.stop());
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-lastfm-front-"));
-  assert.equal(spawnSync(bin, ["db", data]).status, 0, "the database made");
-  // The stand-in: its state as the Node server says it (this version), the hand-over turned down, and a note of anything else.
-  const passed = [];
-  const node = http.createServer((req, res) => {
-    if (req.url === "/internal/library") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ boot: "b", version: 1, marks: 0, app_version: require("../package.json").version, base_url: "http://127.0.0.1:" + port2,
-        building: false, progress: 0, scanning: false, built_at: null, labels: { enabled: false, depth: 0, roots: [] }, day: "2026-10-12", day_start: 0, week: "2026-W42" }));
-    }
-    if (req.url === "/internal/front/runs") { res.writeHead(409, { "Content-Type": "application/json" }); return res.end("{\"ok\":false}"); }
-    passed.push(req.method + " " + req.url);
-    res.writeHead(502); res.end();
-  });
-  await new Promise(r => node.listen(0, "127.0.0.1", r));
-  t.after(() => stopServer(node));
-  const port2 = ports.port();
-  const front = spawn(bin, [], { env: Object.assign({}, process.env, { PORT: String(port2), MANDARIN_UPSTREAM: "http://127.0.0.1:" + node.address().port,
-    MANDARIN_FRONT_KEY: "k", DATA_DIR: data, LASTFM_URL: base, LASTFM_KEY: "good" }), stdio: "ignore" });
-  t.after(() => front.kill("SIGKILL"));
-  const B2 = "http://127.0.0.1:" + port2;
-  for (let i = 0; i < 300; i++) { try { await fetch(B2 + "/server-info"); break; } catch (e) { await sleep(100); } }
-  const tok = await signIn(B2);
-  const get = async (p) => { const r = await fetch(B2 + p, { headers: { Authorization: "Bearer " + tok } }); return [r.status, r.headers.get("x-mandarin-answered"), await r.json()]; };
-  assert.deepEqual(await get("/api/settings/lastfm-key"), [200, "C#", { set: true, configured: true, masked: "••••good", source: "env", check: "ok" }]);
-  const [st, by, j] = await get("/api/lastfm/similar-artists?artist=Radiohead");
-  assert.deepEqual([st, by, j.enabled, j.artists.map(a => a.name)], [200, "C#", true, ["Thom Yorke", "Atoms for Peace", "Muse"]]);
-  assert.ok((await fake.calls()).some(c => c.method === "artist.getSimilar"), "asked of LASTFM_URL");
-  assert.deepEqual(passed.filter(p => /lastfm/.test(p)), [], "the Node server never asked");
-});

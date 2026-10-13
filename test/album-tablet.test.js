@@ -82,7 +82,7 @@ const DRIVER = `(async () => {
 
 test("the album view on a tablet: the whole ⋯ menu on screen, the review under the cover; a phone unchanged", { skip, timeout: 180000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -129,7 +129,7 @@ test("the album view on a tablet: the whole ⋯ menu on screen, the review under
 
 test("the album's ⋯ → Add to playlist: the whole album into a playlist you choose", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {

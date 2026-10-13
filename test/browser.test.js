@@ -106,7 +106,7 @@ const DRIVER = `(async () => {
 
 test("the page in a browser: Home, the album view and Now playing at three sizes", { skip, timeout: 120000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   const token = await signIn(B);

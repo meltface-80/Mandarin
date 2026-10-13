@@ -70,7 +70,7 @@ const DRIVER = `(async () => {
 
 test("the side menu: items hug their words, Offline keeps it open, an item or the page beside it closes it", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -109,7 +109,7 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
 // screen, above the grid. And the Random albums wall is titled (v0.6.24).
 test("Playlists: Import sits in the top-right corner; the Random albums wall has its title", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {

@@ -37,7 +37,7 @@ test("Queue and Play next on a zone that isn't playing: added to what's there, n
   await house.start();
   const wiim = new FakeRenderer({ name: "WiiM", manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro" });
   await wiim.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location], upnpMulticast: false, identify: false });
   await srv.start();

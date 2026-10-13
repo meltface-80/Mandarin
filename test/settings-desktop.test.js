@@ -73,7 +73,7 @@ const DRIVER = `(async () => {
 
 test("Settings on a tablet or desktop: the list at the side menu's width, each page as wide as it needs", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {

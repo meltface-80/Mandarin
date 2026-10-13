@@ -29,7 +29,7 @@ internal static partial class Library
     /* A word to the Node server at one of its /internal/ addresses, with its answer; null when it wasn't told ([failed]: what is logged then). */
     public static async Task<JsonObject?> ToNode(string path, JsonObject what, string? failed = null)
     {
-        if (upstream == null) return null;
+        if (upstream == null) return await LocalTold(path, what);
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))

@@ -15,6 +15,7 @@ const { signIn } = require("./auth-helper");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { FakeITunes } = require("./fake-itunes");
 const { ITunes } = require("../lib/identify/itunes");
+const { createServer } = require("./server");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
@@ -232,7 +233,6 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   ]).start();
   // iTunes knows none of these: what MusicBrainz can't place stays unidentified.
   const itunes = await new FakeITunes([]).start();
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
   const ctx = await srv.start();
@@ -243,11 +243,9 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   };
   try {
     await until(async () => (await api("status")).index_count === 5);
-    // Behind the C# server (MANDARIN_FRONT=1), the scan and its page are made there (v0.8.19).
-    if (process.env.MANDARIN_FRONT === "1") {
-      const h = await fetch(B + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
-      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the identification scan's page is the C# server's");
-    }
+    // The scan and its page are the C# server's (v0.8.19).
+    const h = await fetch(B + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
+    assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the identification scan's page is the C# server's");
     // Scheduling off: it scans now, whatever the clock says.
     let r = await api("identify/settings", { schedule: false });
     assert.equal(r.settings.schedule, false);
@@ -288,11 +286,15 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal(bestOf.album.year, 2001);
     assert.equal(bestOf.album.subtitle, "Various Artists");
     assert.deepEqual(bestOf.tracks.map(t => t.title), ["C1", "C2 (Live)"]);
-    // The overlay is on the track itself too (what a queue shows); a title
-    // that only repeats the tag is not written.
-    assert.equal(ctx.library.track(bestOf.tracks[1].track_id).title, "C2 (Live)");
-    assert.equal(ctx.library.track(bestOf.tracks[1].track_id).scanned_title, "C2");
-    assert.equal(ctx.library.track(bestOf.tracks[0].track_id).scanned_title, undefined);
+    // The overlay is on the track itself too (what a queue shows: the phone's, handed the album);
+    // a title that only repeats the tag is not written, and the tag's own stays under it.
+    const phone = await api("phone/hello", { name: "Pixel 8" });
+    assert.equal((await api("play", { offset: applied.album.offset, zone_or_output_id: phone.zone_id, kind: "play_now" })).status, 200);
+    const load = (await until(async () => (await api(`phone/commands?after=${phone.seq}`)).commands.find(c => c.op === "load")));
+    assert.deepEqual(load.items.map(x => x.title), ["C1", "C2 (Live)"]);
+    const bestKey = ctx.db.raw.prepare("SELECT key FROM albums WHERE title = 'Best Of'").get().key;
+    assert.deepEqual(ctx.db.raw.prepare("SELECT title FROM track_edits WHERE key = ? AND title IS NOT NULL").all(bestKey).map(x => x.title), ["C2 (Live)"]);
+    assert.deepEqual(bestOf.tracks.map(t => ctx.db.raw.prepare("SELECT title FROM tracks WHERE id = ?").get(t.track_id).title), ["C1", "C2"]);
 
     // Hi Res: one length 26 s off, applied at 85–95 % with why it isn't 100 % (v0.8.41; it was proposed).
     const prop = r.applied.find(x => x.album.title === "Hi Res");
@@ -315,8 +317,8 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     const back = await api("album?offset=" + applied.album.offset);
     assert.equal(back.album.year, undefined);
     assert.deepEqual(back.tracks.map(t => t.title), ["C1", "C2"]);
-    assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM track_edits WHERE key = ?").get(ctx.library.album(applied.album.offset).key).n, 0);
-    assert.equal(ctx.library.album(applied.album.offset).edited, false);
+    assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM track_edits WHERE key = ?").get(bestKey).n, 0);
+    assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM album_edits WHERE key = ?").get(bestKey).n, 0, "no longer edited");
 
     // A rejected album is not looked at again; the request count stays put.
     const n = mb.requests.length;
@@ -324,7 +326,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal(mb.requests.length, n);
 
     // Everything survives a library reload (rows keyed by album identity).
-    ctx.library.reload();
+    await ctx.library.reload();
     assert.deepEqual((await api("album?offset=" + prop.album.offset)).tracks.map(t => t.title), ["Hi 1", "Hi 2"]);
     assert.equal((await api("identify")).progress.applied, 3);
 
@@ -435,8 +437,6 @@ test("iTunes for what MusicBrainz can't place: exact and near applied (85 %, v0.
   itunes.refuse = true;     // at first it asks us to wait
   // Each refusal rests iTunes a second and a half here, not a quarter of an hour.
   process.env.ITUNES_PAUSE_MS = "1500";
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
@@ -529,8 +529,6 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
   const itunes = await new FakeITunes([
     { id: 301, upc: "0886440000002", title: "Apple Album", artist: "Tagger", date: "2001-01-01", tracks: [["Apple Album 1", 3], ["Apple Album 2", 3]] }
   ]).start();
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });
@@ -717,8 +715,6 @@ test("applied unasked, a copy missing a track: each track named from the one it 
     { id: "gap-1", title: "Gap Record", artist: "Gapper", date: "2001-01-01", tracks: [["One", 3], ["Two", 4], ["Three", 5], ["Four", 6], ["Five", 7], ["Six", 8]] }
   ]).start();
   const itunes = await new FakeITunes([]).start();
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl });

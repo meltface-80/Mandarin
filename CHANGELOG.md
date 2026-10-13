@@ -5,6 +5,115 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.8.50
+Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
+stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the
+tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
+owner's merge to `main` is v0.9.0. The parts as they are built:
+
+- **Plan**: the five parts in the spec, each committed on its own, in small steps.
+- **The configuration from the environment** (part 1, step a): `Config.cs` reads what
+  `index.js` read (`MUSIC_DIR`, `SERVER_IP`, `SONOS_HOSTS`, `UPNP_*`, `INCLUDE_ZONES`,
+  `EXCLUDE_ZONES`, `SCAN_INTERVAL_HOURS`, `MUSICDNET_BIN`, the `*_URL` stand-ins, `IDENTIFY*`,
+  `LOUDNESS_TICK_MS`, `LASTFM_*`, `LOCAL_AUDIO`, `UPDATE_*`…), with the same defaults, into the
+  shape the hand-over carried, so everything the hand-over set up takes it unchanged once no Node
+  server is there to hand it over. The tests' stand-ins, which `index.js` took as `createServer`'s
+  overrides, come as `QOBUZ_URL`, `TIDAL_URL`, `TIDAL_AUTH_URL`, `TIDAL_IMAGES_URL` and
+  `MANDARIN_CONFIG` (a JSON object laid over the whole). `mandarin-server config` prints it;
+  `test/config-csharp.test.js` holds it to `index.js`'s names and defaults, name by name.
+- **The C# server on its own** (part 1, step b): with `MANDARIN_NODE=0`, or no `index.js` in
+  the app's folder, no Node server is started or waited for. Every job is this server's from
+  the first request (`Jobs.StartAlone`: the hub, the scans, the services, the update, the
+  processor split, set up from `Config.cs` as the hand-over set them up; the speakers found
+  last time asked first, as `index.js` asked them), and the library's state is this server's
+  own (`Library.State.cs`: the version and the marks moved where the Node server was told of a
+  change, so the copy is read again on the next request; the scan's state, the label rules,
+  the day and the week on this clock, the address). A database put back from a backup goes in
+  at the start (`Admin/Restore.cs`, as `lib/backup.js` did), Restart and Shut down from
+  Settings are the program's own, and a restore's restart starts the program again in its own
+  process. What no route answers is 404, as Express said it. `test/server.js` (new) starts the
+  program alone for a test, as the image will start it; `test/csharp-alone.test.js` (new) holds
+  the account, the scan, the library, the pages, the rooms, a heart and `/api/health` to it with
+  no Node server anywhere. Behind a Node server nothing changes.
+- **The health check** (part 1, step c): on its own, `/api/health` has no `csharp` field (no
+  version to match). `mandarin-server --health` asks `/api/health` on `PORT` once, prints the
+  answer and leaves with 0 when it was 200, else 1; the image's `HEALTHCHECK` runs it in place
+  of `node -e`, and the image's smoke test runs it both ways. `test/csharp-alone.test.js` holds
+  both.
+- **Playback alone** (part 1, step d): `test/csharp-alone.test.js` now also starts the program
+  with a fake Sonos household at `SONOS_HOSTS` and a fake renderer at `UPNP_HOSTS`, and holds the
+  rooms (in `/api/zones`, `/api/status` and `/api/health`), the phone's hello, the renderer in the
+  device list and as a zone once switched on, and a play on a room: the speaker fetches the track
+  from this server's own address. That last found a gap: the install's secret (the `authSecret`
+  setting, under which the addresses handed to speakers are signed and checked) was the Node
+  server's to make as it started, so alone nothing it signed was vouched for. `Auth.Secret.cs`
+  makes it at the start when none is there, as `lib/server/auth.js` did. Part 1 is complete.
+- **The last routes** (part 2). On its own, what no route answers is not there as Express said it:
+  an `/api/` address as JSON (`{ error: "No such endpoint: GET /x" }`), anything else
+  finalhandler's page. The tag readers' check (`/api/tagcheck`, `/api/tagcheck/report`, v0.8.13)
+  goes with the Node reader: the C# reader is the reader, so the Library Scanner page's "New tag
+  reader check" panel and its Copy report button are gone (the Node side stays until part 5).
+  `mandarin-server reset-password` does what `reset-password.js` did (the account removed, every
+  device signed out, while the server runs; `docker exec musicd-server
+  /app/server/bin/mandarin-server reset-password`); the Node script and the hint on the sign-in
+  page stay until part 5. Settings → Updates' `mac_node_only` is gone (never true with the C#
+  server in front). Alone, `POST /internal/library/changed` from this machine with the front key
+  makes the server read its copy again, for a test that changed the database by hand (part 4), and
+  the tests' `/internal/playback/revision` holds. A renderer's event (`NOTIFY /upnp/event/…`)
+  says it was answered by the C# server, as it has been since v0.8.49. Covers in CMYK or with a
+  profile of their own, and placeholders where ffmpeg can't draw text (a static ffmpeg, some
+  Homebrew builds), were the Node server's to draw: alone they are drawn as ffmpeg reads them,
+  without the profile, and the placeholder without its words, until the owner decides (the spec's
+  section 6). `test/csharp-alone.test.js` holds each.
+- **The update, with no launcher** (part 3). On its own, an update from Settings is the C#
+  server's whole: GitHub asked, the release's bundle downloaded and checked (its `package.json`
+  names it; no `index.js` is looked for), its own program of the new version fetched, checked and
+  put in place of the file it runs from, the bundle's files laid over the install (never the
+  data; no `npm install`), and the server started again from the new file in its own process, as
+  Restart from Settings starts it — no `launcher.js`, no `.update/READY`, no code 75. Behind a
+  Node server the launcher's way stays until part 5. The image's `CMD` already runs the server
+  under tini and the Mac's launchd item already runs the binary; both lose their Node pieces in
+  part 5. `test/update-alone.test.js` (new) runs it for real from a copy of the program in an
+  install of its own, the new program a stand-in that writes down how it was started.
+- **The tests drive the binary** (part 4). The tests that started the Node server
+  start the program alone through `test/server.js` (its `createServer` takes `index.js`'s options
+  as the environment; what a test reached into the Node server for, it has from the database file
+  or over HTTP; the program's log is kept for a test that reads it). Moving them found three things
+  the program alone answered differently: a deep link (`/library`, an album's address, a folder's
+  redirect) was the not-found page, because the not-found route claimed every address without a
+  file extension before the page could (it stands where the Node server's catch-all stood now);
+  a stream with a rate, depth or gain the server won't make, or of a track or file that isn't
+  there, fell through to the not-found page where the Node server said 400 or 404 (`Streams.cs`
+  says them alone, and reads a gain written as a list of one, `?g[]=-3`, as that gain, as
+  Express read it); and a cover that can't be had was the same, where the Node server answered an
+  empty 404 (`Images.cs`). `test/pages-csharp.test.js`, `test/loudness.test.js` and
+  `test/covers-csharp.test.js` hold each, on the program alone. And Rescan library answered
+  with no services after it, where the Node server named the ones signed in with their import on
+  (Qobuz, Tidal) as it set them going; it names them now (`test/qobuz.test.js`).
+  The suites that compared the two servers side by side hold the C# server to a recording of the
+  Node server's answers (`test/golden/`, made again with `RECORD_…=1` while `index.js` is still
+  here). That found one more, from stage 6: a renderer or sound device hidden, or switched off,
+  while it played was let go but never sent Stop — the route writes the switch first, and the
+  hub's player refuses one switched off, so the Stop never went; the Node server stopped it before
+  writing. It is stopped now, as there (`Renderers/Players.cs` `LetGo`,
+  `test/devices-csharp.test.js`). And a JSON body that can't be read, sent where no route takes
+  it, is refused as Node's `express.json()` refused it ahead of every route (400 `Bad JSON`; 415
+  for a charset it can't read; 413 past 2 MB sent in chunks), not "No such endpoint"
+  (`Pages.NotThere.cs`, `test/csharp-alone.test.js`).
+  The recordings (`test/golden.js`): the library's screens, files, covers, conversions and
+  downloads; Audio Devices' writes; playback; the services' rows, import, sign-in and streams. What
+  follows from the machine is kept by rule rather than as it was recorded — a file's length (another
+  ffmpeg makes the fixtures a few bytes apart), ETag and Last-Modified from the file, the Node
+  server's ffmpeg arguments run again here with or without soxr, a cover's hash from its address,
+  SQLite's ids as keys, times as days from now — so each holds on Linux, a Mac and CI's static
+  ffmpeg alike. The processor split (`test/cpu-alone.test.js`, new), Restart and Shut down
+  (`test/power-csharp.test.js`), the update's refusals (`test/update-alone.test.js`) and which
+  server answers what (`test/front.test.js`) are held on the program alone; what only the Node
+  server did (its hand-over, its launcher) is run while it is there and goes with it. Two test
+  helpers were made sturdier on the way: a restart waits for the program's first scan
+  (`test/server.js`), a test that times out leaves no server holding its port, and a browser call
+  that is never answered fails by its name. CI's Node-alone job is gone.
+
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
 whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sonos, UPnP renderers

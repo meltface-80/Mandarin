@@ -37,7 +37,7 @@ internal static partial class Covers
     {
         var yes = DrawsText();
         // Said once: from ffmpeg 6.1 drawtext needs harfbuzz, which some builds leave out (a static one, Homebrew's).
-        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn by the Node server");
+        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are " + (Front.Alone ? "drawn without their titles" : "drawn by the Node server"));
         return yes;
     });
 
@@ -59,7 +59,8 @@ internal static partial class Covers
     public static Task<Drawn> DrawPlaceholder(Album al, string file, int size) =>
         Once(file, al.ImageKey, async () =>
         {
-            if (!Text.Value) return Drawn.NodeIts;
+            // No drawtext: the Node server's; alone (v0.8.50), the colour and the note's place without the words.
+            if (!Text.Value && !Front.Alone) return Drawn.NodeIts;
             var jpg = await Placeholder(al.Title, al.Artist, size);
             if (jpg == null) return Drawn.NodeIts;
             Write(file, jpg);
@@ -116,12 +117,15 @@ internal static partial class Covers
             // The SVG's diagonal gradient, corner to corner.
             var f = new List<string>
             {
-                $"geq=r='{r0}+({r1}-{r0})*(X+Y)/1198':g='{g0}+({g1}-{g0})*(X+Y)/1198':b='{b0}+({b1}-{b0})*(X+Y)/1198'",
-                Draw(Put("note", "♪"), ":charset=266a", 110, "white@0.18", "540-text_w", "140"),
+                $"geq=r='{r0}+({r1}-{r0})*(X+Y)/1198':g='{g0}+({g1}-{g0})*(X+Y)/1198':b='{b0}+({b1}-{b0})*(X+Y)/1198'"
             };
-            var top = 470 - (lines.Count - 1) * 58;
-            for (int i = 0; i < lines.Count; i++) f.Add(Draw(Put("t" + i, lines[i]), ":style=Bold", 50, "white", "40", (top + i * 58).ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            f.Add(Draw(Put("by", by), "", 30, "white@0.75", "40", "540"));
+            if (Text.Value)
+            {
+                f.Add(Draw(Put("note", "♪"), ":charset=266a", 110, "white@0.18", "540-text_w", "140"));
+                var top = 470 - (lines.Count - 1) * 58;
+                for (int i = 0; i < lines.Count; i++) f.Add(Draw(Put("t" + i, lines[i]), ":style=Bold", 50, "white", "40", (top + i * 58).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                f.Add(Draw(Put("by", by), "", 30, "white@0.75", "40", "540"));
+            }
             f.Add($"scale={size}:{size}:flags=lanczos+accurate_rnd+full_chroma_int,format=yuvj420p");
             await Drawing.WaitAsync();
             try

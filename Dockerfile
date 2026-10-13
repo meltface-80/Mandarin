@@ -118,8 +118,9 @@ VOLUME ["/app/data"]
 # the speakers must reach this port to fetch audio).
 EXPOSE 3500
 
+# The C# server asks itself (v0.8.50): one GET of /api/health on PORT, 0 when it answers 200.
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
-    CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3500)+'/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+    CMD ["/app/server/bin/mandarin-server", "--health"]
 
 # The C# server takes the port and starts the Node server behind it through
 # launcher.js, which, when Settings → Check for updates installs a new

@@ -12,6 +12,7 @@ const os = require("os");
 const net = require("net");
 const path = require("path");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
 const PORT = ports.port();
 
@@ -29,10 +30,9 @@ function rawRequests(requests) {
   });
 }
 
-test("requests relayed with the whole address are answered as usual", async () => {
+test("requests relayed with the whole address are answered as usual", { skip: built() }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-relay-"));
   fs.mkdirSync(path.join(dir, "music"));
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: path.join(dir, "music"), dataDir: path.join(dir, "data"), serverIp: "127.0.0.1", sonosHosts: [] });
   await srv.start();
   try {

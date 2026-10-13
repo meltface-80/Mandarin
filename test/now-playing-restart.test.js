@@ -40,7 +40,7 @@ test("Now playing follows the room after the server started again", { skip, time
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, identify: false });
   const ctx = await srv.start();
@@ -57,12 +57,10 @@ test("Now playing follows the room after the server started again", { skip, time
   const room = house.room("Kitchen");
   assert.equal((await api("play", { offset: one.offset, zone_or_output_id: kitchen, kind: "play_now" })).status, 200);
   assert.ok(await until(() => room.queue.length === 3 && room.state === "PLAYING"), "playing");
-  // The server's change counter set by hand: the Node hub's, or the C# hub's where it holds playback (v0.8.49).
+  // The server's change counter set by hand (the hub's, v0.8.49).
   const counter = async (revision) => {
-    if (ctx.frontRuns && ctx.frontRuns.has("playback")) {
-      const r = await fetch(B + "/internal/playback/revision", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ revision }) });
-      assert.equal(r.status, 200, "the C# hub's counter set");
-    } else { ctx.zones.revision = revision; ctx.zones.bump(); }
+    const r = await fetch(B + "/internal/playback/revision", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ revision }) });
+    assert.equal(r.status, 200, "the hub's counter set");
   };
   // A server that has been up a while: its counter well along.
   await counter(5000);

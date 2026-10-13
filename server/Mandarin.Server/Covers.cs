@@ -92,7 +92,7 @@ internal static partial class Covers
         if (src == null) return Drawn.NodeIts;
         if (src.Length == 0) return Drawn.NoCover;
         var turn = Look(src);
-        if (turn == null) return Drawn.NodeIts;
+        if (turn == null) { if (!Front.Alone) return Drawn.NodeIts; turn = ""; }   // CMYK, a profile of its own: the Node server's; alone, as ffmpeg reads it, until the owner decides (v0.8.50)
         var jpg = await Fit(src, turn, s, "4", al.ImageKey);
         if (jpg == null) return Drawn.NodeIts;
         Write(file, jpg);

@@ -25,6 +25,7 @@ internal static class UpnpEventRoutes
             }
             catch (Exception e) when (e is IOException or XmlRefused or Tags.JsError) { /* a malformed event is ignored */ }
             ctx.Response.StatusCode = 200;
+            ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
         });
     }
 }

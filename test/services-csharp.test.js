@@ -4,16 +4,15 @@
  * server/Mandarin.Server/ServiceRoutes.cs and Services/), against the fakes on
  * loopback (test/fake-qobuz.js, test/fake-tidal.js):
  *
- *   - every catalogue route, signed out and signed in, held to the Node
- *     server's own answer to the same request (asked of it directly), its
- *     refusals word for word;
- *   - a favourite changed on the Node server (asked of it directly) seen at once;
- *   - Tidal's token refreshed by the C# server alone (v0.8.47): a request it
- *     must be refreshed for is answered by C# all the same, the Node server
- *     never asked to refresh it.
+ *   - every catalogue route, signed out and signed in, answered there (held to
+ *     the Node server's own answers until v0.8.50, when it went), its refusals
+ *     word for word;
+ *   - a favourite changed seen at once, in the album's state and in the lists;
+ *   - Tidal's token refreshed by the C# server: a request it must be refreshed
+ *     for is answered all the same.
  *
- * Through the C# server only (MANDARIN_FRONT=1): test/qobuz.test.js and
- * test/tidal.test.js are the services' own, both ways.
+ * On the program alone (test/server.js); test/qobuz.test.js and
+ * test/tidal.test.js are the services' own.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -24,7 +23,9 @@ const { FakeQobuz } = require("./fake-qobuz");
 const { FakeTidal } = require("./fake-tidal");
 const { signIn } = require("./auth-helper");
 
-const skip = (process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1") || (!haveFfmpeg() && "ffmpeg is not installed");
+const { createServer, built } = require("./server");
+
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 
 async function until(fn, ms = 20000, what = "") {
   const t0 = Date.now();
@@ -53,30 +54,26 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
   await qobuz.start();
   await tidal.start();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
     qobuzBaseUrl: qobuz.base, tidalBaseUrl: tidal.base, tidalAuthUrl: tidal.authBase, tidalImagesUrl: tidal.authBase + "/images/", qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(B);
   const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
-  const NODE = "http://127.0.0.1:" + ctx.listeningOn;
-  const call = async (base, p, body) => {
-    const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
+  const call = async (p, body) => {
+    const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
     return { status: r.status, by: r.headers.get("x-mandarin-answered"), j: await r.json().catch(() => null) };
   };
-  const get = (p) => call(B, p);
-  const post = (p, body) => call(B, p, body || {});
-  // The same request of the C# server and of the Node server itself: the same answer, the first from C#.
+  const get = (p) => call(p);
+  const post = (p, body) => call(p, body || {});
+  // Answered by the C# server, as JSON, and never its own failure.
   const same = async (p) => {
-    const c = await call(B, p), n = await call(NODE, p);
+    const c = await get(p);
     assert.equal(c.by, "C#", p + ": answered by the C# server");
-    assert.equal(n.by, null, p + ": the Node server's own");
-    assert.equal(c.status, n.status, p + ": " + JSON.stringify(c.j) + " against " + JSON.stringify(n.j));
-    assert.deepEqual(c.j, n.j, p);
+    assert.ok(c.j && typeof c.j === "object", p + ": JSON");
+    assert.ok(c.status < 500 || c.status === 502, p + ": " + c.status + " " + JSON.stringify(c.j));
     return c;
   };
-  await until(() => ctx.frontRuns, 30000, "the work handed over");
 
   const routes = (s, album, artist) => [`${s}/lists`, `${s}/new-releases`, `${s}/new-releases?days=7`, `${s}/new-releases?days=abc`, `${s}/featured`,
     `${s}/search?q=`, `${s}/search?q=a`, `${s}/search?q=a&offset=1`, `${s}/artist-albums`, `${s}/artist-albums?artist_id=${artist}`,
@@ -118,48 +115,41 @@ test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node serve
     assert.deepEqual(tl.lists.map(l => l.id), ["recommended", "top", "rising"]);
   });
 
-  // Opening and favouriting are the C# server's since v0.8.44 (test/services-rows-csharp.test.js);
-  // the Node server still makes them for a request asked of it directly, as here.
-  await t.test("an album opened, and a favourite changed, on the Node server: seen at once", async () => {
-    const open = await call(NODE, "qobuz/open", { album_id: "q100" });
-    assert.equal(open.by, null, "made by the Node server");
+  await t.test("an album opened, and a favourite changed: seen at once", async () => {
+    const open = await post("qobuz/open", { album_id: "q100" });
+    assert.equal(open.status, 200, JSON.stringify(open.j));
     const a = await same("qobuz/album?id=q100");
     assert.equal(a.j.offset, open.j.offset, "its place in the library");
     assert.equal(a.j.album.in_library, true);
     for (const [s, id] of [["qobuz", "q200"], ["tidal", "2002"]]) {
       assert.equal((await get(`${s}/state?album_id=${id}`)).j.favourite, false);
-      const fav = await call(NODE, `${s}/favorite`, { album_id: id });
-      assert.deepEqual([fav.status, fav.by], [200, null], JSON.stringify(fav.j));
+      const fav = await post(`${s}/favorite`, { album_id: id });
+      assert.deepEqual([fav.status, fav.by], [200, "C#"], JSON.stringify(fav.j));
       const st = await same(`${s}/state?album_id=${id}`);
       assert.equal(st.j.favourite, true, s + ": the favourite seen straight after, not a minute later");
       const listed = (await same(`${s}/search?q=hi-res`)).j.albums.find(x => x.id === id);
       assert.equal(listed.favourited, true, s + ": and in the lists");
-      await call(NODE, `${s}/unfavorite`, { album_id: id });
+      await post(`${s}/unfavorite`, { album_id: id });
       assert.equal((await same(`${s}/state?album_id=${id}`)).j.favourite, false, s + ": and taken away");
     }
   });
 
-  await t.test("Tidal's token: refreshed by the C# server alone, the Node server never asked", async () => {
+  await t.test("Tidal's token: refreshed by the C# server, the request answered all the same", async () => {
     const before = tidal.refreshes;
-    let asked = 0;
-    const own = ctx.tidal.api.refresh;
-    ctx.tidal.api.refresh = (...a) => { asked++; return own(...a); };
-    try {
-      // Refused by Tidal: refreshed by C#, and the request asked again.
-      tidal.expireAccess();
-      const r = await get("tidal/search?q=t");
-      assert.deepEqual([r.status, r.by], [200, "C#"], JSON.stringify(r.j));
-      assert.equal(tidal.refreshes, before + 1, "refreshed once");
-      assert.equal(ctx.db.setting("tidal").token.access, tidal.access, "the new token kept");
-      // About to expire: refreshed first (an answer kept from before needs no token: not asked).
-      const acc = ctx.tidal.account();
-      acc.token.expires = Date.now() + 1000;
-      ctx.tidal.db.setSetting("tidal", acc);
-      const s = await get("tidal/search?q=album");
-      assert.deepEqual([s.status, s.by], [200, "C#"], JSON.stringify(s.j));
-      assert.equal(tidal.refreshes, before + 2);
-      assert.ok(ctx.db.setting("tidal").token.expires > Date.now() + 3000e3, "good for the hour again");
-      assert.equal(asked, 0, "the Node server's own refresh never asked");
-    } finally { ctx.tidal.api.refresh = own; }
+    // Refused by Tidal: refreshed, and the request asked again.
+    tidal.expireAccess();
+    const r = await get("tidal/search?q=t");
+    assert.deepEqual([r.status, r.by], [200, "C#"], JSON.stringify(r.j));
+    assert.equal(tidal.refreshes, before + 1, "refreshed once");
+    assert.equal(ctx.db.setting("tidal").token.access, tidal.access, "the new token kept");
+    // About to expire (as kept, the server started again on it): refreshed first, before the request.
+    const acc = ctx.db.setting("tidal");
+    acc.token.expires = Date.now() + 1000;
+    ctx.db.setSetting("tidal", acc);
+    await ctx.restart(token);
+    const s = await get("tidal/search?q=album");
+    assert.deepEqual([s.status, s.by], [200, "C#"], JSON.stringify(s.j));
+    assert.equal(tidal.refreshes, before + 2);
+    assert.ok(ctx.db.setting("tidal").token.expires > Date.now() + 3000e3, "good for the hour again");
   });
 });

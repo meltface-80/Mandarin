@@ -3,9 +3,9 @@
  * Smart Picks: records you own and haven't been playing, by acts next to the
  * ones you play (Deezer's related lists — a fake on loopback), the rest from
  * the least-played corners; steady for the day, made again on asking, an
- * artist kept out. Made by the C# server from v0.8.20 (MANDARIN_FRONT=1
- * checks it answered). And made again when asked while they are being
- * made (v0.8.42, the C# server's): the ask is kept for when that build ends.
+ * artist kept out. Made by the C# server from v0.8.20 (each answer checked
+ * as its). And made again when asked while they are being made (v0.8.42):
+ * the ask is kept for when that build ends.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -15,7 +15,6 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDeezer } = require("./fake-deezer");
 
-const FRONT = process.env.MANDARIN_FRONT === "1";
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const DAY = 86400000;
 
@@ -28,7 +27,7 @@ test("Smart Picks: by acts near what you play, then the least played; made again
     "artist/300/related?limit=25": { data: [{ id: 301, name: "Artist C" }, { id: 302, name: "Nobody Here" }] }
   });
   await deezer.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, deezerBaseUrl: deezer.base });
   const ctx = await srv.start();
   try {
@@ -36,12 +35,14 @@ test("Smart Picks: by acts near what you play, then the least played; made again
     const H = { Authorization: "Bearer " + token };
     const call = async (p, body) => {
       const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify(body) } : { headers: H });
-      if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
       return Object.assign({ status: r.status }, await r.json());
     };
     const until = async (fn, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) throw new Error("timed out"); await new Promise(r => setTimeout(r, 100)); } };
     await until(async () => (await (await fetch(B + "/api/status", { headers: H })).json()).index_count === 6);
-    const albumOf = title => ctx.library.albums.find(a => a.title === title);
+    // The albums as the library lists them: an album's id is its offset.
+    const albums = (await call("library/albums?sort=album")).albums.map(a => Object.assign({ id: a.offset }, a));
+    const albumOf = title => albums.find(a => a.title === title);
     // Seed Act played on three days this month (a stream: not in the library), and Album One yesterday.
     const now = Date.now();
     for (let d = 1; d <= 3; d++) ctx.features.insertPlay.run(null, null, "Song", "Seed Act", "Their Record", "z", now - d * DAY);
@@ -74,11 +75,10 @@ test("Smart Picks: by acts near what you play, then the least played; made again
 
     // Seed Act's related acts came from Deezer once: kept a week.
     assert.equal(deezer.calls.filter(c => c === "artist/300/related?limit=25").length, 1, JSON.stringify(deezer.calls));
-    if (FRONT) assert.equal(ctx.features.handedOver, true, "not made by the Node server");
   } finally { await srv.stop(); await deezer.stop(); }
 });
 
-test("Smart Picks made again while they are being made: made once more when that build ends", { skip: (!FRONT && "the C# server's (MANDARIN_FRONT=1)") || (!haveFfmpeg() && "ffmpeg is not installed"), timeout: 60000 }, async () => {
+test("Smart Picks made again while they are being made: made once more when that build ends", { skip: !haveFfmpeg() && "ffmpeg is not installed", timeout: 60000 }, async () => {
   const lib = makeLibrary();
   for (const [artist, album] of [["Artist C", "Third"], ["Artist D", "Fourth"], ["Artist E", "Fifth"]])
     gen(path.join(lib.music, artist, album, "01 One.flac"), { tags: { title: "One", artist, album, track: 1 } });
@@ -98,7 +98,7 @@ test("Smart Picks made again while they are being made: made once more when that
   };
   await deezer.start();
   const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2;
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, deezerBaseUrl: deezer.base });
   const ctx = await srv.start();
   try {
