@@ -170,6 +170,10 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // With loop on, next from the last track goes round to the first.
       await api("control", { zone_or_output_id: WIIM, command: "next" });
       await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Song 1"; });
+      // Held there: the fixture's tracks are three seconds long, and on a busy machine Song 1
+      // ran out (and Song 2 began) before the queue below was read.
+      await api("control", { zone_or_output_id: WIIM, command: "pause" });
+      await until(() => wiim.state === "PAUSED_PLAYBACK");
       await api("zone-settings", { zone_or_output_id: WIIM, loop: "disabled" });
       await api("control", { zone_or_output_id: WIIM, command: "previous" });   // > 5 s? no: at the start → stays on Song 1 from 0
       const q = await api("queue?zone=" + WIIM);

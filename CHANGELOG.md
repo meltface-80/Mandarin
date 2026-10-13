@@ -20,6 +20,10 @@ Mac** (`v0.9.7-apk-name`).
   release), weekly and by hand ("Run workflow" on any branch); everywhere else the Mac jobs are
   skipped, and a skipped job holds up neither a merge nor the image. CI also runs once per commit
   instead of twice (a pull request shows its branch's run), but for a pull request into main.
+- `test/renderer-playback.test.js` holds the renderer on its first track before reading its queue:
+  the fixture's tracks are three seconds long, and on a busy machine the track ran out and the next
+  began first (the queue read 2 tracks, not 3). Shown with a 3.5 s pause put in: it failed every
+  time before, and passes now.
 
 ## v0.9.6
 **The touch layout** (`v0.9.6-touch-layout`): on a phone or a tablet, either way round. A desktop
