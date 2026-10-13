@@ -154,7 +154,10 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   while it still holds the database (a database replaced underneath it read "disk I/O error" on
   a Mac). And a test file that fails in CI is run once more on its own (`.github/retry-failed.sh`):
   a pass then is a warning on the run naming the file, a race on a busy runner to fix in its turn;
-  a failure again is red.
+  a failure again is red. The re-run's first catch was no race: a page's `Last-Modified` from the
+  C# server (`Pages.cs`, a backup's download too) is now the file's time rounded to the
+  millisecond first, as Node's `fs.Stats` gives it and `sendFile` sends it, so a file written at
+  .9995 s is the next second from either server.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did

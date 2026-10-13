@@ -271,7 +271,8 @@ internal static partial class Library
         h.ContentDisposition = $"attachment; filename=\"mandarin-backup-{System.Text.RegularExpressions.Regex.Replace(id, "-[0-9a-f]{6}$", "")}.tar.gz\"";
         h.AcceptRanges = "bytes";
         h.CacheControl = "public, max-age=0";
-        h.LastModified = info.LastWriteTimeUtc.ToString("R");
+        // The time to the nearest millisecond first, as Node's fs.Stats gives it (Pages.cs).
+        h.LastModified = DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Floor((new DateTimeOffset(info.LastWriteTimeUtc).UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10000.0 + 0.5)).ToString("R");
         ctx.Response.ContentLength = info.Length;
         await ctx.Response.SendFileAsync(f);
         return true;
