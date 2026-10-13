@@ -508,7 +508,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
     private static object? OrNull(double v) => v == 0 || double.IsNaN(v) ? null : v;
 
     /* Of several tracks' dates, the album's: the most precise one of [year], the commonest at that precision. */
-    private static string? AlbumDateOf(IEnumerable<object?> dates, object? year)
+    internal static string? AlbumDateOf(IEnumerable<object?> dates, object? year)
     {
         if (!Js.Truthy(year)) return null;
         var y = Js.Str(year);

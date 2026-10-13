@@ -183,7 +183,7 @@ internal static partial class Library
     public static uint Seeded(string s, uint seed) => SeededRank(s, seed);
     private static uint ToUint32(long v) => unchecked((uint)v);
 
-    private static string? ReleaseDate(long? year, string? tagDate, string? mbDay)
+    internal static string? ReleaseDate(long? year, string? tagDate, string? mbDay)
     {
         if (year is null or 0) return null;
         var y = year.Value.ToString(CultureInfo.InvariantCulture);
@@ -202,7 +202,7 @@ internal static partial class Library
     // A JSON value as String(v) would give it, or null for null.
     private static string? JsString(JsonNode? n) => n == null ? null : n is JsonValue v && v.TryGetValue<string>(out var s) ? s : n.ToJsonString();
 
-    private static string DateKey(string? date)
+    internal static string DateKey(string? date)
     {
         if (string.IsNullOrEmpty(date)) return "";
         var p = date.Split('-');

@@ -156,11 +156,6 @@
       "count": 1
     }
   },
-  "test/folder-names.test.js": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "test/housekeeping-csharp.test.js": {
     "no-useless-assignment": {
       "count": 1
@@ -179,11 +174,6 @@
   "test/labels.test.js": {
     "no-useless-assignment": {
       "count": 1
-    }
-  },
-  "test/library-safety.test.js": {
-    "no-useless-assignment": {
-      "count": 3
     }
   },
   "test/ports.js": {
