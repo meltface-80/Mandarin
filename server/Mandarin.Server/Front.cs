@@ -38,8 +38,11 @@ internal static partial class Front
         else Log($"[server] the Node server is {(nodeVersion.Length > 0 ? nodeVersion : "of an older version")}, this one {Version}: everything passed to it until they match");
     }
 
-    /* Both of the same version: this server answers its share. */
-    public static bool Matched => nodeVersion == Version;
+    /* No Node server behind this one (v0.8.50): everything is answered here. */
+    public static bool Alone { get; set; }
+
+    /* Both of the same version (or this server alone): this server answers its share. */
+    public static bool Matched => Alone || nodeVersion == Version;
 
     /* The Node server's word for "start this program again" (lib/server/csharp-update.js). */
     public const int StartAgainCode = 76;
@@ -108,13 +111,14 @@ internal static partial class Front
         return port;
     }
 
-    // The folder with launcher.js: beside this program, or one or two up
+    // The app's folder, with the page (public/index.html) and, while there is
+    // one, the Node server (index.js): beside this program, or one or two up
     // (the image keeps it in /app/server/bin; a checkout builds into server/bin).
     public static string FindAppDir()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         for (int i = 0; dir != null && i < 6; i++, dir = dir.Parent)
-            if (File.Exists(Path.Combine(dir.FullName, "launcher.js")) && File.Exists(Path.Combine(dir.FullName, "index.js"))) return dir.FullName;
+            if (File.Exists(Path.Combine(dir.FullName, "public", "index.html"))) return dir.FullName;
         return Directory.GetCurrentDirectory();
     }
 

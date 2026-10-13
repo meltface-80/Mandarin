@@ -148,7 +148,36 @@ internal static partial class Jobs
             Front.Log("[jobs] the Node server's background work stays with it");
             return;
         }
-        var cfg = c.Config;
+        await Setup(c.Config, c.Jobs, c.Boot, dataDir, frontPort, version);
+    }
+
+    /*
+     * No Node server behind this one (v0.8.50, stage 7): every job this
+     * server's from the start, set up from the environment (Config.cs) as the
+     * hand-over set it up; the speakers found last time asked first, as
+     * index.js asked them (sonosKnownHosts).
+     */
+    public static Task StartAlone(JsonObject cfg, int frontPort, string dataDir, string version)
+    {
+        startedWith = null;
+        upstream = null;
+        port = frontPort;
+        try
+        {
+            using var c = Db.Open();
+            if (Db.Setting(c, "sonosKnownHosts") is JsonArray known)
+            {
+                if (cfg["sonos_hosts"] is not JsonArray hosts) cfg["sonos_hosts"] = hosts = [];
+                foreach (var h in known) if (Text(h) is { } ip && !hosts.Any(x => Text(x) == ip)) hosts.Add(ip);
+            }
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException) { /* as none known */ }
+        return Setup(cfg, Names.ToHashSet(), "alone", dataDir, frontPort, version);
+    }
+
+    /* The work set up from [cfg] (the hand-over's, or the environment's) and started: [jobs] of it this server's, from the Node server of [boot]. */
+    private static async Task Setup(JsonObject cfg, HashSet<string> jobs, string boot, string dataDir, int frontPort, string version)
+    {
         void Log(string s) => Front.Log(s);
         Packs = new PackStore(dataDir, Text(cfg["mbpack_dir"]), Text(cfg["mbpack_url"]), Log);
         var packs = Packs;
@@ -186,9 +215,9 @@ internal static partial class Jobs
         // The in-app update (v0.8.48): where GitHub is asked and whether the Node server runs under its launcher, as it was set up.
         Updater?.Stop();
         Updater = new Admin.Updater(cfg, Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), version, Log);
-        handed = c.Jobs;
-        held = c.Boot;
-        seen ??= c.Boot;
+        handed = jobs;
+        held = boot;
+        seen ??= boot;
         if (handed.Contains("update")) Updater.Start();
         // The processor split (v0.8.48): decided here from now on (the Node server's DSP conversions
         // under way counted from the start), the Node server told; else its own, followed as before.
@@ -294,11 +323,13 @@ internal static partial class Jobs
      */
     public static async Task RestartNode(string why = "backup")
     {
-        if (upstream == null) return;
+        if (upstream == null && !Front.Alone) return;
         // A scan under way ended first: the database it writes is about to be put back.
         Scans.Halt();
         // The services' import and watch likewise, at their next album (v0.8.45).
         await Services.Import.HaltRuns();
+        // No Node server: this program starts again in its own process (Program.cs, as Restart from Settings does).
+        if (upstream == null) { if (Front.LeaveBy(Front.Leave.Restart)) Front.StopApp?.Invoke(); return; }
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, "/internal/front/restart" + (why == "update" ? "?why=update" : "")));

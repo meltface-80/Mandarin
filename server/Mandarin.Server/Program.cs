@@ -94,41 +94,60 @@ if (args.Length == 1 && args[0] == "config")
 }
 Db.File = Path.Combine(dataDir, "musicd.db");
 Front.DataDir = dataDir;
+string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
+// No Node server behind this one (v0.8.50, stage 7): said (MANDARIN_NODE=0),
+// or none there to start (no index.js in the app's folder). Everything is this
+// server's from the start, set up from the environment (Config.cs).
+bool alone = Environment.GetEnvironmentVariable("MANDARIN_NODE") == "0" || (string.IsNullOrEmpty(upstream) && !File.Exists(Path.Combine(appDir, "index.js")));
 Process? node = null;
-if (string.IsNullOrEmpty(upstream))
+if (alone || string.IsNullOrEmpty(upstream))
 {
+    // A database put back from a backup goes in now, before it opens (Admin/Restore.cs).
+    if (alone) Mandarin.Server.Admin.Backup.SwapStaged(dataDir, Front.Log);
     try { Schema.Bring(dataDir, Front.Log); }
     catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
     {
+        if (alone) { Front.Log($"[server] the database couldn't be brought up to date ({e.Message}); stopping"); return 1; }
         // Left to the Node server, which tries again (its own code, should this program's fail there too).
         Front.Log($"[server] the database couldn't be brought up to date here ({e.Message}); the Node server tries");
     }
+}
+System.Text.Json.Nodes.JsonObject? ownConfig = null;
+if (alone)
+{
+    Front.Alone = true;
+    try { ownConfig = Config.FromEnvironment(dataDir, port); }
+    catch (InvalidOperationException e) { Front.Log("[server] " + e.Message + "; stopping"); return 2; }
+}
+else if (string.IsNullOrEmpty(upstream))
+{
     int internalPort = Front.FreeLoopbackPort();
-    string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
     node = Front.StartNode(appDir, internalPort, frontKey, port);
     upstream = $"http://127.0.0.1:{internalPort}";
 }
-var upstreamUri = new Uri(upstream);
-Library.Init(upstreamUri, frontKey);
+var upstreamUri = alone ? null : new Uri(upstream!);
+if (alone) Library.InitAlone(frontKey, ownConfig!["server_ip"]?.GetValue<string>(), port); else Library.Init(upstreamUri, frontKey);
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
-Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
-
-// Nothing is answered until the Node server is: a request that arrived first
-// would only be refused.
-Front.Log("[server] waiting for the Node server");
-if (!await Front.WaitForUpstream(upstreamUri, node, TimeSpan.FromMinutes(5)))
+if (alone) Front.Log($"[server] Mandarin's server {version} (C#) on port {port}, on its own");
+else
 {
-    Front.Log("[server] the Node server didn't start; stopping");
-    return node?.HasExited == true ? node.ExitCode : 1;
+    Front.Log($"[server] Mandarin's server {version} (C#) on port {port}; the Node server behind it at {upstream}");
+    // Nothing is answered until the Node server is: a request that arrived first
+    // would only be refused.
+    Front.Log("[server] waiting for the Node server");
+    if (!await Front.WaitForUpstream(upstreamUri!, node, TimeSpan.FromMinutes(5)))
+    {
+        Front.Log("[server] the Node server didn't start; stopping");
+        return node?.HasExited == true ? node.ExitCode : 1;
+    }
+    Front.Log("[server] the Node server is up");
+    // Its version, before anything is answered: of another, everything goes to it (Front.cs, v0.8.25).
+    await Library.Ask();
 }
-
-Front.Log("[server] the Node server is up");
-// Its version, before anything is answered: of another, everything goes to it (Front.cs, v0.8.25).
-await Library.Ask();
-// The identification scan, the MusicBrainz pack and loudness measuring, taken
-// over from the Node server (Jobs.cs) before anything is answered.
-await Jobs.Start(upstreamUri, frontKey, port, dataDir, version);
+// The background work (Jobs.cs) before anything is answered: taken over from
+// the Node server, or this server's own from the start.
+if (alone) await Jobs.StartAlone(ownConfig!, port, dataDir, version); else await Jobs.Start(upstreamUri!, frontKey, port, dataDir, version);
 // No settings files, so nothing to watch: by default ASP.NET watches its
 // start folder and everything under it for appsettings.json, which from /app
 // (node_modules and all) held the start for minutes.
@@ -206,7 +225,7 @@ app.Use(async (ctx, next) =>
 {
     if (Front.Matched || ctx.Request.Path == "/server-info") { await next(); return; }
     if (ctx.Request.Path.StartsWithSegments("/internal")) { ctx.Response.StatusCode = 404; return; }
-    await forwarder.SendAsync(ctx, upstream, invoker, requestConfig, transformer);
+    await forwarder.SendAsync(ctx, upstream!, invoker, requestConfig, transformer);
 });
 
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
@@ -214,7 +233,7 @@ app.Use(async (ctx, next) =>
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 
 // The page and its files (Pages.cs), behind the gate as before.
-Pages.Use(app, Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "public"));
+Pages.Use(app, Path.Combine(appDir, "public"));
 // The library (Library.cs): read here, from the copy the Node server holds.
 Library.Use(app);
 // Covers and label logos already drawn (Images.cs); the rest are drawn by the Node server.
@@ -235,8 +254,16 @@ Pages.UseDeepLinks(app);
 Routes.Map(app, version);
 Auth.Map(app);
 
-app.MapForwarder("/{**catch-all}", upstream, requestConfig, transformer, invoker);
+// Alone, what no route took is not there (as Express said it); else the Node server's.
+if (alone) app.MapFallback(ctx => { ctx.Response.StatusCode = 404; return ctx.Response.WriteAsync($"Cannot {ctx.Request.Method} {ctx.Request.Path}"); });
+else app.MapForwarder("/{**catch-all}", upstream!, requestConfig, transformer, invoker);
 
+// Alone: Restart and Shut down from Settings are this program's own (PowerRoutes.cs).
+if (alone)
+{
+    Front.RunsNode = true;
+    Front.StopApp = app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication;
+}
 // The Node server stopping (Shut down, a crash) stops this too, with its
 // code, so Docker's restart policy and the Mac's login item act as before.
 if (node != null)
@@ -271,7 +298,7 @@ await app.WaitForShutdownAsync();
 // policy starts the container again.
 // Restart from Settings (v0.8.31): both servers, this one started again in
 // this process as after an update; Shut down: 0, for nothing to start it again.
-if (node != null && Front.Leaving == Front.Leave.Restart) { Front.StartAgain(args); return Front.StartAgainCode; }
-if (node != null && Front.Leaving == Front.Leave.ShutDown) return 0;
+if ((node != null || alone) && Front.Leaving == Front.Leave.Restart) { Front.StartAgain(args); return Front.StartAgainCode; }
+if ((node != null || alone) && Front.Leaving == Front.Leave.ShutDown) return 0;
 if (node != null && Environment.ExitCode == Front.StartAgainCode) Front.StartAgain(args);
 return Environment.ExitCode;

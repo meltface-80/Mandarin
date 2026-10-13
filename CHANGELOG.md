@@ -21,6 +21,20 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   overrides, come as `QOBUZ_URL`, `TIDAL_URL`, `TIDAL_AUTH_URL`, `TIDAL_IMAGES_URL` and
   `MANDARIN_CONFIG` (a JSON object laid over the whole). `mandarin-server config` prints it;
   `test/config-csharp.test.js` holds it to `index.js`'s names and defaults, name by name.
+- **The C# server on its own** (part 1, step b): with `MANDARIN_NODE=0`, or no `index.js` in
+  the app's folder, no Node server is started or waited for. Every job is this server's from
+  the first request (`Jobs.StartAlone`: the hub, the scans, the services, the update, the
+  processor split, set up from `Config.cs` as the hand-over set them up; the speakers found
+  last time asked first, as `index.js` asked them), and the library's state is this server's
+  own (`Library.State.cs`: the version and the marks moved where the Node server was told of a
+  change, so the copy is read again on the next request; the scan's state, the label rules,
+  the day and the week on this clock, the address). A database put back from a backup goes in
+  at the start (`Admin/Restore.cs`, as `lib/backup.js` did), Restart and Shut down from
+  Settings are the program's own, and a restore's restart starts the program again in its own
+  process. What no route answers is 404, as Express said it. `test/server.js` (new) starts the
+  program alone for a test, as the image will start it; `test/csharp-alone.test.js` (new) holds
+  the account, the scan, the library, the pages, the rooms, a heart and `/api/health` to it with
+  no Node server anywhere. Behind a Node server nothing changes.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
