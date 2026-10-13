@@ -10,6 +10,8 @@
 //      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM")
 //   { fn: "itunes", base, steps: [{ search: { title, artist } } | { album: id } | { paused: true }] }
 //      → { results }: each step's answer, or { error, paused } where iTunes refused
+//   { fn: "mbpack", file, barcodes, releases, mb, first: [{ barcode } | { release } | { search: [title, artist] }] }
+//      → { format, opened, info, barcodes, releases, first }: the pack in [file] read, and MusicBrainz at [mb] asked pack first
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Identify;
@@ -75,6 +77,35 @@ internal static class ScoreCalls
     }
 
     public static JsObj Run(JsObj job) => new() { ["results"] = L(job["calls"]).Select(c => Call(L(c))).ToList() };
+
+    public static async Task<JsObj> PackSteps(JsObj job)
+    {
+        var pack = MbPack.Open(job["file"] as string);
+        var o = new JsObj { ["format"] = (double)MbPack.Format, ["opened"] = pack != null };
+        if (pack == null) return o;
+        try
+        {
+            o["info"] = pack.Info();
+            o["barcodes"] = L(job["barcodes"]).Select(c => (object?)pack.ByBarcode(c).Select(x => (object?)x).ToList()).ToList();
+            o["releases"] = L(job["releases"]).Select(m => (object?)pack.Release(m)).ToList();
+            if (job["mb"] is string mb)
+            {
+                var both = new PackFirst(new MusicBrainz(mb, "0"), () => pack);
+                var first = new List<object?>();
+                foreach (var st0 in L(job["first"]))
+                {
+                    var st = O(st0);
+                    if (st.Has("barcode")) first.Add((await both.ByBarcode(st["barcode"])).Select(x => (object?)x).ToList());
+                    else if (st.Has("release")) first.Add(await both.Release(Js.Str(st["release"])));
+                    else if (st["search"] is List<object?> q) first.Add((await both.Search(At(q, 0), At(q, 1))).Select(x => (object?)x).ToList());
+                    else throw new JsError("unknown step");
+                }
+                o["first"] = first;
+            }
+        }
+        finally { pack.Close(); }
+        return o;
+    }
 
     public static async Task<JsObj> ITunesSteps(JsObj job)
     {
