@@ -391,7 +391,7 @@ internal static partial class Library
             _ = Task.Run(async () =>
             {
                 await Task.Delay(500);
-                await Jobs.RestartNode();
+                await Jobs.Restart();
                 if (((List<object?>)o["restored"]!).Contains("tailscale")) await ts.Start();
             });
         }

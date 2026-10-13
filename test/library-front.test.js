@@ -113,7 +113,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
-  // The Node server behind the C# server (recording only), asked straight.
+  // The database, read straight.
   const raw = ctx.db.raw;
   try {
     const token = await signIn(B);

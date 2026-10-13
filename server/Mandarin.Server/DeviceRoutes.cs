@@ -231,23 +231,14 @@ internal static partial class Library
             var d = hub.Devices.Get(c, id);
             return d == null ? await JsError(ctx, 404, "No such device") : await SendJs(ctx, hub.Devices.WithRadio(c, d, id));
         }
-        var said = await DevicesChanged(id, changed);
-        if (said == null) return await JsError(ctx, 502, "The Node server didn't answer");
-        object? answer;
-        try { answer = JsJson.Parse(said.Value.Text); }
-        catch (JsError) { return await JsError(ctx, 502, "The Node server didn't answer"); }
-        return await SendJs(ctx, answer, said.Value.Status);
+        // No hub (stopping): the write is made, what it does follows the next start.
+        return await JsError(ctx, 502, "Playback isn't running");
     }
 
-    /*
-     * What each write did: by the hub here once this server holds playback
-     * (v0.8.49, stage 6), else the Node server told (index.js /internal/devices/changed)
-     * and asked for the device as its page shows it.
-     */
-    private static async Task<(int Status, string Text)?> DevicesChanged(string id, List<string> changed)
+    /* What each write did, by the hub (v0.8.49, stage 6). */
+    private static async Task DevicesChanged(string id, List<string> changed)
     {
-        if (Playback.Hub.Current is { } hub) { await hub.DeviceChanged(id, changed); return null; }
-        return await AskNode("/internal/devices/changed", TJs.Json(Jv.Obj(("id", id), ("changed", changed.Select(x => (object?)x).ToList()))) ?? "{}");
+        if (Playback.Hub.Current is { } hub) await hub.DeviceChanged(id, changed);
     }
 
     // ------------------------------------------------------------------ registry.js

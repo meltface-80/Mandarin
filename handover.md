@@ -4,8 +4,9 @@ For the next Claude session picking up the migration. Read this first, then `CLA
 `docs/specs/csharp-migration.md` (section 2.4 and "What is left: the fewest steps"), then
 `server/README.md` and the top of `CHANGELOG.md`. Update this file whenever the state below changes.
 
-Written 12 October 2026, at stage 4b's merge; brought up to date the same day with stage 5 merged
-and the quality gates added.
+Written 12 October 2026, at stage 4b's merge; brought up to date with stage 5 merged and the
+quality gates added, and again on 13 October 2026 with stage 7 part 6 (Node deleted, v0.9.0) on
+its branch.
 
 ---
 
@@ -44,8 +45,8 @@ and the quality gates added.
 | | |
 |---|---|
 | `main` | v0.8.44, `32f62a8`. `:latest`. Don't touch. |
-| `migration` | **v0.8.49** (`e2474dc`): PR #209 (stage 6, playback whole) squash-merged on 13 October 2026 with CI green; before it #206 (stage 5), #204 and #205. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
-| `stage-7-node-removed` | **v0.8.50, stage 7 (Node removed)**, from `migration`: the plan in the spec, the parts as they are built. PR into `migration` when done, for the owner's one final test. |
+| `migration` | **v0.8.50**: PR #213 (stage 7 up to part 5: the server alone, the tests without `lib/`) squash-merged on 13 October 2026; before it #209 (stage 6, playback whole), #206 (stage 5), #204 and #205. `:migration` image is published from it after CI passes (`.github/wait-for-ci.sh`). |
+| `stage-7-part-6-node-deleted` | **v0.9.0, stage 7 part 6 (Node deleted)**, from `migration`, on the owner's ask ("put stage 7 part 6 on a new branch"): the last tests off `lib/`, the recording halves gone, the Node server's code and the server's paths for it deleted, the image without Node, docs. PR into `migration`, then the owner's final test from `:migration` and their merge to `main` as v0.9.0. |
 
 The stale branches named here before were deleted by the owner on GitHub.
 
@@ -76,60 +77,48 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    where they live: `docs/quality-plan.md` section 4 says what the rules are now) and CI quicker
    (the files dealt out to three Linux jobs and two Mac jobs; a failed file run once more on its
    own, `.github/retry-failed.sh`).
-3. **Stage 7 (v0.8.50): Node removed → the v0.9.0 candidate**, on `stage-7-node-removed`: the
-   plan in detail is in the spec (five parts: the C# server on its own; the last routes; the
-   launcher and updates in C#; the tests drive the binary; the image and the repository without
-   Node). Then the owner tests from `migration` and merges to `main` as v0.9.0 themselves.
+3. **Stage 7: Node removed → v0.9.0.** Parts 1 to 5 (v0.8.50: the C# server on its own; the
+   last routes; the launcher and updates in C#; the tests drive the binary; the tests without
+   `lib/`) merged (#213). Part 6 (v0.9.0: the image and the repository without Node) on
+   `stage-7-part-6-node-deleted`. Then the owner tests from `migration` and merges to `main` as
+   v0.9.0 themselves. After that, bugs go on `v0.9.x-rc1 - <bug>` branches (CLAUDE.md section 4).
 
 Per the spec, each stage is planned in detail (in the spec) before it's coded.
 
-## 4. How a job moves from Node to the C# server
+## 4. How the server is laid out (since v0.9.0)
 
-- The C# server (`server/Mandarin.Server`, .NET 10, YARP) sits in front of Node and proxies what
-  it doesn't answer itself. They share the SQLite database.
-- A background job is handed over by naming it in **three places**: `FRONT_JOBS` (index.js),
-  `Jobs.Names` (`server/Mandarin.Server/Jobs.cs`) and `MANDARIN_FRONT_RUNS` (test/setup.js).
-- **Trap (found in stage 4b's review):** `ctx.madeByFront(job)` is already true while Node is
-  only *waiting* for the C# server to take the job. Node must keep doing a job until the C# server
-  has actually taken it: `ctx.frontRuns.has(job)` (see `ctx.servicesHanded()` in index.js).
-  Otherwise there's a window of up to two minutes at start-up when nobody does it.
-- Node is told about changes the C# server makes through `/internal/...` routes guarded by the
-  front key (`fromFront`), e.g. `/internal/playback/play`, `/internal/devices/changed`,
-  `/internal/cpu/plan`, `/internal/scan` (a scan made by Node's scanner at C#'s ask, its state
-  streamed back line by line), `/internal/playback/now`. The hand-over's `config` carries what the
-  C# server needs from Node's environment (`scan_program`, `via_launcher`, `update_api`…), and
-  `/internal/library` what only Node knows (`rooms`, `zone_count`, `sonos`, `speakers`, `cpu`,
-  `csharp_update`).
-- Parity tests compare the C# answer with Node's directly (`ctx.listeningOn`, header
-  `X-Mandarin-Front-Key: ctx.frontKey`, or the same bearer token). Good models:
-  `test/services-signin-csharp.test.js`, `test/devices-csharp.test.js` (a write made twice from the
-  same row, the rows and answers compared), `test/housekeeping-csharp.test.js`.
-- **Traps found in stage 5:** `PowerRoute` answers only where the C# server started Node itself
-  (`Front.RunsNode`); the suite's Node server is the test's own, so a route that must answer in the
-  suite goes before that check (as `/api/cpu` does now). The suite's C# server is given the test
-  process's cores (`MANDARIN_CPUS`, test/setup.js) because the Node server pins itself before
-  spawning it. `MANDARIN_CPU_HOLD_MS` shortens DSP's ten-minute hold for tests. The fixture library
+- One program, `server/Mandarin.Server` (.NET 10, ASP.NET Core slim, SQLite), set up from the
+  environment (`Config.cs`), its background work in `Jobs.cs`, its library state in
+  `Library.State.cs`. `server/README.md` says how it runs and records how each part moved.
+- No Node server: the history of the hand-over (the jobs named in three places, `/internal/front/runs`,
+  `ctx.madeByFront`, `MANDARIN_FRONT`) is in the spec and the CHANGELOG only.
+- The tests are JavaScript (`node:test`) and start the program (`test/server.js`), or ask its rules
+  directly (`mandarin-server score`, `test/score.js`). The parity suites hold it to the Node
+  server's answers as they were kept (`test/golden.js`, read-only, `test/golden/*.json`); there is
+  no way to record them again.
+- The `/internal/` addresses left are the tests' (front key, loopback): `/internal/jobs/*`,
+  `/internal/library/changed`, `/internal/playback/revision`, `/internal/mb/slot`.
+- **Traps:** `MANDARIN_CPU_HOLD_MS` shortens DSP's ten-minute hold for tests. The fixture library
   has **7 files** in 3 albums; moving a folder *within* the music root reads as "moved", not gone —
   move it out (`lib.root`) to get `offline_dirs`.
 
 ## 5. How to finish a stage
 
-1. Bump the version: package.json, README.md's title, `android/app/build.gradle.kts`
-   (versionName, and versionCode = 200 + the patch number, e.g. 0.8.48 → 248), `server/README.md`,
-   the version checks in `test/front.test.js`. Add a CHANGELOG entry at the top, in the same style.
+1. Bump the version: package.json (and `npm install --package-lock-only`), README.md's title, the
+   site's badge (`docs/index.html`), `android/app/build.gradle.kts` (versionName, and versionCode =
+   300 + the patch number from 0.9.0, e.g. 0.9.1 → 301; it was 200 + the patch for 0.8.x).
+   `test/version.test.js` checks they agree. Add a CHANGELOG entry at the top, in the same style.
 2. Rebuild **both** `./engine/build.sh` and `./server/build.sh` after the bump; the engine test
    checks the engine's version.
 3. `npm run gates` (the file-length ratchet, `@ts-check` and `tsc`, ESLint against its
    suppressions; `npm run tools` once per clone first). A file that grew past its allowance is
-   split, never re-accepted; a new module carries `// @ts-check`. Then the whole suite **both ways**, each to a file:
-   `node --require ./test/setup.js --test --test-concurrency=3 test/*.test.js` with
-   `MANDARIN_FRONT` unset (Node alone), then with `MANDARIN_FRONT=1` (through C#).
-   Wrap it in `timeout`; both runs take 25–40 minutes together on this box, so run them in the
-   background and do docs meanwhile. Recent counts (stage 5): see PR #206's description.
+   split, never re-accepted; a new module carries `// @ts-check`. Then the whole suite, to a file:
+   `npm test` (four files at once). Run it in the background and do docs meanwhile; on this box it
+   takes about half an hour.
 4. Push, open a PR into `migration` with a plain summary and test results, then watch CI. CI
-   jobs: **test (20)** (Node alone), **test (22)** (through C#), **Tests on a Mac** (through C#),
-   **Build image**, and Android's **APK / Core tests (JVM) / Tailscale engine tests**. A run takes
-   15–25 minutes.
+   jobs: **Quality gates**, **test (22, part 1/3 to 3/3)**, **Tests on a Mac (part 1/2, 2/2)**,
+   **Build image** (it fails if Node.js is in the image), and Android's **APK / Core tests (JVM) /
+   Tailscale engine tests**. A run takes 15–25 minutes.
 5. Have the change reviewed (an agent reading the diff for bugs found real ones in stage 4b), fix
    what's real, then squash-merge into `migration`.
 6. Tell the owner what to do in Dockge (section 6) and what to try.
@@ -156,8 +145,7 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 
 ## 7. Things that will trip you up here
 
-- **4 cores.** `npm test` runs four files at once; `MANDARIN_FRONT=1 npm test` takes six to
-  seven minutes here. The whole-file hangs seen before (a fake's `close()` waiting on a
+- **4 cores.** `npm test` runs four files at once. The whole-file hangs seen before (a fake's `close()` waiting on a
   connection the C# server still held) are fixed (v0.8.49, `test/fixtures.js` `stopServer`), and
   a request a server never answers fails after a minute and a half naming its address
   (`test/setup.js`): if a run stops producing output, read the log for that line.
@@ -176,7 +164,7 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
   last run and passed on a re-run; if it comes back it will now fail by name.
 - `test/lastfm.test.js` measures Last.fm's spacing at the far end (≥ 240 ms). C# spaces asks from
   the *answer* now (v0.8.47).
-- **test (20) has twice failed `test/backup.test.js` with EADDRINUSE** on its own port, at the
+- **test (20), when there was one, twice failed `test/backup.test.js` with EADDRINUSE** on its own port, at the
   server started after a restore's restart, while the next test's server took the same port a
   moment later. Not reproduced here (twelve runs under load; a thousand close-and-listen-again
   rounds in one process), and the same commit passed in its other CI run. The test's `server()`

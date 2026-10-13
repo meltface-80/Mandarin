@@ -31,9 +31,8 @@ jobs:
   # The suite, in parts that run at once (v0.8.49): the test files dealt out to
   # three jobs (node's --test-shard, each file in one of them), so the whole run
   # takes the time of a third of it rather than nine minutes end to end. Since
-  # v0.8.50 (stage 7) the tests start the C# server alone (test/server.js); the
-  # few left on the Node server run it behind the C# server, as the image did
-  # (MANDARIN_FRONT=1), until it goes. The Node-alone job went with it.
+  # v0.8.50 (stage 7) the tests start the C# server alone (test/server.js);
+  # since v0.9.0 there is no Node server. Node runs the tests themselves.
   test:
     name: test (${{ matrix.node-version }}, part ${{ matrix.shard }})
     runs-on: ubuntu-latest
@@ -95,22 +94,17 @@ jobs:
       - name: Build the audio engine
         run: ./engine/build.sh
       # Mandarin's server in C# (server/, v0.8.1): the server the tests start
-      # (test/server.js), and the one in front of the Node server where a test
-      # still runs that (test/setup.js, MANDARIN_FRONT).
+      # (test/server.js).
       - name: Build the C# server
         run: ./server/build.sh
-      - name: Syntax check
-        run: |
-          node --check index.js
-          node --check public/app.js
-          for f in lib/*.js lib/*/*.js; do node --check "$f"; done
+      - name: Syntax check of the page
+        run: node --check public/app.js
       # Kept to a file as well: the tests that failed are said again at the end,
       # where a log read from its tail finds them, and their files run once more
       # on their own (.github/retry-failed.sh): a pass then is a warning on the
       # run, a race on a busy runner to fix in its turn; a failure again is red.
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
-          MANDARIN_FRONT: "1"
           TEST_SHARD: ${{ matrix.shard }}
         run: |
           set -o pipefail
@@ -188,12 +182,11 @@ jobs:
           test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
           echo "fetched, checked and placed; a wrong sum placed nothing"
       # Two files at once, not package.json's four: GitHub's Mac runners have
-      # three cores, and each file here runs the C# server, the Node server and
-      # often Chromium and ffmpeg; four at once kept the machine so busy that a
-      # different timing-sensitive test lost its race on each run.
-      - name: Tests, through the C# server
+      # three cores, and each file here runs the C# server and often Chromium
+      # and ffmpeg; four at once kept the machine so busy that a different
+      # timing-sensitive test lost its race on each run.
+      - name: Tests, on the C# server
         env:
-          MANDARIN_FRONT: "1"
           TEST_SHARD: ${{ matrix.shard }}
           TEST_CONCURRENCY: "2"
         run: |
@@ -232,21 +225,21 @@ jobs:
           docker exec smoke /app/server/bin/mandarin-server --health | grep -q '"ok":true'
           if docker exec -e PORT=9 smoke /app/server/bin/mandarin-server --health; then echo "--health passed with nothing on port 9"; exit 1; fi
           # Measure ReplayGain works with the image's own ffmpeg: its options, as
-          # the servers ask, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
-          F=$(sed -n 's/^const FILTER = "\(.*\)";$/\1/p' lib/loudness.js)
+          # the server asks, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
+          F=$(sed -n 's/^ *\(private \|public \|internal \)\?const string Filter = "\(.*\)";$/\2/p' server/Mandarin.Server/Identify/Loudness.cs)
           test -n "$F"
-          grep -q "const string Filter = \"$F\";" server/Mandarin.Server/Identify/Loudness.cs
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
             -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
           # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
           # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
-          # static ffmpeg has no drawtext, so there the Node server draws it instead.
+          # static ffmpeg has no drawtext, so there it is drawn without its title.
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -filters | grep -Eq "\sdrawtext\s"
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -v error -nostdin -f lavfi -i color=c=black:s=64x64:d=1 \
             -vf "drawtext=text=A:font=sans-serif:fontsize=40:fontcolor=white:x=10:y=10" -frames:v 1 -f null -
-          # The C# server answers on the port, with the Node server behind it.
+          # The C# server answers on the port, and there is no Node.js in the image (v0.9.0).
           curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
           curl -fs localhost:3500/server-info | grep -q '"server":"C#"'
+          if docker run --rm --entrypoint sh musicd-server:ci -c 'command -v node || test -e /app/node_modules || test -e /app/index.js'; then echo "Node.js is still in the image"; exit 1; fi
           # A new install asks for its account first: the page is the sign-in page,
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"

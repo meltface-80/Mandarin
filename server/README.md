@@ -1,66 +1,55 @@
 # Mandarin's server in C#
 
-`mandarin-server` is Mandarin's server, being moved from Node.js to C# (.NET 10) one part at a
-time, from v0.8.1 on.
+`mandarin-server` is Mandarin's server: one program in C# (.NET 10), built to a single
+self-contained file. It was moved from Node.js one part at a time from v0.8.1, and has been the
+whole server since v0.9.0, when the Node server's code left the repository and Node.js the image
+(`docs/specs/csharp-migration.md`, stage 7).
 
-## How it runs while the move is under way
+## How it runs
 
-The C# server is the front door. It takes Mandarin's port (`PORT`, 3500), answers the parts
-already moved to C#, and passes everything else, as it came, to the Node server behind it. It
-starts the Node server itself (`node launcher.js`, so in-app updates work as before) on a free port
-on `127.0.0.1` that nothing else can reach, and stops when it stops.
+It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up from the environment
+(`Config.cs`; `mandarin-server config` prints what it would be set up with). The page it serves is
+`public/`, found beside the program or one or two folders up (`MANDARIN_APP_DIR` to say).
 
-- **Who is asking** goes through unchanged. The Node server tells home from away by the caller's
-  address, believing `X-Forwarded-For` only from this machine (the built-in Tailscale speaks for the
-  device behind it). The C# server works the caller out the same way and passes on only that, so no
-  device can claim to be at home by sending the header itself.
-- **Streams and held requests** pass straight through, as long as they last; request bodies have
-  no size limit (a whole database restored from a backup).
-- Every response says which server it came through (`X-Mandarin-Server: C# <version>`), and one
-  C# wrote itself says so (`X-Mandarin-Answered: C#`). `GET /server-info` answers from C# itself.
-  `test/front.test.js` pins which server answers what.
-- **The library** is read here from a copy in memory, as the Node server keeps one. Which copy is
-  current is the Node server's to say (it reads the library again when told of a scan or a change made
-here, and still takes a few edits of its own): each library request asks
-  it first, on a private address with a key this server gave it (`/internal/library`), and the
-  copy here is rebuilt from the database when it changed, and checked every five seconds besides,
-  so a screen seldom waits for the rebuild. On 20,000 albums a rebuild takes about half a second,
-  as the Node server's own does; lists are sorted with ICU sort keys, computed once per rebuild. Names sort as JavaScript sorts them
-  (ICU's collation, so the image carries libicu), and `test/library-front.test.js` asks both
-  servers the same questions and checks the answers are the same.
-- **Compression:** what C# answers itself goes out gzipped, as the Node server's did.
-- **The database** (`<data>/musicd.db`) is shared. Since v0.8.48 this server makes it and brings its
-  tables up to date (`Schema.cs`), before it starts the Node server and again when the Node server
-  opens it (`mandarin-server db`, so a backup put back as it starts again is brought up to date here
-  too); before, the Node server did. C# opens it afresh for each request, so a database put back
-  from a backup is the one read next.
-
-- **Kept at the Node server's version** (v0.8.25): each release carries this program for
-  `linux-x64` and `linux-arm64` with their SHA-256 sums (`release.yml`). An update from Settings
-  brings the Node server's files; the Node server, started by a C# server of another version,
-  fetches the matching program, checks its sum and that it runs (`mandarin-server --version`),
-  renames it over the running one and stops with code 76 (`lib/server/csharp-update.js`). This
-  server then starts itself again from the new file in the same process (`execv`, `Front.cs`);
-  one from before v0.8.25 stops, and Docker's restart policy starts the container again. Twice
-  at most for a version. Until the two match, this server answers nothing but `/server-info` and
-  passes everything to the Node server (which has every part), and the Node server keeps the
-  background work (`/internal/front/runs` turns down another version). `test/csharp-update.test.js`.
-  - From v0.8.29 the update fetches and checks this program of the new version *before* it stages
-    the Node server's files, and stops with nothing changed if it can't be had (`prepare`,
-    `lib/updater.js` `beforeApply`); the new Node server finds it in place and only asks for the
-    start again. `test/update-prepare.test.js`.
-- **On a Mac** (v0.8.29): built for `osx-arm64` and `osx-x64` on GitHub's Mac runners (signed ad
-  hoc, as macOS needs), carried by each release, and started by launchd in front of the Node server
-  as in the image (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
+- **Who is asking:** home is told from away by the caller's address, believing `X-Forwarded-For`
+  only from this machine (the built-in Tailscale speaks for the device behind it), as the Node
+  server did, so no device can claim to be at home by sending the header itself.
+- **Streams and held requests** last as long as they need; request bodies have no size limit (a
+  whole database restored from a backup).
+- Every response says which server answered (`X-Mandarin-Server: C# <version>`), and one written
+  here says so too (`X-Mandarin-Answered: C#`). `GET /server-info` says the server, its version
+  and this run of it. `test/front.test.js` pins each part to it.
+- **The library** is read from a copy in memory, rebuilt from the database when a change moves the
+  library's version (`Library.State.cs`), and checked every five seconds besides, so a screen
+  seldom waits for the rebuild. On 20,000 albums a rebuild takes about half a second; lists are
+  sorted with ICU sort keys, computed once per rebuild. Names sort as JavaScript sorts them (ICU's
+  collation, so the image carries libicu).
+- **Compression:** text answers go out gzipped, as the Node server's did.
+- **The database** (`<data>/musicd.db`) is made, or brought up to date, as the server starts
+  (`Schema.cs`; `mandarin-server db`), a backup put back swapped in first. It is opened afresh for
+  each request, so a database put back from a backup is the one read next.
+- **The background work** (`Jobs.cs`): the library scans, the identification scan, the
+  MusicBrainz pack, loudness, record labels, release days, the taste work, Tailscale, Qobuz's and
+  Tidal's import and accounts, the in-app update, the processor split and playback.
+- **Updates** (`Admin/Updater.cs`): each release carries this program for `linux-x64`,
+  `linux-arm64`, `osx-arm64` and `osx-x64`, with their SHA-256 sums (`release.yml`). An update from
+  Settings fetches the one for this machine, checks its sum and that it says the new version
+  (`mandarin-server --version`), puts it in place of the running one, lays the release's page in,
+  and starts again from the new file in the same process (`execv`, `Front.StartAgain`).
+  `test/update.test.js`, `test/update-alone.test.js`.
+- **On a Mac** (v0.8.29): built on GitHub's Mac runners (signed ad hoc, as macOS needs) and started
+  by launchd (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
   (`Scan/NodeFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
-  suite through it on a Mac runner.
-- **All server work is done here** (the owner's decision, v0.8.29): the Node copies of parts already
-  moved are kept as they are and changed no more, and an area the Node server still owns moves here
-  before it is changed (`docs/specs/csharp-migration.md`, 2.4).
+  suite on a Mac runner.
+- **Subcommands:** `--version`, `--health` (the image's health check), `config`,
+  `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,
+  `tags <file>…`, `waveform <file>`, `score` (the rules asked directly, for the tests),
+  `--srp-vector <file>`.
 
-When nothing is passed on any more, the Node server, and Node itself, leave the image.
+## How each part moved (v0.8.1 to v0.9.0)
 
-## What has moved
+Each part, the release it moved in, and what it was held to; the Node server named here is the one
+it stood in front of until v0.9.0.
 
 | Part | Where it is |
 |---|---|
@@ -118,13 +107,15 @@ When nothing is passed on any more, the Node server, and Node itself, leave the 
 | Playback, part 3: the UPnP renderers — discovery (M-SEARCH from every LAN address, the location cache, LinkPlay's probe, the seeds), the players (the queue kept here, gapless by SetNextAVTransportURI once the next file is complete, the device that ignores it started by hand, the three-strikes rule, shuffle and loop, the poll with the track found by its URI, GENA events, LinkPlay's check of what a WiiM really plays, the stream target from the profile's chips and the zone's DSP, every command, the fixed-volume rule), and the device list with its page, Look again and Forget (`Renderers/Players.cs`, `Players.Poll.cs`, `Players.Commands.cs`, `Renderer.cs`, `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`, `Devices.cs`; `Playback/SoapHttp.cs`, `Hub.Upnp.cs`; `UpnpEventRoutes.cs`, `DeviceRoutes.Read.cs`) | C# (v0.8.49, stage 6 part 3), the hub's; `NOTIFY /upnp/event/:id` answered here before the gate; held by `test/renderer-playback.test.js` (the fake renderer's log), `test/audio-devices.test.js` and `test/devices-csharp.test.js` through C#. Sound devices on this computer (`LOCAL_`) wait for part 4 |
 | Playback, part 4: sound devices on this computer — Mandarin's audio engine found (`AUDIO_ENGINE_BIN`, the image's, the data folder's; `protocol 1`) and fetched once in the background where the image lacks it, driven over its stdin and stdout (the commands, the events, the gain on the audio taper, playback's own core at a raised priority), ALSA's cards from `/proc/asound` and `/dev/snd` and a Mac's outputs listed into the register every half minute, `hw_params` for the verified tick (`Local/AudioEngine.cs`, `Local/EngineOutput.cs`, `Local/LocalDevices.cs`, `Cpu.Engine.cs`) | C# (v0.8.49, stage 6 part 4), the hub's; held by `test/local-output.test.js`'s end-to-end half through C# (a `file:` device played by the engine). The ffmpeg sink (`lib/local/output.js`) is not ported: a Mac's sound devices are listed, not played, from this server until stage 7 |
 | The audio engine for sound devices on the server | C# (v0.8.0, `engine/`) |
-| Everything else | Node, behind the C# server |
+| Everything else: the last routes, the configuration from the environment, the library's own state, Restart and updates with no launcher, `reset-password` | C# (v0.8.50, stage 7 parts 1 to 3); the Node server optional |
+| The Node server's code (`index.js`, `launcher.js`, `reset-password.js`, `lib/`) and Node.js in the image | Gone (v0.9.0, stage 7 part 6), with this server's paths for a Node server behind it |
 
 ## Building and testing
 
 `./build.sh` builds `server/bin/mandarin-server` for the machine it runs on (Linux or a Mac; `RID=`
 for another): one self-contained file, no .NET needed where it runs (needs the .NET 10 SDK to build).
 
-`MANDARIN_FRONT=1 npm test` runs the whole suite with every test's server behind the C# server, as
-in the image (`test/setup.js`). CI runs it that way on Node 22 and directly on Node 20, and through
-the C# server on a Mac; all must pass. A part moves to C# only when the suite still passes both ways.
+`npm test` runs the whole suite (JavaScript, `node:test`) against the program: each test starts it
+on a port of its own (`test/server.js`). The parity suites hold it to the Node server's answers,
+kept in `test/golden/` from when the Node server was here (`test/golden.js`). CI runs the suite on
+Linux and on a Mac; both must pass.

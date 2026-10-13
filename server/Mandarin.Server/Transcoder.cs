@@ -15,11 +15,8 @@
 // (Playback/StreamPlans.cs). Since v0.8.47 (stage 4.5) a track fetched from
 // Qobuz or Tidal too: the service asked where its audio is first
 // (Services/ServiceStreams.cs), then copied as it comes or converted like a
-// file, Tidal's DASH pieces fed to ffmpeg one after another. The Node server
-// hands its "make these next" to this side (POST /internal/transcode/prefetch),
-// so one file is only ever made by one. While a conversion with DSP runs, the
-// Node server is told (it gives playback its second core, lib/cpu.js) and its
-// split is kept to at once.
+// file, Tidal's DASH pieces fed to ffmpeg one after another. While a
+// conversion with DSP runs, playback has its second core (Cpu.cs).
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -281,9 +278,8 @@ internal static partial class Transcoder
     private static void DspEnded() { if (Interlocked.Decrement(ref dspRunning) == 0) _ = TellDsp(); }
 
     /*
-     * The Node server told whether a DSP conversion runs here, one word at a
-     * time and only when that changes (on, then off); its split kept to at
-     * once. Not heard (it was starting again): told with the next change.
+     * The split told whether a DSP conversion runs here (Cpu.cs), one word at a
+     * time and only when that changes (on, then off).
      */
     private static async Task TellDsp()
     {
@@ -292,13 +288,8 @@ internal static partial class Transcoder
         {
             var on = Volatile.Read(ref dspRunning) > 0;
             if (on == dspTold) return;
-            // Decided here (v0.8.48, Cpu.cs): counted here, the Node server sent the split.
-            if (Cpu.Deciding) { dspTold = on; Cpu.Dsp(on); return; }
-            if (await Library.ToNode("/internal/cpu/dsp", new JsonObject { ["on"] = on }) is { } said)
-            {
-                dspTold = on;
-                Cpu.Follow(said["cpu"]);
-            }
+            dspTold = on;
+            Cpu.Dsp(on);
         }
         finally { DspTelling.Release(); }
     }
@@ -411,70 +402,5 @@ internal static partial class Transcoder
         }
         catch (OperationCanceledException) { /* the device went away */ }
         finally { fs?.Dispose(); }
-    }
-
-    // ------------------------------------------------------ from the Node server
-
-    /*
-     * POST /internal/transcode/prefetch, from this machine with the key: the
-     * Node server's "make these next" for the conversions this side makes.
-     * Before the gate (which turns /internal/ away at the door).
-     */
-    public static void UseInternal(WebApplication app)
-    {
-        app.Use(async (ctx, next) =>
-        {
-            if (ctx.Request.Path.Value != "/internal/transcode/prefetch") { await next(); return; }
-            var from = ctx.Connection.RemoteIpAddress;
-            var key = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
-            if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
-                || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(Library.FrontKey)))
-            {
-                ctx.Response.StatusCode = 404;
-                return;
-            }
-            JsonArray? items = null;
-            try { items = await JsonNode.ParseAsync(ctx.Request.Body) as JsonArray; } catch (System.Text.Json.JsonException) { /* none */ }
-            var work = new List<(ConvTrack, ConvPlan)>();
-            foreach (var it in items ?? [])
-            {
-                if (it is not JsonObject o || o["track"] is not JsonObject t || o["plan"] is not JsonObject p) continue;
-                if (Parse(t, p) is { } w) work.Add(w);
-            }
-            Prefetch(work);
-            ctx.Response.StatusCode = 204;
-        });
-    }
-
-    /* A track and plan as the Node server sends them, when this side makes such a conversion. */
-    private static (ConvTrack, ConvPlan)? Parse(JsonObject t, JsonObject p)
-    {
-        static double Num(JsonNode? n) => n is JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.Number ? double.Parse(v.ToJsonString(), CultureInfo.InvariantCulture) : double.NaN;
-        static bool Truthy(JsonNode? n) => Js.Truthy(n);
-        var path = Js.Str(t["path"]);
-        var id = Num(t["id"]);
-        var rate = Num(p["rate"]);
-        var bits = Num(p["bits"]);
-        // A Qobuz or Tidal track (v0.8.47): made here once its service is this server's.
-        var streamed = Services.Catalogue.Of(path) != null;
-        if (path.Length == 0 || (path.Contains("://", StringComparison.Ordinal) && !streamed) || double.IsNaN(id) || !Truthy(p["transcode"])) return null;
-        if (Truthy(p["copy"])) return null;   // copied as it comes is decided as it is made, never asked for
-        if (!(bits is 16 or 24 || (bits == 32 && Flac32)) || !(rate >= 8000 && rate <= 768000)) return null;
-        // A ReplayGain and a zone's DSP (v0.8.40), as the Node server planned them: its fingerprint names the file.
-        var gain = Truthy(p["gain"]) ? Num(p["gain"]) : 0;
-        if (double.IsNaN(gain)) return null;
-        JsObj? dsp = null;
-        if (Truthy(p["dsp"]))
-        {
-            if (Mandarin.Server.Scan.JsJson.Parse(p["dsp"]!.ToJsonString()) is not JsObj d || d["hash"] is not string || !Jv.T(d["dsp"])) return null;
-            dsp = d;
-        }
-        var mtime = Num(t["mtime"]);
-        var inRate = Num(p["inRate"]);
-        return (new ConvTrack((long)id, path, double.IsNaN(mtime) ? 0 : (long)Math.Floor(mtime)),
-                new ConvPlan((long)rate, (int)bits, Truthy(p["hq"]), Truthy(p["exact"]), Js.Str(p["reason"]))
-                {
-                    Gain = gain, Dsp = dsp, InRate = dsp != null && !double.IsNaN(inRate) ? inRate : 0
-                });
     }
 }

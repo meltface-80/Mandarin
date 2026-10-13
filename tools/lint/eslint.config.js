@@ -1,8 +1,8 @@
 // @ts-check
 "use strict";
 /*
- * ESLint (docs/quality-plan.md): the recommended rules over the server, the
- * tools, the tests and the pages, run from the repository root (npm run lint).
+ * ESLint (docs/quality-plan.md): the recommended rules over the tools, the
+ * tests and the pages, run from the repository root (npm run lint).
  * What they found on the day the gate came is recorded in
  * tools/lint/eslint-suppressions.json (ESLint's own suppressions file) and may
  * only go down: a new finding anywhere fails, and a suppressed one that is
@@ -13,7 +13,7 @@ const js = require("@eslint/js");
 const globals = require("globals");
 
 const node = {
-  files: ["index.js", "launcher.js", "reset-password.js", "lib/**/*.js", "tools/**/*.js", "test/**/*.js"],
+  files: ["tools/**/*.js", "test/**/*.js"],
   languageOptions: { ecmaVersion: 2024, sourceType: "commonjs", globals: { ...globals.node, ...globals.es2024 } }
 };
 // The page's scripts share one window: what one defines for the others (sharecard.js, srp.js,

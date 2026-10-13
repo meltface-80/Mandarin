@@ -7,9 +7,9 @@
 
 </div>
 
-note: v0.8x series of updates is due to migrating to C#
+note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v0.8.50
+# Mandarin — v0.9.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -27,6 +27,15 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
+
+**New in v0.9.0: one program, no Node.js.** Mandarin's server is now a single program written in
+C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, a
+Mac needs only ffmpeg and poppler beside it, and an update from Settings puts the new program and
+page in place and starts again in the same container. It took over from the original Node.js
+server one part at a time through the v0.8.x releases, each part held by the test suite to the
+Node server's own answers, so everything works as before: the library, playback to Sonos, UPnP
+renderers, the phone and sound devices, Qobuz and Tidal, identification, backups, updates.
+*Forgot the password?* is now `docker exec musicd-server /app/server/bin/mandarin-server reset-password`.
 
 **New in v0.7.4** (since v0.7.0)
 * **Qobuz and Tidal favourites follow both ways, by themselves**: remove an album from your
@@ -643,7 +652,7 @@ The server updates itself from GitHub from Settings and checks every 12 hours. I
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts itself in a few seconds, and again once its C# server is brought up to the same version; in the app, Android's installer then asks.
+**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server puts the new version in place and starts again in a few seconds; in the app, Android's installer then asks.
 
 </details>
 
@@ -772,16 +781,16 @@ the page reloads on its own. In the Android app the same button then updates the
 the server is back (v0.7.3). It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
-From v0.8.25 an update from the app brings Mandarin's C# server too: once the new version is
-running, it fetches the C# server of the same version for your machine (x64 or ARM64) from the
-release, checks it, and restarts once more with it — a few seconds more. The first time, the
-C# server from your image can't restart itself, so it stops and Docker's restart policy
-(`--restart unless-stopped`, as above, or `restart: unless-stopped` in `docker-compose.yml`)
-starts the container again. Without a restart policy, start it yourself (`docker start
-musicd-server`). Until the two match, the C# server passes everything to the Node server, so
-nothing is answered the old way.
+Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
+the app fetches that program of the new version for your machine (x64 or ARM64) from the
+release, checks it against the release's sums, puts it and the new page in place, and starts
+again in the same container — a few seconds. If it can't start again in place, it stops and
+Docker's restart policy (`--restart unless-stopped`, as above, or `restart: unless-stopped` in
+`docker-compose.yml`) starts the container again; without one, start it yourself (`docker start
+musicd-server`).
 
-**Manually** — also the way to pick up changes to the image itself (ffmpeg, Node, the audio engine):
+**Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine,
+and the move to v0.9.0 from an image with Node.js in it):
 
 ```bash
 docker pull ghcr.io/meltface-80/musicd-server:latest
@@ -823,18 +832,16 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 **File → Add to Dock**. It opens like an app, for choosing music and playing it on your speakers.
 
 **On a Mac:**
-* **Mandarin's C# server** runs in front, as in the Docker image: it's what starts when you log in,
-  and it starts the rest (v0.8.29). New server features come in it.
-  * **Installed before v0.8.29?** Paste the install line once more, at the Mac, so you're there to
-    click **Allow** when macOS asks about **mandarin-server**. Until you do, Settings says so, and
-    the Mac carries on as it was, without the new server features.
-  * The C# server comes from the release of the version you have. If you haven't updated in a
-    while, update in Settings first, then paste the line.
-  * To keep the Node server alone, as before v0.8.29:
-    `MANDARIN_NODE_ONLY=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"`
-* **Updates** come from the app, as on Linux (Settings → **Updates**). An update brings both
-  servers together: if the C# server of the new version can't be had, the update stops and says
-  why, with nothing changed.
+* **Mandarin's server** is one program, **mandarin-server** (C#; since v0.9.0 no Node.js): it's
+  what starts when you log in. It comes from the release of the version you have, built for your
+  Mac and checked against the release's sums.
+  * **Installed before v0.9.0?** Paste the install line once more, at the Mac, so you're there to
+    click **Allow** when macOS asks about **mandarin-server**. It brings Mandarin's files up to
+    date and starts the new server in place of the old one; your library, account and settings
+    stay. Node.js is no longer needed (`brew uninstall node@22`, if nothing else of yours uses it).
+* **Updates** come from the app, as on Linux (Settings → **Updates**): the server of the new
+  version for your Mac, checked, then started in place. If it can't be had, the update stops and
+  says why, with nothing changed.
 * **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
   **Shut down** stops Mandarin; double-click
   **Mandarin** on the desktop (or in your Applications folder) to start it again. It also starts
@@ -854,8 +861,7 @@ install anything, just open the server's IP address with port `:3500` in Safari 
   Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is being worked on.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
-  `/opt/homebrew/opt/node@22/bin/node` (on an Intel Mac `/usr/local/opt/node@22/bin/node`),
-  and click **Open**.
+  `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
 * **Rooms not found?** Run this in Terminal with one of your speakers' IP addresses, then restart
   the Mac: `/usr/libexec/PlistBuddy -c "Add :EnvironmentVariables:SONOS_HOSTS string 192.168.1.20" ~/Library/LaunchAgents/app.mandarin.server.plist`
 * **Stop Mandarin starting at login:** `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`
@@ -865,29 +871,35 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 
 In **Terminal**:
 
-1. Install [Homebrew](https://brew.sh) if you don't have it, then Node.js and ffmpeg:
+1. Install [Homebrew](https://brew.sh) if you don't have it, then ffmpeg and poppler:
 
    ```bash
-   brew install node@22 ffmpeg
-   echo 'export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"' >> ~/.zprofile
-   source ~/.zprofile
+   brew install ffmpeg poppler
    ```
 
-2. Download Mandarin:
+2. Download Mandarin, and its server for your Mac from the release of that version
+   (`osx-arm64` on Apple silicon, `osx-x64` on Intel; compare the download with the release's
+   `mandarin-server.sha256` if you like):
 
    ```bash
-   git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+   git clone --depth 1 https://github.com/meltface-80/Mandarin.git ~/Mandarin
    cd ~/Mandarin
-   npm ci --omit=dev
+   V=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' package.json | head -n 1)
+   mkdir -p server/bin
+   curl -fL "https://github.com/meltface-80/Mandarin/releases/download/v$V/mandarin-server-osx-arm64.gz" | gunzip > server/bin/mandarin-server
+   chmod 755 server/bin/mandarin-server
+   codesign --verify server/bin/mandarin-server || codesign --force --sign - server/bin/mandarin-server
    ```
+
+   (Or build it with the .NET 10 SDK: `./server/build.sh`.)
 
 3. Start it with **your** music folder. Replace `$HOME/Music` with your own; to get its path
    without typing, type `MUSIC_DIR="`, drag the folder from Finder onto the Terminal window, then
-   type `" npm start`. An external drive is under `/Volumes/…`.
+   type `" server/bin/mandarin-server`. An external drive is under `/Volumes/…`.
 
    ```bash
    cd ~/Mandarin
-   MUSIC_DIR="$HOME/Music" npm start
+   MUSIC_DIR="$HOME/Music" server/bin/mandarin-server
    ```
 
    Open **`http://localhost:3500`** and create your account.
@@ -905,9 +917,10 @@ In **Terminal**:
    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
    <plist version="1.0"><dict>
      <key>Label</key><string>app.mandarin.server</string>
-     <key>ProgramArguments</key><array><string>$(which node)</string><string>$HOME/Mandarin/launcher.js</string></array>
+     <key>ProgramArguments</key><array><string>$HOME/Mandarin/server/bin/mandarin-server</string></array>
      <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
      <key>EnvironmentVariables</key><dict>
+       <key>MANDARIN_APP_DIR</key><string>$HOME/Mandarin</string>
        <key>MUSIC_DIR</key><string>$HOME/Music</string>
        <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
      </dict>
@@ -943,7 +956,6 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
-| `TAG_READER` | `auto` | Who reads the scan's tags, and so who makes the scan (v0.8.18). `auto`: the C# server, once the tag reader check has read every file the same both ways; `csharp`: the C# server always; `node`: the Node server's own reader and scan. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
@@ -979,8 +991,11 @@ back. The server stores only an SRP verifier, never the password.
 **Forgot the password?** On the server run
 
 ```bash
-docker exec musicd-server node reset-password.js
+docker exec musicd-server /app/server/bin/mandarin-server reset-password
 ```
+
+(On a Mac: `~/Mandarin/server/bin/mandarin-server reset-password`, with `DATA_DIR=~/Mandarin/data`
+in front if you run it from another folder.)
 
 It removes the account and signs every device out; your library, edits, playlists and history
 stay. Then create the account again from a device at home.
@@ -1191,21 +1206,19 @@ through a subnet router arrive from a home address, and the server can't tell th
   Albums are decided a folder at a time, so a folder of tracks by different artists with no
   album-artist tag becomes one compilation, and `CD1`/`CD2` folders become one album. Covers come
   from `cover.jpg`/`folder.jpg`/… or the first track's embedded picture, resized once per size and
-  cached. Since v0.8.22 the C# server draws them, with ffmpeg; an album with no cover still gets
-  its drawn one from the Node server. Rescans only re-read files whose size or date changed.
-  Since v0.8.18 the C# server makes the scan, as a process of its own on the cores playback
-  doesn't keep; the Node server's own scan is used until the tag reader check has passed, or
-  where the C# server isn't there.
+  cached; an album with no cover gets one drawn, with its title. The pictures are drawn with
+  ffmpeg. Rescans only re-read files whose size or date changed, on the cores playback doesn't
+  keep.
 * **Album names.** The identification scan looks each album up by what its files carry (a
   release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
   each release against the tracks and their lengths, and lays the names over the album, never on
-  the files. Since v0.8.19 the C# server makes it, with the MusicBrainz pack, loudness measuring
-  and the waveforms. Every MusicBrainz request, from either server, waits its turn on one timer.
-* **Renderers.** `lib/renderers/` finds UPnP/DLNA renderers by SSDP, reads each one's
+  the files, with the MusicBrainz pack, loudness measuring and the waveforms alongside. Every
+  MusicBrainz request waits its turn on one timer.
+* **Renderers.** `server/Mandarin.Server/Playback/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —
   the queue kept on the server, the next track handed over ahead of time (gapless on a
-  renderer that supports it), changes arriving by UPnP events. `plan(track, target)` in `lib/stream.js` decides
+  renderer that supports it), changes arriving by UPnP events. The stream plans (`Playback/StreamPlans.cs`) decide
   what each device gets: the file itself within its ceiling, FLAC at its highest rate or
   upsampled in 64-bit float otherwise.
 * **Sonos.** Ported from [Caldera Sonos Bridge](https://github.com/meltface-80/Caldera-Sonos-Bridge)
@@ -1220,6 +1233,10 @@ through a subnet router arrive from a home address, and the server can't tell th
   is served from the growing file.
 * **Interface.** Mandarin's own page in `public/`, served by the server and shown in the browser,
   the iPhone home-screen app and the Android app alike, talking to the server's `/api`.
+* **The server.** One program in C# (`server/`, .NET, built to a single self-contained file: no
+  .NET or Node.js needed to run it). It began in v0.8.1 as a front door before the original
+  Node.js server, took its parts over one by one with each held to the Node server's own answers,
+  and has been the whole server since v0.9.0 (`docs/specs/csharp-migration.md`).
 
 ## Troubleshooting
 
@@ -1234,9 +1251,13 @@ through a subnet router arrive from a home address, and the server can't tell th
 ## Development
 
 ```bash
-npm install
+./server/build.sh   # the server (.NET 10 SDK) into server/bin/mandarin-server
+./engine/build.sh   # the audio engine (.NET 10 SDK and clang), for sound devices on the server
+MUSIC_DIR=~/Music PORT=3500 server/bin/mandarin-server
+
+npm ci              # the tests' own packages (Node.js 22: the tests are JavaScript, node:test)
 npm test            # unit tests + end-to-end runs against a fake Sonos household and fake UPnP renderers
-MUSIC_DIR=~/Music PORT=3500 node index.js
+npm run gates       # the quality gates (docs/quality-plan.md)
 ```
 
 The end-to-end test starts two fake Sonos rooms on 127.0.0.11/12:1400, plays a CD-quality

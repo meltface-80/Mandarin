@@ -406,8 +406,7 @@ window.__afterStart = (fn) => {
   // ----- Booklets (v0.8.33) ------------------------------------------------
   // The PDFs that came with an album, their pages drawn by the C# server
   // (Booklets.cs): the book on the cover when it has any, and its pages over
-  // the album page, one under another. The Node server has none, so without
-  // the C# server no album shows the book.
+  // the album page, one under another (the Node server never had them).
   const bookletBtn = document.getElementById("modal-booklet");
   let booklets = [];
   let bookletViewer = null, bookletBack;

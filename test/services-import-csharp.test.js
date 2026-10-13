@@ -129,7 +129,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
   t.after(() => srv.stop());
   const token = await signIn(B);
   const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
-  // The Node server behind the C# server (recording only), asked straight.
+  // The server's private addresses (the front key), and its database read straight.
   const K = { "X-Mandarin-Front-Key": ctx.frontKey };
   const raw = ctx.db.raw;
   /* The data folder and any port on loopback by name, a cover's hash as its rule's, a time written as the test ran in days from now. */

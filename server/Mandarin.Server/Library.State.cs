@@ -1,9 +1,8 @@
-// Library.State.cs — the library's state this server's own (v0.8.50, stage 7
+// Library.State.cs — the library's state, this server's own (v0.8.50, stage 7
 // part 1 of docs/specs/csharp-migration.md): what GET /internal/library said
-// when a Node server stood behind this one (Library.cs State), counted and
-// read here when none does. The version and the marks move where the Node
-// server was told of a change (/internal/library/changed, Told): the copy here
-// is read again on the next request, as it was when the Node server's moved.
+// when a Node server stood behind this one, counted and read here. The
+// version and the marks move with each change (Told, LibraryChanges.cs): the
+// copy here is read again on the next request.
 // The scan's state is Scans.cs's, the label rules are the settings', the day
 // and the week are this clock's (the container's time zone, as the Node
 // server's were), the address is the configuration's.
@@ -22,12 +21,12 @@ internal static partial class Library
     private static string? serverIp;
     private static int port;
 
-    /* No Node server behind this one: the state is this server's own (Program.cs). */
+    /* The state set up (Program.cs): the key the tests' private addresses are asked with, the address given out. */
     public static void InitAlone(string key, string? ip, int p)
     {
         serverIp = ip;
         port = p;
-        Init(null, key);
+        Init(key);
     }
 
     /* The library's version now, as the Node server counted it (Services/: what is kept no longer than the library stays). */
@@ -82,16 +81,16 @@ internal static partial class Library
     }
 
     /*
-     * Alone, POST /internal/library/changed from this machine with the front
-     * key (stage 7 part 2): a test that changed the database by hand says so,
-     * and the copy is read again, as the Node server's was told. Before the
-     * gate, as the other /internal/ addresses are (Jobs.Internal.cs).
+     * POST /internal/library/changed from this machine with the front key
+     * (stage 7 part 2): a test that changed the database by hand says so, and
+     * the copy is read again. Before the gate, as the other /internal/
+     * addresses are (Jobs.Internal.cs).
      */
     public static void UseInternal(WebApplication app)
     {
         app.Use(async (ctx, next) =>
         {
-            if (upstream != null || ctx.Request.Path.Value != "/internal/library/changed") { await next(); return; }
+            if (ctx.Request.Path.Value != "/internal/library/changed") { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
@@ -103,20 +102,19 @@ internal static partial class Library
             JsonObject? what = null;
             try { what = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
             catch (System.Text.Json.JsonException) { /* no body: nothing but a word */ }
-            var said = await LocalTold("/internal/library/changed", what ?? []);
+            var said = await LocalTold(what ?? []);
             ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsync((said ?? new JsonObject { ["ok"] = false }).ToJsonString());
+            await ctx.Response.WriteAsync(said.ToJsonString());
         });
     }
 
     /*
-     * The Node server's /internal/library/changed, made here (api-library.js
+     * A change told (the Node server's /internal/library/changed, api-library.js
      * libraryChanged): a mark moved the marks, anything else the version (the
      * copy read again), and a scan's end what follows a scan; its answer.
      */
-    private static async Task<JsonObject?> LocalTold(string path, JsonObject what)
+    private static async Task<JsonObject> LocalTold(JsonObject what)
     {
-        if (path != "/internal/library/changed") return null;
         var keys = what.Select(kv => kv.Key).ToList();
         var scan = what["scan"] as JsonObject;
         var reload = keys.Any(k => k is "edits" or "merges" or "labels" or "lookups" or "days" or "services")

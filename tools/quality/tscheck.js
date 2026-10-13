@@ -2,8 +2,9 @@
 // @ts-check
 "use strict";
 /*
- * The @ts-check ratchet (docs/quality-plan.md, "Types"): every server-side
- * module (index.js, launcher.js, reset-password.js, lib/**, tools/**) opens with
+ * The @ts-check ratchet (docs/quality-plan.md, "Types"): every Node module the
+ * repository runs outside the tests (tools/**; the Node server's index.js,
+ * launcher.js, reset-password.js and lib/** until v0.9.0) opens with
  * `// @ts-check`, which has TypeScript's checker read it as the JavaScript it
  * is: no rewrite, no build step, and the renamed-variable class of bug fails
  * before the code runs. The modules that didn't pass when the gate came are
@@ -18,7 +19,7 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const BASELINE = path.join(__dirname, "ts-baseline.json");
-const REQUIRED = /^(index\.js|launcher\.js|reset-password\.js|lib\/.+\.js|tools\/.+\.js)$/;
+const REQUIRED = /^tools\/.+\.js$/;
 const IGNORED = /(^|\/)node_modules\//;
 const PRAGMA = /^(#![^\n]*\n)?\/\/ @ts-check\n/;
 

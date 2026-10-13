@@ -1,6 +1,6 @@
 {
   "name": "musicd-server",
-  "version": "0.8.50",
+  "version": "0.9.0",
   "description": "A music server for your local files that plays to Sonos rooms and UPnP/DLNA renderers (WiiM, Chord Poly). MusicD Remote's interface; hi-res to 24/48 for Sonos, bit-perfect or upsampled for renderers.",
   "license": "MIT",
   "author": "Lewis Menzies (Music Duck / MusicD)",
@@ -9,12 +9,10 @@
     "type": "git",
     "url": "https://github.com/meltface-80/Mandarin.git"
   },
-  "main": "index.js",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "start": "node launcher.js",
     "test": "node --require ./test/setup.js --test --test-concurrency=4 --test-timeout=300000 --test-force-exit test/*.test.js",
     "test:shard": "node --require ./test/setup.js --test --test-concurrency=${TEST_CONCURRENCY:-4} --test-timeout=300000 --test-force-exit --test-shard=${TEST_SHARD:-1/1} test/*.test.js",
     "tools": "npm ci --prefix tools/lint --no-audit --no-fund",
@@ -25,10 +23,8 @@
     "gates": "npm run lines && npm run typecheck && npm run lint",
     "check": "npm run gates && npm test"
   },
-  "dependencies": {
+  "devDependencies": {
     "better-sqlite3": "^11.7.0",
-    "compression": "^1.7.4",
-    "express": "^4.21.2",
     "fast-xml-parser": "^5.11.1",
     "music-metadata": "^11.13.0",
     "sharp": "^0.34.3"

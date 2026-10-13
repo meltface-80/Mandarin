@@ -92,12 +92,10 @@ internal static partial class Streams
 
     /*
      * What the Node server answered with no body (index.js's stream route): 404 for a track or file that isn't
-     * there, 400 for a rate, a depth or a gain it won't make. Behind a Node server it says so itself, as before
-     * (false: passed on); on its own (v0.8.50) this server does.
+     * there, 400 for a rate, a depth or a gain it won't make.
      */
     private static bool Refuse(HttpContext ctx, int status)
     {
-        if (!Front.Alone) return false;
         ctx.Response.StatusCode = status;
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
         return true;
@@ -120,15 +118,14 @@ internal static partial class Streams
             if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return Refuse(ctx, 400);
         }
         // ?g=<dB>: with this ReplayGain in it; ?o=<output>: with that zone's DSP (v0.8.40). Read as Express
-        // reads them: one plain value; an array or an object of either (g[]=, g=1&g=2) the Node server's.
+        // read them: one plain value (a list of one, g[]=, its value).
         var raw = ctx.Request.QueryString.HasValue ? ctx.Request.QueryString.Value![1..] : "";
         var gq = QueryOne(raw, "g");
         string? output = null;
         if (segRate != 0)
         {
-            // An ?o= that isn't one plain value: the Node server's to read; alone, no zone's DSP (String(o) names none).
-            if (QueryOne(raw, "o") is not { } oq) { if (!Front.Alone) return false; }
-            else if (oq.Here && oq.Value!.Length > 0) output = oq.Value;
+            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none).
+            if (QueryOne(raw, "o") is { } oq && oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
         Track? t = null;
@@ -154,7 +151,7 @@ internal static partial class Streams
         if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return Refuse(ctx, 404);
         // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12). A streamed track: the cached FLAC.
         if (opus && svc == null) return await Downloads.StreamOpus(ctx, id);
-        if (gq is null) { if (Front.Alone && ListOne(raw, "g") is { } one) gq = (true, one); else return Refuse(ctx, 400); }
+        if (gq is null) { if (ListOne(raw, "g") is { } one) gq = (true, one); else return Refuse(ctx, 400); }
         double? gain = null;
         if (gq.Value.Here)
         {

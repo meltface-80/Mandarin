@@ -195,7 +195,7 @@ internal static partial class Scans
     private static void Ended(int g) { lock (Gate) if (g == gen) state["running"] = false; }
 
     /* The Node server told how the scan is going; its answer (null when it wasn't told). */
-    private static async Task<JsonObject?> Tell(JsonObject scan) => stopping ? null : await Library.Told(new JsonObject { ["scan"] = scan }, quiet: true);
+    private static async Task<JsonObject?> Tell(JsonObject scan) => stopping ? null : await Library.Told(new JsonObject { ["scan"] = scan });
 
     /* The same, for a scan under way. */
     private static Task<JsonObject?> Say(JsonObject scan) => Tell(scan);

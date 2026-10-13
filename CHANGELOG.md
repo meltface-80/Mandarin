@@ -5,6 +5,53 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.0
+**No Node.js.** Stage 7 part 6 of the move to C# (`docs/specs/csharp-migration.md`): the Node
+server's code leaves the repository and Node.js the image. Mandarin's server is one program
+(`server/`, C#), as it has been behind the scenes since v0.8.50; this release takes away what
+stood behind it. Everything the page, the apps and the speakers see is as in v0.8.50.
+
+- **The image** (`Dockerfile`): Debian with ffmpeg, poppler, the Tailscale engine, the audio
+  engine, the server and the page (`public/`) — no Node.js, no `node_modules`, no npm stage.
+  CI's image check now also fails if Node.js is in it.
+- **The repository**: `index.js`, `launcher.js`, `reset-password.js` and `lib/` deleted.
+  `package.json` keeps the tests' packages only, as development dependencies (`better-sqlite3`,
+  `fast-xml-parser`, `music-metadata`, and `sharp` for `tools/icons`); the tests stay JavaScript
+  (`node:test`) and run against the program. `server/build.sh` and `engine/build.sh` read the
+  version without Node.
+- **The server's paths for a Node server behind it, gone**: starting and waiting for one,
+  passing requests on to it (the reverse proxy and its package with it), the version match, the
+  work handed over and claimed back, the library's state asked of it, its words to and from
+  this server (`/internal/library`, `/internal/cpu/*`, `/internal/tags`,
+  `/internal/transcode/prefetch`, `/internal/tailscale`, `/internal/services/played`,
+  `/internal/jobs/import`, `/internal/devices/changed`, `/internal/playback/*`), and the
+  updater's launcher path and npm run. The server always runs as it ran alone in v0.8.50; the
+  `/internal/` addresses the tests use (a scan ended, the taste work, the prune, the services'
+  watch, a change made by hand, the hub's revision, MusicBrainz's one timer) stay.
+  `mandarin-server config` no longer carries the hand-over's `via_launcher`, `cpu_dsp` and
+  `scan_program`.
+- **The tests**: the parity suites lose their recording halves (`RECORD_<SUITE>=1`, which asked
+  `lib/` live) and are held to what they kept in `test/golden/` alone; `test/golden.js` only
+  reads. The last tests that asked `lib/` (the engine, sound devices, identification, label
+  logos, Last.fm, loudness, the MusicBrainz pack, the radio's memory, Shelf, similar artists,
+  streams, Tailscale) ask the program (`mandarin-server score`, new answers) or the server
+  running. The in-app update's end-to-end test (`test/update.test.js`: the page's one Update for
+  the server and the Android app, the library and an edit kept across the restart) runs on the
+  C# server, which builds its next version to update to (or takes `MANDARIN_SERVER_BIN_NEXT`).
+  `test/setup.js`'s Node block (`MANDARIN_FRONT`) is gone, and CI with it.
+- **Found and fixed on the way**: Last.fm's similar artists failed on a list of one (its answer
+  isn't an array then), and its quarter-second spacing between calls could fall short on a busy
+  machine (it is measured on a monotonic clock now). The engine's seek test was tightened after a
+  deliberate break slipped past it.
+- **Forgot the password?** `docker exec musicd-server /app/server/bin/mandarin-server
+  reset-password` (the sign-in page, Settings → Account, the Android app and the site say so).
+- **The Mac installer** (`tools/mac/install.sh`) installs ffmpeg and poppler only, and starts the
+  server alone; run on a Mac installed before v0.9.0, it brings the files up to date and puts the
+  server in Node's place. `tools/tag-report.js` and `tools/tag-from-folders.js` run from a
+  checkout now (the image has no Node.js).
+- **Docs**: the README and the GitHub Pages site (v0.9.0 on top, the Mac's install by hand, the
+  password reset, how it works, development), `server/README.md` (how it runs, alone), the spec.
+
 ## v0.8.50
 Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
 stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the

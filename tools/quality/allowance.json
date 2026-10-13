@@ -25,53 +25,8 @@
     "engine/Mandarin.Audio/Engine.cs": {
       "lines": 502
     },
-    "index.js": {
-      "lines": 975
-    },
-    "lib/identify/identifier.js": {
-      "lines": 739
-    },
-    "lib/library/db.js": {
-      "lines": 524
-    },
-    "lib/library/index.js": {
-      "lines": 1089
-    },
-    "lib/library/scanner.js": {
-      "lines": 1074
-    },
-    "lib/local/output.js": {
-      "lines": 429
-    },
-    "lib/meta.js": {
-      "lines": 1005
-    },
-    "lib/renderers/devices.js": {
-      "lines": 421
-    },
-    "lib/renderers/players.js": {
-      "lines": 773
-    },
-    "lib/server/api-library.js": {
-      "lines": 1312
-    },
-    "lib/server/api-playback.js": {
-      "lines": 591
-    },
-    "lib/services/streaming.js": {
-      "lines": 523
-    },
-    "lib/sonos/phones.js": {
-      "lines": 581
-    },
-    "lib/sonos/zones.js": {
-      "lines": 837
-    },
-    "lib/stream.js": {
-      "lines": 546
-    },
     "public/app.js": {
-      "lines": 19584
+      "lines": 19583
     },
     "public/display.js": {
       "lines": 654
@@ -89,16 +44,13 @@
       "lines": 435
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 624
+      "lines": 585
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 557
+      "lines": 556
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
-    },
-    "server/Mandarin.Server/Cpu.cs": {
-      "lines": 410
     },
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
       "lines": 432
@@ -122,7 +74,7 @@
       "lines": 514
     },
     "server/Mandarin.Server/Library.cs": {
-      "lines": 626
+      "lines": 584
     },
     "server/Mandarin.Server/LibraryRoutes.cs": {
       "lines": 926
@@ -179,10 +131,10 @@
       "lines": 632
     },
     "server/Mandarin.Server/Tags/TagReader.cs": {
-      "lines": 598
+      "lines": 540
     },
     "server/Mandarin.Server/Transcoder.cs": {
-      "lines": 480
+      "lines": 406
     }
   }
 }

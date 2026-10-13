@@ -4,16 +4,14 @@
 // lib/server/api-cpu.js, in the same shapes:
 //
 //   GET  /api/system/power     what this install can do: { restart, shutdown, docker, start_again }
-//   POST /api/system/restart   both servers started again
-//   POST /api/system/shutdown  both stopped, to stay stopped (not in Docker)
+//   POST /api/system/restart   the server started again
+//   POST /api/system/shutdown  stopped, to stay stopped (not in Docker)
 //   GET  /api/cpu              the cores playback keeps and the rest (lib/cpu.js plan())
 //
-// Restart: the Node server is stopped cleanly, then this program starts again
-// in this same process, on every core it started with (Front.StartAgain, as
-// after an update), and starts a Node server afresh. Before, Restart started
-// the Node server alone again and this one carried on.
+// Restart: this program starts again in this same process, on every core it
+// started with (Front.StartAgain, as after an update).
 //
-// Shut down: both stop and stay stopped until started again.
+// Shut down: it stops and stays stopped until started again.
 //   - On a Mac, with the login item the installer makes (tools/mac/install.sh),
 //     launchd would start again a job that merely exited, so the job is unloaded
 //     instead (launchctl bootout) and the Mandarin icon on the desktop loads it
@@ -23,13 +21,10 @@
 //     so Shut down isn't offered: `docker stop` is the way.
 //
 // Both only from home: away (over Tailscale) a phone could switch off the
-// server it can't then reach to start again. Answered here only where this
-// program started the Node server itself (an install); otherwise (the tests'
-// own Node server behind it) passed on as before.
+// server it can't then reach to start again.
 //
-// The processor split: decided here once the Node server has handed it over
-// (v0.8.48, Cpu.cs), /api/cpu answering with the decision; before that, with
-// the Node server's as last sent (Cpu.cs Follow).
+// The processor split: decided here (v0.8.48, Cpu.cs), /api/cpu answering
+// with the decision.
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -73,11 +68,6 @@ internal static partial class Library
         var p = ctx.Request.Path.Value ?? "";
         try
         {
-            // The split decided here (v0.8.48): answered here wherever it is, the
-            // Node server started here or not (the tests' isn't); the rest only
-            // where this server runs the Node server, as an install does.
-            if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/cpu" && Cpu.Deciding && Jobs.Holds("cpu")) return await Send(ctx, Cpu.Plan());
-            if (!Front.RunsNode) return false;
             return (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/system/power" ? await SystemPower(ctx)
                 : (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/cpu" ? await CpuPlan(ctx)
                 : HttpMethods.IsPost(m) && p == "/api/system/restart" ? await SystemRestart(ctx)
@@ -85,17 +75,15 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server");
+            Front.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; not answered");
             return false;
         }
     }
 
-    private static Task<bool> SystemPower(HttpContext ctx) =>
-        Front.RunsNode ? Send(ctx, PowerInfo()) : Task.FromResult(false);
+    private static Task<bool> SystemPower(HttpContext ctx) => Send(ctx, PowerInfo());
 
     private static async Task<bool> SystemRestart(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Restart only from home", ["away"] = true }, 403);
         var first = Front.LeaveBy(Front.Leave.Restart);
         await Send(ctx, new JsonObject { ["ok"] = true, ["restarting"] = true });
@@ -105,7 +93,6 @@ internal static partial class Library
 
     private static async Task<bool> SystemShutdown(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Shut down only from home", ["away"] = true }, 403);
         var info = PowerInfo();
         if (info["shutdown"]?.GetValue<bool>() != true)
@@ -125,7 +112,7 @@ internal static partial class Library
 
     /*
      * The login item, unloaded: launchd stops this server (SIGTERM, a clean
-     * stop: the Node server with it) and doesn't start it again until the icon
+     * stop) and doesn't start it again until the icon
      * or the next login loads it. False if neither way would do it.
      */
     private static async Task<bool> UnloadLoginItem(string label)
@@ -154,11 +141,6 @@ internal static partial class Library
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or TimeoutException) { return false; }
     }
 
-    /* GET /api/cpu: the split as decided here (v0.8.48), or as the Node server decides it, asked afresh. */
-    private static async Task<bool> CpuPlan(HttpContext ctx)
-    {
-        if (Cpu.Deciding && Jobs.Holds("cpu")) return await Send(ctx, Cpu.Plan());
-        await Ask();
-        return Cpu.Last is { } plan ? await Send(ctx, plan.DeepClone()) : false;
-    }
+    /* GET /api/cpu: the split as decided here (v0.8.48, Cpu.cs). */
+    private static Task<bool> CpuPlan(HttpContext ctx) => Send(ctx, Cpu.Plan());
 }

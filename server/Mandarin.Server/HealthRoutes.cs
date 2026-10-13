@@ -29,14 +29,13 @@ internal static partial class Library
             ["ok"] = true,
             ["version"] = Front.Version,
             ["albums"] = s.Count,
-            // The rooms found: the hub's own once this server holds playback (v0.8.49), else as the Node server says them.
-            ["rooms"] = Playback.Hub.Current is { } hub ? hub.RoomCount : st.Said["rooms"] is JsonValue r && r.TryGetValue<double>(out var rooms) ? rooms : 0,
+            // The rooms found, the hub's (v0.8.49).
+            ["rooms"] = Playback.Hub.Current is { } hub ? hub.RoomCount : 0,
             ["ffmpeg"] = Transcoder.FfOk,
             ["soxr"] = Transcoder.Soxr,
             ["transcode_cache"] = new JsonObject { ["files"] = files, ["bytes"] = bytes, ["running"] = running, ["queued"] = queued },
             ["audio_engine"] = AudioEngine.Version()
         };
-        if (!Front.Alone) o["csharp"] = st.Said["csharp_update"]?.DeepClone();
         return Send(ctx, o);
     }
 

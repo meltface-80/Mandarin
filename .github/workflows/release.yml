@@ -3,13 +3,13 @@
 # or Run workflow on main. A tag must be the commit's own version
 # (package.json). The release is what the
 # in-app updater (Settings → Check for updates) looks for. The release carries
-# musicd-server-<version>.tar.gz: just the server (index.js, launcher.js,
-# lib/, public/, package files), so an update downloads a few hundred KB
-# rather than the whole repository with its APK. From v0.8.25 it carries
-# Mandarin's C# server too, for each platform the image is built for
-# (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
+# musicd-server-<version>.tar.gz: the page and package.json (with v0.9.0 the
+# Node server's index.js, launcher.js and lib/ left it), so an update downloads
+# a few hundred KB rather than the whole repository with its APK. From v0.8.25
+# it carries Mandarin's C# server too, for each platform the image is built
+# for (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
-# fetches the one for its machine (lib/server/csharp-update.js). From v0.8.29
+# fetches the one for its machine (server/Mandarin.Server/Admin/Updater.cs). From v0.8.29
 # it carries the Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz), built
 # on a Mac so that macOS will run them, for the Mac installer and its updates.
 # From v0.8.31 nothing is released until CI has passed on the same commit,
@@ -197,7 +197,7 @@ jobs:
         run: |
           v=${{ steps.v.outputs.version }}
           mkdir -p out/musicd-server
-          cp -r index.js launcher.js reset-password.js package.json package-lock.json lib public README.md CHANGELOG.md LICENSE out/musicd-server/
+          cp -r package.json public README.md CHANGELOG.md LICENSE out/musicd-server/
           tar -C out -czf "musicd-server-$v.tar.gz" musicd-server
           # This version's section of the changelog, without its heading.
           awk -v h="## v$v" '$0==h{on=1;next} /^## v/{if(on)exit} on' CHANGELOG.md > notes.md

@@ -95,7 +95,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
   t.after(() => srv.stop());
   const token = await signIn(B);
   const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
-  // The Node server behind the C# server (recording only), asked straight.
+  // The database, read straight.
   const raw = ctx.db.raw;
   /* The data folder and any port on loopback by name; a time written as the test ran in days from now. */
   const named = (text) => String(text).split(lib.data).join("<data>").replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>")

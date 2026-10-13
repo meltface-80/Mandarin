@@ -4,8 +4,8 @@
  * docs/specs/csharp-migration.md; PowerRoutes.cs), and how the processor is
  * shared out (/api/cpu). Run for real, as an install runs it, in a data
  * folder of its own: until v0.8.50 the C# server started the Node server
- * itself; since stage 7 it runs alone (MANDARIN_NODE=0, as with no index.js
- * beside it).
+ * itself; since stage 7 it runs alone (and since v0.9.0 there is no Node
+ * server to start).
  *
  *   - Restart: started again in its same process (from its file, as after an
  *     update), the library and the account as they were;
@@ -48,7 +48,7 @@ function start(t, lib, more = {}) {
   for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_KEY", "INTERNAL_PORT", "MANDARIN_LAUNCHD", "XPC_SERVICE_NAME", "NODE_OPTIONS"]) delete inherited[k];
   const env = Object.assign(inherited, {
     PORT: String(PORT), DATA_DIR: lib.data, MUSIC_DIR: lib.music, SONOS_HOSTS: "", UPNP_DISCOVERY: "0",
-    MANDARIN_APP_DIR: path.join(__dirname, ".."), MANDARIN_LOOPBACK_ONLY: "1", DOCKER: "", MANDARIN_NODE: "0"
+    MANDARIN_APP_DIR: path.join(__dirname, ".."), MANDARIN_LOOPBACK_ONLY: "1", DOCKER: ""
   }, more);
   const p = spawn(BIN, [], { env, stdio: ["ignore", "pipe", "pipe"] });
   p.stdout.on("data", d => out.push(String(d)));

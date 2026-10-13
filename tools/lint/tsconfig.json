@@ -20,10 +20,6 @@
     "skipLibCheck": true
   },
   "include": [
-    "../../index.js",
-    "../../launcher.js",
-    "../../reset-password.js",
-    "../../lib/**/*.js",
     "../../tools/**/*.js",
     "../../test/**/*.js",
     "../../public/**/*.js"

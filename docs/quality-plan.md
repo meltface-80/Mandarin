@@ -55,8 +55,9 @@ so the list of what needs splitting is explicit and visible in a diff.
 
 ## 2. Types without a rewrite
 
-`npm run typecheck`: `tools/quality/tscheck.js` holds every server module (`index.js`,
-`launcher.js`, `reset-password.js`, `lib/**`, `tools/**`) to a `// @ts-check` first line, then
+`npm run typecheck`: `tools/quality/tscheck.js` holds every Node module the repository runs
+outside the tests (`tools/**`; the Node server's `index.js`, `launcher.js`,
+`reset-password.js` and `lib/**` until v0.9.0) to a `// @ts-check` first line, then
 `tsc -p tools/lint/tsconfig.json` checks the files that carry it as the JavaScript they are, with
 JSDoc on what they export. The modules that didn't pass when the gate came are listed in
 `tools/quality/ts-baseline.json`; the list only shrinks, and a listed module that gains the
@@ -64,8 +65,8 @@ pragma must leave it. A new module always carries it. The pages (`public/`) come
 
 ## 3. Lint with suppressions that only go down
 
-`npm run lint`: ESLint's recommended rules (`tools/lint/eslint.config.js`) over the server, the
-tools, the tests and the pages, against `tools/lint/eslint-suppressions.json`, ESLint's own
+`npm run lint`: ESLint's recommended rules (`tools/lint/eslint.config.js`) over the tools, the
+tests and the pages (and the Node server until v0.9.0), against `tools/lint/eslint-suppressions.json`, ESLint's own
 suppressions file: what the rules found on the day the gate came, per file and rule.
 
 - A new finding anywhere fails. A suppressed finding that is fixed fails too, until
@@ -122,9 +123,9 @@ come from, what is put to the owner.
 
 The gates landed between stage 5 and stage 6 of the move to C#. What they mean for it:
 
-- `index.js` and the Node modules are in the ratchet and only shrink, which is the direction
-  the migration takes them anyway; stage 7 deletes most of the allowance list and the
-  `@ts-check` baseline with it.
+- `index.js` and the Node modules were in the ratchet and only shrank, the direction the
+  migration took them anyway; stage 7 part 6 (v0.9.0) deleted them, and the tools took their
+  entries out of the allowance list, the `@ts-check` baseline and the lint suppressions.
 - New C# files come in under the watch line, or under the cap with an entry; the playback port
   (stage 6) is split into modules as it is written rather than added to `LibraryRoutes.cs`,
   `Library.cs` or `Scanner.cs`, which only shrink.
