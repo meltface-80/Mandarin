@@ -1,0 +1,3655 @@
+{
+ "answers": {
+  "the first scan: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "updated",
+     "added": 26,
+     "changed": 0,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 0,
+     "albums": 23,
+     "tracks": 26,
+     "offline_dirs": [],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] updated: +26 ~0 -0 files; 23 albums, 26 tracks in …s"
+    ],
+    [
+     27,
+     26,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "the first scan: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "the first scan: table account": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table album_edits": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table album_ids": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table album_matches": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table albums": {
+   "n": 23,
+   "per": 32,
+   "sums": "8330198a"
+  },
+  "the first scan: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table cache": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table favourites": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table settings": {
+   "n": 4,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ]
+   ]
+  },
+  "the first scan: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "the first scan: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     7,
+     "integer",
+     "{\"TITLE\":[\"b\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"Second\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     18,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "the first scan: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "8c580fb6"
+  },
+  "nothing changed: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "unchanged",
+     "added": 0,
+     "changed": 0,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 0,
+     "albums": 23,
+     "tracks": 26,
+     "offline_dirs": [],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] unchanged: +0 ~0 -0 files; 23 albums, 26 tracks in …s"
+    ],
+    [
+     27,
+     0,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "nothing changed: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "nothing changed: table account": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "nothing changed: table album_ids": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "nothing changed: table albums": {
+   "n": 23,
+   "per": 32,
+   "sums": "8330198a"
+  },
+  "nothing changed: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "nothing changed: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "nothing changed: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "nothing changed: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "nothing changed: table track_loudness": {
+   "n": 1,
+   "all": [
+    [
+     18,
+     "integer",
+     -9.5,
+     "real",
+     -0.2,
+     "real",
+     1,
+     "integer",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "nothing changed: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     7,
+     "integer",
+     "{\"TITLE\":[\"b\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"Second\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     18,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "nothing changed: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "8c580fb6"
+  },
+  "files changed, renamed, gone and new: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "updated",
+     "added": 2,
+     "changed": 1,
+     "removed": 2,
+     "relocated": 1,
+     "kept_offline": 0,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] updated: +2 ~1 -2 moved 1 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     27,
+     3,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table account": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "files changed, renamed, gone and new: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "files changed, renamed, gone and new: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "most of a folder gone at once: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "unchanged",
+     "added": 0,
+     "changed": 0,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 2,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [
+      {
+       "dir": "<root>/music/Flagged",
+       "name": "Flagged",
+       "tracks": 2,
+       "reason": "empty",
+       "missing": false
+      }
+     ],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] <root>/music/Flagged is empty — kept its 2 tracks as they were",
+     "[scan] unchanged: +0 ~0 -0 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     25,
+     0,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "most of a folder gone at once: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table account": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "most of a folder gone at once: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "most of a folder gone at once: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "a drive not mounted: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "unchanged",
+     "added": 0,
+     "changed": 0,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 3,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [
+      {
+       "dir": "<root>/music/Flagged",
+       "name": "Flagged",
+       "tracks": 2,
+       "reason": "empty",
+       "missing": false
+      },
+      {
+       "dir": "<root>/music/Artist B",
+       "name": "Artist B",
+       "tracks": 1,
+       "reason": "empty",
+       "missing": false
+      }
+     ],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] <root>/music/Flagged is empty — kept its 2 tracks as they were",
+     "[scan] <root>/music/Artist B is empty — kept its 1 tracks as they were",
+     "[scan] unchanged: +0 ~0 -0 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     24,
+     0,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "a drive not mounted: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "a drive not mounted: table account": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a drive not mounted: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "a drive not mounted: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a drive not mounted: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "a drive not mounted: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a drive not mounted: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a drive not mounted: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "a drive not mounted: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "a drive not mounted: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "a drive not mounted: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "a folder that can't be read: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "unchanged",
+     "added": 0,
+     "changed": 0,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 3,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [
+      {
+       "dir": "<root>/music/Flagged",
+       "name": "Flagged",
+       "tracks": 2,
+       "reason": "empty",
+       "missing": false
+      },
+      {
+       "dir": "<root>/music/Art",
+       "name": "Art",
+       "tracks": 1,
+       "reason": "unreadable",
+       "missing": false
+      }
+     ],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] <root>/music/Flagged is empty — kept its 2 tracks as they were",
+     "[scan] <root>/music/Art couldn't all be read — kept its 1 tracks as they were",
+     "[scan] unchanged: +0 ~0 -0 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     24,
+     0,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "a folder that can't be read: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "a folder that can't be read: table account": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a folder that can't be read: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "a folder that can't be read: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a folder that can't be read: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "a folder that can't be read: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a folder that can't be read: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a folder that can't be read: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "a folder that can't be read: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "a folder that can't be read: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "a folder that can't be read: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "a forced rescan: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "updated",
+     "added": 0,
+     "changed": 24,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 2,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [
+      {
+       "dir": "<root>/music/Flagged",
+       "name": "Flagged",
+       "tracks": 2,
+       "reason": "empty",
+       "missing": false
+      }
+     ],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] <root>/music/Flagged is empty — kept its 2 tracks as they were",
+     "[scan] updated: +0 ~24 -0 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     25,
+     24,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "a forced rescan: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "a forced rescan: table account": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a forced rescan: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "a forced rescan: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a forced rescan: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "a forced rescan: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a forced rescan: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "a forced rescan: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "a forced rescan: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "a forced rescan: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "a forced rescan: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "the regroup: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "updated",
+     "added": 0,
+     "changed": 2,
+     "removed": 0,
+     "relocated": 0,
+     "kept_offline": 0,
+     "albums": 22,
+     "tracks": 26,
+     "offline_dirs": [],
+     "roots": [
+      "<root>/music"
+     ],
+     "errors": 1
+    },
+    [
+     "[scan] could not read <root>/music/Broken/Bad/01.mp3: ID3v2 tag size 16 exceeds remaining file size 0",
+     "[scan] updated: +0 ~2 -0 files; 22 albums, 26 tracks in …s"
+    ],
+    [
+     27,
+     2,
+     1,
+     100,
+     false
+    ]
+   ]
+  },
+  "the regroup: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "the regroup: table account": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "the regroup: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "the regroup: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "the regroup: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "the regroup: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "the regroup: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "the regroup: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "the regroup: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "the regroup: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "the regroup: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  },
+  "no music folder: the result, what was said, the state": {
+   "n": 3,
+   "all": [
+    {
+     "status": "no-music",
+     "root": "<root>/nowhere",
+     "roots": [
+      "<root>/nowhere"
+     ]
+    },
+    [
+     "[scan] <root>/nowhere not found — mount your music there, or add a folder in Settings → Music folders"
+    ],
+    [
+     0,
+     0,
+     0,
+     0,
+     false
+    ]
+   ]
+  },
+  "no music folder: the tables": {
+   "n": 1,
+   "all": [
+    [
+     "account",
+     "album_edits",
+     "album_ids",
+     "album_matches",
+     "albums",
+     "audio_devices",
+     "cache",
+     "devices",
+     "favourites",
+     "label_logos",
+     "label_lookups",
+     "label_merges",
+     "listen_later",
+     "plays",
+     "radio_played",
+     "settings",
+     "smart_blocks",
+     "smart_picks",
+     "tag_checks",
+     "track_edits",
+     "track_loudness",
+     "track_tags",
+     "tracks"
+    ]
+   ]
+  },
+  "no music folder: table account": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table album_edits": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1998,
+     "integer",
+     null,
+     "null",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "no music folder: table album_ids": {
+   "n": 1,
+   "all": [
+    [
+     "m\u0001second\u0001mixed",
+     "text",
+     7,
+     "integer"
+    ]
+   ]
+  },
+  "no music folder: table album_matches": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     "unidentified",
+     "text",
+     null,
+     "null",
+     null,
+     "null",
+     1,
+     "integer",
+     null,
+     "null",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "no music folder: table albums": {
+   "n": 22,
+   "per": 32,
+   "sums": "ea5159f3"
+  },
+  "no music folder: table audio_devices": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table cache": {
+   "n": 1,
+   "all": [
+    [
+     "mbday",
+     "text",
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     "{\"date\":\"1997-02-04\"}",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "no music folder: table devices": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table favourites": {
+   "n": 1,
+   "all": [
+    [
+     "artist a\u0001album one\u0001artist a/album one (remaster)",
+     "text",
+     1,
+     "integer"
+    ]
+   ]
+  },
+  "no music folder: table label_logos": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table label_lookups": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table label_merges": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table listen_later": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table plays": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table radio_played": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table settings": {
+   "n": 5,
+   "all": [
+    [
+     "album_key_v",
+     "text",
+     "2",
+     "text"
+    ],
+    [
+     "album_regroup",
+     "text",
+     "false",
+     "text"
+    ],
+    [
+     "names_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "discs_v",
+     "text",
+     "1",
+     "text"
+    ],
+    [
+     "album_of_the_day",
+     "text",
+     "{\"date\":\"2026-10-08\",\"key\":\"artist a\\u0001album one\\u0001artist a/album one (remaster)\",\"why\":\"ÿ\"}",
+     "text"
+    ]
+   ]
+  },
+  "no music folder: table smart_blocks": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table smart_picks": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table tag_checks": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table track_edits": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table track_loudness": {
+   "n": 0,
+   "all": []
+  },
+  "no music folder: table track_tags": {
+   "n": 26,
+   "all": [
+    [
+     1,
+     "integer",
+     "{\"TITLE\":[\"x\"],\"ARTIST\":[\"Ünïcode 😀\"],\"ALBUM\":[\"Ålbum ﬀ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     2,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     3,
+     "integer",
+     "{\"IART\":[\"Wave\"],\"INAM\":[\"w\"],\"IPRD\":[\"Riff\"],\"ISFT\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     4,
+     "integer",
+     "{\"TITLE\":[\"Come Together\"],\"ARTIST\":[\"The Beatles\"],\"ALBUM\":[\"Abbey Road\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     5,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     6,
+     "integer",
+     "{\"TITLE\":[\"a\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     8,
+     "integer",
+     "{\"©NAM\":[\"m\"],\"©ART\":[\"Mp4\"],\"©ALB\":[\"In A Box\"],\"©DAY\":[\"2001\"],\"©TOO\":[\"Lav<ffmpeg>\"],\"TRKN\":[\"3/0\"]}",
+     "text"
+    ],
+    [
+     9,
+     "integer",
+     "{\"TITLE\":[\"l\"],\"ARTIST\":[\"Loop\"],\"ALBUM\":[\"Loop\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     10,
+     "integer",
+     "{\"TITLE\":[\"Α\"],\"ARTIST\":[\"ΣΩΣ\"],\"ALBUM\":[\"ΟΔΥΣΣΕΑΣ\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     11,
+     "integer",
+     "{\"TITLE\":[\"f1\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     12,
+     "integer",
+     "{\"TITLE\":[\"f2\"],\"ARTIST\":[\"P\"],\"ALBUM\":[\"Hits\"],\"COMPILATION\":[\"1\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     13,
+     "integer",
+     "{\"TIT2\":[\"C1\"],\"TPE1\":[\"X\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     14,
+     "integer",
+     "{\"TIT2\":[\"C2\"],\"TPE1\":[\"Y\"],\"TALB\":[\"Best Of\"],\"TRCK\":[\"1\"],\"TPOS\":[\"2\"],\"TSSE\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     15,
+     "integer",
+     "{\"TITLE\":[\"Jóga\"],\"ARTIST\":[\"Björk\"],\"ALBUM\":[\"Homogénic\"],\"DATE\":[\"1997\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     16,
+     "integer",
+     "{\"TITLE\":[\"Help!\"],\"ARTIST\":[\"Beatles\"],\"ALBUM\":[\"Help!\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     17,
+     "integer",
+     "{\"TITLE\":[\"Hi 1\"],\"ARTIST\":[\"Artist B\"],\"ALBUM\":[\"Hi Res\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"2020\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     19,
+     "integer",
+     "{\"TITLE\":[\"Song 2\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"2\"],\"DATE\":[\"1997\"],\"GENRE\":[\"rock\"],\"LABEL\":[\"Parlophone\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     20,
+     "integer",
+     "{\"TITLE\":[\"u\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Two Unnamed\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     21,
+     "integer",
+     "{\"TITLE\":[\"t\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Front Ties\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     22,
+     "integer",
+     "{\"TITLE\":[\"d\"],\"ARTIST\":[\"Art\"],\"ALBUM\":[\"Disc Art\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     23,
+     "integer",
+     "{\"TITLE\":[\"duet\"],\"ARTIST\":[\"X & Y\"],\"ALBUM\":[\"Duets (Deluxe)\"],\"ALBUMARTIST\":[\"X\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     24,
+     "integer",
+     "{\"TITLE\":[\"Excursions\"],\"ARTIST\":[\"A Tribe Called Quest\"],\"ALBUM\":[\"The Low End Theory\"],\"ARTISTSORT\":[\"Tribe Called Quest, A\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     25,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     26,
+     "integer",
+     "{\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     27,
+     "integer",
+     "{\"TITLE\":[\"c\"],\"ARTIST\":[\"M\"],\"ALBUM\":[\"First\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ],
+    [
+     28,
+     "integer",
+     "{\"TITLE\":[\"Song 1\"],\"ARTIST\":[\"Artist A\"],\"ALBUM\":[\"Album One\"],\"TRACKNUMBER\":[\"1\"],\"DATE\":[\"1997-02-04\"],\"ORIGINALDATE\":[\"1997\"],\"GENRE\":[\"Rock;Pop\"],\"LABEL\":[\"Parlophone\"],\"REPLAYGAIN_TRACK_GAIN\":[\"-7.21 dB\"],\"REPLAYGAIN_TRACK_PEAK\":[\"0.988\"],\"BARCODE\":[\"0039841500523\"],\"CATALOGNUMBER\":[\"XL 123\"],\"ENCODER\":[\"Lav<ffmpeg>\"]}",
+     "text"
+    ]
+   ]
+  },
+  "no music folder: table tracks": {
+   "n": 26,
+   "per": 32,
+   "sums": "d6a7452c"
+  }
+ },
+ "inputs": {}
+}
