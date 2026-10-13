@@ -12,9 +12,10 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
+const { spawnSync } = require("child_process");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { start, built } = require("./server");
+const { start, built, BIN } = require("./server");
 
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 
@@ -79,7 +80,13 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     assert.match(String(x.json.day), /^\d{4}-\d{1,2}-\d{1,2}$/);
     // Health, open: this version, the rooms, the engines; nothing of a Node server to match.
     x = await ask("/api/health");
-    assert.deepEqual([x.status, x.by, x.json.version, x.json.rooms], [200, "C#", require("../package.json").version, 0]);
+    assert.deepEqual([x.status, x.by, x.json.version, x.json.rooms, "csharp" in x.json], [200, "C#", require("../package.json").version, 0, false]);
+    // The image's health check: the program asking itself on its port (0, the answer printed), and on one nothing holds (1).
+    const health = (port) => spawnSync(BIN, ["--health"], { env: Object.assign({}, process.env, { PORT: String(port) }), encoding: "utf8", timeout: 20000 });
+    let h = health(PORT);
+    assert.deepEqual([h.status, JSON.parse(h.stdout).ok], [0, true], "--health on the server's port: " + h.stderr);
+    h = health(ports.port());
+    assert.deepEqual([h.status, h.stdout], [1, ""], "--health on an empty port: " + h.stderr);
     // The Node server's private addresses: nothing there to ask, 404 at the door as before.
     assert.equal((await ask("/internal/library", { headers: H })).status, 404);
   } finally { await srv.stop(); }

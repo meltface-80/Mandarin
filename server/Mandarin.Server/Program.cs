@@ -73,6 +73,9 @@ if (args.Length >= 2 && args[0] == "waveform")
     return peaks == null ? 1 : 0;
 }
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
+// `mandarin-server --health`: the image's health check (v0.8.50, HealthRoutes.cs):
+// GET /api/health on this port, 0 when it answers 200.
+if (args.Length == 1 && args[0] == "--health") return await Library.HealthCommand(port);
 string? upstream = Environment.GetEnvironmentVariable("MANDARIN_UPSTREAM");
 
 // The key this server asks the Node server's private addresses with

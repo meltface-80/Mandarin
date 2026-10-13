@@ -227,6 +227,10 @@ jobs:
           docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
           # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
           test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
+          # The image's health check is the C# server asking itself (v0.8.50): 0 with the server
+          # up on PORT, 1 with nothing on the port it is told.
+          docker exec smoke /app/server/bin/mandarin-server --health | grep -q '"ok":true'
+          if docker exec -e PORT=9 smoke /app/server/bin/mandarin-server --health; then echo "--health passed with nothing on port 9"; exit 1; fi
           # Measure ReplayGain works with the image's own ffmpeg: its options, as
           # the servers ask, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
           F=$(sed -n 's/^const FILTER = "\(.*\)";$/\1/p' lib/loudness.js)

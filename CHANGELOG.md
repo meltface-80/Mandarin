@@ -35,6 +35,11 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   program alone for a test, as the image will start it; `test/csharp-alone.test.js` (new) holds
   the account, the scan, the library, the pages, the rooms, a heart and `/api/health` to it with
   no Node server anywhere. Behind a Node server nothing changes.
+- **The health check** (part 1, step c): on its own, `/api/health` has no `csharp` field (no
+  version to match). `mandarin-server --health` asks `/api/health` on `PORT` once, prints the
+  answer and leaves with 0 when it was 200, else 1; the image's `HEALTHCHECK` runs it in place
+  of `node -e`, and the image's smoke test runs it both ways. `test/csharp-alone.test.js` holds
+  both.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
