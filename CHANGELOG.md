@@ -11,7 +11,8 @@ stands on its own, the last routes move, the launcher and in-app updates are the
 tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
 owner's merge to `main` is v0.9.0. The parts as they are built:
 
-- **Plan**: the five parts in the spec, each committed on its own, in small steps.
+- **Plan**: the five parts in the spec, each committed on its own, in small steps; a sixth since
+  part 5 (the image and the repository without Node, on a branch of its own).
 - **The configuration from the environment** (part 1, step a): `Config.cs` reads what
   `index.js` read (`MUSIC_DIR`, `SERVER_IP`, `SONOS_HOSTS`, `UPNP_*`, `INCLUDE_ZONES`,
   `EXCLUDE_ZONES`, `SCAN_INTERVAL_HOURS`, `MUSICDNET_BIN`, the `*_URL` stand-ins, `IDENTIFY*`,
@@ -113,6 +114,33 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   helpers were made sturdier on the way: a restart waits for the program's first scan
   (`test/server.js`), a test that times out leaves no server holding its port, and a browser call
   that is never answered fails by its name. CI's Node-alone job is gone.
+- **The tests on the program alone, and what they found** (part 5). The suites that still asked
+  `lib/`'s modules no longer need them: the parity suites (Sonos, renderers, extras, identify,
+  share, backup, write-ups, art search, streams, scan, database, conversions, AutoEQ) hold the C#
+  program to a recording of the Node server's answers (`test/golden.js` `answers()`: in full where
+  small, a short sum of each 32 cases otherwise), the tag reader to `music-metadata` itself
+  (`test/tag-oracle.js`), and the waveform to the Node server's rule kept in the tests
+  (`test/waveform-rule.js`); some forty unit tests ask the C# server's own rules through
+  `mandarin-server score` (new answers in `RulesCommand.cs`: mounts, versions, a SOAP call sent,
+  label names, what a phone plays, the processor split and where each kind of process starts, home
+  and away addresses, what an install can do, a device register script, the SSDP Sonos check, a
+  backup's server part with a phone's id remapped) or through the server running (the library's
+  safety, its folders, dates and names, the watch, the household read past a player that hangs, a
+  renderer seen lately; Shut down on a Mac with a stand-in `launchctl`; Restart and Shut down
+  refused over Tailscale). Tests of what only the Node server did go with it (its hand-over and
+  updater, the tag check, its own processes). Found on the way and fixed:
+  - the library's one-time upgrades (album keys with their folder, names from folders for untagged
+    tracks, disc folders' numbers) were made by the Node scanner each time it started, and never by
+    the C# program alone; `Scan/Scanner.Migrate.cs` makes them before a scan, marked done as before;
+  - an album edit made or dropped rewrote `album-edits.json` only through the Node server, so
+    without it a database that had to start over lost the edits made since; the C# server writes it;
+  - a scan read as ended on `/api/status` before the library had been read again after it, so a page
+    polling Rescan could fetch the albums from before; a scan is under way until that read is done;
+  - `/api/cpu` said DSP was no longer in use while its split was still in place (from the hold's
+    end until its timer re-decided, longer on a busy machine); it reports the DSP the split was
+    decided with (`Cpu.cs`; the placement rule moved to `Cpu.Place.cs`).
+  The Node server's scanner as a fallback (`Scans.cs`) goes, and `tools/identify-report.js`,
+  `identify-probe.js` and `artist-report.js`, which ran `lib/` with the image's Node.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
