@@ -19,21 +19,8 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    /* res.json(value) for a value of JavaScript's shapes (Tags/Js.cs): JSON.stringify's text. */
-    private static async Task<bool> SendJs(HttpContext ctx, object? body, int status = 200)
-    {
-        var bytes = Encoding.UTF8.GetBytes(TJs.Json(body) ?? "null");
-        var tag = "W/\"" + bytes.Length.ToString("x") + "-" + Convert.ToBase64String(SHA1.HashData(bytes))[..27] + "\"";
-        var h = ctx.Response.Headers;
-        h["X-Mandarin-Answered"] = "C#";
-        h.ETag = tag;
-        if (status == 200 && ctx.Request.Headers.IfNoneMatch.ToString().Contains(tag, StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return true; }
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.ContentLength = bytes.Length;
-        if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
-        return true;
-    }
+    /* res.json(value) for a value of JavaScript's shapes (Tags/Js.cs): JSON.stringify's text, sent as Http.cs sends it. */
+    private static Task<bool> SendJs(HttpContext ctx, object? body, int status = 200) => Http.Json(ctx, TJs.Json(body) ?? "null", status);
     private static Task<bool> JsError(HttpContext ctx, int status, string message)
     {
         var o = new JsObj();

@@ -121,21 +121,8 @@ internal static partial class Library
 
     private static string LabelText(object? v) => TJs.Truthy(v) ? TJs.Str(v) : "";
 
-    /* res.type("text/plain").send(text), as Express sends it. */
-    private static async Task<bool> SendText(HttpContext ctx, string text)
-    {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        var tag = "W/\"" + bytes.Length.ToString("x") + "-" + Convert.ToBase64String(SHA1.HashData(bytes))[..27] + "\"";
-        var h = ctx.Response.Headers;
-        h["X-Mandarin-Answered"] = "C#";
-        h.ETag = tag;
-        if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(tag, StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return true; }
-        ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "text/plain; charset=utf-8";
-        ctx.Response.ContentLength = bytes.Length;
-        if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
-        return true;
-    }
+    /* res.type("text/plain").send(text), as Express sends it (Http.cs). */
+    private static Task<bool> SendText(HttpContext ctx, string text) => Http.Send(ctx, Encoding.UTF8.GetBytes(text), "text/plain; charset=utf-8");
 
     // ---------------------------------------------------------------- the routes
 

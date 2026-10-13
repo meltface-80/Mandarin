@@ -315,7 +315,7 @@ internal static partial class Auth
 
     public static void Map(WebApplication app)
     {
-        app.MapGet("/api/auth/status", (HttpContext ctx) =>
+        app.MapMethods("/api/auth/status", Http.GetOrHead, (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var acct = GetAccount(c);
@@ -417,7 +417,7 @@ internal static partial class Auth
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
 
-        app.MapGet("/api/auth/devices", async (HttpContext ctx) =>
+        app.MapMethods("/api/auth/devices", Http.GetOrHead, async (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
@@ -487,20 +487,12 @@ internal static partial class Auth
         return cmd.ExecuteNonQuery();
     }
 
-    // ------------------------------------------------------------ JSON in and out
+    // ------------------------------------------------------------ JSON out
 
-    // The request's JSON body, as the Node server's parser reads it: {} when
-    // there is none or it isn't JSON; a 400 (and null) when it says JSON but isn't.
-    public static Task Json(HttpContext ctx, int status, JsonObject o)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        // Answered here, not passed on (the tests check which).
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        return ctx.Response.WriteAsync(o.ToJsonString());
-    }
+    // As res.json sends it (Http.cs); the body in is Auth.Body.cs.
+    public static Task Json(HttpContext ctx, int status, JsonObject o) => Http.Json(ctx, o, status);
 
-    private static Task Error(HttpContext ctx, int status, string message) => Json(ctx, status, new JsonObject { ["error"] = message });
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 }
 
 // What JavaScript would make of a JSON value, where the rules above come from it.

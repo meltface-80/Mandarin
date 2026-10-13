@@ -154,30 +154,15 @@ internal static partial class Library
     private static string NodeWords(Exception e) => e is SqliteException && SqliteSaid().Match(e.Message) is { Success: true } m ? m.Groups[1].Value : e.Message;
 
     /*
-     * req.body as the Node server's express.json() makes it, the request kept
-     * as it came (buffered, put back) to be passed on still: {} for a body of
-     * another type; Ok false for one that parser would refuse (its own words,
-     * so its to answer) or read otherwise (another charset, compressed).
+     * req.body as the Node server's express.json() made it (Http.ReadJs), the
+     * request kept as it came (put back) for a route after this one: {} for a
+     * body of another type; Ok false for one turned down, for Pages.NotThere.cs
+     * to answer in its words.
      */
     private static async Task<(bool Ok, object? Body)> ServiceBody(HttpContext ctx)
     {
-        if (!IsJsonBody(ctx)) return (true, new JsObj());
-        if (!MediaTypeHeaderValue.TryParse(ctx.Request.ContentType, out var mt)
-            || !string.Equals(mt.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)
-            || mt.CharSet is { } cs && !cs.Trim('"').Equals("utf-8", StringComparison.OrdinalIgnoreCase)
-            || ctx.Request.Headers.ContentEncoding.Count > 0) return (false, null);
-        ctx.Request.EnableBuffering();
-        using var ms = new MemoryStream();
-        await ctx.Request.Body.CopyToAsync(ms);
-        ctx.Request.Body.Position = 0;
-        var text = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
-        if (text.StartsWith('\uFEFF')) text = text[1..];
-        if (text.Length == 0) return (true, new JsObj());
-        // Strict, as the parser is: an object or an array, nothing else.
-        var first = text.TrimStart(' ', '\t', '\n', '\r');
-        if (first.Length == 0 || first[0] is not ('{' or '[')) return (false, null);
-        try { return (true, JsJson.Parse(text)); }
-        catch (Tags.JsError) { return (false, null); }
+        var (b, read) = await Http.ReadJs(ctx, keep: true);
+        return read.Refused ? (false, null) : (true, b);
     }
 
     /* Opening an album, favouriting it, playing it (v0.8.47), Clean up: true when answered here. */

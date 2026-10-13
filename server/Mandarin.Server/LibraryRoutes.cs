@@ -189,23 +189,10 @@ internal static partial class Library
 
     // ---------------------------------------------------------------- answers
 
-    private static readonly JsonSerializerOptions Out = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    private static readonly JsonSerializerOptions Out = Http.Relaxed;
 
-    /* res.json, as Express sends it: its weak ETag, and "not modified" for a copy still current. */
-    private static async Task<bool> Send(HttpContext ctx, JsonNode body, int status = 200)
-    {
-        var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(Out));
-        var tag = "W/\"" + bytes.Length.ToString("x") + "-" + Convert.ToBase64String(SHA1.HashData(bytes))[..27] + "\"";
-        var h = ctx.Response.Headers;
-        h["X-Mandarin-Answered"] = "C#";
-        h.ETag = tag;
-        if (status == 200 && ctx.Request.Headers.IfNoneMatch.ToString().Contains(tag, StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return true; }
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.ContentLength = bytes.Length;
-        if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
-        return true;
-    }
+    /* res.json, as Express sends it (Http.cs): its weak ETag, and "not modified" for a copy still current. */
+    private static Task<bool> Send(HttpContext ctx, JsonNode body, int status = 200) => Http.Json(ctx, body, status);
     /*
      * GET /api/library/mark (v0.8.43): which albums there are, as the
      * X-Mandarin-Library header carries it on every answer. The page asks

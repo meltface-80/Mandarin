@@ -231,16 +231,7 @@ internal static partial class Downloads
         });
     }
 
-    private static readonly System.Text.Json.JsonSerializerOptions Relaxed = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
-    private static Task Error(HttpContext ctx, int status, string message)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        // As res.json writes it: an apostrophe as it is, not \u0027.
-        return ctx.Response.WriteAsync(new JsonObject { ["error"] = message }.ToJsonString(Relaxed));
-    }
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 
     private static async Task<bool> DownloadTrack(HttpContext ctx, long id)
     {

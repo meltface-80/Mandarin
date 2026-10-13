@@ -47,7 +47,7 @@
       "lines": 585
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 556
+      "lines": 548
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
@@ -77,7 +77,7 @@
       "lines": 584
     },
     "server/Mandarin.Server/LibraryRoutes.cs": {
-      "lines": 923
+      "lines": 910
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
@@ -101,7 +101,7 @@
       "lines": 602
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 515
+      "lines": 500
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
       "lines": 507

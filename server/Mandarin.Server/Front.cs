@@ -117,7 +117,7 @@ internal static class Routes
     public static void Map(WebApplication app, string version)
     {
         // Which server answered, for the tests and for a look from a browser; and this run of it (v0.8.50: a test sees a restart by it).
-        app.MapGet("/server-info", () => Results.Json(new ServerInfo("C#", version, Library.Boot), ServerJson.Default.ServerInfo));
+        app.MapMethods("/server-info", Http.GetOrHead, () => Results.Json(new ServerInfo("C#", version, Library.Boot), ServerJson.Default.ServerInfo));
     }
 }
 
