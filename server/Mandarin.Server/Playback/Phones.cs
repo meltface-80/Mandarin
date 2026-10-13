@@ -131,7 +131,7 @@ internal sealed partial class Phones
                 var next = prev.Clone();
                 next.State = "paused"; next.Position = seconds; next.At = Hub.Now(); next.Unreachable = false;
                 next.VolumeValue = prev.VolumeValue ?? new Volume(null, false);
-                if (own != null) At(next, p.Queue, (int)(double)resume["index"]!);
+                if (own != null) At(next, p.Queue, Math.Min(p.Queue.Count - 1, (int)(double)resume["index"]!));
                 zm.State[uid] = next;
             }
             else zm.State[uid] = ZoneState.Blank(prev.VolumeValue);
