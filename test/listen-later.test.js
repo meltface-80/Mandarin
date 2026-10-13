@@ -26,7 +26,7 @@ async function until(fn, ms = 10000) {
 
 test("listen later", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false });
   const ctx = await srv.start();
   const token = await signIn(B);
@@ -55,7 +55,7 @@ test("listen later", { skip, timeout: 60000 }, async () => {
     assert.ok((await api("settings/home-rows")).rows.some(x => x.id === "later"), "a Home row of its own");
 
     // Survives the library being rebuilt from the files.
-    ctx.library.reload();
+    await ctx.library.reload();
     assert.equal((await api("listen-later")).albums.length, 3);
 
     // By hand.
@@ -64,15 +64,21 @@ test("listen later", { skip, timeout: 60000 }, async () => {
     assert.deepEqual((await api("listen-later")).albums.map(a => a.title), ["Hi Res", "Album One"]);
     assert.equal((await api("listen-later", { offset: 999999, on: true })).status, 404);
 
-    // Played through: a play for each track, as the zones record them. Two of
-    // three leaves it on the list; the third takes it off.
-    const tracks = ctx.library.tracks(cd.offset);
-    assert.equal(tracks.length, 3);
-    for (const t of tracks.slice(0, 2)) ctx.zones.emit("played", { zoneId: "Kitchen", trackId: t.id, title: t.title });
-    await new Promise(res => setTimeout(res, 50));
+    // Played through: a play for each track, as the zones record them — here the phone (this
+    // signed-in app), given the album and saying what it plays. Two of three leaves it on the
+    // list; the third takes it off.
+    const zoneId = (await api("phone/hello", { name: "Pixel 8" })).zone_id;
+    assert.equal((await api("play", { offset: cd.offset, zone_or_output_id: zoneId, kind: "play_now" })).status, 200);
+    // A play counts once the track is half way (30 s of 60): said so by the phone.
+    const playing = async (index) => {
+      await api("phone/state", { index, position: 31, duration: 60, state: "playing", volume: 40 });
+      await until(async () => (await api("zone-state?zone=" + zoneId)).zone.now_playing.line1 === "Song " + (index + 1));
+    };
+    await playing(0); await playing(1);
+    await until(async () => ctx.db.raw.prepare("SELECT COUNT(DISTINCT track_id) AS n FROM plays WHERE album_id = ?").get(cd.offset).n === 2);
     assert.ok((await api("listen-later")).albums.some(a => a.title === "Album One"), "two of three played: still on the list");
-    ctx.zones.emit("played", { zoneId: "Kitchen", trackId: tracks[2].id, title: tracks[2].title });
-    await new Promise(res => setTimeout(res, 50));
+    await playing(2);
+    await until(async () => !(await api("listen-later")).albums.some(a => a.title === "Album One"));
     assert.deepEqual((await api("listen-later")).albums.map(a => a.title), ["Hi Res"], "every track played: off the list");
     // Plays from before it was put aside don't count: the same album again.
     await api("listen-later", { offset: cd.offset, on: true });

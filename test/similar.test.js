@@ -98,8 +98,6 @@ const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDeezer } = require("./fake-deezer");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-// Behind the C# server (MANDARIN_FRONT=1), which makes the suggestions from v0.8.20.
-const FRONT = process.env.MANDARIN_FRONT === "1";
 
 test("/api/similar: two acts not heard of near what you play, one you know with a record you lack, each with a reason", { skip: !haveFfmpeg() && "ffmpeg is not installed", timeout: 60000 }, async () => {
   // Deezer, stood in for: Artist A (playing) is related to a children's
@@ -126,7 +124,7 @@ test("/api/similar: two acts not heard of near what you play, one you know with 
   });
   await deezer.start();
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, deezerBaseUrl: deezer.base });
   const ctx = await srv.start();
   try {
@@ -136,27 +134,21 @@ test("/api/similar: two acts not heard of near what you play, one you know with 
     for (let i = 0; i < 100 && (await get("/api/status")).index_count !== 3; i++) await new Promise(r => setTimeout(r, 100));
     // Artist B, played on three days this month; Heavy Act (a stream, not in
     // the library) on ten — the act you play most needs no introduction.
-    const hi = ctx.library.albums.find(a => a.title === "Hi Res");
-    const t = ctx.library.tracks(hi.id)[0];
-    for (let d = 1; d <= 3; d++) ctx.features.insertPlay.run(hi.id, t.id, t.title, "Artist B", "Hi Res", "z", Date.now() - d * 86400000);
+    const albums = (await get("/api/library/albums?sort=album")).albums;
+    const hi = albums.find(a => a.title === "Hi Res");
+    const t = (await get("/api/album?offset=" + hi.offset)).tracks[0];
+    for (let d = 1; d <= 3; d++) ctx.features.insertPlay.run(hi.offset, t.track_id, t.title, "Artist B", "Hi Res", "z", Date.now() - d * 86400000);
     for (let d = 1; d <= 10; d++) ctx.features.insertPlay.run(null, null, "Song", "Heavy Act", "Big", "z", Date.now() - d * 86400000);
-    if (FRONT) {
-      // The C# server's own graph, built again from the plays now (it is otherwise built once a day).
-      const g = await (await fetch(B + "/internal/jobs/taste", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
-      assert.equal(g.near["new act"], 1, "the taste graph has your acts' neighbours: " + JSON.stringify(g));
-      assert.deepEqual(g.heavy, ["heavy act"]);
-      assert.equal(ctx.features.handedOver, true, "not made by the Node server");
-    } else {
-      await ctx.features.buildTaste();
-      assert.equal(ctx.features.taste().graph.get("new act").score, 1, "the taste graph has your acts' neighbours");
-      assert.deepEqual([...ctx.features.taste().heavy], ["heavy act"]);
-    }
+    // The server's graph, built again from the plays now (it is otherwise built once a day).
+    const g = await (await fetch(B + "/internal/jobs/taste", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
+    assert.equal(g.near["new act"], 1, "the taste graph has your acts' neighbours: " + JSON.stringify(g));
+    assert.deepEqual(g.heavy, ["heavy act"]);
 
     const seen = new Map();
     let known = null;
     for (let i = 0; i < 30; i++) {
       const res = await ask("/api/similar?artist=Artist%20A");
-      if (FRONT) assert.equal(res.headers.get("x-mandarin-answered"), "C#", "made by the C# server");
+      assert.equal(res.headers.get("x-mandarin-answered"), "C#", "made by the C# server");
       assert.equal(res.headers.get("cache-control"), "no-store");
       const r = await res.json();
       assert.equal(r.acts.length, 3, JSON.stringify(r));
@@ -191,7 +183,7 @@ test("/api/similar: two acts not heard of near what you play, one you know with 
     assert.deepEqual(mine.acts.map(a => a.name).sort(), ["Other New", "Someone New"]);
     const have = mine.acts.find(a => a.name === "Someone New"), other = mine.acts.find(a => a.name === "Other New");
     assert.deepEqual([have.in_library, have.album, have.library_title, have.library_subtitle, have.services], [true, "Album One", "Album One", "Artist A", []]);
-    assert.equal(have.offset, ctx.library.albums.find(a => a.title === "Album One").id);
+    assert.equal(have.offset, albums.find(a => a.title === "Album One").offset);
     assert.deepEqual(Object.keys(other), ["name", "id", "album", "year", "cover", "reason", "known", "in_library", "offset", "library_title", "library_subtitle", "services"]);
     assert.deepEqual([other.in_library, other.offset, other.year, other.known, other.reason], [false, null, 2005, null, "Near Artist B"]);
     assert.equal(other.services[0].url, "https://www.qobuz.com/fr-fr/search/?q=Other%20New%20Their%20Thing");

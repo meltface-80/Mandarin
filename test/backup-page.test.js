@@ -49,11 +49,11 @@ const DRIVER = `(async () => {
 
 test("Backup & restore in a browser: back up to the server, restore settings and this device's", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const exits = [];
-  const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
-    upnpMulticast: false, identify: false, exitProcess: c => exits.push(c), powerEnv: {}, powerPlatform: "linux" });
+  const { createServer } = require("./server");
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
+  const boot = async () => { try { return (await (await fetch(B + "/server-info")).json()).boot; } catch (e) { return null; } };
+  const boot0 = await boot();
   // The server's setting at the backup; the page moves it afterwards.
   ctx.db.setSetting("smartPicksHour", 6);
   try {
@@ -80,10 +80,13 @@ test("Backup & restore in a browser: back up to the server, restore settings and
     assert.equal(r.changed, 1, "changed after the backup");
     assert.match(r.cover, /Restoring/);
     assert.equal(r.page_back, "1.25", "this device's screen settings put back");
+    // The server started again (in its own process, from the same file): another run of it answers.
+    let boot1 = null;
+    for (let i = 0; i < 150 && !(boot1 && boot1 !== boot0); i++) { await new Promise(res => setTimeout(res, 100)); boot1 = await boot(); }
+    assert.ok(boot0 && boot1 && boot1 !== boot0, `the server started again: ${boot0} → ${boot1}`);
+    ctx.db.close();
     assert.equal(ctx.db.setting("smartPicksHour"), 6, "the server's settings put back");
-    for (let i = 0; i < 20 && !exits.length; i++) await new Promise(res => setTimeout(res, 100));
-    assert.deepEqual(exits, [75], "and the server restarted");
   } finally {
-    try { await srv.stop(); } catch (e) { /* stopped by the restart */ }
+    await srv.stop();
   }
 });

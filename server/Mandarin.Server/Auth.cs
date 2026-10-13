@@ -281,7 +281,7 @@ internal static partial class Auth
         // Streams and covers: the Node server's to decide (signatures, the
         // speakers). A renderer's NOTIFY (UPnP eventing): a device can't sign
         // in, and the Node server takes it before its own gate, as before.
-        if (IsOpen(p) || IsMedia(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal)) { await next(); return; }
+        if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && (!Front.Alone || await MediaAllowed(ctx)))) { await next(); return; }
         Account? acct; Device? dev;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
         if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }

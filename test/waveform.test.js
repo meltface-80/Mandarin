@@ -23,8 +23,7 @@ async function until(fn, ms = 20000) {
 
 test("waveforms: off until switched on, by id or by name, decoded once and kept", { skip, timeout: 90000 }, async () => {
   const lib = makeLibrary();
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false });
   const ctx = await srv.start();
   const token = await signIn(B);
@@ -32,15 +31,15 @@ test("waveforms: off until switched on, by id or by name, decoded once and kept"
   const post = async (p, body) => { const r = await fetch(B + "/api/" + p, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) }); return { status: r.status, ...(await r.json()) }; };
   try {
     await until(async () => (await get("status")).index_count === 3);
-    const al = ctx.library.albums.find(a => a.title === "Album One");
-    const t = ctx.library.tracks(al.id)[1];
+    // Song 2 of Album One, as the scan wrote it.
+    const t = ctx.db.raw.prepare("SELECT id, path, duration FROM tracks WHERE title = 'Song 2'").get();
 
     let r = await get("settings/waveform");
     assert.equal(r.enabled, false);
     assert.equal(typeof r.decoder, "boolean");
     r = await get("waveform?track_id=" + t.id);
     assert.deepEqual([r.peaks, r.reason], [null, "off"]);
-    if (process.env.MANDARIN_FRONT === "1") assert.equal(r.answered, "C#", "waveforms are the C# server's");
+    assert.equal(r.answered, "C#", "waveforms are the C# server's");
 
     assert.equal((await post("settings/waveform", {})).status, 400);
     r = await post("settings/waveform", { enabled: true });

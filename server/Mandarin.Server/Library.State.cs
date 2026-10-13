@@ -16,6 +16,7 @@ internal static partial class Library
 {
     // This run of the server (the Node server's bootId), the counters, when the copy was last read.
     private static readonly string boot = Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
+    public static string Boot => boot;
     private static long version, marks;
     private static double? builtAt;
     private static string? serverIp;

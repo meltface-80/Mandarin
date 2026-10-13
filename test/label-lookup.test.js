@@ -36,7 +36,7 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
   ]);
   const discogs = new FakeDiscogs([], { releases: [{ title: "Fourth", artist: "Artist D", label: "Nonesuch (2)" }] });
   await Promise.all([mb.start(), discogs.start()]);
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     discogsBaseUrl: discogs.base, mbBaseUrl: mb.baseUrl, logoPauseMs: 0, identify: false });
   const ctx = await srv.start();
@@ -69,18 +69,14 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
       assert.match(log, /lookups: done, 3 of 4 found/);
       const third = (await api("library/albums?sort=album")).albums.find(a => a.title === "Third");
       assert.equal((await api("album?offset=" + third.offset)).album.label, "ECM");
-      // Behind the C# server (v0.8.20): the lookups made there, the Node server's own never started.
-      if (process.env.MANDARIN_FRONT === "1") {
-        for (const p of ["filters/labels", "labels-scan-status", "labels-scan-log", "settings/labels", "settings/discogs-token", "label-albums?label=ECM"])
-          assert.equal((await api(p)).by, "C#", p + ": made by the C# server");
-        assert.equal(ctx.labelLookup.handedOver, true);
-        assert.equal(ctx.labelLookup.lines.length, 0, "nothing looked up by the Node server");
-      }
+      // The lookups made by the C# server (v0.8.20).
+      for (const p of ["filters/labels", "labels-scan-status", "labels-scan-log", "settings/labels", "settings/discogs-token", "label-albums?label=ECM"])
+        assert.equal((await api(p)).by, "C#", p + ": made by the C# server");
     });
 
     await t.test("kept by identity through a rebuild; misses not asked again; force asks everything", async () => {
       const mbHits = mb.requests.length, dHits = discogs.hits.length;
-      ctx.library.reload();
+      await ctx.library.reload();
       assert.deepEqual((await names()).map(x => x[0]), ["Blue Note", "ECM", "Nonesuch", "Parlophone", "Rhino"]);
       await api("labels/rescan", {});
       await settled();

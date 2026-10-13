@@ -120,11 +120,15 @@ function createServer(overrides = {}) {
       if (!r) return fallback;
       try { return JSON.parse(r.value); } catch (e) { return fallback; }
     },
-    setSetting(key, value) { db.raw.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, JSON.stringify(value)); }
+    setSetting(key, value) { db.raw.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, JSON.stringify(value)); },
+    // Let go, to be opened again on the next use: after a restore has put another file in the database's place.
+    close() { if (raw) { try { raw.close(); } catch (e) { /* closed */ } raw = null; } }
   };
   const sig = p => crypto.createHmac("sha256", db.setting("authSecret", "")).update(p).digest("base64url").slice(0, 22);
   const ctx = {
     listeningOn: port, frontKey: "", frontRuns: new Set(JOBS), madeByFront: true, config: Object.assign({}, overrides), base: "http://127.0.0.1:" + port, db,
+    // lib/server/features.js's insertPlay: a play written as the server writes one (album_id, track_id, title, artist, album, zone, ts).
+    features: { insertPlay: { run: (...a) => db.raw.prepare("INSERT INTO plays(album_id, track_id, title, artist, album, zone, ts) VALUES(?,?,?,?,?,?,?)").run(...a) } },
     library: {
       async reload() {
         const r = await fetch(ctx.base + "/internal/library/changed", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ edits: true }) });
@@ -147,7 +151,7 @@ function createServer(overrides = {}) {
       return ctx;
     },
     async stop() {
-      if (raw) { try { raw.close(); } catch (e) { /* closed */ } raw = null; }
+      db.close();
       if (srv) await srv.stop();
     },
     exited: () => srv && srv.exited()

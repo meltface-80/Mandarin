@@ -28,7 +28,7 @@ test("MusicD Server end to end", { skip }, async (t) => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = createServer({
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
