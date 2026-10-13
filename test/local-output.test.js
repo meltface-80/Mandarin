@@ -3,14 +3,14 @@
  * A sound device on the computer Mandarin runs on (v0.6.18): a USB DAC, the
  * built-in speakers.
  *   - the devices are found: ALSA cards (a USB DAC's own rates and depths),
- *     a Mac's Core Audio outputs, ffmpeg's numbering of them;
- *   - the output plays a track and the next one into the same open device
- *     with nothing between them, pauses where it is, and scales the volume
- *     on an audio taper (untouched at 100%);
+ *     a Mac's Core Audio outputs;
+ *   - the volume is on an audio taper (untouched at 100%);
  *   - end to end: off until turned on, then a zone; an album plays to it,
  *     the next track follows, the volume is kept.
- * The "device" in these tests is a file the PCM is written to at the speed
- * it would play (lib/local/devices.js, file:).
+ * The C# server's (Local/LocalDevices.cs, EngineOutput.cs; lib/local/ until
+ * v0.8.50); how the engine plays a device, gapless, paused and scaled, is
+ * test/engine.test.js. The "device" here is a file the PCM is written to at
+ * the speed it would play (file:).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -18,14 +18,15 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { execFileSync } = require("child_process");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const L = require("../lib/local/devices");
-const { LocalOutput, amplitude, parseWav } = require("../lib/local/output");
-const { effective } = require("../lib/renderers/profiles");
+const { built } = require("./server");
+const { score } = require("./score");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const noBin = built();
+const skip = noBin || (!haveFfmpeg() && "ffmpeg is not installed");
+const local = (job) => score(Object.assign({ fn: "local" }, job));
+const effective = (record) => score({ fn: "profiles", records: [{ record }] }).effective[0];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 15000) {
   const t0 = Date.now();
@@ -66,9 +67,9 @@ function fakeAsound() {
   return { root, dev };
 }
 
-test("this computer's sound devices: ALSA cards, a Mac's outputs, ffmpeg's numbers", () => {
+test("this computer's sound devices: ALSA cards, a Mac's outputs", { skip: noBin }, () => {
   const { root, dev } = fakeAsound();
-  const { devices, hidden } = L.listLinux({ root, dev });
+  const { devices, hidden } = local({ linux: [root, dev] });
   assert.equal(hidden, 1, "a card /dev/snd doesn't let us open is counted, not listed");
   assert.deepEqual(devices.map(d => d.network_name), ["HDA Intel PCH (ALC892 Analog)", "HDA Intel PCH (HDMI 0)", "Chord Mojo"]);
   const mojo = devices[2];
@@ -78,10 +79,10 @@ test("this computer's sound devices: ALSA cards, a Mac's outputs, ffmpeg's numbe
   assert.equal(mojo.model, "USB audio");
   assert.deepEqual(mojo.caps.advertised.rates, [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000]);
   assert.deepEqual(mojo.caps.advertised.bits, [24, 32]);
-  assert.equal(mojo.id, L.listLinux({ root, dev }).devices[2].id, "the same id every time");
+  assert.equal(mojo.id, local({ linux: [root, dev] }).devices[2].id, "the same id every time");
   assert.match(mojo.id, /^LOCAL_[0-9a-f]{12}$/);
   assert.deepEqual(devices[0].caps.advertised.rates, [], "an internal card says nothing: 44.1 and 48 kHz until ticked");
-  assert.deepEqual(L.hwParams(mojo.location, root), { rate: 96000, format: "S32_LE" });
+  assert.deepEqual(local({ hw: [[mojo.location, root]] }).hw[0], { rate: 96000, format: "S32_LE" });
 
   // The chips: the Mojo's own rates are on as advertised; the HDA's are the floor.
   const chips = effective(Object.assign({ playable: true, caps: mojo.caps }, mojo));
@@ -91,89 +92,30 @@ test("this computer's sound devices: ALSA cards, a Mac's outputs, ffmpeg's numbe
   const hda = effective(Object.assign({ playable: true, caps: devices[0].caps }, devices[0]));
   assert.deepEqual(hda.rates.filter(r => r.on).map(r => r.hz), [44100, 48000]);
 
-  const mac = L.parseMac(JSON.stringify({ SPAudioDataType: [{ _items: [
+  const mac = local({ mac: JSON.stringify({ SPAudioDataType: [{ _items: [
     { _name: "MacBook Pro Microphone", coreaudio_device_input: 1, coreaudio_device_srate: 48000 },
     { _name: "MacBook Pro Speakers", coreaudio_device_output: 2, coreaudio_device_srate: 48000, coreaudio_device_transport: "coreaudio_device_type_builtin", coreaudio_default_audio_output_device: "spaudio_yes" },
     { _name: "Topping E30", coreaudio_device_output: 2, coreaudio_device_srate: 96000, coreaudio_device_transport: "coreaudio_device_type_usb", coreaudio_device_manufacturer: "Topping" }
-  ] }] }));
+  ] }] }) }).mac;
   assert.deepEqual(mac.map(d => [d.network_name, d.model, d.caps.advertised.rates[0]]), [["MacBook Pro Speakers", "Built-in", 48000], ["Topping E30", "USB audio", 96000]]);
   assert.equal(mac[1].location, "coreaudio:Topping E30");
-  const idx = L.parseAudiotoolboxList([
-    "[AudioToolbox @ 0x7f] CoreAudio devices:",
-    "[AudioToolbox @ 0x7f] [0]       MacBook Pro Microphone, BuiltInMicrophoneDevice",
-    "[AudioToolbox @ 0x7f] [1]         MacBook Pro Speakers, BuiltInSpeakerDevice",
-    "[AudioToolbox @ 0x7f] [2]                  Topping E30, AppleUSBAudioEngine:Topping:E30:1:1"].join("\n"));
-  assert.equal(idx.get("Topping E30"), 2);
-  assert.equal(idx.get("MacBook Pro Speakers"), 1);
 });
 
-test("the volume is an audio taper; the decoder's WAV header is read", () => {
-  assert.equal(amplitude(100), 1);
-  assert.equal(amplitude(0), 0);
-  assert.equal(amplitude(80, true), 0, "muted");
-  assert.ok(Math.abs(20 * Math.log10(amplitude(50)) - -25) < 1e-9, "50% is −25 dB");
-  assert.ok(Math.abs(20 * Math.log10(amplitude(10)) - -45) < 1e-9, "10% is −45 dB");
-  assert.ok(amplitude(5) > 0 && amplitude(5) < amplitude(10));
-  const h = Buffer.alloc(44);
-  h.write("RIFF", 0); h.write("WAVE", 8); h.write("fmt ", 12); h.writeUInt32LE(16, 16);
-  h.writeUInt16LE(1, 20); h.writeUInt16LE(2, 22); h.writeUInt32LE(96000, 24); h.writeUInt16LE(32, 34);
-  h.write("data", 36);
-  assert.deepEqual(parseWav(h), { channels: 2, rate: 96000, bits: 32, start: 44 });
-  assert.equal(parseWav(h.subarray(0, 30)), null, "not all there yet");
-});
-
-test("the output: two tracks into one open device, nothing between; paused where it is; scaled below 100%", { skip, timeout: 60000 }, async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "localout-"));
-  const tone = (f, secs) => execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-f", "lavfi", "-i", `sine=frequency=440:duration=${secs}:sample_rate=44100`, "-ac", "2", "-sample_fmt", "s16", f]);
-  const t1 = path.join(dir, "t1.flac"), t2 = path.join(dir, "t2.flac");
-  tone(t1, 1.5); tone(t2, 1);
-  const out = path.join(dir, "out.raw");
-  const o = new LocalOutput({ id: "x", name: "Test", sinkArgs: L.sinkArgsFor("file:" + out), volume: 100 });
-  await o.setUri(t1); await o.setNextUri(t2); await o.play();
-  assert.equal((await o.getTransportInfo()).CurrentTransportState, "TRANSITIONING");
-  await until(async () => (await o.getTransportInfo()).CurrentTransportState === "PLAYING");
-  assert.equal((await o.getPositionInfo()).TrackURI, t1);
-  await until(async () => (await o.getPositionInfo()).TrackURI === t2, 8000);
-  await until(async () => (await o.getTransportInfo()).CurrentTransportState === "STOPPED", 8000);
-  assert.equal(o.takeError(), null);
-  // Every frame of both, in one file, nothing added between them.
-  assert.equal(fs.statSync(out).size, Math.round(2.5 * 44100) * 8);
-  const src = execFileSync("ffmpeg", ["-loglevel", "error", "-i", t1, "-i", t2, "-filter_complex", "concat=n=2:v=0:a=1", "-c:a", "pcm_s32le", "-f", "s32le", "-"], { maxBuffer: 1 << 24 });
-  assert.ok(src.equals(fs.readFileSync(out)), "at 100% the samples are untouched");
-
-  // Paused: the position holds; play carries on.
-  const out2 = path.join(dir, "out2.raw");
-  const p = new LocalOutput({ id: "y", name: "Test", sinkArgs: L.sinkArgsFor("file:" + out2), volume: 50 });
-  await p.setUri(t1); await p.play();
-  await until(() => p.position() > 0.3);
-  await p.pause();
-  await sleep(300);
-  const at = p.position();
-  await sleep(700);
-  assert.equal((await p.getTransportInfo()).CurrentTransportState, "PAUSED_PLAYBACK");
-  assert.equal(p.position(), at, "held where it is");
-  await p.play();
-  await until(async () => (await p.getTransportInfo()).CurrentTransportState === "STOPPED", 8000);
-  const b = fs.readFileSync(out2);
-  assert.equal(b.length, Math.round(1.5 * 44100) * 8, "all of it, after the pause");
-  let peak = 0, srcPeak = 0;
-  for (let i = 0; i < b.length; i += 4) peak = Math.max(peak, Math.abs(b.readInt32LE(i)));
-  for (let i = 0; i < b.length; i += 4) srcPeak = Math.max(srcPeak, Math.abs(src.readInt32LE(i)));
-  assert.ok(Math.abs(20 * Math.log10(peak / srcPeak) - -25) < 0.01, "50% is 25 dB down");
-
-  // A device that isn't there: said, and stopped.
-  const gone = new LocalOutput({ id: "z", name: "Gone", sinkArgs: async () => ["-f", "alsa", "plughw:CARD=NoSuchCard,DEV=0"] });
-  await gone.setUri(t1); await gone.play();
-  await until(async () => (await gone.getTransportInfo()).CurrentTransportState === "STOPPED", 8000);
-  const e = await until(() => gone.takeError());
-  assert.match(e.message, /isn't there|stopped|couldn't/);
+test("the volume is an audio taper", { skip: noBin }, () => {
+  const [full, none, muted, half, tenth, five] = local({ amplitude: [[100], [0], [80, true], [50], [10], [5]] }).amplitude;
+  assert.equal(full, 1);
+  assert.equal(none, 0);
+  assert.equal(muted, 0, "muted");
+  assert.ok(Math.abs(20 * Math.log10(half) - -25) < 1e-9, "50% is −25 dB");
+  assert.ok(Math.abs(20 * Math.log10(tenth) - -45) < 1e-9, "10% is −45 dB");
+  assert.ok(five > 0 && five < tenth);
 });
 
 test("end to end: a sound device on this computer is a zone; an album plays to it", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const out = path.join(lib.data, "dac.raw");
   const DAC = {
-    id: L.idOf("test:dac"), kind: "local", family: "local", network_name: "Test DAC", manufacturer: "Test", model: "USB audio",
+    id: local({ ids: ["test:dac"] }).ids[0], kind: "local", family: "local", network_name: "Test DAC", manufacturer: "Test", model: "USB audio",
     location: "file:" + out, playable: true, caps: { advertised: { containers: ["flac"], rates: [44100, 48000, 96000], bits: [16, 24, 32] } }
   };
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;

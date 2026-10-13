@@ -26,6 +26,10 @@
 //      → { results }: each step's, on the database in [data] (made by `mandarin-server db`), opened afresh each time
 //   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids }                   Renderers/Ssdp.cs, Discovery.cs
 //      → { sonos, seeds, ids }
+//   { fn: "engine", steps }                                               Local/EngineCommand.cs: the engine's driver from a script
+//   { fn: "local", linux: [root, dev], mac: json, hw: [[location, root]], ids, amplitude: [[pct, muted]] }
+//      → { devices, hidden, mac, hw, ids, amplitude }                    Local/LocalDevices.cs, EngineOutput.cs
+//   { fn: "scorecall" | "itunes", … }                                     Identify/ScoreCalls.cs
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -41,7 +45,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -53,6 +57,12 @@ internal static class RulesCommand
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
         "register" => RegisterFns(job),
+        "local" => LocalFns(job),
+        // The identification's rules by name, and the iTunes client from a script (Identify/ScoreCalls.cs).
+        "scorecall" => Identify.ScoreCalls.Run(job),
+        "itunes" => Identify.ScoreCalls.ITunesSteps(job).GetAwaiter().GetResult(),
+        // The audio engine's driver run from a script (Local/EngineCommand.cs).
+        "engine" => Local.EngineCommand.Run(job).GetAwaiter().GetResult(),
         "ssdp" => new JsObj
         {
             ["sonos"] = Each(job["sonos"], a => Renderers.Ssdp.IsSonos(new Renderers.SsdpAnswer("", S(O(a)["usn"]), "", S(O(a)["server"]), ""))),
@@ -188,5 +198,28 @@ internal static class RulesCommand
             else throw new JsError("unknown step");
         }
         return new JsObj { ["results"] = results };
+    }
+
+    /* A device as the register takes it (what listing this computer's devices says of each). */
+    private static object? SeenJson(Playback.SeenInfo d) => new JsObj
+    {
+        ["id"] = d.Id, ["kind"] = d.Kind, ["family"] = d.Family, ["network_name"] = d.NetworkName, ["manufacturer"] = d.Manufacturer,
+        ["model"] = d.Model, ["location"] = d.Location, ["caps"] = d.Caps, ["playable"] = d.Playable
+    };
+
+    private static JsObj LocalFns(JsObj job)
+    {
+        var o = new JsObj();
+        if (job["linux"] is List<object?> lx)
+        {
+            var list = Local.LocalDevices.ListLinux(S(At(lx, 0)), S(At(lx, 1)));
+            o["devices"] = list.Devices.Select(SeenJson).ToList();
+            o["hidden"] = (double)list.Hidden;
+        }
+        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac).Select(SeenJson).ToList();
+        o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
+        o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
+        o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
+        return o;
     }
 }

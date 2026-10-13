@@ -304,6 +304,9 @@ internal sealed class EngineOutput : IRenderer
 
     /* Where the device is: the offset it will start at when stopped, else what ALSA says. */
     private double Position() => state == "STOPPED" ? offset : seconds;
+    /* Where it is in the track, in seconds; the next track waiting to follow ("" when none). */
+    public double Seconds { get { lock (gate) return Position(); } }
+    public string NextUri { get { lock (gate) return nextUri; } }
     public Exception? TakeError() { lock (gate) { var e = error; error = null; return e; } }
 
     /* Everything stopped and let go, the engine with it. */
