@@ -423,8 +423,8 @@ class PhonePlayerService : MediaLibraryService() {
                     .setExtras(Bundle().apply {
                         putInt(EXTRA_ALBUM, albumId)
                         putDouble("duration", t.duration)
-                        // For the server, which shows the phone's own list (report()).
-                        a.imageKey?.let { putString("image_key", it) }
+                        // For the server, which shows the phone's own list (report()) and, by its ids, hands it back (v0.9.5).
+                        a.imageKey?.let { putString("image_key", it) }; putLong("track_id", t.id)
                         putString("ext", t.ext)
                         // ReplayGain's numbers, applied as the setting says (gainAt).
                         t.replaygain?.let { putString("rg", it.toString()) }

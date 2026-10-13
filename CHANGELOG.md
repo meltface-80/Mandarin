@@ -5,6 +5,24 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.5
+**The Android app installed over itself plays what it was playing** (`v0.9.5-rc1-phone-queue-after-reinstall`).
+
+- After the app was installed over itself, it showed an album from earlier in the day, and played
+  it with only that album queued. The app's player starts empty and asks the server for the list it
+  had; the server handed back its own queue, the last album played through the server, even when the
+  phone had since played a list of its own (a download, the phone's own music).
+- Now the server hands back the list the phone last played, at the same track and place, paused.
+  A list of its own comes back when the server knows every track in it (a download), and nothing
+  comes back when it doesn't (the phone's own music), never the older album. The server keeps the
+  same list across its own restart.
+- The app tells the server the track ids of downloaded tracks it plays, so a downloaded album comes
+  back. `test/phone-resume.test.js` holds all three cases.
+- An album opened just after the page loaded could be put back to "Loading…" and drawn again: the
+  page, as it started, reopened the album left open before a reload, which by then was the one
+  just opened. It now does so only when no album has been opened yet. `test/play-next.test.js`,
+  which failed on this about one run in seven (and on `migration` at v0.9.4), passes every time.
+
 ## v0.9.4
 **The audit's documentation** (`docs/specs/audit-b4-main.md` module 5). Nothing changes in use.
 

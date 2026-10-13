@@ -76,7 +76,7 @@ internal static partial class PlaybackRoutes
             case "/api/phone/hello":
             {
                 var name = Js.Truthy(req.Body["name"]) ? Js.Str(req.Body["name"]) : dev.Name;
-                var hello = phones.Hello(dev.Id, name);
+                var hello = await phones.Hello(dev.Id, name);
                 var uid = Js.Str(hello["zone_id"]);
                 phones.SetAway(uid, req.Away);
                 // The register learns of the phone now, not at the sync's next tick: its page in Audio Devices is there at once.

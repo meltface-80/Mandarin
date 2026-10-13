@@ -90,14 +90,25 @@ internal sealed partial class Phones
     // ------------------------------------------------------------ the app
 
     /*
-     * The app's player has (re)started with nothing loaded. Its queue here is
-     * kept and handed back as `resume`: the same tracks, the same place,
-     * paused. A phone the server never met, or one whose queue was empty,
-     * starts blank.
+     * The app's player has (re)started with nothing loaded (Android stopped
+     * it; the app was installed over itself). The list it last played is
+     * handed back as `resume`: the same tracks, the same place, paused. That
+     * is its queue here, or, when it was last playing a list of its own (a
+     * download, the phone's music), that list made the server's queue — and
+     * nothing when the server can't name every track in it, never the older
+     * queue it had left (v0.9.5). A phone the server never met, or one whose
+     * queue was empty, starts blank.
      */
-    public JsonObject Hello(string deviceId, string? name)
+    public async Task<JsonObject> Hello(string deviceId, string? name)
     {
         var uid = UidFor(deviceId);
+        var own = OwnIds(uid);
+        List<PhoneItem>? rebuilt = null;
+        if (own is { Count: > 0 })
+        {
+            try { rebuilt = (await zm.RebuildItems(own, uid)).Select(ToItem).ToList(); }
+            catch (Exception e) when (e is HubError or JsError or Microsoft.Data.Sqlite.SqliteException) { zm.Log("[phones] hello: " + e.Message); }
+        }
         JsonObject? resume = null;
         lock (zm.Gate)
         {
@@ -108,6 +119,8 @@ internal sealed partial class Phones
             p.Gone = false;
             Map[uid] = p;
             var prev = zm.State.GetValueOrDefault(uid) ?? new ZoneState();
+            // Its own list is kept as it is: an app still playing it reports it again without the items.
+            if (own != null) p.Queue = rebuilt != null && rebuilt.Count == own.Count ? rebuilt : [];
             if (p.Queue.Count > 0)
             {
                 var snap = Snapshot(p);
@@ -118,6 +131,7 @@ internal sealed partial class Phones
                 var next = prev.Clone();
                 next.State = "paused"; next.Position = seconds; next.At = Hub.Now(); next.Unreachable = false;
                 next.VolumeValue = prev.VolumeValue ?? new Volume(null, false);
+                if (own != null) At(next, p.Queue, Math.Min(p.Queue.Count - 1, (int)(double)resume["index"]!));
                 zm.State[uid] = next;
             }
             else zm.State[uid] = ZoneState.Blank(prev.VolumeValue);
@@ -127,12 +141,34 @@ internal sealed partial class Phones
         return new JsonObject { ["zone_id"] = uid, ["seq"] = Seq, ["resume"] = resume };
     }
 
-    /* What the store keeps of this phone's queue; null when empty. */
+    /* The phone's own list's track ids when that is what it last played (empty when the server can't name one); null when it was the queue here. */
+    private List<long>? OwnIds(string uid)
+    {
+        lock (zm.Gate)
+        {
+            if (!Map.TryGetValue(uid, out var p) || zm.State.GetValueOrDefault(uid) is not { Local: true } || p.Local is not { Count: > 0 } l) return null;
+            return l.All(it => it.TrackId is > 0) ? l.Select(it => it.TrackId!.Value).ToList() : [];
+        }
+    }
+
+    /* The zone at the queue's `index`th track: the queue here, not the phone's own list. */
+    private static void At(ZoneState st, List<PhoneItem> list, int index)
+    {
+        var it = list[index];
+        st.Local = false; st.ImageKey = null; st.AlbumOffset = null; st.LocalExt = "";
+        st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.TrackNumber = index + 1; st.QueueLength = list.Count; st.OnQueue = true;
+        st.Duration = it.Duration; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
+    }
+
+    /* What the store keeps of the list this phone last played (its own, when the server can name every track; v0.9.5); null when empty. */
     public QueueSnapshot? Saved(string uid)
     {
         var p = Map.GetValueOrDefault(uid);
-        if (p == null || p.Queue.Count == 0) return null;
-        return new QueueSnapshot { Kind = "phone", DeviceId = p.DeviceId, Name = p.Name, Ids = p.Queue.Select(it => it.TrackId).ToList() };
+        if (p == null) return null;
+        var own = zm.State.GetValueOrDefault(uid) is { Local: true } && p.Local is { Count: > 0 };
+        var list = own ? p.Local! : p.Queue;
+        if (list.Count == 0 || (own && list.Any(it => it.TrackId is null or 0))) return null;
+        return new QueueSnapshot { Kind = "phone", DeviceId = p.DeviceId, Name = p.Name, Ids = list.Select(it => it.TrackId).ToList() };
     }
 
     /* A queue kept from before a restart, back on the server's side; until the app is heard, the phone is not in the zone list. */
@@ -149,12 +185,10 @@ internal sealed partial class Phones
             p.Gone = true;
             Map[uid] = p;
             var index = (int)Math.Max(0, Math.Min(list.Count - 1, snap.Index));
-            var it = list[index];
             var st = ZoneState.Blank(snap.VolumeValue);
             st.State = snap.State == "stopped" ? "stopped" : "paused";
-            st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.TrackNumber = index + 1; st.QueueLength = list.Count; st.OnQueue = true;
-            st.Position = Math.Max(0, snap.Seconds); st.Duration = it.Duration;
-            st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
+            At(st, list, index);
+            st.Position = Math.Max(0, snap.Seconds);
             st.Shuffle = snap.Shuffle; st.Loop = snap.Loop is { Length: > 0 } lp ? lp : "disabled"; st.At = Hub.Now();
             zm.State[uid] = st;
         }
