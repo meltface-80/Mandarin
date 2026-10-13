@@ -80,7 +80,7 @@ internal static partial class Transcoder
     private static string dir = "";
     private static long maxBytes;
     private static int concurrency;
-    private static readonly ConcurrentDictionary<string, ConvJob> Jobs = new();
+    internal static readonly ConcurrentDictionary<string, ConvJob> Jobs = new();
     private static readonly List<(string Key, ConvTrack T, ConvPlan P)> Queue = [];
     private static int running;
     private static readonly Lazy<(string Bin, bool Ok, bool Soxr, bool Flac32)> Ff = new(Probe);

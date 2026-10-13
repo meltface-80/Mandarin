@@ -8,6 +8,7 @@
  * staged. (Through the C# server's own fetch, test/csharp-update.test.js.)
  */
 const ports = require("./ports");
+const { stopServer } = require("./fixtures");
 const FAKE = ports.port();
 process.env.UPDATE_API = "http://127.0.0.1:" + FAKE;
 
@@ -41,7 +42,7 @@ test("an update stops before staging anything when what has to come with it can'
     res.statusCode = 404; res.end("{}");
   });
   await new Promise(r => gh.listen(FAKE, "127.0.0.1", r));
-  t.after(() => new Promise(r => gh.close(r)));
+  t.after(() => stopServer(gh));
 
   const make = (beforeApply) => createUpdater({ owner: "me", repo: "musicd", currentVersion: "9.9.8", packageName: "musicd-server", dir: app, viaLauncher: true, beforeApply });
   const ready = () => fs.existsSync(path.join(app, ".update", "READY"));

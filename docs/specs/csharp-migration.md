@@ -754,8 +754,18 @@ the server (part 4) with the engine, and last the device list, the rooms and the
 (part 5), which needs every kind of player in place.
 
 **Part 1: the hub, the queue store, the phone as a zone, history, the radio, the play routes**
-(`Playback/Hub.cs`, `Playback/Phones.cs`, `Playback/QueueStore.cs`, `Playback/Items.cs`,
-`Playback/History.cs`, `Playback/ZoneJson.cs`, `PlaybackRoutes.cs`, `PhoneRoutes.cs`).
+(`Playback/Hub.cs` and `Hub.Commands.cs`, `Playback/Phones.cs` with `Phones.Report.cs` and
+`Phones.Commands.cs`, `Playback/QueueStore.cs`, `Playback/Items.cs` and `Item.cs`,
+`Playback/Tracks.cs`, `Playback/History.cs`, `Playback/NowPlaying.cs`, `Playback/Register.cs`,
+`Playback/ZoneState.cs`, `PlaybackRoutes.cs` with `PlaybackRoutes.Commands.cs` and
+`PlaybackRoutes.Play.cs`, `PhoneRoutes.cs`, `ServiceRoutes.Play.cs`; `Playback/Hub.Stubs.cs` holds
+the Sonos and renderer halves until parts 2 and 3; the Node side in `lib/server/playback-handover.js`).
+Built in v0.8.49: every answer held to a Node server alone, request for request, in
+`test/playback-csharp.test.js` (the two servers side by side, a phone zone on each). Two traps it
+found, kept here for the parts to come: a key a body doesn't carry is JavaScript's `undefined`
+(`Number(undefined)` is NaN, "offset required"), not `null` (`Number(null)` is 0) — `JsonObject`
+answers null for both, so the routes ask `ContainsKey` first (`PlaybackRoutes.Num`); and a
+`JsonNode` moved into another object is gone from the first (the hello's `resume`).
 - **The hub** (`lib/sonos/zones.js`'s `ZoneManager`): one state per zone, the revision and its
   waiters (`/api/zone-state?wait_for=`, 20 s), `applyState` with its three hooks (`track`, `played`
   at the halfway-or-30-seconds mark, `queue-low` 25 s from the end of the last track), `positionNow`,
@@ -795,8 +805,15 @@ the server (part 4) with the engine, and last the device list, the rooms and the
   compared), the kept queue's row the same, the `plays` row the same after a play, the long poll's
   commands the same in order. `front.test.js`'s pins.
 
-**Part 2: Sonos** (`Playback/SonosDevice.cs`, `Playback/SonosTopology.cs`, `Playback/SonosZones.cs`,
-`Playback/SonosQueue.cs`).
+**Part 2: Sonos** (`Playback/SonosDevice.cs`, `Playback/SonosTopology.cs`, `Playback/Hub.Sonos.cs`,
+`Playback/Hub.SonosCommands.cs`; `Playback/Hub.Register.cs` for the register's sync, brought
+forward from part 5 because the phone's page in Audio Devices needs the row). Built in v0.8.49:
+the fake household drives both servers in `test/playback-csharp.test.js`, each speaker's command
+log compared action for action. Three things worth knowing: a room that isn't there answers
+`/api/queue` with an empty queue, not a refusal (zones.js `queue()`); two "playpause" in a row
+both pause, because the second comes before the room has been read again — kept, as there; and
+the rooms' part of `/api/status`, `/api/health` and `Images.cs`'s speaker addresses read the hub
+here from this part on, so `test/sonos-restart.test.js` passes through C#.
 - **`SonosDevice`** (`device.js`, `soap.js`'s `call` and `httpGet`): a keep-alive pool of four, the
   SOAPACTION header, the envelope as `Soap.cs` builds it and the fault as it reads it, the ten-second
   timeout, one retry on a connection the player closed, `UPnPError`'s words.
@@ -836,6 +853,23 @@ the server (part 4) with the engine, and last the device list, the rooms and the
   `setSettings`, `forget`, the name overlay: the reads DeviceRoutes.cs already makes, one class.
 - **Tests:** `test/renderer-playback.test.js`, `test/audio-devices.test.js`'s renderer half and
   `test/devices-hide.test.js` through C#; the fake renderer's log held to the Node server's.
+- **As built** (v0.8.49): `Players.cs` (the players, `targetFor`, `replan`, the zones, `drop`),
+  `Players.Poll.cs` (GENA, the poll), `Players.Commands.cs` (`verify`, `ready`, `armNext`,
+  `jump`, every command), `Renderer.cs` (the SOAP renderer behind `IRenderer`, which part 4's
+  engine output answers too), `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`; the
+  sending half of `soap.js` as `Playback/SoapHttp.cs`, shared with Sonos; `Hub.Upnp.cs` hands
+  every `UPNP_`/`LOCAL_` id to the players; `UpnpEventRoutes.cs` answers `NOTIFY /upnp/event/:id`.
+  The register stays `Playback/Register.cs` (stage 5's class, grown). Part 5's device list came
+  with this part rather than after it, because the renderers' page needs `online`, `events` and
+  `last_error` from the hub that drives them: `Renderers/Devices.cs` (`json`, `list`, `get`,
+  `online`, `enabled`, the scan loop, `forget`) and `DeviceRoutes.Read.cs` (`GET`, `GET /:id`,
+  `POST /rescan`, `POST /:id/forget`, away from home), and `DeviceRoutes.cs`'s PATCH takes
+  `enabled` and `radio` and answers from the hub; `/internal/devices/changed` is no longer asked
+  (it stays for an older C# server). Part 5 keeps the rooms' `zone_count` and `sonos` (done in
+  part 2), the sound devices' `local` counts (part 4) and leaving the Node hub idle.
+  `test/devices-csharp.test.js` was changed with it: where C# holds playback the effects are the
+  C# hub's (never the Node server's players), the switch and the radio are held to the Node
+  server's rows and answers, and a renderer hidden while playing must be sent Stop.
 
 **Part 4: sound devices on the server** (`Local/EngineOutput.cs`, `Local/LocalDevices.cs`).
 - **The engine driver** (`lib/local/engine.js`): the program found in the same order
@@ -852,6 +886,18 @@ the server (part 4) with the engine, and last the device list, the rooms and the
 - **Tests:** `test/local-output.test.js`'s end-to-end half through C#, a `file:` device played by
   the engine (as `test/engine.test.js` plays one), the list from the fake `/proc/asound`; the sink's
   own unit tests stay the Node server's.
+- **As built** (v0.8.49): `Local/AudioEngine.cs` (the finder grown out of `HealthRoutes.cs`, with
+  `Ensure`, the download — its own temporary name, so a Node server fetching at the same time never
+  writes the same file — `Plays` and `Reset`), `Local/EngineOutput.cs` (`IRenderer`, with `Sink` and
+  `Sent` for the verified tick), `Local/LocalDevices.cs` (`ListLinux`, `ParseMac`, `HwParams`,
+  `List`), `Cpu.Engine.cs` (`Core`, `PlaceRealtime`: playback's cores, `nice -n -10` where
+  allowed). The scan loop is `Renderers/Devices.cs`'s (`ScanLocal`, every 30 s and first in Look
+  again), its counts the list's `local`. The hub starts the engine's finder (and the download where
+  Docker or `AUDIO_ENGINE_DOWNLOAD=1` allows it) once it holds playback. A test's own device list
+  reaches the hub through the hand-over (`local_devices`, `lib/server/playback-handover.js`
+  `localDevicesFor`), the one piece of Node plumbing. Without the engine (a Mac, or not yet
+  downloaded) a `LOCAL_` device is refused in words ("can't be played from this server: Mandarin's
+  audio engine isn't here"); the ffmpeg sink is not ported, as planned.
 
 **Part 5: the device list, the rooms, the Node hub idle** (`Renderers/Devices.cs`,
 `DeviceRoutes.cs`, `HousekeepingRoutes.cs`, `HealthRoutes.cs`, `Images.cs`).
@@ -869,6 +915,14 @@ the server (part 4) with the engine, and last the device list, the rooms and the
 - **Tests:** `test/audio-devices.test.js`, `test/devices-csharp.test.js` (what was "the Node server's
   own effects" now the C# server's own), `test/housekeeping-csharp.test.js` and
   `test/pages-csharp.test.js`'s health through C#.
+- **As built** (v0.8.49): most of this part came earlier — the device list, its routes and
+  `PATCH` whole with part 3, the rooms' part of `/api/status` and `/api/health` and a speaker's
+  address for a cover with part 2, the sound devices' `local` counts with part 4. Left to this
+  part: `/api/display/content`'s track from the hub (`HousekeepingRoutes.cs`), and
+  `test/housekeeping-csharp.test.js` changed to hold `/api/status` to the Node server's answer with
+  the rooms' part set aside (its hub idle, it counts none) and the display's content to the hub's
+  track. The Node hub is idle by the hand-over alone (`lib/server/playback-handover.js`): nothing
+  more was needed. The three internal routes stay for an older C# server, as planned.
 
 **Then** the whole suite both ways, the version 0.8.49 everywhere, `server/README.md`'s table, the
 CHANGELOG, this file and `handover.md`, the pull request into `migration` with the results, the
@@ -878,11 +932,11 @@ above): the stage is not merged on CI alone.
 **Checklist** (ticked as each part is committed and pushed):
 
 - [x] Plan written; version 0.8.49
-- [ ] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
-- [ ] Part 2: Sonos
-- [ ] Part 3: the renderers
-- [ ] Part 4: sound devices on the server
-- [ ] Part 5: the device list, the rooms, the Node hub idle
+- [x] Part 1: the hub, the queue store, the phone, history, the radio, the play routes
+- [x] Part 2: Sonos
+- [x] Part 3: the renderers (with the device list and its routes from part 5)
+- [x] Part 4: sound devices on the server
+- [x] Part 5: the device list, the rooms, the Node hub idle
 - [ ] The whole suite both ways; README, CHANGELOG, handover and this file brought up to date
 - [ ] Tried on the owner's household
 

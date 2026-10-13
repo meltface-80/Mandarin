@@ -68,7 +68,21 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    UPnP renderers, sound devices on the server, the phone as a zone, the queue, history, plays,
    radio, the device list and `/api/status`'s rooms. Order within it is in the spec. It merges
    once every playback test passes through C#, **and the owner has tried it on their own household**,
-   so stop and ask them before merging it.
+   so stop and ask them before merging it. **Parts 1 to 4 are built and pushed on
+   `stage-6-playback`** (the hub, the queue store, the phone as a zone, history, the radio, every
+   playback route; Sonos whole, with the register's sync and the rooms' part of status and
+   health; the UPnP renderers whole — discovery, GENA, gapless, LinkPlay — with the device list,
+   its routes and the switch and the radio on a PATCH, which the spec had in part 5; sound
+   devices on the server through Mandarin's audio engine, with ALSA's list and the engine's
+   download; `test/playback-csharp.test.js` holds parts 1 and 2 to a Node server alone, the
+   speakers' command logs included; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`
+   and `test/local-output.test.js` hold parts 3 and 4). **Part 5 too** (the wall display's track
+   from the hub; the Node hub idle by the hand-over alone): the five parts are built, the whole
+   suite passes both ways, and **PR #209 into `migration` carries the results**. What is left is
+   the owner trying it on their own household (the `:stage-6-playback` image, section 6) — only
+   then the squash-merge. The ffmpeg sink for
+   a Mac's sound devices is not ported, as the spec says: on a Mac a `LOCAL_` device is refused
+   in words by the C# hub until stage 7 decides.
 3. **Stage 7: Node removed → the v0.9.0 candidate.** The image without Node and its npm packages,
    the launcher and in-app updates in C#, the tests driving the C# binary over HTTP (those that
    reach into `ctx.*` rewritten; CI's Node-alone run goes), Macs on C# alone, the Node copies
@@ -138,6 +152,11 @@ Their stack's compose file uses `image: ghcr.io/meltface-80/musicd-server:migrat
 - **Each later stage:** wait until `:migration` is published (the docker-publish run after CI on
   the merge), then open the stack → **Update**. Check `http://<server>:3500/api/health` shows the
   new version.
+- **A stage tried before its merge** (stage 6's rule): the image for a `stage-*` branch is
+  published as `:<branch>` after CI passes on its last push (`.github/workflows/docker-publish.yml`),
+  so set the tag to, say, `:stage-6-playback` → **Save** → **Update**; once the stage is
+  squash-merged, back to `:migration` and **Update** as usual. The queues one server kept are
+  put back by the other, so nothing is lost across the switch.
 - **Going back:** set the tag to `:latest` (v0.8.44) and **Update**.
 - **Android:** the test app is the `.apk` on GitHub's **test-android** pre-release (Releases page).
 

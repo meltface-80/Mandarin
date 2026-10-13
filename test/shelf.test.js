@@ -152,7 +152,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   await house.start();
   const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
-  await srv.start();
+  const srvCtx = await srv.start();
   const b = await Browser.launch({ width: 1440, height: 900, mouse: true });
   try {
     const token = await signIn(B);
@@ -746,9 +746,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         return [...new Set(window.__by)].sort(); })()`);
       const node = r.filter(x => x.endsWith(" Node")).map(x => x.slice(0, -5));
       const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
-      assert.deepEqual(node.filter(p => !PLAYBACK.includes(p)), [], "nothing but playback from the Node server: " + JSON.stringify(r));
+      // Playback too is the C# server's where it holds the job (v0.8.49, stage 6): nothing is asked of the Node server then.
+      const front = !!(srvCtx.frontRuns && srvCtx.frontRuns.has("playback"));
+      assert.deepEqual(front ? node : node.filter(p => !PLAYBACK.includes(p)), [], (front ? "nothing" : "nothing but playback") + " from the Node server: " + JSON.stringify(r));
       for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display"]) assert.ok(csharp.includes(p), p + " answered by C#: " + JSON.stringify(r));
-      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(node.includes(p), p + " asked, and still the Node server's: " + JSON.stringify(r));
+      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok((front ? csharp : node).includes(p), p + " asked, and " + (front ? "the C# server's" : "still the Node server's") + ": " + JSON.stringify(r));
       const shelfPage = await fetch(B + "/shelf", { headers: H });
       assert.equal(shelfPage.headers.get("x-mandarin-answered"), "C#", "the page itself");
       assert.deepEqual(page.errors, []);

@@ -18,14 +18,26 @@ if (!process.env.ITUNES_URL) process.env.ITUNES_URL = "http://127.0.0.1:9";
 // here they fail at once, as they do offline, instead of running on after
 // a test has ended. Loopback — the fakes, the server under test — is
 // untouched. ALLOW_NETWORK=1 lifts it.
-if (!process.env.ALLOW_NETWORK && typeof globalThis.fetch === "function") {
+//
+// And no request waits for ever (v0.8.49): a server that never answers (a
+// deadlock, a request held behind a stuck one) used to hold a test file open
+// to its five-minute timeout, with nothing in the log to say which request.
+// Now the request fails after a minute and a half, naming its address. The
+// longest a test's request legitimately takes is the phone's long poll (25 s).
+if (typeof globalThis.fetch === "function") {
   const real = globalThis.fetch;
   const LOCAL = /^(127\.|localhost$|\[?::1\]?$)/;
-  globalThis.fetch = (input, init) => {
+  const PATIENCE_MS = 90000;
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === "string" || input instanceof URL ? String(input) : input.url;
     let host = "";
-    try { host = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url).hostname; } catch (e) { /* not a URL: let fetch say so */ }
-    if (host && !LOCAL.test(host)) return Promise.reject(new TypeError(`fetch failed: ${host} is off limits to the tests (test/setup.js)`));
-    return real(input, init);
+    try { host = new URL(url).hostname; } catch (e) { /* not a URL: let fetch say so */ }
+    if (host && !LOCAL.test(host) && !process.env.ALLOW_NETWORK) throw new TypeError(`fetch failed: ${host} is off limits to the tests (test/setup.js)`);
+    if (init && init.signal) return real(input, init);
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(new Error(`${(init && init.method) || "GET"} ${url} gave no answer in ${PATIENCE_MS / 1000} s (test/setup.js)`)), PATIENCE_MS);
+    try { return await real(input, Object.assign({}, init, { signal: ac.signal })); }
+    finally { clearTimeout(timer); }
   };
 }
 
@@ -57,7 +69,7 @@ if (process.env.MANDARIN_FRONT === "1") {
   // As the C# server starts the Node server in the image (Front.cs, v0.8.22
   // here): the work it takes over isn't started by the Node server first —
   // Tailscale's engine among it, which would otherwise start twice.
-  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale,scan,prune,import,services,update,cpu";
+  if (!process.env.MANDARIN_FRONT_RUNS) process.env.MANDARIN_FRONT_RUNS = "identify,mbpack,loudness,labels,days,taste,tailscale,scan,prune,import,services,update,cpu,playback";
   require("../lib/library/scanner").Scanner.program = bin;
   const listening = (port, ms) => new Promise((resolve, reject) => {
     const until = Date.now() + ms;

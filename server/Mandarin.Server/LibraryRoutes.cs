@@ -154,14 +154,14 @@ internal static partial class Library
                 try { await UnmergeLabel(ctx, source); return; }
                 catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[library] unmerge: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
             }
-            // Backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
-            if (await AdminRoute(ctx)) return;
+            // Playback (v0.8.49, stage 6, PlaybackRoutes.cs: once this server holds the job); backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
+            if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
             if (await PowerRoute(ctx)) return;
             // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
             if (await UpdateRoute(ctx)) return;
-            // Audio Devices, the writes (v0.8.48, DeviceRoutes.cs): the Node server told, and its word on the device sent on.
-            if (await DeviceRoute(ctx)) return;
+            // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
+            if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.

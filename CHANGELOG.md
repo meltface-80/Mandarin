@@ -11,6 +11,154 @@ whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sono
 and sound devices on this computer — each part held to the Node server's own answers and command
 order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
 
+- **The hub, the queue store, the phone as a zone, history, the radio and the play routes**
+  (part 1): the zone hub (`lib/sonos/zones.js`: one state per zone, the revision the long polls
+  wait on, the three hooks — a track started, one played long enough to count, the queue near its
+  end — the kept queues put back after a restart), the phone (`phones.js`: hello, the commands long
+  poll, the report with the phone's own list, its USB DAC and its volume steps, every command), the
+  queue store (`queue-store.js`: the same `queue:<id>` rows, the same debounce and position writes,
+  so a queue one server kept is put back by the other across an update), the items (`playback.js`:
+  signed addresses, DIDL, each track's gain, the prefetch), history and the radio (`features.js`'s
+  playback half: a play into `plays` with its album's id, Listen later's album coming off the
+  list, Random Album Radio with its six-month memory and 60-day preference), and every playback
+  and phone route (`api-playback.js`, `api-phone.js`: the gate, the name overlay, now playing and
+  its badge, Random Album, the history-to-queue routes, `/api/radio`) — in C#, answered from this
+  server's first request wherever it holds the new job `playback`. Playing a Qobuz or Tidal album
+  from its browser plays through the hub here too, the Node server no longer asked
+  (`/internal/playback/play` stays for an older C# server). `server/Mandarin.Server/Playback/`
+  (`Hub.cs`, `Hub.Commands.cs`, `Phones.cs`, `Phones.Report.cs`, `Phones.Commands.cs`,
+  `QueueStore.cs`, `Items.cs`, `Item.cs`, `Tracks.cs`, `History.cs`, `NowPlaying.cs`,
+  `Register.cs`, `ZoneState.cs`), `PlaybackRoutes.cs`, `PlaybackRoutes.Commands.cs`,
+  `PlaybackRoutes.Play.cs`, `PhoneRoutes.cs`, `ServiceRoutes.Play.cs`. The Node server's part is
+  the hand-over only (`lib/server/playback-handover.js`, new): its hub never starts where the C#
+  server names the job, and starts after all at a hand-over that leaves it out or when none comes;
+  the hand-over's `config` carries what the hub was set up with (the Sonos hosts, the server's
+  address, the include and exclude lists, the renderer hosts, multicast, the offline wait, local
+  audio). Sonos rooms (part 2) and renderers (part 3) are stubbed meanwhile: a Sonos id is refused
+  as an unavailable room. Tests: `test/playback-csharp.test.js` (new): the same requests to this
+  suite's server (behind C#) and to a Node server alone in a child process, for a phone zone, every
+  answer and refusal compared as JSON — hello, the lists, playing and controlling, the report and
+  now playing, the badge's every word, transport, queue and volume commands in order, the phone's
+  volume steps, the radio switch and its memory, away from home, the phone's own list, the queue
+  handed back with a hello and the kept row in the database, and the queue kept across a restart
+  of the C# server. `test/radio-memory.test.js` and `test/queue-moves.test.js` pass through C#;
+  the suites that drive the fake household (`test/phone.test.js` among them) wait for part 2.
+  Split for the length gate: `Jobs.Internal.cs` (the internal routes) out of `Jobs.cs`,
+  `ServiceRoutes.Play.cs` out of `ServiceRoutes.cs`.
+- **Sonos** (part 2): the player (`lib/sonos/device.js` and the sending half of `soap.js`: a
+  keep-alive pool of four, the SOAPACTION header, the ten-second timeout, one retry on a
+  connection the player closed, every failure one UPnPError), discovery and the household
+  (`topology.js`: M-SEARCH from every LAN address, the seeds and the players that answered last
+  time asked first, the household from any one player — the first known alone, then the rest at
+  once — the models fetched, the signature, `sonosKnownHosts` kept as the Node server kept it),
+  and the Sonos half of the hub (`zones.js`: the three loops — discovery every minute, the
+  household every thirty seconds, the poll every second with the watched, playing and
+  every-fifth rule — the group read into the zone's state, the volumes, the queue read from the
+  speaker and kept until its UpdateID moves, enqueue in the Node server's exact order, sixteen
+  tracks a round trip and one at a time on older firmware, each command read back promptly,
+  `playFromHere` read back before answering, every queue edit, the play modes, volume and mute,
+  pause-all, grouping and ungrouping, moving music between any two kinds, a room's queue planned
+  again for its levelling) — in C#. With them the rooms' part of `/api/status`, `/api/health`'s
+  rooms and a speaker's own address for a cover (`Images.cs`) are the hub's, and Sonos rooms and
+  phones go into the device register from the hub (`devices.js` `syncKnown`, every ten seconds
+  and at a phone's hello), so a phone's page in Audio Devices is there; a device write's effects
+  (a phone told its DSP or levelling, a room's queue planned again) are the hub's too
+  (`DeviceRoutes.cs`). `Playback/SonosDevice.cs`, `SonosTopology.cs`, `Hub.Sonos.cs`,
+  `Hub.SonosCommands.cs`, `Hub.Register.cs` (new); `POST /internal/playback/revision` for the
+  tests (the hub's change counter set). Tests: `test/playback-csharp.test.js` extended — a fake
+  household for each server, and after each scenario (played to, every transport command, the
+  queue added to, moved, played from, cut and cleared, the play modes, volume and mute, a
+  stopped room, pause-all, grouping and ungrouping, music moved from the phone to a room and back)
+  the commands each speaker was sent compared action for action, as well as every answer;
+  `test/e2e.test.js`, `test/queue-screen.test.js`, `test/play-next.test.js`,
+  `test/sonos-restart.test.js`, `test/now-playing-restart.test.js` (its counter set through the
+  internal route where C# holds playback), `test/phone.test.js` whole, `test/dsp.test.js`,
+  `test/stream.test.js` and `test/playlists.test.js` pass through C#. The suites that bring a
+  renderer (`queue-stopped`, `audio-devices`, `devices-csharp`, `renderers-csharp`,
+  `local-output`) wait for parts 3 and 4.
+- **The renderers** (part 3): the UPnP players (`lib/renderers/players.js`: the queue kept here,
+  `jump`, the next track armed once its file is complete — the conversion's state, a prefetch
+  when it has none — the device that ignores SetNextAVTransportURI noticed and started by hand,
+  three stops before a track ever plays reported rather than looped, shuffle's played set and
+  loop, the poll with the track found by its URI, the LinkPlay check of what a WiiM is really
+  playing, GENA subscriptions renewed in time and `NOTIFY /upnp/event/:id` answered before the
+  gate, the target a stream is planned to — the profile's effective chips, ffmpeg's 32-bit, the
+  DSD mimes, the zone's DSP — `replan`, `restore`, `drop`, every command and the fixed-volume
+  rule), discovery (`discovery.js`, `ssdp.js`, `linkplay.js`: M-SEARCH for MediaRenderer from
+  every LAN address, Sonos answers left aside, the location cache and its ten-minute re-check,
+  a known renderer that missed a round checked directly, the Sink read, LinkPlay's probe —
+  https then http, the certificate unverified — and the seeds), the device list's model
+  (`devices.js`: the scan every minute, `json`, `list`, `get`, `online`, `enabled`, `forget`) and
+  with it `GET /api/audio-devices`, a device's page, Look again and Forget, the switch
+  (`enabled`) and the radio on a PATCH, and the away-from-home rule — in C#, the hub's. A device
+  write's every effect is the hub's now (a renderer switched off or hidden while playing stopped
+  and let go, its queue planned again for its DSP or levelling), so the Node server is no longer
+  told of one. `Renderers/Players.cs`, `Players.Poll.cs`, `Players.Commands.cs`, `Renderer.cs`,
+  `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`, `Devices.cs`, `Playback/SoapHttp.cs`
+  (the sending half of `soap.js`, shared with Sonos), `Playback/Hub.Upnp.cs`,
+  `UpnpEventRoutes.cs`, `DeviceRoutes.Read.cs` (new). Tests: `test/renderer-playback.test.js`
+  (bit-perfect and gapless, SetNext ignored, the next file waited for, transport, the queue,
+  volume, shuffle and loop, upsampling, DSP, events, fixed volume, DSD, a restart) and
+  `test/audio-devices.test.js`'s renderer half pass through C#, with `test/devices-hide.test.js`,
+  `test/queue-stopped.test.js` and `test/renderers-csharp.test.js`; `test/devices-csharp.test.js`
+  holds the switch and the radio to the Node server's own answers and rows too, and a renderer
+  hidden while playing to a Stop on the fake device. `test/local-output.test.js`'s end-to-end
+  half waits for part 4.
+- **Sound devices on this computer** (part 4): the engine's driver (`lib/local/engine.js`:
+  Mandarin's audio engine found in the same order — `AUDIO_ENGINE_BIN`, the image's, the one
+  downloaded into the data folder, each asked for `protocol 1` — fetched once in the background
+  where the image lacks it and that is allowed, checked against its SHA256SUMS, and driven over
+  its stdin and stdout as before: the commands, the events — `pos`, `format`, `ended`, `xrun`,
+  `error` — what it was given mapped back to the track the player knows, the gain on the audio
+  taper, the engine on playback's own core at a raised priority where the system allows, `halt`),
+  the device list (`lib/local/devices.js`: ALSA's cards from `/proc/asound` and `/dev/snd` with a
+  USB DAC's own rates and depths, a Mac's outputs from `system_profiler`, the id from the name,
+  `hw_params` for the verified tick) and the scan every half minute into the register
+  (`devices.js` `scanLocal`, with the list's `local` counts) — in C#, the hub's. A sound device's
+  volume is kept in the register (`local_volume`) and its queue put back after a restart, stopped,
+  as before. `Local/AudioEngine.cs` (grown out of `HealthRoutes.cs`), `Local/EngineOutput.cs`,
+  `Local/LocalDevices.cs`, `Cpu.Engine.cs` (new). Not ported, as planned: `lib/local/output.js`,
+  the ffmpeg sink a device was played through before the engine — a Mac's sound devices are
+  listed and not played from this server (the Node server plays them until stage 7 decides). The
+  hand-over carries a test's own device list (`local_devices`), so `test/local-output.test.js`'s
+  end-to-end half passes through C# with a `file:` device played by the engine; the Node-alone
+  run is unchanged.
+- **What was left, and the Node hub idle** (part 5): the wall display's content takes the zone's
+  track from the hub here (`/api/display/content`; `POST /internal/playback/now` is no longer
+  asked — it stays, with `/internal/devices/changed` and `/internal/playback/play`, for an older
+  C# server). With it nothing of playback is the Node server's where this server holds the job:
+  its hub never starts, its device scans never run, and it answers nothing a page or a speaker
+  asks of playback. A speaker asking for a stream or a cover by its own address, unsigned (a
+  queue made before an update), is vouched for by the hub here (`Streams.cs`, `Images.cs`): the
+  Node server no longer knows the speakers and would turn it away. The hub never holds a thread
+  waiting on the library's copy (now playing, a play recorded, a queue rebuilt for another player,
+  the kept queues put back): each is asynchronous, so a busy machine with few cores can't be
+  starved into a hang — CI's runners were. The device list and its routes came with part 3, the rooms' part of
+  `/api/status` and `/api/health` with part 2. `test/housekeeping-csharp.test.js` holds
+  `/api/status` to the Node server's own answer with the rooms' part set aside (the Node hub
+  being idle, it counts none) and the display's content to the hub's track.
+- **The suite, steady and quicker.** A phone's report that brings a USB DAC (or takes it away) is
+  answered once its queue has been planned again, so the app's next poll has the new queue (the
+  replanning had been left running after the answer, and a poll straight after found nothing).
+  The parity test for the Sonos rooms compares a room's state until both hubs have read it, never
+  once (each reads its room on a timer of its own), and reads the room paused before moving its
+  music back to the phone (the fixture's tracks are three seconds long). A test's request to a
+  server fails after a minute and a half naming its address (`test/setup.js`), so a server that
+  never answers is a failure with a name rather than a file held to its five-minute timeout. CI
+  deals the test files out to three Linux jobs and two Mac jobs (`npm run test:shard`, node's
+  `--test-shard`) and keeps the .NET packages between runs: the whole run takes the time of a
+  part. Two more races found by the first sharded run: the server takes its port with a few
+  tries over five seconds (`lib/server/listen.js`, new) rather than failing on the moment the one
+  before is still letting go of it (a restore's restart; the in-app update's restart has the same
+  shape at home); and a scan made by the C# program is given once the program has gone, never
+  while it still holds the database (a database replaced underneath it read "disk I/O error" on
+  a Mac). And a test file that fails in CI is run once more on its own (`.github/retry-failed.sh`):
+  a pass then is a warning on the run naming the file, a race on a busy runner to fix in its turn;
+  a failure again is red. The re-run's first catch was no race: a page's `Last-Modified` from the
+  C# server (`Pages.cs`, a backup's download too) is now the file's time rounded to the
+  millisecond first, as Node's `fs.Stats` gives it and `sendFile` sends it, so a file written at
+  .9995 s is the next second from either server.
+
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
 but play moves to the C# server**, part by part, each held to the Node server's own answers and

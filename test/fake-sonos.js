@@ -201,7 +201,7 @@ class Room {
       this.server.listen(1400, this.ip, resolve);
     });
   }
-  stop() { return new Promise(r => this.server ? this.server.close(() => r()) : r()); }
+  stop() { return require("./fixtures").stopServer(this.server); }
 }
 
 class FakeHousehold {

@@ -80,10 +80,20 @@ suppressions file: what the rules found on the day the gate came, per file and r
 - `npm test` runs the whole suite; CI runs it on every push, on Node 20 alone and on Node 22
   and a Mac through the C# server, and a red test stops the image. The migration's rule stands:
   never skip, disable or loosen a test to get green.
-- A hang is a failure with a name, not a cancelled job: the runner gives every test five
+- The run is dealt out (`npm run test:shard`, node's `--test-shard`): three Linux jobs and two
+  Mac jobs, each a part of the files, so the whole run takes the time of a part. A file's tests
+  stay together in one job, so nothing about the order between files changes.
+- A hang is a failure with a name, not a cancelled job: a test's request to a server fails after
+  a minute and a half naming its address (`test/setup.js`), the runner gives every test five
   minutes (`--test-timeout`) and exits a test file whose process lingers once its tests are
   done (`--test-force-exit`). Before that, one hung child held a CI job to its 25-minute limit
   with nothing in the log to say which test it was.
+- A test that compares two servers' views of one device waits until both have read it (a
+  retried compare, bounded), never compares once: each reads on a timer of its own.
+- A test file that fails in CI is run once more on its own (`.github/retry-failed.sh`). A pass
+  then is a warning on the run naming the file: a race on a busy runner, to be fixed in its turn,
+  not a reason to hold the merge. A failure again is red. The test itself is never changed by
+  this: it is the same file, run again with the machine to itself.
 - A test is worth what it refuses. For any test that matters, break the code on purpose once
   and watch the test fail; a test that passes against broken code is a suggestion. The gates'
   own tests (`test/quality-gates.test.js`) run on synthetic trees under a real `git init`, and

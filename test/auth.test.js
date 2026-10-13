@@ -173,7 +173,10 @@ test("a queue made before the update keeps playing: speakers need no signature",
     r.on("error", (e) => resolve(e.message));
   });
   try {
-    for (let i = 0; i < 50 && !ctx.zones.topology.hosts.includes(ports.host(1)); i++) await new Promise(r => setTimeout(r, 200));
+    // The household read: by the C# hub where it holds playback (v0.8.49; /api/health counts its rooms), else the Node server's.
+    const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
+    const known = async () => front ? (await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()).rooms >= 2 : ctx.zones.topology.hosts.includes(ports.host(1));
+    for (let i = 0; i < 50 && !(await known()); i++) await new Promise(r => setTimeout(r, 200));
     assert.notEqual(await from(ports.host(1)), 401, "a speaker gets through unsigned");
     assert.equal(await from(ports.host(3)), 401, "anything else needs to sign in");
   } finally {

@@ -209,6 +209,12 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
 
     const cd = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");
     const r = await api("play", { offset: cd.offset, zone_or_output_id: DAC.id, kind: "play_now" });
+    // On a Mac the C# hub (v0.8.49, stage 6) can't play a sound device: Mandarin's audio engine plays through ALSA, and the ffmpeg sink
+    // stays the Node server's (docs/specs/csharp-migration.md, stage 6 part 4). Refused in words, until stage 7 decides.
+    if (process.platform === "darwin" && ctx.frontRuns && ctx.frontRuns.has("playback")) {
+      assert.deepEqual([r.status, r.error], [409, "Test DAC can't be played from this server: Mandarin's audio engine isn't here"], JSON.stringify(r));
+      return;
+    }
     assert.equal(r.ok, true, JSON.stringify(r));
     const s1 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s; });
     assert.equal(s1.now_playing.line1, "Song 1");

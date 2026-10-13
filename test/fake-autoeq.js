@@ -43,7 +43,7 @@ class FakeAutoEq {
       this.server.listen(0, "127.0.0.1", () => { this.base = `http://127.0.0.1:${this.server.address().port}`; resolve(this.base); });
     });
   }
-  stop() { return new Promise(r => this.server ? this.server.close(() => r()) : r()); }
+  stop() { return require("./fixtures").stopServer(this.server); }
 }
 
 module.exports = { FakeAutoEq, INDEX, PROFILES };

@@ -300,11 +300,17 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       before = tidal.refreshes;
       r = await post("settings/tidal/import");
       assert.deepEqual([r.status, r.by, r.j.ok, tidal.refreshes], [200, "C#", true, before + 1], r.text);
-      // The import runs on after its answer, and the watch looks at nothing while it does: let it finish.
+      // The import runs on after its answer, and the watch looks at nothing while one runs (it answers null for the service then):
+      // asked until it has looked — the server's own first import, scheduled when the switch went on, may run just after the one asked for.
       await until(async () => !(await get("settings/tidal")).j.importing, 20000, "Tidal's import");
-      due();
-      const w = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
-      assert.deepEqual([w.ok, w.services.tidal.failed, tidal.refreshes], [true, 0, before + 2], JSON.stringify(w));
+      const w = await until(async () => {
+        due();
+        const r0 = tidal.refreshes;
+        const x = await (await fetch(B + "/internal/jobs/watch", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).json();
+        if (!x.services || !x.services.tidal) return null;
+        return Object.assign(x, { refreshed: tidal.refreshes - r0 });
+      }, 20000, "the watch, once no import runs");
+      assert.deepEqual([w.ok, w.services.tidal.failed, w.refreshed], [true, 0, 1], "the watch refreshed the token due, once: " + JSON.stringify(w));
     } finally { ctx.db.setSetting("tidalSettings", { quality: "hires", import: false }); ctx.library.reload(); }
     assert.ok(refreshed.own - node >= 3, "the Node server's own, for its own requests");
     assert.equal(refreshed.else, 0, "and never for a request through C#");
@@ -347,13 +353,16 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
         await until(() => room.queue.length >= want.length, 15000, what + ": the queue");
         return { r, rows: rows(key), queue: titles() };
       };
-      const mine = await run(B), theirs = await run(NODE);
+      // Where the C# server holds playback (v0.8.49, stage 6) the Node server's hub never starts, so its own play can't be run for comparison: the C# server's is held to what the room must be sent.
+      const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
+      const mine = await run(B), theirs = front ? null : await run(NODE);
       assert.deepEqual([mine.r.status, mine.r.by, mine.r.j.ok, mine.r.j.offset], [200, "C#", true, mine.rows.id], what + ": " + mine.r.text);
       assert.deepEqual(mine.r.j.action, ["play_now", "play_next", "queue", "shuffle"].includes(body.kind) ? body.kind : "play_now");
+      assert.deepEqual(mine.queue, want, what + ": the room's queue");
+      if (!theirs) continue;
       assert.equal(mine.r.text.replace(`"offset":${mine.rows.id}`, `"offset":"ID"`), theirs.r.text.replace(`"offset":${theirs.rows.id}`, `"offset":"ID"`), what + ": the same answer");
       assert.deepEqual(mine.rows.album, theirs.rows.album, what + ": the album's row");
       assert.deepEqual(mine.rows.tracks, theirs.rows.tracks, what + ": its tracks' rows");
-      assert.deepEqual(mine.queue, want, what + ": the room's queue");
       assert.deepEqual(mine.queue, theirs.queue, what + ": as the Node server queues it");
     }
     // Refused, in the same words: signed in but asked wrongly.

@@ -171,7 +171,7 @@ class FakeQobuz {
     return new Promise(resolve => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; resolve(this); }));
   }
 
-  stop() { return new Promise(r => this.server ? this.server.close(() => r()) : r()); }
+  stop() { return require("./fixtures").stopServer(this.server); }
 }
 
 module.exports = { FakeQobuz };

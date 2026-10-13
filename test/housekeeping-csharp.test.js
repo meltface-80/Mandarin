@@ -84,16 +84,26 @@ test("/api/status, Clean up and the wall display's content, answered by the C# s
   const s = await serve(t, lib, { MANDARIN_WATCH_QUIET_MS: "600000" }, { sonosHosts: [ports.host(0)] });
   await until(async () => (await albums(s)) === 3 && idle(s), 30000, "the first scan");
   const kitchen = await until(async () => (await s.get("/api/zones")).j.zones.find(z => z.display_name === "Kitchen"), 30000, "the rooms");
+  // Stage 6 (v0.8.49): the C# server holds playback, so the rooms' part of /api/status and a zone's track are its hub's own, not the Node server's (whose hub never started).
+  const front = !!(s.ctx.frontRuns && s.ctx.frontRuns.has("playback"));
 
   await t.test("/api/status: the Node server's own answer, word for word", async () => {
-    const st = await same(s, "/api/status", "/api/status");
+    let st;
+    if (front) {
+      st = await s.get("/api/status");
+      const theirs = await s.node("GET", "/api/status");
+      const rest = (j) => { const o = Object.assign({}, j); delete o.zone_count; delete o.sonos; return o; };
+      assert.equal(st.by, "C#", "/api/status: answered by the C# server");
+      assert.deepEqual(rest(st.j), rest(theirs.j), "/api/status, the rooms' part aside: the Node server's own");
+    }
+    else st = await same(s, "/api/status", "/api/status");
     assert.equal(st.j.index_count, 3);
     assert.equal(st.j.scan.last.status, "updated", JSON.stringify(st.j.scan));
     assert.equal(st.j.scan.files_seen, 7);
     assert.deepEqual(st.j.music_dirs, [lib.music]);
     assert.equal(st.j.music_dir_exists, true);
     assert.equal(st.j.data_persistent, null, "not in Docker: can't be told");
-    assert.equal(st.j.zone_count, 2, "the rooms, as the Node server counts them");
+    assert.equal(st.j.zone_count, 2, "the rooms, as the server that holds playback counts them");
     assert.equal(st.j.sonos.rooms, 2);
     assert.equal(st.j.version, require("../package.json").version);
     assert.equal(st.j.server, true);
@@ -138,12 +148,19 @@ test("/api/status, Clean up and the wall display's content, answered by the C# s
   await t.test("the wall display's content: nothing playing, a room playing, and the display switched off", async () => {
     let r = await same(s, "/api/display/content?zone=RINCON_NOTHING", "nothing playing");
     assert.deepEqual(r.j, { artistPhotos: [], review: null, video: null });
-    // A room playing an album: its track asked of the Node server, the rest from the C# server (no write-up, no photos here: nothing off this machine is asked).
+    // A room playing an album: its track from the hub that plays it (the Node server's until stage 6), the rest from the C# server (no write-up, no photos here: nothing off this machine is asked).
     const one = (await s.get("/api/library/albums?sort=album")).j.albums.find(a => a.title === "Album One");
     r = await s.post("/api/play", { offset: one.offset, zone_or_output_id: kitchen.zone_id, kind: "play_now" });
     assert.equal(r.status, 200, JSON.stringify(r.j));
-    await until(() => { const z = s.ctx.zones.zone(kitchen.zone_id); return z && z._state && z._state.title; }, 30000, "the room to play");
-    r = await same(s, "/api/display/content?zone=" + encodeURIComponent(kitchen.zone_id), "a room playing");
+    const playing = "/api/display/content?zone=" + encodeURIComponent(kitchen.zone_id);
+    if (front) {
+      await until(async () => { const z = (await s.get("/api/zone-state?zone=" + encodeURIComponent(kitchen.zone_id))).j.zone; return z && z.now_playing && z.now_playing.line1; }, 30000, "the room to play");
+      r = await s.get(playing);
+      assert.equal(r.by, "C#", "a room playing: answered by the C# server, its hub's track");
+    } else {
+      await until(() => { const z = s.ctx.zones.zone(kitchen.zone_id); return z && z._state && z._state.title; }, 30000, "the room to play");
+      r = await same(s, playing, "a room playing");
+    }
     assert.deepEqual(r.j, { artistPhotos: [], review: null, bio: null, bios: [], moreAlbums: { artist: null, label: null } });
     s.ctx.db.setSetting("displayEnabled", false);
     r = await same(s, "/api/display/content?zone=x", "switched off");

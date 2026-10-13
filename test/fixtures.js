@@ -77,4 +77,20 @@ function probe(buf) {
   return { rate, channels, bits };
 }
 
-module.exports = { haveFfmpeg, haveDrawtext, makeLibrary, gen, probe, writeDsf, FFMPEG };
+/*
+ * A test's own HTTP server (a fake service, a stand-in speaker) stopped: its
+ * connections closed first, then the server. close() alone waits for every
+ * connection to end, and the C# server keeps its connections to a fake alive
+ * between requests and may be mid-request when the test ends: a stop that
+ * waited on it held the whole test file to its five-minute timeout, with the
+ * C# server left running (seen in CI, v0.8.49).
+ */
+function stopServer(server) {
+  return new Promise(resolve => {
+    if (!server) return resolve();
+    if (server.closeAllConnections) server.closeAllConnections();
+    server.close(() => resolve());
+  });
+}
+
+module.exports = { haveFfmpeg, haveDrawtext, makeLibrary, gen, probe, writeDsf, stopServer, FFMPEG };

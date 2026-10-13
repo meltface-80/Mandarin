@@ -10,6 +10,11 @@
  * Switching a player on or off and the radio stay the Node server's (passed
  * on), as does what it alone can read (bad JSON).
  *
+ * Once the C# server holds playback (v0.8.49, stage 6; Playback/Hub.cs) its
+ * own hub does what each write did, never the Node server's players; the
+ * switch and the radio are written there too, each held to the Node server's
+ * own; and a renderer hidden while playing is stopped and let go.
+ *
  * Each write is made twice from the same row — through the C# server, then by
  * the Node server itself — and the two rows and answers compared.
  */
@@ -62,6 +67,9 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
     return { status: r.status, by: r.headers.get("x-mandarin-answered"), j, text };
   };
   const patch = (id, body) => call(B, "PATCH", "/api/audio-devices/" + id, body);
+  // Stage 6: the C# server holds playback, so the switch, the radio and the device list are its too.
+  const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
+  const theirs = front ? "C#" : null;
 
   // A phone in the register, as the app's hello puts it (the app itself isn't here).
   ctx.devices.registry.seen({ id: "PHONE_test", kind: "phone", network_name: "Test phone", model: "Phone" });
@@ -76,6 +84,8 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
   }
   const bumps = { n: 0 };
   { const real = ctx.zones.bump.bind(ctx.zones); ctx.zones.bump = (...a) => { bumps.n++; return real(...a); }; }
+  // The C# hub's change counter: its zones bumped is the counter moved.
+  const revision = async () => (await call(B, "GET", "/api/zone-state?zone=none")).j.revision;
 
   const row = (id) => raw.prepare("SELECT name, caps, settings FROM audio_devices WHERE id = ?").get(id) || null;
   const putBack = (id, r) => { raw.prepare("UPDATE audio_devices SET name = ?, caps = ?, settings = ? WHERE id = ?").run(r.name, r.caps, r.settings, id); ctx.devices.registry.refreshName(id); };
@@ -89,21 +99,31 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
    */
   const same = async (id, body, what) => {
     const before = row(id);
-    const n0 = effects.length, b0 = bumps.n;
+    const n0 = effects.length, b0 = bumps.n, r0 = front ? await revision() : 0;
     const c = await patch(id, body);
     const rowC = row(id);
-    const effC = effects.slice(n0), bumpC = bumps.n - b0;
+    const effC = effects.slice(n0);
+    let bumpC = front ? (await revision()) - r0 : bumps.n - b0;
     if (before) putBack(id, before);
     const n1 = effects.length, b1 = bumps.n;
     const n = await call(NODE, "PATCH", "/api/audio-devices/" + id, body);
     const rowN = row(id);
     const effN = effects.slice(n1), bumpN = bumps.n - b1;
+    // The C# hub's counter moves for its own reasons too (a discovery round that found the renderers): a bump where the Node server made none is measured once more, from the same row.
+    if (front && bumpN === 0 && bumpC > 0 && before) {
+      putBack(id, before);
+      const r1 = await revision();
+      await patch(id, body);
+      bumpC = (await revision()) - r1;
+      putBack(id, rowN);
+    }
     assert.equal(c.by, "C#", what + ": answered by the C# server");
     assert.equal(n.by, null, what + ": the Node server's own");
     assert.equal(c.status, n.status, what + ": " + c.text + " against " + n.text);
     assert.deepEqual(strip(c.j), strip(n.j), what + ": the answer");
     assert.deepEqual(rowC, rowN, what + ": the row");
-    assert.deepEqual(effC, effN, what + ": what the Node server's players were asked to do");
+    // Stage 6: the C# hub's own players, never the Node server's.
+    assert.deepEqual(effC, front ? [] : effN, what + ": what the Node server's players were asked to do");
     assert.equal(bumpC > 0, bumpN > 0, what + ": the zones bumped");
     return c;
   };
@@ -133,15 +153,27 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
     assert.deepEqual([r.status, r.j], [404, { error: "No such device" }]);
   });
 
-  await t.test("hidden: switched off with it when it can be, the Node server stopping it and letting it go; shown again, still off", async () => {
-    // Switched on first (the Node server's: passed on whole).
+  await t.test("hidden: switched off with it when it can be, the server stopping it and letting it go; shown again, still off", async () => {
+    // Switched on first (the Node server's until stage 6: passed on whole).
     let r = await patch(W, { enabled: true });
-    assert.equal(r.by, null, "enabled is the Node server's");
+    assert.equal(r.by, theirs, "the switch");
     assert.equal(r.j.enabled, true);
+    if (front) {
+      // Playing when hidden: the C# hub stops it and lets it go.
+      await until(async () => (await call(B, "GET", "/api/zones")).j.zones.some(z => z.zone_id === W));
+      const cd = (await call(B, "GET", "/api/library/albums?sort=album")).j.albums.find(a => a.title === "Album One");
+      assert.equal((await call(B, "POST", "/api/play", { offset: cd.offset, zone_or_output_id: W, kind: "play_now" })).status, 200);
+      await until(async () => wiim.state === "PLAYING");
+      wiim.log.length = 0;
+    }
     r = await same(W, { hidden: true }, "hidden while on");
     assert.deepEqual([r.j.hidden, r.j.enabled], [true, false]);
     assert.deepEqual(JSON.parse(row(W).settings), { enabled: false, hidden: true });
-    assert.ok(effects.includes("drop:" + W), "let go: " + effects.join(" "));
+    if (front) {
+      assert.ok(wiim.log.includes("Stop"), "stopped: " + wiim.log.join(" "));
+      assert.ok(!(await call(B, "GET", "/api/zones")).j.zones.some(z => z.zone_id === W), "let go");
+    }
+    else assert.ok(effects.includes("drop:" + W), "let go: " + effects.join(" "));
     r = await same(W, { hidden: false }, "shown again");
     assert.deepEqual([r.j.hidden, r.j.enabled], [false, false]);
     // A room can be hidden too; the phone just leaves the list.
@@ -288,23 +320,38 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
     assert.equal(r.j.id, W);
   });
 
-  await t.test("the Node server's own: enabled and the radio, a bad body, the list and a device's page", async () => {
-    let r = await patch(K, { radio: true });
-    assert.equal(r.by, null, "the radio is passed on");
+  await t.test("the switch and the radio: the Node server's until stage 6, then held to its own; a bad body, the list and a device's page", async () => {
+    let r = await (front ? same(K, { radio: true }, "the radio on") : patch(K, { radio: true }));
+    assert.equal(r.by, theirs, "the radio");
     assert.equal(r.j.radio, true);
-    await patch(K, { radio: false });
-    r = await patch(W, { name: "x", enabled: false });
-    assert.equal(r.by, null, "with enabled, the whole PATCH is passed on");
+    assert.deepEqual(ctx.db.setting("radioZones", []), [K], "per zone");
+    r = await (front ? same(K, { radio: false }, "the radio off") : patch(K, { radio: false }));
+    assert.equal(r.j.radio, false);
+    r = await (front ? same(W, { name: "x", enabled: false }, "a name and the switch") : patch(W, { name: "x", enabled: false }));
+    assert.equal(r.by, theirs, "with enabled, the whole PATCH");
     assert.deepEqual([r.j.name, r.j.enabled], ["x", false]);
     await patch(W, { name: "" });
+    if (front) {
+      r = await same(W, { enabled: true }, "switched on");
+      assert.deepEqual([r.j.enabled, JSON.parse(row(W).settings).enabled], [true, true]);
+      await until(async () => (await call(B, "GET", "/api/zones")).j.zones.some(z => z.zone_id === W), 5000);
+      r = await same(W, { enabled: 0 }, "switched off");
+      assert.equal(r.j.enabled, false);
+      r = await same(PH, { enabled: false }, "a phone");
+      assert.deepEqual([r.status, r.j], [400, { error: "A phone is always its own player" }]);
+      r = await same(K, { enabled: false }, "a room switched off");
+      assert.equal(r.j.enabled, false);
+      assert.ok(!(await call(B, "GET", "/api/zones")).j.zones.some(z => z.zone_id === K), "leaves the picker");
+      await same(K, { enabled: true }, "and back");
+    }
     r = await call(B, "PATCH", "/api/audio-devices/" + W, "{not json", H);
     assert.equal(r.by, null, "what can't be read is the Node server's to turn down");
     assert.equal(r.status, 400);
     r = await call(B, "PATCH", "/api/audio-devices/" + W, "name=x", { Authorization: H.Authorization, "Content-Type": "text/plain" });
     assert.equal(r.by, "C#", "a body that isn't JSON is {}: nothing to write");
     assert.equal(r.status, 200);
-    for (const p of ["/api/audio-devices", "/api/audio-devices/" + W]) assert.equal((await call(B, "GET", p)).by, null, p + " is the Node server's");
-    assert.equal((await call(B, "POST", "/api/audio-devices/rescan", {})).by, null, "Look again is the Node server's");
+    for (const p of ["/api/audio-devices", "/api/audio-devices/" + W]) assert.equal((await call(B, "GET", p)).by, theirs, p);
+    assert.equal((await call(B, "POST", "/api/audio-devices/rescan", {})).by, theirs, "Look again");
     assert.equal((await call(B, "PATCH", "/api/audio-devices/", { name: "x" })).by, null, "no id: the Node server's");
   });
 });

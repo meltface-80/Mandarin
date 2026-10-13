@@ -80,8 +80,16 @@ internal static partial class Library
     private static async Task<bool> Status(HttpContext ctx)
     {
         if (await Current() is not var (s, st)) return false;
-        // The rooms' part: a Node server that doesn't say it (an older one) answers itself.
-        if (st.Said["zone_count"] is not JsonValue zones || st.Said["sonos"] is not JsonObject sonos) return false;
+        // The rooms' part: the hub's own once this server holds playback (v0.8.49); else the Node server's, and a Node server that doesn't say it (an older one) answers itself.
+        JsonNode zones; JsonObject sonos;
+        if (Playback.Hub.Current is { } hub)
+        {
+            using var c = Db.Open();
+            zones = hub.Zones().Count(z => PlaybackRoutes.Shown(c, z));
+            sonos = new JsonObject { ["rooms"] = hub.RoomCount, ["discovered"] = hub.Discovered, ["searching"] = hub.Searching, ["error"] = hub.LastError };
+        }
+        else if (st.Said["zone_count"] is JsonValue zv && st.Said["sonos"] is JsonObject so) { zones = zv.DeepClone(); sonos = so.DeepClone().AsObject(); }
+        else return false;
         var away = Auth.IsAway(ctx);
         var state = Scans.State;
         var roots = Scans.Roots();
@@ -91,12 +99,12 @@ internal static partial class Library
             ["paired"] = true,
             ["core_id"] = "musicd-server",
             ["core_name"] = "Mandarin",
-            ["zone_count"] = away ? 0 : zones.DeepClone(),
+            ["zone_count"] = away ? 0 : zones,
             ["library_importing"] = Js.Truthy(state["running"]),
             ["library_recheck_pending"] = false,
             ["index_built_at"] = st.BuiltAt is { } built ? built : null,
             ["index_count"] = s.Count,
-            ["sonos"] = sonos.DeepClone(),
+            ["sonos"] = sonos,
             ["music_dir"] = Scans.MusicDir,
             ["music_dir_exists"] = roots.Any(NodeFs.Exists),
             ["music_dirs"] = new JsonArray(roots.Select(r => (JsonNode)r).ToArray()),
@@ -226,8 +234,14 @@ internal static partial class Library
         bool on;
         using (var c = Db.Open()) on = Db.Setting(c, "displayEnabled") is { } v ? Js.Truthy(v) : true;
         if (!on) return await JsError(ctx, 403, "Wall display is turned off in Settings");
-        // The zone's track: the Node server's, which plays it.
-        var now = await ToNode("/internal/playback/now", new JsonObject { ["zone"] = Q(ctx, "zone") ?? "" });
+        // The zone's track: the hub's own once this server holds playback (v0.8.49); else the Node server's, which plays it.
+        JsonObject? now;
+        if (Playback.Hub.Current is { } hub)
+        {
+            var zs = hub.Zone(Q(ctx, "zone") ?? "")?.State;
+            now = new JsonObject { ["state"] = zs == null ? null : new JsonObject { ["title"] = zs.Title, ["trackId"] = zs.TrackId, ["artist"] = zs.Artist, ["album"] = zs.Album } };
+        }
+        else now = await ToNode("/internal/playback/now", new JsonObject { ["zone"] = Q(ctx, "zone") ?? "" });
         if (now == null) return false;
         if (now["state"] is not JsonObject st || (!Js.Truthy(st["title"]) && !Js.Truthy(st["trackId"])))
             return await SendJs(ctx, Jv.Obj(("artistPhotos", new List<object?>()), ("review", null), ("video", null)));

@@ -172,11 +172,12 @@ internal static partial class Pages
     {
         var info = files.GetFileInfo(name);
         if (!info.Exists) { ctx.Response.StatusCode = 404; return; }
-        // The time to the nearest millisecond, as Node's fs.Stats gives it (send's tag).
+        // The time to the nearest millisecond, as Node's fs.Stats gives it: send's tag, and its
+        // Last-Modified (a file written at .9995 s is the next second there, so here too).
         var ms = (long)Math.Floor((info.LastModified.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10000.0 + 0.5);
         var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + ms.ToString("x") + "\"", isWeak: true);
         ctx.Response.Headers.ETag = etag.ToString();
-        ctx.Response.Headers.LastModified = info.LastModified.ToString("R");
+        ctx.Response.Headers.LastModified = DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("R");
         ctx.Response.Headers.CacheControl = "public, max-age=0";
         ctx.Response.Headers.AcceptRanges = "bytes";
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
