@@ -363,7 +363,7 @@ the owner asked, everything is based on `migration`:
 - **Fix:** the same cache, keyed by the file's write time.
 - **Branch:** `audit/performance-optimization`
 
-### P3. The page script is shipped unminified (Low)
+### P3. The page script is shipped unminified (Low; deferred: remind the owner at v0.9.5)
 
 - **Where:** `public/app.js` (1.15 MB, 19,582 lines) and `public/shelf.js`. Revalidated on every
   load (`Cache-Control: public, max-age=0` + ETag, `Pages.cs:179–181`), so a phone parses 1.15 MB
@@ -414,7 +414,7 @@ the owner asked, everything is based on `migration`:
   what a backup holds (S1).
 - **Branch:** `audit/documentation-updates`
 
-### D3. Files published with the site but linked from nowhere (Low)
+### D3. Files published with the site but linked from nowhere (Low; dropped: the owner keeps both)
 
 - **Where:**
   - `docs/IMG_8974.jpeg`
@@ -433,13 +433,16 @@ the owner asked, everything is based on `migration`:
 
 ---
 
-## For the owner to decide before work starts
+## The owner's decisions
 
-1. **The branch plan above:** category branches from `audit-b4-main`, merged back into it, then
-   one pull request into `migration` before v0.9.0 goes to `main`. Or straight into `migration`,
-   one category at a time?
-2. **S1, encrypted backups:** worth adding to v0.9.0, or a v0.9.x feature?
-3. **P3, minifying the page in the image:** yes or no?
-4. **D3:** keep and link the two files in `docs/`, or remove them?
-5. **Q7 renames:** with Q1's split, or not at all?
-6. **Order:** security, then testing, quality, performance and documentation, as listed?
+1. **The branch plan:** as above. Category branches from `audit-b4-main`, each squash-merged back
+   into it when green, then `audit-b4-main` into `migration` as one pull request before v0.9.0 goes
+   to `main`.
+2. **S1, encrypted backups:** in v0.9.0.
+3. **P3, minifying the page in the image:** not now. **Remind the owner when the work reaches
+   v0.9.5.**
+4. **D3:** both files kept as they are, and D3 is dropped. `docs/IMG_8974.jpeg` is the MusicD
+   waveform logo; `docs/Mandarin-music-scanning-guide.pdf` is the owner's guide to waveforms for
+   Qobuz and Tidal.
+5. **Q7 renames:** with Q1, in the same change.
+6. **Order:** security, testing, code quality, performance, documentation.

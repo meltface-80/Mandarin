@@ -82,6 +82,14 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    `lib/`) merged (#213). Part 6 (v0.9.0: the image and the repository without Node) on
    `stage-7-part-6-node-deleted`. Then the owner tests from `migration` and merges to `main` as
    v0.9.0 themselves. After that, bugs go on `v0.9.x-rc1 - <bug>` branches (CLAUDE.md section 4).
+   Part 6 (#214) and part 7 (#216: the old Node hand-offs answered, a Mac's USB DAC through
+   Mandarin DAC Bridge) are merged.
+4. **The audit before `main`** (`docs/specs/audit-b4-main.md`, branch `audit-b4-main`): the
+   report and the owner's decisions are at the end of it. Work in the order security, testing,
+   code quality, performance, documentation, each on its `audit/*` branch from `audit-b4-main`
+   and merged back into it; then `audit-b4-main` into `migration` before v0.9.0 goes to `main`.
+   **At v0.9.5, remind the owner of P3** (minifying the page's copy in the image), deferred by
+   them until then.
 
 Per the spec, each stage is planned in detail (in the spec) before it's coded.
 
