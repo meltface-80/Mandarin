@@ -154,7 +154,7 @@ internal static partial class Streams
         if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return Refuse(ctx, 404);
         // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12). A streamed track: the cached FLAC.
         if (opus && svc == null) return await Downloads.StreamOpus(ctx, id);
-        if (gq is null) return Refuse(ctx, 400);
+        if (gq is null) { if (Front.Alone && ListOne(raw, "g") is { } one) gq = (true, one); else return Refuse(ctx, 400); }
         double? gain = null;
         if (gq.Value.Here)
         {
@@ -268,6 +268,29 @@ internal static partial class Streams
             else if (key.StartsWith(name + "[", StringComparison.Ordinal) || key.StartsWith('[')) return null;
         }
         return found != null ? (true, found) : (false, null);
+    }
+
+    /*
+     * Number(req.query[name]) where qs makes a list of it: a list of one is its value (Number(["-3"]) is -3: g[]=-3,
+     * g[0]=-3), two or more, or an object (g[a]=), not a number (null). For the program alone, as index.js read it.
+     */
+    internal static string? ListOne(string query, string name)
+    {
+        var values = new List<string>();
+        foreach (var part in query.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase).Replace("%5D", "]", StringComparison.OrdinalIgnoreCase).Split('&'))
+        {
+            var bracketEquals = part.IndexOf("]=", StringComparison.Ordinal);
+            var pos = bracketEquals == -1 ? part.IndexOf('=') : bracketEquals + 1;
+            var key = Signing.Decode(pos == -1 ? part : part[..pos]);
+            var value = pos == -1 ? "" : Signing.Decode(part[(pos + 1)..]);
+            if (key == name || key == name + "[]") values.Add(value);
+            else if (key.StartsWith(name + "[", StringComparison.Ordinal) && key.EndsWith(']'))
+            {
+                if (!key[(name.Length + 1)..^1].All(char.IsAsciiDigit)) return null;
+                values.Add(value);
+            }
+        }
+        return values.Count == 1 ? values[0] : null;
     }
 
     public static async Task<bool> SendFile(HttpContext ctx, string file, string mime)
