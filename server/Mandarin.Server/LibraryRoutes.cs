@@ -175,7 +175,7 @@ internal static partial class Library
                 try
                 {
                     var cur = await Current();
-                    if (cur is var (s, st) && await h(ctx, s, st)) return;
+                    if (cur is var (s, st) && (await SendKept(ctx, p, s, st) || await h(ctx, s, st))) return;
                 }
                 catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "library", e); return; }
             }
@@ -187,8 +187,14 @@ internal static partial class Library
 
     private static readonly JsonSerializerOptions Out = Http.Relaxed;
 
-    /* res.json, as Express sends it (Http.cs): its weak ETag, and "not modified" for a copy still current. */
-    private static Task<bool> Send(HttpContext ctx, JsonNode body, int status = 200) => Http.Json(ctx, body, status);
+    /* res.json, as Express sends it (Http.cs): its weak ETag, and "not modified" for a copy still current; kept when its route asked (LibraryRoutes.Kept.cs). */
+    private static Task<bool> Send(HttpContext ctx, JsonNode body, int status = 200)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(body.ToJsonString(Out));
+        var tag = Http.Tag(bytes);
+        Keep(ctx, bytes, tag, status);
+        return Http.Send(ctx, bytes, Http.JsonType, status, tag);
+    }
     /*
      * GET /api/library/mark (v0.8.43): which albums there are, as the
      * X-Mandarin-Library header carries it on every answer. The page asks

@@ -56,10 +56,13 @@ internal static partial class Pages
             if ((HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method))
                 && ctx.Request.Path.Value == "/style.css" && IsApp(ctx))
             {
-                var css = await File.ReadAllTextAsync(Path.Combine(publicDir, "style.css"));
-                var extra = "";
-                try { extra = "\n" + await File.ReadAllTextAsync(Path.Combine(publicDir, "android.css")); } catch (IOException) { /* none */ }
-                await Send(ctx, SafeArea().Replace(css, "0px") + extra, "text/css; charset=utf-8");
+                string css = Path.Combine(publicDir, "style.css"), android = Path.Combine(publicDir, "android.css");
+                await SendMade(ctx, "style.css", [css, android], async () =>
+                {
+                    var extra = "";
+                    try { extra = "\n" + await File.ReadAllTextAsync(android); } catch (IOException) { /* none */ }
+                    return SafeArea().Replace(await File.ReadAllTextAsync(css), "0px") + extra;
+                }, "text/css; charset=utf-8");
                 return;
             }
             await next();
@@ -180,8 +183,8 @@ internal static partial class Pages
     {
         ctx.Response.Headers.Vary = "User-Agent";
         if (!IsApp(ctx)) { await SendFile(ctx, files, "index.html"); return; }
-        var html = await File.ReadAllTextAsync(Path.Combine(publicDir, "index.html"));
-        await Send(ctx, ViewportFit().Replace(html, "", 1), "text/html; charset=utf-8");
+        var page = Path.Combine(publicDir, "index.html");
+        await SendMade(ctx, "index.html", [page], async () => ViewportFit().Replace(await File.ReadAllTextAsync(page), "", 1), "text/html; charset=utf-8");
     }
 
     // A page in public/ as it is on disc, as Express's sendFile sends it: its
@@ -207,12 +210,10 @@ internal static partial class Pages
         await ctx.Response.SendFileAsync(info);
     }
 
-    // A file made for this request: never kept stale (no-cache), and a
-    // "not modified" for a copy that is still current (the app's offline copy).
-    private static async Task Send(HttpContext ctx, string body, string type)
+    // A file made for the app (Pages.Kept.cs): never kept stale by it (no-cache),
+    // and a "not modified" for a copy that is still current (the app's offline copy).
+    private static async Task Send(HttpContext ctx, byte[] bytes, string tag, string type)
     {
-        var bytes = Encoding.UTF8.GetBytes(body);
-        var tag = "W/\"" + Convert.ToHexString(Fingerprint.Sha1(bytes))[..27].ToLowerInvariant() + "\"";
         var h = ctx.Response.Headers;
         h.CacheControl = "no-cache";
         h.Vary = "User-Agent";
