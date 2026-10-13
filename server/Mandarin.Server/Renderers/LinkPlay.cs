@@ -6,7 +6,6 @@
 // certificate, so that one LAN call takes it, from a private network's
 // address only (v0.9.0, Addresses.cs); older firmware answers on plain HTTP
 // instead, so both are tried.
-using System.Net.Http.Json;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 

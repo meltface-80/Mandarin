@@ -13,7 +13,6 @@
 // On its own (v0.8.50, stage 7) there is no csharp field: no version to match.
 // `mandarin-server --health` (Program.cs) is the image's health check: one GET
 // of this, 0 when it answers 200.
-using System.Diagnostics;
 using Mandarin.Server.Local;
 using System.Text.Json.Nodes;
 

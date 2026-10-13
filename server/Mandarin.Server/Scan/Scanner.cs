@@ -13,7 +13,6 @@
 // read in full and it wasn't there; a folder missing, empty, unreadable or
 // suddenly mostly gone keeps its tracks.
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
@@ -250,7 +249,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
     public static string? ArtHash(string p)
     {
         if (!PosixFs.TryStat(p, follow: true, out var st)) return null;
-        var hash = SHA1.HashData(Encoding.UTF8.GetBytes(p + "|" + Js.Num(st.Size) + "|" + Js.Num(st.MtimeMs)));
+        var hash = Fingerprint.Sha1(Encoding.UTF8.GetBytes(p + "|" + Js.Num(st.Size) + "|" + Js.Num(st.MtimeMs)));
         return Convert.ToHexString(hash).ToLowerInvariant()[..10];
     }
 

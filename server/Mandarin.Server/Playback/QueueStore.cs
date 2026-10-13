@@ -11,7 +11,6 @@ using Microsoft.Data.Sqlite;
 namespace Mandarin.Server.Playback;
 
 using AJs = Mandarin.Server.Js;
-using TJs = Mandarin.Server.Tags.Js;
 
 /* What is kept of a queue: the kind, the track ids, the place, the modes and the volume. */
 internal sealed class QueueSnapshot

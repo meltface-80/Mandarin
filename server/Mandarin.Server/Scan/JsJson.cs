@@ -8,10 +8,7 @@ using System.Text;
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Scan;
-
 // The tag reader's JavaScript, not Mandarin.Server's JSON helpers of the same name.
-using Js = Mandarin.Server.Tags.Js;
-
 internal static class JsJson
 {
     public static object? Parse(string s)

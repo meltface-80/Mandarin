@@ -4,7 +4,6 @@
 // without a length was read by one and refused by another (v0.9.0). The
 // rules are the ones the Node server's express.json() and res.send kept for
 // every route, so every route keeps them alike.
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -84,7 +83,7 @@ internal static class Http
     }
 
     /* The etag package's weak tag, as Express gives every answer: the length, and the SHA-1's first 27 base64 characters (a cache's check, nothing secret). */
-    public static string Tag(byte[] bytes) => "W/\"" + bytes.Length.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "-" + Convert.ToBase64String(SHA1.HashData(bytes))[..27] + "\"";
+    public static string Tag(byte[] bytes) => "W/\"" + bytes.Length.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "-" + Convert.ToBase64String(Fingerprint.Sha1(bytes))[..27] + "\"";
 
     /*
      * res.send, as Express sends it: answered here (X-Mandarin-Answered), its

@@ -13,7 +13,6 @@
 // without viewport-fit=cover, and the stylesheet with every safe-area
 // allowance at zero plus the app's own rules (public/android.css): the app
 // has already made the room around the page, whatever the WebView reports.
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.StaticFiles;
@@ -194,7 +193,7 @@ internal static partial class Pages
         // The time to the nearest millisecond, as Node's fs.Stats gives it: send's tag, and its
         // Last-Modified (a file written at .9995 s is the next second there, so here too).
         var ms = (long)Math.Floor((info.LastModified.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10000.0 + 0.5);
-        var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x") + "-" + ms.ToString("x") + "\"", isWeak: true);
+        var etag = new EntityTagHeaderValue("\"" + info.Length.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "-" + ms.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "\"", isWeak: true);
         ctx.Response.Headers.ETag = etag.ToString();
         ctx.Response.Headers.LastModified = DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("R");
         ctx.Response.Headers.CacheControl = "public, max-age=0";
@@ -213,7 +212,7 @@ internal static partial class Pages
     private static async Task Send(HttpContext ctx, string body, string type)
     {
         var bytes = Encoding.UTF8.GetBytes(body);
-        var tag = "W/\"" + Convert.ToHexString(SHA1.HashData(bytes))[..27].ToLowerInvariant() + "\"";
+        var tag = "W/\"" + Convert.ToHexString(Fingerprint.Sha1(bytes))[..27].ToLowerInvariant() + "\"";
         var h = ctx.Response.Headers;
         h.CacheControl = "no-cache";
         h.Vary = "User-Agent";

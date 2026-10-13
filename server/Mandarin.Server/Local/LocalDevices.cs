@@ -18,7 +18,6 @@
 // is the same player after a restart or a replug.
 using System.Diagnostics;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Playback;
@@ -42,7 +41,7 @@ internal static class LocalDevices
 {
     public const string Prefix = "LOCAL_";
 
-    public static string IdOf(string key) => Prefix + Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(key))).ToLowerInvariant()[..12];
+    public static string IdOf(string key) => Prefix + Convert.ToHexString(Fingerprint.Sha1(Encoding.UTF8.GetBytes(key))).ToLowerInvariant()[..12];
 
     private static string Read(string f)
     {

@@ -6,7 +6,6 @@
 // turn here too (GET /internal/mb/slot), so the two never add up to two a second.
 using System.Text;
 using Mandarin.Server.Scan;
-using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Identify;
 

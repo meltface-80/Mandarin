@@ -21,7 +21,6 @@ using Mandarin.Server.Identify;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
-using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
 

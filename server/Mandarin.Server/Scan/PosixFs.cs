@@ -153,7 +153,8 @@ internal static unsafe partial class PosixFs
                 raw.Add((name, p[DType]));
             }
         }
-        finally { CloseDir(d); }
+        // The entries are read: a folder that fails to close changes nothing about them.
+        finally { _ = CloseDir(d); }
         raw.Sort((a, b) => ByteOrder(a.Name, b.Name));
         var outList = new List<Entry>(raw.Count);
         foreach (var (nameBytes, type) in raw)

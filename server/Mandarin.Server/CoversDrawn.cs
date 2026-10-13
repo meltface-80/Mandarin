@@ -23,7 +23,6 @@
 // has it.
 using System.Diagnostics;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -95,7 +94,7 @@ internal static partial class Covers
 
     /* The placeholder's colour: its title and artist's MD5, the first byte as a hue. */
     public static int Hue(string title, string artist) =>
-        (int)Math.Round(MD5.HashData(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
+        (int)Math.Round(Fingerprint.Md5(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
 
     private static async Task<byte[]?> Placeholder(string title, string artist, int size)
     {

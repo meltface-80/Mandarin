@@ -13,7 +13,6 @@
 // A cover ffmpeg can't read is refused here (422): until v0.9.0 the request
 // was passed to the Node server, for sharp to try.
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
 using Mandarin.Server.Identify;
@@ -166,7 +165,7 @@ internal static partial class Library
         if (f.HasArt)
         {
             art = f.Art;
-            artHash = f.Art != null ? Convert.ToHexStringLower(SHA1.HashData(f.Art))[..12] : null;
+            artHash = f.Art != null ? Convert.ToHexStringLower(Fingerprint.Sha1(f.Art))[..12] : null;
             artSource = f.Art != null && !string.IsNullOrEmpty(f.ArtSource) ? f.ArtSource : null;
         }
         using var w = c.CreateCommand();
@@ -206,8 +205,8 @@ internal static partial class Library
 
     /* POST /api/album/edit { offset, title?, artist?, year?, art_url?, art_source?, art? } */
     private static Task<bool> SaveAlbumEdit(HttpContext ctx, Snapshot s, LibState st) =>
-        !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s, st);
-    private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s, LibState st)
+        !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s);
+    private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s)
     {
         var (b, answered) = await JsBody(ctx);
         if (answered) return true;

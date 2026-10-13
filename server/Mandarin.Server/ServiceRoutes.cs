@@ -49,11 +49,8 @@
 // and a body Express would read otherwise, or refuse, is passed on as it came,
 // to be answered there (a request the page never makes).
 // Answered here once the Node server has handed over its work; until then, by it.
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Mandarin.Server.Scan;
 using Mandarin.Server.Services;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;

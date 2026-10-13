@@ -800,7 +800,7 @@ internal sealed partial class Identifier
      * release-group link. The release is scored so the page can say how alike
      * it is, then applied whatever the score — you said so.
      */
-    public async Task<MatchRow?> Match(Snapshot lib, Album al, string? barcode, string? mbid, string? group, string? how)
+    public async Task<MatchRow?> Match(Album al, string? barcode, string? mbid, string? group, string? how)
     {
         JsObj input;
         using (var c = Db.Open()) input = Input(c, al);

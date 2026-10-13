@@ -69,7 +69,7 @@ internal static partial class Server
     // Stamped as the Node server stamped its lines.
     public static void Log(string s)
     {
-        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss") + " " + s);
+        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
     }
 
     // The app's folder, with the page (public/index.html): beside this program,

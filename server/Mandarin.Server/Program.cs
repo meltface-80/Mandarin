@@ -178,7 +178,7 @@ Images.Use(app, dataDir);
 // An album's booklets, their pages drawn in data/booklets (v0.8.33, Booklets.cs).
 Booklets.Init(dataDir);
 // Music files, as they are or converted (Streams.cs, Transcoder.cs).
-Streams.Use(app, dataDir);
+Streams.Use(app);
 // The phone's downloads and its Opus away from home (Downloads.cs).
 Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any

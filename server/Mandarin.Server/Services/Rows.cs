@@ -22,7 +22,6 @@
 // rows from v0.8.45 (stage 4.3, Import.cs), and playing an album from the
 // browser from v0.8.47 (ServiceRoutes.cs), its tracks then played by the Node
 // server's playback (stage 6).
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Scan;
@@ -171,7 +170,7 @@ internal abstract partial class Catalogue
         var u = Js.Str(url);
         var dir = NodePath.Join(DataDir, Id, "art");
         Directory.CreateDirectory(dir);
-        var hash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
+        var hash = Convert.ToHexString(Fingerprint.Md5(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
         var file = NodePath.Join(dir, albumId + ".jpg");
         var marker = file + ".url";
         try { if (PosixFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }

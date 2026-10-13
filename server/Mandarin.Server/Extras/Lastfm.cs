@@ -165,7 +165,7 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
             var c = (char)b;
             if (char.IsAsciiLetterOrDigit(c) || c is '*' or '-' or '.' or '_') sb.Append(c);
             else if (c == ' ') sb.Append('+');
-            else sb.Append('%').Append(b.ToString("X2"));
+            else sb.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }

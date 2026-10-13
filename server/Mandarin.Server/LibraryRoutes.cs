@@ -5,9 +5,6 @@
 // Anything asked of a Node server too old to say which copy it holds goes to
 // it: a request this side can't answer exactly is passed on, never guessed at.
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;

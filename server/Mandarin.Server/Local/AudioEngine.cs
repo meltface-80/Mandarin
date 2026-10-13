@@ -131,7 +131,7 @@ internal static partial class AudioEngine
             var want = sums.Split('\n').Select(l => Regex.Split(l.Trim(), @"\s+")).FirstOrDefault(p => p.Length > 1 && p[1] == name)?[0]
                 ?? throw new HttpRequestException($"no checksum for {name}");
             var gz = await Get($"{baseUrl}/{name}");
-            if (Convert.ToHexString(SHA256.HashData(gz)).ToLowerInvariant() != want) throw new HttpRequestException("the download was damaged (checksum mismatch)");
+            if (!string.Equals(Convert.ToHexString(SHA256.HashData(gz)), want, StringComparison.OrdinalIgnoreCase)) throw new HttpRequestException("the download was damaged (checksum mismatch)");
             Directory.CreateDirectory(Path.GetDirectoryName(bin)!);
             // A name of this server's own, so a Node server fetching it at the same time never writes the same file.
             var tmp = bin + ".csharp.tmp";

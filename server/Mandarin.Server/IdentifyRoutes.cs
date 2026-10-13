@@ -5,8 +5,6 @@
 // pack. Answered here once the Node server has handed the scan over
 // (Jobs.cs); until then, by the Node server.
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -234,7 +232,7 @@ internal static partial class Library
         else if (Uuid().IsMatch(q) && q.Length == 36) mbid = q;
         else if (BarcodeShape().IsMatch(q)) barcode = q;
         else return await JsError(ctx, 400, "Enter a barcode (the digits under the bars), or paste a MusicBrainz release link");
-        try { if (!al.Transient) await id.Match(s, al, barcode, mbid, group, pick ? "pick" : null); }
+        try { if (!al.Transient) await id.Match(al, barcode, mbid, group, pick ? "pick" : null); }
         catch (Exception e) { return await JsError(ctx, e is IdentifyError ie ? ie.Status : 500, e.Message); }
         var cur = await Current();
         return cur is var (s2, st2) ? await SendJs(ctx, await IdentifyPage(id, s2, st2, 500)) : await SendJs(ctx, await IdentifyPage(id, s, st, 500));

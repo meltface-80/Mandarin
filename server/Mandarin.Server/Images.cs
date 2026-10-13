@@ -40,7 +40,7 @@ internal static class Images
             {
                 try
                 {
-                    if (await Answer(ctx, p, p[11..])) return;
+                    if (await Answer(ctx, p[11..])) return;
                     // A speaker asking by its own address for a cover there isn't, once this server holds playback (v0.8.49): 404, as the Node server's route
                     // answered past its gate — the Node server no longer knows the speakers, and would turn the request away as unsigned.
                     if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
@@ -66,7 +66,7 @@ internal static class Images
     public static Task<bool> FromSpeaker(HttpContext ctx) =>
         Task.FromResult(Playback.Hub.Current is { } hub && hub.SpeakerHosts.Contains(Auth.ClientIp(ctx)));
 
-    private static async Task<bool> Answer(HttpContext ctx, string path, string key)
+    private static async Task<bool> Answer(HttpContext ctx, string key)
     {
         bool may;
         using (var c = Db.Open()) may = Signed(ctx, c) || Auth.DeviceOf(ctx, c) != null;

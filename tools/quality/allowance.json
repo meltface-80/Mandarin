@@ -44,22 +44,22 @@
       "lines": 435
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 585
+      "lines": 584
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 548
+      "lines": 547
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
     },
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
-      "lines": 432
+      "lines": 431
     },
     "server/Mandarin.Server/Extras/ShareBlob.cs": {
       "lines": 512
     },
     "server/Mandarin.Server/Extras/Taste.cs": {
-      "lines": 475
+      "lines": 474
     },
     "server/Mandarin.Server/Extras/WriteUps.cs": {
       "lines": 553
@@ -74,10 +74,10 @@
       "lines": 514
     },
     "server/Mandarin.Server/Library.cs": {
-      "lines": 584
+      "lines": 581
     },
     "server/Mandarin.Server/LibraryRoutes.cs": {
-      "lines": 910
+      "lines": 907
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
@@ -92,7 +92,7 @@
       "lines": 634
     },
     "server/Mandarin.Server/Scan/Scanner.cs": {
-      "lines": 1044
+      "lines": 1043
     },
     "server/Mandarin.Server/Scans.cs": {
       "lines": 495
@@ -101,16 +101,16 @@
       "lines": 602
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 500
+      "lines": 497
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
-      "lines": 507
+      "lines": 506
     },
     "server/Mandarin.Server/Services/Import.cs": {
       "lines": 694
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 537
+      "lines": 536
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431
@@ -134,7 +134,7 @@
       "lines": 540
     },
     "server/Mandarin.Server/Transcoder.cs": {
-      "lines": 406
+      "lines": 404
     }
   }
 }

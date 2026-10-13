@@ -10,7 +10,6 @@
 // there).
 using System.Text;
 using Mandarin.Server.Extras;
-using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
 
@@ -22,7 +21,6 @@ internal static partial class Library
 {
     private static readonly string AppVersion = (typeof(Library).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
 
-    private static bool IsJsonBody(HttpContext ctx) => Http.IsJson(ctx);
     // Sent without a length (chunked), it fits until it's read past the limit (JsBody).
     private static bool BodyFits(HttpContext ctx) => Http.Fits(ctx);
 

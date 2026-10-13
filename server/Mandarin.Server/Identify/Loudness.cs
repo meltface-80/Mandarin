@@ -23,7 +23,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Data.Sqlite;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 

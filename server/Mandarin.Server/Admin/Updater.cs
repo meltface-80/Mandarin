@@ -24,7 +24,6 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Identify;

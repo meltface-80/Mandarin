@@ -15,7 +15,6 @@
 // Qobuz's documentation and the plugin have it. A failure is said as the Node
 // server says it: Qobuz's own message, else "Qobuz answered <status>"; 401 for
 // a token (or a sign-in) it refuses, 502 for the rest.
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
@@ -68,7 +67,7 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
             keys.Sort(string.CompareOrdinal);
             var sig = call.Replace("/", "") + string.Concat(keys.Select(k => k + Js.Str(all.Last(x => x.Key == k).Value))) + Js.Num(ts) + secret;
             q.Add("request_ts=" + Js.Num(ts));
-            q.Add("request_sig=" + Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(sig))).ToLowerInvariant());
+            q.Add("request_sig=" + Convert.ToHexString(Fingerprint.Md5(Encoding.UTF8.GetBytes(sig))).ToLowerInvariant());
         }
         q.Add("app_id=" + appId);
         q.Sort(string.CompareOrdinal);

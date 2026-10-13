@@ -5,14 +5,12 @@
 // here, what it is, what it can take (caps, in layers) and its settings. The
 // rows are written as registry.js writes them, field for field. Nothing
 // leaves by itself: a device off for a month is still here until Forget.
-using System.Text.Json.Nodes;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server.Playback;
 
-using AJs = Mandarin.Server.Js;
 using TJs = Mandarin.Server.Tags.Js;
 
 /* A row as registry.js's row() reads it: caps and settings as objects. */

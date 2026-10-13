@@ -6,7 +6,6 @@
 // log, a logo chosen by hand, and the Discogs and FanArt.tv keys with whether
 // each service takes it. Answered here once the Node server has handed the
 // labels' work over (Jobs.cs); until then, by the Node server.
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;

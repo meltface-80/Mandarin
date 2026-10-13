@@ -15,7 +15,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Data.Sqlite;
@@ -102,7 +101,7 @@ internal static partial class Auth
             && Uri.IsHexDigit(a[2]) && Uri.IsHexDigit(a[3]) && a[4] == ':') return true;
         var parts = a.Split('.');
         if (parts.Length != 4 || !parts.All(p => p.Length > 0 && p.All(char.IsAsciiDigit))) return false;
-        int x = int.Parse(parts[0]), y = int.Parse(parts[1]);
+        int x = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture), y = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
         return x == 10 || (x == 172 && y >= 16 && y <= 31) || (x == 192 && y == 168) || (x == 169 && y == 254);
     }
 
@@ -541,7 +540,7 @@ internal static class Js
         {
             char ch = (char)b;
             if (b < 0x80 && (char.IsAsciiLetterOrDigit(ch) || "-_.!~*'()".Contains(ch))) sb.Append(ch);
-            else sb.Append('%').Append(b.ToString("X2"));
+            else sb.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }
