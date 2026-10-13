@@ -46,11 +46,11 @@ async function until(fn, ms, what) {
   }
 }
 
-// GitHub, stood in for: the latest release, the release of v9.9.9 the program is fetched from, and the files of both.
-const fake = { latest: null, tag: null, files: {} };
+// GitHub, stood in for: the latest release (or a status instead), the release of v9.9.9 the program is fetched from, and the files of both.
+const fake = { latest: null, latestStatus: 404, tag: null, files: {} };
 const gh = http.createServer((req, res) => {
   const send = (code, body, type) => { res.writeHead(code, { "Content-Type": type || "application/json" }); res.end(body); };
-  if (req.url === "/repos/me/musicd/releases/latest") return fake.latest ? send(200, JSON.stringify(fake.latest)) : send(404, "{}");
+  if (req.url === "/repos/me/musicd/releases/latest") return fake.latest ? send(200, JSON.stringify(fake.latest)) : send(fake.latestStatus, "{}");
   if (req.url === "/repos/me/musicd/releases/tags/v9.9.9") return fake.tag ? send(200, JSON.stringify(fake.tag)) : send(404, "{}");
   if (fake.files[req.url]) return send(200, fake.files[req.url], "application/octet-stream");
   send(404, "{}");
@@ -71,13 +71,16 @@ function bundle(tmp, { name = "musicd-server", withPackage = true } = {}) {
   fake.latest = { tag_name: "v9.9.9", html_url: GH + "/r", body: "Notes for 9.9.9", assets: [{ name: "musicd-server-9.9.9.tar.gz", browser_download_url: GH + "/dl/musicd-server-9.9.9.tar.gz" }] };
 }
 
-/* The release of 9.9.9 the program is fetched from: a stand-in that says 9.9.9, and started as the server writes down how (to `marker`) and leaves with 3. */
-function program(marker, { withProgram = true } = {}) {
-  const prog = Buffer.from(`#!/bin/sh\nif [ "$1" = "--version" ]; then echo 9.9.9; exit 0; fi\necho "$0|$#|$*" > "${marker}"\nexit 3\n`);
+/*
+ * The release of 9.9.9 the program is fetched from: a stand-in that says 9.9.9 (or `says`), and started as the
+ * server writes down how (to `marker`) and leaves with 3; its sum right unless `badSum`.
+ */
+function program(marker, { withProgram = true, says = "9.9.9", badSum = false } = {}) {
+  const prog = Buffer.from(`#!/bin/sh\nif [ "$1" = "--version" ]; then echo ${says}; exit 0; fi\necho "$0|$#|$*" > "${marker}"\nexit 3\n`);
   const gz = zlib.gzipSync(prog);
   const name = `mandarin-server-${build}.gz`;
   fake.files["/dl/" + name] = gz;
-  fake.files["/dl/mandarin-server.sha256"] = `${crypto.createHash("sha256").update(gz).digest("hex")}  ${name}\n`;
+  fake.files["/dl/mandarin-server.sha256"] = `${crypto.createHash("sha256").update(badSum ? Buffer.from("other") : gz).digest("hex")}  ${name}\n${"0".repeat(64)}  mandarin-server-other.gz\n`;
   fake.tag = { tag_name: "v9.9.9", assets: (withProgram ? [name, "mandarin-server.sha256"] : []).map(n => ({ name: n, browser_download_url: GH + "/dl/" + n })) };
   return prog;
 }
@@ -117,8 +120,35 @@ test("the in-app update with no Node server: refused with nothing changed, then 
 
   let r = await api("status");
   assert.deepEqual([r.by, r.body.current, r.body.viaLauncher, r.body.csharp, "mac_node_only" in r.body], ["C#", pkg.version, false, null, false], "its own, with no launcher and no Node server to match");
+  const { current, latest, latestTag, available, isDowngrade, html_url, notes, source, checkedAt, checking, error, apply, is_docker } = r.body;
+  assert.deepEqual({ current, latest, latestTag, available, isDowngrade, html_url, notes, source, checkedAt, checking, error, apply, is_docker }, {
+    current: pkg.version, latest: null, latestTag: null, available: false, isDowngrade: false, html_url: null, notes: null, source: null,
+    checkedAt: 0, checking: false, error: null, apply: { phase: "idle", error: null, version: null }, is_docker: false
+  }, "nothing known yet, as lib/updater.js started");
+
+  // GitHub refusing, or rate-limiting: the check says so; an install asked for then says the same, nothing changed.
+  fake.latestStatus = 500;
   r = await api("check", true);
-  assert.deepEqual([r.body.available, r.body.latest, r.body.error], [false, null, null], "nothing on offer yet");
+  assert.deepEqual([r.body.error, r.body.available, r.body.checkedAt], ["GitHub API HTTP 500", false, 0]);
+  r = await api("apply", true);
+  assert.equal(r.status, 409);
+  assert.deepEqual([r.body.error, r.body.status.apply], ["GitHub API HTTP 500", { phase: "error", error: "GitHub API HTTP 500", version: null }]);
+  fake.latestStatus = 403;
+  r = await api("check", true);
+  assert.equal(r.body.error, "GitHub rate-limited or forbidden (set GITHUB_TOKEN to raise the limit)");
+  // No release, no tags: nothing on offer.
+  fake.latestStatus = 404;
+  r = await api("check", true);
+  assert.deepEqual([r.body.error, r.body.latest, r.body.available, r.body.checkedAt > 0], [null, null, false, true], "nothing on offer yet");
+  r = await api("apply", true);
+  assert.deepEqual([r.status, r.body.error], [409, "No update available"]);
+  // A release, its notes trimmed; its bundle not there to download.
+  fake.latest = { tag_name: "v9.9.9", html_url: GH + "/r", body: "  Notes for 9.9.9  ", assets: [{ name: "musicd-server-9.9.9.tar.gz", browser_download_url: GH + "/dl/musicd-server-9.9.9.tar.gz" }] };
+  r = await api("check", true);
+  assert.deepEqual([r.body.latest, r.body.latestTag, r.body.available, r.body.html_url, r.body.notes, r.body.source, r.body.error],
+    ["9.9.9", "v9.9.9", true, GH + "/r", "Notes for 9.9.9", "release", null]);
+  r = await api("apply", true);
+  assert.deepEqual([r.status, r.body.error, r.body.status.apply], [409, "download HTTP 404", { phase: "error", error: "download HTTP 404", version: "9.9.9" }]);
 
   // A bundle without package.json; one that isn't the server's: refused, as before.
   bundle(tmp, { withPackage: false });
@@ -132,6 +162,13 @@ test("the in-app update with no Node server: refused with nothing changed, then 
   program(i.marker, { withProgram: false });
   r = await api("apply", true);
   assert.deepEqual([r.status, r.body.error], [409, `the C# server 9.9.9 couldn't be fetched (release v9.9.9 carries no mandarin-server-${build}.gz); nothing was changed`]);
+  // One whose sum is wrong, and one that says another version: likewise.
+  for (const [why, rel, said] of [["a wrong sum", { badSum: true }, `mandarin-server-${build}.gz doesn't match its sum`], ["the wrong version", { says: "1.0.0" }, "the new program says 1.0.0, not 9.9.9"]]) {
+    program(i.marker, rel);
+    r = await api("apply", true);
+    assert.deepEqual([r.status, r.body.error, r.body.status.apply.version], [409, `the C# server 9.9.9 couldn't be fetched (${said}); nothing was changed`, "9.9.9"], why);
+    assert.deepEqual(fs.readdirSync(path.dirname(i.bin)).sort(), ["mandarin-server"], why + ": nothing left beside the program");
+  }
   assert.deepEqual(fs.readFileSync(i.bin), was, "the program as it was");
   assert.equal(JSON.parse(fs.readFileSync(path.join(i.app, "package.json"), "utf8")).version, pkg.version, "the install as it was");
   assert.equal(srv.exited(), null, "still running");
