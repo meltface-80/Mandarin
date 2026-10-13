@@ -5,6 +5,34 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.2
+**The audit's code quality** (`docs/specs/audit-b4-main.md` module 1). Nearly nothing changes in
+use: the server reads and answers requests one way everywhere, and its code is split, renamed
+and checked by its build.
+
+- **One way in and one way out for every route** (Q1, `Http.cs`). Each route file ported from
+  the Node server had its own JSON body reader (four) and JSON writer (eight), and they had
+  drifted. Now:
+  - a body is turned down alike wherever it is sent: not JSON, or not an object or an array, a
+    400 "Bad JSON"; a charset that isn't a UTF one a 415; past 2 MB a 413. Before, sign-in's and
+    playback's routes took a bare string as `{}` and read any charset as UTF-8;
+  - every JSON answer carries its weak ETag, is "not modified" for a copy still current and has
+    no body for a HEAD. Before, sign-in's, playback's, a download's and the not-found answers had
+    no tag;
+  - the two sign-in GET routes and `/server-info` answer a HEAD, as Express's `app.get` did.
+- **Names from the Node era** (Q7): `Front` is `Server`, `Scan/NodeFs.cs` is `Scan/PosixFs.cs`.
+- **The build checks the analyzer rules the code now keeps** (Q3, Q5, Q6, S7;
+  `server/Mandarin.Server/.editorconfig`). Breaking any of them fails the build:
+  - dead code: unused `using`s (50 removed), private members, parameters;
+  - a number parsed or written without a culture (18 fixed, the Sonos metadata's included);
+  - an ignored result, a bare `Exception`, a compare by lower-casing (each fixed);
+  - SHA-1 and MD5 outside `Fingerprint.cs`, which says what each of the nine uses is for (ETags,
+    cover fingerprints, cache names, Qobuz's request signature) and why none protects anything.
+- **The three largest server files split along their seams** (Q2): `LibraryRoutes.cs`,
+  `Identify/Identifier.cs` and `Admin/Backup.cs`, each now a few files under 400 lines.
+- `test/http-body.test.js` (new) sends each refused body to every kind of reader and checks each
+  writer's answer.
+
 ## v0.9.1
 **The audit's tests** (`docs/specs/audit-b4-main.md` module 2), the first of the audit's stages
 to take a version of its own: one patch version a stage from here (the owner's choice). Nothing
