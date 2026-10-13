@@ -46,6 +46,9 @@ the owner asked, everything is based on `migration`:
   `audit/documentation-updates`. Each one its own pull request into `audit-b4-main`, squash-merged
   when CI is green; then `audit-b4-main` into `migration` as one pull request, before v0.9.0 goes
   to `main`.
+- Since the security work (#221), `audit-b4-main` has been merged into `migration` by the owner (#222)
+  and is gone: each category branch after it is its own pull request into `migration`, squash-merged
+  when CI is green.
 - Nothing crosses between branches. Each keeps CLAUDE.md §5: `npm run gates` green before every
   push, baselines only shrink (written by their tools), no test skipped or loosened, every new
   test broken once on purpose and seen to fail.
