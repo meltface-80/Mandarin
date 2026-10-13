@@ -19372,6 +19372,7 @@ initServiceBrowser({
   const toServer = document.getElementById("backup-to-server");
   const toFile   = document.getElementById("backup-to-file");
   const fromFile = document.getElementById("restore-from-file");
+  const passEl   = document.getElementById("backup-pass");   // v0.9.0: seals the keys (Admin/Backup.Seal.cs)
   const APP = window.MusicDBackup && typeof window.MusicDBackup.available === "function" ? window.MusicDBackup : null;
   const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
@@ -19392,7 +19393,7 @@ initServiceBrowser({
     app: "Downloads, USB DAC, this phone's DSP and levelling"
   };
   let info = null;
-
+  const SEALED = "Its passphrase (for the keys and the whole database)";
   const fmtBytes = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? Math.round(n / 1e6) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB";
   const fmtDate = t => new Date(t).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -19426,8 +19427,7 @@ initServiceBrowser({
       info = await r.json();
     } catch (e) { return; }
     if (!partsEl.childElementCount) tickBoxes(partsEl, backupParts());
-    toFile.hidden = !APP;
-    fromFile.hidden = !APP;
+    toFile.hidden = fromFile.hidden = !APP;
     renderList();
   }
   document.querySelectorAll('.settings-nav-item[data-pane="backup"]').forEach(b => b.addEventListener("click", load));
@@ -19449,7 +19449,7 @@ initServiceBrowser({
     if (!items.length) { listEl.innerHTML = '<div class="settings-note">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
     listEl.innerHTML = items.map(b => {
       const title = b.where === "phone" ? "On this phone" : b.kind === "auto" ? "Before restore · on the server" : "On the server";
-      const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)];
+      const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)].concat(b.sealed ? ["sealed"] : []);
       if (b.where === "phone") meta.push(b.name || ""); else if (b.label) meta.push("from " + b.label);
       const ref = b.where === "phone" ? ' data-uri="' + esc(b.uri) + '"' : ' data-id="' + esc(b.id) + '"';
       return '<div class="backup-item" data-where="' + b.where + '"' + ref + '>' +
@@ -19465,10 +19465,11 @@ initServiceBrowser({
     }).join("");
   }
 
-  // A restore panel: the ticks for what's in it (on the phone, everything), and Restore.
-  function openRestorePanel(panel, parts, onGo, label) {
+  // A restore panel: the ticks for what's in it (on the phone, everything), a sealed one's passphrase (askPass, its placeholder), and Restore.
+  function openRestorePanel(panel, parts, onGo, label, askPass) {
     panel.classList.remove("hidden");
-    panel.innerHTML = '<div class="backup-parts"></div><button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
+    const pass = askPass ? '<input type="password" class="settings-token-input backup-pass-in" autocomplete="off" placeholder="' + esc(askPass) + '">' : "";
+    panel.innerHTML = '<div class="backup-parts"></div>' + pass + '<button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
     tickBoxes(panel.querySelector(".backup-parts"), parts);
     panel.querySelector('[data-act="go"]').addEventListener("click", async () => {
       const want = ticked(panel);
@@ -19478,7 +19479,7 @@ initServiceBrowser({
         (server.length ? " This puts them back for every device, and Mandarin restarts. A backup of how things are now is kept first." : "") +
         (want.includes("database") ? " The whole database replaces everything Mandarin knows; your account and sign-ins stay." : "");
       if (!(await ask(q))) return;
-      onGo(want);
+      onGo(want, askPass ? panel.querySelector(".backup-pass-in").value : "");
     });
   }
 
@@ -19507,7 +19508,7 @@ initServiceBrowser({
         renderList();
         return;
       }
-      if (btn.dataset.act === "restore") openRestorePanel(item.querySelector(".backup-restore"), f.parts || backupParts(), (want) => APP.restoreFileAt(uri, want.join(",")), "Restore now");
+      if (btn.dataset.act === "restore") openRestorePanel(item.querySelector(".backup-restore"), f.parts || backupParts(), (want, pass) => pass ? APP.restoreFileAt(uri, want.join(","), pass) : APP.restoreFileAt(uri, want.join(",")), "Restore now", f.sealed && SEALED);
       return;
     }
     const id = item && item.dataset.id;
@@ -19521,13 +19522,13 @@ initServiceBrowser({
     }
     if (btn.dataset.act === "restore") {
       const parts = (b.parts || []).filter(p => p !== "app" || APP);
-      openRestorePanel(item.querySelector(".backup-restore"), parts, async (want) => {
+      openRestorePanel(item.querySelector(".backup-restore"), parts, async (want, pass) => {
         try {
           const r = await fetch("/api/backup/restore/" + encodeURIComponent(id), { method: "POST",
-            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: want }) });
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: want, passphrase: pass || undefined }) });
           finishRestore(await r.json());
         } catch (err) { toast("Couldn't reach the server", "error"); }
-      }, "Restore now");
+      }, "Restore now", b.sealed && SEALED);
     }
   });
 
@@ -19537,7 +19538,7 @@ initServiceBrowser({
     toServer.disabled = true;
     noteEl.textContent = "Backing up…";
     try {
-      const body = { include: want.filter(p => p !== "page" && p !== "app") };
+      const body = { include: want.filter(p => p !== "page" && p !== "app"), passphrase: passEl.value || undefined };
       if (want.includes("page")) body.page = pageSettings();
       if (want.includes("app") && APP) body.app = JSON.parse(APP.appSettings());
       const r = await fetch("/api/backup/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -19561,9 +19562,8 @@ initServiceBrowser({
     if (!APP) return;
     const want = ticked(partsEl);
     if (!want.length) { toast("Tick something to back up", "error"); return; }
-    const req = { include: want.filter(p => p !== "page" && p !== "app") };
-    if (want.includes("page")) req.page = pageSettings();
-    if (!want.includes("app")) req.noApp = true;
+    const req = { include: want.filter(p => p !== "page" && p !== "app"), passphrase: passEl.value || undefined,
+      page: want.includes("page") ? pageSettings() : undefined, noApp: !want.includes("app") };
     toFile.disabled = true;
     noteEl.textContent = "Choose where to save the backup…";
     APP.toFile(JSON.stringify(req));
@@ -19577,6 +19577,6 @@ initServiceBrowser({
     if (!APP) return;
     let panel = pane.querySelector(".backup-file-restore");
     if (!panel) { panel = document.createElement("div"); panel.className = "backup-restore backup-file-restore"; fromFile.after(panel); }
-    openRestorePanel(panel, backupParts(), (want) => APP.fromFile(want.join(",")), "Choose the file…");
+    openRestorePanel(panel, backupParts(), (want, pass) => pass ? APP.fromFile(want.join(","), pass) : APP.fromFile(want.join(",")), "Choose the file…", "Its passphrase, if it was sealed with one");
   });
 })();

@@ -29,7 +29,7 @@ internal static class Lookups
 
     // MANDARIN_LOOPBACK_ONLY=1 (the tests, test/setup.js): nothing off this
     // machine is asked, as the Node server's fetch is kept to loopback there.
-    private static readonly bool LoopbackOnly = Environment.GetEnvironmentVariable("MANDARIN_LOOPBACK_ONLY") == "1";
+    public static readonly bool LoopbackOnly = Environment.GetEnvironmentVariable("MANDARIN_LOOPBACK_ONLY") == "1";
 
     /* Refused at once when the address is off limits. */
     public static void Allowed(string url)

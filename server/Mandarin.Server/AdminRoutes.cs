@@ -18,7 +18,8 @@
 // keeps a backup of how things were first ("Before restore"), then the Node
 // server starts again so everything reads its settings afresh (and swaps in a
 // whole database, staged for it); this server, and Tailscale with it, stays up.
-// From home or away; Tailscale's switches from home only.
+// From home or away; Tailscale's switches from home only. Restoring is in
+// AdminRestoreRoutes.cs; a backup sealed with a passphrase, Admin/Backup.Seal.cs.
 using System.Text;
 using Mandarin.Server.Admin;
 using Mandarin.Server.Tags;
@@ -114,9 +115,10 @@ internal static partial class Library
     /*
      * A backup of [include] (and the page's and app's parts sent along) to
      * [output]: its manifest, as written. The database is copied first; then
-     * everything is written in one go.
+     * everything is written in one go. With a passphrase, the keys and the
+     * Tailscale identity go sealed (Admin/Backup.Seal.cs).
      */
-    private static async Task<JsObj> Build(Stream output, Dictionary<string, bool> include, object? app, object? page, double? created, HttpContext ctx, Admin.Tailscale ts, Action? beforeWriting = null)
+    private static async Task<JsObj> Build(Stream output, Dictionary<string, bool> include, object? app, object? page, double? created, HttpContext ctx, Admin.Tailscale ts, string? passphrase, Action? beforeWriting = null)
     {
         bool Has(string k) => include.TryGetValue(k, out var v) && v;
         var parts = Backup.ServerParts.Where(Has).ToList();
@@ -134,10 +136,17 @@ internal static partial class Library
         var manifestParts = parts.Select(x => (object?)x).ToList();
         manifest["parts"] = manifestParts;
         var entries = new List<Backup.Entry>();
-        if (parts.Count > 0)
+        var seal = Backup.Seals(include, passphrase) ? new JsObj() : null;
+        if (parts.Count > 0 || seal != null)
         {
             using var c = Db.Open();
-            entries.Add(Backup.JsonEntry("server.json", Backup.Snapshot(c, parts.ToHashSet())));
+            if (seal != null) seal["keys"] = Backup.KeysOf(c);
+            if (parts.Count > 0)
+            {
+                var snap = Backup.Snapshot(c, parts.ToHashSet());
+                if (seal != null) snap["keys"] = Undef.V;
+                entries.Add(Backup.JsonEntry("server.json", snap));
+            }
         }
         // The server's Tailscale identity with the keys: restored onto a fresh install, the same node on your tailnet.
         if (Has("keys"))
@@ -148,12 +157,13 @@ internal static partial class Library
             {
                 var t = new JsObj();
                 t["state"] = Convert.ToBase64String(state);
-                entries.Add(Backup.JsonEntry("tailscale.json", t));
+                if (seal != null) seal["tailscale"] = t; else entries.Add(Backup.JsonEntry("tailscale.json", t));
                 manifest["tailscale"] = true;
             }
         }
         if (TJs.IsObject(app) && app is not null) { entries.Add(Backup.JsonEntry("app.json", app)); manifestParts.Add("app"); }
         if (TJs.IsObject(page) && page is not null) { entries.Add(Backup.JsonEntry("page.json", page)); manifestParts.Add("page"); }
+        if (seal != null) { entries.Add(Backup.JsonEntry("sealed.json", Backup.Seal(seal, passphrase!))); manifest["sealed"] = true; }
         string? dbCopy = null;
         try
         {
@@ -161,6 +171,7 @@ internal static partial class Library
             {
                 dbCopy = TmpFile(".db");
                 Backup.CopyDatabase(dbCopy);
+                if (seal != null) Backup.ScrubForSeal(dbCopy);
                 entries.Add(new Backup.Entry("musicd.db", File: dbCopy));
                 manifestParts.Add("database");
             }
@@ -173,13 +184,13 @@ internal static partial class Library
     }
 
     /* A backup kept on the server: its record. */
-    private static async Task<JsObj> SaveHere(Dictionary<string, bool> include, object? app, object? page, HttpContext ctx, Admin.Tailscale ts, string kind, object? label)
+    private static async Task<JsObj> SaveHere(Dictionary<string, bool> include, object? app, object? page, HttpContext ctx, Admin.Tailscale ts, string kind, object? label, string? passphrase = null)
     {
         var store = Backups;
         var id = store.NewId(kind);
         var file = store.PathFor(id);
         JsObj manifest;
-        await using (var f = File.Create(file)) manifest = await Build(f, include, app, page, null, ctx, ts);
+        await using (var f = File.Create(file)) manifest = await Build(f, include, app, page, null, ctx, ts, passphrase);
         var meta = new JsObj();
         meta["id"] = id;
         meta["kind"] = kind;
@@ -188,6 +199,7 @@ internal static partial class Library
         meta["version"] = manifest["version"];
         meta["parts"] = manifest["parts"];
         meta["bytes"] = (double)new FileInfo(file).Length;
+        if (TJs.Truthy(manifest["sealed"])) meta["sealed"] = true;
         return store.Record(meta);
     }
 
@@ -209,6 +221,7 @@ internal static partial class Library
         if (answered) return true;
         var include = Backup.PartsOf(Prop(b, "include"));
         bool Has(string k) => include.TryGetValue(k, out var v) && v;
+        var passphrase = Backup.Passphrase(Prop(b, "passphrase"));
         var name = $"mandarin-backup-{Backup.Stamp()}.tar.gz";
         var created = (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         // What the file will hold, up front: the app lists the file with it.
@@ -223,9 +236,10 @@ internal static partial class Library
         said["created"] = created;
         said["parts"] = parts;
         said["from"] = Who(ctx).Name;
+        if (Backup.Seals(include, passphrase)) said["sealed"] = true;
         try
         {
-            await Build(ctx.Response.Body, include, app, page, created, ctx, ts, beforeWriting: () =>
+            await Build(ctx.Response.Body, include, app, page, created, ctx, ts, passphrase, beforeWriting: () =>
             {
                 var h = ctx.Response.Headers;
                 h["X-Mandarin-Answered"] = "C#";
@@ -251,7 +265,7 @@ internal static partial class Library
         if (Interlocked.Exchange(ref backupBusy, 1) == 1) return await JsError(ctx, 409, "A backup or restore is already running");
         try
         {
-            var meta = await SaveHere(Backup.PartsOf(Prop(b, "include")), Prop(b, "app"), Prop(b, "page"), ctx, ts, "manual", Prop(b, "label"));
+            var meta = await SaveHere(Backup.PartsOf(Prop(b, "include")), Prop(b, "app"), Prop(b, "page"), ctx, ts, "manual", Prop(b, "label"), Backup.Passphrase(Prop(b, "passphrase")));
             var o = new JsObj();
             o["ok"] = true;
             o["backup"] = meta;
@@ -275,126 +289,6 @@ internal static partial class Library
         h.LastModified = DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Floor((new DateTimeOffset(info.LastWriteTimeUtc).UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10000.0 + 0.5)).ToString("R");
         ctx.Response.ContentLength = info.Length;
         await ctx.Response.SendFileAsync(f);
-        return true;
-    }
-
-    // ------------------------------------------------------------ restoring
-
-    private static async Task<bool> BackupRestoreUpload(HttpContext ctx, Admin.Tailscale ts)
-    {
-        if (Interlocked.Exchange(ref backupBusy, 1) == 1) return await JsError(ctx, 409, "A backup or restore is already running");
-        var upload = TmpFile(".tar.gz");
-        try
-        {
-            await using (var w = File.Create(upload)) await ctx.Request.Body.CopyToAsync(w);
-            var q = Values(ctx, "parts");
-            object? parts = q == null ? Undef.V : q.Count == 1 ? q[0] : q.Select(x => (object?)x).ToList();
-            return await Finish(ctx, ts, await RestoreFile(upload, Backup.PartsOf(parts), ctx, ts));
-        }
-        catch (Exception e)
-        {
-            Front.Log($"[backup] restore: {e.Message}");
-            return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
-        }
-        finally { Rm(upload); Interlocked.Exchange(ref backupBusy, 0); }
-    }
-
-    private static async Task<bool> BackupRestoreKept(HttpContext ctx, Admin.Tailscale ts, string id)
-    {
-        var (b, answered) = await JsBody(ctx);
-        if (answered) return true;
-        if (Backups.File(id) is not { } f) return await JsError(ctx, 404, "No such backup");
-        if (Interlocked.Exchange(ref backupBusy, 1) == 1) return await JsError(ctx, 409, "A backup or restore is already running");
-        try { return await Finish(ctx, ts, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts)); }
-        catch (Exception e)
-        {
-            Front.Log($"[backup] restore: {e.Message}");
-            return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
-        }
-        finally { Interlocked.Exchange(ref backupBusy, 0); }
-    }
-
-    /*
-     * Restore from a backup file on disk: what was restored, and the page's and
-     * app's parts for the device to apply. How things are now is kept first.
-     */
-    private static async Task<JsObj> RestoreFile(string file, Dictionary<string, bool> include, HttpContext ctx, Admin.Tailscale ts)
-    {
-        bool Has(string k) => include.TryGetValue(k, out var v) && v;
-        var dbFile = TmpFile(".db");
-        try
-        {
-            var (parts, hasDb) = await Task.Run(() => Backup.ReadBackup(file, dbFile));
-            var m = (JsObj)parts["manifest"]!;
-            if (TJs.ToNumber(m["format"]) > Backup.Format || Backup.Newer(m["version"], AppVersion))
-                throw new Backup.Refused($"That backup was made by Mandarin v{TJs.Str(m["version"])}; update this server first", 409);
-            var map = new Dictionary<string, string>();
-            var phone = Who(ctx).Phone;
-            if (TJs.Truthy(m["phone"]) && phone != null && !TJs.StrictEq(m["phone"], phone)) map[TJs.Str(m["phone"])] = phone;
-            var restored = new List<object?>();
-            var wantServer = Backup.ServerParts.Any(p => Has(p) && TJs.Truthy(parts["server"])) || (Has("database") && hasDb);
-            if (wantServer)
-            {
-                // How things are now, first: Undo is restoring this one.
-                var all = new Dictionary<string, bool> { ["settings"] = true, ["devices"] = true, ["collection"] = true, ["keys"] = true };
-                await SaveHere(all, null, null, ctx, ts, "auto", "Before restore");
-            }
-            if (Has("database") && hasDb)
-            {
-                Backup.StageDatabase(dbFile, Db.File, DataDir, map);
-                restored.Add("database");
-            }
-            else if (parts["server"] is var server && TJs.Truthy(server))
-            {
-                using var c = Db.Open();
-                var done = server is JsObj so ? Backup.Apply(c, so, include.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet(), map) : [];
-                restored.AddRange(done);
-                try { Backup.ExportEdits(c, DataDir); } catch (Exception e) { Front.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
-            }
-            // The Tailscale identity, with the keys or the whole database: the node the backup was made on, not a new one.
-            if ((Has("keys") || (Has("database") && hasDb)) && parts["tailscale"] is JsObj tsPart && tsPart["state"] is string state)
-            {
-                var buf = Convert.FromBase64String(state);
-                if (buf.Length > 0)
-                {
-                    try
-                    {
-                        ts.Stop();   // the engine lets go of the file; it starts again with the server
-                        Directory.CreateDirectory(ts.Dir);
-                        File.WriteAllBytes(StateFile(ts), buf);
-                        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(StateFile(ts), UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                        restored.Add("tailscale");
-                    }
-                    catch (Exception e) { Front.Log($"[backup] tailscale identity: {e.Message}"); }
-                }
-            }
-            var o = new JsObj();
-            o["ok"] = true;
-            o["restored"] = restored;
-            o["version"] = m["version"];
-            o["created"] = m["created"];
-            if (Has("page") && TJs.Truthy(parts["page"])) { o["page"] = parts["page"]; restored.Add("page"); }
-            if (Has("app") && TJs.Truthy(parts["app"])) { o["app"] = parts["app"]; restored.Add("app"); }
-            o["restarting"] = restored.Any(x => !TJs.StrictEq(x, "page") && !TJs.StrictEq(x, "app"));
-            return o;
-        }
-        finally { Rm(dbFile); }
-    }
-
-    /* The answer, then (when anything of the server's came back) the Node server started again; Tailscale too, here. */
-    private static async Task<bool> Finish(HttpContext ctx, Admin.Tailscale ts, JsObj o)
-    {
-        await SendJs(ctx, o);
-        if (TJs.Truthy(o["restarting"]))
-        {
-            Front.Log($"[backup] restored {string.Join(", ", ((List<object?>)o["restored"]!).Select(x => TJs.Str(x)))}; restarting");
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                await Jobs.Restart();
-                if (((List<object?>)o["restored"]!).Contains("tailscale")) await ts.Start();
-            });
-        }
         return true;
     }
 }

@@ -4,7 +4,8 @@
  * back up to the server (database left out), change things, then restore the
  * settings and this device's screen settings from the list: both come back,
  * the server restarts, and the page shows it's restoring.
- * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
+ * A sealed backup (v0.9.0): the passphrase typed seals it, and its restore
+ * asks for it. Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -86,6 +87,77 @@ test("Backup & restore in a browser: back up to the server, restore settings and
     assert.ok(boot0 && boot1 && boot1 !== boot0, `the server started again: ${boot0} → ${boot1}`);
     ctx.db.close();
     assert.equal(ctx.db.setting("smartPicksHour"), 6, "the server's settings put back");
+  } finally {
+    await srv.stop();
+  }
+});
+
+// A sealed backup (v0.9.0, the audit's S1): the passphrase typed, the card says "sealed", and its restore asks for it.
+const SEALED_BACKUP = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const $ = id => document.getElementById(id);
+  await until(() => document.querySelector("#home-random .album, #home-today .album"));
+  $("settings-toggle").click(); await sleep(300);
+  document.querySelector('.settings-nav-item[data-pane="backup"]').click();
+  await until(() => document.querySelectorAll("#backup-parts input").length);
+  for (const i of document.querySelectorAll("#backup-parts input")) if (i.dataset.part !== "keys") i.click();
+  $("backup-pass").value = "a page's passphrase";
+  $("backup-to-server").click();
+  await until(() => document.querySelector(".backup-item"));
+  return { meta: document.querySelector(".backup-item span").textContent, parts: document.querySelector(".backup-item small").textContent };
+})()`;
+const SEALED_RESTORE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const out = { toasts: [] };
+  window.__showToast = m => out.toasts.push(m);
+  window.__confirmDialog = () => Promise.resolve(true);
+  document.querySelector('.backup-item [data-act="restore"]').click(); await sleep(100);
+  const pass = document.querySelector(".backup-item .backup-pass-in");
+  out.asks = pass ? pass.placeholder : null;
+  document.querySelector('.backup-item [data-act="go"]').click();
+  await until(() => out.toasts.length);
+  pass.value = "not the passphrase";
+  document.querySelector('.backup-item [data-act="go"]').click();
+  await until(() => out.toasts.length > 1);
+  pass.value = "a page's passphrase";
+  document.querySelector('.backup-item [data-act="go"]').click();
+  await until(() => document.getElementById("power-cover"));
+  out.cover = document.getElementById("power-cover") && document.getElementById("power-cover").innerText;
+  return out;
+})()`;
+
+test("a sealed backup in a browser: the passphrase seals it, and its restore asks for it", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const { createServer } = require("./server");
+  const P = ports.port(), U = "http://127.0.0.1:" + P;
+  const srv = createServer({ port: P, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  const boot = async () => { try { return (await (await fetch(U + "/server-info")).json()).boot; } catch (e) { return null; } };
+  const boot0 = await boot();
+  ctx.db.setSetting("discogsToken", "page-secret");
+  try {
+    const token = await signIn(U);
+    const b = await Browser.launch({ width: 390, height: 844 });
+    let made, back;
+    try {
+      const page = await b.page(U + "/", { cookies: [{ name: "musicd_session", value: token, url: U }] });
+      made = await page.eval(SEALED_BACKUP);
+      assert.match(made.meta, / · sealed · from /, "the card says it is sealed");
+      ctx.db.setSetting("discogsToken", "changed");
+      back = await page.eval(SEALED_RESTORE);
+      assert.deepEqual(page.errors, []);
+    } finally { await b.close(); }
+    assert.equal(made.parts, "API keys");
+    assert.equal(back.asks, "Its passphrase (for the keys and the whole database)", "its restore asks for the passphrase");
+    assert.deepEqual(back.toasts, ["This backup is sealed with a passphrase: enter it to restore the keys or the whole database", "That passphrase doesn't open this backup"]);
+    assert.match(back.cover, /Restoring/);
+    let boot1 = null;
+    for (let i = 0; i < 150 && !(boot1 && boot1 !== boot0); i++) { await new Promise(res => setTimeout(res, 100)); boot1 = await boot(); }
+    assert.ok(boot0 && boot1 && boot1 !== boot0, `the server started again: ${boot0} → ${boot1}`);
+    ctx.db.close();
+    assert.equal(ctx.db.setting("discogsToken"), "page-secret", "the keys put back with the passphrase");
   } finally {
     await srv.stop();
   }
