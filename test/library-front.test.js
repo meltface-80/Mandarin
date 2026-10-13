@@ -60,10 +60,13 @@ const fileSizes = new Map();
 /*
  * What changes from one run to the next made the same: the day, an id made new (a dynamic playlist's), a cover's
  * key (its hash the files' own, made afresh each run) and what follows from it — a speaker's signature, Shelf's
- * signature of the list — the port, and a file's length.
+ * signature of the list — the port, a file's length, and Mandarin's version where an answer says it (Shelf's,
+ * recorded as 0.8.50 and named here as the version this checkout is).
  */
+const VERSION = require("../package.json").version;
 const steady = (v) => JSON.parse(JSON.stringify(v === undefined ? null : v, (k, x) => {
   if (k === "day" && typeof x === "string") return "<day>";
+  if (k === "version" && x === VERSION) return "<Mandarin's version>";
   if (k === "size" && typeof x === "number" && fileSizes.has(x)) return fileSizes.get(x);
   if (k === "id" && typeof x === "string" && /^[0-9a-f]{12}$/.test(x)) return "<new id>";
   if (k === "sig" && typeof x === "string") return "<sig>";
