@@ -54,13 +54,16 @@ internal static partial class PlaybackRoutes
         req.Hub.Bump();
     }
 
-    /* Where this server is reached away from home (lib/server/tailscale.js awayAddress): set by hand, or built-in Tailscale's own. */
-    private static string? AwayAddress(int port)
+    /*
+     * Where this server is reached away from home (lib/server/tailscale.js awayAddress): [setByHand]
+     * (TAILSCALE_ADDRESS), else built-in Tailscale's [own], else a Tailscale address among [ifs] (this machine's: Undef).
+     */
+    internal static string? AwayAddress(int port, string? setByHand, string? own, object? ifs)
     {
-        var set = (Environment.GetEnvironmentVariable("TAILSCALE_ADDRESS") ?? "").Trim().TrimEnd('/');
+        var set = (setByHand ?? "").Trim().TrimEnd('/');
         if (set.Length > 0) return set.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || set.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? set : $"http://{(set.Contains(':') ? set : set + ":" + port)}";
-        if (Jobs.Tailscale?.Address() is { Length: > 0 } own) return own;
-        var ip = Topology.LanAddresses(Undef.V).Select(a => Jv.Str(a["address"])).FirstOrDefault(a => Topology.IsCgnat(a));
+        if (own is { Length: > 0 }) return own;
+        var ip = Topology.LanAddresses(ifs).Select(a => Jv.Str(a["address"])).FirstOrDefault(a => Topology.IsCgnat(a));
         return ip != null ? $"http://{ip}:{port}" : null;
     }
 
@@ -82,7 +85,7 @@ internal static partial class PlaybackRoutes
                 if (req.Body["dsp"] is JsonObject sent) PhoneDsp(req, uid, name, sent);
                 var dsp = DspFor(req.C, uid);
                 hello["away"] = req.Away;
-                hello["away_address"] = AwayAddress(req.Hub.Config.Port);
+                hello["away_address"] = AwayAddress(req.Hub.Config.Port, Environment.GetEnvironmentVariable("TAILSCALE_ADDRESS"), Jobs.Tailscale?.Address(), Undef.V);
                 hello["dsp"] = Phones.ToNode(dsp);
                 // Volume Levelling (this phone's own): what the app applies to what it plays itself.
                 hello["replaygain"] = Phones.ToNode(Items.LevellingFor(req.C, uid));

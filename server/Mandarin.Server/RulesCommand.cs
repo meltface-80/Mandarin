@@ -15,6 +15,12 @@
 //      → { plays }
 //   { fn: "uris", uris }                                                  Playback/Phones.Commands.cs
 //      → { tracks }: the library track each stream address names, or null
+//   { fn: "cpu", decides: [{ linux, taskset, cores, env, dsp }], places: [{ kind, tools, raise, cores, env, bin, args }],
+//     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
+//      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
+//   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
+//     powers: [{ env, mac }] }                                            Auth.cs, Front.cs, PhoneRoutes.cs, PowerRoutes.cs
+//      → { locals, names, clients, tailnet, aways, powers }
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -30,7 +36,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -39,6 +45,8 @@ internal static class RulesCommand
         "soapcall" => SoapCalls(job).GetAwaiter().GetResult(),
         "labelnames" => LabelNameFns(job),
         "phoneplays" => new JsObj { ["plays"] = Each(job["tracks"], t => Downloads.PhonePlays(new Downloads.Track(0, S(O(t)["path"]), S(O(t)["codec"]), 0, N(O(t)["bits"]), N(O(t)["channels"]), 0, 0))) },
+        "cpu" => CpuFns(job),
+        "auth" => AuthFns(job),
         "uris" => new JsObj { ["tracks"] = Each(job["uris"], u => Playback.Phones.TrackIdFromUri(TJs.IsNullish(u) ? null : TJs.Str(u)) is { } id ? (double)id : null) },
         _ => throw new JsError("unknown fn")
     };
@@ -79,5 +87,55 @@ internal static class RulesCommand
         ["keys"] = Each(job["keys"], n => Names.LabelKey(TJs.IsNullish(n) ? null : TJs.Str(n))),
         ["not_labels"] = Each(job["not_labels"], n => Names.IsLikelyNotALabel(TJs.IsNullish(n) ? null : TJs.Str(n))),
         ["folders"] = Each(job["folders"], f => Names.LabelFromFolder(S(At(f, 0)), L(At(f, 1)).Select(S).ToList(), (int)N(At(f, 2))))
+    };
+
+    /* A split decided as Cpu.Decide decides it, from a case's cores and its PLAYBACK_CORES / PLAYBACK_CORE. */
+    private static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decided(object? c, bool taskset) =>
+        Cpu.Decide(O(c)["linux"] is not false, taskset, L(O(c)["cores"]).Select(x => (int)N(x)).ToArray(),
+            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORES"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORES"]),
+            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORE"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORE"]), TJs.Truthy(O(c)["dsp"]));
+
+    private static List<object?> Ints(IEnumerable<int> l) => l.Select(x => (object?)(double)x).ToList();
+
+    private static JsObj CpuFns(JsObj job) => new()
+    {
+        ["decides"] = Each(job["decides"], c =>
+        {
+            var d = Decided(c, O(c)["taskset"] is not false);
+            return new JsObj { ["split"] = d.Split, ["playback"] = Ints(d.Playback), ["background"] = Ints(d.Background), ["core"] = d.Core is { } k ? (double)k : null, ["slots"] = (double)Cpu.SlotsFor(d.Background) };
+        }),
+        ["places"] = Each(job["places"], c =>
+        {
+            var t = O(O(c)["tools"]);
+            var tools = (TJs.Truthy(t["taskset"]), TJs.Truthy(t["nice"]), TJs.Truthy(t["ionice"]));
+            var d = Decided(c, tools.Item1);
+            var kind = S(O(c)["kind"]) switch { "background" => CpuKind.Background, "ahead" => CpuKind.Ahead, _ => CpuKind.Playback };
+            var line = Cpu.ChainFor(kind, tools, d.Split, d.Playback, d.Background, raised: S(O(c)["kind"]) == "realtime" && TJs.Truthy(O(c)["raise"]));
+            line.Add(S(O(c)["bin"]));
+            line.AddRange(L(O(c)["args"]).Select(S));
+            return line.Select(x => (object?)x).ToList();
+        }),
+        ["expands"] = Each(job["expands"], x => Ints(Cpu.Expand(S(x)))),
+        ["compacts"] = Each(job["compacts"], x => Cpu.Compact(L(x).Select(v => (int)N(v))))
+    };
+
+    /* A request from [remote], with what a proxy said it came from. */
+    private static HttpContext RequestFrom(object? remote, object? forwarded)
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Connection.RemoteIpAddress = System.Net.IPAddress.Parse(S(remote));
+        if (!TJs.IsNullish(forwarded)) ctx.Request.Headers["X-Forwarded-For"] = S(forwarded);
+        return ctx;
+    }
+
+    private static JsObj AuthFns(JsObj job) => new()
+    {
+        ["locals"] = Each(job["locals"], ip => Auth.IsLocal(S(ip))),
+        ["names"] = Each(job["uas"], ua => Auth.DeviceNameFromUA(S(ua))),
+        ["clients"] = Each(job["clients"], c => Auth.ClientIp(RequestFrom(At(c, 0), At(c, 1)))),
+        ["tailnet"] = Each(job["tailnet"], ip => Playback.Topology.IsCgnat(S(ip))),
+        ["aways"] = Each(job["aways"], c => PlaybackRoutes.AwayAddress((int)N(O(c)["port"]), TJs.IsNullish(O(c)["set"]) ? null : S(O(c)["set"]),
+            TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),
+        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString()))
     };
 }

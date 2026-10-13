@@ -1,42 +1,25 @@
 "use strict";
 /*
- * The processor shared out, playback first (lib/cpu.js, v0.8.13; a core kept
- * for a sound device since v0.7.7): which cores playback keeps — one, two
- * while DSP is in use — from the machine and PLAYBACK_CORES / PLAYBACK_CORE;
- * each kind of work started where it belongs; the server itself, and anything
- * running, moved when DSP takes or gives back its second core; and, through
- * the C# server (MANDARIN_FRONT=1), the split decided by that server (v0.8.48,
- * Cpu.cs: the same decision, the DSP conversions of both servers counted),
- * this one following it, both keeping to it.
+ * The processor shared out, playback first (v0.8.13; a core kept for a sound
+ * device since v0.7.7): which cores playback keeps — one, two while DSP is in
+ * use — from the machine and PLAYBACK_CORES / PLAYBACK_CORE, and each kind of
+ * work started where it belongs. The C# server's rule (Cpu.cs, Cpu.Place.cs;
+ * lib/cpu.js until v0.8.50), asked through `mandarin-server score`; the
+ * program kept to it for real in test/cpu-alone.test.js.
  */
-const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const fs = require("fs");
-const path = require("path");
-const { spawn, spawnSync } = require("child_process");
-const CPU = require("../lib/cpu");
+const { built } = require("./server");
+const { score } = require("./score");
 
-const linux = process.platform === "linux";
-const taskset = linux && spawnSync("taskset", ["--version"], { stdio: "ignore" }).status === 0;
-const four = (() => { try { return CPU.decide({ cores: undefined, taskset: true, env: {} }).cores.length >= 4; } catch (e) { return false; } })();
-const skipReal = !taskset ? "no taskset here" : !four ? "fewer than four cores here" : false;
+const skip = built();
+/* The split for a machine: [split, playback, background, core]. */
+const decide = (o) => score({ fn: "cpu", decides: [o] }).decides[0];
+/* A command line as the server would start it: [kind] where it belongs on [cores], with [tools]. */
+const wrap = (bin, args, kind, o) => score({ fn: "cpu", places: [Object.assign({ bin, args, kind }, o)] }).places[0];
 
-const allowedOf = (pid) => (/Cpus_allowed_list:\s*(\S+)/.exec(fs.readFileSync(`/proc/${pid}/status`, "utf8")) || [])[1];
-const threadsOf = (pid) => fs.readdirSync(`/proc/${pid}/task`).map(t => (/Cpus_allowed_list:\s*(\S+)/.exec(fs.readFileSync(`/proc/${pid}/task/${t}/status`, "utf8")) || [])[1]);
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const until = async (fn, ms, what) => {
-  const end = Date.now() + ms;
-  for (;;) {
-    const v = await fn();
-    if (v) return v;
-    if (Date.now() > end) throw new Error("timed out: " + what);
-    await sleep(100);
-  }
-};
-
-test("playback's cores: the last one (two with DSP), at least two left on four or more; chosen or turned off", () => {
-  const d = (o) => { const r = CPU.decide(Object.assign({ platform: "linux", taskset: true, env: {} }, o)); return [r.split, r.playback, r.background, r.core]; };
+test("playback's cores: the last one (two with DSP), at least two left on four or more; chosen or turned off", { skip }, () => {
+  const d = (o) => { const r = decide(Object.assign({ linux: o.platform !== "darwin", taskset: true, env: {} }, o)); return [r.split, r.playback, r.background, r.core]; };
   const n = (k) => Array.from({ length: k }, (_, i) => i);
   assert.deepEqual(d({ cores: n(4) }), [true, [3], [0, 1, 2], 3], "four cores: one for playback, three for the rest");
   assert.deepEqual(d({ cores: n(4), dsp: true }), [true, [2, 3], [0, 1], 3], "with DSP: two and two");
@@ -57,216 +40,31 @@ test("playback's cores: the last one (two with DSP), at least two left on four o
   assert.deepEqual(d({ cores: [4, 5, 6, 7] }), [true, [7], [4, 5, 6], 7], "a container's own cores");
   assert.deepEqual(d({ cores: n(8), platform: "darwin" })[0], false, "a Mac has no taskset");
   assert.deepEqual(d({ cores: n(8), taskset: false })[0], false, "no taskset: shared");
-  assert.deepEqual(CPU.expand("0-2,5"), [0, 1, 2, 5]);
-  assert.equal(CPU.compact([5, 0, 2, 1]), "0-2,5");
+  const { expands, compacts } = score({ fn: "cpu", expands: ["0-2,5"], compacts: [[5, 0, 2, 1]] });
+  assert.deepEqual(expands[0], [0, 1, 2, 5]);
+  assert.equal(compacts[0], "0-2,5");
 });
 
-test("each kind started where it belongs, below what it should yield to", (t) => {
-  // A Linux machine's plan (taskset, ionice), on whatever this one is: only
-  // decided, nothing run (pin: false). A Mac's own is decided above.
-  const platform = Object.getOwnPropertyDescriptor(process, "platform");
-  Object.defineProperty(process, "platform", Object.assign({}, platform, { value: "linux" }));
-  t.after(() => { Object.defineProperty(process, "platform", platform); CPU.reset(); });
-  CPU.reset();
+test("each kind started where it belongs, below what it should yield to", { skip }, () => {
+  // A Linux machine's plan (taskset, ionice), only decided, nothing run. A Mac's own is decided above.
   const tools = { taskset: true, nice: true, ionice: true };
-  // Split, without moving this process (what would be done, only).
-  CPU.init({ tools, raise: false, cores: [0, 1, 2, 3], env: {}, pin: false });
-  assert.deepEqual(CPU.plan().playback, [3]);
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "realtime"), ["taskset", ["-c", "3", "ffmpeg", "-i", "x"]]);
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "playback"), ["taskset", ["-c", "3", "ffmpeg", "-i", "x"]]);
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "ahead"), ["nice", ["-n", "5", "taskset", "-c", "3", "ffmpeg", "-i", "x"]]);
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "background"), ["nice", ["-n", "19", "ionice", "-c", "2", "-n", "7", "taskset", "-c", "0-2", "ffmpeg", "-i", "x"]]);
-  assert.equal(CPU.core(), 3);
-  assert.equal(CPU.slots(), 3);
-  CPU.reset();
+  const four = { tools, cores: [0, 1, 2, 3], env: {} };
+  const w = (kind, o = four, bin = "ffmpeg", args = ["-i", "x"]) => wrap(bin, args, kind, o);
+  assert.deepEqual(decide(four).playback, [3]);
+  assert.deepEqual(w("realtime"), ["taskset", "-c", "3", "ffmpeg", "-i", "x"]);
+  assert.deepEqual(w("playback"), ["taskset", "-c", "3", "ffmpeg", "-i", "x"]);
+  assert.deepEqual(w("ahead"), ["nice", "-n", "5", "taskset", "-c", "3", "ffmpeg", "-i", "x"]);
+  assert.deepEqual(w("background"), ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7", "taskset", "-c", "0-2", "ffmpeg", "-i", "x"]);
+  assert.equal(decide(four).core, 3);
+  assert.equal(decide(four).slots, 3);
   // Allowed to raise: the engine starts higher.
-  CPU.init({ tools, raise: true, cores: [0, 1, 2, 3], env: {}, pin: false });
-  assert.deepEqual(CPU.wrap("e", [], "realtime"), ["nice", ["-n", "-10", "taskset", "-c", "3", "e"]]);
-  CPU.reset();
+  assert.deepEqual(w("realtime", Object.assign({ raise: true }, four), "e", []), ["nice", "-n", "-10", "taskset", "-c", "3", "e"]);
   // Nothing split (two cores): the priorities alone.
-  CPU.init({ tools, raise: false, cores: [0, 1], env: {}, pin: false });
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "playback"), ["ffmpeg", ["-i", "x"]]);
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "background"), ["nice", ["-n", "19", "ionice", "-c", "2", "-n", "7", "ffmpeg", "-i", "x"]]);
-  assert.equal(CPU.core(), null);
-  assert.equal(CPU.slots(), 2);
-  CPU.reset();
+  const two = { tools, cores: [0, 1], env: {} };
+  assert.deepEqual(w("playback", two), ["ffmpeg", "-i", "x"]);
+  assert.deepEqual(w("background", two), ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7", "ffmpeg", "-i", "x"]);
+  assert.equal(decide(two).core, null);
+  assert.equal(decide(two).slots, 2);
   // No tools at all (a Mac without nice): as it is.
-  CPU.init({ tools: { taskset: false, nice: false, ionice: false }, raise: false, cores: [0, 1, 2, 3], env: {}, pin: false });
-  assert.deepEqual(CPU.wrap("ffmpeg", ["-i", "x"], "background"), ["ffmpeg", ["-i", "x"]]);
-  CPU.reset();
-});
-
-test("for real: this process off playback's core, children where they belong, moved when DSP takes a second core", { skip: skipReal, timeout: 30000 }, async () => {
-  CPU.reset();
-  const lines = [];
-  const all = CPU.decide({ taskset: true, env: {} }).cores;
-  const before = allowedOf(process.pid);
-  const p = CPU.init({ log: (l) => lines.push(l), env: {}, hold: 300 });
-  const last = all[all.length - 1];
-  try {
-    assert.equal(p.split, true);
-    assert.deepEqual(p.playback, [last]);
-    assert.ok(lines.some(l => /kept for playback/.test(l)), lines.join("\n"));
-    for (const t of threadsOf(process.pid)) assert.equal(t, CPU.compact(p.background), "every thread of this process on the rest");
-    // A background child: the rest of the cores, the lowest priority, its reads last.
-    const [bb, ba] = CPU.wrap("sleep", ["20"], "background");
-    const bg = CPU.adopt(spawn(bb, ba, { stdio: "ignore" }), "background");
-    // A playback child: playback's core.
-    const [pb, pa] = CPU.wrap("sleep", ["20"], "playback");
-    const pl = CPU.adopt(spawn(pb, pa, { stdio: "ignore" }), "playback");
-    // Placed once each is sleep itself: before, it is still nice, ionice or
-    // taskset, on this process's cores until the last of them sets its own,
-    // which on a busy machine can come after DSP has moved it, below.
-    const became = (pid, name) => { try { return fs.readFileSync(`/proc/${pid}/comm`, "utf8").trim() === name; } catch (e) { return false; } };
-    await until(() => { try { return became(bg.pid, "sleep") && became(pl.pid, "sleep") && allowedOf(bg.pid) === CPU.compact(p.background) && allowedOf(pl.pid) === String(last); } catch (e) { return false; } }, 5000, "the children placed");
-    const nice = Number(fs.readFileSync(`/proc/${bg.pid}/stat`, "utf8").split(") ")[1].split(" ")[16]);
-    assert.equal(nice, 19);
-    // DSP: playback has a second core; this process and the background child move off it, the playback child stays.
-    CPU.dsp(true);
-    const d = CPU.plan();
-    assert.deepEqual(d.playback, all.slice(-2));
-    assert.equal(d.dsp, true);
-    assert.equal(allowedOf(process.pid), CPU.compact(d.background));
-    assert.equal(allowedOf(bg.pid), CPU.compact(d.background));
-    assert.equal(allowedOf(pl.pid), String(last), "within playback's cores already: left where it is");
-    assert.equal(CPU.slots(), d.background.length);
-    // The engine started meanwhile, on both, its decoder with it.
-    const [eb, ea] = CPU.wrap("sh", ["-c", "sleep 20 & wait"], "realtime");
-    const eng = CPU.adopt(spawn(eb, ea, { stdio: "ignore" }), "realtime");
-    const kidOf = (pid) => fs.readdirSync("/proc").filter(x => /^\d+$/.test(x)).find(x => {
-      try { const st = fs.readFileSync(`/proc/${x}/stat`, "utf8"); return Number(st.slice(st.lastIndexOf(")") + 2).split(" ")[1]) === pid; } catch (e) { return false; }
-    });
-    const dec = await until(() => kidOf(eng.pid), 5000, "the engine's decoder");
-    assert.equal(allowedOf(dec), CPU.compact(d.playback));
-    // Ended: held a while, then given back; the engine and its decoder back to the one core.
-    CPU.dsp(false);
-    assert.deepEqual(CPU.plan().playback, all.slice(-2), "held after the last DSP conversion");
-    await until(() => CPU.plan().playback.length === 1, 3000, "the second core given back");
-    assert.equal(CPU.plan().dsp, false);
-    assert.equal(allowedOf(process.pid), CPU.compact(p.background));
-    assert.equal(allowedOf(eng.pid), String(last));
-    assert.equal(allowedOf(dec), String(last), "the decoder moved with the engine");
-    bg.kill(); pl.kill(); eng.kill(); try { process.kill(Number(dec)); } catch (e) { /* gone */ }
-  } finally {
-    spawnSync("taskset", ["-a", "-p", "-c", before, String(process.pid)], { stdio: "ignore" });
-    CPU.reset();
-  }
-});
-
-const skipFront = process.env.MANDARIN_FRONT !== "1" ? "the suite isn't going through the C# server (MANDARIN_FRONT=1)" : skipReal;
-
-test("the split decided by the C# server: the same decision, followed here, both keeping to it and moving with DSP", { skip: skipFront, timeout: 90000 }, async () => {
-  CPU.reset();
-  const { signIn } = require("./auth-helper");
-  const os = require("os");
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-cpu-"));
-  const music = path.join(root, "music"), data = path.join(root, "data");
-  fs.mkdirSync(music);
-  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const before = allowedOf(process.pid);
-  // DSP's second core held briefly after its last conversion (the C# server's hold, lib/cpu.js's ten minutes otherwise).
-  process.env.MANDARIN_CPU_HOLD_MS = "300";
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
-    sonosHosts: [], upnpMulticast: false, identify: false });
-  try {
-    // A DSP conversion under way here before the C# server takes the split: counted to it at the
-    // hand-over (cpu_dsp), so its first decision keeps playback's second core; given back once it ends.
-    CPU.dsp(true);
-    await srv.start();
-    const H = { Authorization: "Bearer " + await signIn(B) };
-    const cpu = async () => { const r = await fetch(B + "/api/cpu", { headers: H }); return { by: r.headers.get("x-mandarin-answered"), plan: await r.json() }; };
-    assert.equal((await cpu()).plan.split, true);
-    // The C# server: this process's child of that name.
-    const cs = fs.readdirSync("/proc").filter(d => /^\d+$/.test(d)).find(d => {
-      try {
-        const st = fs.readFileSync(`/proc/${d}/stat`, "utf8");
-        return st.includes("(mandarin-server)") && Number(st.split(") ")[1].split(" ")[1]) === process.pid;
-      } catch (e) { return false; }
-    });
-    assert.ok(cs, "the C# server found");
-    // Once it holds "cpu": /api/cpu answered there, the decision lib/cpu.js
-    // makes for the cores this process started with; followed here.
-    const all = CPU.plan().cores;
-    const want = CPU.decide({ platform: "linux", taskset: true, cores: all, env: process.env, dsp: false });
-    const first = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
-    assert.deepEqual([first.dsp, first.playback], [true, all.slice(-2)], "the conversion under way at the hand-over counted there: " + JSON.stringify(first));
-    assert.equal(CPU.running(), 0, "and no longer here");
-    CPU.dsp(false);
-    await until(() => CPU.plan().playback.length === 1, 5000, "the second core given back once it ends");
-    const after0 = await cpu();
-    assert.equal(after0.by, "C#");
-    const p = after0.plan;
-    assert.deepEqual([p.split, p.cores, p.playback, p.background, p.core, p.dsp], [want.split, want.cores, want.playback, want.background, want.core, false], "as lib/cpu.js decides it");
-    assert.deepEqual(CPU.plan().playback, p.playback, "followed here");
-    assert.deepEqual(CPU.plan().cores, all);
-    // Every thread of it on the rest, and this process too.
-    await until(() => threadsOf(cs).every(t => t === CPU.compact(p.background)), 15000, "the C# server on the rest: " + threadsOf(cs).join(" "));
-    assert.equal(allowedOf(process.pid), CPU.compact(p.background), "this process on the rest");
-    // A DSP conversion made here: told to the C# server, which gives playback
-    // its second core; followed here, both moving off it.
-    CPU.dsp(true);
-    const d = await until(() => { const x = CPU.plan(); return x.playback.length === 2 && x.dsp && x; }, 10000, "the split with DSP, from the C# server");
-    assert.deepEqual(d.playback, all.slice(-2));
-    assert.deepEqual(d.background, all.slice(0, -2));
-    const withDsp = await cpu();
-    assert.deepEqual([withDsp.by, withDsp.plan.playback, withDsp.plan.dsp], ["C#", d.playback, true]);
-    await until(() => threadsOf(cs).every(t => t === CPU.compact(d.background)), 15000, "the C# server moved for DSP: " + threadsOf(cs).join(" "));
-    assert.equal(allowedOf(process.pid), CPU.compact(d.background), "this process moved with it");
-    assert.equal(CPU.slots(), d.background.length);
-    // Ended: held a while, then given back by the C# server; followed here again.
-    CPU.dsp(false);
-    await sleep(100);
-    assert.deepEqual(CPU.plan().playback, all.slice(-2), "held after the last DSP conversion");
-    await until(() => CPU.plan().playback.length === 1, 5000, "the second core given back");
-    assert.equal(CPU.plan().dsp, false);
-    const after = await cpu();
-    assert.deepEqual([after.plan.playback, after.plan.dsp], [p.playback, false]);
-    await until(() => threadsOf(cs).every(t => t === CPU.compact(p.background)), 15000, "the C# server back on the rest: " + threadsOf(cs).join(" "));
-    assert.equal(allowedOf(process.pid), CPU.compact(p.background));
-  } finally {
-    delete process.env.MANDARIN_CPU_HOLD_MS;
-    await srv.stop().catch(() => {});
-    spawnSync("taskset", ["-a", "-p", "-c", before, String(process.pid)], { stdio: "ignore" });
-    CPU.reset();
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-// Nothing to split (PLAYBACK_CORES=0 here; a Mac, or a machine of two cores,
-// is the same): what the C# server tells the Node server carries whether DSP
-// is in use as well as the split, so the Node server still hears when a
-// conversion starts and ends, though the split never changes (v0.8.48, found
-// on the Mac: the conversions test waited for it in vain).
-test("nothing to split: the Node server is still told when DSP starts and ends", { skip: process.env.MANDARIN_FRONT !== "1" ? "the suite isn't going through the C# server (MANDARIN_FRONT=1)" : false, timeout: 60000 }, async () => {
-  CPU.reset();
-  const { signIn } = require("./auth-helper");
-  const os = require("os");
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-cpu0-"));
-  const music = path.join(root, "music"), data = path.join(root, "data");
-  fs.mkdirSync(music);
-  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  process.env.PLAYBACK_CORES = "0";
-  process.env.MANDARIN_CPU_HOLD_MS = "300";
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1",
-    sonosHosts: [], upnpMulticast: false, identify: false });
-  try {
-    await srv.start();
-    const H = { Authorization: "Bearer " + await signIn(B) };
-    const cpu = async () => { const r = await fetch(B + "/api/cpu", { headers: H }); return { by: r.headers.get("x-mandarin-answered"), plan: await r.json() }; };
-    const p = (await until(async () => { const r = await cpu(); return r.by === "C#" && r; }, 30000, "the C# server deciding the split")).plan;
-    assert.deepEqual([p.split, p.playback, p.dsp], [false, [], false], "nothing split, no DSP: " + JSON.stringify(p));
-    assert.equal(CPU.plan().split, false, "followed here");
-    CPU.dsp(true);
-    await until(() => CPU.plan().dsp === true, 10000, "the Node server told DSP started");
-    assert.equal((await cpu()).plan.dsp, true);
-    CPU.dsp(false);
-    await until(() => CPU.plan().dsp === false, 5000, "and that it ended, once the hold is over");
-    assert.equal((await cpu()).plan.dsp, false);
-  } finally {
-    delete process.env.PLAYBACK_CORES;
-    delete process.env.MANDARIN_CPU_HOLD_MS;
-    await srv.stop().catch(() => {});
-    CPU.reset();
-    fs.rmSync(root, { recursive: true, force: true });
-  }
+  assert.deepEqual(w("background", { tools: { taskset: false, nice: false, ionice: false }, cores: [0, 1, 2, 3], env: {} }), ["ffmpeg", "-i", "x"]);
 });

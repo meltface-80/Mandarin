@@ -22,7 +22,7 @@ const path = require("path");
 const http = require("http");
 const zlib = require("zlib");
 const crypto = require("crypto");
-const { execFileSync } = require("child_process");
+const { execFileSync, spawnSync } = require("child_process");
 const pkg = require("../package.json");
 const { makeLibrary, stopServer } = require("./fixtures");
 const { signIn } = require("./auth-helper");
@@ -193,4 +193,10 @@ test("the in-app update with no Node server: refused with nothing changed, then 
   assert.ok(!fs.existsSync(path.join(ROOT, ".update")), "nothing staged in this checkout");
   const now = fs.statSync(BIN);
   assert.deepEqual([now.size, now.mtimeMs], [realBin.size, realBin.mtimeMs], "the C# server of this checkout untouched");
+});
+
+test("`mandarin-server --version` says its version, and nothing else", { skip: built() }, () => {
+  const r = spawnSync(BIN, ["--version"], { encoding: "utf8", timeout: 30000 });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, pkg.version + "\n");
 });

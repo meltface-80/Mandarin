@@ -92,15 +92,7 @@ internal static partial class Cpu
     private static partial long Syscall(long number, long a, long b, long c);
 
     /* How many background reads at once: one per core playback doesn't keep (lib/cpu.js slots). */
-    public static int Slots
-    {
-        get
-        {
-            var p = plan;
-            if (p.Background.Length > 0) return p.Background.Length;
-            return Math.Max(1, Environment.ProcessorCount - 1);
-        }
-    }
+    public static int Slots => SlotsFor(plan.Background);
 
     /*
      * The calling thread at the lowest priority, its disk reads last (a
@@ -415,56 +407,4 @@ internal static partial class Cpu
 
     /* The Node server sent the split (POST /internal/cpu/plan), to follow for playback's own processes. */
     public static Task TellNode() => Library.ToNode("/internal/cpu/plan", new JsonObject { ["cpu"] = Plan() }, "[cpu] the Node server wasn't sent the split");
-
-    /*
-     * An ffmpeg to be started where its kind belongs: the program and its
-     * arguments put behind nice, ionice and taskset (lib/cpu.js wrap).
-     */
-    public static void Place(ProcessStartInfo psi, CpuKind kind)
-    {
-        var t = Tools.Value;
-        var p = plan;
-        var chain = new List<string>();
-        if (kind == CpuKind.Background)
-        {
-            if (t.Nice) chain.AddRange(["nice", "-n", "19"]);
-            if (t.Ionice) chain.AddRange(["ionice", "-c", "2", "-n", "7"]);
-        }
-        else if (kind == CpuKind.Ahead && t.Nice) chain.AddRange(["nice", "-n", "5"]);
-        if (p.On && t.Taskset) chain.AddRange(["taskset", "-c", Compact(CoresFor(kind))]);
-        if (chain.Count == 0) return;
-        var args = psi.ArgumentList.ToList();
-        psi.ArgumentList.Clear();
-        foreach (var a in chain.Skip(1)) psi.ArgumentList.Add(a);
-        psi.ArgumentList.Add(psi.FileName);
-        foreach (var a in args) psi.ArgumentList.Add(a);
-        psi.FileName = chain[0];
-    }
-
-    /* A process done with: no longer followed. */
-    public static void Forget(Process proc)
-    {
-        try { Children.TryRemove(proc.Id, out _); } catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { /* never started, or let go */ }
-    }
-
-    /* A process started after Place, followed so it moves when the split does. */
-    public static void Adopt(Process proc, CpuKind kind)
-    {
-        int pid;
-        try { pid = proc.Id; } catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { return; }
-        // Where nice isn't there to start it lower: lowered now (its first thread, at least).
-        if (kind != CpuKind.Playback && !Tools.Value.Nice && OperatingSystem.IsLinux())
-        {
-            try { SetPriority(0, pid, kind == CpuKind.Background ? 19 : 5); } catch (Exception) { /* not allowed here */ }
-        }
-        var p = plan;
-        Children[pid] = (kind, p.On ? CoresFor(kind) : []);
-        try
-        {
-            proc.EnableRaisingEvents = true;
-            proc.Exited += (_, _) => Children.TryRemove(pid, out _);
-            if (proc.HasExited) Children.TryRemove(pid, out _);
-        }
-        catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { Children.TryRemove(pid, out _); }
-    }
 }

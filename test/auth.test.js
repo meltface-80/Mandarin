@@ -12,7 +12,8 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const SRP = require("../public/srp");
-const { isLocal, deviceNameFromUA } = require("../lib/server/auth");
+const { built } = require("./server");
+const { score } = require("./score");
 const { signIn, post, USER, PASS } = require("./auth-helper");
 
 const PORT = ports.port();
@@ -28,13 +29,15 @@ async function startServer(dataDir) {
 }
 const get = (p, token, extra) => fetch(B + p, Object.assign({ redirect: "manual", headers: token ? { Authorization: "Bearer " + token } : {} }, extra));
 
-test("home network addresses, and device names from browsers", () => {
-  for (const ip of ["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.0.57", "::1", "::ffff:192.168.1.4", "fe80::1", "fd12:3456::1"]) {
-    assert.equal(isLocal(ip), true, ip);
-  }
-  for (const ip of ["8.8.8.8", "172.32.0.1", "100.101.102.103", "2a00:1450::1", ""]) assert.equal(isLocal(ip), false, ip);
-  assert.equal(deviceNameFromUA("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"), "iPhone · Safari");
-  assert.equal(deviceNameFromUA("Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"), "Android · Chrome");
+test("home network addresses, and device names from browsers", { skip: built() }, () => {
+  // The C# server's rules (Auth.cs; lib/server/auth.js until v0.8.50).
+  const home = ["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.0.57", "::1", "::ffff:192.168.1.4", "fe80::1", "fd12:3456::1"];
+  const away = ["8.8.8.8", "172.32.0.1", "100.101.102.103", "2a00:1450::1", ""];
+  const { locals, names } = score({ fn: "auth", locals: home.concat(away), uas: [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"] });
+  home.concat(away).forEach((ip, i) => assert.equal(locals[i], i < home.length, ip));
+  assert.deepEqual(names, ["iPhone · Safari", "Android · Chrome"]);
 });
 
 test("MusicD Server behind its account", { timeout: 60000 }, async (t) => {

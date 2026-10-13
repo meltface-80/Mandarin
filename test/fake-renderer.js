@@ -291,4 +291,7 @@ class FakeRenderer {
   }
 }
 
-module.exports = { FakeRenderer, SINK_WIIM };
+/* A renderer's id in the server's lists, from its UDN (Renderers/Discovery.cs IdFor). */
+const idFor = (udn) => "UPNP_" + String(udn || "").replace(/^uuid:/i, "").trim();
+
+module.exports = { FakeRenderer, SINK_WIIM, idFor };
