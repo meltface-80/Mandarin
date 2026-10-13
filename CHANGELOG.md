@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.3
+**The audit's performance** (`docs/specs/audit-b4-main.md` module 4). The same answers, made
+less often.
+
+- **The library's lists are kept once made** (P1, `LibraryRoutes.Kept.cs`):
+  - which lists: the wall and its facets, the Shelf, the artists and an artist's albums, genres
+    and decades, hearts and Listen later;
+  - each was made, written out and hashed for its ETag every time it was asked for, even when the
+    page's copy was current; the Shelf is every album in the library, each time it opens;
+  - now each is kept for the copy of the library it was made from and the hearts it shows, and
+    sent as kept (a 304 while the page's copy is current), marked `X-Mandarin-Kept`;
+  - a scan, an edit or a heart makes it afresh, and while the library is being built every list
+    is made as before.
+- **The Android app's page and stylesheet are kept once made** (P2, `Pages.Kept.cs`), while the
+  files they come from are as they were; an update's new files are made once.
+- `test/library-kept.test.js` (new).
+
 ## v0.9.2
 **The audit's code quality** (`docs/specs/audit-b4-main.md` module 1). Nearly nothing changes in
 use: the server reads and answers requests one way everywhere, and its code is split, renamed

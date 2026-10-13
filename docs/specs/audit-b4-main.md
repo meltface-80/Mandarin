@@ -411,12 +411,18 @@ the owner asked, everything is based on `migration`:
 - **Fix:** keep the bytes and their ETag per route and query, for the library's version and marks.
   A request with a current `If-None-Match` is then answered without building anything. A test
   proves a second request is a 304 and the cache is dropped when the library changes.
+- **Done (v0.9.3):** `LibraryRoutes.Kept.cs`: the wall and its facets, the Shelf, the artists and an
+  artist's albums, genres, decades, hearts and Listen later, kept by path and query for the copy and the
+  hearts (at most 64), not while the library is being built. Tested in `test/library-kept.test.js`; ignoring
+  the hearts or the copy each fails it.
 - **Branch:** `audit/performance-optimization`
 
 ### P2. Page responses hashed per request (Low)
 
 - **Where:** `Pages.cs:193–200`. Same pattern for HTML pages, smaller.
 - **Fix:** the same cache, keyed by the file's write time.
+- **Done (v0.9.3):** `Pages.Kept.cs`, keyed by the source files' size and write time; ignoring them fails
+  `test/library-kept.test.js`.
 - **Branch:** `audit/performance-optimization`
 
 ### P3. The page script is shipped unminified (Low; deferred: remind the owner at v0.9.5)
