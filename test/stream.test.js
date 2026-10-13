@@ -1,119 +1,98 @@
 "use strict";
-const { test: utest } = require("node:test");
-utest("a renderer's plan: Original within its ceiling, upsampling in the file's family", () => {
-  const assert = require("node:assert");
-  const S = require("../lib/stream");
-  const wiim = { name: "WiiM", rates: [44100, 48000, 88200, 96000, 176400, 192000], maxBits: 24, containers: ["flac", "wav"] };
-  const cd = { path: "/m/a.flac", codec: "FLAC", sampleRate: 44100, bitsPerSample: 16, channels: 2 };
-  const hi = Object.assign({}, cd, { sampleRate: 96000, bitsPerSample: 24 });
-  assert.equal(S.plan(cd, wiim).transcode, false);
-  assert.equal(S.plan(hi, wiim).transcode, false);
-  assert.deepEqual(pick(S.plan(Object.assign({}, cd, { sampleRate: 352800 }), wiim)), [176400, 24, undefined]);
-  assert.deepEqual(pick(S.plan(hi, { rates: [44100, 48000], containers: ["flac"] })), [48000, 24, undefined]);
-  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "x2" }, wiim))), [88200, 24, 2]);
-  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "x4" }, wiim))), [176400, 24, 4]);
-  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max" }, wiim))), [176400, 24, 4]);
-  assert.deepEqual(pick(S.plan(hi, Object.assign({ mode: "x4" }, wiim))), [192000, 24, 2], "capped at the top of the 48 k family");
-  assert.equal(S.plan(Object.assign({}, hi, { sampleRate: 192000 }), Object.assign({ mode: "max" }, wiim)).transcode, false, "already at the top: as it is");
-  const poly = { name: "Poly", rates: [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000], maxBits: 32, containers: ["flac"] };
-  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max", bits: "auto" }, poly))), [705600, 32, 16]);
-  assert.deepEqual(pick(S.plan(cd, Object.assign({ mode: "max", bits: 24 }, poly))), [705600, 24, 16]);
-  assert.deepEqual(pick(S.plan(Object.assign({}, cd, { sampleRate: 48000 }), Object.assign({ mode: "max" }, poly))), [768000, 32, 16]);
-  // A lossy file follows the same rules; DSD is PCM at the top of the 44.1 ladder ≤ 176.4.
-  assert.deepEqual(pick(S.plan({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3", sampleRate: 44100 }, Object.assign({ mode: "x2" }, wiim))), [88200, 24, 2]);
-  assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, Object.assign({ mode: "max" }, wiim))), [176400, 24, undefined]);
-  // Native DSD (Stage 9.3): a device that takes DSD64 gets the DSF as it is; DSD128 beyond it is PCM as before.
-  const dsdDac = Object.assign({ dsd: [64] }, wiim);
-  const d64 = S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac);
-  assert.deepEqual([d64.transcode, d64.mime, d64.ext, d64.dsd], [false, "audio/x-dsf", "dsf", 64]);
-  assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, dsdDac).mime, "audio/x-dff");
-  // A renderer that names its own DSD type is told the file in those words (v0.6.0-RC3).
-  const named = Object.assign({ dsdMimes: { dsf: "audio/dsf", dff: null } }, dsdDac);
-  assert.equal(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/dsf");
-  assert.equal(S.plan({ path: "/m/a.dff", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 }, named).mime, "audio/x-dff");
-  assert.deepEqual(pick(S.plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 5644800, bitsPerSample: 1 }, dsdDac)), [176400, 24, undefined]);
-  // The 64-bit float pipeline, and its own cache key. SoX's resampler where
-  // ffmpeg has it (lib/ffmpeg.js), swr where it hasn't (Homebrew's, on a Mac):
-  // both, whichever this machine's ffmpeg is.
-  const FF = require("../lib/ffmpeg");
-  const withSoxr = (soxr, fn) => {
-    const real = FF.info;
-    FF.info = () => Object.assign({}, real(), { soxr });
-    try { return fn(); } finally { FF.info = real; }
-  };
-  const x4 = () => S.ffmpegArgs("/m/a.flac", S.plan(cd, Object.assign({ mode: "x4" }, wiim)), "/out.flac").join(" ");
-  const sonos = () => S.ffmpegArgs("/m/a.flac", S.plan(hi), "/out.flac").join(" ");
-  assert.match(withSoxr(true, x4), / -af aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
-  assert.match(withSoxr(false, x4), / -af aresample=internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
-  assert.match(withSoxr(true, sonos), / -af aresample=resampler=soxr:precision=28:osr=48000:/, "the Sonos conversion is as it was");
-  assert.match(withSoxr(false, sonos), / -af aresample=osr=48000:/, "the Sonos conversion is as it was");
-  const tr = new S.Transcoder({ cacheDir: require("os").tmpdir() + "/musicd-keys-" + process.pid, log: () => {} });
-  assert.notEqual(tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi)), tr.keyFor({ id: 1, mtime: 5 }, S.plan(hi, { rates: [44100, 48000], containers: ["flac"] })));
-  function pick(p) { return [p.rate, p.bits, p.upsampled]; }
-});
+/*
+ * What a track is sent as: Sonos's 24/48 ceiling, a renderer's plan within
+ * its own, native DSD, the 64-bit float pipeline and its cache key, and a
+ * repack that is sample for sample.
+ *
+ * The C# server's (Playback/StreamPlans.cs; lib/stream.js until v0.8.50): asked
+ * through `mandarin-server score` { fn: "plans" }.
+ */
 const test = require("node:test");
 const assert = require("node:assert");
-const { plan } = require("../lib/stream");
+const { built } = require("./server");
+const { score } = require("./score");
+const { haveFfmpeg } = require("./fixtures");
 
-test("a CD-quality FLAC goes to Sonos untouched", () => {
-  const p = plan({ path: "/m/a.flac", codec: "FLAC", sampleRate: 44100, bitsPerSample: 16, channels: 2 });
-  assert.equal(p.transcode, false);
-  assert.equal(p.mime, "audio/flac");
+const skip = built();
+const plans = job => score(Object.assign({ fn: "plans" }, job));
+/* plan(track, target): each [track, target?] → its plan; no target is Sonos. */
+const plan = (...calls) => plans({ plan: calls }).plan;
+const pick = p => [p.rate, p.bits, p.upsampled];
+
+test("a renderer's plan: Original within its ceiling, upsampling in the file's family", { skip }, () => {
+  const wiim = { name: "WiiM", rates: [44100, 48000, 88200, 96000, 176400, 192000], maxBits: 24, containers: ["flac", "wav"] };
+  const poly = { name: "Poly", rates: [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000], maxBits: 32, containers: ["flac"] };
+  const cd = { path: "/m/a.flac", codec: "FLAC", sampleRate: 44100, bitsPerSample: 16, channels: 2 };
+  const hi = Object.assign({}, cd, { sampleRate: 96000, bitsPerSample: 24 });
+  const dsf = { path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1 };
+  const dff = Object.assign({}, dsf, { path: "/m/a.dff" });
+  // Native DSD (Stage 9.3): a device that takes DSD64 gets the DSF as it is; DSD128 beyond it is PCM as before.
+  const dsdDac = Object.assign({ dsd: [64] }, wiim);
+  // A renderer that names its own DSD type is told the file in those words (v0.6.0-RC3).
+  const named = Object.assign({ dsdMimes: { dsf: "audio/dsf", dff: null } }, dsdDac);
+  const mode = (m, target, more) => Object.assign({ mode: m }, more, target);
+  const p = plan([cd, wiim], [hi, wiim], [Object.assign({}, cd, { sampleRate: 352800 }), wiim], [hi, { rates: [44100, 48000], containers: ["flac"] }],
+    [cd, mode("x2", wiim)], [cd, mode("x4", wiim)], [cd, mode("max", wiim)], [hi, mode("x4", wiim)], [Object.assign({}, hi, { sampleRate: 192000 }), mode("max", wiim)],
+    [cd, mode("max", poly, { bits: "auto" })], [cd, mode("max", poly, { bits: 24 })], [Object.assign({}, cd, { sampleRate: 48000 }), mode("max", poly)],
+    // A lossy file follows the same rules; DSD is PCM at the top of the 44.1 ladder ≤ 176.4.
+    [{ path: "/m/a.mp3", codec: "MPEG 1 Layer 3", sampleRate: 44100 }, mode("x2", wiim)], [dsf, mode("max", wiim)],
+    [dsf, dsdDac], [dff, dsdDac], [dsf, named], [dff, named], [Object.assign({}, dsf, { sampleRate: 5644800 }), dsdDac],
+    [hi], [hi, { rates: [44100, 48000], containers: ["flac"] }]);
+  assert.equal(p[0].transcode, false);
+  assert.equal(p[1].transcode, false);
+  assert.deepEqual(pick(p[2]), [176400, 24, undefined]);
+  assert.deepEqual(pick(p[3]), [48000, 24, undefined]);
+  assert.deepEqual(pick(p[4]), [88200, 24, 2]);
+  assert.deepEqual(pick(p[5]), [176400, 24, 4]);
+  assert.deepEqual(pick(p[6]), [176400, 24, 4]);
+  assert.deepEqual(pick(p[7]), [192000, 24, 2], "capped at the top of the 48 k family");
+  assert.equal(p[8].transcode, false, "already at the top: as it is");
+  assert.deepEqual(pick(p[9]), [705600, 32, 16]);
+  assert.deepEqual(pick(p[10]), [705600, 24, 16]);
+  assert.deepEqual(pick(p[11]), [768000, 32, 16]);
+  assert.deepEqual(pick(p[12]), [88200, 24, 2]);
+  assert.deepEqual(pick(p[13]), [176400, 24, undefined]);
+  assert.deepEqual([p[14].transcode, p[14].mime, p[14].ext, p[14].dsd], [false, "audio/x-dsf", "dsf", 64]);
+  assert.equal(p[15].mime, "audio/x-dff");
+  assert.equal(p[16].mime, "audio/dsf");
+  assert.equal(p[17].mime, "audio/x-dff");
+  assert.deepEqual(pick(p[18]), [176400, 24, undefined]);
+  // The 64-bit float pipeline, and its own cache key. SoX's resampler where
+  // ffmpeg has it, swr where it hasn't (Homebrew's, on a Mac): both.
+  const x4 = p[5], sonos = p[19];
+  const [x4Soxr, x4Swr, sonosSoxr, sonosSwr] = plans({ args: [["/m/a.flac", x4, "/out.flac", true], ["/m/a.flac", x4, "/out.flac", false],
+    ["/m/a.flac", sonos, "/out.flac", true], ["/m/a.flac", sonos, "/out.flac", false]] }).args.map(a => a.join(" "));
+  assert.match(x4Soxr, / -af aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
+  assert.match(x4Swr, / -af aresample=internal_sample_fmt=dblp:osr=176400:dither_method=triangular /);
+  assert.match(sonosSoxr, / -af aresample=resampler=soxr:precision=28:osr=48000:/, "the Sonos conversion is as it was");
+  assert.match(sonosSwr, / -af aresample=osr=48000:/, "the Sonos conversion is as it was");
+  const [k1, k2] = plans({ keys: [[{ id: 1, mtime: 5 }, sonos], [{ id: 1, mtime: 5 }, p[20]]] }).keys;
+  assert.notEqual(k1, k2);
 });
 
-test("24/48 is the ceiling, and is still bit-perfect", () => {
-  const p = plan({ path: "/m/a.flac", codec: "FLAC", sampleRate: 48000, bitsPerSample: 24, channels: 2 });
-  assert.equal(p.transcode, false);
-});
-
-test("anything above 24/48 is brought down to 24/48 FLAC", () => {
-  for (const rate of [88200, 96000, 176400, 192000, 352800]) {
-    const p = plan({ path: "/m/a.flac", codec: "FLAC", sampleRate: rate, bitsPerSample: 24, channels: 2 });
-    assert.equal(p.transcode, true, String(rate));
-    assert.equal(p.rate, 48000);
-    assert.equal(p.bits, 24);
-    assert.equal(p.mime, "audio/flac");
-  }
-});
-
-test("32-bit at 48k is brought to 24-bit, rate kept", () => {
-  const p = plan({ path: "/m/a.wav", codec: "PCM", sampleRate: 48000, bitsPerSample: 32, channels: 2 });
-  assert.equal(p.transcode, true);
-  assert.equal(p.rate, 48000);
-  assert.equal(p.bits, 24);
-});
-
-test("hi-res ALAC is resampled too", () => {
-  const p = plan({ path: "/m/a.m4a", codec: "ALAC", sampleRate: 96000, bitsPerSample: 24, channels: 2 });
-  assert.equal(p.transcode, true);
-  assert.equal(p.rate, 48000);
-});
-
-test("DSD becomes 24/48 FLAC", () => {
-  const p = plan({ path: "/m/a.dsf", codec: "DSD", sampleRate: 2822400, bitsPerSample: 1, channels: 2 });
-  assert.equal(p.transcode, true);
-  assert.equal(p.rate, 48000);
-  assert.equal(p.bits, 24);
-});
-
-test("lossy formats Sonos reads pass straight through", () => {
-  assert.equal(plan({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3", sampleRate: 44100, channels: 2 }).transcode, false);
-  assert.equal(plan({ path: "/m/a.m4a", codec: "AAC", sampleRate: 44100, channels: 2 }).mime, "audio/mp4");
-  assert.equal(plan({ path: "/m/a.ogg", codec: "Vorbis", sampleRate: 44100, channels: 2 }).mime, "audio/ogg");
-});
-
-test("formats Sonos cannot read become FLAC at their own rate when within the ceiling", () => {
-  const p = plan({ path: "/m/a.ape", codec: "Monkey's Audio", sampleRate: 44100, bitsPerSample: 16, channels: 2 });
-  assert.equal(p.transcode, true);
-  assert.equal(p.rate, 44100);
-  assert.equal(p.bits, 16);
-});
-
-test("24-bit WAV is repacked as FLAC, same rate", () => {
-  const p = plan({ path: "/m/a.wav", codec: "PCM", sampleRate: 44100, bitsPerSample: 24, channels: 2 });
-  assert.equal(p.transcode, true);
-  assert.equal(p.rate, 44100);
-  assert.equal(p.bits, 24);
+test("Sonos: 24/48 is the ceiling; what it can't read becomes FLAC; what it reads goes untouched", { skip }, () => {
+  const t = (path, codec, sampleRate, bitsPerSample) => [{ path, codec, sampleRate, bitsPerSample, channels: 2 }];
+  const above = [88200, 96000, 176400, 192000, 352800];
+  const p = plan(t("/m/a.flac", "FLAC", 44100, 16), t("/m/a.flac", "FLAC", 48000, 24), ...above.map(rate => t("/m/a.flac", "FLAC", rate, 24)),
+    t("/m/a.wav", "PCM", 48000, 32), t("/m/a.m4a", "ALAC", 96000, 24), t("/m/a.dsf", "DSD", 2822400, 1),
+    t("/m/a.mp3", "MPEG 1 Layer 3", 44100), t("/m/a.m4a", "AAC", 44100), t("/m/a.ogg", "Vorbis", 44100),
+    t("/m/a.ape", "Monkey's Audio", 44100, 16), t("/m/a.wav", "PCM", 44100, 24));
+  // A CD-quality FLAC goes untouched; 24/48 too, still bit-perfect.
+  assert.deepEqual([p[0].transcode, p[0].mime], [false, "audio/flac"]);
+  assert.equal(p[1].transcode, false);
+  // Anything above 24/48 is brought down to 24/48 FLAC.
+  above.forEach((rate, i) => assert.deepEqual([p[2 + i].transcode, p[2 + i].rate, p[2 + i].bits, p[2 + i].mime], [true, 48000, 24, "audio/flac"], String(rate)));
+  // 32-bit at 48k to 24-bit, the rate kept; hi-res ALAC resampled too; DSD to 24/48 FLAC.
+  assert.deepEqual([p[7].transcode, p[7].rate, p[7].bits], [true, 48000, 24]);
+  assert.deepEqual([p[8].transcode, p[8].rate], [true, 48000]);
+  assert.deepEqual([p[9].transcode, p[9].rate, p[9].bits], [true, 48000, 24]);
+  // Lossy formats Sonos reads pass straight through.
+  assert.equal(p[10].transcode, false);
+  assert.equal(p[11].mime, "audio/mp4");
+  assert.equal(p[12].mime, "audio/ogg");
+  // Formats Sonos cannot read become FLAC at their own rate when within the ceiling; a 24-bit WAV is repacked as FLAC.
+  assert.deepEqual([p[13].transcode, p[13].rate, p[13].bits], [true, 44100, 16]);
+  assert.deepEqual([p[14].transcode, p[14].rate, p[14].bits], [true, 44100, 24]);
 });
 
 /*
@@ -123,29 +102,31 @@ test("24-bit WAV is repacked as FLAC, same rate", () => {
  * took one 24-bit LSB off an eighth of the samples. Found by a bit-for-bit
  * capture of the server's own output against Roon's.
  */
-test("a container-only conversion is marked exact and gets no dither; a gain or a resample is not", () => {
-  const S = require("../lib/stream");
+const DAC = { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] };
+
+test("a container-only conversion is marked exact and gets no dither; a gain or a resample is not", { skip }, () => {
   const wav = { path: "/m/a.wav", codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
-  const dac = { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] };
-  const p = S.plan(wav, dac);
+  const [p, cd, sonos, resampled, ape, mp3] = plan([wav, DAC], [{ path: "/m/b.wav", codec: "pcm_s16le", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, DAC],
+    [{ path: "/m/c.wav", codec: "PCM", sampleRate: 44100, bitsPerSample: 24, channels: 2 }], [wav, { name: "DAC", rates: [44100, 48000], maxBits: 24, containers: ["flac"] }],
+    [{ path: "/m/a.ape", codec: "Monkey's Audio", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, DAC],
+    [{ path: "/m/a.mp3", codec: "mp3", sampleRate: 44100, bitsPerSample: 0, channels: 2 }, { name: "DAC", rates: [44100], maxBits: 24, containers: ["flac"] }]);
   assert.equal(p.transcode, true); assert.equal(p.rate, 96000); assert.equal(p.bits, 24);
   assert.equal(p.exact, true, "a WAV repacked at its own rate and depth");
-  assert.match(S.ffmpegArgs("/m/a.wav", p, "/t/x.flac").join(" "), /dither_method=0/);
+  const { args, with_gain: [gained] } = plans({ args: [["/m/a.wav", p, "/t/x.flac", true]], with_gain: [[p, wav, DAC, -3]] });
+  assert.match(args[0].join(" "), /dither_method=0/);
   // 16-bit too, where the output stays 16.
-  const cd = S.plan({ path: "/m/b.wav", codec: "pcm_s16le", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, dac);
   assert.equal(cd.bits, 16); assert.equal(cd.exact, true);
   // Sonos: a 24-bit WAV is repacked exactly too (WAV above 16 bits is not sent as it is).
-  const sonos = S.plan({ path: "/m/c.wav", codec: "PCM", sampleRate: 44100, bitsPerSample: 24, channels: 2 });
-  if (sonos.transcode) assert.equal(sonos.exact, true);
-  // Not exact: a gain, a resample, DSP, a lossy source, more than two channels.
-  assert.equal(S.withGain(p, wav, dac, -3).exact, undefined, "a gain changes the samples");
-  assert.equal(S.plan(wav, { name: "DAC", rates: [44100, 48000], maxBits: 24, containers: ["flac"] }).exact, undefined, "resampled to 48 kHz");
-  assert.equal(S.plan({ path: "/m/a.ape", codec: "Monkey's Audio", sampleRate: 44100, bitsPerSample: 16, channels: 2 }, dac).exact, true, "a lossless codec decodes to integers: exact");
-  assert.equal(S.plan({ path: "/m/a.mp3", codec: "mp3", sampleRate: 44100, bitsPerSample: 0, channels: 2 }, { name: "DAC", rates: [44100], maxBits: 24, containers: ["flac"] }).exact, undefined, "a lossy source decodes to float: dithered");
+  assert.equal(sonos.transcode, true);
+  assert.equal(sonos.exact, true);
+  // Not exact: a gain, a resample, a lossy source.
+  assert.equal(gained.exact, undefined, "a gain changes the samples");
+  assert.equal(resampled.exact, undefined, "resampled to 48 kHz");
+  assert.equal(ape.exact, true, "a lossless codec decodes to integers: exact");
+  assert.equal(mp3.exact, undefined, "a lossy source decodes to float: dithered");
 });
 
-test("the repack really is bit for bit: a 24/96 WAV through the conversion comes back sample for sample", { skip: !require("./fixtures").haveFfmpeg() && "ffmpeg is not installed" }, () => {
-  const S = require("../lib/stream");
+test("the repack really is bit for bit: a 24/96 WAV through the conversion comes back sample for sample", { skip: skip || (!haveFfmpeg() && "ffmpeg is not installed") }, () => {
   const fs = require("fs"), os = require("os"), path = require("path");
   const { execFileSync } = require("child_process");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-exact-"));
@@ -154,10 +135,10 @@ test("the repack really is bit for bit: a 24/96 WAV through the conversion comes
   execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=1000:duration=1:sample_rate=96000",
     "-f", "lavfi", "-i", "anoisesrc=d=1:c=pink:r=96000:a=0.3", "-filter_complex", "[0][1]concat=n=2:v=0:a=1,adelay=200|200,apad=pad_dur=0.2,volume=0.5,aformat=channel_layouts=stereo",
     "-ar", "96000", "-c:a", "pcm_s24le", wav]);
-  const t = { path: wav, codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
-  const p = S.plan(t, { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] });
+  const [p] = plan([{ path: wav, codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 }, DAC]);
   assert.equal(p.exact, true);
-  execFileSync("ffmpeg", S.ffmpegArgs(wav, p, flac), { stdio: ["ignore", "ignore", "pipe"] });
+  const soxr = /--enable-libsoxr/.test(execFileSync("ffmpeg", ["-hide_banner", "-version"]).toString());
+  execFileSync("ffmpeg", plans({ args: [[wav, p, flac, soxr]] }).args[0], { stdio: ["ignore", "ignore", "pipe"] });
   // Decoded the way the local output decodes (32-bit PCM), both of them.
   const pcm = f => execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", f, "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "s32le", "pipe:1"], { maxBuffer: 64 << 20 });
   const a = pcm(wav), b = pcm(flac);
