@@ -474,3 +474,5 @@ the owner asked, everything is based on `migration`:
    Qobuz and Tidal.
 5. **Q7 renames:** with Q1, in the same change.
 6. **Order:** security, testing, code quality, performance, documentation.
+7. **A version a stage:** from the tests on, each stage is a patch version of its own: tests
+   v0.9.1, code quality v0.9.2, performance v0.9.3, documentation v0.9.4.

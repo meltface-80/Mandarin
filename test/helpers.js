@@ -1,10 +1,10 @@
 // @ts-check
 "use strict";
 /*
- * helpers.js — what the tests share (v0.9.0, the audit's T3,
+ * helpers.js — what the tests share (v0.9.1, the audit's T3,
  * docs/specs/audit-b4-main.md): waiting for a condition, a signed-in client
  * of the server's /api, and a server started on a fresh copy of the fixture
- * library. Until v0.9.0 each file wrote its own (62 `until`s, 25 `api`s),
+ * library. Until v0.9.1 each file wrote its own (62 `until`s, 25 `api`s),
  * with timeouts and swallowed errors of their own; files move here as they
  * are touched.
  */

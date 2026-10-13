@@ -135,7 +135,7 @@ test("Check for updates installs the newer release and restarts into it, library
   assert.equal(edit.status, 200);
   const st = await api("update/check", true);
   assert.deepEqual([st.available, st.latest, st.viaLauncher, st.notes], [true, NEXT, false, "Notes for " + NEXT]);
-  // What the page reads when Settings opens (v0.9.0, the audit's T1): what the check found, kept.
+  // What the page reads when Settings opens (v0.9.1, the audit's T1): what the check found, kept.
   assert.deepEqual(await api("update/status"), st);
 
   // Through the page where a browser is at hand (v0.7.3): one Update for

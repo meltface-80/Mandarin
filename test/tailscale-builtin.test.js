@@ -98,7 +98,7 @@ test("signing the server in to Tailscale from Settings", { skip: built() }, asyn
     // A new link on asking.
     assert.equal((await api("tailscale/login", {})).auth_url, "https://login.tailscale.com/a/new456");
 
-    // Signed out (v0.9.0, the audit's T1): the engine told, then started afresh, to be signed in again.
+    // Signed out (v0.9.1, the audit's T1): the engine told, then started afresh, to be signed in again.
     const starts = () => (eng.calls().match(/POST \/start /g) || []).length;
     const before = starts();
     const out = await api("tailscale/logout", {});

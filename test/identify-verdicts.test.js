@@ -1,6 +1,6 @@
 "use strict";
 /*
- * identify-verdicts.test.js — your say on a match (v0.9.0, the audit's T1,
+ * identify-verdicts.test.js — your say on a match (v0.9.1, the audit's T1,
  * docs/specs/audit-b4-main.md): POST /api/identify/accept and
  * /api/identify/reject, which no test called before. A proposal waiting for
  * an album (as a version before v0.8.41 left them, or a scan that found it

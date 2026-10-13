@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.1
+**The audit's tests** (`docs/specs/audit-b4-main.md` module 2), the first of the audit's stages
+to take a version of its own: one patch version a stage from here (the owner's choice). Nothing
+changes in use; the tests reach what they didn't, and wait for what they read.
+
+- The routes no test called, now tested: identification's accept and reject
+  (`test/identify-verdicts.test.js`), several albums at once, tracks played before put next or
+  at the end, the shortcut's Random Album, the outputs a Sonos room hasn't and the playlist
+  routes gone since v0.6 (`test/play-routes.test.js`), Tailscale's sign-out, the update's status.
+- A test waits for the state it reads, not a fixed time; a sleep stays only where a test proves
+  something doesn't happen in a window, and says so.
+- `test/helpers.js`: `until`, a signed-in `/api` client and a server started on the fixture
+  library, shared from now on.
+- The two tests that asserted one thing on Linux and another on a Mac are a test each.
+
 ## v0.9.0
 **No Node.js.** Stage 7 part 6 of the move to C# (`docs/specs/csharp-migration.md`): the Node
 server's code leaves the repository and Node.js the image. Mandarin's server is one program
@@ -72,16 +87,6 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
 - **The loudness order test** read the order files were measured in from the order their ffmpeg
   stand-ins wrote a line, so files started together could be noted out of order on a busy
   machine; it reads the processes' order now.
-- **Tests, before main** (the audit, `docs/specs/audit-b4-main.md` module 2):
-  - The routes no test called, now tested: identification's accept and reject
-    (`test/identify-verdicts.test.js`), several albums at once, tracks played before put next or
-    at the end, the shortcut's Random Album, the outputs a Sonos room hasn't and the playlist
-    routes gone since v0.6 (`test/play-routes.test.js`), Tailscale's sign-out, the update's status.
-  - A test waits for the state it reads, not a fixed time; a sleep stays only where a test proves
-    something doesn't happen in a window, and says so.
-  - `test/helpers.js`: `until`, a signed-in `/api` client and a server started on the fixture
-    library, shared from now on.
-  - The two tests that asserted one thing on Linux and another on a Mac are a test each.
 - **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
   `test/security.test.js`, `test/backup-sealed.test.js` and `test/backup-page.test.js`):
   - **A backup sealed with a passphrase** (Settings → Backup & restore, 8 characters or more).
