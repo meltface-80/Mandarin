@@ -10591,8 +10591,8 @@ window.__afterStart = (fn) => {
             const m = sessionStorage.getItem("rra-modal");
             if (m) {
               const parsed = JSON.parse(m);
-              // Offline, a server album left open isn't reopened (it isn't on the phone).
-              if (parsed && parsed.album && !window.__musicdOffline) {
+              // Offline, a server album left open isn't reopened (it isn't on the phone); nor over one opened since the page loaded (v0.9.5).
+              if (parsed && parsed.album && !window.__musicdOffline && !currentAlbum) {
                 openAlbum(parsed.album, { source: parsed.source, zoneId: parsed.zoneId,
                                          filter: parsed.filter });
               }
