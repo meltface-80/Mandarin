@@ -93,11 +93,15 @@ internal sealed class Devices
         try
         {
             var r = await localList();
-            using (var c = Db.Open()) foreach (var rec in r.Devices) Register.Seen(c, rec);
+            // A Mac's own aren't offered (v0.9.0): Mandarin's audio engine plays through ALSA, so they play
+            // through Mandarin DAC Bridge, its DACs found as renderers; the page says so (mac: how many).
+            var mac = r.Platform == "darwin";
+            List<SeenInfo> offered = mac ? [] : r.Devices;
+            using (var c = Db.Open()) foreach (var rec in offered) Register.Seen(c, rec);
             var before = Jv.Num(Local["count"]);
-            Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)r.Devices.Count),
-                ("docker", Local["docker"]), ("off", r.Off));
-            if (r.Devices.Count > 0 || before > 0) hub.Bump();
+            Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)offered.Count),
+                ("docker", Local["docker"]), ("off", r.Off), ("mac", mac ? (double)r.Devices.Count : 0.0));
+            if (offered.Count > 0 || before > 0) hub.Bump();
         }
         finally { lock (gate) scanningLocal = null; }
     }

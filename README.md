@@ -36,6 +36,9 @@ server one part at a time through the v0.8.x releases, each part held by the tes
 Node server's own answers, so everything works as before: the library, playback to Sonos, UPnP
 renderers, the phone and sound devices, Qobuz and Tidal, identification, backups, updates.
 *Forgot the password?* is now `docker exec musicd-server /app/server/bin/mandarin-server reset-password`.
+**A USB DAC on a Mac** plays through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge),
+which the Mac's install line now offers: it holds the DAC, plays each track bit-perfect at its own
+rate, and shares the DAC with Audirvana (see [Install on a Mac](#install-on-a-mac)).
 
 **New in v0.7.4** (since v0.7.0)
 * **Qobuz and Tidal favourites follow both ways, by themselves**: remove an album from your
@@ -47,8 +50,8 @@ renderers, the phone and sound devices, Qobuz and Tidal, identification, backups
 * **One Update** does the server first and then the app. **Hide / unhide** on Audio Devices. A fresh
   look at matching. The server's Tailscale identity travels with a backup's keys. The share card
   carries the duck.
-* **Mac users with a USB DAC** connected to the Mac may have trouble with it; a fix is being
-  worked on.
+* **Mac users with a USB DAC** connected to the Mac may have trouble with it (since v0.9.0 it
+  plays through Mandarin DAC Bridge).
 
 ---
 
@@ -316,7 +319,7 @@ A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sono
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server).
+Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. On a Mac, through Mandarin DAC Bridge: switch on “<DAC> (Bridge)”. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -849,16 +852,14 @@ install anything, just open the server's IP address with port `:3500` in Safari 
 * **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
 * **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
   Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
-* **A USB DAC or the Mac's speakers:** nothing to install or add — the Mac plays them through Core
-  Audio. Plug the DAC in, then: **1.** Open **Audio MIDI Setup** (Applications → Utilities), click
-  the DAC in the list on the left and set **Format** to the rate and depth you want it to run at
-  (its highest, say 24-bit 96 kHz or 192 kHz). macOS plays at that rate and converts anything else,
-  so this is where the rate is decided. **2.** In Mandarin, **Settings → Audio Devices**, tap the
-  DAC and switch it on. It is then a zone like a Sonos room. Mandarin sends at the rate set in
-  Audio MIDI Setup, or 44.1 or 48 kHz; tick other rates on the device's page if you want them sent
-  too. An existing install needs no re-run. See
-  [Sound devices on the server](#sound-devices-on-the-server). **Known trouble (v0.7.0):** some
-  Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is being worked on.
+* **A USB DAC (v0.9.0):** through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac),
+  which the install line offers to add (`MANDARIN_DAC_BRIDGE=yes` or `no` in front of it answers
+  without asking; or install it later with its own line). The bridge holds the DAC for itself,
+  switches it to each track's own rate and plays it bit-perfect, and lets Audirvana use it too. In
+  Mandarin, **Settings → Audio Devices**, switch on **“<DAC> (Bridge)”**: it is then a zone like a
+  Sonos room. The Mac's own speakers too, with the bridge's `BRIDGE_ALL_OUTPUTS=1`. Mandarin
+  doesn't play to the Mac's sound devices itself (its audio engine is Linux's), so they aren't
+  listed.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
@@ -1141,10 +1142,11 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   PulseAudio) holds is reported as in use.
 * **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
   the commented `devices:` and `privileged:` lines), then re-create the container.
-* **Mac:** Core Audio, through ffmpeg's `audiotoolbox` output (Homebrew's ffmpeg has it). The Mac
-  plays at the rate set for the device in **Audio MIDI Setup** (Applications → Utilities) and
-  converts anything else, so set it there. Mandarin sends at that rate, or 44.1 or 48 kHz, unless
-  you tick others on the device's page.
+* **Mac (v0.9.0):** not from Mandarin itself, whose audio engine is ALSA's: a Mac's DACs play
+  through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge), found as
+  renderers named “<DAC> (Bridge)” (see [Install on a Mac](#install-on-a-mac)). Before v0.9.0 the Node server
+  played them through ffmpeg's `audiotoolbox` output; v0.8.49 to v0.8.50 listed them without
+  playing them.
 * DSD files go to these devices as PCM.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
