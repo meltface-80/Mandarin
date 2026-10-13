@@ -135,6 +135,8 @@ test("Check for updates installs the newer release and restarts into it, library
   assert.equal(edit.status, 200);
   const st = await api("update/check", true);
   assert.deepEqual([st.available, st.latest, st.viaLauncher, st.notes], [true, NEXT, false, "Notes for " + NEXT]);
+  // What the page reads when Settings opens (v0.9.1, the audit's T1): what the check found, kept.
+  assert.deepEqual(await api("update/status"), st);
 
   // Through the page where a browser is at hand (v0.7.3): one Update for
   // the server and the Android app, the server first and the app once the
@@ -158,6 +160,7 @@ test("Check for updates installs the newer release and restarts into it, library
         out.offered = await until(() => document.getElementById("update-toast").classList.contains("open") && document.getElementById("update-text").textContent);
         out.looks = localStorage.getItem("fake-looks");
         document.getElementById("update-now").click();
+        // A window: the app's install must not be asked for in it (the server first).
         await sleep(300);
         out.installed_early = localStorage.getItem("fake-install-version");
         return out;

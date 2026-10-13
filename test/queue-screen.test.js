@@ -132,15 +132,18 @@ test("the Queue screen: the Sonos queue kept, Play from here at once", { skip, t
       const tapped = await page.eval(`(async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         const row = [...document.querySelectorAll("#queue-list li.is-tappable")].find(li => li.querySelector(".q-title").textContent === "Song 3");
+        const until = async (f, ms = 8000) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(25); } return true; };
+        const now = () => (document.querySelector("#queue-list li.is-now .q-title") || {}).textContent;
         row.click();
-        await sleep(100);
+        await until(() => !document.getElementById("confirm-overlay").classList.contains("hidden"));
         document.getElementById("confirm-yes").click();
-        await sleep(150);
-        return (document.querySelector("#queue-list li.is-now .q-title") || {}).textContent;
+        await until(() => now() === "Song 3");
+        return now();
       })()`);
       assert.equal(tapped, "Song 3", "Now playing moved before the speaker answered");
       house.release();
       await until(() => room.track === 3 && room.state === "PLAYING");
+      // A window: Now playing must stay put while the room's own queue comes back.
       await sleep(1500);
       assert.equal(await now(), "Song 3", "and stays, once the room's own queue has come back");
       assert.equal(await page.eval(`window.__blank`), 0, "the list was never emptied to wait");

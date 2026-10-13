@@ -28,6 +28,11 @@ const DRIVER = `(async () => {
   const $ = id => document.getElementById(id);
   const title = () => $("album-count").classList.contains("hidden") ? "" : $("album-count").textContent;
   const names = () => [...document.querySelectorAll(".label-tile:not(.hidden)")].map(t => t.getAttribute("aria-label"));
+  const shown = id => !$(id).classList.contains("hidden");
+  const cols = () => getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
+  // The side menu open and its drawer done sliding in, then a frame; and closed.
+  const menuIn = async () => { await until(() => shown("menu-overlay") && document.querySelector(".menu-drawer").getAnimations().every(a => a.playState === "finished")); await new Promise(r => requestAnimationFrame(r)); };
+  const menuOut = () => until(() => !shown("menu-overlay"));
   const out = {};
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   out.view_button = !!$("topbar-view");
@@ -35,17 +40,19 @@ const DRIVER = `(async () => {
   $("labels-toggle").click();
   await until(() => document.querySelectorAll(".label-tile").length >= 2);
   out.labels = { title: title(), names: names(), sort: $("labels-sort-btn").textContent };
-  $("labels-sort-btn").click(); await sleep(200);
-  out.reversed = { names: names(), sort: $("labels-sort-btn").textContent };
-  $("labels-sort-btn").click(); await sleep(200);
-  $("labels-search-btn").click(); await sleep(100);
+  const sortSays = () => $("labels-sort-btn").textContent;
+  const searchOpen = () => !document.querySelector(".labels-search").classList.contains("hidden");
+  $("labels-sort-btn").click(); await until(() => sortSays() !== out.labels.sort);
+  out.reversed = { names: names(), sort: sortSays() };
+  $("labels-sort-btn").click(); await until(() => sortSays() === out.labels.sort);
+  $("labels-search-btn").click(); await until(searchOpen);
   const input = $("labels-search-input");
-  input.value = "parlo"; input.dispatchEvent(new Event("input")); await sleep(100);
+  input.value = "parlo"; input.dispatchEvent(new Event("input")); await until(() => names().length < out.labels.names.length);
   out.found = names();
-  $("labels-search-clear").click(); await sleep(100);
-  out.cleared = { value: input.value, open: !document.querySelector(".labels-search").classList.contains("hidden"), names: names().length };
-  $("labels-search-clear").click(); await sleep(100);
-  out.closed = document.querySelector(".labels-search").classList.contains("hidden");
+  $("labels-search-clear").click(); await until(() => input.value === "" && names().length === out.labels.names.length);
+  out.cleared = { value: input.value, open: searchOpen(), names: names().length };
+  $("labels-search-clear").click(); await until(() => !searchOpen());
+  out.closed = !searchOpen();
 
   [...document.querySelectorAll(".label-tile")].find(t => t.getAttribute("aria-label") === "Parlophone").click();
   await until(() => title() === "Parlophone" && document.querySelector("#album-grid .album:not(.label-tile)"));
@@ -55,8 +62,8 @@ const DRIVER = `(async () => {
   // The tiles can be back before the bar's title is (a busy machine): both.
   await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
   out.back = title();
-  $("topbar-back").click(); await sleep(500);
-  out.home = !$("home-view").classList.contains("hidden");
+  $("topbar-back").click(); await until(() => shown("home-view"));
+  out.home = shown("home-view");
 
   // ‹ on a label before its albums have come (a slow server): when they come,
   // they stay off the Labels list. Held until the list is back, then let go.
@@ -71,10 +78,12 @@ const DRIVER = `(async () => {
   await until(() => title() === "Parlophone");
   $("topbar-back").click();
   await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
-  letGo(); await until(() => came); await sleep(500);
+  letGo(); await until(() => came);
+  // A window: the late albums must not cover the Labels list in it.
+  await sleep(500);
   window.fetch = plainFetch;
   out.back_early = { title: title(), labels: document.querySelectorAll(".label-tile").length };
-  $("topbar-back").click(); await sleep(500);
+  $("topbar-back").click(); await until(() => shown("home-view"));
 
   // The Library wall: Focus, Sort and the glass in the top bar, in brass.
   const libTitle = $("home-library-title");
@@ -88,52 +97,52 @@ const DRIVER = `(async () => {
     out.lib = { in_topbar: !!bar.closest(".topbar"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), glass: vis(".lib-filter-btn"),
       brass: getComputedStyle(bar.querySelector(".lib-ctl-sort")).backgroundColor === getComputedStyle(document.querySelector("#menu-toggle")).backgroundColor,
       glass_last: !!document.querySelector(".topbar-row .lib-filter-btn") };
-    tb.querySelector(".lib-filter-btn").click(); await sleep(150);
+    tb.querySelector(".lib-filter-btn").click(); await until(() => tb.querySelector(".lib-filter-input"));
     const inp = tb.querySelector(".lib-filter-input");
-    inp.value = "Al"; inp.dispatchEvent(new Event("input")); await sleep(400);
-    const bar2 = $("library-controls");
+    inp.value = "Al"; inp.dispatchEvent(new Event("input")); await until(() => getComputedStyle($("album-count")).display === "none");
     out.lib_open = { focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), title: getComputedStyle($("album-count")).display === "none", value: tb.querySelector(".lib-filter-input").value };
-    tb.querySelector(".lib-filter-clear").click(); await sleep(400);
+    tb.querySelector(".lib-filter-clear").click(); await until(() => (tb.querySelector(".lib-filter-input") || {}).value === "");
     out.lib_cleared = { open: !!tb.querySelector(".lib-filter-input"), value: (tb.querySelector(".lib-filter-input") || {}).value };
-    tb.querySelector(".lib-filter-clear").click(); await sleep(300);
+    tb.querySelector(".lib-filter-clear").click(); await until(() => !tb.querySelector(".lib-filter-input"));
     out.lib_closed = { open: !!tb.querySelector(".lib-filter-input"), focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort") };
     window.__showArtistAlbums("Artist A");
     await until(() => / · /.test(title()));
-    out.lib_in_artist = !$("library-controls").classList.contains("hidden");
-    $("topbar-back").click(); await sleep(500);
-    out.lib_back = !$("library-controls").classList.contains("hidden");
-    $("topbar-back").click(); await sleep(500);
-    out.lib_home = !$("library-controls").classList.contains("hidden");
+    out.lib_in_artist = shown("library-controls");
+    $("topbar-back").click(); await until(() => !/ · /.test(title()) && shown("library-controls"));
+    out.lib_back = shown("library-controls");
+    $("topbar-back").click(); await until(() => shown("home-view") && !shown("library-controls"));
+    out.lib_home = shown("library-controls");
   }
 
   window.__showArtistAlbums("Artist A");
   await until(() => / · /.test(title()));
   out.artist = { title: title(), above: $("content-count").classList.contains("hidden") ? "" : $("content-count").textContent.trim() };
 
-  window.__uiPrefs.set("layout", "2"); await sleep(100);
-  out.two = getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
-  window.__uiPrefs.set("layout", "list"); await sleep(100);
+  window.__uiPrefs.set("layout", "2"); await until(() => cols() === 2);
+  out.two = cols();
+  window.__uiPrefs.set("layout", "list"); await until(() => $("album-grid").classList.contains("as-list"));
   out.list = $("album-grid").classList.contains("as-list");
-  window.__uiPrefs.set("layout", "auto"); window.__uiPrefs.set("tile", "1.5"); await sleep(100);
-  out.bigger_tiles_cols = getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
+  window.__uiPrefs.set("layout", "auto"); window.__uiPrefs.set("tile", "1.5"); await until(() => !$("album-grid").classList.contains("as-list") && cols() === 2);
+  out.bigger_tiles_cols = cols();
   window.__uiPrefs.set("tile", "1"); const before = parseFloat(getComputedStyle(document.querySelector("#album-grid .album-title")).fontSize);
-  window.__uiPrefs.set("text", "1.5"); await sleep(100);
-  out.text_ratio = parseFloat(getComputedStyle(document.querySelector("#album-grid .album-title")).fontSize) / before;
+  const textSize = () => parseFloat(getComputedStyle(document.querySelector("#album-grid .album-title")).fontSize);
+  window.__uiPrefs.set("text", "1.5"); await until(() => textSize() !== before);
+  out.text_ratio = textSize() / before;
   window.__uiPrefs.set("text", "1");
-  document.querySelector('.settings-nav-item[data-pane="ui"]').click(); await sleep(100);
+  document.querySelector('.settings-nav-item[data-pane="ui"]').click(); await until(() => document.querySelectorAll('.settings-pane[data-pane="ui"] select').length >= 5);
   out.pane = [...document.querySelectorAll('.settings-pane[data-pane="ui"] select')].map(x => x.id + "=" + x.value);
   const lay = $("ui-layout-select"); lay.value = "2"; lay.dispatchEvent(new Event("change"));
   out.pane_sets = window.__uiPrefs.get("layout") + " " + getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
   lay.value = "auto"; lay.dispatchEvent(new Event("change"));
   const drawerW = () => document.querySelector(".menu-drawer").getBoundingClientRect().width;
-  $("menu-toggle").click(); await sleep(300); const w0 = drawerW(); document.querySelector(".menu-backdrop").click(); await sleep(300);
+  $("menu-toggle").click(); await menuIn(); const w0 = drawerW(); document.querySelector(".menu-backdrop").click(); await menuOut();
   const mn = $("ui-menu-select"); mn.value = "1.5"; mn.dispatchEvent(new Event("change"));
-  $("menu-toggle").click(); await sleep(300);
+  $("menu-toggle").click(); await menuIn();
   out.menu_zoom = getComputedStyle(document.querySelector(".menu-drawer > *")).zoom;
   out.menu_drawer_same = Math.abs(drawerW() - w0) < 1;
-  document.querySelector(".menu-backdrop").click(); await sleep(300);
+  document.querySelector(".menu-backdrop").click(); await menuOut();
   mn.value = "1"; mn.dispatchEvent(new Event("change"));
-  $("topbar-back").click(); await sleep(400);
+  $("topbar-back").click(); await until(() => shown("home-view") && title() === "");
   out.title_after = title();
   return out;
 })()`;
@@ -205,12 +214,13 @@ const SIZES_DRIVER = `(async () => {
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   document.getElementById("home-library-title").click();
   await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-ctl-sort"));
+  // Its layout settled (the bar's buttons in) before it is measured.
   await sleep(200);
   const box = sel => { const b = document.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width, h: b.height, t: b.top, b: b.bottom }; };
   const title = document.getElementById("album-count");
   const out = { vw: innerWidth, back: box("#topbar-back"), focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort"), glass: box(".lib-filter-btn"),
     title_shown: getComputedStyle(title).display !== "none", title: box("#album-count"), bar: box(".topbar").h };
-  document.querySelector(".lib-filter-btn").click(); await sleep(200);
+  document.querySelector(".lib-filter-btn").click(); await until(() => document.querySelector(".lib-filter-box"));
   out.open = { field: box(".lib-filter-box"), bar: box(".topbar").h };
   return out;
 })()`;

@@ -328,7 +328,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
 
     // A rejected album is not looked at again; the request count stays put.
     const n = mb.requests.length;
-    await new Promise(res => setTimeout(res, 400));
+    await new Promise(res => setTimeout(res, 400));   // a window: it may not be asked about in it
     assert.equal(mb.requests.length, n);
 
     // Everything survives a library reload (rows keyed by album identity).
@@ -488,7 +488,7 @@ test("iTunes for what MusicBrainz can't place: exact and near applied (85 %, v0.
 
     // Asked once: nothing more goes to iTunes for these.
     const n = itunes.requests.length;
-    await new Promise(res => setTimeout(res, 500));
+    await new Promise(res => setTimeout(res, 500));   // a window: nothing may go to iTunes in it
     assert.equal(itunes.requests.length, n);
 
     // Typed by hand it's neither a barcode nor a link…
@@ -639,7 +639,7 @@ test("proposals already waiting at 85 % or more are applied once, whatever else;
   const edit = key => (ctx2.db.raw.prepare("SELECT title FROM album_edits WHERE key = ?").get(key) || {}).title;
   assert.equal(edit(keys["Album One"]), "Waiting 0.15");
   assert.equal(edit(keys["Hi Res"]), undefined);
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 500));   // a window: none may be applied a second time in it
   assert.equal(said().length, 2, "once: " + JSON.stringify(said()));
 });
 

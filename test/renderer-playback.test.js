@@ -49,7 +49,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false
   };
   let srv = createServer(options);
-  await srv.start();
+  let ctx = await srv.start();
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };
   const api = async (p, body, method) => {
@@ -355,11 +355,12 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Song 1 plays on through the restart however long it takes: the track
       // is 3 seconds long, and a restart on a busy machine can take longer.
       wiim.hold();
-      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      // The store writes after a moment: what it kept, before the server goes.
+      await until(() => { const r = ctx.db.raw.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + WIIM); const k = r && JSON.parse(r.value); return k && k.state === "playing" && k.index === 0 && k.ids.length === 3; });
       const sets = wiim.log.filter(a => a === "SetAVTransportURI").length;
       await srv.stop();
       srv = createServer(options);
-      await srv.start();
+      ctx = await srv.start();
       await until(async () => (await api("status")).status === 200);
       // The device played on through the restart; the server finds it in the queue it kept.
       const s = await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1" && z; }, 20000);

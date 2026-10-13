@@ -330,8 +330,7 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
     assert.equal((await call("POST", "/api/audio-devices/" + w.id + "/forget")).status, 409);
     await poly.stop();
     await call("POST", "/api/audio-devices/rescan");
-    await new Promise(res => setTimeout(res, 2700));
-    const gone = (await call("GET", "/api/audio-devices/" + p.id)).j;
+    const gone = await until(async () => { const j = (await call("GET", "/api/audio-devices/" + p.id)).j; return j && j.online === false && j; }, 15000);
     assert.equal(gone.online, false);
     assert.equal(gone.state, "offline");
     r = await call("POST", "/api/audio-devices/" + p.id + "/forget");

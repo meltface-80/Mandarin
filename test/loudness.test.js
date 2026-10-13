@@ -175,6 +175,7 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   // Switched on outside the hours: nothing measured.
   r = await api("loudness", { measure: true });
   assert.equal(r.settings.measure, true);
+  // A window: nothing may be measured in it.
   await new Promise(res => setTimeout(res, 1000));
   r = await api("loudness");
   assert.deepEqual([r.reason, r.measured, r.failed], ["waiting", 0, 0]);
@@ -335,6 +336,7 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
     assert.equal(r.status, 200, JSON.stringify(r));
     r = await api("loudness", { measure: true });
     assert.equal(r.settings.measure, true);
+    // A window: nothing may be measured in it.
     await new Promise(res => setTimeout(res, 1500));
     r = await api("loudness");
     assert.deepEqual([r.reason, r.measured, r.failed, r.measuring, r.streamed], ["waiting", 0, 0, false, 0], JSON.stringify(r));

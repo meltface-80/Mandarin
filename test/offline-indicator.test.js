@@ -44,7 +44,9 @@ const LOOK = `(async () => {
   const $ = id => document.getElementById(id);
   const shown = el => !!el && !el.classList.contains("hidden") && getComputedStyle(el).display !== "none";
   await until(() => document.querySelector("#home-view .album"));
-  await sleep(1500);   // the status has been read
+  // The status read (its answer in), then a frame for what it shows.
+  await until(() => performance.getEntriesByType("resource").some(e => e.name.includes("/api/status") && e.responseEnd > 0));
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const notice = $("server-notice");
   const out = { notice: shown(notice) ? notice.textContent : "", btn: shown($("offline-btn")) };
   if (!out.btn) return out;
@@ -63,7 +65,7 @@ const LOOK = `(async () => {
     out.set = window.__set;
   } else {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    await sleep(100);
+    await until(() => !shown($("offline-overlay")));
     out.menuOpen = shown($("menu-overlay"));
   }
   out.closed = !shown($("offline-overlay"));

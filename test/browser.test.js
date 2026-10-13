@@ -50,11 +50,17 @@ const DRIVER = `(async () => {
 
   // The album view, opened from the middle of a row.
   const modal = document.getElementById("album-modal");
+  // The view's own animations done (modal-in), then a frame: what is measured is where it rests.
+  const settled = async () => {
+    await until(() => modal.getAnimations({ subtree: true }).every(a => a.playState === "finished" || a.effect.getTiming().iterations === Infinity));
+    await new Promise(r => requestAnimationFrame(r));
+  };
+  const is = c => modal.classList.contains(c);
   const tiles = [...document.querySelectorAll("#home-random .album")];
   out.tiles = tiles.length;
   tiles[1].click();
-  await until(() => !modal.classList.contains("hidden"));
-  await sleep(300);
+  await until(() => !is("hidden"));
+  await settled();
   const close = document.getElementById("modal-close-btn");
   out.close_label = close.getAttribute("aria-label");
   out.x = box(close.querySelector(".ico-close")).shown;
@@ -68,33 +74,33 @@ const DRIVER = `(async () => {
   const size = document.getElementById("modal-np-size-btn");
   const state = () => ({ hidden: modal.classList.contains("hidden"), np: modal.classList.contains("np-mode"),
     title: document.getElementById("modal-title").textContent, prev: box("#modal-prev").shown, next: box("#modal-next").shown });
-  np(); await sleep(400);
+  np(); await until(() => is("np-mode")); await settled();
   out.np_label = home.getAttribute("aria-label");
   out.np_x = box(home.querySelector(".ico-close")).shown;
   out.np_chevron = box(home.querySelector(".ico-back")).shown;
   out.size_shown = box(size).shown;
   out.full = box(".modal-panel");
   if (out.size_shown) {
-    size.click(); await sleep(200);
+    size.click(); await until(() => is("np-reduced")); await settled();
     out.reduced = modal.classList.contains("np-reduced");
     out.size_label = size.getAttribute("aria-label");
     out.reduced_box = box(".modal-panel");
     out.stored = localStorage.getItem("rra-np-reduced");
     modal.querySelector(".modal-backdrop").click();
-    await sleep(600);
+    await until(() => !is("np-mode")); await settled();
     out.after_backdrop = state();
     localStorage.setItem("rra-np-reduced", "0");
-    np(); await sleep(400);
-    if (modal.classList.contains("np-reduced")) size.click();
+    np(); await until(() => is("np-mode")); await settled();
+    if (modal.classList.contains("np-reduced")) { size.click(); await until(() => !is("np-reduced")); }
   }
-  home.click(); await sleep(600);
+  home.click(); await until(() => !is("np-mode")); await settled();
   out.after_back = state();
-  np(); await sleep(400);
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); await sleep(600);
+  np(); await until(() => is("np-mode")); await settled();
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); await until(() => !is("np-mode")); await settled();
   out.after_escape = state();
-  close.click(); await sleep(300);
-  np(); await sleep(400);
-  home.click(); await sleep(300);
+  close.click(); await until(() => is("hidden"));
+  np(); await until(() => is("np-mode") && !is("hidden")); await settled();
+  home.click(); await until(() => is("hidden"));
   out.plain_closes = modal.classList.contains("hidden");
 
   const sc = document.querySelector(".share-close");

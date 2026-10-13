@@ -247,6 +247,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
   assert.equal((await post("settings/tidal/signin", {})).status, 200);
   tidal.approve();
   await until(async () => (await get("settings/tidal")).j.connected, 20000, "Tidal signed in");
+  // A window: nothing may be brought in it, the import being off.
   await new Promise(r => setTimeout(r, 1500));
   assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM albums WHERE key LIKE 'qobuz:%' OR key LIKE 'tidal:%'").get().n, 0, "nothing brought in");
 

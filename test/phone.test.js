@@ -385,7 +385,8 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
 
     await t.test("the server restarted (an update): the phone's queue and place are kept", async () => {
       await phone("POST", "/api/phone/state", { index: 2, position: 12, duration: 60, state: "playing", volume: 40 });
-      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      // The store writes after a moment: what it kept, before the server goes.
+      await until(async () => { const r = ctx.db.raw.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + zoneId); const k = r && JSON.parse(r.value); return k && k.index === 2 && k.state === "playing"; });
       await srv.stop();
       srv = createServer(options);
       ctx = await srv.start();

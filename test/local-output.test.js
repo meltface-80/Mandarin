@@ -111,7 +111,8 @@ test("the volume is an audio taper", { skip: noBin }, () => {
   assert.ok(five > 0 && five < tenth);
 });
 
-test("end to end: a sound device on this computer is a zone; an album plays to it", { skip, timeout: 120000 }, async () => {
+/* A server with Test DAC (its "sound card" a file) as this computer's own device, turned on and a zone; Album One asked to play to it. */
+async function dacPlayed(t) {
   const lib = makeLibrary();
   const out = path.join(lib.data, "dac.raw");
   const DAC = {
@@ -124,6 +125,7 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
     upnpMulticast: false, localDevices: { devices: [DAC], platform: "linux", hidden: 0 } });
   const ctx = await srv.start();
+  t.after(() => srv.stop());
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };
   const api = async (p, body, method) => {
@@ -132,43 +134,47 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     } : { headers: auth });
     return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
   };
-  try {
-    await until(async () => (await api("status")).index_count >= 3);
-    const listed = await until(async () => (await api("audio-devices")).devices.find(d => d.id === DAC.id));
-    assert.equal(listed.kind, "local");
-    assert.equal(listed.enabled, false, "off until turned on");
-    assert.equal((await api("zones")).zones.some(z => z.zone_id === DAC.id), false);
-    const d = await api("audio-devices/" + DAC.id, { enabled: true }, "PATCH");
-    assert.equal(d.status, 200);
-    assert.equal(d.found_by, "This computer (ALSA)");
-    assert.equal(d.location, out);
-    assert.equal(d.can_fix_volume, true);
-    assert.ok(d.dsp, "it has DSP, run on the server");
-    const z = await until(async () => (await api("zones")).zones.find(x => x.zone_id === DAC.id));
-    assert.equal(z.outputs[0].volume.value, 50, "starts at 50%");
+  await until(async () => (await api("status")).index_count >= 3);
+  const listed = await until(async () => (await api("audio-devices")).devices.find(d => d.id === DAC.id));
+  assert.equal(listed.kind, "local");
+  assert.equal(listed.enabled, false, "off until turned on");
+  assert.equal((await api("zones")).zones.some(z => z.zone_id === DAC.id), false);
+  const d = await api("audio-devices/" + DAC.id, { enabled: true }, "PATCH");
+  assert.equal(d.status, 200);
+  assert.equal(d.found_by, "This computer (ALSA)");
+  assert.equal(d.location, out);
+  assert.equal(d.can_fix_volume, true);
+  assert.ok(d.dsp, "it has DSP, run on the server");
+  const z = await until(async () => (await api("zones")).zones.find(x => x.zone_id === DAC.id));
+  assert.equal(z.outputs[0].volume.value, 50, "starts at 50%");
 
-    const cd = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");
-    const r = await api("play", { offset: cd.offset, zone_or_output_id: DAC.id, kind: "play_now" });
-    // On a Mac the C# hub (v0.8.49, stage 6) can't play a sound device: Mandarin's audio engine plays through ALSA, and the ffmpeg sink
-    // stays the Node server's (docs/specs/csharp-migration.md, stage 6 part 4). Refused in words, until stage 7 decides.
-    if (process.platform === "darwin") {
-      assert.deepEqual([r.status, r.error], [409, "Test DAC can't be played from this server: Mandarin's audio engine isn't here"], JSON.stringify(r));
-      return;
-    }
-    assert.equal(r.ok, true, JSON.stringify(r));
-    const s1 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s; });
-    assert.equal(s1.now_playing.line1, "Song 1");
-    await until(() => fs.existsSync(out) && fs.statSync(out).size > 0);
-    const v = await api("volume", { output_id: DAC.id, value: 30 });
-    assert.equal(v.ok, true);
-    // The next track follows by itself.
-    await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
-    assert.ok(!ctx.logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + ctx.logs.filter(l => /Test DAC/.test(l)).join("; "));
-    const p = await api("control", { zone_or_output_id: DAC.id, command: "pause" });
-    assert.equal(p.ok, true, JSON.stringify(p));
-    await until(async () => (await api("zone-state?zone=" + DAC.id)).zone.state === "paused");
-    const kept = () => JSON.parse(ctx.db.raw.prepare("SELECT settings FROM audio_devices WHERE id = ?").get(DAC.id).settings || "{}").local_volume;
-    await until(() => kept() === 30).catch(() => null);
-    assert.equal(kept(), 30, "the volume is kept");
-  } finally { await srv.stop(); }
+  const cd = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");
+  const r = await api("play", { offset: cd.offset, zone_or_output_id: DAC.id, kind: "play_now" });
+  return { r, api, ctx, DAC, out };
+}
+
+test("end to end: a sound device on this computer is a zone; an album plays to it", { skip: skip || (process.platform === "darwin" && "a Mac's sound devices play through Mandarin DAC Bridge: Mandarin's audio engine plays through ALSA"), timeout: 120000 }, async (t) => {
+  const { r, api, ctx, DAC, out } = await dacPlayed(t);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const s1 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s; });
+  assert.equal(s1.now_playing.line1, "Song 1");
+  await until(() => fs.existsSync(out) && fs.statSync(out).size > 0);
+  const v = await api("volume", { output_id: DAC.id, value: 30 });
+  assert.equal(v.ok, true);
+  // The next track follows by itself.
+  await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
+  assert.ok(!ctx.logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + ctx.logs.filter(l => /Test DAC/.test(l)).join("; "));
+  const p = await api("control", { zone_or_output_id: DAC.id, command: "pause" });
+  assert.equal(p.ok, true, JSON.stringify(p));
+  await until(async () => (await api("zone-state?zone=" + DAC.id)).zone.state === "paused");
+  const kept = () => JSON.parse(ctx.db.raw.prepare("SELECT settings FROM audio_devices WHERE id = ?").get(DAC.id).settings || "{}").local_volume;
+  await until(() => kept() === 30).catch(() => null);
+  assert.equal(kept(), 30, "the volume is kept");
+});
+
+// On a Mac (v0.8.49 on) a sound device of this computer can't be played: Mandarin's audio engine plays
+// through ALSA (docs/specs/csharp-migration.md, stage 6 part 4); a Mac's DAC plays through Mandarin DAC Bridge.
+test("on a Mac, playing to a sound device of this computer is refused in words", { skip: skip || (process.platform !== "darwin" && "a Mac's own"), timeout: 120000 }, async (t) => {
+  const { r } = await dacPlayed(t);
+  assert.deepEqual([r.status, r.error], [409, "Test DAC can't be played from this server: Mandarin's audio engine isn't here"], JSON.stringify(r));
 });

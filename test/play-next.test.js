@@ -32,27 +32,33 @@ async function until(fn, ms = 10000) {
 const DRIVER = (album) => `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // Waited for, a busy machine's while (a Mac runner's two files at once, each with Chromium and ffmpeg); not there by then, said by name.
-  const until = async (fn, what, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("not there in time: " + what); await sleep(50); } return true; };
+  const until = async (fn, what, ms = 30000) => { const t0 = Date.now(); while (!(await fn())) { if (Date.now() - t0 > ms) throw new Error("not there in time: " + what); await sleep(50); } return true; };
+  // The room's queue as the server has it: what each Play next has put there.
+  const zone = localStorage.getItem("rra-zone");
+  const queued = async () => { const j = await (await fetch("/api/queue?zone=" + encodeURIComponent(zone))).json(); return (j.items || []).length + (j.history || []).length; };
   const out = {};
   await until(() => document.querySelector("#home-random .album, #home-today .album"), "Home's albums");
   window.__openAlbum(${JSON.stringify(album)}, { source: "home", filter: null });
   await until(() => document.querySelectorAll("#modal-tracks li").length === 3, "the album's three tracks");
   const li = n => document.querySelectorAll("#modal-tracks li")[n];
-  // A track's buttons (the page is given a moment to settle after the album opens).
-  await sleep(800);
+  // A track's buttons, once the album's details are in (its tracks are drawn again with them).
+  await until(() => document.getElementById("modal-total").textContent, "the album's details");
+  await new Promise(r => requestAnimationFrame(r));
   li(2).click(); await until(() => document.querySelector("#modal-tracks .t-actions"), "a track's buttons");
   out.track_buttons = [...document.querySelectorAll("#modal-tracks .t-actions button")].map(b => b.textContent);
   const next = [...document.querySelectorAll("#modal-tracks .t-actions button")].find(b => b.textContent === "Play next");
-  next.click(); await sleep(800);
-  // A selection: held on a track, which is the first pick (v0.6.24), one more tapped, the menu's Play next.
+  const before = await queued();
+  next.click(); await until(async () => (await queued()) === before + 1, "the track put next");
+  // A selection: held on a track (a long press: held this long), which is the first pick (v0.6.24), one more tapped, the menu's Play next.
   li(1).dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); await sleep(700);
   li(1).dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
   li(1).click(); await sleep(50);         // the tap that ends a long press changes nothing
   li(2).click(); await sleep(50);
-  document.getElementById("select-menu-btn").click(); await sleep(100);
+  document.getElementById("select-menu-btn").click(); await until(() => document.querySelectorAll("#select-menu .sel-menu-item").length, "the selection's menu");
   out.menu = [...document.querySelectorAll("#select-menu .sel-menu-item")].map(b => b.textContent);
   out.menu_title = document.getElementById("select-menu-title").textContent;
-  document.querySelector('#select-menu [data-sel-act="play_next"]').click(); await sleep(1500);
+  document.querySelector('#select-menu [data-sel-act="play_next"]').click();
+  await until(async () => (await queued()) === before + 3, "the two picks put next");
   return out;
 })()`;
 
@@ -79,8 +85,7 @@ test("Play next: a track's button, a selection's menu item, and the order they l
     try {
       // The page on the Kitchen, as a phone that chose it before.
       const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
-      await page.eval(`localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)}); location.reload(); true`);
-      await sleep(1500);
+      await page.eval(`localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)}); true`);
       const page2 = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
       r = await page2.eval(DRIVER(cd));
       assert.deepEqual(page2.errors, []);

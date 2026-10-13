@@ -406,13 +406,13 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       seq = h.json.seq;
       await zoneState();
       await queue();
-      // The queue kept in the database (queue-store.js): the same row, key for key.
-      await new Promise(r => setTimeout(r, 700));
+      // The queue kept in the database (queue-store.js): the same row, key for key, once the store has written it.
       const row = (db, S) => {
         const k = JSON.parse(db.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + S.zone).value);
         k.deviceId = "<device>"; k.at = "<clock>"; k.ids = k.ids.map(id => "<" + S.tracks.get(id) + ">");
         return k;
       };
+      await until(async () => require("util").isDeepStrictEqual(row(ctx.db.raw, F), peek("the kept queue")), 10000, "the queue kept");
       const mine = row(ctx.db.raw, F);
       assert.deepEqual(mine, peek("the kept queue"));
       kept();
@@ -575,7 +575,8 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
 
     await t.test("the C# server restarted (an update): the phone's queue and place are kept", async () => {
       await report({ index: 2, position: 12, duration: 60, state: "playing", volume: 40 });
-      await new Promise(r => setTimeout(r, 600));
+      // The store writes after a moment: what it kept, before the server goes.
+      await until(async () => { const r = ctx.db.raw.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + F.zone); const k = r && JSON.parse(r.value); return k && k.index === 2 && k.state === "playing"; }, 10000, "the queue kept");
       await srv.stop();
       srv = createServer(options);
       ctx = await srv.start();

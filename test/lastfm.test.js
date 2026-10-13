@@ -351,6 +351,7 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
           // Another album: everything cleared first.
           window.__openAlbum(albums.find(a => a.title === "I See a Darkness"), {});
           out.cleared = ["album-more-by", "album-more-appears", "album-lastfm-artists", "album-lastfm-albums"].map(id => document.getElementById(id).classList.contains("hidden"));
+          // A window: nothing may be shown for it in it (it has nothing more, and nothing similar).
           await sleep(1500);
           out.after = { by: sec("album-more-by"), artists: sec("album-lastfm-artists") };
           return out;

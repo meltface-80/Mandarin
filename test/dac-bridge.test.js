@@ -74,7 +74,7 @@ test("Audio Devices on a Mac points to Mandarin DAC Bridge (v0.9.0)", { skip: no
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const until = async (f, ms = 8000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
     await until(() => document.querySelector("#home-random .album, #home-today .album"));
-    document.getElementById("settings-toggle").click(); await sleep(400);
+    document.getElementById("settings-toggle").click(); await until(() => (document.querySelector('.settings-nav-item[data-pane="playback"]') || {}).offsetParent);
     document.querySelector('.settings-nav-item[data-pane="playback"]').click();
     const a = await until(() => document.getElementById("devices-bridge"));
     return a && { href: a.href, note: a.closest(".settings-note").textContent };

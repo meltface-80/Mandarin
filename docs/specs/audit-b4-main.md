@@ -46,6 +46,9 @@ the owner asked, everything is based on `migration`:
   `audit/documentation-updates`. Each one its own pull request into `audit-b4-main`, squash-merged
   when CI is green; then `audit-b4-main` into `migration` as one pull request, before v0.9.0 goes
   to `main`.
+- Since the security work (#221), `audit-b4-main` has been merged into `migration` by the owner (#222)
+  and is gone: each category branch after it is its own pull request into `migration`, squash-merged
+  when CI is green.
 - Nothing crosses between branches. Each keeps CLAUDE.md §5: `npm run gates` green before every
   push, baselines only shrink (written by their tools), no test skipped or loosened, every new
   test broken once on purpose and seen to fail.
@@ -197,6 +200,10 @@ the owner asked, everything is based on `migration`:
   answers) changing the album's match and undo restoring it; each play route queuing the right
   tracks on the fake Sonos household. Each is broken once on purpose and seen to fail.
 - **Branch:** `audit/test-coverage-expansion`
+- **Done:** `test/identify-verdicts.test.js` (accept, reject, undo by rejecting, 404 and 409),
+  `test/play-routes.test.js` (the play routes against a fake Sonos household, the speaker's own queue
+  read; the refused and gone ones), Tailscale's logout in `test/tailscale-builtin.test.js`, the
+  update's status in `test/update.test.js`. Each route broken once and its test seen to fail.
 
 ### T2. Fixed sleeps in tests (Medium)
 
@@ -210,6 +217,10 @@ the owner asked, everything is based on `migration`:
 - **Fix:** wait for the condition (`until(...)`) wherever the test then reads a state. A sleep stays
   only where the test proves something *doesn't* happen within a window, with a comment saying so.
 - **Branch:** `audit/test-coverage-expansion`
+- **Done:** each wait before a read is a wait for the state read (a list, a menu, a modal's
+  animation, a queue on the speaker, the store's row before a restart, a case turned all the way
+  round). Every sleep kept is a window a test needs, said beside it. One left as it was:
+  `test/library-live.test.js`'s pause before the wall opens, which waits on nothing the page shows.
 
 ### T3. The same helpers written 62 times (Medium)
 
@@ -221,6 +232,8 @@ the owner asked, everything is based on `migration`:
 - **Fix:** `test/helpers.js` (`// @ts-check`), with `until`, `api` and `started`. Files move to it
   as they are touched.
 - **Branch:** `audit/test-coverage-expansion`
+- **Done:** `test/helpers.js` (`until`, `apiOf`, `started`), used by the new tests; the rest move
+  to it as they are touched.
 
 ### T4. Assertions behind a platform test (Low)
 
@@ -230,6 +243,7 @@ the owner asked, everything is based on `migration`:
 - **Issue:** one test asserts different things depending on where it runs.
 - **Fix:** split each into a test per platform, each skipping with its reason elsewhere.
 - **Branch:** `audit/test-coverage-expansion`
+- **Done:** each split into a test per platform, each skipping elsewhere with its reason.
 
 ### T5. The Android app module has no tests (Low)
 
@@ -238,6 +252,9 @@ the owner asked, everything is based on `migration`:
   `DownloadStore` (its bookkeeping). The update check of `AppUpdate`: version comparison,
   refusing a downgrade.
 - **Branch:** `audit/test-coverage-expansion`
+- **Waiting:** this environment can't reach Google's Maven repository (`dl.google.com`), so no
+  Android build or test runs here. Once it is allowed (or in CI alone), the app module's tests come
+  in a branch of their own.
 
 ---
 
@@ -457,3 +474,5 @@ the owner asked, everything is based on `migration`:
    Qobuz and Tidal.
 5. **Q7 renames:** with Q1, in the same change.
 6. **Order:** security, testing, code quality, performance, documentation.
+7. **A version a stage:** from the tests on, each stage is a patch version of its own: tests
+   v0.9.1, code quality v0.9.2, performance v0.9.3, documentation v0.9.4.

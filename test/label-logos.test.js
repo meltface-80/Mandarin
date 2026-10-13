@@ -128,6 +128,7 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
     assert.deepEqual(await names(), ["Blue Note", "ECM", "Nonesuch", "Parlophone"]);
 
     await t.test("no keys: nothing is looked up, the log says so", async () => {
+      // A window: nothing may be looked up in it.
       await new Promise(r => setTimeout(r, 200));
       assert.equal(discogs.hits.length, 0);
       assert.match((await api("labels-scan-log")).text, /no Discogs token or FanArt.tv key/);
@@ -205,6 +206,7 @@ test("merges and logos", { skip, timeout: 90000 }, async (t) => {
       // Opening the wall again doesn't ask again: the misses are remembered.
       const hits = discogs.hits.length + fanart.hits.length;
       await api("filters/labels");
+      // A window: nothing may be asked in it.
       await new Promise(r => setTimeout(r, 200));
       assert.equal(discogs.hits.length + fanart.hits.length, hits);
     });

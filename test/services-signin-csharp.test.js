@@ -172,13 +172,14 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const again = await post("settings/tidal/signin");
     assert.equal(again.text, mine.text, "one under way: the same one");
     const polls = tidal.polls;
-    await sleep(1600);
+    await until(() => tidal.polls > polls, 10000, "Tidal asked again");
     assert.ok(tidal.polls > polls, "Tidal asked whether it has happened");
     const state = await get("settings/tidal");
     assert.equal(state.text, mine.text, "still waiting for the person");
     const cancelled = await post("settings/tidal/signin/cancel");
     assert.equal(cancelled.j.pending, undefined, "let go");
     const after = tidal.polls;
+    // A window longer than its look's second: Tidal must not be asked again in it.
     await sleep(1300);
     assert.equal(tidal.polls, after, "Tidal no longer asked");
     const n = await rec.want("Tidal's sign-in begun");
@@ -272,6 +273,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const release = tidal.holdRefresh();
     const both = Promise.all([get("tidal/search?q=first"), get("tidal/search?q=second"), get("tidal/new-releases?days=7")]);
     await until(() => tidal.parkedRefreshes >= 1, 10000, "the refresh");
+    // A window: no second refresh may be asked for in it.
     await sleep(500);
     assert.equal(tidal.parkedRefreshes, 1, "asked for once");
     release();
@@ -473,6 +475,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       clear();
       await fetchStream(base, `/stream/t${one}.flac`);
       await until(() => qobuz.reports.length >= 1, 10000, "the start");
+      // It plays a while first: the end report says how long.
       await sleep(1100);
       await fetchStream(base, `/stream/t${two}.flac`);
       await until(() => qobuz.reports.length >= 3, 10000, "the end and the next start");
