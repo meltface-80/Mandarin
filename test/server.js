@@ -27,18 +27,20 @@ const built = () => fs.existsSync(BIN) ? false : "the C# server isn't built (ser
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
- * The server started and answering on [port]; [env] over the suite's.
- * @returns {Promise<{ base: string, key: string, proc: import("child_process").ChildProcess, stop: () => Promise<void> }>}
+ * The server started and answering on [port]; [env] over the suite's. [bin]: a copy of the program to run
+ * instead (an update's test: the copy is what the update replaces). exited(): how it ended, once it has.
+ * @returns {Promise<{ base: string, key: string, proc: import("child_process").ChildProcess, stop: () => Promise<void>, exited: () => ({ code: number | null, signal: string | null } | null) }>}
  */
-async function start({ port, musicDir, dataDir, env = {}, timeoutMs = 60000 }) {
+async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs = 60000 }) {
   const key = crypto.randomBytes(24).toString("hex");
   const e = Object.assign({}, process.env, {
     PORT: String(port), MUSIC_DIR: musicDir, DATA_DIR: dataDir, SERVER_IP: "127.0.0.1", MANDARIN_NODE: "0", MANDARIN_APP_DIR: ROOT,
     MANDARIN_FRONT_KEY: key, IDENTIFY: "0", LOCAL_AUDIO: "0", UPDATE_CHECK: "false", UPNP_DISCOVERY: "0", ITUNES_URL: "http://127.0.0.1:9"
   }, process.env.ALLOW_NETWORK ? {} : { MANDARIN_LOOPBACK_ONLY: "1" }, env);
-  for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_RUNS", "INTERNAL_PORT"]) delete e[k];
+  // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.
+  for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_RUNS", "INTERNAL_PORT", "MANDARIN_SERVER_BIN"]) delete e[k];
   fs.mkdirSync(dataDir, { recursive: true });
-  const proc = spawn(BIN, [], { env: e, stdio: ["ignore", "inherit", "inherit"] });
+  const proc = spawn(bin, [], { env: e, stdio: ["ignore", "inherit", "inherit"] });
   let exited = null;
   proc.on("exit", (code, signal) => { exited = { code, signal }; });
   const base = "http://127.0.0.1:" + port;
@@ -59,7 +61,7 @@ async function start({ port, musicDir, dataDir, env = {}, timeoutMs = 60000 }) {
     await Promise.race([gone, sleep(8000)]);
     if (!exited) { proc.kill("SIGKILL"); await gone; }
   };
-  return { base, key, proc, stop };
+  return { base, key, proc, stop, exited: () => exited };
 }
 
 module.exports = { start, built, BIN };

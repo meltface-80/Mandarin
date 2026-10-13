@@ -1014,6 +1014,12 @@ the Mac installer). The update lays the staged bundle in itself (the running pro
 from the old file; the new one is started as `Front.StartAgain` starts it today) — no
 `.update/READY`, no launcher; the image's `CMD` runs `mandarin-server` under tini; the Mac
 installer's start script runs the binary; `test/update*.test.js` through the binary alone.
+- **As built** (v0.8.50, part 3): `Admin/Updater.cs` alone lays the bundle in itself (no
+  `index.js` looked for, no npm) and starts the program again through `Jobs.RestartNode` →
+  `Front.StartAgain`; `test/update-alone.test.js` (new) and `test/server.js`'s `bin` and
+  `exited()`. The image's `CMD` and the Mac's launchd item already run the binary; the launcher
+  path behind a Node server, `test/update.test.js` (Node under the launcher) and
+  `test/update-csharp.test.js`'s launcher half go with the Node copies in part 5.
 
 **Part 4: the tests drive the binary.** 33 files reach into the Node server (`ctx.db.raw`,
 `ctx.db.setSetting`/`setting`, `ctx.library.reload`, `ctx.frontRuns`, `ctx.listeningOn`,
@@ -1039,7 +1045,7 @@ final test from `:migration`.
 - [x] Plan written; version 0.8.50
 - [x] Part 1: the C# server on its own
 - [x] Part 2: the last routes
-- [ ] Part 3: the launcher and updates in C#
+- [x] Part 3: the launcher and updates in C#
 - [ ] Part 4: the tests drive the binary
 - [ ] Part 5: the image and the repository; docs; the pull request
 

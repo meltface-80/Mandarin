@@ -65,6 +65,16 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   Homebrew builds), were the Node server's to draw: alone they are drawn as ffmpeg reads them,
   without the profile, and the placeholder without its words, until the owner decides (the spec's
   section 6). `test/csharp-alone.test.js` holds each.
+- **The update, with no launcher** (part 3). On its own, an update from Settings is the C#
+  server's whole: GitHub asked, the release's bundle downloaded and checked (its `package.json`
+  names it; no `index.js` is looked for), its own program of the new version fetched, checked and
+  put in place of the file it runs from, the bundle's files laid over the install (never the
+  data; no `npm install`), and the server started again from the new file in its own process, as
+  Restart from Settings starts it — no `launcher.js`, no `.update/READY`, no code 75. Behind a
+  Node server the launcher's way stays until part 5. The image's `CMD` already runs the server
+  under tini and the Mac's launchd item already runs the binary; both lose their Node pieces in
+  part 5. `test/update-alone.test.js` (new) runs it for real from a copy of the program in an
+  install of its own, the new program a stand-in that writes down how it was started.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
