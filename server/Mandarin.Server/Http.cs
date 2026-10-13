@@ -85,13 +85,16 @@ internal static class Http
     /* The etag package's weak tag, as Express gives every answer: the length, and the SHA-1's first 27 base64 characters (a cache's check, nothing secret). */
     public static string Tag(byte[] bytes) => "W/\"" + bytes.Length.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "-" + Convert.ToBase64String(Fingerprint.Sha1(bytes))[..27] + "\"";
 
+    public const string JsonType = "application/json; charset=utf-8";
+
     /*
      * res.send, as Express sends it: answered here (X-Mandarin-Answered), its
-     * weak tag, "not modified" for a copy still current, and no body to a HEAD.
+     * weak tag (`tag`, when the bytes' is known already), "not modified" for a
+     * copy still current, and no body to a HEAD.
      */
-    public static async Task<bool> Send(HttpContext ctx, byte[] bytes, string type, int status = 200)
+    public static async Task<bool> Send(HttpContext ctx, byte[] bytes, string type, int status = 200, string? tag = null)
     {
-        var tag = Tag(bytes);
+        tag ??= Tag(bytes);
         var h = ctx.Response.Headers;
         h["X-Mandarin-Answered"] = "C#";
         h.ETag = tag;
@@ -104,7 +107,7 @@ internal static class Http
     }
 
     /* res.json(text): JSON already written. */
-    public static Task<bool> Json(HttpContext ctx, string json, int status = 200) => Send(ctx, Encoding.UTF8.GetBytes(json), "application/json; charset=utf-8", status);
+    public static Task<bool> Json(HttpContext ctx, string json, int status = 200) => Send(ctx, Encoding.UTF8.GetBytes(json), JsonType, status);
 
     /* res.json(node). */
     public static Task<bool> Json(HttpContext ctx, JsonNode node, int status = 200) => Json(ctx, node.ToJsonString(Relaxed), status);
