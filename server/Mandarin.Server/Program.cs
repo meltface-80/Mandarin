@@ -238,6 +238,8 @@ app.Use(async (ctx, next) =>
     await forwarder.SendAsync(ctx, upstream!, invoker, requestConfig, transformer);
 });
 
+// Alone, a JSON body past express.json's 2 MB is refused here (Auth.Body.cs); behind a Node server, by it.
+if (alone) Auth.UseBodyLimit(app);
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));

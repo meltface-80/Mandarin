@@ -150,9 +150,9 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   const lib = library();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
-  const srvCtx = await srv.start();
+  await srv.start();
   const b = await Browser.launch({ width: 1440, height: 900, mouse: true });
   try {
     const token = await signIn(B);
@@ -731,10 +731,8 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
     });
 
-    // v0.8.28: through the C# server, the page asks the Node server for playback and nothing else.
-    // Playback (the rooms, their queues, the transport) is the Node server's until stage 6.
-    await t.test("through the C# server: only playback is asked of the Node server", { skip: process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server" }, async () => {
-      const PLAYBACK = ["/api/zones", "/api/zone-state", "/api/queue", "/api/control", "/api/play", "/api/play-track", "/api/play-from-here", "/api/volume"];
+    // v0.8.28: every request the page makes is the C# server's own (playback too since v0.8.49, stage 6).
+    await t.test("every request the page makes is answered by the C# server", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="year"]').click(); tile("year", "1990s").click();
@@ -744,13 +742,10 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $("#queue-tab").click();
         $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
         return [...new Set(window.__by)].sort(); })()`);
-      const node = r.filter(x => x.endsWith(" Node")).map(x => x.slice(0, -5));
+      const others = r.filter(x => !x.endsWith(" C#"));
       const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
-      // Playback too is the C# server's where it holds the job (v0.8.49, stage 6): nothing is asked of the Node server then.
-      const front = !!(srvCtx.frontRuns && srvCtx.frontRuns.has("playback"));
-      assert.deepEqual(front ? node : node.filter(p => !PLAYBACK.includes(p)), [], (front ? "nothing" : "nothing but playback") + " from the Node server: " + JSON.stringify(r));
-      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display"]) assert.ok(csharp.includes(p), p + " answered by C#: " + JSON.stringify(r));
-      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok((front ? csharp : node).includes(p), p + " asked, and " + (front ? "the C# server's" : "still the Node server's") + ": " + JSON.stringify(r));
+      assert.deepEqual(others, [], "nothing from anyone else: " + JSON.stringify(r));
+      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display", "/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(csharp.includes(p), p + " asked, and answered by C#: " + JSON.stringify(r));
       const shelfPage = await fetch(B + "/shelf", { headers: H });
       assert.equal(shelfPage.headers.get("x-mandarin-answered"), "C#", "the page itself");
       assert.deepEqual(page.errors, []);

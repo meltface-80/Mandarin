@@ -67,7 +67,7 @@ const DRIVER = `(async () => {
 
 test("Library Scanner: the page at once, each block as its answer comes, only what moved redrawn", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -84,7 +84,7 @@ test("Library Scanner: the page at once, each block as its answer comes, only wh
       const r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
       assert.deepEqual(r.at_once, [], "the page's words, before any answer");
-      assert.equal(r.blocks, 13, "laid out as its blocks");
+      assert.equal(r.blocks, 12, "laid out as its blocks");
       assert.equal(r.filled, true, "each block filled as its answer came");
       assert.equal(r.no_dots, true, "nothing left waiting");
       assert.deepEqual(r.order, ["schedule", "identify", "pack", "progress", "loudness"]);

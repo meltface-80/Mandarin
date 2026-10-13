@@ -176,7 +176,7 @@ test("Audio Devices through the server: found, read, named, ticked, forgotten", 
   const poly = new FakeRenderer({ name: "Poly", manufacturer: "Chord Electronics Ltd", model: "Poly", sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/x-dsf:*" });
   const telly = new FakeRenderer({ name: "Telly", manufacturer: "Samsung", model: "UE55", nested: true, noAvTransport: true });
   await wiim.start(); await poly.start(); await telly.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location, telly.location], upnpMulticast: false, upnpOfflineMs: 2500

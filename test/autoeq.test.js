@@ -72,7 +72,7 @@ test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) 
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], autoeqBaseUrl: base, upnpMulticast: false });
   await srv.start();
   const token = await signIn(B);
@@ -91,11 +91,9 @@ test("searched, fetched once, saved to a device", { timeout: 60000 }, async (t) 
       assert.deepEqual((await api("dsp/headphones?q=hd%20999")).results, []);
       assert.deepEqual((await api("dsp/headphones?q=")).results, []);
       assert.equal(fake.hits.filter(h => h === "/INDEX.md").length, 1, "the index was fetched once");
-      // Behind the C# server (v0.8.26): answered by it.
-      if (process.env.MANDARIN_FRONT === "1") {
-        const h = await fetch(B + "/api/dsp/headphones?q=hd", { headers: auth });
-        assert.equal(h.headers.get("x-mandarin-answered"), "C#");
-      }
+      // Answered by the C# server (v0.8.26).
+      const h = await fetch(B + "/api/dsp/headphones?q=hd", { headers: auth });
+      assert.equal(h.headers.get("x-mandarin-answered"), "C#");
     });
 
     await t.test("a profile is fetched once and kept", async () => {

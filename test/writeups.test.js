@@ -18,7 +18,6 @@ const { signIn } = require("./auth-helper");
 const { FakeWeb, wiki } = require("./fake-web");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 
-const FRONT = process.env.MANDARIN_FRONT === "1";
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const ALBUM_TEXT = "Album One is the debut studio album by English band Artist A, released in 1997.";
@@ -67,7 +66,7 @@ test("a record's write-up and links: the same from either server", { skip: !have
     [wiki.search('"Artist A" "Album One"', 10)]: wiki.hits("Artist A (band)", "Album One (Artist A album)")
   });
 
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
     mbBaseUrl: mb.baseUrl, wikipediaBaseUrl: W, pitchforkBaseUrl: W, qobuzWebUrl: W });
   await srv.start();
@@ -75,7 +74,7 @@ test("a record's write-up and links: the same from either server", { skip: !have
     const token = await signIn(B);
     const ask = async (p, init = {}) => {
       const r = await fetch(B + "/api/" + p, Object.assign({}, init, { headers: Object.assign({ Authorization: "Bearer " + token }, init.headers || {}) }));
-      if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
       return { status: r.status, headers: r.headers, body: await r.json() };
     };
     for (let i = 0; i < 150 && (await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).index_count !== 3; i++) await new Promise(res => setTimeout(res, 100));

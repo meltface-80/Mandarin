@@ -30,7 +30,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 const havePoppler = () => spawnSync("pdftoppm", ["-v"]).status === 0;
-const skip = (process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1")
+const skip = require("./server").built()
   || (!haveFfmpeg() && "ffmpeg is not installed") || (!havePoppler() && !process.env.CI && "poppler (pdftoppm) is not installed");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
@@ -133,7 +133,7 @@ test("an album's booklets: found, their pages drawn by the C# server, nothing el
   // Album One's booklets one level down are Album One's, not the single's.
   gen(path.join(lib.music, "Artist A", "Single.flac"), { tags: { title: "Single", artist: "Artist A", album: "Single", track: 1, date: "2001" } });
 
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   t.after(() => srv.stop());

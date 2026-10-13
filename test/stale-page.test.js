@@ -36,7 +36,7 @@ const SHOW = (hidden) => `(() => {
 
 test("the page doesn't go stale when requests never answer", { skip, timeout: 120000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   t.after(() => srv.stop());

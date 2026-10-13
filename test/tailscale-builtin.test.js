@@ -72,8 +72,7 @@ function server(bin, extraEnv = {}, extraConfig = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-tsd-"));
   fs.mkdirSync(path.join(dir, "music"));
   for (const k of Object.keys(extraEnv)) process.env[k] = extraEnv[k];
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   return createServer(Object.assign({ port: PORT, musicDir: path.join(dir, "music"), dataDir: path.join(dir, "data"), serverIp: "127.0.0.1", sonosHosts: [], tailscaleBin: bin }, extraConfig));
 }
 

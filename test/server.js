@@ -64,4 +64,94 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
   return { base, key, proc, stop, exited: () => exited };
 }
 
-module.exports = { start, built, BIN };
+// index.js's createServer options, as the environment the program reads them from (Config.cs).
+const ENV = {
+  port: "PORT", musicDir: "MUSIC_DIR", dataDir: "DATA_DIR", serverIp: "SERVER_IP", sonosHosts: "SONOS_HOSTS", upnpHosts: "UPNP_HOSTS",
+  include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
+  mbBaseUrl: "MUSICBRAINZ_URL", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
+  discogsBaseUrl: "DISCOGS_URL", fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
+  pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
+  identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
+  tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL"
+};
+// On or off, as index.js read them ("0" is off).
+const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };
+// The rest laid over the configuration (MANDARIN_CONFIG), by the names the hand-over carried them under.
+const CONFIG = {
+  qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
+  localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog"
+};
+// What the C# server makes (Jobs.Names): every job, with no Node server to leave any to.
+const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
+
+/**
+ * index.js's createServer, for the tests that started the Node server with it (stage 7 part 4): the
+ * same options, given to the program as its environment, and a ctx with what the tests reached into
+ * the Node server for, had over HTTP and from the database file instead:
+ *   ctx.listeningOn        the port: the server answers everything itself
+ *   ctx.frontKey           the key its private addresses are asked with (/internal/library/changed)
+ *   ctx.frontRuns          every job's name (a Set): the C# server holds them all
+ *   ctx.db.raw             better-sqlite3 on <dataDir>/musicd.db; setting/setSetting as lib/library/db.js had them
+ *   ctx.library.reload()   the copy read again (POST /internal/library/changed { edits: true })
+ *   ctx.auth.signUrl(url)  a speaker's address signed under the install's secret (Playback/Signing.cs)
+ *   ctx.config             the options as given
+ * An option the program has no reading of is refused, so a test says what it does without it.
+ * @param {Record<string, any>} overrides
+ */
+function createServer(overrides = {}) {
+  const env = {};
+  const cfg = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v === undefined) continue;
+    if (ENV[k]) env[ENV[k]] = Array.isArray(v) ? v.join(",") : String(v);
+    else if (FLAGS[k]) env[FLAGS[k]] = v ? "1" : "0";
+    else if (CONFIG[k]) cfg[CONFIG[k]] = v;
+    else throw new Error(`createServer: the C# server has no reading of "${k}" (test/server.js)`);
+  }
+  if (Object.keys(cfg).length) env.MANDARIN_CONFIG = JSON.stringify(cfg);
+  const port = overrides.port, musicDir = overrides.musicDir, dataDir = overrides.dataDir;
+  if (!port || !musicDir || !dataDir) throw new Error("createServer: port, musicDir and dataDir are needed");
+  for (const k of ["PORT", "MUSIC_DIR", "DATA_DIR"]) delete env[k];
+  let srv = null, raw = null;
+  const db = {
+    get raw() { return raw || (raw = new (require("better-sqlite3"))(path.join(dataDir, "musicd.db"), { fileMustExist: true })); },
+    setting(key, fallback) {
+      const r = db.raw.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+      if (!r) return fallback;
+      try { return JSON.parse(r.value); } catch (e) { return fallback; }
+    },
+    setSetting(key, value) { db.raw.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, JSON.stringify(value)); }
+  };
+  const sig = p => crypto.createHmac("sha256", db.setting("authSecret", "")).update(p).digest("base64url").slice(0, 22);
+  const ctx = {
+    listeningOn: port, frontKey: "", frontRuns: new Set(JOBS), madeByFront: true, config: Object.assign({}, overrides), base: "http://127.0.0.1:" + port, db,
+    library: {
+      async reload() {
+        const r = await fetch(ctx.base + "/internal/library/changed", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ edits: true }) });
+        return r.json();
+      }
+    },
+    auth: {
+      signUrl(url) {
+        const u = String(url);
+        const i = u.indexOf("://");
+        const from = i >= 0 ? u.indexOf("/", i + 3) : 0;
+        return u + (u.includes("?") ? "&" : "?") + "s=" + sig(u.slice(from).split("?")[0]);
+      }
+    }
+  };
+  return {
+    async start() {
+      srv = await start({ port, musicDir, dataDir, env });
+      ctx.frontKey = srv.key;
+      return ctx;
+    },
+    async stop() {
+      if (raw) { try { raw.close(); } catch (e) { /* closed */ } raw = null; }
+      if (srv) await srv.stop();
+    },
+    exited: () => srv && srv.exited()
+  };
+}
+
+module.exports = { start, createServer, built, BIN, JOBS };

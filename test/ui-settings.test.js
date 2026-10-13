@@ -140,7 +140,7 @@ const DRIVER = `(async () => {
 
 test("labels search and order, the artist title, and UI Settings, in a browser", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -217,7 +217,7 @@ const SIZES_DRIVER = `(async () => {
 
 test("the Library's controls under the top bar on phones, tablets and desktops", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const PORT2 = ports.port();
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();

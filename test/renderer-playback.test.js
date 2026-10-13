@@ -44,7 +44,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const poly = new FakeRenderer({ name: "Poly", manufacturer: "Chord Electronics Ltd", model: "Poly", setNext: false,
     sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*" });
   await wiim.start(); await poly.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false

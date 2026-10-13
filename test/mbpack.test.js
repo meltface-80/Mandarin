@@ -230,8 +230,7 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
   await new Promise(r => pub.listen(0, "127.0.0.1", r));
   const music = path.join(dir, "music"), data = path.join(dir, "data");
   fs.mkdirSync(music); fs.mkdirSync(data);
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     mbpackUrl: `http://127.0.0.1:${pub.address().port}` });
@@ -246,11 +245,9 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
     for (;;) { const v = await fn(); if (v || Date.now() - t0 > ms) return v; await new Promise(r => setTimeout(r, 100)); }
   };
   try {
-    // Behind the C# server (MANDARIN_FRONT=1), the pack is kept by it (v0.8.19).
-    if (process.env.MANDARIN_FRONT === "1") {
-      const h = await fetch(base + "/api/identify/pack", { headers: { Authorization: "Bearer " + token } });
-      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the pack is the C# server's");
-    }
+    // The pack is kept by the C# server (v0.8.19).
+    const h = await fetch(base + "/api/identify/pack", { headers: { Authorization: "Bearer " + token } });
+    assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the pack is the C# server's");
     let s = await api("identify/pack");
     assert.equal(s.installed, null);
     assert.equal(s.dir, path.resolve(data));

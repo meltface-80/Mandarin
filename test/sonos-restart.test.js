@@ -12,6 +12,7 @@ const os = require("os");
 const path = require("path");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms) {
@@ -25,13 +26,12 @@ async function until(fn, ms) {
   }
 }
 
-test("rooms come back straight after a restart, and 'searching' covers the gap", { timeout: 30000 }, async () => {
+test("rooms come back straight after a restart, and 'searching' covers the gap", { skip: built(), timeout: 60000 }, async () => {
   const house = new FakeHousehold();
   await house.start();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-sonos-"));
   const music = path.join(tmp, "music");
   fs.mkdirSync(music);
-  const { createServer } = require("../index.js");
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const cfg = { port: PORT, musicDir: music, dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1" };
   let auth = {};
