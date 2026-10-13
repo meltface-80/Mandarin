@@ -12,8 +12,14 @@
  * that tests the hub end to end without a speaker; then the Sonos rooms (part
  * 2): a fake household for each server, and after each scenario the commands
  * each speaker was sent, in order, compared as well as the answers. Renderers
- * (part 3) have their own suites. Skipped unless the suite goes through the
- * C# server (MANDARIN_FRONT=1).
+ * (part 3) have their own suites.
+ *
+ * Since v0.8.50 (stage 7) the C# server here is the program alone
+ * (test/server.js), and the Node server's side is a recording: made with
+ * RECORD_PLAYBACK=1 while index.js was still there (both servers asked, live,
+ * as before), its answers, commands and rows normalised and kept in
+ * test/golden/playback-node.json; every run since holds the C# server to it,
+ * step for step.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -23,10 +29,15 @@ const { spawn } = require("child_process");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn, post } = require("./auth-helper");
+const fs = require("fs");
+const { createServer, built } = require("./server");
 
-const skip = (process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)")
-  || (!haveFfmpeg() && "ffmpeg is not installed");
 const ROOT = path.join(__dirname, "..");
+const RECORD = process.env.RECORD_PLAYBACK === "1";
+const GOLDEN = path.join(__dirname, "golden", "playback-node.json");
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed")
+  || (RECORD && !fs.existsSync(path.join(ROOT, "index.js")) && "recording needs the Node server (index.js)")
+  || (!RECORD && !fs.existsSync(GOLDEN) && "no recording of the Node server's answers (RECORD_PLAYBACK=1 makes one)");
 
 async function until(fn, ms = 10000, what = "") {
   const t0 = Date.now();
@@ -85,25 +96,33 @@ function norm(v, S) {
 }
 
 test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, every answer and every command the Node server's own", { skip, timeout: 300000 }, async (t) => {
-  // Two servers, two libraries: this suite's behind the C# server, and a Node server alone.
+  // Two servers, two libraries: the C# program alone, and (recording) a Node server alone.
   const libF = makeLibrary(), libN = makeLibrary();
   const PORT = ports.port(), PORT2 = ports.port();
-  const { createServer } = require("../index.js");
+  /* The Node server's side of each comparison: asked of it now (recording), or as it answered when recorded, in the same order. */
+  const golden = { list: RECORD ? [] : JSON.parse(fs.readFileSync(GOLDEN, "utf8")), at: 0 };
+  const peek = (label) => {
+    const g = golden.list[golden.at];
+    assert.ok(g, "the recording ends before " + label);
+    assert.equal(g.label, label, "the recording in step");
+    return g.v;
+  };
+  const kept = (label, v) => { if (RECORD) golden.list.push({ label, v }); else golden.at++; };
   // A fake household for each (part 2): the same rooms, on loopback addresses of their own.
   const houseF = new FakeHousehold();
   const houseN = new FakeHousehold([
     { uid: "RINCON_KITCHEN01400", name: "Kitchen", ip: ports.host(2) },
     { uid: "RINCON_STUDY001400", name: "Study", ip: ports.host(3), model: "Sonos Era 100" }
   ]);
-  await houseF.start();
-  await houseN.start();
+  const houses = RECORD ? [houseF, houseN] : [houseF];
+  for (const h of houses) await h.start();
   const options = { port: PORT, musicDir: libF.music, dataDir: libF.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false };
   let srv = createServer(options);
   let ctx = await srv.start();
-  const node = nodeAlone(PORT2, libN, ports.host(2));
+  const node = RECORD ? nodeAlone(PORT2, libN, ports.host(2)) : { stop: async () => {} };
   const F = { name: "C#", base: "http://127.0.0.1:" + PORT, zone: "", tracks: new Map(), albums: new Map(), covers: new Map() };
   const N = { name: "Node", base: "http://127.0.0.1:" + PORT2, zone: "", tracks: new Map(), albums: new Map(), covers: new Map() };
-  const both = [F, N];
+  const both = RECORD ? [F, N] : [F];
 
   const call = async (S, token, method, p, body, headers) => {
     const h = Object.assign({ Authorization: "Bearer " + token }, body ? { "Content-Type": "application/json" } : {}, headers || {});
@@ -119,11 +138,13 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       typeof body === "function" ? body(S) : body, opts.headers)));
     const [f, n] = answers;
     if (opts.zoneOf) both.forEach((S, i) => { S.zone = opts.zoneOf(answers[i].json); });
-    const label = `${method} ${typeof p === "function" ? p(F) : p}`;
+    const label = norm(`${method} ${typeof p === "function" ? p(F) : p}`, F);
     assert.equal(f.by, "C#", label + ": answered by C#");
-    assert.equal(f.status, n.status, label + ": the status\n  C#: " + JSON.stringify(f.json) + "\n  Node: " + JSON.stringify(n.json));
-    if (!opts.statusOnly) assert.deepEqual(norm(f.json, F), norm(n.json, N), label + ": the answer");
-    return answers;
+    const want = RECORD ? { status: n.status, json: opts.statusOnly ? null : norm(n.json, N) } : peek(label);
+    assert.equal(f.status, want.status, label + ": the status\n  C#: " + JSON.stringify(f.json) + "\n  Node: " + JSON.stringify(want.json));
+    if (!opts.statusOnly) assert.deepEqual(norm(f.json, F), want.json, label + ": the answer");
+    kept(label, want);
+    return [f, n || want];
   };
   // A read that shows the rooms: each hub reads its room on a timer of its own, so after a command one
   // may have read it and the other not yet. Compared until the two agree (ten seconds at most), never once.
@@ -142,11 +163,19 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
   const drain = async (S) => { const got = await call(S, S.phone, "GET", `/api/phone/commands?after=${seq}`); return got.json; };
   const commands = async (expectOps) => {
     const [f, n] = await Promise.all(both.map(drain));
-    assert.deepEqual(norm(f, F), norm(n, N), "the commands, in order");
+    const want = RECORD ? norm(n, N) : peek("commands");
+    assert.deepEqual(norm(f, F), want, "the commands, in order");
     if (expectOps) assert.deepEqual(f.commands.map(c => c.op), expectOps);
-    assert.equal(f.seq, n.seq, "the one sequence, counted alike");
+    assert.equal(f.seq, want.seq, "the one sequence, counted alike");
+    kept("commands", want);
     seq = f.seq;
     return f;
+  };
+  /* Each server's own pick (Random Album, the radio): not compared, but counted alike. */
+  const sameSeq = (what, f, n) => {
+    const want = RECORD ? n.seq : peek(what);
+    assert.equal(f.seq, want, what + ": the one sequence, counted alike");
+    kept(what, want);
   };
   const report = (body) => same("phone", "POST", "/api/phone/state", body);
   const zoneState = (who = "phone") => same(who, "GET", S => "/api/zone-state?zone=" + S.zone);
@@ -171,23 +200,19 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       }
       S.album = (title) => albums.find(a => a.title === title).offset;
     }
-    assert.ok(F.tracks.size >= 6 && N.tracks.size >= 6, "the tracks' ids known, by their titles");
+    assert.ok(F.tracks.size >= 6 && (!RECORD || N.tracks.size >= 6), "the tracks' ids known, by their titles");
     // Both households read, each room with its model, before anything is compared.
     await Promise.all(both.map(S => until(async () => {
       const zones = (await call(S, S.other, "GET", "/api/zones")).json.zones.filter(z => !z.is_phone);
       return zones.length === 2 && zones.every(z => z.outputs.every(o => o.model && o.volume.value != null)) && zones;
     }, 30000, S.name + "'s rooms")));
 
-    await t.test("hello: a zone of its own; the Node server behind the C# one never starts its hub", async () => {
+    await t.test("hello: a zone of its own", async () => {
       assert.equal((await call(F, F.other, "POST", "/api/phone/hello", { name: "iPad" })).status, 403, "only the Android app");
       const [f] = await same("phone", "POST", "/api/phone/hello", { name: "Pixel 8" }, { zoneOf: j => j.zone_id });
       assert.match(F.zone, /^PHONE_/);
       assert.deepEqual(f.json.dsp, { enabled: false, headphone: null, peq: null, headroom: "auto" });
       seq = f.json.seq;
-      // The Node server behind the C# one: its hub idle, its phones none (asked directly, with the same token).
-      const direct = await fetch("http://127.0.0.1:" + ctx.listeningOn + "/api/zones", { headers: { Authorization: "Bearer " + F.phone } }).then(r => r.json());
-      assert.deepEqual(direct.zones, [], "the Node server's hub never started");
-      assert.ok(ctx.frontRuns.has("playback"), "handed over");
     });
 
     await t.test("the lists: itself to the phone, under its name to another device", async () => {
@@ -219,8 +244,8 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await same("phone", "POST", "/api/play-unheard", S => ({ zone: S.zone }), { statusOnly: true });
       // Random Album: each server's own pick, loaded.
       const [uf, un] = await Promise.all(both.map(drain));
-      for (const got of [uf, un]) assert.deepEqual(got.commands.map(c => c.op), ["load"]);
-      assert.equal(uf.seq, un.seq);
+      for (const got of [uf, un].filter(Boolean)) assert.deepEqual(got.commands.map(c => c.op), ["load"]);
+      sameSeq("random album", uf, un);
       seq = uf.seq;
       await same("phone", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "play_now" }));
       await commands(["load"]);
@@ -231,20 +256,23 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       const [f, n] = await zoneState();
       assert.equal(f.json.zone.state, "playing");
       assert.equal(f.json.zone.now_playing.line1, "Song 2");
-      assert.ok(Math.abs(f.json.zone.now_playing.seek_position - 31) < 3 && Math.abs(n.json.zone.now_playing.seek_position - 31) < 3);
+      assert.ok(Math.abs(f.json.zone.now_playing.seek_position - 31) < 3 && (!RECORD || Math.abs(n.json.zone.now_playing.seek_position - 31) < 3));
       assert.deepEqual(f.json.zone.now_playing.format, { kind: "lossless", text: "Lossless" });
       await queue();
       const [q] = await queue();
       assert.deepEqual(q.json.items.map(i => i.title), ["Song 2", "Song 3"]);
       assert.deepEqual(q.json.history.map(i => i.track), ["Song 1"]);
       // The play recorded, the same row in both databases (the album by its id, the zone by its id).
-      const Database = require("better-sqlite3");
-      const dbN = new Database(path.join(libN.data, "musicd.db"), { readonly: true });
       const rows = (db) => db.prepare("SELECT title, artist, album, zone, album_id IS NOT NULL AS has_album FROM plays ORDER BY ts").all();
       const played = await until(async () => { const r = rows(ctx.db.raw); return r.length ? r : null; }, 5000, "the play");
-      const playedN = await until(async () => { const r = rows(dbN); return r.length ? r : null; }, 5000, "the Node server's play");
-      dbN.close();
-      assert.deepEqual(norm(played, F), norm(playedN, N));
+      let wantPlayed;
+      if (RECORD) {
+        const dbN = new (require("better-sqlite3"))(path.join(libN.data, "musicd.db"), { readonly: true });
+        wantPlayed = norm(await until(async () => { const r = rows(dbN); return r.length ? r : null; }, 5000, "the Node server's play"), N);
+        dbN.close();
+      } else wantPlayed = peek("plays");
+      assert.deepEqual(norm(played, F), wantPlayed);
+      kept("plays", wantPlayed);
       assert.deepEqual(norm(played, F), [{ title: "Song 2", artist: "Artist A", album: "Album One", zone: "<zone>", has_album: 1 }]);
       await same("other", "GET", S => "/api/album/now-playing?zone=" + S.zone);
     });
@@ -333,19 +361,18 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await same("phone", "POST", "/api/radio", {});
       // Switched on in a silent room, it starts: a whole album on the end of the queue — each server's own pick.
       const [f, n] = await Promise.all(both.map(S => until(async () => { const got = await drain(S); return got.commands.some(c => c.op === "insert") && got; }, 10000, S.name + "'s radio")));
-      for (const got of [f, n]) {
+      for (const got of [f, n].filter(Boolean)) {
         assert.deepEqual(got.commands.map(c => c.op), ["insert"]);
         assert.equal(new Set(got.commands[0].items.map(i => i.album)).size, 1, "one whole album");
         assert.equal(got.commands[0].at, 6, "on the end");
       }
-      assert.equal(f.seq, n.seq);
+      sameSeq("the radio", f, n);
       seq = f.seq;
       // And remembered: the album is in radio_played, never to be picked again for six months.
-      const Database = require("better-sqlite3");
-      const dbN = new Database(path.join(libN.data, "musicd.db"), { readonly: true });
       const memory = (db) => db.prepare("SELECT COUNT(*) AS n FROM radio_played").get().n;
-      await until(async () => memory(ctx.db.raw) === 1 && memory(dbN) === 1, 5000, "the radio's memory written");
-      dbN.close();
+      const dbN = RECORD ? new (require("better-sqlite3"))(path.join(libN.data, "musicd.db"), { readonly: true }) : null;
+      await until(async () => memory(ctx.db.raw) === 1 && (!dbN || memory(dbN) === 1), 5000, "the radio's memory written");
+      if (dbN) dbN.close();
       await same("phone", "POST", "/api/radio", S => ({ zone: S.zone, enabled: false }));
       await same("phone", "GET", S => "/api/radio?zone=" + S.zone);
       // The queue the next steps expect: the radio's album off again.
@@ -369,8 +396,8 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await same("phone", "GET", "/api/shortcut/play-random", null, { headers: TAILNET, statusOnly: true });
       // Its own zone is the one it may play to: a random album loaded, each server's own pick.
       const [lf, ln] = await Promise.all(both.map(drain));
-      for (const got of [lf, ln]) assert.deepEqual(got.commands.map(c => c.op), ["load"]);
-      assert.equal(lf.seq, ln.seq);
+      for (const got of [lf, ln].filter(Boolean)) assert.deepEqual(got.commands.map(c => c.op), ["load"]);
+      sameSeq("away: a random album", lf, ln);
       seq = lf.seq;
       // Home again.
       await same("phone", "GET", () => `/api/phone/commands?after=${seq}`);
@@ -419,16 +446,19 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await queue();
       // The queue kept in the database (queue-store.js): the same row, key for key.
       await new Promise(r => setTimeout(r, 700));
-      const Database = require("better-sqlite3");
-      const dbN = new Database(path.join(libN.data, "musicd.db"), { readonly: true });
-      const row = (db, S) => JSON.parse(db.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + S.zone).value);
-      const kept = row(ctx.db.raw, F), keptN = row(dbN, N);
-      dbN.close();
-      for (const k of [kept, keptN]) { k.deviceId = "<device>"; k.at = "<clock>"; }
-      kept.ids = kept.ids.map(id => "<" + F.tracks.get(id) + ">"); keptN.ids = keptN.ids.map(id => "<" + N.tracks.get(id) + ">");
-      assert.deepEqual(kept, keptN);
-      assert.deepEqual(Object.keys(kept).sort(), ["at", "deviceId", "ids", "index", "kind", "loop", "name", "seconds", "shuffle", "state", "volume"]);
-      assert.deepEqual([kept.kind, kept.name, kept.index, kept.state], ["phone", "Pixel 8", 1, "paused"]);
+      const row = (db, S) => {
+        const k = JSON.parse(db.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + S.zone).value);
+        k.deviceId = "<device>"; k.at = "<clock>"; k.ids = k.ids.map(id => "<" + S.tracks.get(id) + ">");
+        return k;
+      };
+      const mine = row(ctx.db.raw, F);
+      let keptN;
+      if (RECORD) { const dbN = new (require("better-sqlite3"))(path.join(libN.data, "musicd.db"), { readonly: true }); keptN = row(dbN, N); dbN.close(); }
+      else keptN = peek("the kept queue");
+      assert.deepEqual(mine, keptN);
+      kept("the kept queue", keptN);
+      assert.deepEqual(Object.keys(mine).sort(), ["at", "deviceId", "ids", "index", "kind", "loop", "name", "seconds", "shuffle", "state", "volume"]);
+      assert.deepEqual([mine.kind, mine.name, mine.index, mine.state], ["phone", "Pixel 8", 1, "paused"]);
     });
 
     // The rooms (part 2): the same requests, the same answers, and the same commands to the speaker, action for action.
@@ -436,13 +466,14 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       "AddURIToQueue", "ReorderTracksInQueue", "RemoveTrackFromQueue", "SetPlayMode", "SetVolume", "SetMute", "BecomeCoordinatorOfStandaloneGroup"]);
     const writes = (room) => room.log.filter(a => WRITES.has(a));
     const sameLog = (name, expected) => {
-      const f = writes(houseF.room(name)), n = writes(houseN.room(name));
-      houseF.room(name).log.length = 0; houseN.room(name).log.length = 0;
+      const f = writes(houseF.room(name)), n = RECORD ? writes(houseN.room(name)) : peek("the speaker: " + name);
+      for (const h of houses) h.room(name).log.length = 0;
       assert.deepEqual(f, n, name + ": the commands to the speaker, in order");
+      kept("the speaker: " + name, n);
       if (expected) assert.deepEqual(f, expected, name + ": the commands expected");
     };
     const rooms = (S) => ({ kitchen: "RINCON_KITCHEN01400", study: "RINCON_STUDY001400" });
-    const settled = (name, fn) => Promise.all([houseF, houseN].map(h => until(async () => fn(h.room(name)), 10000, name + " to settle")));
+    const settled = (name, fn) => Promise.all(houses.map(h => until(async () => fn(h.room(name)), 10000, name + " to settle")));
     const roomState = (who = "other") => sameSoon(who, "GET", S => "/api/zone-state?zone=" + rooms(S).kitchen);
     const roomQueue = () => sameSoon("other", "GET", S => "/api/queue?zone=" + rooms(S).kitchen);
     // Both hubs have read the room back since the last command (a command that builds on the room's
@@ -452,7 +483,7 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
 
     await t.test("a Sonos room played to: the speaker told the same things in the same order", async () => {
       await sameSoon("other", "GET", "/api/outputs");
-      for (const h of [houseF, houseN]) for (const r of h.rooms) r.log.length = 0;
+      for (const h of houses) for (const r of h.rooms) r.log.length = 0;
       await same("other", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: rooms(S).kitchen, kind: "play_now" }));
       await settled("Kitchen", r => r.queue.length === 3 && r.state === "PLAYING");
       sameLog("Kitchen", ["RemoveAllTracksFromQueue", "AddMultipleURIsToQueue", "SetAVTransportURI", "Seek", "Play", "AddMultipleURIsToQueue"]);
@@ -546,7 +577,7 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
     });
 
     await t.test("grouping and moving music: the rooms joined and freed, the queue carried across", async () => {
-      for (const h of [houseF, houseN]) for (const r of h.rooms) r.log.length = 0;
+      for (const h of houses) for (const r of h.rooms) r.log.length = 0;
       await same("other", "POST", "/api/group-outputs", S => ({ output_ids: [rooms(S).kitchen, rooms(S).study] }));
       await Promise.all(both.map(S => until(async () => (await call(S, S.other, "GET", "/api/zones")).json.zones.some(z => z.display_name === "Kitchen + Study"), 15000, S.name + " grouped")));
       sameLog("Study", ["SetAVTransportURI"]);
@@ -560,7 +591,7 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       await same("phone", "POST", "/api/play", S => ({ offset: S.album("Album One"), zone_or_output_id: S.zone, kind: "play_now" }));
       await commands(["load"]);
       await report({ index: 1, position: 1, duration: 3, state: "playing", volume: 40 });
-      for (const h of [houseF, houseN]) h.room("Kitchen").log.length = 0;
+      for (const h of houses) h.room("Kitchen").log.length = 0;
       await same("phone", "POST", "/api/transfer-zone", S => ({ from: S.zone, to: rooms(S).kitchen }));
       await settled("Kitchen", r => r.queue.length === 3 && r.state === "PLAYING" && r.track === 2);
       sameLog("Kitchen", ["RemoveAllTracksFromQueue", "AddMultipleURIsToQueue", "SetAVTransportURI", "Seek", "Seek", "Play", "AddMultipleURIsToQueue"]);
@@ -602,10 +633,15 @@ test("v0.8.49 (stage 6, parts 1 and 2): a phone zone and the Sonos rooms by C#, 
       const h = (await call(F, F.phone, "POST", "/api/phone/hello", { name: "Pixel 8" })).json;
       assert.deepEqual([h.resume.items.length, h.resume.index], [3, 2]);
     });
+
+    // The recording made, or every step of it compared.
+    if (RECORD) {
+      fs.mkdirSync(path.dirname(GOLDEN), { recursive: true });
+      fs.writeFileSync(GOLDEN, JSON.stringify(golden.list, null, 1) + "\n");
+    } else assert.equal(golden.at, golden.list.length, "every recorded step compared");
   } finally {
     await srv.stop();
     await node.stop();
-    await houseF.stop();
-    await houseN.stop();
+    for (const h of houses) await h.stop();
   }
 });
