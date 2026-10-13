@@ -1031,6 +1031,20 @@ dependency from now on), `setting`/`setSetting` through it, `reload` (`POST
 helper), the scanner's state from `/api/status`. The `*-csharp.test.js` parity suites keep their
 assertions on the C# answers and lose their Node halves; CI's Node-alone job goes with them, the
 Mac jobs run the binary alone.
+- **As built** (v0.8.50, part 4): `test/server.js`'s `createServer` (index.js's options as the
+  environment) and its ctx (`db.raw`, `setting`/`setSetting`, `library.reload`, `auth.signUrl`,
+  `logs`, `internal`, `restart`). The parity suites keep their Node halves as a recording
+  (`test/golden.js`, `test/golden/*.json`, made with `RECORD_<SUITE>=1` under MANDARIN_FRONT=1
+  while index.js is here): library-front, devices-csharp, playback-csharp, services-rows,
+  services-import, services-signin; what depends on the machine is held by rule (a file's length,
+  ETag, ffmpeg's arguments run again, ids as keys, times from now). `test/cpu-alone.test.js` (new),
+  power-csharp alone, the update's refusals in update-alone. Left on the Node server, to go with it
+  in part 5: the hand-over's own tests (front.test.js's last, cpu.test.js's Node half, power,
+  update, update-csharp, update-prepare, csharp-update, tag-reader-switch) and the suites whose
+  oracle is a Node module (db-csharp, tags-front, and the `lib/` requires of 60-odd files), which
+  part 5 records or drops with the module. Found on the way and fixed: deep links, stream and cover
+  refusals alone, Rescan naming the services, a hidden renderer's Stop, an unreadable JSON body
+  alone.
 
 **Part 5: the image and the repository.** The Dockerfile without the node stages and npm
 packages (the engines, the binary, `public/`); `package.json` with dev dependencies only (the
@@ -1046,7 +1060,7 @@ final test from `:migration`.
 - [x] Part 1: the C# server on its own
 - [x] Part 2: the last routes
 - [x] Part 3: the launcher and updates in C#
-- [ ] Part 4: the tests drive the binary
+- [x] Part 4: the tests drive the binary
 - [ ] Part 5: the image and the repository; docs; the pull request
 
 ### The order, and why

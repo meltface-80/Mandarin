@@ -75,7 +75,7 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   under tini and the Mac's launchd item already runs the binary; both lose their Node pieces in
   part 5. `test/update-alone.test.js` (new) runs it for real from a copy of the program in an
   install of its own, the new program a stand-in that writes down how it was started.
-- **The tests drive the binary** (part 4, under way). The tests that started the Node server
+- **The tests drive the binary** (part 4). The tests that started the Node server
   start the program alone through `test/server.js` (its `createServer` takes `index.js`'s options
   as the environment; what a test reached into the Node server for, it has from the database file
   or over HTTP; the program's log is kept for a test that reads it). Moving them found three things
@@ -100,6 +100,19 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   it, is refused as Node's `express.json()` refused it ahead of every route (400 `Bad JSON`; 415
   for a charset it can't read; 413 past 2 MB sent in chunks), not "No such endpoint"
   (`Pages.NotThere.cs`, `test/csharp-alone.test.js`).
+  The recordings (`test/golden.js`): the library's screens, files, covers, conversions and
+  downloads; Audio Devices' writes; playback; the services' rows, import, sign-in and streams. What
+  follows from the machine is kept by rule rather than as it was recorded — a file's length (another
+  ffmpeg makes the fixtures a few bytes apart), ETag and Last-Modified from the file, the Node
+  server's ffmpeg arguments run again here with or without soxr, a cover's hash from its address,
+  SQLite's ids as keys, times as days from now — so each holds on Linux, a Mac and CI's static
+  ffmpeg alike. The processor split (`test/cpu-alone.test.js`, new), Restart and Shut down
+  (`test/power-csharp.test.js`), the update's refusals (`test/update-alone.test.js`) and which
+  server answers what (`test/front.test.js`) are held on the program alone; what only the Node
+  server did (its hand-over, its launcher) is run while it is there and goes with it. Two test
+  helpers were made sturdier on the way: a restart waits for the program's first scan
+  (`test/server.js`), a test that times out leaves no server holding its port, and a browser call
+  that is never answered fails by its name. CI's Node-alone job is gone.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
