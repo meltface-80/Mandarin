@@ -174,7 +174,7 @@
   // Every caller follows this with renderPick(), which brings the counts.
   function renderTiles(keepScroll) {
     tilesEl.className = "tiles " + tab;
-    let html = "";
+    let html;
     if (!ready) {
       tilesEl.innerHTML = "";
       return;
@@ -1564,7 +1564,7 @@
     const btns = document.querySelectorAll("#tsel [data-tact]");
     for (const b of btns) b.disabled = true;
     const sent = [];
-    let order = [], why = "", stale = false;
+    let order, why = "", stale = false;
     try {
       if (!(await needZone())) return;
       order = [...sel.picks].sort((x, y) => x - y);

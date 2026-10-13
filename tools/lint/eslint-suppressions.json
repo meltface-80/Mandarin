@@ -1,17 +1,4 @@
 {
-  "public/app.js": {
-    "no-empty": {
-      "count": 45
-    },
-    "no-useless-assignment": {
-      "count": 8
-    }
-  },
-  "public/shelf.js": {
-    "no-useless-assignment": {
-      "count": 2
-    }
-  },
   "test/devices-csharp.test.js": {
     "no-useless-assignment": {
       "count": 2
