@@ -115,6 +115,24 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     }
     x = await ask("/nothing-here", { method: "POST", headers: H });
     assert.deepEqual([x.status, x.by, /<pre>Cannot POST \/nothing-here<\/pre>/.test(x.text)], [404, "C#", true]);
+    // A JSON body express.json() turned down before any route saw it (index.js): refused in this server's words for a body (Auth.Body.cs);
+    // past the limit with no length given too (sent in chunks); one it reads, or none, or another type, then not there.
+    const J = (type) => Object.assign({}, H, { "Content-Type": type });
+    const big = "[" + "1,".repeat(1100000) + "1]";
+    const chunked = () => new ReadableStream({ start(c) { c.enqueue(Buffer.from(big)); c.close(); } });
+    for (const [body, type, status, error] of [
+      ["{not json", "application/json", 400, "Bad JSON"], ['"a string"', "application/json; charset=utf-8", 400, "Bad JSON"],
+      ["{}", "application/json; charset=latin1", 415, 'unsupported charset "LATIN1"'], [big, "application/json", 413, "request entity too large"],
+      [chunked, "application/json", 413, "request entity too large"]
+    ]) {
+      const init = typeof body === "function" ? { body: body(), duplex: "half" } : { body };
+      x = await ask("/api/nothing", Object.assign({ method: "POST", headers: J(type) }, init));
+      assert.deepEqual([type, x.status, x.by, x.json], [type, status, "C#", { error }], String(body).slice(0, 20));
+    }
+    for (const [body, type] of [["", "application/json"], ["{not json", "text/plain"], [' {"a": 1}', "application/json"]]) {
+      x = await ask("/api/nothing", { method: "POST", headers: J(type), body });
+      assert.deepEqual([body, x.status, x.by, x.json], [body, 404, "C#", { error: "No such endpoint: POST /nothing" }]);
+    }
     // A renderer's event: taken by the hub (200, whoever it is from), as the Node server took it.
     x = await ask("/upnp/event/uuid:nobody", { method: "NOTIFY", headers: { "Content-Type": "text/xml", NT: "upnp:event", NTS: "upnp:propchange", SID: "uuid:x" }, body: "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"/>" });
     assert.deepEqual([x.status, x.by], [200, "C#"]);

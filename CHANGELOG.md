@@ -90,6 +90,16 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   `test/covers-csharp.test.js` hold each, on the program alone. And Rescan library answered
   with no services after it, where the Node server named the ones signed in with their import on
   (Qobuz, Tidal) as it set them going; it names them now (`test/qobuz.test.js`).
+  The suites that compared the two servers side by side hold the C# server to a recording of the
+  Node server's answers (`test/golden/`, made again with `RECORD_…=1` while `index.js` is still
+  here). That found one more, from stage 6: a renderer or sound device hidden, or switched off,
+  while it played was let go but never sent Stop — the route writes the switch first, and the
+  hub's player refuses one switched off, so the Stop never went; the Node server stopped it before
+  writing. It is stopped now, as there (`Renderers/Players.cs` `LetGo`,
+  `test/devices-csharp.test.js`). And a JSON body that can't be read, sent where no route takes
+  it, is refused as Node's `express.json()` refused it ahead of every route (400 `Bad JSON`; 415
+  for a charset it can't read; 413 past 2 MB sent in chunks), not "No such endpoint"
+  (`Pages.NotThere.cs`, `test/csharp-alone.test.js`).
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,

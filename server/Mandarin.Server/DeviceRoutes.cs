@@ -124,7 +124,7 @@ internal static partial class Library
             if (hidden is not Undef)
             {
                 var on = TJs.Truthy(hidden);
-                // Hiding also switches off one that can be (setEnabled): a renderer or sound device playing is stopped and let go, by the Node server when told.
+                // Hiding also switches off one that can be (setEnabled): a renderer or sound device playing is stopped and let go, by the hub when told (Hub.Register.cs).
                 if (on && d.Kind != "phone" && DeviceEnabled(d)) { DeviceSettings(c, d, Jv.Obj(("enabled", false))); changed.Add("enabled"); }
                 DeviceSettings(c, d, Jv.Obj(("hidden", on)));
                 changed.Add("hidden");

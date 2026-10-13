@@ -266,23 +266,9 @@ Pages.UseDeepLinks(app);
 Routes.Map(app, version);
 Auth.Map(app);
 
-// Alone, what no route took is not there, as Express said it (index.js: an /api/
-// address as JSON, with its path under /api; anything else finalhandler's page); else the Node server's.
+// Alone, what no route took is not there, as Express said it (Pages.NotThere.cs); else the Node server's.
 // Under the Node route's pattern, so a deep link still takes the page first (Pages.cs Unclaimed).
-if (alone) app.MapFallback("/{**catch-all}", ctx =>
-{
-    ctx.Response.StatusCode = 404;
-    ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-    var p = ctx.Request.Path.Value ?? "/";
-    if (p == "/api" || p.StartsWith("/api/", StringComparison.Ordinal))
-    {
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        return ctx.Response.WriteAsync(new System.Text.Json.Nodes.JsonObject { ["error"] = $"No such endpoint: {ctx.Request.Method} {(p.Length > 4 ? p[4..] : "/")}" }.ToJsonString());
-    }
-    ctx.Response.ContentType = "text/html; charset=utf-8";
-    var said = System.Net.WebUtility.HtmlEncode($"Cannot {ctx.Request.Method} {p}");
-    return ctx.Response.WriteAsync($"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>{said}</pre>\n</body>\n</html>\n");
-});
+if (alone) app.MapFallback("/{**catch-all}", Pages.NotThere);
 else app.MapForwarder("/{**catch-all}", upstream!, requestConfig, transformer, invoker);
 
 // Alone: Restart and Shut down from Settings are this program's own (PowerRoutes.cs).
