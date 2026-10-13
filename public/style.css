@@ -6212,11 +6212,18 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   #library-filter:not(.is-filtering) .lib-filter-btn { display: none; }
   /* The Labels list likewise: Search in the row finds a label; #–Z alone on the right. */
   .topbar #labels-search-btn { display: none; }
-  html:not(.tn-filter) .topbar.lib-wall .library-controls {
-    position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+  .topbar.lib-wall .library-controls {
+    position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 1;
     display: flex; align-items: center; gap: 8px; height: var(--ctl-h); margin: 0; padding: 0; background: none; border: 0;
   }
-  html:not(.tn-filter) .topbar.lib-wall .library-controls .lib-ctl-sort { margin-left: 0; }
+  .topbar.lib-wall .library-controls .lib-ctl-sort { margin-left: 0; }
+  /* The bar's own padding from 720px (14px 22px): the field's edge, which they sit under. */
+  @media (min-width: 720px) {
+    .topbar.lib-wall .library-controls { top: calc(14px + env(safe-area-inset-top)); right: max(22px, env(safe-area-inset-right)); }
+  }
+  /* The filter open (v0.9.7): its field goes over Focus and Sort, which stay
+     where they are; they no longer drop back into a row of their own under it. */
+  .topbar.lib-wall #library-filter.is-filtering { position: relative; z-index: 2; }
   /* Their words (v0.9.6): "Focus", and "Sort ⌄" — the order chosen isn't
      shown on the button (its sheet shows it, and the button's label says it). */
   .lib-ctl-focus .lib-ctl-chevron { display: none; }
