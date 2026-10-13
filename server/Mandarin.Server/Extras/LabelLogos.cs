@@ -410,7 +410,7 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
         return outSet;
     }
 
-    private static void Miss(string key, string sig)
+    internal static void Miss(string key, string sig)
     {
         using var c = Db.Open();
         using var cmd = c.CreateCommand();

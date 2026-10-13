@@ -30,6 +30,8 @@
 //   { fn: "local", linux: [root, dev], mac: json, hw: [[location, root]], ids, amplitude: [[pct, muted]] }
 //      → { devices, hidden, mac, hw, ids, amplitude }                    Local/LocalDevices.cs, EngineOutput.cs
 //   { fn: "scorecall" | "itunes", … }                                     Identify/ScoreCalls.cs
+//   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
+//   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -45,7 +47,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -56,6 +58,8 @@ internal static class RulesCommand
         "phoneplays" => new JsObj { ["plays"] = Each(job["tracks"], t => Downloads.PhonePlays(new Downloads.Track(0, S(O(t)["path"]), S(O(t)["codec"]), 0, N(O(t)["bits"]), N(O(t)["channels"]), 0, 0))) },
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
+        "logos" => Extras.LogosCommand.Run(job),
+        "lastfm" => Extras.LastfmCommand.Run(job),
         "register" => RegisterFns(job),
         "local" => LocalFns(job),
         // The identification's rules by name, and the iTunes client from a script (Identify/ScoreCalls.cs).

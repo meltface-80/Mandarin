@@ -8,6 +8,7 @@
 // kept for a week (a failure for ten minutes; a missing key and Last.fm's own
 // "too many requests" not at all). Where Last.fm is asked comes from the Node
 // server (Jobs.cs: a fake in the tests).
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -53,10 +54,12 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
     private readonly Dictionary<string, Entry> cache = [];
     private readonly LinkedList<string> order = new();      // oldest use first
     private readonly SemaphoreSlim queue = new(1, 1);
-    private long lastCallAt;
+    private long lastCallAt;      // Stopwatch's timestamp; 0 before the first
     private int generation;
 
-    private static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    /* The time (ms): the clock's, unless a test sets its own (Extras/LastfmCommand.cs). */
+    public Func<long> Clock { get; init; } = () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    private long Now => Clock();
     private static string KeyFor(string kind, string artist) => kind + "\u0000" + Names.JsTrim(artist).ToLowerInvariant();
 
     /* The largest picture offered, never the placeholder, https only; else "". */
@@ -94,8 +97,9 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
         JsonValue v when v.TryGetValue<bool>(out var b) => b ? "true" : "",
         _ => ""
     };
-    // A single result comes as an object rather than a one-element array.
-    private static IEnumerable<JsonNode?> AsList(JsonNode? x) => x is JsonArray a ? a : x is JsonObject o ? [o] : [];
+    // A single result comes as an object rather than a one-element array: wrapped in a
+    // plain array (a JsonArray would take it from its parent, and throw).
+    private static IEnumerable<JsonNode?> AsList(JsonNode? x) => x switch { JsonArray a => a, JsonObject o => new JsonNode?[] { o }, _ => [] };
 
     /* One call, through the queue, a quarter of a second after the last. */
     private async Task<JsonObject> Call(string method, params (string Key, string Value)[] args)
@@ -105,9 +109,11 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
         {
             var key = Names.JsTrim(getKey() ?? "");
             if (key.Length == 0) throw new LastfmError("no Last.fm key", "nokey");
-            var wait = lastCallAt + Spacing - Now;
-            if (wait > 0) await Task.Delay((int)wait);
-            lastCallAt = Now;
+            // A whole quarter of a second, on a clock that only goes forward (whole
+            // milliseconds of the wall clock could send one up to a millisecond early).
+            for (double left; lastCallAt != 0 && (left = Spacing - Stopwatch.GetElapsedTime(lastCallAt).TotalMilliseconds) > 0;)
+                await Task.Delay(TimeSpan.FromMilliseconds(Math.Ceiling(left)));
+            lastCallAt = Stopwatch.GetTimestamp();
             var qs = new StringBuilder();
             foreach (var (k, v) in new[] { ("method", method), ("api_key", key), ("format", "json") }.Concat(args))
             {
@@ -129,7 +135,7 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
                 // The quarter of a second counted from the answer, not the ask
                 // (v0.8.47): a first ask that opens its connection slowly
                 // otherwise reaches Last.fm closer than that to the next.
-                lastCallAt = Now;
+                lastCallAt = Stopwatch.GetTimestamp();
                 status = res.StatusCode;
                 ok = res.IsSuccessStatusCode;
                 try { j = JsonNode.Parse(await res.Content.ReadAsStringAsync(cts.Token)) as JsonObject; }
