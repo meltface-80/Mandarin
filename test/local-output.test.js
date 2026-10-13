@@ -177,12 +177,10 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     location: "file:" + out, playable: true, caps: { advertised: { containers: ["flac"], rates: [44100, 48000, 96000], bits: [16, 24, 32] } }
   };
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  // The server's log, for what the player says of the device.
-  const logs = [], realLog = console.log;
-  console.log = (...a) => { logs.push(a.join(" ")); realLog(...a); };
-  const { createServer } = require("../index.js");
+  // The device stands in for this computer's own (local_devices): its file the sound card.
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
-    upnpMulticast: false, localAudio: { list: async () => ({ devices: [DAC], platform: "linux", hidden: 0 }) } });
+    upnpMulticast: false, localDevices: { devices: [DAC], platform: "linux", hidden: 0 } });
   const ctx = await srv.start();
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };
@@ -211,7 +209,7 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     const r = await api("play", { offset: cd.offset, zone_or_output_id: DAC.id, kind: "play_now" });
     // On a Mac the C# hub (v0.8.49, stage 6) can't play a sound device: Mandarin's audio engine plays through ALSA, and the ffmpeg sink
     // stays the Node server's (docs/specs/csharp-migration.md, stage 6 part 4). Refused in words, until stage 7 decides.
-    if (process.platform === "darwin" && ctx.frontRuns && ctx.frontRuns.has("playback")) {
+    if (process.platform === "darwin") {
       assert.deepEqual([r.status, r.error], [409, "Test DAC can't be played from this server: Mandarin's audio engine isn't here"], JSON.stringify(r));
       return;
     }
@@ -223,10 +221,12 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
     assert.equal(v.ok, true);
     // The next track follows by itself.
     await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s.now_playing.line1 === "Song 2" && s; }, 15000);
-    assert.ok(!logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + logs.filter(l => /Test DAC/.test(l)).join("; "));
+    assert.ok(!ctx.logs.some(l => /started by hand/.test(l)), "the device moved on by itself: " + ctx.logs.filter(l => /Test DAC/.test(l)).join("; "));
     const p = await api("control", { zone_or_output_id: DAC.id, command: "pause" });
     assert.equal(p.ok, true, JSON.stringify(p));
     await until(async () => (await api("zone-state?zone=" + DAC.id)).zone.state === "paused");
-    assert.equal(ctx.devices.registry.get(DAC.id).settings.local_volume, 30, "the volume is kept");
-  } finally { console.log = realLog; await srv.stop(); }
+    const kept = () => JSON.parse(ctx.db.raw.prepare("SELECT settings FROM audio_devices WHERE id = ?").get(DAC.id).settings || "{}").local_volume;
+    await until(() => kept() === 30).catch(() => null);
+    assert.equal(kept(), 30, "the volume is kept");
+  } finally { await srv.stop(); }
 });

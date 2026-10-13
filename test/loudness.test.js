@@ -13,12 +13,21 @@ const assert = require("node:assert");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
-const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
+const { haveFfmpeg, makeLibrary, gen, probe, FFMPEG } = require("./fixtures");
+const { FakeHousehold } = require("./fake-sonos");
+const { createServer } = require("./server");
 const { signIn } = require("./auth-helper");
 const { Loudness, parseEbur128, combine, FILTER } = require("../lib/loudness");
 const STREAM = require("../lib/stream");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
+/* A file's integrated loudness, as ffmpeg's ebur128 sums it up (its last "I:" line). */
+function lufs(file) {
+  const r = require("child_process").spawnSync(FFMPEG, ["-nostats", "-hide_banner", "-i", file, "-af", "ebur128", "-f", "null", "-"], { encoding: "utf8" });
+  const all = [...String(r.stderr).matchAll(/I:\s+(-?[\d.]+) LUFS/g)];
+  assert.ok(all.length, "ebur128 said nothing of " + file + ": " + String(r.stderr).slice(-400));
+  return Number(all[all.length - 1][1]);
+}
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
@@ -192,7 +201,7 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   }
 });
 
-test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down, untagged files measured", { skip, timeout: 120000 }, async () => {
+test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down, untagged files measured", { skip, timeout: 180000 }, async () => {
   const lib = makeLibrary();
   // An album with ReplayGain tags: tracks at -6 and -8 dB, the album at -7.
   const dir = path.join(lib.music, "Loud", "Loud Record");
@@ -201,85 +210,103 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
     tags: { title: `Loud ${i + 1}`, artist: "Loud", album: "Loud Record", track: i + 1,
       REPLAYGAIN_TRACK_GAIN: g, REPLAYGAIN_TRACK_PEAK: pk, REPLAYGAIN_ALBUM_GAIN: "-7.00 dB", REPLAYGAIN_ALBUM_PEAK: "0.500000" }
   }));
-  const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, loudnessTickMs: 100 });
+  // Two Sonos rooms, each with its own Volume Levelling: what they are handed is what is heard.
+  const house = new FakeHousehold();
+  await house.start();
+  const X = "RINCON_KITCHEN01400", Y = "RINCON_STUDY001400";
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, loudnessTickMs: 100 });
   const ctx = await srv.start();
   const token = await signIn(B);
   const api = async (p, body, method) => {
     const r = await fetch(B + "/api/" + p, body ? { method: method || "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
-  // Two Sonos rooms in the register, each with its own Volume Levelling.
-  for (const id of ["RINCON_X", "RINCON_Y"]) ctx.devices.registry.seen({ id, kind: "sonos", network_name: id, model: "Five" });
-  const level = (id, lv) => api("audio-devices/" + id, { levelling: lv }, "PATCH");
+  // A room's levelling changed while it holds a queue: the hub plans that queue again (Hub.SonosCommands.cs ReplanSonos),
+  // alongside whatever is played next. Emptied first, each play here is the only one.
+  const level = (id, lv) => {
+    const r = house.rooms.find(x => x.uid === id);
+    if (r) Object.assign(r, { queue: [], currentUri: "", track: 0, state: "STOPPED" });
+    return api("audio-devices/" + id, { levelling: lv }, "PATCH");
+  };
   try {
     await until(async () => (await api("status")).index_count === 4);
-    const al = ctx.library.albums.find(a => a.title === "Loud Record");
-    const tracks = ctx.library.tracks(al.id);
-    assert.deepEqual(tracks.map(t => t.rg_track_gain), [-6, -8]);
-    assert.deepEqual(tracks.map(t => t.rg_album_gain), [-7, -7]);
+    await until(async () => (await api("zones")).zones.filter(z => !z.is_phone).length === 2);
+    const al = (await api("library/albums?sort=album")).albums.find(a => a.title === "Loud Record");
+    const rows = ctx.db.raw.prepare("SELECT t.rg_track_gain, t.rg_album_gain FROM tracks t JOIN albums a ON a.id = t.album_id WHERE a.title = 'Loud Record' ORDER BY t.track_no").all();
+    assert.deepEqual(rows.map(t => t.rg_track_gain), [-6, -8]);
+    assert.deepEqual(rows.map(t => t.rg_album_gain), [-7, -7]);
+    // What a room is handed for the album (or one track of it, alone): each address's gain, null where there is none.
+    const handed = async (room, play = { offset: al.offset }) => {
+      const r = house.rooms.find(x => x.uid === room);
+      r.queue = [];
+      const res = play.track != null ? await api("play-track", Object.assign({ zone_or_output_id: room, kind: "play_now", only: true }, play))
+        : await api("play", Object.assign({ zone_or_output_id: room, kind: "play_now" }, play));
+      assert.equal(res.status, 200, JSON.stringify(res));
+      await until(() => r.queue.length === (play.track != null ? 1 : 2));
+      return r.queue.map(q => { const g = new URL(q.uri).searchParams.get("g"); return g == null ? null : Number(g); });
+    };
 
     // Off by default: every file goes as it is.
-    let r = await api("audio-devices/RINCON_X");
+    let r = await until(async () => { const d = await api("audio-devices/" + X); return d.levelling && d; }).catch(async () => { throw new Error(JSON.stringify(await api("audio-devices/" + X))); });
     assert.deepEqual(r.levelling, { mode: "off", target: -14, unknown: -5 });
     r = await api("loudness");
     assert.equal(r.settings.measure, false);
-    assert.ok(!ctx.playback.itemsFor("RINCON_X", tracks)[0].uri.includes("g="));
+    assert.deepEqual(await handed(X), [null, null]);
 
     // Track: each its own; Album: the record's; Auto: the record's in order, each its own shuffled.
     // At -18 LUFS the gains are the tags' own.
-    const gains = (opts) => ctx.loudness.gainsFor(tracks, Object.assign({ levelling: ctx.devices.levellingFor("RINCON_X") }, opts));
-    r = await level("RINCON_X", { mode: "track", target: -18 });
+    r = await level(X, { mode: "track", target: -18 });
     assert.equal(r.status, 200, JSON.stringify(r));
     assert.deepEqual(r.levelling, { mode: "track", target: -18, unknown: -5 });
-    assert.deepEqual(gains(), [-6, -8]);
-    await level("RINCON_X", { mode: "album" });
-    assert.deepEqual(gains(), [-7, -7]);
-    await level("RINCON_X", { mode: "auto" });
-    assert.deepEqual(gains(), [-7, -7]);
-    assert.deepEqual(gains({ shuffled: true }), [-6, -8]);
-    assert.deepEqual(ctx.loudness.gainsFor([tracks[0]], { levelling: ctx.devices.levellingFor("RINCON_X") }), [-6]);   // alone: its own
+    assert.deepEqual(await handed(X), [-6, -8]);
+    await level(X, { mode: "album" });
+    assert.deepEqual(await handed(X), [-7, -7]);
+    await level(X, { mode: "auto" });
+    assert.deepEqual(await handed(X), [-7, -7]);
+    assert.deepEqual(await handed(X, { offset: al.offset, track: 0 }), [-6], "alone: its own");
+    const kitchen = house.rooms.find(x => x.uid === X);
+    kitchen.playMode = "SHUFFLE_NOREPEAT";
+    await until(async () => (await api("zone-state?zone=" + X)).zone.settings.shuffle === true);
+    assert.deepEqual(await handed(X), [-6, -8], "shuffled: each its own");
+    kitchen.playMode = "NORMAL";
+    await until(async () => (await api("zone-state?zone=" + X)).zone.settings.shuffle === false);
     // The target moves them: -14 LUFS is 4 dB up (the peaks allow it here).
-    await level("RINCON_X", { mode: "track", target: -14 });
-    assert.deepEqual(gains(), [-2, -4]);
-    assert.equal((await level("RINCON_X", { mode: "loud" })).status, 400);
-    assert.equal((await level("RINCON_X", { target: -10 })).status, 400);
+    await level(X, { mode: "track", target: -14 });
+    assert.deepEqual(await handed(X), [-2, -4]);
+    assert.equal((await level(X, { mode: "loud" })).status, 400);
+    assert.equal((await level(X, { target: -10 })).status, 400);
     // The other room is untouched: each device is its own.
-    assert.equal(ctx.devices.levellingFor("RINCON_Y").mode, "off");
-    assert.ok(!ctx.playback.itemsFor("RINCON_Y", tracks)[0].uri.includes("g="));
+    assert.equal((await api("audio-devices/" + Y)).levelling.mode, "off");
+    assert.deepEqual(await handed(Y), [null, null]);
 
-    // Sonos is handed a conversion with the gain in it, and the stream is that much quieter.
-    await level("RINCON_X", { mode: "track", target: -18 });
-    const it = ctx.playback.itemsFor("RINCON_X", tracks)[0];
-    assert.match(it.uri, /\/stream\/t\d+\.flac\?g=-6/);
-    assert.equal(it.plan.bits, 24);
-    const measure = async (url, name) => {
-      const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
-      const f = path.join(lib.data, name);
-      fs.writeFileSync(f, buf);
-      return ctx.loudness.measure(f);
-    };
-    const orig = await ctx.loudness.measure(tracks[0].path);
-    const down = await measure(it.uri, "down.flac");
-    assert.ok(Math.abs((orig.lufs - down.lufs) - 6) < 0.3, `${orig.lufs} → ${down.lufs}`);
+    // Sonos is handed a conversion with the gain in it, 24 bits, and the stream is that much quieter.
+    await level(X, { mode: "track", target: -18 });
+    await handed(X);
+    const uri = kitchen.queue[0].uri;
+    assert.match(uri, /\/stream\/t\d+\.flac\?g=-6/);
+    const down = Buffer.from(await (await fetch(uri)).arrayBuffer());
+    assert.equal(probe(down).bits, 24);
+    const f = path.join(lib.data, "down.flac");
+    fs.writeFileSync(f, down);
+    const orig = lufs(path.join(dir, "01.flac")), quieter = lufs(f);
+    assert.ok(Math.abs((orig - quieter) - 6) < 0.3, `${orig} → ${quieter}`);
     // A gain the URL makes up is refused.
-    const bad = it.uri.replace("g=-6", "g=99");
-    assert.equal((await fetch(bad)).status, 400);
+    assert.equal((await fetch(uri.replace("g=-6", "g=99"))).status, 400);
 
     // The phone is handed the gain to apply itself, and its stream is untouched.
-    const ph = ctx.zones.phones.toItem(ctx.playback.item(tracks[1], null, { phoneGain: -8 }));
-    assert.equal(ph.gain, -8);
-    assert.ok(!ph.uri.includes("g="));
+    const phone = await api("phone/hello", { name: "Pixel 8" });
+    await level(phone.zone_id, { mode: "track", target: -18 });
+    assert.equal((await api("play", { offset: al.offset, zone_or_output_id: phone.zone_id, kind: "play_now" })).status, 200);
+    const load = await until(async () => (await api(`phone/commands?after=${phone.seq}`)).commands.find(c => c.op === "load"));
+    assert.deepEqual(load.items.map(x => x.gain_db), [-6, -8]);
+    assert.ok(load.items.every(x => !x.url.includes("g=")), load.items.map(x => x.url).join(" "));
     const dl = await api("download/album?offset=" + al.offset);
     assert.equal(dl.tracks[0].replaygain.track_gain, -6);
     assert.equal(dl.tracks[0].replaygain.album_gain, -7);
 
-    // Files without tags are measured, one at a time, when asked — behind the
-    // C# server (MANDARIN_FRONT=1), by it (v0.8.19).
-    if (process.env.MANDARIN_FRONT === "1") {
-      const h = await fetch(B + "/api/loudness", { headers: { Authorization: "Bearer " + token } });
-      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "measuring is the C# server's");
-    }
+    // Files without tags are measured, one at a time, when asked: by the C# server (v0.8.19).
+    const h = await fetch(B + "/api/loudness", { headers: { Authorization: "Bearer " + token } });
+    assert.equal(h.headers.get("x-mandarin-answered"), "C#", "measuring is the C# server's");
     // Scheduling on, its window not now: switched on, nothing is measured (v0.8.24).
     const hhmm = (h) => { const d = new Date(Date.now() + h * 3600000); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
     r = await api("identify/settings", { schedule: true, start: hhmm(2), end: hhmm(3) });
@@ -298,20 +325,22 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
       const t = j.current && j.current.title;
       if (t && seen[seen.length - 1] !== t) seen.push(t);
       return j.left === 0 && j.reason === "done" && j;
-    });
-    const rank = new Map(ctx.library.albums.slice().sort((a, b) => (b.added || 0) - (a.added || 0) || b.id - a.id).map((a, i) => [a.title, i]));
+    }, 60000);
+    const albums = ctx.db.raw.prepare("SELECT id, title, added_at FROM albums").all();
+    const rank = new Map(albums.sort((a, b) => (b.added_at || 0) - (a.added_at || 0) || b.id - a.id).map((a, i) => [a.title, i]));
     assert.ok(seen.every((t, i) => rank.has(t) && (i === 0 || rank.get(t) > rank.get(seen[i - 1]))), "measured out of order: " + JSON.stringify(seen));
     assert.equal(r.tagged, 2);
     assert.equal(r.measured + r.failed, 7);
     assert.ok(r.measured >= 5, JSON.stringify(r));
-    const one = ctx.library.albums.find(a => a.title === "Album One");
-    const info = ctx.loudness.infoOf(ctx.library.tracks(one.id)[0]);
-    assert.ok(info.track_gain != null && info.track_peak > 0, JSON.stringify(info));
-    // Every track of Album One known: its album gain is worked out from them.
+    // Album One's first track measured, and every track of it known: its album gain worked out from them.
+    const one = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");
+    const info = (await api("download/album?offset=" + one.offset)).tracks[0].replaygain;
+    assert.ok(info && info.track_gain != null && info.track_peak > 0, JSON.stringify(info));
     assert.ok(info.album_gain != null, JSON.stringify(info));
     r = await api("loudness", { measure: false });
     assert.equal(r.measuring, false);
   } finally {
     await srv.stop();
+    await house.stop();
   }
 });

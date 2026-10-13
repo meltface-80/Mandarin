@@ -90,6 +90,19 @@ internal static partial class Streams
 
     private sealed record Track(string Path, string Codec, long Rate, long Bits, long Channels, long Mtime, double Duration);
 
+    /*
+     * What the Node server answered with no body (index.js's stream route): 404 for a track or file that isn't
+     * there, 400 for a rate, a depth or a gain it won't make. Behind a Node server it says so itself, as before
+     * (false: passed on); on its own (v0.8.50) this server does.
+     */
+    private static bool Refuse(HttpContext ctx, int status)
+    {
+        if (!Front.Alone) return false;
+        ctx.Response.StatusCode = status;
+        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        return true;
+    }
+
     private static async Task<bool> Answer(HttpContext ctx, string path)
     {
         var a = Address().Match(path);
@@ -97,14 +110,14 @@ internal static partial class Streams
         var q = ctx.Request.Query;
         var opus = q["q"].ToString() == "opus";
         var seg = a.Groups[2].Value;
-        if (!long.TryParse(a.Groups[1].Value, out var id)) return false;
+        if (!long.TryParse(a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
         // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
         if (seg.Length > 0 && seg != "orig")
         {
             var rb = seg.Split('-');
-            if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return false;
-            if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return false;   // a 400: the Node server's
+            if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return Refuse(ctx, 400);
+            if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return Refuse(ctx, 400);
         }
         // ?g=<dB>: with this ReplayGain in it; ?o=<output>: with that zone's DSP (v0.8.40). Read as Express
         // reads them: one plain value; an array or an object of either (g[]=, g=1&g=2) the Node server's.
@@ -113,8 +126,9 @@ internal static partial class Streams
         string? output = null;
         if (segRate != 0)
         {
-            if (QueryOne(raw, "o") is not { } oq) return false;
-            if (oq.Here && oq.Value!.Length > 0) output = oq.Value;
+            // An ?o= that isn't one plain value: the Node server's to read; alone, no zone's DSP (String(o) names none).
+            if (QueryOne(raw, "o") is not { } oq) { if (!Front.Alone) return false; }
+            else if (oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
         Track? t = null;
@@ -134,18 +148,18 @@ internal static partial class Streams
                     r.IsDBNull(6) ? 0 : Convert.ToDouble(r.GetValue(6), System.Globalization.CultureInfo.InvariantCulture));
             }
         }
-        if (t == null) return false;
+        if (t == null) return Refuse(ctx, 404);
         // Qobuz or Tidal (v0.8.47): this server's once the services are, else the Node server's.
         var svc = Services.Catalogue.Of(t.Path);
-        if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return false;
+        if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return Refuse(ctx, 404);
         // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12). A streamed track: the cached FLAC.
         if (opus && svc == null) return await Downloads.StreamOpus(ctx, id);
-        if (gq is null) return false;
+        if (gq is null) return Refuse(ctx, 400);
         double? gain = null;
         if (gq.Value.Here)
         {
             var g = Tags.Js.StringToNumber(gq.Value.Value!);
-            if (!double.IsFinite(g) || g < -24 || g > 12) return false;   // a 400: the Node server's
+            if (!double.IsFinite(g) || g < -24 || g > 12) return Refuse(ctx, 400);
             gain = g;
         }
 
@@ -191,7 +205,7 @@ internal static partial class Streams
         }
         else
         {
-            if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
+            if (!File.Exists(t.Path)) return Refuse(ctx, 404);
             if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
         }
         // Made already: sent from the cache, marked as used. Not yet: made

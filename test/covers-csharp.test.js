@@ -117,6 +117,11 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
       assert.equal(r.status, 404, key);
     }
     assert.equal((await fetch(`${B}/api/image/${keyOf(at("/station.png"))}?size=300`)).status, 401, "signed in only");
+    // A key of no album and no picture: absent, an empty 404 as api-library.js answered it (not the not-found page).
+    for (const key of ["al-999999-0", "zz-nothing"]) {
+      const r = await fetch(`${B}/api/image/${key}?size=300`, H);
+      assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), await r.text()], [404, "C#", ""], key);
+    }
   });
 
   await t.test("a speaker asking by its own address: let through and sent here; anyone else unsigned turned away at the gate", async () => {

@@ -10,8 +10,9 @@
  *   - a backup from a newer Mandarin is refused; backups kept here are listed,
  *     downloaded and deleted;
  *   - all of it away from home too (v0.6.17).
- * Behind the C# server (MANDARIN_FRONT=1) it is made there (v0.8.22), the
- * Node server started again from there after a restore.
+ * Made by the C# server (v0.8.22), started on its own (test/server.js, v0.8.50):
+ * after a restore it starts again in its own process, a new boot id on
+ * /server-info saying so.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -21,40 +22,24 @@ const path = require("path");
 const os = require("os");
 const { makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { createServer } = require("./server");
 const B = require("../lib/backup");
 const { newer, partsOf } = require("../lib/server/api-backup");
 
 const PORT = ports.port(), BASE = "http://127.0.0.1:" + PORT;
-const FRONT = process.env.MANDARIN_FRONT === "1";
-// Behind the C# server, every backup route is answered there (v0.8.22).
-const byCs = (r, what) => { if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };
+const byCs = (r, what) => { assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-// A restore's restart (half a second on: a clean stop, then the exit) seen
-// through before the port is taken again. On a busy machine the stop takes a
-// few seconds; a test that stopped the server alongside it found it already
-// stopping and went on while its port was still held, and the next server on
-// it failed with EADDRINUSE.
-const restarted = async (exits) => { for (let i = 0; i < 300 && !exits.length; i++) await sleep(50); };
-// Twice on CI (Node 20, this server alone) the server after a restore's
-// restart found its port held, though the one before had closed its own and
-// the next test's server took the port a moment later; a thousand close-and-
-// listen-again rounds in one process never fail. The holder is named here,
-// so the next time says who it was.
-const whoHolds = (e) => {
-  if (e.code !== "EADDRINUSE") return e;
-  const r = require("child_process").spawnSync("lsof", ["-nP", "-iTCP:" + PORT], { encoding: "utf8" });
-  e.message += "; held by: " + ((r.stdout || "").trim() || (r.error ? r.error.message : "no one lsof can see"));
-  return e;
+const boot = async () => { try { return (await (await fetch(BASE + "/server-info")).json()).boot; } catch (e) { return null; } };
+// A restore's restart (half a second on): the same program started again, a boot id of its own.
+const restarted = async (before) => {
+  for (let i = 0; i < 300; i++) { const b = await boot(); if (b && b !== before) return b; await sleep(100); }
+  throw new Error("the server didn't start again after the restore");
 };
 
-async function server(lib, exits) {
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [],
-    upnpMulticast: false, identify: false, exitProcess: c => exits.push(c), powerEnv: {}, powerPlatform: "linux" });
-  let ctx;
-  try { ctx = await srv.start(); } catch (e) { throw whoHolds(e); }
-  return { srv, ctx };
+async function server(lib) {
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  return { srv, ctx, boot0: await boot() };
 }
 
 test("versions compare, parts are read", () => {
@@ -90,8 +75,7 @@ test("the file format: written and read back, the database copy to its own file"
 
 test("back up, change everything, restore: as it was, with a Before-restore backup and a restart", { timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const exits = [];
-  let { srv, ctx } = await server(lib, exits);
+  const { srv, ctx, boot0 } = await server(lib);
   try {
     const token = await signIn(BASE);
     const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
@@ -141,37 +125,31 @@ test("back up, change everything, restore: as it was, with a Before-restore back
 
     const list = await (byCs(await fetch(BASE + "/api/backup", { headers: H }), "the list")).json();
     assert.equal(list.backups.filter(b => b.kind === "auto" && b.label === "Before restore").length, 1);
-    await restarted(exits);
-    assert.deepEqual(exits, [75], "restarted");
-  } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
+    await restarted(boot0);
+  } finally { await srv.stop(); }
 });
 
 test("the whole database: restored at the next start, today's account and sign-ins kept", { timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const exits = [];
-  let { srv, ctx } = await server(lib, exits);
-  let token;
-  try { token = await signIn(BASE); } catch (e) { await srv.stop().catch(() => {}); throw e; }
-  const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
-  ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('then', 1)").run();
-  const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H, body: JSON.stringify({ include: { database: true } }) });
-  const file = Buffer.from(await r.arrayBuffer());
-  ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('later', 2)").run();
-  const back = await fetch(BASE + "/api/backup/restore?parts=database", {
-    method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
-  const j = await back.json();
-  assert.deepEqual(j.restored, ["database"], JSON.stringify(j));
-  assert.ok(fs.existsSync(path.join(lib.data, "restore-staged.db")), "staged for the next start");
-  await restarted(exits);
-  try { await srv.stop(); } catch (e) { /* already */ }
-
-  ({ srv, ctx } = await server(lib, exits));
+  const { srv, ctx, boot0 } = await server(lib);
   try {
+    const token = await signIn(BASE);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('then', 1)").run();
+    const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H, body: JSON.stringify({ include: { database: true } }) });
+    const file = Buffer.from(await r.arrayBuffer());
+    ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('later', 2)").run();
+    const back = await fetch(BASE + "/api/backup/restore?parts=database", {
+      method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
+    const j = await back.json();
+    assert.deepEqual(j.restored, ["database"], JSON.stringify(j));
+    // Staged for the next start, and that start swaps it in: the server's own restart.
+    await restarted(boot0);
+    ctx.db.close();
     const keys = ctx.db.raw.prepare("SELECT key FROM favourites ORDER BY key").all().map(x => x.key);
     assert.deepEqual(keys, ["then"], "the database as it was at the backup");
-    // The first ask of the new server: fetch may try a kept-alive connection
-    // to the old one first, which is gone — once more then.
-    const st = await fetch(BASE + "/api/backup", { headers: H }).catch(() => fetch(BASE + "/api/backup", { headers: H }));
+    assert.ok(!fs.existsSync(path.join(lib.data, "restore-staged.db")), "swapped in");
+    const st = await fetch(BASE + "/api/backup", { headers: H });
     assert.equal(st.status, 200, "the same sign-in still works");
     assert.ok(fs.readdirSync(path.join(lib.data, "backups")).some(n => /^before-restore-.*\.db$/.test(n)), "the replaced one kept");
   } finally { await srv.stop(); }
@@ -193,8 +171,7 @@ test("this phone's own player follows it to its new id", () => {
 
 test("kept on the server: saved, listed, downloaded, restored by id, deleted; a newer backup refused", { timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const exits = [];
-  const { srv, ctx } = await server(lib, exits);
+  const { srv, ctx, boot0 } = await server(lib);
   try {
     const token = await signIn(BASE);
     const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
@@ -229,15 +206,14 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
 
     const del = await (byCs(await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H }), "a delete")).json();
     assert.equal(del.ok, true);
-    // The restore's restart, before the next test takes the port.
-    await restarted(exits);
-  } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
+    // The restore's restart, seen through before the server is stopped.
+    await restarted(boot0);
+  } finally { await srv.stop(); }
 });
 
 test("away from home (over Tailscale): back up to a file, keep one here, restore and delete, as at home", { timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const exits = [];
-  const { srv, ctx } = await server(lib, exits);
+  const { srv, ctx, boot0 } = await server(lib);
   try {
     const token = await signIn(BASE);
     // Away: the request comes from a tailnet address.
@@ -267,7 +243,6 @@ test("away from home (over Tailscale): back up to a file, keep one here, restore
       method: "POST", headers: Object.assign({ "Content-Type": "application/gzip" }, H), body });
     assert.equal(re.status, 200);
     assert.equal(ctx.db.setting("smartPicksHour"), 8);
-    await restarted(exits);
-    assert.deepEqual(exits, [75], "and the server restarted");
-  } finally { try { await srv.stop(); } catch (e) { /* stopped by the restart */ } }
+    await restarted(boot0);
+  } finally { await srv.stop(); }
 });

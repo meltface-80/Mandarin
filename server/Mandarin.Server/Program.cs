@@ -267,9 +267,9 @@ Routes.Map(app, version);
 Auth.Map(app);
 
 // Alone, what no route took is not there, as Express said it (index.js: an /api/
-// address as JSON, with its path under /api; anything else finalhandler's page);
-// else the Node server's.
-if (alone) app.MapFallback(ctx =>
+// address as JSON, with its path under /api; anything else finalhandler's page); else the Node server's.
+// Under the Node route's pattern, so a deep link still takes the page first (Pages.cs Unclaimed).
+if (alone) app.MapFallback("/{**catch-all}", ctx =>
 {
     ctx.Response.StatusCode = 404;
     ctx.Response.Headers["X-Mandarin-Answered"] = "C#";

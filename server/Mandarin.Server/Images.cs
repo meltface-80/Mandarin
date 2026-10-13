@@ -140,10 +140,22 @@ internal static class Images
                 // Not to be had: absent, as the Node server answers it.
                 if (how == Covers.Drawn.NoCover) { ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; ctx.Response.StatusCode = 404; return true; }
             }
-            else return false;
-            if (how != Covers.Drawn.Yes) return false;
+            else return Absent(ctx);
+            if (how != Covers.Drawn.Yes) return Absent(ctx);
         }
         await SendFile(ctx, cached, "image/jpeg", current ? "public, max-age=604800, immutable" : "no-cache");
+        return true;
+    }
+
+    /*
+     * A cover that can't be had, nor drawn: the Node server's to try behind it, as before; on its own (v0.8.50) this
+     * server answers as api-library.js did when artwork.get gave nothing (sharp failing, a key of no album): an empty 404.
+     */
+    private static bool Absent(HttpContext ctx)
+    {
+        if (!Front.Alone) return false;
+        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        ctx.Response.StatusCode = 404;
         return true;
     }
 

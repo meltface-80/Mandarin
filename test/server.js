@@ -29,7 +29,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 /**
  * The server started and answering on [port]; [env] over the suite's. [bin]: a copy of the program to run
  * instead (an update's test: the copy is what the update replaces). exited(): how it ended, once it has.
- * @returns {Promise<{ base: string, key: string, proc: import("child_process").ChildProcess, stop: () => Promise<void>, exited: () => ({ code: number | null, signal: string | null } | null) }>}
+ * logs: every line the program has printed, kept as well as printed (what a test reads of its log).
+ * @returns {Promise<{ base: string, key: string, proc: import("child_process").ChildProcess, stop: () => Promise<void>, exited: () => ({ code: number | null, signal: string | null } | null), logs: string[] }>}
  */
 async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs = 60000 }) {
   const key = crypto.randomBytes(24).toString("hex");
@@ -40,7 +41,17 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
   // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.
   for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_RUNS", "INTERNAL_PORT", "MANDARIN_SERVER_BIN"]) delete e[k];
   fs.mkdirSync(dataDir, { recursive: true });
-  const proc = spawn(bin, [], { env: e, stdio: ["ignore", "inherit", "inherit"] });
+  const proc = spawn(bin, [], { env: e, stdio: ["ignore", "pipe", "pipe"] });
+  const logs = [];
+  for (const [from, to] of [[proc.stdout, process.stdout], [proc.stderr, process.stderr]]) {
+    let rest = "";
+    from.on("data", (c) => {
+      to.write(c);
+      const lines = (rest + c).split("\n");
+      rest = lines.pop() || "";
+      logs.push(...lines);
+    });
+  }
   let exited = null;
   proc.on("exit", (code, signal) => { exited = { code, signal }; });
   const base = "http://127.0.0.1:" + port;
@@ -61,7 +72,7 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
     await Promise.race([gone, sleep(8000)]);
     if (!exited) { proc.kill("SIGKILL"); await gone; }
   };
-  return { base, key, proc, stop, exited: () => exited };
+  return { base, key, proc, stop, exited: () => exited, logs };
 }
 
 // index.js's createServer options, as the environment the program reads them from (Config.cs).
@@ -95,6 +106,7 @@ const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tail
  *   ctx.library.reload()   the copy read again (POST /internal/library/changed { edits: true })
  *   ctx.auth.signUrl(url)  a speaker's address signed under the install's secret (Playback/Signing.cs)
  *   ctx.config             the options as given
+ *   ctx.logs               every line the program has printed (start's logs)
  * An option the program has no reading of is refused, so a test says what it does without it.
  * @param {Record<string, any>} overrides
  */
@@ -127,6 +139,7 @@ function createServer(overrides = {}) {
   const sig = p => crypto.createHmac("sha256", db.setting("authSecret", "")).update(p).digest("base64url").slice(0, 22);
   const ctx = {
     listeningOn: port, frontKey: "", frontRuns: new Set(JOBS), madeByFront: true, config: Object.assign({}, overrides), base: "http://127.0.0.1:" + port, db,
+    logs: /** @type {string[]} */ ([]),
     // lib/server/features.js's insertPlay: a play written as the server writes one (album_id, track_id, title, artist, album, zone, ts).
     features: { insertPlay: { run: (...a) => db.raw.prepare("INSERT INTO plays(album_id, track_id, title, artist, album, zone, ts) VALUES(?,?,?,?,?,?,?)").run(...a) } },
     library: {
@@ -148,6 +161,7 @@ function createServer(overrides = {}) {
     async start() {
       srv = await start({ port, musicDir, dataDir, env });
       ctx.frontKey = srv.key;
+      ctx.logs = srv.logs;
       return ctx;
     },
     async stop() {

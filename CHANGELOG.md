@@ -75,6 +75,18 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   under tini and the Mac's launchd item already runs the binary; both lose their Node pieces in
   part 5. `test/update-alone.test.js` (new) runs it for real from a copy of the program in an
   install of its own, the new program a stand-in that writes down how it was started.
+- **The tests drive the binary** (part 4, under way). The tests that started the Node server
+  start the program alone through `test/server.js` (its `createServer` takes `index.js`'s options
+  as the environment; what a test reached into the Node server for, it has from the database file
+  or over HTTP; the program's log is kept for a test that reads it). Moving them found three things
+  the program alone answered differently: a deep link (`/library`, an album's address, a folder's
+  redirect) was the not-found page, because the not-found route claimed every address without a
+  file extension before the page could (it stands where the Node server's catch-all stood now);
+  a stream with a rate, depth or gain the server won't make, or of a track or file that isn't
+  there, fell through to the not-found page where the Node server said 400 or 404 (`Streams.cs`
+  says them alone); and a cover that can't be had was the same, where the Node server answered an
+  empty 404 (`Images.cs`). `test/pages-csharp.test.js`, `test/loudness.test.js` and
+  `test/covers-csharp.test.js` hold each, on the program alone.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
