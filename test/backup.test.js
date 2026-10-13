@@ -22,9 +22,14 @@ const path = require("path");
 const os = require("os");
 const { makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { createServer } = require("./server");
-const B = require("../lib/backup");
-const { newer, partsOf } = require("../lib/server/api-backup");
+const { createServer, built } = require("./server");
+const { score } = require("./score");
+
+// The backup file and its rules, the C# server's (Admin/Backup.cs; lib/backup.js until v0.8.50).
+const backup = (job) => score(Object.assign({ fn: "backup" }, job));
+const writeBackup = (to, entries) => backup({ writes: [{ to, entries }] });
+const readBackup = (file, db) => backup({ reads: [{ file, db }] }).read[0];
+const skip = built();
 
 const PORT = ports.port(), BASE = "http://127.0.0.1:" + PORT;
 const byCs = (r, what) => { assert.equal(r.headers.get("x-mandarin-answered"), "C#", what + ": made by the C# server"); return r; };
@@ -42,35 +47,33 @@ async function server(lib) {
   return { srv, ctx, boot0: await boot() };
 }
 
-test("versions compare, parts are read", () => {
-  assert.equal(newer("0.6.14", "0.6.9"), true);
-  assert.equal(newer("0.6.9", "0.6.14"), false);
-  assert.equal(newer("0.6.14", "0.6.14"), false);
-  assert.equal(newer("0.6.0", "0.6.0-RC4"), true);
-  assert.equal(newer("0.6.0-RC4", "0.6.0"), false);
-  assert.deepEqual(partsOf("settings,keys,bogus"), { settings: true, keys: true });
-  assert.deepEqual(partsOf({ database: 1, page: true, devices: false }), { database: true, page: true, devices: false });
+test("versions compare, parts are read", { skip }, () => {
+  const r = backup({ newer: [["0.6.14", "0.6.9"], ["0.6.9", "0.6.14"], ["0.6.14", "0.6.14"], ["0.6.0", "0.6.0-RC4"], ["0.6.0-RC4", "0.6.0"]],
+    parts_of: ["settings,keys,bogus", { database: 1, page: true, devices: false }] });
+  assert.deepEqual(r.newer, [true, false, false, true, false]);
+  assert.deepEqual(r.parts_of[0], { settings: true, keys: true });
+  assert.deepEqual(r.parts_of[1], { database: true, page: true, devices: false });
 });
 
-test("the file format: written and read back, the database copy to its own file", async () => {
+test("the file format: written and read back, the database copy to its own file", { skip }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbk-"));
   const db = path.join(dir, "x.db");
   fs.writeFileSync(db, Buffer.alloc(70000, 7));
   const out = path.join(dir, "b.tar.gz");
-  await B.writeBackup(fs.createWriteStream(out), [
+  writeBackup(out, [
     { name: "manifest.json", data: { app: "mandarin", format: 1 } },
     { name: "server.json", data: { settings: { homeRows: [1, 2] } } },
     { name: "musicd.db", file: db }
   ]);
   const back = path.join(dir, "back.db");
-  const r = await B.readBackup(fs.createReadStream(out), { dbFile: back });
+  const r = readBackup(out, back);
   assert.equal(r.hasDb, true);
   assert.deepEqual(r.parts.server, { settings: { homeRows: [1, 2] } });
   assert.ok(fs.readFileSync(back).equals(fs.readFileSync(db)));
   // Not ours: refused.
   const other = path.join(dir, "o.tar.gz");
-  await B.writeBackup(fs.createWriteStream(other), [{ name: "manifest.json", data: { app: "else" } }]);
-  await assert.rejects(B.readBackup(fs.createReadStream(other)), /isn't a Mandarin backup/);
+  writeBackup(other, [{ name: "manifest.json", data: { app: "else" } }]);
+  assert.match(readBackup(other).error, /isn't a Mandarin backup/);
 });
 
 test("back up, change everything, restore: as it was, with a Before-restore backup and a restart", { timeout: 60000 }, async () => {
@@ -155,16 +158,19 @@ test("the whole database: restored at the next start, today's account and sign-i
   } finally { await srv.stop(); }
 });
 
-test("this phone's own player follows it to its new id", () => {
+test("this phone's own player follows it to its new id", { skip }, () => {
   const Database = require("better-sqlite3");
-  const raw = new Database(":memory:");
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mbk-")), "x.db");
+  let raw = new Database(file);
   raw.exec(`CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT);
     CREATE TABLE audio_devices(id TEXT PRIMARY KEY, kind TEXT, network_name TEXT, name TEXT, settings TEXT, first_seen INT, last_seen INT);`);
   const server = {
     settings: { radioZones: ["PHONE_old", "RINCON_1"] },
     devices: [{ id: "PHONE_old", kind: "phone", network_name: "Pixel", name: null, settings: '{"dsp":{"enabled":true}}', first_seen: 1, last_seen: 1 }]
   };
-  B.apply(raw, server, { settings: true, devices: true }, { map: { PHONE_old: "PHONE_new" } });
+  raw.close();
+  backup({ applies: [{ db: file, server, include: ["settings", "devices"], map: { PHONE_old: "PHONE_new" } }] });
+  raw = new Database(file);
   assert.equal(raw.prepare("SELECT settings FROM audio_devices WHERE id = 'PHONE_new'").get().settings, '{"dsp":{"enabled":true}}');
   assert.deepEqual(JSON.parse(raw.prepare("SELECT value FROM settings WHERE key = 'radioZones'").get().value), ["PHONE_new", "RINCON_1"]);
 });
@@ -185,7 +191,9 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
     const dl = byCs(await fetch(BASE + "/api/backup/download/" + s.backup.id, { headers: H }), "a download");
     assert.equal(dl.status, 200);
     assert.match(dl.headers.get("content-disposition"), /^attachment; filename="mandarin-backup-manual-\d{4}-\d\d-\d\d-\d{6}\.tar\.gz"$/);
-    assert.equal((await B.readBackup(require("stream").Readable.from([Buffer.from(await dl.arrayBuffer())]))).parts.manifest.app, "mandarin", "read here as written there");
+    const got = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mbk-")), "dl.tar.gz");
+    fs.writeFileSync(got, Buffer.from(await dl.arrayBuffer()));
+    assert.equal(readBackup(got).parts.manifest.app, "mandarin", "read as written");
     ctx.db.setSetting("smartPicksHour", 3);
     const re = await (await fetch(BASE + "/api/backup/restore/" + s.backup.id, { method: "POST", headers: H,
       body: JSON.stringify({ include: { settings: true, page: true } }) })).json();
@@ -195,7 +203,7 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
     // Made by a newer Mandarin: refused, nothing changed.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbk-"));
     const f = path.join(dir, "new.tar.gz");
-    await B.writeBackup(fs.createWriteStream(f), [
+    writeBackup(f, [
       { name: "manifest.json", data: { app: "mandarin", format: 1, version: "9.9.9", parts: ["settings"] } },
       { name: "server.json", data: { settings: { smartPicksHour: 1 } } }]);
     const no = await fetch(BASE + "/api/backup/restore?parts=settings", {

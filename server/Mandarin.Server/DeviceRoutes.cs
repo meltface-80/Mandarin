@@ -321,6 +321,14 @@ internal static partial class Library
         d.Settings = kept;
     }
 
+    /* The same, a device named by its id (`mandarin-server score` { fn: "register" }, RulesCommand.cs): false when there is none. */
+    internal static bool DeviceUserCaps(SqliteConnection c, string id, JsObj? user)
+    {
+        if (DeviceRead(c, id) is not { } d) return false;
+        DeviceUserCaps(c, d, user);
+        return true;
+    }
+
     /* setUserCaps(id, user): the "you set it" layer — the rates, depths and DSD among profiles.js's you listed, or null to clear. */
     private static void DeviceUserCaps(SqliteConnection c, DeviceRow d, JsObj? user)
     {

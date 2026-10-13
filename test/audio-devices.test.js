@@ -3,6 +3,9 @@
  * Settings → Audio Devices: UPnP renderers are found and read, every player
  * lands in the register with its capabilities in layers, a name you give a
  * device shows everywhere, and a device that has gone can be forgotten.
+ *
+ * The rules are the C# server's (Renderers/, Playback/Register.cs; lib/renderers/
+ * until v0.8.50), asked through `mandarin-server score`.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -10,19 +13,20 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { parseSink } = require("../lib/renderers/protocolinfo");
-const { parseDescription } = require("../lib/renderers/description");
-const { profileFor, effective } = require("../lib/renderers/profiles");
-const { Registry } = require("../lib/renderers/registry");
-const { isSonos } = require("../lib/renderers/ssdp");
-const { idFor, seedLocation } = require("../lib/renderers/discovery");
-const DB = require("../lib/library/db");
-const { FakeRenderer, SINK_WIIM } = require("./fake-renderer");
+const { spawnSync } = require("child_process");
+const { FakeRenderer, SINK_WIIM, idFor } = require("./fake-renderer");
+const { built, BIN } = require("./server");
+const { score } = require("./score");
 const { FakeHousehold } = require("./fake-sonos");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const noBin = built();
+const skip = noBin || (!haveFfmpeg() && "ffmpeg is not installed");
+const parseSink = (sink) => score({ fn: "protocolinfo", sinks: [sink] }).sinks[0];
+const parseDescription = (xml, location) => score({ fn: "description", cases: [{ xml, location }] }).parsed[0];
+const profileFor = (device) => score({ fn: "profiles", lookups: [{ device }] }).profile[0];
+const effective = (record) => score({ fn: "profiles", records: [{ record }] }).effective[0];
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
@@ -36,7 +40,7 @@ async function until(fn, ms = 15000) {
   }
 }
 
-test("GetProtocolInfo's Sink: containers, and rates only from raw PCM", () => {
+test("GetProtocolInfo's Sink: containers, and rates only from raw PCM", { skip: noBin }, () => {
   const s = parseSink(SINK_WIIM + ",http-get:*:video/mp4:*,http-get:*:audio/x-dsf:*,rtsp-rtp-udp:*:audio/L24;rate=96000:*");
   assert.deepEqual(s.rates, [44100, 48000, 96000]);
   for (const c of ["flac", "wav", "alac", "mp3", "aac", "ogg", "dsd", "pcm"]) assert.ok(s.containers.includes(c), c);
@@ -46,7 +50,7 @@ test("GetProtocolInfo's Sink: containers, and rates only from raw PCM", () => {
   assert.deepEqual(parseSink(null).mimes, []);
 });
 
-test("a device description: URLs resolved, the renderer found inside a root device", async () => {
+test("a device description: URLs resolved, the renderer found inside a root device", { skip: noBin }, async () => {
   const r = new FakeRenderer({ name: "Telly", manufacturer: "Samsung", model: "UE55", nested: true, urlBase: true });
   r.port = 4321;
   const d = parseDescription(r.description(), r.location);
@@ -63,7 +67,7 @@ test("a device description: URLs resolved, the renderer found inside a root devi
   assert.ok(oh.services.Playlist);
 });
 
-test("profiles: what a model takes, and the layers a chip comes from", () => {
+test("profiles: what a model takes, and the layers a chip comes from", { skip: noBin }, () => {
   assert.equal(profileFor({ manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro Plus" }).id, "wiim-pro-plus");
   assert.equal(profileFor({ manufacturer: "Linkplay", model: "WiiM Pro" }).id, "wiim-pro");
   assert.equal(profileFor({ manufacturer: "Chord Electronics Ltd", model: "Poly" }).id, "chord-poly");
@@ -114,58 +118,59 @@ test("profiles: what a model takes, and the layers a chip comes from", () => {
   assert.ok(phone.rates.find(r => r.hz === 192000).on && !phone.editable);
 });
 
-test("the register: identity kept, names and layers yours, forget is final", () => {
+test("the register: identity kept, names and layers yours, forget is final", { skip: noBin }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-reg-"));
-  const db = DB.open(dir, { log: () => {} });
-  const reg = new Registry(db);
-  const first = reg.seen({ id: "UPNP_abc", kind: "upnp", family: "wiim", network_name: "Living Room", manufacturer: "Linkplay", model: "WiiM Pro Plus", ip: "10.0.0.5", caps: { advertised: { containers: ["flac"] } }, playable: true });
+  assert.equal(spawnSync(BIN, ["db", dir]).status, 0);
+  // The steps, each on the database opened afresh (as the server opens it again after a restart).
+  const run = (...steps) => score({ fn: "register", data: dir, steps }).results;
+  const [first, , again] = run(
+    { seen: { id: "UPNP_abc", kind: "upnp", family: "wiim", network_name: "Living Room", manufacturer: "Linkplay", model: "WiiM Pro Plus", ip: "10.0.0.5", caps: { advertised: { containers: ["flac"] } }, playable: true } },
+    { wait: 5 },
+    // Seen again with less known: nothing blanked, first_seen kept.
+    { seen: { id: "UPNP_abc", kind: "upnp", network_name: "Living Room", model: "", ip: "10.0.0.9" } });
   assert.equal(first.network_name, "Living Room");
   assert.equal(first.caps.playable, true);
-  // Seen again with less known: nothing blanked, first_seen kept.
-  const again = reg.seen({ id: "UPNP_abc", kind: "upnp", network_name: "Living Room", model: "", ip: "10.0.0.9" });
   assert.equal(again.model, "WiiM Pro Plus");
   assert.equal(again.family, "wiim");
   assert.equal(again.ip, "10.0.0.9");
   assert.equal(again.first_seen, first.first_seen);
   assert.deepEqual(again.caps.advertised, { containers: ["flac"] });
 
-  reg.rename("UPNP_abc", "  Kitchen \u0007streamer ");
-  assert.equal(reg.get("UPNP_abc").name, "Kitchen streamer");
-  assert.equal(reg.nameOf("UPNP_abc"), "Kitchen streamer");
-  reg.rename("UPNP_abc", "");
-  assert.equal(reg.get("UPNP_abc").name, null);
-  assert.equal(reg.nameOf("UPNP_abc"), null);
+  let r = run({ rename: ["UPNP_abc", "  Kitchen \u0007streamer "] }, { get: "UPNP_abc" }, { name: "UPNP_abc" }, { rename: ["UPNP_abc", ""] }, { get: "UPNP_abc" }, { name: "UPNP_abc" });
+  assert.equal(r[1].name, "Kitchen streamer");
+  assert.equal(r[2], "Kitchen streamer");
+  assert.equal(r[4].name, null);
+  assert.equal(r[5], null);
 
-  reg.setUserCaps("UPNP_abc", { rates: [48000, 999, 96000], bits: [24] });
-  assert.deepEqual(reg.get("UPNP_abc").caps.user, { rates: [48000, 96000], bits: [24] });
-  reg.setUserCaps("UPNP_abc", { bits: null });
-  assert.deepEqual(reg.get("UPNP_abc").caps.user, { rates: [48000, 96000] });
-  reg.seen({ id: "UPNP_abc", kind: "upnp", network_name: "Living Room", caps: { advertised: { containers: ["flac", "wav"] } } });
-  assert.deepEqual(reg.get("UPNP_abc").caps.user, { rates: [48000, 96000] }, "a new advertised layer keeps yours");
-  reg.markVerified("UPNP_abc", { rate: 96000, bits: 24 });
-  assert.ok(reg.get("UPNP_abc").caps.verified.rates["96000"]);
-  reg.setUserCaps("UPNP_abc", null);
-  assert.equal(reg.get("UPNP_abc").caps.user, undefined);
+  r = run(
+    { caps: ["UPNP_abc", { rates: [48000, 999, 96000], bits: [24] }] }, { get: "UPNP_abc" },
+    { caps: ["UPNP_abc", { bits: null }] }, { get: "UPNP_abc" },
+    { seen: { id: "UPNP_abc", kind: "upnp", network_name: "Living Room", caps: { advertised: { containers: ["flac", "wav"] } } } }, { get: "UPNP_abc" },
+    { verified: ["UPNP_abc", 96000, 24] }, { get: "UPNP_abc" },
+    { caps: ["UPNP_abc", null] }, { get: "UPNP_abc" });
+  assert.deepEqual(r[1].caps.user, { rates: [48000, 96000], bits: [24] });
+  assert.deepEqual(r[3].caps.user, { rates: [48000, 96000] });
+  assert.deepEqual(r[5].caps.user, { rates: [48000, 96000] }, "a new advertised layer keeps yours");
+  assert.ok(r[7].caps.verified.rates["96000"]);
+  assert.equal(r[9].caps.user, undefined);
 
   // The name overlay survives a reopen: it is read from the table.
-  reg.rename("UPNP_abc", "Kitchen");
-  const reg2 = new Registry(db);
-  assert.equal(reg2.nameOf("UPNP_abc"), "Kitchen");
-
-  reg.forget("UPNP_abc");
-  assert.equal(reg.get("UPNP_abc"), null);
-  assert.equal(reg.nameOf("UPNP_abc"), null);
-  db.close();
+  r = run({ rename: ["UPNP_abc", "Kitchen"] }, { name: "UPNP_abc" }, { forget: "UPNP_abc" }, { get: "UPNP_abc" }, { name: "UPNP_abc" });
+  assert.equal(r[1], "Kitchen");
+  assert.equal(r[3], null);
+  assert.equal(r[4], null);
 });
 
-test("Sonos answers are the Sonos code's; ids and seeds", () => {
-  assert.ok(isSonos({ usn: "uuid:RINCON_000E58AAAA0001400::urn:schemas-upnp-org:device:MediaRenderer:1", server: "Linux UPnP/1.0 Sonos/80.1-53025 (ZPS9)" }));
-  assert.ok(isSonos({ usn: "uuid:abc::urn:x", server: "Linux UPnP/1.0 Sonos/80.1" }));
-  assert.ok(!isSonos({ usn: "uuid:FF31F09E-1234::urn:schemas-upnp-org:device:MediaRenderer:1", server: "Linux/3.10 UPnP/1.0 Linkplay/1.0" }));
-  assert.equal(idFor("uuid:FF31F09E-1234"), "UPNP_FF31F09E-1234");
-  assert.equal(seedLocation("192.168.1.50"), "http://192.168.1.50:49152/description.xml");
-  assert.equal(seedLocation("http://192.168.1.50:8080/desc.xml"), "http://192.168.1.50:8080/desc.xml");
-  assert.equal(seedLocation(" "), "");
+test("Sonos answers are the Sonos code's; ids and seeds", { skip: noBin }, () => {
+  const r = score({ fn: "ssdp", sonos: [
+    { usn: "uuid:RINCON_000E58AAAA0001400::urn:schemas-upnp-org:device:MediaRenderer:1", server: "Linux UPnP/1.0 Sonos/80.1-53025 (ZPS9)" },
+    { usn: "uuid:abc::urn:x", server: "Linux UPnP/1.0 Sonos/80.1" },
+    { usn: "uuid:FF31F09E-1234::urn:schemas-upnp-org:device:MediaRenderer:1", server: "Linux/3.10 UPnP/1.0 Linkplay/1.0" }
+  ], ids: ["uuid:FF31F09E-1234"], seeds: ["192.168.1.50", "http://192.168.1.50:8080/desc.xml", " "] });
+  assert.deepEqual(r.sonos, [true, true, false]);
+  assert.deepEqual(r.ids, ["UPNP_FF31F09E-1234"]);
+  assert.equal(idFor("uuid:FF31F09E-1234"), r.ids[0], "the fakes' rule is the server's");
+  assert.deepEqual(r.seeds, ["http://192.168.1.50:49152/description.xml", "http://192.168.1.50:8080/desc.xml", ""]);
 });
 
 test("Audio Devices through the server: found, read, named, ticked, forgotten", { skip, timeout: 90000 }, async () => {

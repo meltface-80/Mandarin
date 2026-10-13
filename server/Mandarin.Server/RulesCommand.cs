@@ -21,6 +21,11 @@
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
 //     powers: [{ env, mac }] }                                            Auth.cs, Front.cs, PhoneRoutes.cs, PowerRoutes.cs
 //      → { locals, names, clients, tailnet, aways, powers }
+//   { fn: "register", data, steps: [{ seen } | { rename: [id, name] } | { caps: [id, user] } | { verified: [id, rate, bits] }
+//     | { forget } | { get } | { name } | { wait: ms }] }                  Playback/Register.cs, DeviceRoutes.cs
+//      → { results }: each step's, on the database in [data] (made by `mandarin-server db`), opened afresh each time
+//   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids }                   Renderers/Ssdp.cs, Discovery.cs
+//      → { sonos, seeds, ids }
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -36,7 +41,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -47,6 +52,13 @@ internal static class RulesCommand
         "phoneplays" => new JsObj { ["plays"] = Each(job["tracks"], t => Downloads.PhonePlays(new Downloads.Track(0, S(O(t)["path"]), S(O(t)["codec"]), 0, N(O(t)["bits"]), N(O(t)["channels"]), 0, 0))) },
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
+        "register" => RegisterFns(job),
+        "ssdp" => new JsObj
+        {
+            ["sonos"] = Each(job["sonos"], a => Renderers.Ssdp.IsSonos(new Renderers.SsdpAnswer("", S(O(a)["usn"]), "", S(O(a)["server"]), ""))),
+            ["seeds"] = Each(job["seeds"], x => Renderers.RendererDiscovery.SeedLocation(TJs.IsNullish(x) ? null : S(x))),
+            ["ids"] = Each(job["ids"], x => Renderers.RendererDiscovery.IdFor(TJs.IsNullish(x) ? null : S(x)))
+        },
         "uris" => new JsObj { ["tracks"] = Each(job["uris"], u => Playback.Phones.TrackIdFromUri(TJs.IsNullish(u) ? null : TJs.Str(u)) is { } id ? (double)id : null) },
         _ => throw new JsError("unknown fn")
     };
@@ -138,4 +150,43 @@ internal static class RulesCommand
             TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),
         ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString()))
     };
+
+    /* A device's row as registry.js's row() gives it. */
+    private static object? DeviceJson(Playback.DeviceRecord? d) => d == null ? null : new JsObj
+    {
+        ["id"] = d.Id, ["kind"] = d.Kind, ["family"] = d.Family, ["network_name"] = d.NetworkName, ["name"] = d.Name,
+        ["manufacturer"] = d.Manufacturer, ["model"] = d.Model, ["ip"] = d.Ip, ["caps"] = d.Caps, ["first_seen"] = d.FirstSeen
+    };
+
+    private static JsObj RegisterFns(JsObj job)
+    {
+        var results = new List<object?>();
+        foreach (var step0 in L(job["steps"]))
+        {
+            var step = O(step0);
+            if (step["wait"] is double ms) { Thread.Sleep((int)ms); results.Add(null); continue; }
+            using var c = Scan.ScanCommand.OpenDb(S(job["data"]));
+            if (step["seen"] is JsObj s)
+            {
+                results.Add(DeviceJson(Playback.Register.Seen(c, new Playback.SeenInfo
+                {
+                    Id = S(s["id"]), Kind = S(s["kind"]), Family = s["family"] as string, NetworkName = s["network_name"] as string,
+                    Manufacturer = s["manufacturer"] as string, Model = s["model"] as string, Ip = s["ip"] as string,
+                    Caps = s["caps"] as JsObj, Playable = s["playable"] as bool?
+                })));
+            }
+            else if (step["rename"] is List<object?> rn) { Playback.Register.Rename(c, S(At(rn, 0)), At(rn, 1) as string); results.Add(null); }
+            else if (step["caps"] is List<object?> cp) results.Add(Library.DeviceUserCaps(c, S(At(cp, 0)), At(cp, 1) as JsObj));
+            else if (step["verified"] is List<object?> v)
+            {
+                Playback.Register.MarkVerified(c, S(At(v, 0)), At(v, 1) is double r ? r : null, At(v, 2) is double b ? b : null);
+                results.Add(null);
+            }
+            else if (step.Has("forget")) { Playback.Register.Forget(c, S(step["forget"])); results.Add(null); }
+            else if (step.Has("get")) results.Add(DeviceJson(Playback.Register.Get(c, S(step["get"]))));
+            else if (step.Has("name")) results.Add(Playback.Register.NameOf(c, S(step["name"])));
+            else throw new JsError("unknown step");
+        }
+        return new JsObj { ["results"] = results };
+    }
 }

@@ -3,7 +3,10 @@
  * DSP (Stage 3): the shared biquad maths, the headroom rule, what a setting
  * becomes as ffmpeg filters and in a renderer's plan — and, with ffmpeg, a
  * tone through the chain measured: a −6 dB band at its frequency takes
- * 6 dB off, and the preamp is what the bands need.
+ * 6 dB off, and the preamp is what the bands need. The biquad maths is the
+ * page's own (public/biquad.js); the filters and plans the C# server's
+ * (Playback/Dsp.cs, StreamPlans.cs; lib/dsp.js and lib/stream.js until
+ * v0.8.50), asked through `mandarin-server score`.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -12,9 +15,22 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const Biquad = require("../public/biquad");
-const DSP = require("../lib/dsp");
-const STREAM = require("../lib/stream");
-const { haveFfmpeg, gen, FFMPEG } = require("./fixtures");
+const { haveFfmpeg, haveSoxr, gen, FFMPEG } = require("./fixtures");
+const { built } = require("./server");
+const { score } = require("./score");
+
+const noBin = built();
+const SOXR = !noBin && haveFfmpeg() && haveSoxr();
+// The C# server's: a setting checked, its preamp and fingerprint, its filters and plan part; a track's plan and ffmpeg's arguments.
+const cs = {
+  normalise: (d) => score({ fn: "dsp", normalise: [d] }).normalise[0],
+  headroom: (d, rate) => score({ fn: "dsp", headroom: [[d, rate]] }).headroom[0],
+  fingerprint: (d, rate) => score({ fn: "dsp", fingerprint: [[d, rate]] }).fingerprint[0],
+  filters: (d, { inRate, rate, soxr }) => score({ fn: "dsp", filters: [[d, inRate, rate, soxr]] }).filters[0],
+  planPart: (d, rate) => score({ fn: "dsp", plan_part: [[d, rate]] }).plan_part[0],
+  plan: (t, target) => score({ fn: "plans", plan: [[t, target]] }).plan[0],
+  ffmpegArgs: (src, p, dest, soxr = SOXR) => score({ fn: "plans", args: [[src, p, dest, soxr]] }).args[0]
+};
 
 const near = (a, b, tol, what) => assert.ok(Math.abs(a - b) <= tol, `${what}: ${a} vs ${b}`);
 const at = (bands, f, fs = 48000) => Biquad.response(bands, fs, [f])[0];
@@ -85,44 +101,46 @@ test("a setting as stored: checked, rounded, refused when wrong", () => {
   assert.notEqual(Biquad.fingerprint(d, 48000), Biquad.fingerprint(Object.assign({}, d, { headroom: -4 }), 48000));
 });
 
-test("the filters ffmpeg runs, and the plan a renderer gets", () => {
-  const dsp = Biquad.normalise({ enabled: true, peq: { bands: [
+test("the filters ffmpeg runs, and the plan a renderer gets", { skip: noBin }, () => {
+  const dsp = cs.normalise({ enabled: true, peq: { bands: [
     { type: "peak", freq: 1000, gain: -6, q: 1.41 }, { type: "low_shelf", freq: 100, gain: 2, q: 0.707 }, { type: "high_pass", freq: 30, q: 0.707 }
   ] } });
-  const f = DSP.filters(dsp, { inRate: 44100, rate: 88200, soxr: true });
+  const f = cs.filters(dsp, { inRate: 44100, rate: 88200, soxr: true });
   assert.equal(f[0], "aformat=sample_fmts=dbl");
-  const pre = Biquad.headroom(dsp, 88200);
+  const pre = cs.headroom(dsp, 88200);
+  assert.equal(pre, Biquad.headroom(dsp, 88200), "the page's own sum");
   assert.ok(pre < -1 && pre > -3, "the shelf's lift, less what the high-pass takes: " + pre);
   assert.equal(f[1], `volume=${pre}dB:precision=double`);
   assert.equal(f[2], "aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=88200:out_sample_fmt=dbl");
   assert.deepEqual(f.slice(3), ["equalizer=f=1000:width_type=q:w=1.41:g=-6", "lowshelf=f=100:width_type=q:w=0.707:g=2", "highpass=f=30:width_type=q:w=0.707"]);
   // Same rate: no resample stage.
-  assert.equal(DSP.filters(dsp, { inRate: 44100, rate: 44100, soxr: true }).length, 5);
+  assert.equal(cs.filters(dsp, { inRate: 44100, rate: 44100, soxr: true }).length, 5);
 
   const cd = { path: "/m/a.flac", codec: "flac", sampleRate: 44100, bitsPerSample: 16, channels: 2 };
   const target = { name: "WiiM", rates: [44100, 48000, 88200, 96000], maxBits: 24, containers: ["flac"], mode: "original", bits: "auto", id: "UPNP_x" };
-  assert.equal(STREAM.plan(cd, target).transcode, false, "bit-perfect without DSP");
-  const on = STREAM.plan(cd, Object.assign({}, target, { dsp }));
+  assert.equal(cs.plan(cd, target).transcode, false, "bit-perfect without DSP");
+  const on = cs.plan(cd, Object.assign({}, target, { dsp }));
   assert.equal(on.transcode, true);
   assert.equal(on.rate, 44100, "the file's own rate");
   assert.equal(on.bits, 24);
   assert.equal(on.reason, "DSP");
-  assert.equal(on.dsp.hash, Biquad.fingerprint(dsp, 44100));
+  assert.equal(on.dsp.hash, cs.fingerprint(dsp, 44100));
+  assert.equal(on.dsp.hash, Biquad.fingerprint(dsp, 44100), "the page's own fingerprint");
   assert.equal(on.inRate, 44100);
-  const up = STREAM.plan(cd, Object.assign({}, target, { dsp, mode: "x2" }));
+  const up = cs.plan(cd, Object.assign({}, target, { dsp, mode: "x2" }));
   assert.equal(up.rate, 88200); assert.equal(up.upsampled, 2); assert.ok(up.dsp);
   // Off, or on with nothing to do: as without.
-  assert.equal(STREAM.plan(cd, Object.assign({}, target, { dsp: Object.assign({}, dsp, { enabled: false }) })).transcode, false);
-  assert.equal(STREAM.plan(cd, Object.assign({}, target, { dsp: { enabled: true, peq: { bands: [] } } })).transcode, false);
+  assert.equal(cs.plan(cd, Object.assign({}, target, { dsp: Object.assign({}, dsp, { enabled: false }) })).transcode, false);
+  assert.equal(cs.plan(cd, Object.assign({}, target, { dsp: { enabled: true, peq: { bands: [] } } })).transcode, false);
   // The graph: float, preamp, the bands, then the one dithered requantise.
-  const args = STREAM.ffmpegArgs("in.flac", on, "out.flac");
+  const args = cs.ffmpegArgs("in.flac", on, "out.flac", true);
   const graph = args[args.indexOf("-af") + 1];
   assert.match(graph, /^aformat=sample_fmts=dbl,volume=-[\d.]+dB:precision=double,equalizer=.*,aresample=osr=44100:dither_method=triangular$/);
   assert.equal(args[args.indexOf("-sample_fmt") + 1], "s32");
   assert.equal(args[args.indexOf("-bits_per_raw_sample") + 1], "24");
 });
 
-test("through ffmpeg: a tone at the band's frequency comes out 6 dB down, and the preamp is applied", { skip: !haveFfmpeg() && "ffmpeg is not installed" }, () => {
+test("through ffmpeg: a tone at the band's frequency comes out 6 dB down, and the preamp is applied", { skip: noBin || (!haveFfmpeg() && "ffmpeg is not installed") }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-dsp-"));
   const src = path.join(dir, "tone.flac");
   gen(src, { seconds: 2, freq: 1000, rate: 44100, fmt: "s16" });
@@ -135,9 +153,9 @@ test("through ffmpeg: a tone at the band's frequency comes out 6 dB down, and th
   const before = level(src);
   // A −6 dB band on the tone: 6 dB off, and the preamp (no lift, so −0.5) too.
   const cut = { transcode: true, hq: true, rate: 44100, bits: 24, inRate: 44100,
-    dsp: DSP.planPart(Biquad.normalise({ enabled: true, peq: { bands: [{ type: "peak", freq: 1000, gain: -6, q: 1.41 }] } }), 44100) };
+    dsp: cs.planPart(cs.normalise({ enabled: true, peq: { bands: [{ type: "peak", freq: 1000, gain: -6, q: 1.41 }] } }), 44100) };
   const outCut = path.join(dir, "cut.flac");
-  let r = spawnSync(FFMPEG, STREAM.ffmpegArgs(src, cut, outCut), { encoding: "utf8" });
+  let r = spawnSync(FFMPEG, cs.ffmpegArgs(src, cut, outCut), { encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   near(level(outCut), before - 6.5, 0.15, "−6 dB band and −0.5 dB headroom");
   const { probe } = require("./fixtures");
@@ -145,15 +163,15 @@ test("through ffmpeg: a tone at the band's frequency comes out 6 dB down, and th
   // A +6 dB band elsewhere: the tone is untouched by the band but the preamp
   // takes the 6.5 dB the band would add at its own frequency.
   const lift = { transcode: true, hq: true, rate: 44100, bits: 24, inRate: 44100,
-    dsp: DSP.planPart(Biquad.normalise({ enabled: true, peq: { bands: [{ type: "peak", freq: 8000, gain: 6, q: 4 }] } }), 44100) };
+    dsp: cs.planPart(cs.normalise({ enabled: true, peq: { bands: [{ type: "peak", freq: 8000, gain: 6, q: 4 }] } }), 44100) };
   const outLift = path.join(dir, "lift.flac");
-  r = spawnSync(FFMPEG, STREAM.ffmpegArgs(src, lift, outLift), { encoding: "utf8" });
+  r = spawnSync(FFMPEG, cs.ffmpegArgs(src, lift, outLift), { encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   near(level(outLift), before - 6.5, 0.15, "the preamp alone");
   // Upsampled ×2 with DSP: 88.2 kHz out, the band still at work.
-  const up = Object.assign({}, cut, { rate: 88200, upsampled: 2, dsp: DSP.planPart(cut.dsp.dsp, 88200) });
+  const up = Object.assign({}, cut, { rate: 88200, upsampled: 2, dsp: cs.planPart(cut.dsp.dsp, 88200) });
   const outUp = path.join(dir, "up.flac");
-  r = spawnSync(FFMPEG, STREAM.ffmpegArgs(src, up, outUp), { encoding: "utf8" });
+  r = spawnSync(FFMPEG, cs.ffmpegArgs(src, up, outUp), { encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(probe(fs.readFileSync(outUp)), { rate: 88200, channels: 2, bits: 24 });
   near(level(outUp), before - 6.5, 0.2, "at 88.2 kHz too");
