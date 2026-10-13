@@ -1,12 +1,12 @@
 // Didl.cs — the metadata a Sonos player needs before it will play a URL:
 // lib/sonos/didl.js (v0.8.37) rule for rule, held to it by
-// test/sonos-csharp.test.js. Nothing here runs yet: playback is still the Node
-// server's until stage 6 of docs/specs/csharp-migration.md.
+// test/sonos-csharp.test.js; what every Sonos room is queued with since
+// stage 6 (Playback/Hub.SonosCommands.cs).
 //
 // Sonos refuses a third-party HTTP item whose DIDL-Lite lacks the
 // RINCON_AssociatedZPUDN descriptor, and matches the MIME type in protocolInfo
 // against what actually arrives, so the type is the one the stream endpoint is
-// going to send. What is built is the Node server's, byte for byte (a speaker
+// going to send. What is built is what the Node server built, byte for byte (a speaker
 // keeps the DIDL it was queued with, and a renderer compares it); fields come
 // as JavaScript has them, so a number, an empty string or a missing field
 // counts as it does there.
@@ -47,7 +47,7 @@ internal static class Didl
     }
 
     /*
-     * build(): the DIDL-Lite for one URL. meta as the Node server passes it:
+     * build(): the DIDL-Lite for one URL. meta as the Node server passed it:
      * { title, artist, album, albumArtist, artUri, trackNumber, duration (s),
      *   mime, itemId, sampleFrequency, bitsPerSample, nrAudioChannels }.
      * Missing (undefined) is taken as {}; null is the TypeError JavaScript throws.

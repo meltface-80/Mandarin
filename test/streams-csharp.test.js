@@ -313,7 +313,7 @@ function plansJob(r, n) {
     job.native.push(t);
     job.plan.push([t, anyTarget()]);
     job.renderer_mime.push([t, some(r, ["flac", "mp3", "aac", "alac", "wav", "aiff", "ogg", "opus", "dsd"])]);
-    // A plan as the Node server makes them, then some it never would.
+    // A plan as the Node server made them, then some it never would.
     const p = {};
     toPlan.push({ p, t, target: anyTarget(), extra: r() < 0.2 ? pick(r, [{ exact: true }, { dsd: 64 }, { gain: -3 }, { upsampled: 2 }, { transcode: false }, { bits: 16 }, { rate: "44100" }, { copy: true }, { hq: true }, { bits: 32 }]) : null });
     const junk = pick(r, [null, "plan", {}, { transcode: true }, { transcode: 1, rate: 44100, bits: 24 }, []]);
@@ -608,7 +608,7 @@ test("URL signing: the addresses the Node server signs, and the gate's decision 
     same("sign.sigs", job.sigs, got.sigs, job.sigs.map(sig), si);
     same("sign.urls", job.urls, got.urls, signed, si);
     same("sign.valid", job.valid, got.valid, job.valid.map(([p, s]) => /^[A-Za-z0-9_-]{22}$/.test(s) && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(sig(p)))), si);
-    // The C# server says yes or no only where it can say it as the Node server does (the recording keeps where).
+    // The C# server says yes or no only where it can say it as the Node server did (the recording keeps where).
     for (const v of got.targets) if (v === null) declined++; else vouched++;
     held("sign.targets", targets, got.targets, si);
     held("sign.queries", job.queries, got.queries, si);

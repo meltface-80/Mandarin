@@ -7,12 +7,10 @@
 //   POST /api/download/albums { ids }            the phone's albums as they are now
 //   POST /api/phone/plays { plays }              plays made with no server, written to history
 //
-// A cover's address for the phone is signed as the Node server signs it
-// (auth.js signUrl), at the address it gives speakers (its baseUrl, told with
-// the library's state). Answered here once the Node server has handed over its
-// work; until then (and the picks while it makes them), by it. Since v0.8.48
-// (stage 5 part 3) what was left to it too: a streamed album's list, and a
-// request it refused with Express's own error page.
+// A cover's address for the phone is signed as the Node server signed it
+// (auth.js signUrl), at the address speakers are given (the library state's
+// baseUrl). Since v0.8.48 (stage 5 part 3) a streamed album's list too, and a
+// request Express refused with its own error page, refused alike.
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Mandarin.Server.Tags;

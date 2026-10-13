@@ -1,8 +1,7 @@
 // TasteRoutes.cs — what your listening suggests (v0.8.20), from
 // lib/server/api-library.js, in the same shapes: Smart Picks (today's five,
 // made again, an artist kept out) and the three acts under the share card
-// (/api/similar). Answered here once the Node server has handed the taste
-// work over (Jobs.cs, Extras/Taste.cs); until then, by the Node server.
+// (/api/similar), from the taste work (Extras/Taste.cs).
 using Mandarin.Server.Extras;
 using Mandarin.Server.Tags;
 

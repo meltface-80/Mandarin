@@ -8,10 +8,9 @@
 // display is a device with its own random token, only its hash stored;
 // browsers carry it in an HttpOnly cookie, the Android app as a bearer token.
 //
-// The Node server behind keeps its own gate too (it reads the same tables), and
-// still decides alone for streams and covers: a Sonos speaker can't sign in,
-// and the addresses it is given carry a signature, or come from a speaker the
-// Node server knows.
+// Streams and covers are let through for a signed-in device, an address that
+// carries its signature (Playback/Signing.cs), or a speaker the hub knows
+// (Auth.Media.cs): a Sonos speaker can't sign in.
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,7 +25,7 @@ internal static class Db
     public static string File = "";
 
     // A connection of its own each time, so a database put back from a backup
-    // (swapped in while the Node server restarts) is the one read next.
+    // (swapped in as the server starts again) is the one read next.
     public static SqliteConnection Open()
     {
         var c = new SqliteConnection(new SqliteConnectionStringBuilder
@@ -40,7 +39,7 @@ internal static class Db
         return c;
     }
 
-    // A setting as the Node server keeps it: JSON in settings.value.
+    // A setting as the Node server kept it: JSON in settings.value.
     public static JsonNode? Setting(SqliteConnection c, string key)
     {
         using var cmd = c.CreateCommand();

@@ -19,10 +19,9 @@
 // the transcode folder, fetched from the service as a device asks for it (its
 // play reported, on Qobuz), as it comes or converted like a file
 // (Services/ServiceStreams.cs); nothing of a service streams without the
-// account. Still passed on: a ?g= or ?o= in a form this side can't read as
-// Express does, and a request this side can't vouch for (a speaker asking by
-// its own address: the Node server knows the speakers, and hands a service's
-// conversion here, POST /internal/transcode/prefetch).
+// account. A ?g= or ?o= that isn't one plain value, as Express read them,
+// counts as none; a speaker asking by its own address is let through (the
+// hub knows the speakers).
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;

@@ -34,7 +34,7 @@ internal sealed partial class LabelLookup(MusicBrainz? mb, string? discogsBaseUr
     private readonly List<string> lines = [];
     /* After a pass: the logos pass sees the labels it found. */
     public Func<Task>? OnDone { get; set; }
-    /* Whether this server may go on (the Node server has handed the work over). */
+    /* Whether this server may go on (the work set up, Jobs.cs). */
     public Func<bool> Ready { get; init; } = () => true;
 
     [GeneratedRegex(ScanNames.Ws + "*\\([0-9]+\\)" + ScanNames.Ws + "*\\z")] private static partial Regex Numbered();
@@ -191,7 +191,7 @@ internal sealed partial class LabelLookup(MusicBrainz? mb, string? discogsBaseUr
         return true;
     }
 
-    /* Force rescan: forget every answer (the Node server reads the library again) and ask again. */
+    /* Force rescan: forget every answer (the library read again) and ask again. */
     public static async Task Forget()
     {
         using (var c = Db.Open())

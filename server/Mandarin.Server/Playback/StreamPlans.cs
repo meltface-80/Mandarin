@@ -11,7 +11,7 @@
 // A zone's DSP (Dsp.cs) and a ReplayGain (Gain.cs) can only be applied by
 // converting, so they make a conversion of what would have gone as it is.
 //
-// A plan is the object the Node server makes, key for key and in the same
+// A plan is the object the Node server made, key for key and in the same
 // order ({ transcode, mime, ext, rate, bits, … }), since the stream address,
 // the DIDL and the cache name are all made from it; the cache name (KeyFor)
 // carries the DSP's fingerprint (-d…) and the gain (-g…) written as

@@ -1,5 +1,5 @@
 // BookletRoutes.cs — an album's booklets for the album page's book button
-// (v0.8.33, Booklets.cs). New with the C# server: the Node server has none.
+// (v0.8.33, Booklets.cs). New with the C# server: the Node server had none.
 //
 //   GET /api/album/booklets?offset=N         { booklets: [{ id, name, pages }] }
 //   GET /api/booklet/page?offset=N&id=I&page=P&w=W   the page, a JPEG W wide

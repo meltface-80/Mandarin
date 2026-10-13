@@ -29,7 +29,7 @@ internal sealed partial class Identifier
         timer = null;
     }
 
-    /* While the C# server doesn't hold the work (the Node server restarting): nothing is started. */
+    /* Before the work is set up (Jobs.cs, at the start): nothing is started. */
     public Func<bool> Ready = () => true;
 
     /*

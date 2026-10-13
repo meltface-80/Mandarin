@@ -152,7 +152,7 @@ internal static partial class Library
             var i = tracks.FindIndex(t => Names.Fold(t.Title) == want);
             if (i >= 0) return (EntryJs(al, tracks[i].Title, tracks[i].Artist, tracks[i].No, i), true, al);
         }
-        // SQLite's lower() (ASCII only), as the Node server asks it; a track whose album isn't in the library passed over.
+        // SQLite's lower() (ASCII only), as the Node server asked it; a track whose album isn't in the library passed over.
         const string sql = "SELECT * FROM tracks WHERE lower(title) = lower($1) LIMIT 20";
         var col = Columns(c, sql, title);
         object? F(object?[] r, string n) => col.TryGetValue(n, out var i) ? r[i] : null;

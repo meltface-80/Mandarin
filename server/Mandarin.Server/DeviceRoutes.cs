@@ -4,20 +4,16 @@
 // rule for rule. The name, hidden, sharing, output, DSP, levelling and the
 // rates, depths and DSD you set are checked and written to audio_devices as
 // the Node server wrote them, in the same order and with the same refusals (a
-// write made before a refusal stays, as there). Then the Node server is told
-// (POST /internal/devices/changed { id, changed }): it reads the device's name
-// again and does what each write did there (the zones bumped, a renderer's
-// queue planned again, a phone told its DSP or levelling, a Sonos room's queue
-// planned again, a device switched off by hiding stopped and let go), and
-// answers the device as its page shows it (online, its state, its events: live
-// there), which is sent on.
+// write made before a refusal stays, as there).
 //
-// Once this server holds playback (v0.8.49, stage 6, Playback/Hub.cs) the hub
-// here does what each write did, the switch (enabled) and the radio are
-// written here too, and the device is answered as its page shows it from
-// Renderers/Devices.cs; away from home only the phone the app is on may be
-// changed. Until then a PATCH with enabled or radio is passed on whole, as is
-// one made away from home.
+// The hub (Playback/Hub.cs, v0.8.49) then does what each write did: the zones
+// bumped, a renderer's or a Sonos room's queue planned again, a phone told its
+// DSP or levelling, a device switched off by hiding stopped and let go. The
+// switch (enabled) and the radio are written here too, and the device is
+// answered as its page shows it (Renderers/Devices.cs). Away from home only
+// the phone the app is on may be changed. In the moment before the hub has
+// started, a PATCH with enabled or radio, or one made away, isn't answered here
+// ("No such endpoint").
 using System.Text;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Scan;
@@ -59,12 +55,12 @@ internal static partial class Library
         // One plain segment, as Express's :id takes it; anything else (empty, a further segment, an escape) isn't a device ("No such endpoint", Pages.NotThere.cs).
         if (id.Length == 0 || id.Contains('/') || id.Contains('%')) return false;
         var hub = Playback.Hub.Current;
-        // Away, only the phone the app is on, by the device it signed in as: the Node server's until the hub is here.
+        // Away, only the phone the app is on, by the device it signed in as: not before the hub has started.
         if ((hub == null && Auth.IsAway(ctx)) || !BodyFits(ctx)) return false;
         // Kept, so the request can still go on as it came; one turned down is Pages.NotThere.cs's to answer.
         var (b, read) = await Http.ReadJs(ctx, keep: true);
         if (read.Refused) return false;
-        // Switching a player on or off, and the radio: playback's, so the Node server's until the hub is here.
+        // Switching a player on or off, and the radio: playback's, so not before the hub has started.
         if (hub == null && (Prop(b, "enabled") is not Undef || Prop(b, "radio") is not Undef)) return false;
         if (hub != null && Auth.IsAway(ctx))
         {

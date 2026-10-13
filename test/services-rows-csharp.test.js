@@ -3,7 +3,7 @@
  * Qobuz's and Tidal's albums as library rows, written by the C# server
  * (v0.8.44, stage 4.2; server/Mandarin.Server/Services/Rows.cs and
  * ServiceRoutes.cs), against the fakes on loopback (test/fake-qobuz.js,
- * test/fake-tidal.js), each held to what the Node server writes and answers
+ * test/fake-tidal.js), each held to what the Node server wrote and answered
  * for the same request (asked of it directly, the state put back between):
  *
  *   - an album opened: its albums and tracks rows, every column and the type
@@ -56,7 +56,7 @@ async function until(fn, ms = 20000, what = "") {
   }
 }
 
-test("Qobuz's and Tidal's library rows, written by the C# server as the Node server writes them", { skip, timeout: 300000 }, async (t) => {
+test("Qobuz's and Tidal's library rows, written by the C# server as the Node server wrote them", { skip, timeout: 300000 }, async (t) => {
   const lib = makeLibrary();
   const file = path.join(lib.music, "Artist A", "Album One", "01 Song 1.flac");
   const track = (id, title, extra) => Object.assign({ id, title, file, duration: 3 }, extra || {});
@@ -274,7 +274,7 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
       assert.equal(named(c.text), want.text, "the same answer");
       assert.deepEqual(steady(mine.album), want.album, key + ": the album's row");
       assert.deepEqual(steady(mine.tracks), want.tracks, key + ": its tracks' rows");
-      assert.deepEqual([Object.keys(v), v.why], [want.kept, want.why], key + ": kept as the Node server keeps it");
+      assert.deepEqual([Object.keys(v), v.why], [want.kept, want.why], key + ": kept as the Node server kept it");
       assert.equal(named(off.text), want.off, "taken away: the same answer");
       // An album opened before, favourited: its rows brought up to date (the same columns, the same values).
       await forget(key);
@@ -295,7 +295,7 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     assert.equal(r.status, 200, "Tidal lets go of what isn't there: " + r.text);
   });
 
-  await t.test("a streamed album's page: the service's fields, as the Node server gives them", async () => {
+  await t.test("a streamed album's page: the service's fields, as the Node server gave them", async () => {
     const page = async (key) => (await same("album?offset=" + albumRow(key).id)).j.album;
     // Kept as a favourite, played, and an album still to come.
     await post("qobuz/favorite", { album_id: "q100" });

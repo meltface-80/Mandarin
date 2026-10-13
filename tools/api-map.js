@@ -4,7 +4,8 @@
 /*
  * The server's routes, as docs/specs/api.md lists them (v0.9.4, the audit's
  * D2, docs/specs/audit-b4-main.md): each one's method, address, who may ask
- * (Auth.cs's gate) and where it is answered, read from the C# sources. The
+ * (Auth.cs's gate) and the file that answers it, read from the C# sources
+ * (the file, not its line, so the map changes only when a route does). The
  * routes are written in a few ways, and each is read here:
  *   a route table              ["/api/x"] = Handler, in Gets, Posts or Deletes
  *   a list of addresses        HashSet<string> Gets = ["/api/x", …] (PlaybackRoutes.cs)
@@ -136,7 +137,7 @@ function render() {
     "",
     "| Method | Address | Who may ask | Answered in |",
     "|---|---|---|---|",
-    ...rows.map(r => `| ${r.method} | \`${r.path.replace(/\|/g, "\\|")}\` | ${access(r.path)} | \`${r.file}:${r.line}\` |`),
+    ...rows.map(r => `| ${r.method} | \`${r.path.replace(/\|/g, "\\|")}\` | ${access(r.path)} | \`${r.file}\` |`),
     ""
   ];
   return out.join("\n");

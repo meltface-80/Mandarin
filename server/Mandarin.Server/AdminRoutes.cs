@@ -13,11 +13,9 @@
 //   POST   /api/tailscale/logout       this server leaves the tailnet
 //   POST   /api/tailscale/enable       {on}: built-in Tailscale on or off
 //
-// Answered here once the Node server has handed Tailscale over (Jobs.cs),
-// which a Node server new enough to be restarted from here does. Restoring
-// keeps a backup of how things were first ("Before restore"), then the Node
-// server starts again so everything reads its settings afresh (and swaps in a
-// whole database, staged for it); this server, and Tailscale with it, stays up.
+// Restoring keeps a backup of how things were first ("Before restore"), then
+// the server starts again in place so everything reads its settings afresh
+// (and a whole database, staged, is swapped in as it starts).
 // From home or away; Tailscale's switches from home only. Restoring is in
 // AdminRestoreRoutes.cs; a backup sealed with a passphrase, Admin/Backup.Seal.cs.
 using Mandarin.Server.Admin;

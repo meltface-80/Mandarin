@@ -8,11 +8,11 @@
 // same name, drawn the same way: turned upright, fitted inside the size and
 // never enlarged, laid on black, a JPEG.
 //
-// What sharp would draw differently is left to the Node server, as is an
-// album with no cover of its own (its placeholder is drawn there): a picture
-// in another colour space than sRGB (CMYK, or carrying a profile of its own),
-// one cut short or that ffmpeg reads with errors, one turned by anything but
-// a JPEG's EXIF, and anything but JPEG, PNG, WebP, GIF or BMP.
+// Where sharp drew otherwise: CMYK, or a profile of its own, as ffmpeg reads it
+// (v0.8.50, until the owner decides); no cover of its own, its placeholder
+// (CoversDrawn.cs); one cut short or that ffmpeg reads with errors, one turned
+// by anything but a JPEG's EXIF, and anything but JPEG, PNG, WebP, GIF or BMP
+// isn't drawn (Failed: absent, as the Node server answered it).
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Compression;

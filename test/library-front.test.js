@@ -559,7 +559,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       raw.prepare("DELETE FROM albums WHERE id = ?").run(qal);
       await ctx.library.reload();
     }
-    // Plays made with no server: written by C# as the Node server writes them (its corrected title too).
+    // Plays made with no server: written by C# as the Node server wrote them (its corrected title too).
     const before = raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
     const at = Date.now() - 3600000;
     const played = await post("/api/phone/plays", { plays: [{ track_id: abbey.id, ts: at }, { track_id: something.id, ts: 1 }, { track_id: 999999, ts: at }, { track_id: rowOf("Hunter").id }, "junk"] });

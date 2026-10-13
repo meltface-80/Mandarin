@@ -6,8 +6,7 @@
 //   POST /api/dsp/headphones/parse      { text, name } → a pasted or uploaded profile
 //
 // The chosen profile is saved with the device (PATCH /api/audio-devices/:id,
-// still the Node server's). Answered here once the Node server has said where
-// AutoEq is (Jobs.cs); until then, by it.
+// DeviceRoutes.cs).
 using Mandarin.Server.Extras;
 using Mandarin.Server.Tags;
 

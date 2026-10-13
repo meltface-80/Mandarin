@@ -37,7 +37,7 @@ test.after(() => { if (!skip) kept.done(); });
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-db-"));
 
-/* Made by the C# program, as the Node server asks it. */
+/* Made by the C# program, as the Node server asked it. */
 function byCsharp(dir) {
   const r = spawnSync(BIN, ["db", dir], { encoding: "utf8", timeout: 60000 });
   assert.equal(r.status, 0, r.stdout + r.stderr);

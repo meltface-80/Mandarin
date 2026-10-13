@@ -5,12 +5,10 @@
 //   { ok, version, albums, rooms, ffmpeg, soxr,
 //     transcode_cache: { files, bytes, running, queued }, audio_engine, csharp }
 //
-// The rooms the Node server has found (playback is its until stage 6) and how
-// bringing this server to its version went (lib/server/csharp-update.js) come
-// with its state (/internal/library); the rest is this server's own: the
-// library's count, ffmpeg, the conversions (made here since v0.8.40), and the
-// audio engine, found where lib/local/engine.js looks for it (Local/AudioEngine.cs).
-// On its own (v0.8.50, stage 7) there is no csharp field: no version to match.
+// The rooms are the hub's (Playback/Hub.cs); the rest: the library's count,
+// ffmpeg, the conversions (made here since v0.8.40), and the audio engine,
+// found where lib/local/engine.js looked for it (Local/AudioEngine.cs). Since
+// v0.8.50 (stage 7) there is no csharp field: no other server's version to match.
 // `mandarin-server --health` (Program.cs) is the image's health check: one GET
 // of this, 0 when it answers 200.
 using Mandarin.Server.Local;

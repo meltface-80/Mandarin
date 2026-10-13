@@ -31,7 +31,7 @@ internal abstract partial class Catalogue(string id, string name)
     public string Key { get; } = id + ":";
     private string NsKept => Id + "-kept";
 
-    // ------------------------------------------------------------ the account, as the Node server keeps it
+    // ------------------------------------------------------------ the account, as the Node server kept it
 
     /* db.setting(<service>): the account (written here since v0.8.47, Accounts.cs), or undefined. */
     public object? Account() => Extras.Labels.Setting(Id);

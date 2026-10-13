@@ -5,6 +5,12 @@ self-contained file. It was moved from Node.js one part at a time from v0.8.1, a
 whole server since v0.9.0, when the Node server's code left the repository and Node.js the image
 (`docs/specs/csharp-migration.md`, stage 7).
 
+The comments say where each rule came from: a file of the Node server's (`lib/…`, `index.js`), and
+"as the Node server did" where the answers, the stored data or a quirk are kept byte for byte, so
+that the page, the apps and a database made before v0.9.0 work as they did. Those files are no
+longer here; each is read as it last was with `git show 333e55f^:lib/server/api-library.js` (the
+commit that removed them, #214).
+
 ## How it runs
 
 It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up from the environment

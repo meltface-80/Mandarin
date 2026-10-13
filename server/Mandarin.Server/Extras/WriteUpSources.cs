@@ -1,7 +1,7 @@
 // WriteUpSources.cs — asking the sources of a record's write-up (v0.8.21), as
 // lib/meta.js asks them: MusicBrainz for the year, Pitchfork's review page,
 // Qobuz's search and album pages, Wikipedia's search and extracts, each
-// remembered in memory (as the Node server does, two thousand at most), each
+// remembered in memory (as the Node server did, two thousand at most), each
 // source given its own pause between requests (MusicBrainz on the one timer
 // both servers share); and Pitchfork's two lists, kept six hours when they
 // have anything in them. WriteUps.cs decides what each answer holds.

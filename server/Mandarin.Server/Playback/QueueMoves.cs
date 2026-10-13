@@ -1,8 +1,8 @@
 // QueueMoves.cs — picks from the queue moved to just after the track playing
 // (the queue's Play now and Play next on a selection): lib/sonos/queue-moves.js
-// (v0.8.37) rule for rule, held to it by test/sonos-csharp.test.js. Not used
-// yet: the queue is still the Node server's until stage 6 of
-// docs/specs/csharp-migration.md.
+// (v0.8.37) rule for rule, held to it by test/sonos-csharp.test.js; used by
+// every player's queue since stage 6 (Renderers/Players.Commands.cs,
+// Playback/Phones.Commands.cs).
 //
 // One plan for every kind of player. Positions are 1-based, `current` the
 // track playing (0 for none), `positions` the picks in the order they were

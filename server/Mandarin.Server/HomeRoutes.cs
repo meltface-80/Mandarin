@@ -44,7 +44,7 @@ internal static partial class Library
 
     private static Task<bool> AlbumOfTheDay(HttpContext ctx, Snapshot s, LibState st)
     {
-        if (st.Day.Length == 0) return Task.FromResult(false);   // a Node server too old to say which day it is
+        if (st.Day.Length == 0) return Task.FromResult(false);   // no day known yet: "No such endpoint"
         using var c = Db.Open();
         var al = DayAlbum(c, s, st);
         if (al == null) return Send(ctx, new JsonObject { ["album"] = null, ["day"] = st.Day });

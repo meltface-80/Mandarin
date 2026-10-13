@@ -38,7 +38,7 @@ internal sealed class Album
     public string DateKey = "";
     public List<string> Genres = [];
     public long? Rate, Bits, Added;
-    // albums.track_count, as the Node server has it (al.tracks): what the identification scan counts.
+    // albums.track_count, as the Node server had it (al.tracks): what the identification scan counts.
     public double? TrackCount;
     public bool Lossless, Compilation, CustomArt, Edited;
     public string? Container, Dir, Label, Service;

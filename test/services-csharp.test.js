@@ -37,7 +37,7 @@ async function until(fn, ms = 20000, what = "") {
   }
 }
 
-test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node server answers it", { skip, timeout: 180000 }, async (t) => {
+test("Qobuz's and Tidal's catalogue, answered by the C# server as the Node server answered it", { skip, timeout: 180000 }, async (t) => {
   const lib = makeLibrary();
   // The fixture library's files (the Tidal fake makes MPEG-DASH of a hi-res album's).
   const file = path.join(lib.music, "Artist A", "Album One", "01 Song 1.flac");

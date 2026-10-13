@@ -31,7 +31,7 @@ internal static partial class Jobs
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
     public static Admin.Tailscale? Tailscale { get; private set; }
-    // The in-app update (v0.8.48, UpdateRoutes.cs), once handed over.
+    // The in-app update (v0.8.48, UpdateRoutes.cs).
     public static Admin.Updater? Updater { get; private set; }
     // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
     public static MusicBrainz? Mb { get; private set; }

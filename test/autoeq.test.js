@@ -52,7 +52,7 @@ test("AutoEq's files are read", { skip: noBin }, () => {
   assert.equal(many.bands.length, 10);
 });
 
-test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { skip: noBin || (!kept.exists() && "no recording of the Node server's readings") }, () => {
+test("the C# server reads AutoEq's files as the Node server did (v0.8.26)", { skip: noBin || (!kept.exists() && "no recording of the Node server's readings") }, () => {
   const index = INDEX + [
     "- [Moondrop Blessing 2](./crinacle/711%20in-ear/Moondrop%20Blessing%202) by crinacle on 711",
     "- [Apple AirPods](./Rtings/earbud/Apple%20AirPods) by Rtings",
