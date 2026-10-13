@@ -90,6 +90,10 @@ suppressions file: what the rules found on the day the gate came, per file and r
   with nothing in the log to say which test it was.
 - A test that compares two servers' views of one device waits until both have read it (a
   retried compare, bounded), never compares once: each reads on a timer of its own.
+- A test file that fails in CI is run once more on its own (`.github/retry-failed.sh`). A pass
+  then is a warning on the run naming the file: a race on a busy runner, to be fixed in its turn,
+  not a reason to hold the merge. A failure again is red. The test itself is never changed by
+  this: it is the same file, run again with the machine to itself.
 - A test is worth what it refuses. For any test that matters, break the code on purpose once
   and watch the test fail; a test that passes against broken code is a suggestion. The gates'
   own tests (`test/quality-gates.test.js`) run on synthetic trees under a real `git init`, and

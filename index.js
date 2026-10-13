@@ -797,25 +797,20 @@ function createServer(overrides = {}) {
       log(`[musicd] WARNING: ${strays.map(n => path.join(parent, n)).join(", ")} will not be scanned — mount each music folder inside ${config.musicDir}, e.g. -v /path/to/Music:${path.join(config.musicDir, "name")}:ro`);
     }
     log(ff.ok ? `[musicd] ${ff.version}${ff.soxr ? " (soxr resampler)" : ""}` : "[musicd] WARNING: ffmpeg not found — hi-res files cannot be converted for Sonos");
-    await new Promise((resolve, reject) => {
-      // The Android app's page reaches the server through the app's relay, which
-      // it treats as a web proxy: the request line carries the whole address
-      // ("GET http://host:3500/api/…"). Made the usual path before Express sees
-      // it, so every route, redirect and log sees what a direct request would.
-      const srv = require("http").createServer((req, res) => {
-        if (/^https?:\/\//i.test(req.url)) {
-          try { const u = new URL(req.url); req.url = u.pathname + u.search; } catch (e) { /* left as it is */ }
-        }
-        app(req, res);
-      });
-      const behind = config.listenPort != null;
-      srv.listen(behind ? config.listenPort : config.port, behind ? "127.0.0.1" : "0.0.0.0", () => {
-        ctx.listeningOn = srv.address().port;
-        resolve();
-      });
-      srv.on("error", reject);
-      ctx.httpServer = srv;
-    });
+    // The Android app's page reaches the server through the app's relay, which
+    // it treats as a web proxy: the request line carries the whole address
+    // ("GET http://host:3500/api/…"). Made the usual path before Express sees
+    // it, so every route, redirect and log sees what a direct request would.
+    // The port taken with a few tries (lib/server/listen.js): the server before
+    // may still be letting go of it.
+    const behind = config.listenPort != null;
+    ctx.httpServer = await require("./lib/server/listen").listen((req, res) => {
+      if (/^https?:\/\//i.test(req.url)) {
+        try { const u = new URL(req.url); req.url = u.pathname + u.search; } catch (e) { /* left as it is */ }
+      }
+      app(req, res);
+    }, behind ? config.listenPort : config.port, behind ? "127.0.0.1" : "0.0.0.0", { log });
+    ctx.listeningOn = ctx.httpServer.address().port;
     if (config.listenPort != null) log(`[musicd] behind Mandarin's C# server: this one on 127.0.0.1:${ctx.listeningOn}`);
     log(`[musicd] listening on ${ctx.baseUrl()} — open it in a browser`);
     if (playback.here) playback.start();

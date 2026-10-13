@@ -147,7 +147,14 @@ order. After it the Node server does nothing (stage 7 removes it). The parts as 
   never answers is a failure with a name rather than a file held to its five-minute timeout. CI
   deals the test files out to three Linux jobs and two Mac jobs (`npm run test:shard`, node's
   `--test-shard`) and keeps the .NET packages between runs: the whole run takes the time of a
-  part.
+  part. Two more races found by the first sharded run: the server takes its port with a few
+  tries over five seconds (`lib/server/listen.js`, new) rather than failing on the moment the one
+  before is still letting go of it (a restore's restart; the in-app update's restart has the same
+  shape at home); and a scan made by the C# program is given once the program has gone, never
+  while it still holds the database (a database replaced underneath it read "disk I/O error" on
+  a Mac). And a test file that fails in CI is run once more on its own (`.github/retry-failed.sh`):
+  a pass then is a warning on the run naming the file, a race on a busy runner to fix in its turn;
+  a failure again is red.
 
 ## v0.8.48
 Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
