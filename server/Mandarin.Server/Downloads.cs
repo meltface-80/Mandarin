@@ -225,7 +225,7 @@ internal static partial class Downloads
             if (m.Success && (HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method)) && long.TryParse(m.Groups[1].Value, out var id))
             {
                 try { if (await DownloadTrack(ctx, id)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[download] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "download", e); return; }
             }
             await next();
         });

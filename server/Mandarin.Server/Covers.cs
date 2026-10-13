@@ -61,8 +61,8 @@ internal static partial class Covers
     public static bool ProbeOk => Probe.Value;
 
     /*
-     * Draw an album's cover at this size into `file`: true once it's there,
-     * false when it's the Node server's to draw (see above). One drawing a
+     * Draw an album's cover at this size into `file`: how it went (Failed:
+     * absent, as the Node server answered a cover it couldn't draw). One drawing a
      * file at a time; another ask for it waits for that one.
      */
     public static Task<Drawn> Draw(Album al, string file, int size) =>
@@ -117,7 +117,7 @@ internal static partial class Covers
                 src, 32 << 20, TimeSpan.FromSeconds(30));
             if (code != 0 || jpg.Length == 0 || err.Trim().Length > 0)
             {
-                Front.Log($"[art] {what}: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)}); passed to the Node server");
+                Front.Log($"[art] {what}: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
                 return null;
             }
             return jpg;

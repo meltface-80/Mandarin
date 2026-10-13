@@ -1108,6 +1108,11 @@ test from `:migration`.
 - [x] Part 5: the tests without `lib/` (the most of them), and what they found
 - [x] Part 6: the image and the repository; docs; the pull request (v0.9.0, branch
   `stage-7-part-6-node-deleted`)
+- [x] Part 7: loose ends (branch `stage-7-part-7-loose-ends`): the loudness order test reads the
+  processes' order; what the server handed to the Node server answered here
+  (`test/nothing-behind.test.js`); a USB DAC on a Mac through Mandarin DAC Bridge, offered by the
+  Mac installer, a Mac's own sound devices no longer offered (`test/dac-bridge.test.js`, the
+  bridge built by CI at a pinned commit, `.github/dac-bridge.sh`)
 
 ### The order, and why
 

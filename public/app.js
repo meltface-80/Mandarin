@@ -17897,7 +17897,11 @@ initServiceBrowser({
     // can't be searched from there, so Look again goes.
     if (rescan) rescan.classList.toggle("hidden", away);
     if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; paintHideTools(); return; }
+    // Sound devices on the server's computer that it can't open (v0.6.18); a Mac's, played through Mandarin DAC Bridge until one is here (v0.9.0).
+    const localNote = away || !local || local.off ? "" : local.platform === "darwin" ? (devices.some(d => / \(Bridge\)$/.test(d.name)) ? "" : 'To play through a USB DAC plugged into the Mac Mandarin runs on, install <a id="devices-bridge" href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac" target="_blank" rel="noopener">Mandarin DAC Bridge</a>. Each DAC then shows here as “… (Bridge)”.')
+      : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
+        : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
+    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note">' + localNote + "</div>" : ""); paintHideTools(); return; }
     let html = "";
     const shown = devices.filter(d => !d.hidden);
     const hidden = devices.filter(d => d.hidden);
@@ -17932,12 +17936,7 @@ initServiceBrowser({
     } else if (!hideMode && hidden.length) {
       html += '<div class="settings-note dev-hidden-count">' + hidden.length + (hidden.length === 1 ? " device hidden" : " devices hidden") + "</div>";
     }
-    // Sound devices on the server's computer that it can't open (v0.6.18).
-    if (!away && local && !local.off && local.platform === "linux" && !local.count && (local.hidden || local.docker)) {
-      html += '<div class="settings-note">' + (local.docker
-        ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
-        : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.") + "</div>";
-    }
+    if (localNote) html += '<div class="settings-note">' + localNote + "</div>";
     if (away) html += '<div class="settings-note">' + (window.__musicdOffline
       ? "No network: this phone is the player, through its speaker, headphones, Bluetooth or a USB DAC. Sonos rooms and streamers come back with the network."
       : "Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.") + "</div>";

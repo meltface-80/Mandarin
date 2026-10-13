@@ -62,7 +62,7 @@ internal static partial class Streams
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/stream/", StringComparison.Ordinal))
             {
                 try { if (await Answer(ctx, p)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[stream] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "stream", e); return; }
             }
             await next();
         });
@@ -131,7 +131,7 @@ internal static partial class Streams
         Track? t = null;
         using (var c = Db.Open())
         {
-            // Unsigned and not signed in: a speaker asking by its own address (the hub's once this server holds playback, v0.8.49), else the Node server's to decide.
+            // Unsigned and not signed in: a speaker asking by its own address (the hub's once this server holds playback, v0.8.49), else turned away (the gate has already, Auth.cs).
             if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null && !await Images.FromSpeaker(ctx)) return false;
             using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime, duration FROM tracks WHERE id = $id";

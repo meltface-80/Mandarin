@@ -97,6 +97,9 @@ jobs:
       # (test/server.js).
       - name: Build the C# server
         run: ./server/build.sh
+      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
+      - name: Build Mandarin DAC Bridge
+        run: .github/dac-bridge.sh
       - name: Syntax check of the page
         run: node --check public/app.js
       # Kept to a file as well: the tests that failed are said again at the end,
@@ -157,6 +160,9 @@ jobs:
         run: |
           ./server/build.sh
           codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
+      - name: Build Mandarin DAC Bridge
+        run: .github/dac-bridge.sh
       # The installer's own step (tools/mac/install.sh fetch_server), on a Mac:
       # this build served as a release, fetched, checked, signed and placed;
       # and with a sum that doesn't match, nothing placed.
@@ -181,6 +187,19 @@ jobs:
           bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
           test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
           echo "fetched, checked and placed; a wrong sum placed nothing"
+      # The installer's question about Mandarin DAC Bridge (tools/mac/install.sh
+      # bridge_wanted, v0.9.0): answered by MANDARIN_DAC_BRIDGE, and never asked
+      # where the bridge is installed already.
+      - name: The installer's DAC Bridge question
+        run: |
+          set -e
+          ask() { MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_DAC_BRIDGE="$1" bash -c 'source tools/mac/install.sh; bridge_wanted "$1"' _ "$2"; }
+          mkdir -p "$RUNNER_TEMP/bridge"
+          test "$(ask yes "$RUNNER_TEMP/none")" = yes
+          test -z "$(ask no "$RUNNER_TEMP/none")"
+          test -z "$(ask "" "$RUNNER_TEMP/bridge")"
+          test "$(ask yes "$RUNNER_TEMP/bridge")" = yes
+          echo "yes and no answered; installed already, not asked"
       # Two files at once, not package.json's four: GitHub's Mac runners have
       # three cores, and each file here runs the C# server and often Chromium
       # and ffmpeg; four at once kept the machine so busy that a different

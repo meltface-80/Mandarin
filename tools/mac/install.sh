@@ -55,7 +55,22 @@ fetch_server() {
   case "$t" in */tmp.*) rm -rf "$t" ;; esac
 }
 
-# Only the functions, for CI's Mac to try fetch_server (.github/workflows/ci.yml).
+# A USB DAC on this Mac (v0.9.0): Mandarin plays it through Mandarin DAC Bridge
+# (github.com/meltface-80/Mandarin-DAC-Bridge), optional, installed by its own
+# installer. "yes" when it is wanted: MANDARIN_DAC_BRIDGE=yes or no answers
+# without asking; installed already (in $1) it is left as it is, as its own
+# line updates it; else the Mac asks.
+BRIDGE_DIR="$HOME/Mandarin-DAC-Bridge"
+BRIDGE_INSTALL="https://raw.githubusercontent.com/meltface-80/Mandarin-DAC-Bridge/main/tools/mac/install.sh"
+bridge_wanted() {
+  local a="${MANDARIN_DAC_BRIDGE:-}"
+  if [ -z "$a" ] && [ ! -d "$1" ]; then
+    a="$(osascript -e 'button returned of (display dialog "Play to a USB DAC plugged into this Mac? Mandarin DAC Bridge holds the DAC, plays it bit-perfect at each track’s own rate, and shares it with Audirvana. (Optional: it adds a few hundred MB.)" buttons {"Not now", "Install DAC Bridge"} default button "Not now" with title "Mandarin")' 2>/dev/null || echo "Not now")"
+  fi
+  case "$a" in "Install DAC Bridge"|yes|YES|1) echo yes ;; *) echo "" ;; esac
+}
+
+# Only the functions, for CI's Mac to try fetch_server and bridge_wanted (.github/workflows/ci.yml).
 if [ "${MANDARIN_INSTALL_FUNCTIONS_ONLY:-0}" = 1 ]; then return 0 2>/dev/null || exit 0; fi
 
 if [ "$(uname)" != "Darwin" ]; then echo "This installer is for macOS. On Linux, use Docker (see the README)."; exit 1; fi
@@ -121,6 +136,9 @@ AWAKE="$(osascript -e 'button returned of (display dialog "Keep this Mac awake w
 if [ "$AWAKE" = "Keep awake" ]; then
   osascript -e 'do shell script "pmset -c sleep 0" with administrator privileges' >/dev/null 2>&1 || echo "Couldn't change the sleep setting; do it in System Settings → Energy."
 fi
+
+# 6b. A USB DAC on this Mac (v0.9.0): Mandarin DAC Bridge, if wanted, installed at the end.
+BRIDGE="$(bridge_wanted "$BRIDGE_DIR")"
 
 # 7. Start Mandarin now and at every login.
 {
@@ -194,6 +212,11 @@ if [ -z "$up" ]; then
 fi
 open "http://localhost:$PORT"
 
+if [ -n "$BRIDGE" ]; then
+  say "Installing Mandarin DAC Bridge…"
+  /bin/bash -c "$(curl -fsSL "$BRIDGE_INSTALL")" || echo "Mandarin DAC Bridge didn't install. Its own line is in the README (A USB DAC on a Mac)."
+fi
+
 IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
 say "Mandarin is running."
 echo "  On this Mac:   http://localhost:$PORT"
@@ -206,3 +229,6 @@ echo "whenever you log in, and the Mandarin icon on your desktop starts it after
 echo "Add or change music folders any time in Settings → Music Folders."
 echo "If macOS asks to let \"mandarin-server\" find devices on your network or open your files,"
 echo "choose Allow: Mandarin needs it to reach your speakers and read your music."
+if [ -n "$BRIDGE" ] || [ -d "$BRIDGE_DIR" ]; then
+  echo "Your USB DAC: in Settings → Audio Devices, switch on \"<DAC> (Bridge)\"."
+fi

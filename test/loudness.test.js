@@ -129,10 +129,12 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   await new Promise(r => mb.listen(0, "127.0.0.1", r));
   t.after(() => { held = false; waiting.splice(0).forEach(a => a()); mb.closeAllConnections(); mb.close(); });
   // The order files are measured in, as the server starts ffmpeg on them: a stand-in that notes each
-  // measuring's file, then runs ffmpeg itself.
+  // measuring's process and file, then runs ffmpeg itself. Files started together (one per free core)
+  // reach the note in any order, so the order is the processes' (nice, ionice and taskset each exec,
+  // so the stand-in has the id the server's start gave it, and ids are given out in turn).
   const started = path.join(root, "started.log"), stand = path.join(root, "ffmpeg");
   const real = require("child_process").execFileSync("sh", ["-c", 'command -v "$0"', FFMPEG]).toString().trim();
-  fs.writeFileSync(stand, `#!/bin/sh\ncase "$*" in *ebur128*) echo "$*" >> '${started}';; esac\nexec '${real}' "$@"\n`, { mode: 0o755 });
+  fs.writeFileSync(stand, `#!/bin/sh\ncase "$*" in *ebur128*) echo "$$ $*" >> '${started}';; esac\nexec '${real}' "$@"\n`, { mode: 0o755 });
   const before = process.env.FFMPEG_PATH;
   process.env.FFMPEG_PATH = stand;
   t.after(() => { if (before === undefined) delete process.env.FFMPEG_PATH; else process.env.FFMPEG_PATH = before; });
@@ -184,8 +186,11 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   // look at — Old, edited; Single, one track — newest first, then nothing until it has looked.
   assert.equal((await api("identify/settings", { schedule: false })).status, 200);
   // Each album once, in the order its first file was started on.
-  const order = () => [...new Set((fs.existsSync(started) ? fs.readFileSync(started, "utf8") : "").split("\n").map(l => (/\/Someone\/([^/]+)\//.exec(l) || [])[1]).filter(Boolean))];
-  await until(async () => (await api("loudness")).reason === "identifying", 30000);
+  const order = () => [...new Set((fs.existsSync(started) ? fs.readFileSync(started, "utf8") : "").split("\n").filter(Boolean)
+    .map(l => [Number(l.split(" ", 1)[0]), (/\/Someone\/([^/]+)\//.exec(l) || [])[1]]).sort((a, b) => a[0] - b[0]).map(([, title]) => title).filter(Boolean))];
+  // Identification says "starting" before its first ask, and measuring waits from then on: both
+  // seen before anything is read (CI's runner saw "identifying" with MusicBrainz not yet asked).
+  await until(async () => waiting.length > 0 && (await api("loudness")).reason === "identifying", 30000);
   assert.ok(waiting.length > 0, "identification is asking MusicBrainz");
   assert.deepEqual(order(), ["Old", "Single"]);
   assert.equal((await api("loudness")).measuring, false);

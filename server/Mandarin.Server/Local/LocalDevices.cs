@@ -10,9 +10,9 @@
 //           Opened as plughw:CARD=<id>,DEV=<n> — by the card's name, so a
 //           DAC plugged into another port is still the same device.
 //   macOS   Core Audio: the output devices system_profiler lists. The engine
-//           plays through ALSA, so a Mac's devices are listed and not played
-//           from this server (lib/local/output.js's ffmpeg sink is the Node
-//           server's, until stage 7).
+//           plays through ALSA, so a Mac's devices are counted, not offered
+//           (Renderers/Devices.cs, v0.9.0): they play through Mandarin DAC
+//           Bridge, which offers each DAC as a renderer.
 //
 // A device's id comes from its name (and, on Linux, its device number), so it
 // is the same player after a restart or a replug.

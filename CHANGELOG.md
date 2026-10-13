@@ -51,6 +51,27 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
   checkout now (the image has no Node.js).
 - **Docs**: the README and the GitHub Pages site (v0.9.0 on top, the Mac's install by hand, the
   password reset, how it works, development), `server/README.md` (how it runs, alone), the spec.
+- **What the server used to hand to the Node server, answered here** (stage 7 part 7): with
+  nothing behind it, such a request fell through to "No such endpoint". The album editor's cover
+  from an address follows redirects here (https to http too, as fetch did; twenty at most), reads
+  an address as a browser does (a space in it), and refuses a picture ffmpeg can't read (422,
+  "Couldn't read that image") or one past 64 MB (502, too large). A JSON body sent without a
+  length is read to the 2 MB limit (413 past it). A route that fails says why (500 and the error,
+  as the Node server's routes did: a stream, a download, a library write with the database held,
+  a service's Clean up, status or settings); a cover that can't be drawn is absent (404), as
+  before. A merged label let go by a key of any shape: "Not a merged label". Tested in
+  `test/nothing-behind.test.js`.
+- **A USB DAC on a Mac** plays through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge)
+  (stage 7 part 7): the Mac's install line offers to add it (`MANDARIN_DAC_BRIDGE=yes` or `no`
+  answers without asking; installed already, it is left as it is), and each DAC is a renderer,
+  "<DAC> (Bridge)", which the bridge holds, switches to each track's rate and plays bit-perfect,
+  sharing it with Audirvana. Mandarin's audio engine plays through ALSA, so a Mac's own sound
+  devices, listed but not played since v0.8.49, are no longer offered; Audio Devices points to
+  the bridge instead. CI plays a queue through the bridge's fake DAC, end to end
+  (`test/dac-bridge.test.js`).
+- **The loudness order test** read the order files were measured in from the order their ffmpeg
+  stand-ins wrote a line, so files started together could be noted out of order on a busy
+  machine; it reads the processes' order now.
 
 ## v0.8.50
 Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
