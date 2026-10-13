@@ -201,7 +201,15 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     assert.deepEqual(await change("/api/favourites", { offset: ids[2], on: true }), { status: 200, body: { ok: true, offset: ids[2], favourite: true } });
     assert.deepEqual((await change("/api/favourites", { offset: ids[0], on: 1 })).body, { ok: true, offset: ids[0], favourite: true });
     assert.deepEqual(await change("/api/favourites", { offset: 99999, on: true }), { status: 404, body: { error: "That album is no longer in the library" } });
+    // Two hearts a request apart can still share a millisecond: a millisecond apart, the later one newer.
+    const favAt = raw.prepare("SELECT MIN(added_at) AS t FROM favourites").get().t;
+    [ids[2], ids[0]].forEach((id, k) => raw.prepare("UPDATE favourites SET added_at = ? WHERE key = (SELECT key FROM albums WHERE id = ?)").run(favAt + k, id));
     assert.deepEqual((await change("/api/listen-later", { offsets: [ids[1], ids[4], 99999], on: true })).body, { ok: true, offset: ids[4], later: true, count: 2 });
+    // Written in one request, the two can share a millisecond or not (the list is newest first, a tie in the library's order):
+    // a millisecond apart, as they were written, so the answer is the same on any machine.
+    const laterAt = raw.prepare("SELECT MIN(added_at) AS t FROM listen_later").get().t;
+    [ids[1], ids[4]].forEach((id, i) => raw.prepare("UPDATE listen_later SET added_at = ? WHERE key = (SELECT key FROM albums WHERE id = ?)").run(laterAt + i, id));
+    await ctx.library.reload();
     if (RECORD) assert.ok(ctx.library.isFavourite(ctx.library.album(ids[2])) && ctx.library.isLater(ctx.library.album(ids[4])), "the Node server's copy told");
     await post("/api/album/edit", { offset: ids[3], title: "Edited Title", artist: "The Edited", year: 1988 });
     assert.deepEqual((await change("/api/settings/labels", {})).body, { error: "enabled required" });
