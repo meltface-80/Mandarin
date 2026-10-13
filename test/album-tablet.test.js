@@ -30,8 +30,9 @@ const DRIVER = `(async () => {
   await until(() => document.querySelector("#home-view .album"));
   const al = (await (await fetch("/api/library/albums?sort=album")).json()).albums.find(a => a.title === "Album One");
   window.__openAlbum(al, {});
-  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn"));
-  await sleep(1000);   // the row is drawn again once the album's details are in
+  // The album's details in (the button row is drawn again with them, then its tracks and total time), then a frame.
+  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn") && $("modal-tracks").querySelectorAll("li").length === 3 && $("modal-total").textContent);
+  await new Promise(r => requestAnimationFrame(r));
   // Eleven tracks and a review, as the album in the report has (the fixture
   // has three tracks, and no review without the network).
   const ol = $("modal-tracks"), row = ol.querySelector("li");
@@ -40,13 +41,17 @@ const DRIVER = `(async () => {
   // Expanded (Show more): long, and it must grow downwards from under the cover.
   $("album-bio-text").textContent = "Late Developers is the twelfth studio album by the Scottish indie pop band Belle and Sebastian. ".repeat(12);
   $("album-bio-text").dataset.clipped = "false";
-  await sleep(300);
+  // Laid out, any transition of the section's done.
+  await until(() => document.getAnimations().every(a => a.playState === "finished" || a.effect.getTiming().iterations === Infinity));
+  await new Promise(r => requestAnimationFrame(r));
   const body = document.querySelector("#album-modal .modal-body");
   const box = el => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
   const open = async () => {
     const btn = document.querySelector("#modal-actions .overflow-wrap .overflow-btn");
-    btn.click(); await sleep(120);
-    const menu = document.querySelector("#modal-actions .overflow-wrap .overflow-menu");
+    btn.click();
+    // The menu open and done moving, then a frame: each item is measured where it rests.
+    const menu = await until(() => { const m = document.querySelector("#modal-actions .overflow-wrap .overflow-menu"); return m && m.getBoundingClientRect().height > 0 && m.getAnimations({ subtree: true }).every(a => a.playState === "finished") && m; });
+    await new Promise(r => requestAnimationFrame(r));
     const items = [...menu.querySelectorAll(".sel-menu-item")];
     // Each item really the thing at its own centre: on screen, not clipped, not covered.
     const hit = items.map(b => { const x = b.getBoundingClientRect(); const e = document.elementFromPoint(x.left + x.width / 2, x.top + x.height / 2); return !!e && (e === b || b.contains(e)); });
@@ -55,7 +60,7 @@ const DRIVER = `(async () => {
     return r;
   };
   const out = {};
-  body.scrollTop = 0; await sleep(100);
+  body.scrollTop = 0; await new Promise(r => requestAnimationFrame(r));
   out.rest = await open();
   out.panel = box(document.querySelector("#album-modal .modal-panel"));
   out.share = box($("modal-share-btn"));
@@ -74,7 +79,7 @@ const DRIVER = `(async () => {
   out.totalOnTracksLine = Math.abs(tb.top - document.querySelector(".tracks-head").getBoundingClientRect().top) < 4;
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
-  body.scrollTop = Math.max(0, rowTop - 60); await sleep(100);
+  body.scrollTop = Math.max(0, rowTop - 60); await new Promise(r => requestAnimationFrame(r));
   out.scrolledBy = body.scrollTop;
   out.scrolled = await open();
   return out;
@@ -152,17 +157,18 @@ test("the album's ⋯ → Add to playlist: the whole album into a playlist you c
         await until(() => document.querySelector("#home-view .album"));
         const al = (await (await fetch("/api/library/albums?sort=album")).json()).albums.find(a => a.title === "Album One");
         window.__openAlbum(al, {});
-        await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn"));
-        await sleep(1000);
-        document.querySelector("#modal-actions .overflow-wrap .overflow-btn").click(); await sleep(150);
-        const item = [...document.querySelectorAll("#modal-actions .overflow-menu .sel-menu-item")].find(x => x.textContent === "Add to playlist");
+        // The album's details in: the button row is drawn again with them.
+        await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn") && document.getElementById("modal-total").textContent);
+        document.querySelector("#modal-actions .overflow-wrap .overflow-btn").click();
+        const item = await until(() => [...document.querySelectorAll("#modal-actions .overflow-menu .sel-menu-item")].find(x => x.textContent === "Add to playlist"), 5000);
         if (!item) return { item: false };
         item.click();
         const row = await until(() => [...document.querySelectorAll(".sheet-row")].find(x => x.textContent.startsWith("Mix ·")));
         if (row) row.click();
-        await sleep(1500);
         return { item: true, row: !!row };
       })()`);
+      // Added once the page's request is answered (the page kept open until then).
+      for (let i = 0; i < 100 && (await api("user-playlists")).playlists.find(p => p.name === "Mix").track_total === before; i++) await new Promise(res => setTimeout(res, 100));
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
     assert.equal(r.item, true, "Add to playlist in the menu");

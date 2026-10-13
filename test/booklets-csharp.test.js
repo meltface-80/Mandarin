@@ -44,8 +44,9 @@ const DRIVER = `(async () => {
   await until(() => document.querySelector("#home-view .album"));
   const albums = (await (await fetch("/api/library/albums?sort=album")).json()).albums;
   window.__openAlbum(albums.find(a => a.title === "Hi Res"), {});
-  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn"));
-  await sleep(800);
+  // The album's details in (a booklet would be offered with them), then a frame.
+  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn") && $("modal-total").textContent);
+  await new Promise(r => requestAnimationFrame(r));
   out.hires_book = shown($("modal-booklet"));
   window.__openAlbum(albums.find(a => a.title === "Album One"), {});
   out.book_shown = !!(await until(() => shown($("modal-booklet"))));
@@ -77,7 +78,7 @@ const DRIVER = `(async () => {
     covers_album: box(viewer).t <= out.art.t && box(viewer).b >= out.art.b
   } : null;
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  await sleep(200);
+  await until(() => !shown($("booklet-viewer")));
   out.after_escape = { viewer: shown($("booklet-viewer")), album: !$("album-modal").classList.contains("hidden") };
   // The phone's Back (the Android app calls window.__musicdBack): the booklet first.
   out.back_before = typeof window.__musicdBack;
@@ -87,7 +88,7 @@ const DRIVER = `(async () => {
   await until(() => shown($("booklet-viewer")));
   out.back_open = typeof window.__musicdBack;
   out.back_answer = window.__musicdBack ? window.__musicdBack() : null;
-  await sleep(100);
+  await until(() => !shown($("booklet-viewer")));
   out.after_back = { viewer: shown($("booklet-viewer")), album: !$("album-modal").classList.contains("hidden"), back: typeof window.__musicdBack };
   return out;
 })()`;

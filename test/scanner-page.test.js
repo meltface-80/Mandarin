@@ -30,8 +30,9 @@ const DRIVER = `(async () => {
   const body = document.getElementById("identify-pane-body");
   const text = () => body.textContent;
   const out = {};
-  document.getElementById("settings-toggle").click(); await sleep(400);
-  document.querySelector('#settings-overlay .settings-nav-item[data-pane="identify"]').click();
+  const navItem = () => document.querySelector('#settings-overlay .settings-nav-item[data-pane="identify"]');
+  document.getElementById("settings-toggle").click(); for (let i = 0; i < 200 && !(navItem() && navItem().offsetParent); i++) await sleep(25);
+  navItem().click();
   // At once, before any answer: the page's own words.
   out.at_once = ["Schedule", "Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Scheduling", "Identification progress", "Clean up", "Processor"].filter(w => !text().includes(w));
   out.blocks = body.querySelectorAll("[data-blk]").length;
@@ -51,6 +52,7 @@ const DRIVER = `(async () => {
   const cleanRow = body.querySelector('[data-blk="cleanup"] .settings-row');
   cleanRow.__kept = true;
   const before = asked.length;
+  // A window: the page's own polls within it are counted, and what didn't move must not be drawn again.
   await sleep(11000);
   out.kept = body.querySelector('[data-blk="identify"] .settings-row').__kept === true && body.querySelector('[data-blk="cleanup"] .settings-row').__kept === true;
   const since = asked.slice(before);
@@ -59,8 +61,9 @@ const DRIVER = `(async () => {
   out.github_again = since.filter(u => u.includes("check=1")).length;
   out.lists_on_open = asked.slice(0, before).filter(u => /\\/api\\/identify\\?lists=[1-9]/.test(u)).length;
   // Back, and open again: what it showed is there straight away, numbers and all.
-  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click(); await sleep(200);
-  document.querySelector('#settings-overlay .settings-nav-item[data-pane="identify"]').click();
+  document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click();
+  for (let i = 0; i < 200 && !navItem().offsetParent; i++) await sleep(25);
+  navItem().click();
   out.again_at_once = /\\d+ of \\d+ albums checked/.test(text());
   return out;
 })()`;

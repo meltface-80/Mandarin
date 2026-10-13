@@ -160,6 +160,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(start.event.format_id, 6);
       // The next track was made ready behind it (the fake room fetches only when told to move on).
       await until(() => qobuz.fetches.length >= 2);
+      // It plays a while first: the end report says how long.
       await sleep(1200);
       await api("control", { zone_or_output_id: kitchen.zone_id, command: "next" });
       await until(() => qobuz.reports.some(x => x.which === "end" && x.event.track_id === 5001), 20000);
@@ -293,6 +294,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
         })()`);
         // The removal at Qobuz, waiting: the page is still open.
         await until(() => qobuz.parked["favorite/delete"] >= 1);
+        // A window: while Qobuz hasn't answered, the page must stay as it is.
         await sleep(300);
         held = await page.eval(`({ open: !document.getElementById("album-modal").classList.contains("hidden"), closed: !!window.__removed.closed })`);
         const t0 = Date.now();
@@ -343,7 +345,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           out.page_menu = [...modal.querySelectorAll(".overflow-menu .sel-menu-item")].map(b => b.textContent);
           modal.querySelector("[data-close]").click();
           await until(() => modal.classList.contains("hidden"));
-          await sleep(200);
+          await until(() => !$("qobuz-overlay").classList.contains("is-under") && !$("qobuz-overlay").classList.contains("hidden"));
           out.back_on_top = !$("qobuz-overlay").classList.contains("is-under") && !$("qobuz-overlay").classList.contains("hidden");
           out.tiles_kept = list.querySelectorAll(".album.qobuz-tile").length;
           return out;
@@ -403,10 +405,10 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           await until(() => !$("qobuz-overlay").classList.contains("hidden") && !$("qobuz-artist-head").classList.contains("hidden"));
           out.artist_head = ($("qobuz-artist-head").textContent || "").includes("Artist A");   // the fake's artist page
           // The Library wall's filter asks the services too: letters no album here starts with.
-          $("qobuz-overlay-close").click(); await sleep(300);
-          $("topbar-back").click(); await sleep(300);
-          $("home-library-title").click(); await sleep(500);
-          document.querySelector(".topbar .lib-filter-btn").click(); await sleep(200);
+          $("qobuz-overlay-close").click(); await until(() => $("qobuz-overlay").classList.contains("hidden"));
+          $("topbar-back").click(); await until(() => !$("home-view").classList.contains("hidden"));
+          $("home-library-title").click(); await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-filter-btn"));
+          document.querySelector(".topbar .lib-filter-btn").click(); await until(() => document.querySelector(".topbar .lib-filter-input"));
           const lf = document.querySelector(".topbar .lib-filter-input");
           lf.value = "Whit"; lf.dispatchEvent(new Event("input", { bubbles: true }));
           const lw = await until(() => document.querySelector("#album-grid .ext-search-wrap .album.qobuz-tile"));

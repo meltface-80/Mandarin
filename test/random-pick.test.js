@@ -91,6 +91,7 @@ test("Random Album: chosen, then offered", { skip: (!haveFfmpeg() && "ffmpeg is 
         // Closed by the ×, then by the backdrop: nothing more played.
         await choose(); $("#random-pick-close").click(); out.closedX = !open();
         await choose(); $("#random-pick-overlay .confirm-backdrop").click(); out.closedBackdrop = !open();
+        // A window: nothing more may be played in it.
         await sleep(300);
         out.playsAfter = plays().length;
         return out;`);
@@ -121,7 +122,7 @@ test("Random Album: chosen, then offered", { skip: (!haveFfmpeg() && "ffmpeg is 
         window.__playUnheard();
         await until(open, 6000);
         document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-        await sleep(200);
+        await until(() => !open(), 3000);
         return { popup: open(), album: !$("#album-modal").classList.contains("hidden"), plays: plays().length };`);
       assert.equal(r.popup, false);
       assert.equal(r.album, true, "the album view under it stays open");
@@ -143,7 +144,9 @@ test("Random Album: chosen, then offered", { skip: (!haveFfmpeg() && "ffmpeg is 
     await t.test("a phone held sideways: the whole box on screen, the choices in a row", async () => {
       const r = await run({ width: 844, height: 390 }, `
         await choose();
-        await sleep(300);
+        // Done appearing, then a frame: measured where it rests.
+        await until(() => document.getAnimations().every(a => a.playState === "finished" || a.effect.getTiming().iterations === Infinity), 3000);
+        await new Promise(r => requestAnimationFrame(r));
         const b = $(".random-pick-box").getBoundingClientRect();
         const btns = [...ov().querySelectorAll("[data-kind]")].map(x => x.getBoundingClientRect());
         return { top: b.top, bottom: b.bottom, h: innerHeight, row: btns.every(x => Math.abs(x.top - btns[0].top) < 1) };`);

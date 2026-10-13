@@ -69,7 +69,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(p.connected, false);
       assert.equal(p.pending.url, "https://link.tidal.com/ABCDE");
       assert.equal(p.pending.code, "ABCDE");
-      await sleep(1500);
+      await until(() => tidal.polls >= 1);
       assert.equal((await api("settings/tidal")).connected, false, "still waiting for the person");
       assert.ok(tidal.polls >= 1, "asked Tidal whether it has happened");
       // The person signs in on tidal.com.
@@ -157,7 +157,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
           out.source = $("modal-source").className;
           modal.querySelector("[data-close]").click();
           await until(() => modal.classList.contains("hidden"));
-          await sleep(200);
+          await until(() => !$("tidal-overlay").classList.contains("is-under") && !$("tidal-overlay").classList.contains("hidden"));
           out.back_on_top = !$("tidal-overlay").classList.contains("is-under") && !$("tidal-overlay").classList.contains("hidden");
           return out;
         })()`);
