@@ -23,6 +23,7 @@ const assert = require("node:assert");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
+const { until } = require("./helpers");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
@@ -117,11 +118,11 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
   await t.test("hidden, the room list isn't asked for; shown again, it is at once", async () => {
     await page.eval(SHOW(true));
     const before = count("/api/zones");
+    // A window: nothing may be asked in it (the room list is asked every 15 s while shown).
     await sleep(16500);
     assert.equal(count("/api/zones"), before, "not while hidden");
     await page.eval(SHOW(false));
-    await sleep(500);
-    assert.ok(count("/api/zones") > before, "asked on coming back");
+    await until(() => count("/api/zones") > before, 5000, "the room list asked for on coming back");
     assert.deepEqual(page.errors, []);
   });
 

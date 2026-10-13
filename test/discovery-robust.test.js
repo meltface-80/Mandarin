@@ -109,8 +109,7 @@ test("a renderer seen lately that misses a search round is checked directly; one
   assert.equal(found.network_name, "Kitchen Streamer");
   const said = ctx.logs.length;
   await r.stop();
-  await sleep(1700);
-  const again = (await rescan()).find(d => d.id === id);
+  const again = await until(async () => { const d = (await rescan()).find(x => x.id === id); return d && d.online === false && d; }, 15000);
   assert.equal(again.online, false, "gone: not found");
   assert.deepEqual(ctx.logs.slice(said).filter(l => /upnp|renderer|Kitchen Streamer/i.test(l)), [], "and nothing logged for a device that simply isn't there");
 });

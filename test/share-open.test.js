@@ -60,6 +60,7 @@ const DRIVER = `(async () => {
   out.card_at = at;
   out.card_ms = Math.round(out.card_at - t0);
   await until(() => out.requests.some(r => r.url.startsWith("/api/similar")), 8000);
+  // A window for whatever else the card asks for to be asked.
   await sleep(500);
   // Only what was asked for once the share was: a request started before it
   // and answered after isn't the card's.

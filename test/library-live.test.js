@@ -113,6 +113,7 @@ test("albums added show up by themselves: Home's Library row and the Library wal
       window.__openAlbum(first.__album, {});
       await until(() => !document.getElementById("album-modal").classList.contains("hidden"));
       window.__libraryChanged({ live: true });
+      // A window: the wall must not be rebuilt under the open album in it.
       await new Promise(r => setTimeout(r, 1500));
       return { same: document.querySelector("#album-grid .album") === first, open: !document.getElementById("album-modal").classList.contains("hidden") };
     })()`);
