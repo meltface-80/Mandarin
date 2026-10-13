@@ -31,15 +31,16 @@ async function until(fn, ms = 10000) {
 
 const DRIVER = (album) => `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  // Waited for, a busy machine's while (a Mac runner's two files at once, each with Chromium and ffmpeg); not there by then, said by name.
+  const until = async (fn, what, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("not there in time: " + what); await sleep(50); } return true; };
   const out = {};
-  await until(() => document.querySelector("#home-random .album, #home-today .album"));
+  await until(() => document.querySelector("#home-random .album, #home-today .album"), "Home's albums");
   window.__openAlbum(${JSON.stringify(album)}, { source: "home", filter: null });
-  await until(() => document.querySelectorAll("#modal-tracks li").length === 3);
+  await until(() => document.querySelectorAll("#modal-tracks li").length === 3, "the album's three tracks");
   const li = n => document.querySelectorAll("#modal-tracks li")[n];
   // A track's buttons (the page is given a moment to settle after the album opens).
   await sleep(800);
-  li(2).click(); await until(() => document.querySelector("#modal-tracks .t-actions"));
+  li(2).click(); await until(() => document.querySelector("#modal-tracks .t-actions"), "a track's buttons");
   out.track_buttons = [...document.querySelectorAll("#modal-tracks .t-actions button")].map(b => b.textContent);
   const next = [...document.querySelectorAll("#modal-tracks .t-actions button")].find(b => b.textContent === "Play next");
   next.click(); await sleep(800);
