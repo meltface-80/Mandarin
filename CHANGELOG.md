@@ -86,7 +86,9 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   there, fell through to the not-found page where the Node server said 400 or 404 (`Streams.cs`
   says them alone); and a cover that can't be had was the same, where the Node server answered an
   empty 404 (`Images.cs`). `test/pages-csharp.test.js`, `test/loudness.test.js` and
-  `test/covers-csharp.test.js` hold each, on the program alone.
+  `test/covers-csharp.test.js` hold each, on the program alone. And Rescan library answered
+  with no services after it, where the Node server named the ones signed in with their import on
+  (Qobuz, Tidal) as it set them going; it names them now (`test/qobuz.test.js`).
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,

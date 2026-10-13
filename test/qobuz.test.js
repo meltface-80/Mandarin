@@ -55,7 +55,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
   qobuz.favouriteTracks.add("6002");
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, identify: false, qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
@@ -226,20 +226,21 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("services/watch", {})).changed, false, "looked at within 15 s: nothing to do");
       // Removed in the Qobuz app: off the walls on the next look, its page still reachable.
       qobuz.favourites.delete("1003");
-      const w2 = await ctx.services.qobuz.watch();
+      const watch = async () => (await ctx.internal("/internal/jobs/watch")).services.qobuz;
+      const w2 = await watch();
       assert.deepEqual(w2, { added: 0, dropped: 1, failed: 0, changed: true });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false);
       const whyGone = (await api("album?offset=" + other.offset)).album.service_why;
       assert.equal(whyGone.kept, null); assert.equal(whyGone.held, true, "a playlist holds one of its tracks: " + JSON.stringify(whyGone));
       // Nothing changed: the watch says so and touches nothing.
-      assert.deepEqual(await ctx.services.qobuz.watch(), { added: 0, dropped: 0, failed: 0, changed: false });
+      assert.deepEqual(await watch(), { added: 0, dropped: 0, failed: 0, changed: false });
       // Removed in the Qobuz app and its page opened here before any look: the
       // page's "not in your favourites" is what the library goes by, at once.
       qobuz.favourites.add("1003");
-      await ctx.services.qobuz.watch();
+      await watch();
       assert.ok((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"));
       qobuz.favourites.delete("1003");
-      ctx.services.qobuz.api.cache.clear();   // the minute's cache of the ids gone, as a minute passing would
+      await ctx.restart(token);   // the minute's cache of the ids gone, as a minute passing would
       const pg = await api("album?offset=" + other.offset);
       assert.equal(pg.album.service_favourite, false);
       assert.equal(pg.album.service_why.kept, null, "no longer kept: " + JSON.stringify(pg.album.service_why));
@@ -445,7 +446,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
 
     await t.test("an import after a restart fetches only what is new (v0.7.10)", async () => {
       // The answers cached in memory are gone after a restart; the albums kept are still here.
-      ctx.services.qobuz.api.cache.clear();
+      await ctx.restart(token);
       const asked = [];
       const count = (req) => asked.push(req.url.split("?")[0]);
       qobuz.server.on("request", count);
@@ -490,9 +491,9 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       // Off the walls and off the Playlists screen, the rows kept for the sign-in that follows.
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"), false);
       assert.equal((await api("user-playlists")).playlists.some(x => x.qobuz), false);
-      const q1 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:1001'").get().id);
+      const q1 = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:1001'").get();
       assert.ok(q1, "the rows stay");
-      const s = await fetch(B + "/stream/t" + ctx.library.tracks(q1.id)[0].id + ".flac", { headers: H });
+      const s = await fetch(B + "/stream/t" + ctx.db.raw.prepare("SELECT id FROM tracks WHERE album_id = ? ORDER BY disc_no, track_no").get(q1.id).id + ".flac", { headers: H });
       assert.notEqual(s.status, 200, "no stream without the account");
       // Clean up: signed out, every Qobuz album counts as stale; removed on request, plays kept.
       const cu = await api("library/cleanup");

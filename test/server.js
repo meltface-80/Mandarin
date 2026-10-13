@@ -107,6 +107,8 @@ const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tail
  *   ctx.auth.signUrl(url)  a speaker's address signed under the install's secret (Playback/Signing.cs)
  *   ctx.config             the options as given
  *   ctx.logs               every line the program has printed (start's logs)
+ *   ctx.internal(p, body)  one of the program's private addresses asked (POST, the front key): { status, ...its JSON }
+ *   ctx.restart(token)     Settings → Restart, and the program's next run waited for (a new boot id on /server-info)
  * An option the program has no reading of is refused, so a test says what it does without it.
  * @param {Record<string, any>} overrides
  */
@@ -147,6 +149,18 @@ function createServer(overrides = {}) {
         const r = await fetch(ctx.base + "/internal/library/changed", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify({ edits: true }) });
         return r.json();
       }
+    },
+    async internal(p, body = {}) {
+      const r = await fetch(ctx.base + p, { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
+    },
+    async restart(token) {
+      const boot = async () => { try { return (await (await fetch(ctx.base + "/server-info")).json()).boot; } catch (e) { return null; } };
+      const before = await boot();
+      const r = await fetch(ctx.base + "/api/system/restart", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" });
+      if (r.status !== 200) throw new Error("restart refused: " + r.status + " " + await r.text());
+      for (let i = 0; i < 300; i++) { const b = await boot(); if (b && b !== before) return b; await sleep(100); }
+      throw new Error("the server didn't start again");
     },
     auth: {
       signUrl(url) {

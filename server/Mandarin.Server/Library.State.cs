@@ -128,9 +128,11 @@ internal static partial class Library
         {
             // ctx.afterScan: the release days and today's Smart Picks; the services brought up to date after a Rescan.
             await Jobs.AfterScan();
-            if (Js.Truthy(scan["services"])) Mandarin.Server.Services.Import.Now(null, afterRescan: true);
+            // After a Rescan, the services signed in with their import on are brought up to date, and named (syncServicesAfter).
+            var follow = Js.Truthy(scan["services"]) && Jobs.Holds("import") ? Mandarin.Server.Services.Import.Services().Where(Mandarin.Server.Services.Import.Wants).Select(x => x.Name).ToList() : [];
+            if (follow.Count > 0) Mandarin.Server.Services.Import.Now(null, afterRescan: true);
             o["count"] = (await Current())?.Item1.Count ?? 0;
-            o["services"] = new JsonArray();
+            o["services"] = new JsonArray(follow.Select(n => (JsonNode?)n).ToArray());
         }
         return o;
     }

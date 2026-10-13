@@ -42,7 +42,7 @@ test("a label's names fold together", () => {
 
 test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   // A fake MusicBrainz that knows nothing: the lookup pass for the untagged
   // album (part 3) must not reach the real one from a test.
   const mb = await new (require("./fake-musicbrainz").FakeMusicBrainz)([]).start();
@@ -105,7 +105,7 @@ test("labels from the tags, once switched on", { skip, timeout: 60000 }, async (
 
     await t.test("Label of the week needs three albums; survives a reload", async () => {
       assert.equal((await api("home/label-of-the-week")).label, null, "no label has three albums");
-      ctx.library.reload();
+      await ctx.library.reload();
       assert.equal((await api("filters/labels")).labels.length, 2);
       assert.equal((await api("settings/labels")).enabled, true, "the switch is kept");
     });
