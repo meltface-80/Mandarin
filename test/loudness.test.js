@@ -188,7 +188,9 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   // Each album once, in the order its first file was started on.
   const order = () => [...new Set((fs.existsSync(started) ? fs.readFileSync(started, "utf8") : "").split("\n").filter(Boolean)
     .map(l => [Number(l.split(" ", 1)[0]), (/\/Someone\/([^/]+)\//.exec(l) || [])[1]]).sort((a, b) => a[0] - b[0]).map(([, title]) => title).filter(Boolean))];
-  await until(async () => (await api("loudness")).reason === "identifying", 30000);
+  // Identification says "starting" before its first ask, and measuring waits from then on: both
+  // seen before anything is read (CI's runner saw "identifying" with MusicBrainz not yet asked).
+  await until(async () => waiting.length > 0 && (await api("loudness")).reason === "identifying", 30000);
   assert.ok(waiting.length > 0, "identification is asking MusicBrainz");
   assert.deepEqual(order(), ["Old", "Single"]);
   assert.equal((await api("loudness")).measuring, false);
