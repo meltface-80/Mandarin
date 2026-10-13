@@ -230,7 +230,7 @@ test("away from home (over Tailscale): back up to a file, keep one here, restore
     assert.equal((await (await fetch(BASE + "/api/auth/status", { headers: H })).json()).away, true);
     ctx.db.setSetting("smartPicksHour", 8);
     // A device named as a browser's is ("iPhone · Safari"): the header carries
-    // its name one byte a character, as the Node server writes it (v0.8.22).
+    // its name one byte a character, as the Node server wrote it (v0.8.22).
     ctx.db.raw.prepare("UPDATE devices SET name = ?").run("iPhone · Safari");
     const file = await fetch(BASE + "/api/backup/file", { method: "POST", headers: J, body: JSON.stringify({ include: { settings: true } }) });
     assert.equal(file.status, 200);

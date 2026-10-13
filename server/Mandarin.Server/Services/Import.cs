@@ -15,8 +15,8 @@
 //     from held (the cache, ns <service>-held);
 //   - Settings → Services' state, the stream's quality and the import's switch.
 //
-// The work is a job the Node server hands over ("import", Jobs.cs): the first
-// import shortly after the hand-over, one every six hours and the watch every
+// The work is a job ("import", Jobs.cs): the first import shortly after the
+// start, one every six hours and the watch every
 // couple of minutes (Import, below), as index.js's timers made them; an import
 // it would have started itself (a Rescan) it asks for here (POST
 // /internal/jobs/import), and one after signing in is started here (v0.8.47,
@@ -563,11 +563,10 @@ internal sealed partial class TidalCatalogue
 }
 
 /*
- * The import and the watch as a job handed over by the Node server ("import",
- * Jobs.cs), on index.js's timers: the first import shortly after the hand-over
- * (20 seconds, or as the Node server was set up), one every six hours, the
- * watch every two minutes; each made for a service signed in with its import
- * on, while the work is this server's.
+ * The import and the watch as a job ("import", Jobs.cs), on index.js's
+ * timers: the first import shortly after the start (20 seconds, or as the
+ * configuration says), one every six hours, the watch every two minutes; each
+ * made for a service signed in with its import on.
  */
 internal static class Import
 {
@@ -610,9 +609,9 @@ internal static class Import
 
     /*
      * index.js serviceSync: each service's import. One after the other, not
-     * side by side as there: a step left to the Node server (Tidal's token)
-     * writes the playlists outside any transaction, so it mustn't run while
-     * the other service's import here writes them.
+     * side by side as there: a step (Tidal's token) writes the playlists
+     * outside any transaction, so it mustn't run while the other service's
+     * import writes them.
      */
     private static void Sync()
     {
@@ -666,8 +665,8 @@ internal static class Import
     }
 
     /*
-     * An import the Node server would have started itself (POST
-     * /internal/jobs/import): one service's ([service], a sign-in), or each
+     * An import asked for (POST /internal/jobs/import, as the Node server once
+     * started it itself): one service's ([service], a sign-in), or each
      * signed in with its import on, one after the other ([afterRescan], as
      * api-library.js's syncServicesAfter). False when the work isn't here.
      */

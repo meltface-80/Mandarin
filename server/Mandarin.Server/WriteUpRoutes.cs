@@ -4,9 +4,8 @@
 // artist's story, its label, where to hear it and read about it), an artist's
 // story, Pitchfork's lists and a review's match in the library, the share
 // card's settings, the link that opens the Qobuz app, and the Pitchfork part
-// of the search. The sources are asked here once the Node server has said
-// where they are (Jobs.cs); until then, by the Node server. The wall display's
-// page, which follows what plays, stays with the Node server.
+// of the search. Where the sources are is the configuration's (Jobs.cs). The
+// wall display's content is HousekeepingRoutes.cs's.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
 using Mandarin.Server.Tags;

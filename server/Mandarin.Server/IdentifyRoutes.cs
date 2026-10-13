@@ -2,8 +2,7 @@
 // lib/server/api-identify.js, in the same shapes: the scan's switches and
 // times, how far it has got, what it proposes, what it applied (and undo),
 // what it couldn't place, the album editor's Find match, and the MusicBrainz
-// pack. Answered here once the Node server has handed the scan over
-// (Jobs.cs); until then, by the Node server.
+// pack.
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;

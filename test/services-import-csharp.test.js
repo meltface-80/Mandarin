@@ -4,7 +4,7 @@
  * playlists, made by the C# server (v0.8.45, stage 4.3;
  * server/Mandarin.Server/Services/Import.cs and ServiceRoutes.cs), against
  * the fakes on loopback (test/fake-qobuz.js, test/fake-tidal.js), each held
- * to what the Node server writes and answers for the same request (its own
+ * to what the Node server wrote and answered for the same request (its own
  * import or watch, asked of it directly, the state put back between):
  *
  *   - Settings → Services' state (GET /api/settings/<s>), the quality and the
@@ -113,7 +113,7 @@ function fakes(lib) {
   return { qobuz, tidal };
 }
 
-test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as the Node server makes them", { skip, timeout: 300000 }, async (t) => {
+test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as the Node server made them", { skip, timeout: 300000 }, async (t) => {
   const lib = makeLibrary();
   const { qobuz, tidal } = fakes(lib);
   t.after(() => Promise.all([qobuz.stop(), tidal.stop()]));
@@ -264,7 +264,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
         const n = await rec.want("the quality: " + s + " " + q);
         assert.deepEqual([mine.status, mine.by], [200, "C#"]);
         assert.equal(named(mine.text), n.text, s + ": the quality " + q);
-        assert.equal(written, n.written, s + ": written as the Node server writes it");
+        assert.equal(written, n.written, s + ": written as the Node server wrote it");
       }
       for (const body of [{ quality: "nope" }, { quality: null }, { quality: 5 }]) {
         const mine = await post("settings/" + s, body), n = await theirs("a quality refused: " + s + " " + JSON.stringify(body), "settings/" + s, body);

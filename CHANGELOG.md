@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.4
+**The audit's documentation** (`docs/specs/audit-b4-main.md` module 5). Nothing changes in use.
+
+- **Every route listed** (D2, `docs/specs/api.md`): 202 routes, each with its method, address, who
+  may ask (open, signed in, a signed address, the server's own key) and the file that answers it.
+  `tools/api-map.js` writes it from the C# sources, and `npm run gates` fails while it is out of
+  date. `test/api-map.test.js` holds every GET it lists to a route the server answers.
+- **Comments say what the server does now** (D1). Some 70 still described a Node server standing
+  behind this one (work "handed over", a Node server "told" of changes, covers "left to" it); each
+  now says what happens. The Node server's own behaviour, where it is kept byte for byte, is in the
+  past tense. `server/README.md` says how to read one of its files as it last was.
+- **The page's empty catch blocks each say why they do nothing** (D4): storage being optional, an
+  abort already settled, an app older than the page. The page scripts now carry no lint
+  suppressions, so a new empty one fails the lint. `public/app.js` stays at 19,582 lines.
+
 ## v0.9.3
 **The audit's performance** (`docs/specs/audit-b4-main.md` module 4). The same answers, made
 less often.

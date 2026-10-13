@@ -11,13 +11,11 @@
 //     seconds, and not more than once a minute (watch.js);
 //   - Rescan, Reindex and the music folders' routes (ScanRoutes.cs).
 //
-// The Node server keeps its own copy of the library, which playback reads, so
-// it is told how a scan is going (POST /internal/library/changed, { scan }):
-// its state about once a second, for the pages that still ask it; the albums
-// found so far, to read again as they land; and the end, after which it does
-// what followed a scan there (the library read again, the covers drawn ahead,
-// the tag check, the release days and Smart Picks asked of this server), and
-// after a Rescan brings Qobuz and Tidal up to date, as before.
+// The library is told how a scan is going (Library.Told, { scan }): its state
+// about once a second, for the pages that ask; the albums found so far, to
+// read again as they land; and the end, after which what follows a scan is
+// done (the library read again, the covers drawn ahead, the release days and
+// Smart Picks), and after a Rescan Qobuz and Tidal are brought up to date.
 //
 // Every scan is this program's (v0.8.50, stage 7 part 5: the Node server's
 // own scanner, asked to scan where this program wasn't trusted with the tags,
@@ -318,8 +316,8 @@ internal static partial class Scans
 
     /*
      * Tracks were taken away here (a folder let go, or removed; [cleaned]: Clean
-     * up, every missing folder's): the Node server reads the library again and
-     * does what follows a scan; its count.
+     * up, every missing folder's): the library is read again and what follows a
+     * scan is done; its count.
      */
     public static async Task<double?> Changed(string? forgot = null, bool cleaned = false)
     {

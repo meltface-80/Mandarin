@@ -111,7 +111,7 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     assert.equal(asked, n, "kept: not fetched again");
   });
 
-  await t.test("one that can't be had, or isn't an address: a 404, as the Node server answers", async () => {
+  await t.test("one that can't be had, or isn't an address: a 404, as the Node server answered", async () => {
     for (const key of [keyOf(at("/gone.png")), keyOf("ftp://example.com/x.png"), keyOf("not an address")]) {
       const r = await fetch(`${B}/api/image/${key}?size=300`, H);
       assert.equal(r.status, 404, key);

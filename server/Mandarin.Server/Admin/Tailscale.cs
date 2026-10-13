@@ -1,7 +1,5 @@
 // Tailscale.cs — Tailscale built into the server (v0.8.22), from
-// lib/server/tsnode.js rule for rule, run here once the Node server has handed
-// it over (Jobs.cs), so the server stays on your tailnet while the Node server
-// starts again (an update, Restart, a restore).
+// lib/server/tsnode.js rule for rule.
 //
 // The image carries MusicD's own Tailscale engine (android/musicdnet, started
 // with -server). Signed in once, from Settings → Away from home or with

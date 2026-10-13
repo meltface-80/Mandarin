@@ -38,7 +38,7 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
     public int Done, Total;
     private (List<(string Key, string Title)> Labels, bool Force)? again;
     private readonly List<string> lines = [];
-    /* Whether this server may go on (the Node server has handed the work over). */
+    /* Whether this server may go on (the work set up, Jobs.cs). */
     public Func<bool> Ready { get; init; } = () => true;
 
     public List<string> Lines() { lock (lines) return [.. lines]; }

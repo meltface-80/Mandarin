@@ -20,16 +20,15 @@
 // service's favourite and why it is here (ServiceFields, below).
 //
 // From v0.8.45 (stage 4.3) the import, the favourites' watch and the service
-// playlists (Services/Import.cs), once the Node server has handed them over
-// (the job "import"):
+// playlists (Services/Import.cs, the job "import"):
 //
 //   GET  /api/settings/<s>          the account's state and settings, the import's (signed in)
 //   POST /api/settings/<s>          { quality?, import? } (signed in): the switch on, the import made
 //   POST /api/settings/<s>/import   Update library now: what it made
 //   POST /api/services/watch        the favourites looked at now (the page, coming back)
 //
-// and from v0.8.47 (stage 4.4) the accounts, once the Node server has handed
-// over the services too (the job "services"; Services/Accounts.cs):
+// and from v0.8.47 (stage 4.4) the accounts (the job "services";
+// Services/Accounts.cs):
 //
 //   GET  /api/settings/<s>          signed out too, a Tidal sign-in under way among it
 //   POST /api/settings/<s>          signed out too
@@ -38,17 +37,12 @@
 //   POST /api/settings/<s>/signin/cancel   Tidal: the link and code let go
 //   POST /api/settings/<s>/signout · /disconnect
 //   POST /api/<s>/play { album_id, zone_or_output_id, kind, track? }: the album's rows
-//                                   written, then its tracks played by the Node server
-//                                   (POST /internal/playback/play; playback is its until stage 6)
+//                                   written, then its tracks played by the hub (Playback/)
 //
 // and the services' part of the search from Home (GET /api/search/external).
-// Tidal's token is this server's alone to refresh (TidalApi.cs), and a
-// service's streams are made here too (Streams.cs): once the services are
-// handed over, the Node server asks Qobuz and Tidal nothing in the ordinary way
-// of things. Before then (its first seconds) it makes them as it always did;
-// and a body Express would read otherwise, or refuse, is passed on as it came,
-// to be answered there (a request the page never makes).
-// Answered here once the Node server has handed over its work; until then, by it.
+// Tidal's token is this server's to refresh (TidalApi.cs), and a service's
+// streams are made here too (Streams.cs). A body Express would have read
+// otherwise, or refused, is left for Pages.NotThere.cs to answer in its words.
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Services;
@@ -122,7 +116,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            // Answered here whatever it is: passed on, the Node server would ask the service itself.
+            // Answered here whatever it is.
             if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
@@ -189,7 +183,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            // Answered here whatever it is: passed on, the Node server would ask the service itself.
+            // Answered here whatever it is.
             if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
@@ -294,9 +288,9 @@ internal static partial class Library
     [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
     private static partial Regex ServiceSettingsPath();
 
-    /* The service, once the Node server has handed over the import. */
+    /* The service, once the import is set up (Jobs.cs, at the start). */
     private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
-    /* The service, once the Node server has handed over its account too (v0.8.47): signed in or not. */
+    /* The service, once its account is set up too (v0.8.47): signed in or not. */
     private static Catalogue? AccountOf(string id) => !Jobs.Holds("services") ? null : ImportOf(id);
 
     /* Settings → Services' state and switches, signing in and out, Update library now, the favourites' watch: true when answered here. */
@@ -313,7 +307,7 @@ internal static partial class Library
         var match = ServiceSettingsPath().Match(path);
         if (!match.Success) return false;
         var sub = match.Groups[2].Value;
-        // Update library now: once the import is handed over; the rest once the account is too.
+        // Update library now: once the import is set up; the rest once the account is too.
         if ((sub == "/import" ? ImportOf(match.Groups[1].Value) : AccountOf(match.Groups[1].Value)) is not { } svc) return false;
         if (sub.Length == 0 && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
         {

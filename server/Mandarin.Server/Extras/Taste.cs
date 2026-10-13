@@ -30,7 +30,7 @@ internal sealed class Taste(string? deezerBase, Action<string> log)
 
     private readonly string deezer = (string.IsNullOrEmpty(deezerBase) ? DeezerBase : deezerBase).TrimEnd('/');
     private readonly object gate = new();
-    /* Whether this server may go on (the Node server has handed the work over). */
+    /* Whether this server may go on (the work set up, Jobs.cs). */
     public Func<bool> Ready { get; init; } = () => true;
 
     private static double NowMs => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

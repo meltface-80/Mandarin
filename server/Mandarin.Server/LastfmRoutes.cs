@@ -9,10 +9,8 @@
 // anything else leaves the sections out. Whether an artist or an album is in
 // the library is decided here, before the tap. Last.fm's pictures go through
 // this server's image address ("u-" keys, drawn here since v0.8.34).
-// Answered here once the Node server had handed over its work, until v0.8.48;
-// since then from the start (stage 5 part 6), its address and the
-// environment's key this server's own until the Node server says otherwise
-// (Jobs.cs). Nothing of Last.fm is the Node server's any more.
+// Answered here from the start since v0.8.48 (stage 5 part 6), Last.fm's
+// address and the environment's key the configuration's (Jobs.cs).
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;

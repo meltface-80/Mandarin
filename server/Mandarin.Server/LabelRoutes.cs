@@ -4,8 +4,7 @@
 // labels are switched on, when the wall opens — once an hour at most, or when
 // the set of labels changed — after a merge, and when a key is given), their
 // log, a logo chosen by hand, and the Discogs and FanArt.tv keys with whether
-// each service takes it. Answered here once the Node server has handed the
-// labels' work over (Jobs.cs); until then, by the Node server.
+// each service takes it.
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;

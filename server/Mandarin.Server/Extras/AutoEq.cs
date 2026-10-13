@@ -3,7 +3,7 @@
 //
 // AutoEq publishes, for thousands of headphones, a parametric EQ that brings
 // each measured response to a target. Its index (results/INDEX.md) is fetched
-// once a day and kept in the cache table, as the Node server keeps it (the
+// once a day and kept in the cache table, as the Node server kept it (the
 // same rows, so either reads the other's); a profile is fetched when chosen
 // and kept for good. A profile pasted by hand goes through the same parser.
 using System.Globalization;

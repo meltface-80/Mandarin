@@ -20,7 +20,7 @@ using Js = Mandarin.Server.Tags.Js;
 
 internal static class ScanCommand
 {
-    // The protocol this program speaks, said to the Node server it starts (Server.cs): the Node server checks it.
+    // The protocol this program speaks, said to the server that starts it (Scans.cs), which checks it.
     public const string Protocol = "1";
 
     private static readonly object WriteLock = new();
@@ -39,7 +39,7 @@ internal static class ScanCommand
             }
             catch (IOException)
             {
-                // The Node server is gone: so is this scan (what it was writing is rolled back).
+                // The server that started this scan is gone: so is the scan (what it was writing is rolled back).
                 Environment.Exit(3);
             }
         }

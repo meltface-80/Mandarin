@@ -2,7 +2,7 @@
 // docs/specs/csharp-migration.md): escaping what is written to a player, and
 // reading what it writes back.
 //
-// The Node server reads XML with fast-xml-parser 5.11.1, namespaces stripped,
+// The Node server read XML with fast-xml-parser 5.11.1, namespaces stripped,
 // attributes as "@name", values as trimmed strings, the five XML entities
 // decoded. What a player sends is often sloppy and every reader here is
 // forgiving with it, so the reading is that parser's, step for step, rather

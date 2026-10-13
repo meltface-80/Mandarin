@@ -38,13 +38,13 @@
       "lines": 2062
     },
     "server/Mandarin.Server/Admin/Tailscale.cs": {
-      "lines": 435
+      "lines": 433
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
       "lines": 584
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 547
+      "lines": 546
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
@@ -86,22 +86,22 @@
       "lines": 1043
     },
     "server/Mandarin.Server/Scans.cs": {
-      "lines": 495
+      "lines": 493
     },
     "server/Mandarin.Server/Schema.cs": {
       "lines": 602
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 497
+      "lines": 491
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
       "lines": 506
     },
     "server/Mandarin.Server/Services/Import.cs": {
-      "lines": 694
+      "lines": 693
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 536
+      "lines": 533
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431

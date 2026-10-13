@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v0.9.3
+# Mandarin — v0.9.4
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -1273,6 +1273,10 @@ The browser test opens the page itself in headless Chromium or Chrome — at a d
 mouse, a phone and a tablet — and checks Home, the album view and Now playing. It uses the
 browser already installed (or `CHROME_PATH`), with no extra packages, and is skipped where
 there is none.
+
+Every route the server answers is listed in [docs/specs/api.md](docs/specs/api.md): its method, its
+address, who may ask and the file and line that answers it. `node tools/api-map.js write` writes it
+from the sources, and the gates fail while it is out of date.
 
 ## License
 

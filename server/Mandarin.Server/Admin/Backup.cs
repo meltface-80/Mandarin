@@ -9,14 +9,13 @@
 //   page.json       one device's screen settings
 //   musicd.db       the whole database, if chosen
 //
-// Written and read exactly as the Node server writes and reads them, so a
-// backup made by either restores on the other: the same tar headers, the same
-// JSON (JSON.stringify's, one space a level), blobs as { $b64 }. Read as the
-// Node server reads one: a file that isn't gzip, or is cut short, is refused
-// in zlib's words; each JSON part 64 MB at most; the database copy to a file
-// of its own. Restoring the whole database stages it, and the Node server swaps
-// it in when it starts again (lib/backup.js swapStaged), today's account,
-// sign-ins and Tailscale identity kept.
+// Written and read exactly as the Node server wrote and read them, so a
+// backup it made restores here: the same tar headers, the same JSON
+// (JSON.stringify's, one space a level), blobs as { $b64 }. Read as it read
+// one: a file that isn't gzip, or is cut short, is refused in zlib's words;
+// each JSON part 64 MB at most; the database copy to a file of its own.
+// Restoring the whole database stages it, swapped in when the server starts
+// again (Admin/Restore.cs), today's account, sign-ins and Tailscale identity kept.
 using System.Globalization;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;

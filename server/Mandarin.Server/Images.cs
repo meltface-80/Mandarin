@@ -41,8 +41,7 @@ internal static class Images
                 try
                 {
                     if (await Answer(ctx, p[11..])) return;
-                    // A speaker asking by its own address for a cover there isn't, once this server holds playback (v0.8.49): 404, as the Node server's route
-                    // answered past its gate — the Node server no longer knows the speakers, and would turn the request away as unsigned.
+                    // A speaker asking by its own address for a cover there isn't (v0.8.49): 404, as the Node server's route answered past its gate.
                     if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
                 }
                 // Absent, as the Node server answered a cover it couldn't draw.
@@ -53,7 +52,7 @@ internal static class Images
     }
 
     // HMAC-SHA256 of the path under the install's secret, base64url, 22 characters (auth.js, sig),
-    // checked as the Node server's gate checks it (Playback/Signing.cs): the path as the request
+    // checked as the Node server's gate checked it (Playback/Signing.cs): the path as the request
     // wrote it, not decoded, and s as Express reads the query. Where that can't be said here, not.
     public static bool Signed(HttpContext ctx, SqliteConnection c)
     {
@@ -114,8 +113,7 @@ internal static class Images
         if (safe.Length > 200) safe = safe[..200];
         var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
         // Not drawn yet: drawn here — the album's own cover, else its placeholder,
-        // or a picture from elsewhere (v0.8.34); what only sharp would draw the
-        // same is the Node server's.
+        // or a picture from elsewhere (v0.8.34); where sharp drew otherwise, Covers.cs says.
         if (!File.Exists(cached))
         {
             Covers.Drawn how;
@@ -127,7 +125,7 @@ internal static class Images
             else if (Covers.ForeignUrl(key) is { } url)
             {
                 how = await Covers.DrawForeign(url, cached, Snap(size));
-                // Not to be had: absent, as the Node server answers it.
+                // Not to be had: absent, as the Node server answered it.
                 if (how == Covers.Drawn.NoCover) { ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; ctx.Response.StatusCode = 404; return true; }
             }
             else return Absent(ctx);

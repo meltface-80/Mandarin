@@ -9,7 +9,7 @@
 // the signature never expires, and covers the path only, so the query can
 // change (a size, a gain) and the signature still holds.
 //
-// The check reads the address as the Node server reads it: its path as the
+// The check reads the address as the Node server read it: its path as the
 // request gives it (parseurl's, not decoded), and `s` as Express's query
 // parser (qs) makes it. A plain `s=` is decided here, as there; where qs would
 // make an array or an object of `s` (s[]=, s[0]=, [s]=…), or the address isn't

@@ -465,6 +465,9 @@ the owner asked, everything is based on `migration`:
   - Present-tense claims are rewritten to say what the code does.
   - Historical references point at the tag where the file lived (`lib/x.js at v0.8.50`) or are
     dropped where they add nothing.
+- **Done (v0.9.4):** the ~70 present-tense claims rewritten to say what the code does, and the rest of
+  the Node server's behaviour put in the past tense. The `lib/…` references stay as where each rule came
+  from; `server/README.md` gives `git show 333e55f^:lib/…` (the commit that removed them) to read one.
 - **Branch:** `audit/documentation-updates`
 
 ### D2. No API reference (Medium)
@@ -474,6 +477,10 @@ the owner asked, everything is based on `migration`:
   method, path, auth (signed-in, signed media or open), handler file and line. A gate checks it is
   current, as the length allowance is. Also in the README: which keys sign which APKs (S8), and
   what a backup holds (S1).
+- **Done (v0.9.4):** `docs/specs/api.md` by `tools/api-map.js`, checked by `npm run gates` (`npm run api`),
+  and `test/api-map.test.js`. Each route's file is listed but not its line, so the map changes only
+  when a route does. The README already said which keys sign which APKs (S8) and what a backup holds
+  (S1), and now points at the map.
 - **Branch:** `audit/documentation-updates`
 
 ### D3. Files published with the site but linked from nowhere (Low; dropped: the owner keeps both)
@@ -491,6 +498,8 @@ the owner asked, everything is based on `migration`:
 - **Issue:** a failure is swallowed without a word, so a reader can't tell intent from oversight.
 - **Fix:** a comment in each saying why nothing is done (as the C# side does: `/* gone */`), or a
   `console.debug`. Then `npm run lint:prune` lowers the baseline.
+- **Done (v0.9.4):** the 45 empty catches each say why inside the braces, and the 10 useless
+  assignments are gone; `npm run lint:prune` left no suppression for the page scripts.
 - **Branch:** `audit/documentation-updates`
 
 ---

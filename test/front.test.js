@@ -80,7 +80,7 @@
  *   - v0.8.44: Qobuz's and Tidal's albums as library rows, by C#: an album opened, favourited and taken
  *     away, a streamed album's page (its favourite brought into line, why it is here), Clean up of a
  *     service's albums where the scans are C#'s, and the month's prune, a job handed over ("prune"),
- *     each held to what the Node server writes and answers (test/services-rows-csharp.test.js;
+ *     each held to what the Node server wrote and answered (test/services-rows-csharp.test.js;
  *     test/qobuz.test.js and test/tidal.test.js in this mode). A request Tidal's token has to be
  *     refreshed for is still the Node server's, as are signing in, the settings, the import and playing
  *     (the v0.8.44 test here; the job list in the v0.8.19 one);
@@ -278,7 +278,7 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
     }
-    // Pitchfork's lists with neither the page nor the feed to be had: the error, as the Node server gives it.
+    // Pitchfork's lists with neither the page nor the feed to be had: the error, as the Node server gave it.
     for (const p of ["/api/pitchfork/reviews", "/api/pitchfork/reviews?type=best"]) {
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), await r.json()], [500, "C#", { error: "fetch failed" }], p);

@@ -21,7 +21,7 @@ namespace Mandarin.Server.Playback;
 
 using Js = Mandarin.Server.Tags.Js;
 
-/* A levelling change refused (a 400, as the Node server answers it). */
+/* A levelling change refused (a 400, as the Node server answered it). */
 internal sealed class LevellingError(string message) : JsError(message)
 {
     public int Status => 400;

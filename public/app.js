@@ -129,7 +129,7 @@
   const real = window.fetch;
   let mark = "", seenAt = 0, timer = 0, asking = false;
   const see = (r) => {
-    let m = null;
+    let m;
     try { m = r && r.headers && r.headers.get("x-mandarin-library"); } catch (e) { return; }
     if (!m) return;
     seenAt = Date.now();
@@ -205,7 +205,7 @@ window.__afterStart = (fn) => {
       v = localStorage.getItem(o.key);
       // List was the top bar's grid ⇄ list button until v0.6.5.
       if (v === null && k === "layout" && localStorage.getItem("rra-album-view") === "list") v = "list";
-    } catch (e) {} // localStorage optional — the default stands
+    } catch (e) { /* localStorage optional — the default stands */ }
     return (mem[k] = o.allowed.indexOf(v) > -1 ? v : o.def);
   }
   // The screen's own column count, by the SAME breakpoints style.css uses for
@@ -238,7 +238,7 @@ window.__afterStart = (fn) => {
   function set(k, v) {
     const o = OPTS[k];
     if (!o || o.allowed.indexOf(v) < 0) return;
-    try { localStorage.setItem(o.key, v); } catch (e) {} // localStorage optional — applied for this session regardless
+    try { localStorage.setItem(o.key, v); } catch (e) { /* localStorage optional — applied for this session regardless */ }
     mem[k] = v;
     apply();
     // The columns moved at once (CSS); the random wall's COUNT was a screenful
@@ -612,7 +612,7 @@ window.__afterStart = (fn) => {
   try {
     const f = JSON.parse(localStorage.getItem("rra-filter") || "null");
     if (f && f.type && f.value) activeFilter = f;
-  } catch (e) {} // corrupt localStorage entry — start with no filter
+  } catch (e) { /* corrupt localStorage entry — start with no filter */ }
   function filterQSOf(f) {
     if (!f) return "";
     return "&filter_type=" + encodeURIComponent(f.type) +
@@ -841,7 +841,7 @@ window.__afterStart = (fn) => {
         () => { if (window.__showToast) window.__showToast("On a card that isn’t in right now", "error"); })
       : al ? homeTile(al) : buildAlbumTile(
         { title: d.title || "Album", subtitle: d.artist || "", image_key: d.image_key || null },
-        () => { try { DL.play(d.id); } catch (e) {} if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
+        () => { try { DL.play(d.id); } catch (e) { /* an app without this call (older than the page): nothing to do */ } if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
       const text = downloadBadge(d);
       const wrap = tile.querySelector(".album-art-wrap");
       if (text && wrap) {
@@ -1323,7 +1323,7 @@ window.__afterStart = (fn) => {
     // title goes away AND Home's full-library tiles resolve correctly.
     if (activeFilter) {
       activeFilter = null;
-      try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
+      try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
     }
     updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
     setBanner(null);            // drop any error/empty banner left by a wall view
@@ -1447,7 +1447,7 @@ window.__afterStart = (fn) => {
     try {
       const cur = JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || "{}") || {};
       localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(Object.assign(cur, patch)));
-    } catch (e) {} // localStorage optional / over quota — persistence is best-effort
+    } catch (e) { /* localStorage optional / over quota — persistence is best-effort */ }
   }
   function readHomeCache() {
     try { return JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || "null"); }
@@ -1572,7 +1572,7 @@ window.__afterStart = (fn) => {
     if (!homeToday) return;
     // Random Album needs no answer: it shows before one arrives.
     if (!homeToday.querySelector("#home-unheard-tile")) renderHomeToday(shownAotd);
-    let aj = null;
+    let aj;
     try {
       const r = await fetch("/api/home/album-of-the-day", { cache: "no-store" });
       if (!r.ok) return;   // the index building, or a server error: what is showing stays
@@ -2059,7 +2059,7 @@ window.__afterStart = (fn) => {
     enterFullWall("Smart Picks");
     smartPicksActive = true;
     const mySeq = ++smartPicksSeq;
-    let j = null;
+    let j;
     try {
       const r = await fetch("/api/smart-picks");
       j = await r.json();
@@ -2398,7 +2398,7 @@ window.__afterStart = (fn) => {
     if (window.__exitLabels) window.__exitLabels();
     if (activeFilter) {
       activeFilter = null;
-      try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
+      try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
     }
     if (homeView) homeView.classList.add("hidden");
     if (homeSections) homeSections.classList.remove("hidden");
@@ -7570,7 +7570,7 @@ window.__afterStart = (fn) => {
     document.body.style.overflow = "";
     currentAlbum = null;
     window.__currentAlbum = null;
-    try { sessionStorage.removeItem("rra-modal"); } catch (e) {} // sessionStorage optional
+    try { sessionStorage.removeItem("rra-modal"); } catch (e) { /* sessionStorage optional */ }
     if (typeof window.__refreshTransport === "function") window.__refreshTransport();
   }
   modal.addEventListener("click", (e) => {
@@ -9090,10 +9090,10 @@ window.__afterStart = (fn) => {
     function stopSearch() {
       active = false;
       seq++;                                   // invalidate any pending response
-      if (abort) { try { abort.abort(); } catch (e) {} abort = null; }
+      if (abort) { try { abort.abort(); } catch (e) { /* already settled */ } abort = null; }
       clearTimeout(retryTimer);
       clearTimeout(extTimer);
-      if (extAbort) { try { extAbort.abort(); } catch (e) {} extAbort = null; }
+      if (extAbort) { try { extAbort.abort(); } catch (e) { /* already settled */ } extAbort = null; }
       extWrap = null; extWrapSeq = -1;         // release the rendered external sections
       setStatus("");
       setBanner(null);
@@ -9105,7 +9105,7 @@ window.__afterStart = (fn) => {
 
     async function run(q) {
       const mySeq = ++seq;
-      if (abort) { try { abort.abort(); } catch (e) {} }
+      if (abort) { try { abort.abort(); } catch (e) { /* already settled */ } }
       abort = new AbortController();
       clearTimeout(retryTimer);
       // Global search: the external sources (Qobuz/Tidal catalogues, Pitchfork
@@ -9249,7 +9249,7 @@ window.__afterStart = (fn) => {
     // held for a slow Pitchfork search. One wrapper, two slots in a fixed
     // order, so whichever answers first the services stay above the reviews.
     async function runExternal(q, mySeq) {
-      if (extAbort) { try { extAbort.abort(); } catch (e) {} }   // the previous keystroke's asks
+      if (extAbort) { try { extAbort.abort(); } catch (e) { /* already settled */ } }   // the previous keystroke's asks
       const ctl = extAbort = new AbortController();
       const wrap = document.createElement("div");
       wrap.className = "ext-search-wrap";
@@ -9525,7 +9525,7 @@ window.__afterStart = (fn) => {
       try {
         if (f) localStorage.setItem("rra-filter", JSON.stringify(f));
         else   localStorage.removeItem("rra-filter");
-      } catch (e) {} // localStorage optional (private browsing)
+      } catch (e) { /* localStorage optional (private browsing) */ }
       if (window.__exitLabels) window.__exitLabels();
       markActive();
       close();
@@ -9675,7 +9675,7 @@ window.__afterStart = (fn) => {
     const labelsSearchBtn   = labelsTools.querySelector("#labels-search-btn");
     const labelsSortBtn     = labelsTools.querySelector("#labels-sort-btn");
     let labelsReversed = false;
-    try { labelsReversed = localStorage.getItem("rra-labels-reversed") === "1"; } catch (e) {} // localStorage optional
+    try { labelsReversed = localStorage.getItem("rra-labels-reversed") === "1"; } catch (e) { /* localStorage optional */ }
     let lastLabels = null;   // the list as the server sent it, for re-ordering without a fetch
 
     function paintSortBtn() {
@@ -9734,7 +9734,7 @@ window.__afterStart = (fn) => {
     });
     labelsSortBtn.addEventListener("click", () => {
       labelsReversed = !labelsReversed;
-      try { localStorage.setItem("rra-labels-reversed", labelsReversed ? "1" : "0"); } catch (e) {} // localStorage optional
+      try { localStorage.setItem("rra-labels-reversed", labelsReversed ? "1" : "0"); } catch (e) { /* localStorage optional */ }
       paintSortBtn();
       if (lastLabels) { _lastLabelCount = -1; renderLabelTiles(lastLabels); }
       if (mainEl) mainEl.scrollTop = 0;
@@ -10597,7 +10597,7 @@ window.__afterStart = (fn) => {
                                          filter: parsed.filter });
               }
             }
-          } catch (e) {} // corrupt sessionStorage modal state — skip restore, open normally
+          } catch (e) { /* corrupt sessionStorage modal state — skip restore, open normally */ }
 
           // Every 15 s while on screen (v0.8.36: not while hidden), and at once on coming back.
           setInterval(() => { if (!document.hidden) loadZones(); }, 15000);
@@ -10605,7 +10605,7 @@ window.__afterStart = (fn) => {
           document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(loadZones, 0); });
           return;
         }
-      } catch (e) {} // /api/status fetch failed — server not ready yet, fall through to "Waiting" banner
+      } catch (e) { /* /api/status fetch failed — server not ready yet, fall through to "Waiting" banner */ }
       setBanner("Waiting for Mandarin to start…");
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -10854,7 +10854,7 @@ window.__afterStart = (fn) => {
             window.__openAlbum(match, { source: "search" }); return;
           }
         }
-      } catch (e) {} // sessionStorage/JSON parse error — fall through to "not indexed" toast
+      } catch (e) { /* sessionStorage/JSON parse error — fall through to "not indexed" toast */ }
       if (window.__showToast) window.__showToast("Album not yet indexed — try again in a moment");
     });
   }
@@ -10894,7 +10894,7 @@ window.__afterStart = (fn) => {
         line1: np.line1 || "", line2: np.line2 || "", line3: np.line3 || "",
         image_key: np.image_key || "", state: zone.state || "stopped"
       }));
-    } catch (e) {} // localStorage optional — transport bar persistence is best-effort
+    } catch (e) { /* localStorage optional — transport bar persistence is best-effort */ }
   }
 
   // The cover for the playing track. Hidden rather than broken when the zone
@@ -10923,7 +10923,7 @@ window.__afterStart = (fn) => {
       artistEl.textContent = sub || "—";
       paintTransportArt(saved.image_key);
       bar.classList.remove("hidden");
-    } catch (e) {} // corrupt localStorage — transport bar stays hidden, no action needed
+    } catch (e) { /* corrupt localStorage — transport bar stays hidden, no action needed */ }
   }
 
   // The server's change counter as of the last answer applied, and the zone it
@@ -12631,7 +12631,7 @@ function settingsInfo(text) {
    */
   async function loadSimilar(artist, seq) {
     if (!similarEl || !similarLs || !artist) return;
-    let acts = [];
+    let acts;
     try {
       const r = await fetch("/api/similar?artist=" + encodeURIComponent(artist));
       if (!r.ok) return;
@@ -13220,7 +13220,7 @@ function settingsInfo(text) {
 window.__musicdAppUpd = (function () {
   const app = window.MusicdApp;
   if (!app || typeof app.appUpdateStatus !== "function") return null;
-  try { app.pageHandlesUpdates(); } catch (e) {}
+  try { app.pageHandlesUpdates(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   const waiters = [];
   const status = () => { try { return JSON.parse(app.appUpdateStatus()); } catch (e) { return null; } };
   window.__musicdAppUpdateChanged = () => { const s = status(); waiters.splice(0).forEach(w => w(s)); };
@@ -13235,7 +13235,7 @@ window.__musicdAppUpd = (function () {
         try { app.lookForAppUpdate(!!force); } catch (e) { resolve(status()); }
       });
     },
-    install() { try { app.installAppUpdate(); } catch (e) {} }
+    install() { try { app.installAppUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
   };
 })();
 
@@ -13300,7 +13300,7 @@ window.__musicdAppUpd = (function () {
   const verNewer = window.__verNewer;
 
   const dismissedVer = () => { try { return sessionStorage.getItem(DISMISS_KEY) || ""; } catch (e) { return ""; } };
-  const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) {} };
+  const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) { /* storage is optional (private browsing, over quota) */ } };
   const show = (msg) => { textEl.textContent = msg; toast.classList.add("open"); };
   const hide = () => { toast.classList.remove("open"); if (notesEl) notesEl.classList.add("hidden"); };
 
@@ -13353,7 +13353,7 @@ window.__musicdAppUpd = (function () {
     // app's build lands minutes after the server's release, and the cache
     // was what kept the banner saying "server only" for up to an hour.
     let restarted = false;
-    try { restarted = sessionStorage.getItem(RESTARTED_KEY) === "1"; if (restarted) sessionStorage.removeItem(RESTARTED_KEY); } catch (e) {}
+    try { restarted = sessionStorage.getItem(RESTARTED_KEY) === "1"; if (restarted) sessionStorage.removeItem(RESTARTED_KEY); } catch (e) { /* storage is optional (private browsing, over quota) */ }
     const want = server ? "s" + s.latest : restarted ? "r" + (s && s.current) : "";
     const force = !!want && want !== appForcedFor;
     if (force) appForcedFor = want;
@@ -13389,7 +13389,7 @@ window.__musicdAppUpd = (function () {
           // The server is back on the new version: now the app's turn (its
           // download, then Android's installer), and the page reloaded
           // under it, to ask the app afresh if its build was not there yet.
-          try { sessionStorage.setItem(RESTARTED_KEY, "1"); } catch (e) {}
+          try { sessionStorage.setItem(RESTARTED_KEY, "1"); } catch (e) { /* storage is optional (private browsing, over quota) */ }
           if (appAfterServer && appUpd) { appAfterServer = false; appUpd.install(); }
           location.reload(); return;
         }
@@ -13686,7 +13686,7 @@ window.__musicdAppUpd = (function () {
           versionLoaded = !going(cs);
         }
       }
-    } catch (e) {} // network error loading version — settings panel shows without version, non-critical
+    } catch (e) { /* network error loading version — settings panel shows without version, non-critical */ }
   }
 
   const forceRescanBtn    = document.getElementById("force-rescan-btn");
@@ -16632,7 +16632,7 @@ initServiceBrowser({
     const until = Date.now() + 60 * 60 * 1000;
     while (Date.now() < until) {
       await new Promise(r => setTimeout(r, 2500));
-      let s = null;
+      let s;
       try { s = await (await fetch("/api/status", { cache: "no-store" })).json(); } catch (e) { continue; }
       const scan = s && s.scan;
       if (!scan || scan.running) continue;
@@ -16748,7 +16748,7 @@ initServiceBrowser({
     const item = document.getElementById("menu-item-offline");
     if (!item) return;
     let has = false;
-    try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) {}
+    try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) { /* an older app's settings: no offline switch */ }
     item.classList.toggle("hidden", !has);
     if (!has) return;
     const on = offlineModeOn();
@@ -16794,8 +16794,8 @@ initServiceBrowser({
         // The app reloads the page onto the phone's music, or back onto the
         // server — which would take the menu with it. It is reopened on the
         // page that follows (v0.6.20): the switch is the only thing that moved.
-        try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) {}
-        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) {}
+        try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) { /* storage is optional (private browsing, over quota) */ }
+        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
         return;
       }
       if (action === "home") {
@@ -16809,7 +16809,7 @@ initServiceBrowser({
       if (action === "shelf") {
         // A page of its own. Marked as opened from here, so its "‹ Remote"
         // goes back to this page as it was left rather than loading it again.
-        try { sessionStorage.setItem("rra-display-from-remote", "1"); } catch (e) {}
+        try { sessionStorage.setItem("rra-display-from-remote", "1"); } catch (e) { /* storage is optional (private browsing, over quota) */ }
         location.assign("/shelf");
         return;
       }
@@ -17019,7 +17019,7 @@ initServiceBrowser({
   }
   async function checkNow() {
     clearTimeout(checkTimer);
-    let j = null;
+    let j;
     try {
       // No answer in 8 s counts as none.
       const ctl = typeof AbortController === "function" ? new AbortController() : null;
@@ -17264,8 +17264,8 @@ initServiceBrowser({
   // An app from before removeMany asks for each album itself.
   function removeAlbums(ids) {
     if (!ids.length) return;
-    if (has("removeMany")) { try { dl.removeMany(JSON.stringify(ids)); } catch (e) {} }
-    else for (const id of ids) { try { dl.remove(id); } catch (e) {} }
+    if (has("removeMany")) { try { dl.removeMany(JSON.stringify(ids)); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
+    else for (const id of ids) { try { dl.remove(id); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
     for (const id of ids) chosen.delete(id);
   }
 
@@ -17436,7 +17436,7 @@ initServiceBrowser({
 
   // Music files on the phone (Stage 5), now on the Music Folders page (v0.5.41): the block's HTML, shared.
   window.__localFolderBlock = function localFolderBlock() {
-    let info = null;
+    let info;
     try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
     let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone' + settingsInfo("Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.") + "</div>";
     if (!info) {
@@ -17479,16 +17479,16 @@ initServiceBrowser({
   pane.addEventListener("click", async (e) => {
     const list = () => json(() => dl.all(), []);
     const titleOf = id => (list().find(d => d.id === id) || {}).title || "this album";
-    if (e.target.closest("[data-dl-allow]")) { try { dl.allowAllFiles(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-allow]")) { try { dl.allowAllFiles(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
     if (e.target.closest("[data-dl-move]")) {
       if (!(await ask("Move every downloaded album to the place chosen under Save to?"))) return;
-      try { dl.moveDownloads(); } catch (x) {}
+      try { dl.moveDownloads(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
-    if (e.target.closest("[data-dl-choose-folder]")) { try { dl.chooseDownloadFolder(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-choose-folder]")) { try { dl.chooseDownloadFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
     if (e.target.closest("[data-dl-forget-folder]")) {
       if (!(await ask("Forget the download folder?\n\nDownloads go to phone storage from now on. Albums already in the folder stay there, and aren’t shown until it is chosen again."))) return;
-      try { dl.forgetDownloadFolder(); } catch (x) {}
+      try { dl.forgetDownloadFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
     if (e.target.closest("[data-dl-folder]")) { view = "albums"; selecting = false; chosen.clear(); render(); pane.scrollTop = 0; return; }
@@ -17525,7 +17525,7 @@ initServiceBrowser({
       render(); return;
     }
     const play = e.target.closest("[data-dl-play]");
-    if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) {} return; }
+    if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) { /* an app without this call (older than the page): nothing to do */ } return; }
     const rm = e.target.closest("[data-dl-remove]");
     if (rm) {
       const id = Number(rm.getAttribute("data-dl-remove"));
@@ -17535,7 +17535,7 @@ initServiceBrowser({
       return;
     }
     if (e.target.closest("[data-dl-clear-cache]")) {
-      try { dl.clearCache(); } catch (err) {}
+      try { dl.clearCache(); } catch (err) { /* an app without this call (older than the page): nothing to do */ }
       paintCacheStatus();
       return;
     }
@@ -17583,7 +17583,7 @@ initServiceBrowser({
   const label = document.createElement("span");
   label.className = "settings-label";
   let v = "";
-  try { v = app.version(); } catch (e) {}
+  try { v = app.version(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   label.textContent = "Android app" + (v ? " v" + v : "");
   if (window.__musicdAppUpd) {
     // "Check for updates" above does the server and this app, so this row
@@ -17599,7 +17599,7 @@ initServiceBrowser({
   btn.type = "button";
   btn.className = "settings-update-btn";
   btn.textContent = "Check for app update";
-  btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) {} });
+  btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
   }
@@ -17615,7 +17615,7 @@ initServiceBrowser({
       '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
     // The Tailscale button itself: the first button in the row is the ⓘ (v0.6.15 — until
     // then the tap went to the ⓘ, and Tailscale did nothing).
-    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
+    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
     awayPane.appendChild(blk);
   }
 })();
@@ -17766,11 +17766,11 @@ initServiceBrowser({
     const t = e.target.closest("button");
     if (!t || busy) return;
     const dl = window.MusicdDownloads;
-    if (t.hasAttribute("data-local-choose")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
-    if (t.hasAttribute("data-local-rescan")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
+    if (t.hasAttribute("data-local-choose")) { try { dl.chooseLocalFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
+    if (t.hasAttribute("data-local-rescan")) { try { dl.rescanLocal(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } render(); return; }
     if (t.hasAttribute("data-local-forget")) {
       if (!(await ask("Forget this folder?\n\nMandarin stops reading it. Nothing in it is deleted."))) return;
-      try { dl.forgetLocalFolder(); } catch (x) {}
+      try { dl.forgetLocalFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
     if (t.hasAttribute("data-mf-add")) { err = ""; return browse("/"); }
@@ -18747,7 +18747,7 @@ initServiceBrowser({
     // A pack already here is moved: it can take a minute between drives.
     if (pack && pack.installed) { pack = Object.assign({}, pack, { job: { phase: "moving" } }); render(); }
     try { pack = await api("/api/identify/pack/folder", { dir }); packBrowse = null; err = ""; toast("The pack’s folder is set"); }
-    catch (e) { err = e.message; try { pack = await api("/api/identify/pack"); } catch (x) {} }
+    catch (e) { err = e.message; try { pack = await api("/api/identify/pack"); } catch (x) { /* the pack's state stays as it was */ } }
     busy = false;
     render();
   }
@@ -18883,7 +18883,7 @@ initServiceBrowser({
   };
   function albumRow(it, kind) {
     const a = it.album, c = it.candidate;
-    let line2 = "";
+    let line2;
     const from = c && c.source === "itunes" ? " · from iTunes" : "";
     // Why it's short of 100 % (v0.6.3): the score's own reasons.
     const why = it.why && it.why.length ? " — " + esc(it.why.join(", ")) : "";

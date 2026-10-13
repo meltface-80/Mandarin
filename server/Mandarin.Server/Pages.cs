@@ -40,7 +40,7 @@ internal static partial class Pages
         // The page itself, at / and /index.html.
         app.MapMethods("/", ["GET", "HEAD"], (HttpContext ctx) => SendApp(ctx, publicDir, files));
         app.MapMethods("/index.html", ["GET", "HEAD"], (HttpContext ctx) => SendApp(ctx, publicDir, files));
-        // Shelf (v0.8.28), as the Node server sends it: the file as it is, for
+        // Shelf (v0.8.28), as the Node server sent it: the file as it is, for
         // the app's WebView too. The route takes /shelf/ as well (a second
         // route for it would be the same one twice, and neither would answer).
         app.MapMethods("/shelf", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "shelf.html"));
@@ -114,9 +114,9 @@ internal static partial class Pages
 
     /*
      * After the routes are chosen (Program.cs): a request no route of this
-     * server's took, which the Node server would have answered with the page
-     * (app.get("*")) or a folder's redirect (express.static). Everything else
-     * goes on to it.
+     * server's took, answered with the page (as the Node server's app.get("*")
+     * did) or a folder's redirect (express.static). Everything else goes on to
+     * Pages.NotThere.cs.
      */
     public static void UseDeepLinks(WebApplication app)
     {
@@ -138,7 +138,7 @@ internal static partial class Pages
         });
     }
 
-    /* No route here took it: the one that passes everything else to the Node server would. */
+    /* No route here took it (the not-found answer aside, Pages.NotThere.cs). */
     private static bool Unclaimed(HttpContext ctx) => ctx.GetEndpoint() switch
     {
         null => true,

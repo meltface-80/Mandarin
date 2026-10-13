@@ -142,7 +142,7 @@ internal sealed class QueueStore
         foreach (var id in ids) if (build(id) is { } snap) Write(id, snap);
     }
 
-    /* db.setSetting(key, value): the JSON the Node server writes (JSON.stringify). */
+    /* db.setSetting(key, value): the JSON the Node server wrote (JSON.stringify). */
     public static void SetSetting(SqliteConnection c, string key, JsonNode? value)
     {
         using var cmd = c.CreateCommand();
@@ -153,7 +153,7 @@ internal sealed class QueueStore
     }
 }
 
-/* JSON written as the Node server writes it: no escaping past what JSON needs. */
+/* JSON written as the Node server wrote it: no escaping past what JSON needs. */
 internal static class Jsons
 {
     public static readonly System.Text.Json.JsonSerializerOptions Out = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };

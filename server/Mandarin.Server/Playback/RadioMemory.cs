@@ -8,9 +8,9 @@
 // never rules it out. Never a dead end: with everything the radio's within
 // six months, the album whose radio play is oldest comes round.
 //
-// Storage and the clock are handed in, as there: the Node server keeps the
-// memory in the radio_played table (lib/server/features.js) and saves it
-// whole after each play; Load and Save here take the same { key: ms } object.
+// Storage and the clock are handed in, as there: the memory is kept in the
+// radio_played table (as lib/server/features.js kept it) and saved whole
+// after each play; Load and Save take the same { key: ms } object.
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Playback;

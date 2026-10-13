@@ -1,9 +1,9 @@
 // Scanner.cs — reading the music folders into the database (v0.8.18): the
 // Node server's scan (lib/library/scanner.js, scanHere), rule for rule, made
 // here. What it writes must be what that one wrote — every album's key and
-// id, every column, as the same kind of value — because the Node server reads
-// the same database, and an album's key is what its favourite, its edits and
-// its plays hang on. So the values are JavaScript's (Tags/Js.cs), and they go
+// id, every column, as the same kind of value — because a database the Node
+// server made is read here as it is, and an album's key is what its
+// favourite, its edits and its plays hang on. So the values are JavaScript's (Tags/Js.cs), and they go
 // to SQLite as better-sqlite3 sent them: every number as a double.
 //
 // Incremental: a file whose size and modification time are unchanged is not

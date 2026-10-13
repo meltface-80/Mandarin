@@ -2,7 +2,7 @@
 // 4.2 of docs/specs/csharp-migration.md), from lib/services/streaming.js, rule
 // for rule:
 //
-//   - an album opened or favourited, written as the Node server writes it: a
+//   - an album opened or favourited, written as the Node server wrote it: a
 //     row in `albums` keyed "<service>:<id>" with no folder, its tracks rows
 //     whose path is "<service>://track/<id>", the same columns and the same
 //     values, in one transaction; its cover kept beside the database
@@ -13,15 +13,13 @@
 //     into line with the service's as the page opens (reconcile);
 //   - Clean up (the albums no longer wanted, with their edits, hearts and
 //     Listen later) and the month's prune (albums only ever played from the
-//     browser, a month unplayed: a job handed over, Jobs.cs).
+//     browser, a month unplayed: a job, Jobs.cs).
 //
-// Each change is told to the Node server (POST /internal/library/changed,
-// { services }), which reads its library again as each service's own
-// afterChange does there (index.js); this server's copy follows its version.
-// The import, the favourites' watch and the service playlists write the same
-// rows from v0.8.45 (stage 4.3, Import.cs), and playing an album from the
-// browser from v0.8.47 (ServiceRoutes.cs), its tracks then played by the Node
-// server's playback (stage 6).
+// Each change is told to the library (Library.Told, { services }), which is
+// read again as each service's own afterChange did (index.js). The import,
+// the favourites' watch and the service playlists write the same rows from
+// v0.8.45 (stage 4.3, Import.cs), and playing an album from the browser from
+// v0.8.47 (ServiceRoutes.cs), its tracks then played by the hub (Playback/).
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Scan;
@@ -58,9 +56,9 @@ internal abstract partial class Catalogue
         return o;
     }
 
-    // ------------------------------------------------------------ the database, as the Node server writes it
+    // ------------------------------------------------------------ the database, as the Node server wrote it
 
-    /* A connection that deletes as the Node server's does (foreign_keys on): an album's tracks go with it, and theirs with them. */
+    /* A connection that deletes as the Node server's did (foreign_keys on): an album's tracks go with it, and theirs with them. */
     private static SqliteConnection OpenRows()
     {
         var c = Db.Open();
@@ -145,8 +143,8 @@ internal abstract partial class Catalogue
      * covers ahead ("changed"); "opened" reads it again only, as opening an
      * album there did. [favourite]: a favourite changed here, so the service's
      * answers it kept are forgotten there too, as its own setFavourite forgets
-     * them. This server's copy is read again then and there too (v0.8.45), as
-     * the Node server's is, not at the next request: an import running on
+     * them. This server's copy is read again then and there (v0.8.45), not at
+     * the next request: an import running on
      * meanwhile is never seen half made.
      */
     public async Task Changed(string what = "changed", bool favourite = false)
@@ -386,7 +384,7 @@ internal abstract partial class Catalogue
 
     private sealed record OwnRow(long Id, string Key, object? UpdatedAt);
 
-    /* streaming.js ownAlbums: this service's albums (LIKE, as the Node server asks: case aside). */
+    /* streaming.js ownAlbums: this service's albums (LIKE, as the Node server asked: case aside). */
     private List<OwnRow> OwnAlbums(SqliteConnection c)
     {
         using var cmd = c.CreateCommand();
@@ -412,7 +410,7 @@ internal abstract partial class Catalogue
      * every one; signed in, those neither kept nor held. Removed with their
      * edits, hearts and Listen later (plays stay, as text); signed out, the
      * kept and held marks go too, and the service's playlists. How many went;
-     * the Node server is told after (Changed) when any did.
+     * the library is told after (Changed) when any did.
      */
     public int CleanUp()
     {
@@ -502,8 +500,7 @@ internal abstract partial class Catalogue
 /*
  * The month's prune (index.js's daily timer): albums only ever played from a
  * service's browser, a month unplayed, let go — once a day, the first a few
- * minutes after the work is handed over, while the Node server has handed
- * it over ("prune", Jobs.cs).
+ * minutes after the start ("prune", Jobs.cs).
  */
 internal static class Prune
 {

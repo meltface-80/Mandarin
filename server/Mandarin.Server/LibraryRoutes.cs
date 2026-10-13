@@ -1,9 +1,7 @@
 // LibraryRoutes.cs — the library's read routes (v0.8.4), from
 // lib/server/api-library.js, in the same shapes. An album of a streaming
-// service's page asks the service too: answered here from v0.8.44 once the
-// Node server has handed over its work (ServiceRoutes.cs), until then by it.
-// Anything asked of a Node server too old to say which copy it holds goes to
-// it: a request this side can't answer exactly is passed on, never guessed at.
+// service's page asks the service too (v0.8.44, ServiceRoutes.cs). A request
+// no route here answers ends in Pages.NotThere.cs, never guessed at.
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -154,7 +152,7 @@ internal static partial class Library
             if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
             if (await PowerRoute(ctx)) return;
-            // Settings → Updates (v0.8.48, UpdateRoutes.cs), once the Node server has handed the update over.
+            // Settings → Updates (v0.8.48, UpdateRoutes.cs).
             if (await UpdateRoute(ctx)) return;
             // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
             if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
@@ -162,12 +160,12 @@ internal static partial class Library
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
-            // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs), once the Node server has handed over its work.
+            // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs).
             if (await ServiceRoute(ctx)) return;
             // And their albums opened, favourited and cleaned up (v0.8.44, ServiceRoutes.cs), likewise.
             if (await ServiceWrite(ctx)) return;
             // And Settings → Services' state and switches, Update library now and the favourites' watch
-            // (v0.8.45, ServiceRoutes.cs), once the Node server has handed over the import.
+            // (v0.8.45, ServiceRoutes.cs).
             if (await ServiceImport(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))

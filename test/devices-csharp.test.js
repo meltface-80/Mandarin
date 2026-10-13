@@ -3,7 +3,7 @@
  * Settings → Audio Devices, the writes made by the C# server (v0.8.48, stage 5
  * part 1 of docs/specs/csharp-migration.md; DeviceRoutes.cs): a device's name,
  * hidden, sharing, output, DSP, levelling and the rates you tick, each written
- * to audio_devices as the Node server writes it and each refusal in its words;
+ * to audio_devices as the Node server wrote it and each refusal in its words;
  * the Node server told, so its own effects follow (a name in /api/zones, a
  * renderer's queue planned again, a phone told, a device hidden while on
  * switched off and let go), and the device answered as its page shows it.

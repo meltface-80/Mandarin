@@ -4,7 +4,7 @@
  * server/Mandarin.Server/Services/Accounts.cs, ServiceStreams.cs, TidalApi.cs,
  * ServiceRoutes.cs, Streams.cs and Transcoder.cs), against the fakes on
  * loopback (test/fake-qobuz.js, test/fake-tidal.js) and a stand-in Sonos room
- * (test/fake-sonos.js), each held to what the Node server answers, writes and
+ * (test/fake-sonos.js), each held to what the Node server answered, writes and
  * sends for the same request from the same start (asked of it directly, the
  * services its own for that moment, the state put back between):
  *
@@ -186,7 +186,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     assert.equal(sansExpiry(mine.text, t0, t1), n.text, "the same answer");
     assert.equal(sansExpiry(state.text, t0, t1), n.state, "the same state");
     assert.equal(cancelled.text, n.cancelled, "let go the same");
-    // Approved on tidal.com: the account, its user and subscription kept, as the Node server keeps them.
+    // Approved on tidal.com: the account, its user and subscription kept, as the Node server kept them.
     const kept = (a0, a1) => {
       const a = JSON.parse(setting("tidal"));
       assert.ok(a.since >= a0 && a.since <= a1 && a.token.expires >= a0 + 3600e3 && a.token.expires <= a1 + 3600e3, "since then, good for the hour");
@@ -436,7 +436,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     assert.equal(fileName(mine.file), theirs.file, what + ": kept under the same name");
     assert.ok(mine.bytes.equals(remade(theirs.tpl, source(trackPath))), what + ": the very file the Node server makes");
     assert.ok(mine.second.body.equals(mine.bytes), what + ": sent from the folder");
-    assert.deepEqual(mine.asks, theirs.asks, what + ": asked of the service as the Node server asks");
+    assert.deepEqual(mine.asks, theirs.asks, what + ": asked of the service as the Node server asked");
     return { mine, theirs };
   };
 

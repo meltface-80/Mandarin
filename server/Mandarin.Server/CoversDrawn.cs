@@ -167,7 +167,7 @@ internal static partial class Covers
         return Regex.IsMatch(url, "^https?://") ? url : null;
     }
 
-    /* A picture from elsewhere drawn at this size into `file`: NoCover when it can't be had (a 404, as the Node server answers). */
+    /* A picture from elsewhere drawn at this size into `file`: NoCover when it can't be had (a 404, as the Node server answered). */
     public static Task<Drawn> DrawForeign(string url, string file, int size) =>
         Once(file, "a picture from elsewhere", async () =>
         {

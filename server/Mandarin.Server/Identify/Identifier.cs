@@ -17,8 +17,8 @@
 // running, never on an album you edited by hand.
 //
 // What it writes, it writes as the Node server wrote it, column for column;
-// the Node server is then told (Library.Tell, { edits }) and reads the
-// library again, keeping album-edits.json beside the database as before.
+// the library is then told (Library.Tell, { edits }) and read again, and
+// album-edits.json beside the database kept as before.
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
@@ -69,7 +69,7 @@ internal sealed partial class Identifier
     private volatile bool stopped = true;
     private bool waitingApplied;
     private int ticking;
-    // What's written is written one at a time, and told to the Node server
+    // What's written is written one at a time, and the library told of it
     // before the page reads it (so the page never shows an apply its library hasn't got).
     private readonly SemaphoreSlim writing = new(1, 1);
     private readonly object state = new();
