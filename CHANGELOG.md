@@ -44,6 +44,12 @@ the README and the Pages site say what is new since v0.9.0.
   (since v0.9.0, after the last release), so v1.0.0's first release run failed its tests. It now
   installs and builds both as `ci.yml` does. Shown here: with `CI=1` and no bridge the test fails
   as the release did; with the bridge built by `.github/dac-bridge.sh` it passes.
+- **The APK reaches main through a pull request** (`.github/workflows/android.yml`). main takes
+  changes only through a pull request (the "Protect main and migration" ruleset, since v0.8.44),
+  so the workflow's push of `dist/mandarin-android.apk` and `dist/latest.json` was refused, and
+  the app wasn't published. It now pushes them to `publish-apk/<version>` and opens and merges a
+  pull request into main (no approval is required). That needs Settings → Actions → General →
+  "Allow GitHub Actions to create and approve pull requests".
 
 ## v0.9.7
 **The Android app's file is named Mandarin-Android-0.9.7.apk, and test builds don't wait for a
