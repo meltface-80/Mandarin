@@ -160,6 +160,7 @@ test("Check for updates installs the newer release and restarts into it, library
         out.offered = await until(() => document.getElementById("update-toast").classList.contains("open") && document.getElementById("update-text").textContent);
         out.looks = localStorage.getItem("fake-looks");
         document.getElementById("update-now").click();
+        // A window: the app's install must not be asked for in it (the server first).
         await sleep(300);
         out.installed_early = localStorage.getItem("fake-install-version");
         return out;

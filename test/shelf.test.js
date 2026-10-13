@@ -130,11 +130,20 @@ const DRIVE = `
   let pid = 20;
   const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
   const tap = (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); pe("pointerup", x, y, id); };
+  // A long press: held this long.
   const hold = async (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); await sleep(650); pe("pointerup", x, y, id); await sleep(60); };
   const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   // The cover on show at the front: a pooled one put away may still carry its number.
   const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000); await sleep(900); };
+  // Turned over: its back drawn, and the case all the way round (a .65 s transition), then a frame.
+  const turnedRound = () => { const b = document.querySelector(".it.flipped .box"); return !!b && new DOMMatrix(getComputedStyle(b).transform).m11 < -0.999 && b.getAnimations().every(a => a.playState !== "running"); };
+  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000);
+    await until(turnedRound, 4000); await new Promise(r => requestAnimationFrame(r)); };
+  // At rest: no move under way, on a case, nothing on the shelf still moving; then a frame.
+  const rest = async () => {
+    await until(() => S().mode === "idle" && Math.abs(S().p - Math.round(S().p)) < 0.01 && stage.getAnimations({ subtree: true }).every(a => a.playState !== "running"), 6000);
+    await new Promise(r => requestAnimationFrame(r));
+  };
   const row = (i) => document.querySelector('.it.flipped li[data-i="' + i + '"]');
   const tapRow = async (i) => { const c = mid(row(i)); tap(c.x, c.y); await sleep(60); };
   const holdRow = async (i) => { const c = mid(row(i)); await hold(c.x, c.y); };
@@ -210,6 +219,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
 
     await t.test("the gestures: no legend on the shelf, said once in a popup — again after an update, never once ticked", async () => {
       const state = `JSON.parse(localStorage.getItem("rra-shelf-help") || "null")`;
+      // A window for the popup to come in, if it is to come.
       const look = (then) => `(async () => { ${HELPERS} ${ready} await sleep(600);
         const out = { help: shown("#help"), items: [...document.querySelectorAll("#help li")].map(li => li.textContent.trim()),
           focus: document.activeElement && document.activeElement.id, saved: ${state},
@@ -218,7 +228,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.after = ${state}; out.helpAfter = shown("#help");
         return out; })()`;
       {
-        const first = await (await open()).eval(look(`$("#help-ok").click(); await sleep(100);`));
+        const first = await (await open()).eval(look(`$("#help-ok").click(); await until(() => !shown("#help"));`));
         assert.equal(first.help, true, "shown the first time");
         assert.equal(first.saved, null);
         assert.equal(first.focus, "help-ok", "Dismiss has the focus");
@@ -234,7 +244,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const again = await (await open()).eval(look());
       assert.equal(again.help, false, "not again on the same version");
       const updated = await (await open()).eval(`localStorage.setItem("rra-shelf-help", JSON.stringify({ seen: "0.0.1", never: false }))`).then(() => open());
-      const r = await updated.eval(look(`$("#help-never").checked = true; document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await sleep(100);`));
+      const r = await updated.eval(look(`$("#help-never").checked = true; document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await until(() => !shown("#help"));`));
       assert.equal(r.help, true, "again after an update");
       assert.equal(r.helpAfter, false, "Escape dismisses it");
       assert.deepEqual(r.after, { seen: VERSION, never: true });
@@ -431,7 +441,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
-        await until(() => S().mode === "idle"); await sleep(300);
+        await rest();
         const box = stage.getBoundingClientRect(), y = box.top + box.height * 0.5, x0 = box.left + box.width * 0.5;
         const swipe = async (dx, ms, hold) => {
           const id = ++pid, n = Math.max(2, Math.round(ms / 16));
@@ -468,7 +478,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         const out = {};
         // Rock by an artist under A: Album One alone, three tracks.
         tile("genre", "Rock").click(); $('.tab[data-tab="artist"]').click(); tile("artist", "A").click();
-        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 1 && S().mode === "idle"); await rest();
         out.front = S().title;
         await turnOver();
         out.rows = rows();
@@ -552,7 +562,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="artist"]').click(); tile("artist", "V").click();
-        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 1 && S().mode === "idle"); await rest();
         const out = { front: S().title };
         await turnOver();
         out.rows = rows();
@@ -636,7 +646,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         // At the soft limit: no further.
         $("#vol-slider").value = "58"; $("#vol-slider").dispatchEvent(new Event("input", { bubbles: true }));
         await until(() => vols().some(v => v.value === 58));
-        $("#vol-plus").click(); await sleep(300); $("#vol-plus").click(); await sleep(300);
+        for (let i = 0; i < 2; i++) { const n = vols().length; $("#vol-plus").click(); await until(() => vols().length > n); }
         out.capped = vols().slice(-2).map(v => v.value);
         // A press on the shelf closes the sheet.
         $("#stage").dispatchEvent(new PointerEvent("pointerdown", { pointerId: 9, button: 0, clientX: 10, clientY: 10, bubbles: true }));
@@ -723,7 +733,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r, { open: true, expanded: "true", folded: { pick: false, expanded: "false", wider: true } });
       const again = await open();
       assert.equal(await again.eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), false, "still folded");
-      await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick); await sleep(300); return true; })()`);
+      await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick && !document.querySelector(".sliding")); return true; })()`);
       assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
     });
 
@@ -732,10 +742,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="year"]').click(); tile("year", "1990s").click();
-        await until(() => S().N === 2 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 2 && S().mode === "idle"); await rest();
         await turnOver();
         $("#queue-tab").click(); await until(() => document.querySelectorAll("#q-list li").length, 6000);
         $("#queue-tab").click();
+        // A window for the rest of the answers to come in.
         $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
         return [...new Set(window.__by)].sort(); })()`);
       const others = r.filter(x => !x.endsWith(" C#"));
@@ -751,6 +762,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const wall = async (enabled) => assert.equal((await fetch(B + "/api/settings/display", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled }) })).status, 200);
       await wall(false);
       const off = await open();
+      // A window: the way to the wall display must not appear in it.
       assert.equal(await off.eval(`(async () => { ${HELPERS} ${ready} await sleep(300); return shown("#to-wall"); })()`), false, "the wall display is off");
       await wall(true);
       const on = await open("/shelf?zone=Kitchen");

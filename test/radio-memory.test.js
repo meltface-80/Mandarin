@@ -136,6 +136,7 @@ test("Random Album Radio uses it: exact, used up only once the room has the albu
   refuse = true;
   await fetch(B + "/api/radio", { method: "POST", headers: H, body: JSON.stringify({ zone: ZONE, enabled: true }) });
   await until(() => refused > 0, 10000, "the Kitchen asked");
+  // A window: nothing may be used up in it.
   await new Promise(r => setTimeout(r, 500));
   refuse = false;
   assert.deepEqual(rows(), before);

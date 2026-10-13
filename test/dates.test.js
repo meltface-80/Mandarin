@@ -153,6 +153,7 @@ test("the day lookup asks about albums in batches, keeps what it finds, and does
   assert.equal((await newest()).title, "Album 24");
   assert.equal(JSON.parse(kept().value).date, "2024-06-01", "kept");
   assert.equal((await afterScan()).status, 200);
+  // A window: nothing may be asked again in it.
   await sleep(300);
   assert.equal(asked().length, 2, "nothing asked twice within a month");
 
@@ -215,6 +216,7 @@ test("the days found after a library scan, through the server", { timeout: 60000
     assert.deepEqual(await order(), ["Album One", "Dated", "Hi Res", "Best Of"]);
     assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST" })).status, 404, "not without the key");
     assert.equal((await fetch(B + "/internal/jobs/after-scan", { method: "POST", headers: { "X-Mandarin-Front-Key": ctx.frontKey } })).status, 200);
+    // A window: nothing may be asked again in it.
     await sleep(300);
     assert.equal(mb.requests.length, n, "nothing asked twice");
   } finally { await srv.stop(); await mb.stop(); }

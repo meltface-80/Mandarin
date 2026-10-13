@@ -121,6 +121,7 @@ test("in Docker, Shut down isn't offered: docker stop is the way", { skip, timeo
   const r = await fetch(c.B + "/api/system/shutdown", { method: "POST", headers: H, body: "{}" });
   assert.equal(r.status, 409);
   assert.deepEqual(await r.json(), { error: "In Docker, stop the container instead: docker stop musicd-server" });
+  // A window: the server must not stop in it.
   await sleep(1000);
   assert.equal(c.p.exitCode, null, "still running");
 });
@@ -135,6 +136,7 @@ test("neither from away: Restart and Shut down refused over Tailscale, nothing s
     assert.equal(r.status, 403, p);
     assert.equal((await r.json()).away, true, p);
   }
+  // A window: the server must not stop in it.
   await sleep(1000);
   assert.equal(c.p.exitCode, null, "still running");
   assert.doesNotMatch(c.log(), /\[power\] (restart|shut down) asked for/);
@@ -160,6 +162,7 @@ test("Shut down on a Mac: the login item is unloaded, not merely exited", { skip
   assert.deepEqual(await r.json(), { ok: true, start_again: "icon" });
   await until(() => lc.calls().length, 15000, "for launchctl to be asked");
   assert.deepEqual(lc.calls(), [`bootout gui/${process.getuid()}/app.mandarin.server`]);
+  // A window: the server must not exit by itself in it (launchd stops it).
   await sleep(1500);
   assert.equal(c.p.exitCode, null, "launchd stops it: no exit of its own");
 });

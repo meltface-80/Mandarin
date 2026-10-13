@@ -162,6 +162,7 @@ test("the library read on the C# server's timer, and when the music folders chan
     const last = JSON.stringify((await s.get("/api/status")).j.scan.last);
     assert.ok(last && last !== "null");
     gen(path.join(lib.music, ".hidden", "x.flac"), { freq: 500, tags: { title: "X", artist: "X", album: "X" } });
+    // A window longer than the watch's quiet and gap: nothing may be read in it.
     await new Promise(r => setTimeout(r, 2500));
     assert.equal(JSON.stringify((await s.get("/api/status")).j.scan.last), last, "nothing read for a hidden folder");
   });

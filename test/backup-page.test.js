@@ -25,7 +25,7 @@ const DRIVER = `(async () => {
   const out = {};
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   localStorage.setItem("rra-ui-text", "1.25");
-  $("settings-toggle").click(); await sleep(300);
+  $("settings-toggle").click(); await until(() => (document.querySelector('.settings-nav-item[data-pane="backup"]') || {}).offsetParent);
   document.querySelector('.settings-nav-item[data-pane="backup"]').click();
   await until(() => document.querySelectorAll("#backup-parts input").length);
   out.parts = [...document.querySelectorAll("#backup-parts input")].map(i => i.dataset.part);
@@ -38,7 +38,7 @@ const DRIVER = `(async () => {
   out.listed_parts = document.querySelector(".backup-item small").textContent;
   localStorage.setItem("rra-ui-text", "1");
   out.changed = (await (await fetch("/api/settings/smart-picks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hour: 1 }) })).json()).hour;
-  document.querySelector('.backup-item [data-act="restore"]').click(); await sleep(100);
+  document.querySelector('.backup-item [data-act="restore"]').click(); await until(() => document.querySelector('.backup-item .backup-restore:not(.hidden) [data-act="go"]'));
   for (const i of document.querySelectorAll(".backup-item .backup-restore input")) if (!["settings", "page"].includes(i.dataset.part)) i.click();
   window.__confirmDialog = () => Promise.resolve(true);
   document.querySelector('.backup-item [data-act="go"]').click();
@@ -98,7 +98,7 @@ const SEALED_BACKUP = `(async () => {
   const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   const $ = id => document.getElementById(id);
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
-  $("settings-toggle").click(); await sleep(300);
+  $("settings-toggle").click(); await until(() => (document.querySelector('.settings-nav-item[data-pane="backup"]') || {}).offsetParent);
   document.querySelector('.settings-nav-item[data-pane="backup"]').click();
   await until(() => document.querySelectorAll("#backup-parts input").length);
   for (const i of document.querySelectorAll("#backup-parts input")) if (i.dataset.part !== "keys") i.click();
@@ -113,7 +113,7 @@ const SEALED_RESTORE = `(async () => {
   const out = { toasts: [] };
   window.__showToast = m => out.toasts.push(m);
   window.__confirmDialog = () => Promise.resolve(true);
-  document.querySelector('.backup-item [data-act="restore"]').click(); await sleep(100);
+  document.querySelector('.backup-item [data-act="restore"]').click(); await until(() => document.querySelector('.backup-item .backup-restore:not(.hidden) [data-act="go"]'));
   const pass = document.querySelector(".backup-item .backup-pass-in");
   out.asks = pass ? pass.placeholder : null;
   document.querySelector('.backup-item [data-act="go"]').click();

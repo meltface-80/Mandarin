@@ -79,6 +79,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     const r = await page.eval(`(async () => {
       window.__musicdRequestLimits.read = 60000;
       const waiting = fetch("/api/library-stats").then(() => "answered", (e) => e.name);
+      // The request on its way, held; the page hidden a moment, then shown.
       await new Promise(r => setTimeout(r, 300));
       ${SHOW(true)};
       await new Promise(r => setTimeout(r, 100));
@@ -94,6 +95,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     const r = await page.eval(`(async () => {
       const waiting = fetch("/api/settings/display", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
         .then(() => "answered", (e) => e.name);
+      // The write on its way, held; the page hidden a moment, then shown.
       await new Promise(r => setTimeout(r, 300));
       ${SHOW(true)};
       await new Promise(r => setTimeout(r, 100));
@@ -110,6 +112,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     await page.eval(`(async () => {
       for (let i = 0; i < 4; i++) { await fetch("/api/queue?zone=x").catch(() => {}); await new Promise(r => setTimeout(r, 300)); }
     })()`);
+    // A window: no more than one look may be asked for in it.
     await sleep(300);
     assert.ok(count("/api/queue") >= 4, "the four failed");
     assert.ok(count("/api/status") - before <= 1, `one look at a time: ${count("/api/status") - before} asked`);
