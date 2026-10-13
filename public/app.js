@@ -8436,7 +8436,7 @@ window.__afterStart = (fn) => {
       trackWrap.classList.remove("hidden");
       trackList.forEach((t, idx) => {
         const li = document.createElement("li");
-        li.className = "t-row";
+        li.className = "t-row"; li.dataset.trackId = t.track_id == null ? "" : String(t.track_id);   // nowdisc.js finds the playing track by it
         // Same two-line .t-text structure as the cached render above — the
         // .t-actions row stays a SIBLING of .t-text so the is-open flex-wrap
         // still drops it onto its own full-width line.

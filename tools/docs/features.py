@@ -50,13 +50,14 @@ FEATURES = [
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("shelf", "🗄️", "Shelf", True,
-     "Flick through your collection as through a record shop's shelf: covers, spines or a carousel, "
-     "narrowed by genre, artist letter and decade, or spun to land anywhere.",
+     "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
+     "by genre, artist letter and decade, or spun to land anywhere.",
      "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
      "case over, and hold a track on its back to choose tracks to play. The bar at its foot plays "
      "or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
-     "the edges fold the choices away and bring in the queue."),
+     "the edges fold the choices away and bring in the queue. Tap the order's name above the shelf "
+     "(**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
@@ -69,7 +70,8 @@ FEATURES = [
      "reviewed the album. Step to the previous or next album of the row you came from.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
-     "press ← → for the previous or next album."),
+     "press ← → for the previous or next album. The track playing has a small disc turning beside "
+     "its number."),
     ("more", "🧭", "More by, and similar", True,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
      "Last.fm key, similar artists and albums. Ones in your library open here.",
