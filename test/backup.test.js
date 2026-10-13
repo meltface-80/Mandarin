@@ -126,9 +126,10 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM favourites").get().n, 1);
     assert.deepEqual(db.raw.prepare("SELECT name, settings FROM audio_devices WHERE id = 'uuid:wiim'").get(), { name: "Lounge", settings: '{"mode":"x2"}' });
 
+    // The restore's restart (half a second on), seen through before anything more is asked.
+    await restarted(boot0);
     const list = await (byCs(await fetch(BASE + "/api/backup", { headers: H }), "the list")).json();
     assert.equal(list.backups.filter(b => b.kind === "auto" && b.label === "Before restore").length, 1);
-    await restarted(boot0);
   } finally { await srv.stop(); }
 });
 
@@ -199,6 +200,9 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
       body: JSON.stringify({ include: { settings: true, page: true } }) })).json();
     assert.equal(ctx.db.setting("smartPicksHour"), 9);
     assert.deepEqual(re.page, { "rra-ui-cols": "2" });
+    // The restore's restart (half a second on), seen through before anything more is asked: on a
+    // busy machine the next request could otherwise reach the server as it starts again.
+    await restarted(boot0);
 
     // Made by a newer Mandarin: refused, nothing changed.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbk-"));
@@ -214,8 +218,6 @@ test("kept on the server: saved, listed, downloaded, restored by id, deleted; a 
 
     const del = await (byCs(await fetch(BASE + "/api/backup/" + s.backup.id, { method: "DELETE", headers: H }), "a delete")).json();
     assert.equal(del.ok, true);
-    // The restore's restart, seen through before the server is stopped.
-    await restarted(boot0);
   } finally { await srv.stop(); }
 });
 

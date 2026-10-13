@@ -34,11 +34,12 @@ internal sealed partial class Players
         var rate = Tags.Js.ToNumber(m["sampleRate"]) is var rt && !double.IsNaN(rt) ? rt : 0;
         var bits = Tags.Js.ToNumber(m["bitDepth"]) is var bt && !double.IsNaN(bt) ? bt : 0;
         var ok = rate == item.Sent.Rate && (bits == 0 || item.Sent.Bits == 0 || bits == item.Sent.Bits);
+        // Kept before the badge's tick is shown, so a page that sees the tick finds the rate verified too.
+        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, rate, bits != 0 ? bits : item.Sent.Bits); }
         var bump = false;
         lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
         if (bump) zm.Bump();
-        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, rate, bits != 0 ? bits : item.Sent.Bits); }
-        else
+        if (!ok)
         {
             var msg = $"Sent {Tags.Js.Num(item.Sent.Bits)}-bit/{Tags.Js.Num(item.Sent.Rate / 1000)} kHz, the device reports {(bits != 0 ? Tags.Js.Num(bits) : "?")}-bit/{Tags.Js.Num(rate / 1000)} kHz";
             lock (gate) p.LastError = (Hub.Now(), msg);
@@ -60,10 +61,10 @@ internal sealed partial class Players
         var hw = HwParams(rec.Location);
         if (hw == null || hw.Value.Rate == 0) return;
         var ok = hw.Value.Rate == sink.Value.Rate && sink.Value.Rate == item.Sent.Rate;
+        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
         var bump = false;
         lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
         if (bump) zm.Bump();
-        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
         await Task.CompletedTask;
     }
 

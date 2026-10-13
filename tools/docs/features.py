@@ -22,6 +22,12 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
+    ("touch", "👆", "Phones and tablets", True,
+     "On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, "
+     "Search) under the mini player, and albums scrolling to the screen's top edge.",
+     "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
+     "Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to "
+     "the top; Search opens its field across the screen."),
     ("random-album", "🎲", "Random Album", True,
      "The first tile under the greeting chooses an album you haven't played in 12 months (until "
      "Mandarin has 12 months of history, any album) and offers it to play.",
@@ -39,7 +45,8 @@ FEATURES = [
     ("library", "📚", "Library", False,
      "Every album, sorted by name, artist, release date, date added, plays, last played or random, "
      "and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.",
-     "Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top bar; Focus also "
+     "Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's row. **Sort** and "
+     "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("shelf", "🗄️", "Shelf", True,
@@ -53,7 +60,8 @@ FEATURES = [
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
-     "Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in "
+     "Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) "
+     "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their albums."),
     ("album", "💿", "Album pages", False,
@@ -94,8 +102,8 @@ FEATURES = [
     ("scanner", "🔎", "Library Scanner", True,
      "Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, "
      "with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.",
-     "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 95% or better are applied (with Undo); near "
-     "ones wait for **Accept** or **Reject**; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. **Ask iTunes too** and "
+     "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 85% or better are applied (with Undo); the "
+     "rest are left for you to match; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. **Ask iTunes too** and "
      "**Measure ReplayGain** are on the same page; **Scheduling** sets the hours both run, identification first, then ReplayGain album by album."),
     ("mbpack", "📦", "MusicBrainz pack", True,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "
@@ -133,7 +141,7 @@ FEATURES = [
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
      "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. "
-     "On a Mac, set its rate in Audio MIDI Setup. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
+     "On a Mac, through Mandarin DAC Bridge: switch on “<DAC> (Bridge)”. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
@@ -174,8 +182,8 @@ FEATURES = [
      "Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and "
      "FanArt.tv, lookups for albums without a label, and merging of duplicate names.",
      "Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key "
-     "(**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile "
-     "to select labels to merge."),
+     "(**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar (on a phone or "
+     "tablet, #–Z at the top right and Search in the row); hold a tile to select labels to merge."),
     ("lotw", "📆", "Label of the week", False,
      "With Record labels on, one label from your library on Home all week, with its albums. A new "
      "one each Monday.",
@@ -231,8 +239,8 @@ FEATURES = [
     ("offline", "✈️", "Offline mode", True,
      "One switch: only the music on the phone shows, and the server isn't used. With no connection "
      "the app does the same by itself, and reconnects when it can.",
-     "In the Android app, **☰ → Offline mode**. While offline, a symbol sits in the top bar between "
-     "the menu and the search: tap it to see why (Offline mode, or the server can't be reached)."),
+     "In the Android app, **☰ → Offline mode**. While offline, a small symbol sits in the row at the foot "
+     "of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached)."),
     ("away", "🌍", "Away from home", False,
      "On mobile data the app reaches the server through its own Tailscale, with no ports opened. "
      "Away, only the phone plays: Opus 256 or the original files.",
@@ -261,7 +269,14 @@ FEATURES = [
      "database, at home or away: to the server, or from the app to a file.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
-     "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts."),
+     "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.\n\n"
+     "**What a backup holds.** The API keys part (and the whole database) holds your Discogs, FanArt.tv "
+     "and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale "
+     "identity. Without a passphrase they are in the file as they are, so keep the file as you would keep "
+     "them. Type a **passphrase** (8 characters or more) before backing up and they are sealed "
+     "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
+     "else in a sealed backup restores without it. A backup never holds your password or other devices' "
+     "sign-ins."),
     ("qobuz", "🎼", "Qobuz", True,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
@@ -278,8 +293,8 @@ FEATURES = [
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app "
      "one Update does the server first, then the app.",
-     "**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server restarts "
-     "itself in a few seconds, and again once its C# server is brought up to the same version; in the app, Android's installer then asks."),
+     "**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server puts the new "
+     "version in place and starts again in a few seconds; in the app, Android's installer then asks."),
 ]
 
 MAX_WORDS = 30
@@ -322,6 +337,7 @@ def site_block():
     # Site links: README anchors become the README on GitHub.
     def site_how(how):
         how = re.sub(r"\]\(#([^)]+)\)", r"](https://github.com/meltface-80/Mandarin#\1)", how)
+        how = how.replace("\n\n", " ")  # one paragraph on a card
         return md_inline_to_html(how)
     out = []
     for fid, em, title, new, what, how in FEATURES:

@@ -5,6 +5,41 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.0
+**The release review** (`v1.0.0-release-review`): everything since the audit (v0.9.1 to v0.9.7)
+read again before the owner's merge to main. Two faults found and fixed, and a test that raced;
+the README and the Pages site say what is new since v0.9.0.
+
+- **Lists that follow the play history went stale after a play** (`LibraryRoutes.Kept.cs`, from
+  v0.9.3's kept lists). A kept list was keyed on the copy of the library and the hearts, and a play
+  changes neither, so the wall sorted by Most played or Last played, the Played filter, and the
+  facets' Played counts came back as they were before the play (a 304 to a page whose copy was
+  current), until a scan, an edit or a heart. Now the wall is made afresh whenever its sort or
+  filter reads the plays, and the facets are kept apart for "no plays yet" and "some plays".
+  `test/library-kept.test.js` plays a track and asks again: it failed on the old code and
+  passes now.
+- **A renderer's tick came before its rate was kept** (`Renderers/Players.Commands.cs`). When a
+  WiiM (or a sound device on Linux) confirmed the rate it was sent, Now playing showed ✓ first and
+  the rate was marked verified on Audio Devices after; a page that opened the device's page on
+  seeing the tick could still find the rate "profile". The rate is now kept first, then the tick
+  shown. Found when `test/renderer-playback.test.js` failed on a busy machine; with a 1.5 s pause
+  put before the write it failed every time on the old order, and passes on the new.
+- `test/backup.test.js` waits for a restore's restart (half a second after its answer) before
+  asking anything more. On a busy machine the next request reached the server as it started again
+  ("fetch failed"); with an 800 ms pause put in after the restore it failed every time, and passes
+  now.
+- **README and Pages**: a "New in v1.0.0" note (the phone and tablet layout, the Android app
+  installed over itself, the APK's name, the audit), and why a Mac's install line offers Mandarin
+  DAC Bridge: Mandarin's audio engine plays through ALSA, which macOS doesn't have, so the bridge
+  plays a USB DAC on a Mac instead; playing it from Mandarin itself is for a later build. The
+  phone and tablet layout is a feature of its own (`tools/docs/features.py`), and the Library,
+  Search, Labels and Offline notes say where their controls are on a phone or a tablet.
+- `tools/docs/features.py`, which writes both feature lists, had fallen behind the README in four
+  notes (matches applied from 85%, a Mac's DAC through the bridge, what a backup holds, how an
+  update starts again): run, it would have put the old words back. It now holds the README's, and
+  joins a note's two paragraphs into one on the site's card.
+- Version 1.0.0 (Android `versionCode` 308).
+
 ## v0.9.7
 **The Android app's file is named Mandarin-Android-0.9.7.apk, and test builds don't wait for a
 Mac** (`v0.9.7-apk-name`).
