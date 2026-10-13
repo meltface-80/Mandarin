@@ -112,8 +112,10 @@
 
 /* The keyboard is up (a text field has the focus, app.js marks <html>):
    the WebView shrinks the page to fit above the keys, and the mini transport
-   bar rode up with it. Out of the way until typing is done. */
-html.is-typing .mini-transport { display: none !important; }
+   bar rode up with it, and the touch layout's row (v0.9.6) would too. Out of
+   the way until typing is done: the keyboard goes over them, as it does in a
+   browser, where the page isn't shrunk. */
+html.is-typing .mini-transport, html.is-typing .touch-nav { display: none !important; }
 
 /* The offline note (and any other notice) above Home: room below it. */
 main > .server-notice { margin-bottom: 18px; position: relative; z-index: 1; }

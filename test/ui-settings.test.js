@@ -85,7 +85,9 @@ const DRIVER = `(async () => {
   out.back_early = { title: title(), labels: document.querySelectorAll(".label-tile").length };
   $("topbar-back").click(); await until(() => shown("home-view"));
 
-  // The Library wall: Focus, Sort and the glass in the top bar, in brass.
+  // The Library wall: Focus, Sort and the glass in the top bar, in brass. On a phone or a tablet
+  // (the touch layout, v0.9.6) the glass gives way to Search in the row along the foot.
+  out.touch = getComputedStyle($("touch-nav")).display !== "none";
   const libTitle = $("home-library-title");
   out.has_library = !!libTitle;
   if (libTitle) {
@@ -99,7 +101,9 @@ const DRIVER = `(async () => {
       glass_last: !!document.querySelector(".topbar-row .lib-filter-btn") };
     tb.querySelector(".lib-filter-btn").click(); await until(() => tb.querySelector(".lib-filter-input"));
     const inp = tb.querySelector(".lib-filter-input");
-    inp.value = "Al"; inp.dispatchEvent(new Event("input")); await until(() => getComputedStyle($("album-count")).display === "none");
+    inp.value = "Al"; inp.dispatchEvent(new Event("input"));
+    // The title gives the field its place in the bar; on a phone it is the page's heading, out of the field's way.
+    await until(() => out.touch ? $("album-grid").querySelectorAll(".album").length : getComputedStyle($("album-count")).display === "none");
     out.lib_open = { focus: vis(".lib-ctl-focus"), sort: vis(".lib-ctl-sort"), title: getComputedStyle($("album-count")).display === "none", value: tb.querySelector(".lib-filter-input").value };
     tb.querySelector(".lib-filter-clear").click(); await until(() => (tb.querySelector(".lib-filter-input") || {}).value === "");
     out.lib_cleared = { open: !!tb.querySelector(".lib-filter-input"), value: (tb.querySelector(".lib-filter-input") || {}).value };
@@ -182,8 +186,9 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     assert.equal(r.home, true, "and ‹ there goes Home");
     assert.deepEqual(r.back_early, { title: "Labels", labels: 2 }, "a label's albums that come after ‹ don't cover the Labels list");
     assert.equal(r.has_library, true, "Home has its Library row");
-    assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: true, brass: true, glass_last: true });
-    assert.deepEqual(r.lib_open, { focus: true, sort: true, title: true, value: "Al" }, "the field opens in the bar's row over the title; Focus and Sort stay in theirs");
+    assert.equal(r.touch, true, "a phone has the touch layout");
+    assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: false, brass: true, glass_last: true }, "the glass gives way to Search in the row");
+    assert.deepEqual(r.lib_open, { focus: true, sort: true, title: false, value: "Al" }, "the field opens in the bar's row; on a phone the title, the page's heading, stays; Focus and Sort stay in theirs");
     assert.deepEqual(r.lib_cleared, { open: true, value: "" }, "the first × clears the words");
     assert.deepEqual(r.lib_closed, { open: false, focus: true, sort: true }, "the second × closes it");
     assert.equal(r.lib_in_artist, false, "an artist page takes them out of the bar");
@@ -207,7 +212,9 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
 // The Library wall's top bar at a phone's two common widths, a tablet either
 // way up and a desktop: everything fits inside the screen without overlapping,
 // the bar keeps one height with the field open or shut, the glass is round,
-// and the title shows from 480px up (as Rouen v1.8.78 has it).
+// and the title shows from 480px up (as Rouen v1.8.78 has it). On a phone or a
+// tablet (the touch layout, v0.9.6): no glass (Search in the row along the
+// foot opens the field), Focus and Sort up in ‹'s line on the right.
 const SIZES_DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -218,10 +225,12 @@ const SIZES_DRIVER = `(async () => {
   await sleep(200);
   const box = sel => { const b = document.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width, h: b.height, t: b.top, b: b.bottom }; };
   const title = document.getElementById("album-count");
-  const out = { vw: innerWidth, back: box("#topbar-back"), focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort"), glass: box(".lib-filter-btn"),
+  const touch = getComputedStyle(document.getElementById("touch-nav")).display !== "none";
+  const out = { vw: innerWidth, touch, back: box("#topbar-back"), focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort"), glass: box(".lib-filter-btn"),
     title_shown: getComputedStyle(title).display !== "none", title: box("#album-count"), bar: box(".topbar").h };
-  document.querySelector(".lib-filter-btn").click(); await until(() => document.querySelector(".lib-filter-box"));
-  out.open = { field: box(".lib-filter-box"), bar: box(".topbar").h };
+  (touch ? document.getElementById("tnav-search") : document.querySelector(".lib-filter-btn")).click();
+  await until(() => document.querySelector(".lib-filter-box"));
+  out.open = { field: box(".lib-filter-box"), bar: box(".topbar").h, focus: box(".lib-ctl-focus"), sort: box(".lib-ctl-sort") };
   return out;
 })()`;
 
@@ -249,6 +258,19 @@ test("the Library's controls under the top bar on phones, tablets and desktops",
         assert.deepEqual(page.errors, []);
       } finally { await b.close(); }
       const at = size.width + "px";
+      assert.equal(r.touch, !size.mouse, at + ": the touch layout on a phone and a tablet, not a desktop");
+      if (r.touch) {
+        const mid = x => (x.t + x.b) / 2;
+        assert.ok(Math.abs(mid(r.focus) - mid(r.back)) <= 2 && Math.abs(mid(r.sort) - mid(r.back)) <= 2, at + ": Focus and Sort up in ‹'s line");
+        assert.ok(r.back.r <= r.focus.l && r.focus.r <= r.sort.l && r.sort.r <= r.vw && r.sort.r >= r.vw - 24, at + ": ‹ on the left, then Focus and Sort on the right, not overlapping");
+        assert.equal(r.glass.w, 0, at + ": no glass: Search in the row opens the field");
+        assert.ok(r.focus.w > 50, at + ": Focus keeps its word");
+        assert.ok(r.focus.h <= 36 && r.focus.h < r.back.h, at + ": the pills are smaller than the bar's buttons");
+        assert.equal(r.title_shown, true, at + ": the title shows, as the page's heading");
+        assert.ok(r.open.field.r <= r.vw && r.open.field.w > 150, at + ": the field takes the room");
+        assert.ok(r.open.focus.w > 0 && r.open.sort.w > 0 && r.open.focus.t >= r.open.field.b - 1, at + ": Focus and Sort stay, under the field");
+        continue;
+      }
       assert.ok(r.focus.t >= r.back.b - 1, at + ": Focus and Sort sit in their own row under the bar's");
       assert.ok(r.focus.r <= r.sort.l, at + ": Focus then Sort, not overlapping");
       assert.ok(r.back.r <= r.glass.l && r.glass.b <= r.focus.t + 1, at + ": the glass is in the bar's row, right of Back");
