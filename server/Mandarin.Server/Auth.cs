@@ -15,7 +15,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Data.Sqlite;
@@ -102,7 +101,7 @@ internal static partial class Auth
             && Uri.IsHexDigit(a[2]) && Uri.IsHexDigit(a[3]) && a[4] == ':') return true;
         var parts = a.Split('.');
         if (parts.Length != 4 || !parts.All(p => p.Length > 0 && p.All(char.IsAsciiDigit))) return false;
-        int x = int.Parse(parts[0]), y = int.Parse(parts[1]);
+        int x = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture), y = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
         return x == 10 || (x == 172 && y >= 16 && y <= 31) || (x == 192 && y == 168) || (x == 169 && y == 254);
     }
 
@@ -194,7 +193,7 @@ internal static partial class Auth
         cmd.Parameters.AddWithValue("$n", name); cmd.Parameters.AddWithValue("$k", kind);
         cmd.Parameters.AddWithValue("$t", Now); cmd.Parameters.AddWithValue("$ip", ip);
         cmd.ExecuteNonQuery();
-        Front.Log($"[auth] signed in: {name} ({kind}) from {ip}");
+        Server.Log($"[auth] signed in: {name} ({kind}) from {ip}");
         return (token, new JsonObject { ["id"] = id, ["name"] = name, ["kind"] = kind });
     }
 
@@ -235,7 +234,7 @@ internal static partial class Auth
             recentFailures = recentFailures.Where(t => now - t < 3600000).Append(now).ToList();
             if (failures.Count > 5000) failures.Remove(failures.Keys.First());
         }
-        Front.Log($"[auth] wrong password from {ip}");
+        Server.Log($"[auth] wrong password from {ip}");
     }
 
     private static Task Slowdown()
@@ -315,7 +314,7 @@ internal static partial class Auth
 
     public static void Map(WebApplication app)
     {
-        app.MapGet("/api/auth/status", (HttpContext ctx) =>
+        app.MapMethods("/api/auth/status", Http.GetOrHead, (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var acct = GetAccount(c);
@@ -352,7 +351,7 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$v", verifier.ToLowerInvariant()); cmd.Parameters.AddWithValue("$i", iterations);
             cmd.Parameters.AddWithValue("$t", Now);
             if (cmd.ExecuteNonQuery() == 0) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
-            Front.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
+            Server.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
             var (token, device) = IssueDevice(ctx, c, b);
             if (Js.Truthy(b["want_token"])) { await Json(ctx, 200, new JsonObject { ["ok"] = true, ["token"] = token, ["device"] = device, ["username"] = username }); return; }
             SetCookie(ctx, token, !Js.IsFalse(b["remember"]));
@@ -412,12 +411,12 @@ internal static partial class Auth
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
-            if (dev != null) { Drop(c, dev.Id); Front.Log($"[auth] signed out: {dev.Name}"); }
+            if (dev != null) { Drop(c, dev.Id); Server.Log($"[auth] signed out: {dev.Name}"); }
             ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
 
-        app.MapGet("/api/auth/devices", async (HttpContext ctx) =>
+        app.MapMethods("/api/auth/devices", Http.GetOrHead, async (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
@@ -447,7 +446,7 @@ internal static partial class Auth
             if (dev == null) { await Json(ctx, 401, new JsonObject { ["error"] = "Sign in to Mandarin", ["sign_in_required"] = true }); return; }
             var id = Js.Str(b["id"]);
             int n = Drop(c, id);
-            if (n > 0) Front.Log($"[auth] device {id} signed out by {dev.Name}");
+            if (n > 0) Server.Log($"[auth] device {id} signed out by {dev.Name}");
             if (id == dev.Id) ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = n > 0 });
         });
@@ -474,7 +473,7 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$t", Now);
             cmd.ExecuteNonQuery();
             reauthed.TryRemove(dev.Id, out _);
-            Front.Log($"[auth] password changed from {dev.Name}");
+            Server.Log($"[auth] password changed from {dev.Name}");
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
     }
@@ -487,20 +486,12 @@ internal static partial class Auth
         return cmd.ExecuteNonQuery();
     }
 
-    // ------------------------------------------------------------ JSON in and out
+    // ------------------------------------------------------------ JSON out
 
-    // The request's JSON body, as the Node server's parser reads it: {} when
-    // there is none or it isn't JSON; a 400 (and null) when it says JSON but isn't.
-    public static Task Json(HttpContext ctx, int status, JsonObject o)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        // Answered here, not passed on (the tests check which).
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        return ctx.Response.WriteAsync(o.ToJsonString());
-    }
+    // As res.json sends it (Http.cs); the body in is Auth.Body.cs.
+    public static Task Json(HttpContext ctx, int status, JsonObject o) => Http.Json(ctx, o, status);
 
-    private static Task Error(HttpContext ctx, int status, string message) => Json(ctx, status, new JsonObject { ["error"] = message });
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 }
 
 // What JavaScript would make of a JSON value, where the rules above come from it.
@@ -549,7 +540,7 @@ internal static class Js
         {
             char ch = (char)b;
             if (b < 0x80 && (char.IsAsciiLetterOrDigit(ch) || "-_.!~*'()".Contains(ch))) sb.Append(ch);
-            else sb.Append('%').Append(b.ToString("X2"));
+            else sb.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }

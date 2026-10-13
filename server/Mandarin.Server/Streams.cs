@@ -49,12 +49,8 @@ internal static partial class Streams
     };
     internal static string MimeForExt(string ext) => ExtMime.TryGetValue(ext.ToLowerInvariant(), out var m) ? m : "application/octet-stream";
 
-    private static string cacheDir = "";
-
-
-    public static void Use(WebApplication app, string dataDir)
+    public static void Use(WebApplication app)
     {
-        cacheDir = Path.Combine(dataDir, "transcode");
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
@@ -62,7 +58,7 @@ internal static partial class Streams
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/stream/", StringComparison.Ordinal))
             {
                 try { if (await Answer(ctx, p)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "stream", e); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "stream", e); return; }
             }
             await next();
         });
@@ -77,7 +73,7 @@ internal static partial class Streams
         {
             var dash = part.IndexOf('-');
             if (dash < 0) continue;
-            static long? P(string s) { s = s.TrimStart(); int i = 0; while (i < s.Length && char.IsAsciiDigit(s[i])) i++; return i > 0 && i <= 18 ? long.Parse(s[..i]) : null; }
+            static long? P(string s) { s = s.TrimStart(); int i = 0; while (i < s.Length && char.IsAsciiDigit(s[i])) i++; return i > 0 && i <= 18 ? long.Parse(s[..i], CultureInfo.InvariantCulture) : null; }
             long? start = P(part[..dash]), end = P(part[(dash + 1)..]);
             if (start == null && end != null) { start = size - end; end = size - 1; }
             else if (end == null) end = size - 1;

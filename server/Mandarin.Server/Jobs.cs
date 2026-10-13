@@ -40,7 +40,7 @@ internal static partial class Jobs
     private static Lastfm? lastfm;
     public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
     public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
-    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Front.Version + " (+https://github.com/meltface-80/Mandarin)");
+    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)");
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -82,7 +82,7 @@ internal static partial class Jobs
     /* The work set up from [cfg] (the environment's) and started: [jobs] of it this server's. */
     private static async Task Setup(JsonObject cfg, HashSet<string> jobs, string dataDir, int frontPort, string version)
     {
-        void Log(string s) => Front.Log(s);
+        void Log(string s) => Server.Log(s);
         Packs = new PackStore(dataDir, Text(cfg["mbpack_dir"]), Text(cfg["mbpack_url"]), Log);
         var packs = Packs;
         var mb = new PackFirst(new MusicBrainz(Text(cfg["musicbrainz_url"]), version), () => packs.Get());
@@ -118,7 +118,7 @@ internal static partial class Jobs
             Int(watchdog?["rebindMs"], 60000), Int(watchdog?["restartMs"], 240000));
         // The in-app update (v0.8.48): where GitHub is asked.
         Updater?.Stop();
-        Updater = new Admin.Updater(cfg, Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), version, Log);
+        Updater = new Admin.Updater(cfg, Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir(), version, Log);
         handed = jobs;
         if (handed.Contains("update")) Updater.Start();
         // The processor split (v0.8.48): decided here.
@@ -135,7 +135,7 @@ internal static partial class Jobs
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
         Services.Import.Start(cfg);
-        Front.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
+        Server.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
         {
@@ -151,7 +151,7 @@ internal static partial class Jobs
             if (Holds("days") && Days is { } d) _ = d.Run();
             if (Holds("taste") && Taste is { } t && await Library.CurrentCopy() is { } s) t.Kick(s, false);
         }
-        catch (Exception e) { Front.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
+        catch (Exception e) { Server.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
     }
 
     /*
@@ -165,7 +165,7 @@ internal static partial class Jobs
         Scans.Halt();
         // The services' import and watch likewise, at their next album (v0.8.45).
         await Services.Import.HaltRuns();
-        if (Front.LeaveBy(Front.Leave.Restart)) Front.StopApp?.Invoke();
+        if (Server.LeaveBy(Server.Leave.Restart)) Server.StopApp?.Invoke();
     }
 
     public static void Stop()

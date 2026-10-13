@@ -61,25 +61,9 @@ internal static partial class Library
         var hub = Playback.Hub.Current;
         // Away, only the phone the app is on, by the device it signed in as: the Node server's until the hub is here.
         if ((hub == null && Auth.IsAway(ctx)) || !BodyFits(ctx)) return false;
-        // Kept, so the request can still go on as it came.
-        ctx.Request.EnableBuffering();
-        object? b = new JsObj();
-        if (IsJsonBody(ctx))
-        {
-            using var ms = new MemoryStream();
-            await ctx.Request.Body.CopyToAsync(ms);
-            ctx.Request.Body.Position = 0;
-            var text = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
-            if (text.StartsWith('﻿')) text = text[1..];
-            if (text.Length > 0)
-            {
-                // Strict, as the parser is: an object or an array, nothing else; what it turns down is its own answer.
-                var first = text.TrimStart(' ', '\t', '\n', '\r');
-                if (first.Length == 0 || first[0] is not ('{' or '[')) return false;
-                try { b = JsJson.Parse(text); }
-                catch (JsError) { return false; }
-            }
-        }
+        // Kept, so the request can still go on as it came; one turned down is Pages.NotThere.cs's to answer.
+        var (b, read) = await Http.ReadJs(ctx, keep: true);
+        if (read.Refused) return false;
         // Switching a player on or off, and the radio: playback's, so the Node server's until the hub is here.
         if (hub == null && (Prop(b, "enabled") is not Undef || Prop(b, "radio") is not Undef)) return false;
         if (hub != null && Auth.IsAway(ctx))
@@ -91,7 +75,7 @@ internal static partial class Library
         catch (Exception e) when (e is not DeviceRefusal && !ctx.Response.HasStarted)
         {
             // wrap(): e.status || 500, with its words.
-            Front.Log($"[devices] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[devices] {p}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, e.Message);
         }
     }

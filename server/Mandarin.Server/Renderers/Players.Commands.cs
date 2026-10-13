@@ -3,7 +3,6 @@
 // a jump, every command, and what the device says it is really playing.
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
-using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server.Renderers;
 

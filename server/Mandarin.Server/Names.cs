@@ -6,7 +6,6 @@
 // JavaScript's regular expressions are not .NET's in three places that matter
 // here, so the patterns spell them out: \b is ASCII-only there (B below), $
 // never matches before a final newline (\z), and \d is ASCII digits ([0-9]).
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 

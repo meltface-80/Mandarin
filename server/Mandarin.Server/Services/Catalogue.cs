@@ -435,7 +435,7 @@ internal sealed partial class TidalCatalogue : Catalogue
         {
             listsLogged = true;
             var named = string.Join(", ", all.Select(x => $"{Js.Str(P(x, "name"))} ({Js.Str(P(x, "path"))})"));
-            Front.Log($"[tidal] featured lists: {(named.Length > 0 ? named : "none")}");
+            Server.Log($"[tidal] featured lists: {(named.Length > 0 ? named : "none")}");
         }
         return all.Select(x => (object?)Obj(("id", Js.Str(P(x, "path"))), ("label", Js.Str(Or(P(x, "name"), P(x, "path")))))).ToList();
     }
@@ -443,10 +443,9 @@ internal sealed partial class TidalCatalogue : Catalogue
     /* One of the lists Tidal features, by its path or its name there. */
     public override async Task<List<object?>> Featured(string type, Ask ask)
     {
-        var want = type.ToLowerInvariant();
         var lists = Items(Or(P(await Api.Featured(), "items"), new List<object?>()));
-        var l = lists.FirstOrDefault(x => Js.Str(Or(P(x, "path"), "")).ToLowerInvariant() == want)
-            ?? lists.FirstOrDefault(x => Js.Str(Or(P(x, "name"), "")).ToLowerInvariant() == want);
+        var l = lists.FirstOrDefault(x => string.Equals(Js.Str(Or(P(x, "path"), "")), type, StringComparison.OrdinalIgnoreCase))
+            ?? lists.FirstOrDefault(x => string.Equals(Js.Str(Or(P(x, "name"), "")), type, StringComparison.OrdinalIgnoreCase));
         if (l == null || P(l, "hasAlbums") is false) throw new ServiceError("Tidal doesn't feature that list", 404);
         var j = await WithFavs(Api.FeaturedAlbums(P(l, "path"), 100), ask);
         return await Marked(Listed(P(j, "items")).Select(a => (object?)NormAlbum(a)).ToList(), ask);

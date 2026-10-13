@@ -5,13 +5,11 @@
 // title by that artist on any album, reported as a substitution. The blob
 // itself is Extras/ShareBlob.cs.
 //
-// The body is read as the Node server's express.json() reads it, into
-// JavaScript's shapes (a lone surrogate in a title survives, as it does
-// there); one past that parser's 2 MB, or of no stated length, is passed on
-// unread for the Node server to refuse.
+// The body is read as the Node server's express.json() read it (Http.cs),
+// into JavaScript's shapes (a lone surrogate in a title survives, as it did
+// there).
 using System.Text;
 using Mandarin.Server.Extras;
-using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
 
@@ -21,40 +19,18 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private const long JsonLimit = 2 * 1024 * 1024;   // express.json({ limit: "2mb" })
     private static readonly string AppVersion = (typeof(Library).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
 
-    private static bool IsJsonBody(HttpContext ctx) => (ctx.Request.ContentType ?? "").Contains("json", StringComparison.OrdinalIgnoreCase);
     // Sent without a length (chunked), it fits until it's read past the limit (JsBody).
-    private static bool BodyFits(HttpContext ctx) => !IsJsonBody(ctx) || ctx.Request.ContentLength is not long n || n <= JsonLimit;
+    private static bool BodyFits(HttpContext ctx) => Http.Fits(ctx);
 
-    /* req.body: a JSON body as JSON.parse makes it (its byte-order mark dropped, empty as {}), {} for any other; Bad JSON a 400, past the limit a 413 (Answered). */
+    /* req.body: a JSON body as JSON.parse makes it (Http.ReadJs), {} for any other; one turned down answered (Answered). */
     private static async Task<(object? Body, bool Answered)> JsBody(HttpContext ctx)
     {
-        if (!IsJsonBody(ctx)) return (new JsObj(), false);
-        using var ms = new MemoryStream();
-        var buf = new byte[64 * 1024];
-        int got;
-        while ((got = await ctx.Request.Body.ReadAsync(buf)) > 0)
-        {
-            if (ms.Length + got > JsonLimit) { await JsError(ctx, 413, "request entity too large"); return (null, true); }
-            ms.Write(buf, 0, got);
-        }
-        var text = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
-        if (text.StartsWith('﻿')) text = text[1..];
-        if (text.Length == 0) return (new JsObj(), false);
-        // Strict, as the parser is: an object or an array, nothing else.
-        var first = text.TrimStart(' ', '\t', '\n', '\r');
-        try
-        {
-            if (first.Length == 0 || first[0] is not ('{' or '[')) throw new Tags.JsError("not an object");
-            return (JsJson.Parse(text), false);
-        }
-        catch (Tags.JsError)
-        {
-            await JsError(ctx, 400, "Bad JSON");
-            return (null, true);
-        }
+        var (b, read) = await Http.ReadJs(ctx);
+        if (!read.Refused) return (b, false);
+        await JsError(ctx, read.Status, read.Words);
+        return (null, true);
     }
 
     /* After the body is read the request can't be passed on (its body is gone): an error is answered here, a 500 as the Node server's would be. */
@@ -63,7 +39,7 @@ internal static partial class Library
         try { return await work(); }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[library] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[library] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, e.Message);
         }
     }

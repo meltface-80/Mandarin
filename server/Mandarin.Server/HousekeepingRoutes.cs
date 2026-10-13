@@ -21,7 +21,6 @@ using Mandarin.Server.Identify;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
-using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
 
@@ -50,7 +49,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // As the Node server's wrap() answers what throws.
-            Front.Log($"[library] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[library] {p}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, e.Message);
         }
     }
@@ -69,7 +68,7 @@ internal static partial class Library
         if (Environment.GetEnvironmentVariable("DOCKER") != "1") return null;
         try
         {
-            var real = NodeFs.RealPathOf(Scans.DataDir) ?? throw new IOException("no such folder");
+            var real = PosixFs.RealPathOf(Scans.DataDir) ?? throw new IOException("no such folder");
             var line = File.ReadAllText("/proc/self/mountinfo").Split('\n').FirstOrDefault(l => (l.Split(' ').ElementAtOrDefault(4) ?? "") == real);
             if (line == null) return false;
             return !DockerVolume().IsMatch(line.Split(' ').ElementAtOrDefault(3) ?? "");
@@ -101,7 +100,7 @@ internal static partial class Library
             ["index_count"] = s.Count,
             ["sonos"] = sonos,
             ["music_dir"] = Scans.MusicDir,
-            ["music_dir_exists"] = roots.Any(NodeFs.Exists),
+            ["music_dir_exists"] = roots.Any(PosixFs.Exists),
             ["music_dirs"] = new JsonArray(roots.Select(r => (JsonNode)r).ToArray()),
             ["data_persistent"] = DataPersistent() is { } kept ? kept : null,
             ["scan"] = new JsonObject

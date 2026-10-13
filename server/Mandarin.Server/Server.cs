@@ -1,13 +1,13 @@
-// Front.cs — the server's own plumbing: its version and data folder, its log,
+// Server.cs — the server's own plumbing: its version and data folder, its log,
 // Restart and Shut down (starting again in the same process), the app's
-// folder, and who a request came from. Named for the front door it was while
-// the Node server stood behind it (v0.8.1 to v0.8.50).
+// folder, and who a request came from. Front.cs until v0.9.2, named for the
+// front door it was while the Node server stood behind it (v0.8.1 to v0.8.50).
 using System.Net;
 using System.Runtime.InteropServices;
 
 namespace Mandarin.Server;
 
-internal static partial class Front
+internal static partial class Server
 {
     private static readonly object logLock = new();
 
@@ -69,7 +69,7 @@ internal static partial class Front
     // Stamped as the Node server stamped its lines.
     public static void Log(string s)
     {
-        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss") + " " + s);
+        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
     }
 
     // The app's folder, with the page (public/index.html): beside this program,
@@ -117,7 +117,7 @@ internal static class Routes
     public static void Map(WebApplication app, string version)
     {
         // Which server answered, for the tests and for a look from a browser; and this run of it (v0.8.50: a test sees a restart by it).
-        app.MapGet("/server-info", () => Results.Json(new ServerInfo("C#", version, Library.Boot), ServerJson.Default.ServerInfo));
+        app.MapMethods("/server-info", Http.GetOrHead, () => Results.Json(new ServerInfo("C#", version, Library.Boot), ServerJson.Default.ServerInfo));
     }
 }
 

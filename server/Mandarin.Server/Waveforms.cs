@@ -12,7 +12,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text.Json.Nodes;
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -204,7 +203,7 @@ internal static class Waveforms
                 var peaks = await Decode(path, duration);
                 if (peaks == null)
                 {
-                    Front.Log($"[waveform] no waveform for {title}: {(LastDecodeError.Length > 0 ? LastDecodeError : "undecodable")}");
+                    Server.Log($"[waveform] no waveform for {title}: {(LastDecodeError.Length > 0 ? LastDecodeError : "undecodable")}");
                     return null;
                 }
                 var v = new JsObj();

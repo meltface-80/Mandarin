@@ -61,7 +61,6 @@ internal sealed class WriteUpSources(string? mbBase, string? wikipediaBase, stri
     private readonly Pace pitchforkPace = new(1000), qobuzPace = new(700);
 
     private static string Key(object? title, object? artist) => WriteUps.Normalize(title) + "||" + WriteUps.Normalize(Js.Truthy(artist) ? artist : "");
-    private static string S(object? v) => Js.Truthy(v) ? Js.Str(v) : "";
 
     // ------------------------------------------------------------ MusicBrainz
 

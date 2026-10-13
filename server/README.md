@@ -39,7 +39,7 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
   `test/update.test.js`, `test/update-alone.test.js`.
 - **On a Mac** (v0.8.29): built on GitHub's Mac runners (signed ad hoc, as macOS needs) and started
   by launchd (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
-  (`Scan/NodeFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
+  (`Scan/PosixFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
   suite on a Mac runner.
 - **Subcommands:** `--version`, `--health` (the image's health check), `config`,
   `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,

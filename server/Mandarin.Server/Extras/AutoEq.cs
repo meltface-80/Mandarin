@@ -145,7 +145,7 @@ internal sealed partial class AutoEq(string? baseUrl, Action<string> log)
             if (m.Success) { var p = Library.Num(m.Groups[1].Value); preamp = double.IsNaN(p) ? double.NaN : Math.Min(0, p); continue; }
             m = Filter().Match(line);
             if (!m.Success) continue;
-            if (m.Groups[1].Value.ToUpperInvariant() == "OFF") continue;
+            if (string.Equals(m.Groups[1].Value, "OFF", StringComparison.OrdinalIgnoreCase)) continue;
             if (!TypeOf.TryGetValue(m.Groups[2].Value.ToUpperInvariant(), out var type)) continue;
             var freq = Library.Num(m.Groups[3].Value);
             var gain = m.Groups[4].Success ? Library.Num(m.Groups[4].Value) : 0;

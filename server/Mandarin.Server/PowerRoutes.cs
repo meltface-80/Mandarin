@@ -9,7 +9,7 @@
 //   GET  /api/cpu              the cores playback keeps and the rest (lib/cpu.js plan())
 //
 // Restart: this program starts again in this same process, on every core it
-// started with (Front.StartAgain, as after an update).
+// started with (Server.StartAgain, as after an update).
 //
 // Shut down: it stops and stays stopped until started again.
 //   - On a Mac, with the login item the installer makes (tools/mac/install.sh),
@@ -75,7 +75,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; not answered");
+            Server.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; not answered");
             return false;
         }
     }
@@ -85,9 +85,9 @@ internal static partial class Library
     private static async Task<bool> SystemRestart(HttpContext ctx)
     {
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Restart only from home", ["away"] = true }, 403);
-        var first = Front.LeaveBy(Front.Leave.Restart);
+        var first = Server.LeaveBy(Server.Leave.Restart);
         await Send(ctx, new JsonObject { ["ok"] = true, ["restarting"] = true });
-        if (first) _ = Task.Delay(300).ContinueWith(_ => Front.StopApp?.Invoke(), TaskScheduler.Default);
+        if (first) _ = Task.Delay(300).ContinueWith(_ => Server.StopApp?.Invoke(), TaskScheduler.Default);
         return true;
     }
 
@@ -97,14 +97,14 @@ internal static partial class Library
         var info = PowerInfo();
         if (info["shutdown"]?.GetValue<bool>() != true)
             return await Send(ctx, new JsonObject { ["error"] = "In Docker, stop the container instead: docker stop musicd-server" }, 409);
-        var first = Front.LeaveBy(Front.Leave.ShutDown);
+        var first = Server.LeaveBy(Server.Leave.ShutDown);
         await Send(ctx, new JsonObject { ["ok"] = true, ["start_again"] = info["start_again"]?.GetValue<string>() });
         if (first)
         {
             _ = Task.Delay(300).ContinueWith(async _ =>
             {
                 var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
-                if (label == null || !await UnloadLoginItem(label)) Front.StopApp?.Invoke();
+                if (label == null || !await UnloadLoginItem(label)) Server.StopApp?.Invoke();
             }, TaskScheduler.Default);
         }
         return true;
@@ -117,11 +117,11 @@ internal static partial class Library
      */
     private static async Task<bool> UnloadLoginItem(string label)
     {
-        if (await Launchctl("bootout", $"gui/{Front.Uid()}/{label}")) return true;
+        if (await Launchctl("bootout", $"gui/{Server.Uid()}/{label}")) return true;
         // Older launchctl, or bootout refused: the legacy form does the same.
         var plist = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "LaunchAgents", label + ".plist");
         if (await Launchctl("unload", plist)) return true;
-        Front.Log($"[power] couldn't unload {label}; stopping anyway");
+        Server.Log($"[power] couldn't unload {label}; stopping anyway");
         return false;
     }
 

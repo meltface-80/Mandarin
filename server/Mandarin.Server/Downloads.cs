@@ -17,8 +17,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Mandarin.Server;
@@ -225,22 +223,13 @@ internal static partial class Downloads
             if (m.Success && (HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method)) && long.TryParse(m.Groups[1].Value, out var id))
             {
                 try { if (await DownloadTrack(ctx, id)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "download", e); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "download", e); return; }
             }
             await next();
         });
     }
 
-    private static readonly System.Text.Json.JsonSerializerOptions Relaxed = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
-    private static Task Error(HttpContext ctx, int status, string message)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        // As res.json writes it: an apostrophe as it is, not \u0027.
-        return ctx.Response.WriteAsync(new JsonObject { ["error"] = message }.ToJsonString(Relaxed));
-    }
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 
     private static async Task<bool> DownloadTrack(HttpContext ctx, long id)
     {
@@ -282,7 +271,7 @@ internal static partial class Downloads
         try { f = await making; }
         catch (IOException e)
         {
-            Front.Log($"[stream] opus {t.Id} {e.Message}");
+            Server.Log($"[stream] opus {t.Id} {e.Message}");
             ctx.Response.StatusCode = 500;
             ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
             return true;

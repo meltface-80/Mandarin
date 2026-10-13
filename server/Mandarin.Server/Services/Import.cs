@@ -110,7 +110,7 @@ internal abstract partial class Catalogue
         SetSettings(Undef.V, on);
         if (was != on)
         {
-            Front.Log($"[{Id}] import {(on ? "on: the favourites back in the library" : "off: the favourites off the library")}");
+            Server.Log($"[{Id}] import {(on ? "on: the favourites back in the library" : "off: the favourites off the library")}");
             await Changed();
         }
     }
@@ -192,7 +192,7 @@ internal abstract partial class Catalogue
             catch (Exception e)
             {
                 failed++;
-                Front.Log($"[{Id}] import {id}: {Said(e)}");
+                Server.Log($"[{Id}] import {id}: {Said(e)}");
             }
         }
         // What is let go is decided by the id lists asked for now (v0.7.3), the
@@ -214,7 +214,7 @@ internal abstract partial class Catalogue
         }
         (double Playlists, double Held) pl = (0, 0);
         try { pl = await ImportPlaylists(gen); }
-        catch (Exception e) { Front.Log($"[{Id}] playlists: {Said(e)}"); }
+        catch (Exception e) { Server.Log($"[{Id}] playlists: {Said(e)}"); }
         Going(gen);
         var result = new JsObj();
         result["at"] = NowMs();
@@ -226,7 +226,7 @@ internal abstract partial class Catalogue
         result["playlists"] = pl.Playlists;
         result["seconds"] = Js.Round((NowMs() - t0) / 1000);
         Extras.Labels.SetSetting(Id + "LastImport", result);
-        Front.Log($"[{Id}] library: {want.Count} album(s) ({Js.Num(added)} new, {Js.Num(dropped)} no longer kept, {Js.Num(failed)} failed), {Js.Num(pl.Playlists)} playlist(s), in {Js.Num((double)result["seconds"]!)}s");
+        Server.Log($"[{Id}] library: {want.Count} album(s) ({Js.Num(added)} new, {Js.Num(dropped)} no longer kept, {Js.Num(failed)} failed), {Js.Num(pl.Playlists)} playlist(s), in {Js.Num((double)result["seconds"]!)}s");
         await Changed();
         return result;
     }
@@ -258,7 +258,7 @@ internal abstract partial class Catalogue
                     // Here and read this week: as it is (v0.7.10, as the import).
                     if (!albumsSeen.ContainsKey(aid)) albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid);
                 }
-                catch (Exception e) { Front.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
+                catch (Exception e) { Server.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
                 if (heldSeen.Add(Key + aid)) held.Add(Key + aid);
                 o.Add((albumsSeen[aid], TrackPath + tid));
             }
@@ -352,7 +352,7 @@ internal abstract partial class Catalogue
             if (before.Contains(Key + id)) continue;
             Going(gen);
             try { await EnsureAlbum(id); Keep(id, true, why); added++; }
-            catch (Exception e) { failed++; Front.Log($"[{Id}] watch {id}: {Said(e)}"); }
+            catch (Exception e) { failed++; Server.Log($"[{Id}] watch {id}: {Said(e)}"); }
         }
         Going(gen);
         using (var c = Db.Open())
@@ -367,7 +367,7 @@ internal abstract partial class Catalogue
         lastWatch = NowMs();
         if (added > 0 || dropped > 0)
         {
-            Front.Log($"[{Id}] favourites: {Js.Num(added)} added on {Name}, {Js.Num(dropped)} removed there");
+            Server.Log($"[{Id}] favourites: {Js.Num(added)} added on {Name}, {Js.Num(dropped)} removed there");
             await Changed();
         }
         var o = new JsObj();
@@ -606,7 +606,7 @@ internal static class Import
 
     /* An import made in the background, its failure logged as the Node server logged it. */
     public static void Later(Catalogue s, string said = "import") =>
-        _ = s.ImportLibrary().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Front.Log($"[{s.Id}] {said}: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
+        _ = s.ImportLibrary().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Server.Log($"[{s.Id}] {said}: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
 
     /*
      * index.js serviceSync: each service's import. One after the other, not
@@ -626,11 +626,11 @@ internal static class Import
                 foreach (var s in todo)
                 {
                     try { await s.ImportLibrary(); }
-                    catch (Exception e) { Front.Log($"[{s.Id}] import: {Catalogue.Said(e)}"); }
+                    catch (Exception e) { Server.Log($"[{s.Id}] import: {Catalogue.Said(e)}"); }
                 }
             });
         }
-        catch (Exception e) { Front.Log($"[import] {e.GetType().Name}: {e.Message}"); }
+        catch (Exception e) { Server.Log($"[import] {e.GetType().Name}: {e.Message}"); }
     }
 
     /* Each service's import or watch under way stopped, and the timers (a backup about to be put back): the Node server's start after it arms them again. */
@@ -647,9 +647,9 @@ internal static class Import
         {
             if (!Jobs.Holds("import")) return;
             foreach (var s in Services())
-                if (Wants(s)) _ = s.Watch().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Front.Log($"[{s.Id}] watch: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
+                if (Wants(s)) _ = s.Watch().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Server.Log($"[{s.Id}] watch: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
         }
-        catch (Exception e) { Front.Log($"[watch] {e.GetType().Name}: {e.Message}"); }
+        catch (Exception e) { Server.Log($"[watch] {e.GetType().Name}: {e.Message}"); }
     }
 
     /* The watch made now, as its timer makes it (POST /internal/jobs/watch: the tests): what each service's found, or null when the work isn't here. */
@@ -682,7 +682,7 @@ internal static class Import
                 foreach (var s in todo)
                 {
                     try { await s.ImportLibrary(); }
-                    catch (Exception e) { Front.Log($"[{s.Id}] import after rescan: {Catalogue.Said(e)}"); }
+                    catch (Exception e) { Server.Log($"[{s.Id}] import after rescan: {Catalogue.Said(e)}"); }
                 }
             });
             return true;

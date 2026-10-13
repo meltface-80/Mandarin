@@ -20,9 +20,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;
 
@@ -207,7 +205,7 @@ internal static partial class Transcoder
             }
             job.Done = true;
             if (dspOn) { dspOn = false; DspEnded(); }
-            if (job.Failed) Front.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
+            if (job.Failed) Server.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
             Jobs.TryRemove(key, out _);
             job.Wake();
             job.Finished.TrySetResult();
@@ -233,7 +231,7 @@ internal static partial class Transcoder
                 if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
                 else proc.StandardInput.Close();
                 proc.BeginErrorReadLine();
-                Front.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
                 // A reader waiting for more is woken as the .part grows.
                 _ = Task.Run(async () =>
                 {

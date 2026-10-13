@@ -60,17 +60,13 @@ internal static partial class PlaybackRoutes
         catch (Exception e) when (!ctx.Response.HasStarted && e is not OperationCanceledException)
         {
             // As the Node server's wrap() answers what throws.
-            Front.Log($"[playback] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[playback] {p}: {e.GetType().Name}: {e.Message}");
             return await Fail(ctx, 500, e.Message);
         }
     }
 
-    private static Task<bool> Fail(HttpContext ctx, int status, string message) => Send(ctx, new JsonObject { ["error"] = message }, status);
-    private static async Task<bool> Send(HttpContext ctx, JsonObject o, int status = 200)
-    {
-        await Auth.Json(ctx, status, o);
-        return true;
-    }
+    private static Task<bool> Fail(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
+    private static Task<bool> Send(HttpContext ctx, JsonObject o, int status = 200) => Http.Json(ctx, o, status);
     private static string Need(JsonNode? v, string msg)
     {
         if (v == null || v is JsonValue jv && jv.TryGetValue<string>(out var s) && s.Length == 0) throw new HubError(400, msg);

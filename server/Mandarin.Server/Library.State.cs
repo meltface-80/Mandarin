@@ -124,7 +124,7 @@ internal static partial class Library
         if (keys.Contains("edits"))
         {
             try { using var c = Db.Open(); Admin.Backup.ExportEdits(c, Path.GetDirectoryName(Db.File) ?? "."); }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException) { Front.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException) { Server.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
         }
         if (reload) Interlocked.Increment(ref version);
         var o = new JsonObject { ["ok"] = true, ["version"] = Interlocked.Read(ref version), ["marks"] = Interlocked.Read(ref marks) };

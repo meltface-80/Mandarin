@@ -2,7 +2,6 @@
 // lib/server/features.js: Album of the day, Label of the week, Recently played
 // and Not played lately. The day and the week are the Node server's (its time
 // zone), told with the library's state, so both servers turn over together.
-using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 

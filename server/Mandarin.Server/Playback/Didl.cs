@@ -70,20 +70,20 @@ internal static class Didl
          .Append(" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\"")
          .Append(" xmlns:r=\"urn:schemas-rinconnetworks-com:metadata-1-0/\"")
          .Append(" xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\">")
-         .Append($"<item id=\"{Xml.Escape(Xml.Or(M("itemId"), "-1"))}\" parentID=\"-1\" restricted=\"true\">")
-         .Append($"<dc:title>{Xml.Escape(Xml.Or(M("title"), "Track"))}</dc:title>");
+         .Append(System.Globalization.CultureInfo.InvariantCulture, $"<item id=\"{Xml.Escape(Xml.Or(M("itemId"), "-1"))}\" parentID=\"-1\" restricted=\"true\">")
+         .Append(System.Globalization.CultureInfo.InvariantCulture, $"<dc:title>{Xml.Escape(Xml.Or(M("title"), "Track"))}</dc:title>");
         if (Js.Truthy(M("artist")))
         {
-            o.Append($"<dc:creator>{Xml.Escape(M("artist"))}</dc:creator>");
-            o.Append($"<upnp:artist>{Xml.Escape(M("artist"))}</upnp:artist>");
+            o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<dc:creator>{Xml.Escape(M("artist"))}</dc:creator>");
+            o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<upnp:artist>{Xml.Escape(M("artist"))}</upnp:artist>");
         }
-        if (Js.Truthy(M("albumArtist"))) o.Append($"<r:albumArtist>{Xml.Escape(M("albumArtist"))}</r:albumArtist>");
-        if (Js.Truthy(M("album"))) o.Append($"<upnp:album>{Xml.Escape(M("album"))}</upnp:album>");
-        if (Js.Truthy(M("artUri"))) o.Append($"<upnp:albumArtURI>{Xml.Escape(M("artUri"))}</upnp:albumArtURI>");
-        if (Js.Truthy(M("trackNumber"))) o.Append($"<upnp:originalTrackNumber>{Xml.Escape(M("trackNumber"))}</upnp:originalTrackNumber>");
-        o.Append($"<upnp:class>{DefaultClass}</upnp:class>");
-        o.Append($"<res {string.Join(" ", res)}>{Xml.Escape(uri)}</res>");
-        o.Append($"<desc id=\"cdudn\" nameSpace=\"{RinconNs}\">{CdudnSentinel}</desc>");
+        if (Js.Truthy(M("albumArtist"))) o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<r:albumArtist>{Xml.Escape(M("albumArtist"))}</r:albumArtist>");
+        if (Js.Truthy(M("album"))) o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<upnp:album>{Xml.Escape(M("album"))}</upnp:album>");
+        if (Js.Truthy(M("artUri"))) o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<upnp:albumArtURI>{Xml.Escape(M("artUri"))}</upnp:albumArtURI>");
+        if (Js.Truthy(M("trackNumber"))) o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<upnp:originalTrackNumber>{Xml.Escape(M("trackNumber"))}</upnp:originalTrackNumber>");
+        o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<upnp:class>{DefaultClass}</upnp:class>");
+        o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<res {string.Join(" ", res)}>{Xml.Escape(uri)}</res>");
+        o.Append(System.Globalization.CultureInfo.InvariantCulture, $"<desc id=\"cdudn\" nameSpace=\"{RinconNs}\">{CdudnSentinel}</desc>");
         o.Append("</item></DIDL-Lite>");
         return o.ToString();
     }

@@ -105,7 +105,7 @@ internal abstract partial class Catalogue
         {
             foreach (var url in pieces) await CopyTo(url, into.BaseStream, 60000);
         }
-        catch (JsError e) { Front.Log($"[tidal] dash: {e.Message}"); }
+        catch (JsError e) { Server.Log($"[tidal] dash: {e.Message}"); }
         catch (Exception e) when (e is IOException or ObjectDisposedException) { /* ffmpeg gone */ }
         finally
         {
@@ -177,7 +177,7 @@ internal sealed partial class QobuzCatalogue
         if (id == null || !Connected()) return;
         _ = Start(id, t, FormatFor(t, p)).ContinueWith(x =>
         {
-            if (x.Exception?.InnerException is { } e) Front.Log($"[qobuz] report: {Said(e)}");
+            if (x.Exception?.InnerException is { } e) Server.Log($"[qobuz] report: {Said(e)}");
         }, TaskScheduler.Default);
     }
 
@@ -225,7 +225,7 @@ internal sealed partial class QobuzCatalogue
         e["date"] = Math.Floor(NowMs() / 1000);
         e["duration"] = rec.Duration != 0 ? Math.Min(rec.Duration, seconds) : seconds;
         await Api.Report("end", e);
-        Front.Log($"[qobuz] track {trackId}: {Js.Num((double)e["duration"]!)}s ({why})");
+        Server.Log($"[qobuz] track {trackId}: {Js.Num((double)e["duration"]!)}s ({why})");
     }
 
     /* Playback stops (index.js stop): every play reported over. */
@@ -283,7 +283,7 @@ internal sealed partial class TidalCatalogue
         if (quality == HiResLossless && (m == null || !HiRes().IsMatch(Js.Str(Or(P(j, "audioQuality"), "")))))
         {
             // Not hi-res from this account: CD from now on, without asking twice.
-            if (!HiresDenied) Front.Log($"[tidal] hi-res asked for, {(Js.Truthy(j) && Js.Truthy(P(j, "audioQuality")) ? Js.Str(P(j, "audioQuality")) : "nothing")} given: CD quality from here on");
+            if (!HiresDenied) Server.Log($"[tidal] hi-res asked for, {(Js.Truthy(j) && Js.Truthy(P(j, "audioQuality")) ? Js.Str(P(j, "audioQuality")) : "nothing")} given: CD quality from here on");
             HiresDenied = true;
             if (m == null) { quality = Lossless; j = await Api.PlaybackInfo(id, quality); m = DecodeManifest(j); }
         }
@@ -321,7 +321,7 @@ internal sealed partial class TidalCatalogue
                 learnTimer = new Timer(_ => _ = Changed().ContinueWith(_ => { }, TaskScheduler.Default), null, 20000, Timeout.Infinite);
             }
         }
-        catch (Exception e) when (e is SqliteException or JsError) { Front.Log($"[tidal] learn {t.Path}: {Said(e)}"); }
+        catch (Exception e) when (e is SqliteException or JsError) { Server.Log($"[tidal] learn {t.Path}: {Said(e)}"); }
     }
 
     // ------------------------------------------------------------ the manifest

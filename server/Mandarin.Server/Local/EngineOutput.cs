@@ -23,6 +23,9 @@ namespace Mandarin.Server.Local;
 
 using TJs = Mandarin.Server.Tags.Js;
 
+/* What the engine said went wrong, or that it went away: its words, for the room's error. */
+internal sealed class EngineError(string message) : Exception(message);
+
 internal sealed class EngineOutput : IRenderer
 {
     private const double RangeDb = 50;   // lib/local/output.js RANGE_DB: the taper's span
@@ -116,7 +119,7 @@ internal sealed class EngineOutput : IRenderer
             proc = null;
             Sink = null;
             if (state == "STOPPED") return;
-            error = new Exception("the audio engine " + why);
+            error = new EngineError("the audio engine " + why);
             state = "STOPPED";
         }
         log($"[local] {Name}: the audio engine {why}");
@@ -177,7 +180,7 @@ internal sealed class EngineOutput : IRenderer
                     break;
                 case "error":
                     pending = null;
-                    error = new Exception(Str(ev["message"]));
+                    error = new EngineError(Str(ev["message"]));
                     say = $"[local] {Name}: {Str(ev["message"])}";
                     state = "STOPPED";
                     Sink = null;

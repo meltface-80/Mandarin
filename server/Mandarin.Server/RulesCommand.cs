@@ -19,7 +19,7 @@
 //     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
 //      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
-//     powers: [{ env, mac }] }                                            Auth.cs, Front.cs, PhoneRoutes.cs, PowerRoutes.cs
+//     powers: [{ env, mac }] }                                            Auth.cs, Server.cs, PhoneRoutes.cs, PowerRoutes.cs
 //      → { locals, names, clients, tailnet, aways, powers }
 //   { fn: "register", data, steps: [{ seen } | { rename: [id, name] } | { caps: [id, user] } | { verified: [id, rate, bits] }
 //     | { forget } | { get } | { name } | { wait: ms }] }                  Playback/Register.cs, DeviceRoutes.cs

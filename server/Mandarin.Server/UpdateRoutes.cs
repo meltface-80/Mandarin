@@ -49,7 +49,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[update] {p}: {e.GetType().Name}: {e.Message}; not answered");
+            Server.Log($"[update] {p}: {e.GetType().Name}: {e.Message}; not answered");
             return false;
         }
         return false;

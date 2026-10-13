@@ -23,7 +23,6 @@
 // has it.
 using System.Diagnostics;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -37,7 +36,7 @@ internal static partial class Covers
     {
         var yes = DrawsText();
         // Said once: from ffmpeg 6.1 drawtext needs harfbuzz, which some builds leave out (a static one, Homebrew's).
-        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn without their titles");
+        if (!yes && Transcoder.FfOk) Server.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn without their titles");
         return yes;
     });
 
@@ -95,7 +94,7 @@ internal static partial class Covers
 
     /* The placeholder's colour: its title and artist's MD5, the first byte as a hue. */
     public static int Hue(string title, string artist) =>
-        (int)Math.Round(MD5.HashData(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
+        (int)Math.Round(Fingerprint.Md5(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
 
     private static async Task<byte[]?> Placeholder(string title, string artist, int size)
     {
@@ -134,7 +133,7 @@ internal static partial class Covers
                     null, 8 << 20, TimeSpan.FromSeconds(30));
                 if (code != 0 || jpg.Length == 0)
                 {
-                    Front.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
+                    Server.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
                     return null;
                 }
                 return jpg;
@@ -177,7 +176,7 @@ internal static partial class Covers
             try { src = await Fetch(url, 0); }
             catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidDataException or UriFormatException or Identify.LookupError)
             {
-                Front.Log($"[art] {url}: {e.Message}");
+                Server.Log($"[art] {url}: {e.Message}");
                 return Drawn.NoCover;
             }
             var turn = Look(src);

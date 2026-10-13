@@ -81,6 +81,11 @@ the owner asked, everything is based on `migration`:
 - **Fix:** one `Http` module with one body reader (limit, charset, Bad JSON, 413) and one JSON
   writer (ETag, `X-Mandarin-Answered`, HEAD). The others call it, file by file, with the full suite
   between steps.
+- **Done (v0.9.2):** `Http.cs`: one reader (`ReadJson`, `ReadJs`: the limit, the charset, strict JSON, a
+  body kept for a later route) and one writer (`Send`, `Json`, `Error`: the ETag, `X-Mandarin-Answered`,
+  HEAD). The old helpers are one-line forwards to it. The two sign-in GET routes and `/server-info` take a
+  HEAD too. Tested in `test/http-body.test.js` (each refused body sent to every kind of reader, each
+  writer's answer). Breaking the strict check, the buffering kept for a later route, or the 304 each fails it.
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q2. Files over the 500-line cap (Medium, ongoing)
@@ -102,6 +107,11 @@ the owner asked, everything is based on `migration`:
   matching), `Backup.cs` (write / read / apply), `PhonePlayerService.kt`. The ratchet then
   lowers each entry.
 - **Out of scope by the owner's rule:** `public/app.js` (19,582 lines) stays one file.
+- **Done (v0.9.2):** `LibraryRoutes.cs` (+ `.Albums`, `.Browse`), `Identify/Identifier.cs`
+  (+ `.Album`, `.Verdict`, `.Overlays`, `.Loop`) and `Admin/Backup.cs` (+ `.Tar`, `.Database`), every part
+  under 400 lines. They and `ServiceRoutes.cs` (497 since Q1) leave `exempt` and the ratchet.
+  **`PhonePlayerService.kt` waits:** a Kotlin class can't be split as a partial one; its state moves into
+  new classes, and that wants a build and the app's tests, which this environment can't run (T5).
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q3. Dead code (Low)
@@ -115,6 +125,8 @@ the owner asked, everything is based on `migration`:
     - `Images.cs:69` (`path`)
   - 29 unneeded `using` lines (IDE0005).
 - **Fix:** remove them.
+- **Done (v0.9.2):** all removed (50 `using` lines, as the count grew with the splits), and the build
+  now refuses any (`server/Mandarin.Server/.editorconfig`: IDE0005, IDE0051, IDE0052, IDE0060, CA1823).
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q4. Timers owned but never disposed (Low)
@@ -134,6 +146,11 @@ the owner asked, everything is based on `migration`:
 - **Issue:** each lives as long as the process (a Restart starts the program again in place), so
   nothing leaks today. A test or a future in-process restart would leave them running.
 - **Fix:** dispose them in each type's existing `Stop()`.
+- **Checked (v0.9.2), no change:** each timer is already disposed in its owner's `Stop()` (or when it is
+  re-armed). The semaphores never hand out a wait handle, so there is nothing to free, and Tailscale's
+  token source is cancelled in `Stop()`. A Restart is an `execv`, which replaces the whole process.
+  CA1001 isn't enforced: making these `IDisposable` would spread to every type that holds one, and all of
+  them live as long as the process.
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q5. Small correctness smells (Low)
@@ -143,6 +160,10 @@ the owner asked, everything is based on `migration`:
   - `Scan/NodeFs.cs:155` ignores `closedir`'s result (CA1806).
   - 17 `CA1859` and 6 `CA1862` (case-insensitive compares made by lower-casing).
 - **Fix:** a specific exception type; check the result; `StringComparison.OrdinalIgnoreCase`.
+- **Done (v0.9.2):** `EngineError` (Local/EngineOutput.cs), closedir's result discarded on purpose,
+  `OrdinalIgnoreCase` in the six compares (each compares ASCII). CA2201, CA1806 and CA1862 are enforced.
+  **CA1859 is left:** 15 of its 19 sites return JavaScript-shaped values on purpose (Q8), and the other four
+  are micro-optimisations on cold paths.
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q6. Number formatting that depends on the locale (Low)
@@ -156,6 +177,8 @@ the owner asked, everything is based on `migration`:
   parse or format can change. The Sonos metadata (`Playback/Didl.cs:69–85`) was checked by hand:
   it only places strings already formatted invariantly, so it is unaffected.
 - **Fix:** `CultureInfo.InvariantCulture` at each call.
+- **Done (v0.9.2):** the invariant culture at all 18 sites, the Sonos metadata's appends included.
+  CA1305 is enforced.
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q7. Names from the Node era (Low)
@@ -166,6 +189,8 @@ the owner asked, everything is based on `migration`:
   - `Scan/NodeFs.cs`.
 - **Fix:** rename (`Server`, `PosixDir`) only together with Q1's split, so the rename lands once.
   Otherwise document the history in each header and leave the names.
+- **Done (v0.9.2):** `Server` (`Server.cs`, `Server.Failed.cs`) and `Scan/PosixFs.cs` (not `PosixDir`: it
+  reads `stat` and `realpath` too), each header keeping the old name.
 - **Branch:** `audit/code-quality-fixes`
 
 ### Q8. The JavaScript-compatible layer (Info)
@@ -343,6 +368,9 @@ the owner asked, everything is based on `migration`:
 - **Note:** none of these protects anything. Changing them would change ETags, cache names and
   stored ids, and break Qobuz. **No change**, beyond a suppression with its reason at each site
   (in `audit/code-quality-fixes`), so the analyzers stay worth reading.
+- **Done (v0.9.2):** in one place rather than at each site: `Fingerprint.cs` (`Sha1`, `Md5`) carries the
+  two suppressions and says what each of the nine uses is for. The build refuses SHA-1 and MD5 anywhere
+  else (CA5350, CA5351). The nine sites' bytes are unchanged.
 
 ### S8. A signing key committed for Android builds (Info)
 

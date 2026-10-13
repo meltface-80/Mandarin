@@ -7,7 +7,6 @@
 // A booklet is named by its album and its id, never by a path, and is looked
 // for again in the album's folders each time, so nothing outside them can be
 // asked for. Signed-in only, as every library route is (Auth.cs gate).
-using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;

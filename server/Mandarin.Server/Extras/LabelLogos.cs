@@ -9,7 +9,6 @@
 // as the image `label-<key>` (Images.cs). A label no source has a logo for is
 // asked about again after a week, or as soon as the keys change.
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Identify;
@@ -312,7 +311,7 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
 
     /* Which keys a lookup has to ask with, as a digest: never the keys themselves. */
     public static string KeysSig() =>
-        Convert.ToHexStringLower(SHA1.HashData(Encoding.UTF8.GetBytes(DiscogsToken() + "\n" + FanartKey())))[..12];
+        Convert.ToHexStringLower(Fingerprint.Sha1(Encoding.UTF8.GetBytes(DiscogsToken() + "\n" + FanartKey())))[..12];
 
     /*
      * Find logos for the labels that have none: one at a time, Discogs then

@@ -49,11 +49,8 @@
 // and a body Express would read otherwise, or refuse, is passed on as it came,
 // to be answered there (a request the page never makes).
 // Answered here once the Node server has handed over its work; until then, by it.
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Mandarin.Server.Scan;
 using Mandarin.Server.Services;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
@@ -126,7 +123,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // Answered here whatever it is: passed on, the Node server would ask the service itself.
-            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
+            if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -154,30 +151,15 @@ internal static partial class Library
     private static string NodeWords(Exception e) => e is SqliteException && SqliteSaid().Match(e.Message) is { Success: true } m ? m.Groups[1].Value : e.Message;
 
     /*
-     * req.body as the Node server's express.json() makes it, the request kept
-     * as it came (buffered, put back) to be passed on still: {} for a body of
-     * another type; Ok false for one that parser would refuse (its own words,
-     * so its to answer) or read otherwise (another charset, compressed).
+     * req.body as the Node server's express.json() made it (Http.ReadJs), the
+     * request kept as it came (put back) for a route after this one: {} for a
+     * body of another type; Ok false for one turned down, for Pages.NotThere.cs
+     * to answer in its words.
      */
     private static async Task<(bool Ok, object? Body)> ServiceBody(HttpContext ctx)
     {
-        if (!IsJsonBody(ctx)) return (true, new JsObj());
-        if (!MediaTypeHeaderValue.TryParse(ctx.Request.ContentType, out var mt)
-            || !string.Equals(mt.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)
-            || mt.CharSet is { } cs && !cs.Trim('"').Equals("utf-8", StringComparison.OrdinalIgnoreCase)
-            || ctx.Request.Headers.ContentEncoding.Count > 0) return (false, null);
-        ctx.Request.EnableBuffering();
-        using var ms = new MemoryStream();
-        await ctx.Request.Body.CopyToAsync(ms);
-        ctx.Request.Body.Position = 0;
-        var text = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
-        if (text.StartsWith('\uFEFF')) text = text[1..];
-        if (text.Length == 0) return (true, new JsObj());
-        // Strict, as the parser is: an object or an array, nothing else.
-        var first = text.TrimStart(' ', '\t', '\n', '\r');
-        if (first.Length == 0 || first[0] is not ('{' or '[')) return (false, null);
-        try { return (true, JsJson.Parse(text)); }
-        catch (Tags.JsError) { return (false, null); }
+        var (b, read) = await Http.ReadJs(ctx, keep: true);
+        return read.Refused ? (false, null) : (true, b);
     }
 
     /* Opening an album, favouriting it, playing it (v0.8.47), Clean up: true when answered here. */
@@ -208,7 +190,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // Answered here whatever it is: passed on, the Node server would ask the service itself.
-            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}");
+            if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] {path}: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -228,11 +210,11 @@ internal static partial class Library
         await svc.Changed("opened");
         var t2 = NowMs();
         // Where the time went, for a slow open to be read off the log.
-        Front.Log($"[{svc.Id}] open {albumId}: asked and written in {t1 - t0} ms, library read in {t2 - t1} ms");
+        Server.Log($"[{svc.Id}] open {albumId}: asked and written in {t1 - t0} ms, library read in {t2 - t1} ms");
         // The album as the page's tiles carry it, so the page opens without another ask.
         JsonObject? album = null;
         try { if (await Current() is var (s2, _) && s2.Find(offset) is { } a2) album = AlbumJson(s2, a2); }
-        catch (Exception e) when (e is SqliteException or IOException) { Front.Log($"[{svc.Id}] open {albumId}: {e.Message}"); }
+        catch (Exception e) when (e is SqliteException or IOException) { Server.Log($"[{svc.Id}] open {albumId}: {e.Message}"); }
         return await Send(ctx, new JsonObject { ["ok"] = true, ["offset"] = offset, ["album"] = album });
     }
 
@@ -248,7 +230,7 @@ internal static partial class Library
         try { await svc.SetFavouriteHere(albumId, on); }
         catch (Exception e) when (e is not (ServiceError or Tags.JsError) && !ctx.Response.HasStarted)
         {
-            Front.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[{svc.Id}] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, NodeWords(e));
         }
         return await SendJs(ctx, Jso(("ok", true), ("album_id", albumId), ("favourite", on)));
@@ -272,7 +254,7 @@ internal static partial class Library
             if (!Scans.WhileNoScan(() => removed = svc.CleanUp())) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }
         // Nothing written (the transaction undone): why, as the Node server's route answered it (its playlists not a list, the database held).
-        catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
+        catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted) { return await Server.Failed(ctx, svc.Id, e); }
         if (removed > 0) await svc.Changed();
         return await Send(ctx, new JsonObject { ["ok"] = true, ["kind"] = kind, ["removed"] = removed, ["count"] = await CountNow() });
     }
@@ -336,7 +318,7 @@ internal static partial class Library
         if (sub.Length == 0 && (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)))
         {
             try { return await SendJs(ctx, svc.Status()); }
-            catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
+            catch (Exception e) when (e is SqliteException or Tags.JsError or IOException && !ctx.Response.HasStarted) { return await Server.Failed(ctx, svc.Id, e); }
         }
         if (!HttpMethods.IsPost(m) || !BodyFits(ctx)) return false;
         var (ok, b) = await ServiceBody(ctx);
@@ -371,7 +353,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] sign-in: {e.GetType().Name}: {e.Message}");
+            if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] sign-in: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -389,7 +371,7 @@ internal static partial class Library
         try { return await SendJs(ctx, await svc.SignOut()); }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] sign-out: {e.GetType().Name}: {e.Message}");
+            if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] sign-out: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -417,7 +399,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // Asked of the service and written as it went: answered here, as the Node server's would be.
-            if (e is not (ServiceError or Tags.JsError)) Front.Log($"[{svc.Id}] import: {e.GetType().Name}: {e.Message}");
+            if (e is not (ServiceError or Tags.JsError)) Server.Log($"[{svc.Id}] import: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -434,7 +416,7 @@ internal static partial class Library
         var before = svc.Settings();
         try { svc.SetSettings(Prop(b, "quality"), Undef.V); }
         catch (ServiceError e) when (!ctx.Response.HasStarted) { return await ServiceFailed(ctx, e); }
-        catch (Exception e) when (e is SqliteException or IOException && !ctx.Response.HasStarted) { return await Front.Failed(ctx, svc.Id, e); }
+        catch (Exception e) when (e is SqliteException or IOException && !ctx.Response.HasStarted) { return await Server.Failed(ctx, svc.Id, e); }
         try
         {
             var start = false;
@@ -452,7 +434,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[{svc.Id}] settings: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[{svc.Id}] settings: {e.GetType().Name}: {e.Message}");
             return await ImportFailed(ctx, e);
         }
     }
@@ -484,7 +466,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // The account or the switch unreadable: as the route's wrap answers it there.
-            Front.Log($"[library] /api/services/watch: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[library] /api/services/watch: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, Catalogue.Said(e));
         }
         return await SendJs(ctx, o);
