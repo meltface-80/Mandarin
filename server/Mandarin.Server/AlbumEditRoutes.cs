@@ -32,7 +32,9 @@ internal static partial class Library
     {
         AllowAutoRedirect = false,   // followed in FetchArt: https to http too, as fetch does
         AutomaticDecompression = System.Net.DecompressionMethods.All,
-        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30)
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+        // Never this machine or its link, where the connection is made (Addresses.cs).
+        ConnectCallback = Addresses.ArtConnect(Lookups.LoopbackOnly)
     }) { Timeout = Timeout.InfiniteTimeSpan };
     // A search kept ten minutes after it ends: the editor opened again asks again.
     private static readonly ConcurrentDictionary<string, Lazy<Task<JsObj>>> ArtSearches = new();
@@ -280,7 +282,8 @@ internal static partial class Library
      * Artwork.download's fetch: the picture, or why not in the Node server's
      * words. The address read as a browser reads it (a space, a backslash);
      * redirects followed here, twenty at most as fetch follows them, from
-     * https to http too; 64 MB read at most.
+     * https to http too; 64 MB read at most. Each hop's address never this
+     * machine or its link (v0.9.0, Addresses.cs).
      */
     private static async Task<(byte[]? Buf, string? Error)> FetchArt(string url)
     {
@@ -291,8 +294,12 @@ internal static partial class Library
         {
             for (int hops = 0; ; hops++)
             {
-                try { Lookups.Allowed(uri.AbsoluteUri); }
-                catch (LookupError e) { return (null, e.Message); }
+                try
+                {
+                    await Addresses.CheckArt(uri, Lookups.LoopbackOnly, cts.Token);
+                    Lookups.Allowed(uri.AbsoluteUri);
+                }
+                catch (Exception e) when (e is AddressRefused or LookupError) { return (null, e.Message); }
                 using var req = new HttpRequestMessage(HttpMethod.Get, uri);
                 // Some image hosts turn away a request that doesn't look like a browser's.
                 req.Headers.TryAddWithoutValidation("User-Agent", BrowserUa);
@@ -320,6 +327,7 @@ internal static partial class Library
             }
         }
         catch (OperationCanceledException) { return (null, "timed out"); }
+        catch (HttpRequestException e) when (e.InnerException is AddressRefused r) { return (null, r.Message); }
         catch (HttpRequestException) { return (null, "fetch failed"); }
         catch (IOException) { return (null, "terminated"); }
     }

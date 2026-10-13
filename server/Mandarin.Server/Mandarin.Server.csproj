@@ -13,7 +13,8 @@
     <!-- ICU's collation, as JavaScript's localeCompare (Library.cs): libicu where it runs. -->
     <InvariantGlobalization>false</InvariantGlobalization>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <NuGetAudit>false</NuGetAudit>
+    <!-- A package with a known advisory fails the build (v0.9.0, audit S4). -->
+    <NuGetAudit>true</NuGetAudit>
     <ServerGarbageCollector>false</ServerGarbageCollector>
     <!-- SQLite's native library inside the one file, unpacked on first run. -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>

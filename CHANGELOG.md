@@ -72,6 +72,20 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
 - **The loudness order test** read the order files were measured in from the order their ffmpeg
   stand-ins wrote a line, so files started together could be noted out of order on a busy
   machine; it reads the processes' order now.
+- **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
+  `test/security.test.js`):
+  - Every page that acts (the page, sign-in, Shelf) may be framed only by Mandarin itself
+    (`frame-ancestors 'self'`, `X-Frame-Options`), so another site can't steer clicks on
+    Settings or Restart. The wall display may still be framed. Every file is taken as the type
+    it is named (`nosniff`), and no address is sent to another site (`Referrer-Policy`).
+  - A cover from an address in the album editor is never fetched from the server itself or its
+    link (loopback, link-local such as a cloud's `169.254.169.254`, `0.0.0.0`). Every redirect
+    hop is checked, by the address's name and by what DNS answers for it, and again where the
+    connection is made. Addresses on your network are fetched as before.
+  - A WiiM's own (self-signed) certificate is taken from a private network's address only
+    (RFC 1918, link-local, IPv6 unique local).
+  - NuGet's vulnerability audit is on: a package with a known advisory fails the build.
+  - `sharp` (used by `tools/icons` only, not in the image) is 0.35.5, out of libvips' advisories.
 
 ## v0.8.50
 Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server

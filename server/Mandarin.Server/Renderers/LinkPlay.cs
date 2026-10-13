@@ -3,8 +3,9 @@
 // https://<ip>/httpapi.asp?command=… UPnP says what a WiiM accepts; this says
 // what it IS (the name in the WiiM app, its firmware) and what it is actually
 // playing, sample rate and bit depth included. The device signs its own
-// certificate, so that one LAN call skips verification; older firmware
-// answers on plain HTTP instead, so both are tried.
+// certificate, so that one LAN call takes it, from a private network's
+// address only (v0.9.0, Addresses.cs); older firmware answers on plain HTTP
+// instead, so both are tried.
 using System.Net.Http.Json;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
@@ -16,7 +17,7 @@ internal static class LinkPlay
     private static readonly HttpClient Http = new(new SocketsHttpHandler
     {
         UseProxy = false, AllowAutoRedirect = false,
-        SslOptions = { RemoteCertificateValidationCallback = (_, _, _, _) => true }
+        SslOptions = { RemoteCertificateValidationCallback = (sender, _, _, errors) => Addresses.LinkPlayCert(sender, errors) }
     }) { Timeout = Timeout.InfiniteTimeSpan };
 
     /* One command against one base URL: the JSON as an object, or null when it isn't LinkPlay. */
