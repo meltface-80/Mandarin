@@ -5,6 +5,15 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v0.9.7
+**The Android app's file is named Mandarin-Android-0.9.7.apk** (`v0.9.7-apk-name`).
+
+- The versioned APK the build makes, on the test-android pre-release and as the build's artifact,
+  is `Mandarin-Android-<version>.apk` (`…-shared-key.apk` when signed with the committed key), in
+  place of `musicd-server-android-<version>.apk`. The fixed names the links use stay:
+  `mandarin-android-test.apk` (test-android) and `dist/mandarin-android.apk` (main), and the app's
+  update check (`dist/latest.json`) is unchanged.
+
 ## v0.9.6
 **The touch layout** (`v0.9.6-touch-layout`): on a phone or a tablet, either way round. A desktop
 (a mouse) is as it was.
