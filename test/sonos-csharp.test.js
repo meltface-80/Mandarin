@@ -12,8 +12,8 @@
  * compared as JSON (key order too). Skipped where the C# server isn't built.
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
- * (test/golden.js's answers(), test/golden/sonos-csharp.json), made with
- * RECORD_SONOS=1 while lib/ was here; the cases are still made here, seeded,
+ * (test/golden.js's answers(), test/golden/sonos-csharp.json), made
+ * while lib/ was here; the cases are still made here, seeded,
  * and the C# program alone is held to them case for case.
  */
 const test = require("node:test");
@@ -27,13 +27,10 @@ const { FakeHousehold } = require("./fake-sonos");
 const { FakeRenderer } = require("./fake-renderer");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_SONOS === "1";
-// The Node server's modules, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? { DIDL: require("../lib/sonos/didl"), planMoves: require("../lib/sonos/queue-moves").planMoves, TOPO: require("../lib/sonos/topology"), SOAP: require("../lib/sonos/soap"), XML: require("../lib/xml") } : null;
-const kept = answers("sonos-csharp", RECORD);
+const kept = answers("sonos-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_SONOS=1 made it)");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
 
 function csharp(job) {
   const r = spawnSync(BIN, ["score"], { input: JSON.stringify(job) + "\n", maxBuffer: 256 * 1024 * 1024 });
@@ -43,7 +40,6 @@ function csharp(job) {
   return out;
 }
 const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
-const tryOr = f => { try { return f(); } catch (e) { return { threw: true }; } };
 
 // A small seeded generator, so a failure can be run again.
 function rng(seed) {
@@ -54,8 +50,8 @@ const pick = (r, list) => list[Math.floor(r() * list.length)];
 const int = (r, n) => Math.floor(r() * n);
 
 /* Every case's answer the Node server's, key order included; the first that isn't is printed with where it came from. */
-function same(what, labels, cases, got, want) {
-  kept.same(what, labels, cases, got, RECORD && (() => want().map(plain)));
+function same(what, labels, cases, got) {
+  kept.same(what, labels, cases, got);
 }
 test.after(() => { if (!skip) kept.done(); });
 
@@ -146,12 +142,8 @@ function fault(code, desc) {
 
 /* The DIDL the Node server built for the fakes' queue and transports (as kept). */
 let FAKE_DIDL = null;
-function fakeDidl(metas) {
-  return FAKE_DIDL || (FAKE_DIDL = kept.input("the fakes' DIDL", RECORD && (() => ({
-    queue: metas.map((m, i) => NODE.DIDL.build(`http://10.0.0.2:3500/stream/t${i + 1}.flac?s=a&e=${i}`, m)),
-    enqueued: NODE.DIDL.build("http://x/1.flac", metas[0]), renderer: NODE.DIDL.build("http://10.0.0.2:3500/stream/t9.flac", metas[3]),
-    soap: NODE.DIDL.build("http://10.0.0.2:3500/stream/t1.flac?s=a&e=1", metas[0])
-  }))));
+function fakeDidl() {
+  return FAKE_DIDL || (FAKE_DIDL = kept.input("the fakes' DIDL"));
 }
 
 /* A household of the fakes' rooms, grouped and queued, and what its rooms answer. */
@@ -171,7 +163,7 @@ function fakeAnswers() {
     { title: "Rock & Roll <Live>", artist: "Led \"Zep\"", album: "How the West Was Won", duration: 0 },
     { itemId: "musicd-t7", title: "x", sampleFrequency: 96000, bitsPerSample: 24, nrAudioChannels: 2, duration: 61, mime: "audio/flac" }
   ];
-  const built = fakeDidl(metas);
+  const built = fakeDidl();
   for (let i = 0; i < metas.length; i++) {
     const uri = `http://10.0.0.2:3500/stream/t${i + 1}.flac?s=a&e=${i}`;
     kitchen.queue.push({ uri, meta: built.queue[i] });
@@ -297,19 +289,19 @@ test("XML read as lib/xml.js reads it: the same tree for every document, sloppy 
   }
   for (let i = 0; i < 100; i++) docs.add("not a string", pick(r, [null, 5, true, [], {}, ["<a/>"], { a: 1 }]));
   const job = plain({ docs: docs.items });
-  same("XML.parse", docs.labels, job.docs, csharp({ fn: "xml", ...job }).trees, () => job.docs.map(NODE.XML.parse));
+  same("XML.parse", docs.labels, job.docs, csharp({ fn: "xml", ...job }).trees);
 
   const vals = TEXTS.concat(VALUES, [null, "", 1.5e300, -0, 1e21, 123456789012, "&<>\"'"]);
   const helpers = plain({ escapes: vals, texts: vals.concat([{ "#text": "t" }, { "#text": "" }, { "#text": null }, { "#text": [] }, { "#text": "x", "@a": "1" }, [{ "#text": "a" }]]), lists: vals });
   const got = csharp({ fn: "xml", ...helpers });
   const lab = n => Array(n).fill("helper");
-  same("XML.escape", lab(helpers.escapes.length), helpers.escapes, got.escaped, () => helpers.escapes.map(NODE.XML.escape));
-  same("XML.text", lab(helpers.texts.length), helpers.texts, got.texts, () => helpers.texts.map(NODE.XML.text));
-  same("XML.list", lab(helpers.lists.length), helpers.lists, got.lists, () => helpers.lists.map(NODE.XML.list));
+  same("XML.escape", lab(helpers.escapes.length), helpers.escapes, got.escaped);
+  same("XML.text", lab(helpers.texts.length), helpers.texts, got.texts);
+  same("XML.list", lab(helpers.lists.length), helpers.lists, got.lists);
 });
 
 test("DIDL-Lite: built byte for byte, and read back (items, durations, hms) from every kind of document", { skip }, () => {
-  const { metas, answers } = fakeAnswers();
+  const { metas } = fakeAnswers();
   const builds = new Cases();
   builds.add("topology.test.js", { uri: "http://h:1/stream/t5.flac", meta: { title: "A & B", artist: "X", album: "Y", duration: 125, mime: "audio/flac" } });
   for (const m of metas) builds.add("fake household", { uri: "http://10.0.0.2:3500/stream/t1.flac?s=a&e=1", meta: m });
@@ -324,7 +316,7 @@ test("DIDL-Lite: built byte for byte, and read back (items, durations, hms) from
   }
   const bjob = plain({ builds: builds.items });
   const out = csharp({ fn: "didl", ...bjob });
-  same("DIDL.build", builds.labels, bjob.builds, out.built, () => bjob.builds.map(c => tryOr(() => NODE.DIDL.build(c.uri, c.meta))));
+  same("DIDL.build", builds.labels, bjob.builds, out.built);
   assert.equal(out.sentinel, "RINCON_AssociatedZPUDN");
 
   // Read back: what was built, what the fakes and real players send (inside SOAP too), and all of it damaged.
@@ -332,10 +324,7 @@ test("DIDL-Lite: built byte for byte, and read back (items, durations, hms) from
   docs.add("built", ...out.built.filter(x => typeof x === "string"));
   docs.add("real DIDL", ...REAL_DIDL);
   // The fakes' answers and real players' DIDL inside SOAP, as the Node server unwrapped them (kept).
-  const unwrapped = kept.input("SOAP answers unwrapped", RECORD && (() => ({
-    fakes: answers.map(([action, service, args]) => [action, Object.values(NODE.SOAP.parseResponse(envelope(action, service, args), action))]),
-    real: REAL_DIDL.slice(0, 5).map(d => NODE.SOAP.parseResponse(envelope("GetPositionInfo", AVT, { Track: "1", TrackDuration: "0:04:21", TrackMetaData: d, TrackURI: "x-sonos-spotify:a?b=1&c=2", RelTime: "0:00:10" }), "GetPositionInfo").TrackMetaData)
-  })));
+  const unwrapped = kept.input("SOAP answers unwrapped");
   for (const [action, values] of unwrapped.fakes) for (const v of values) docs.add(`fake ${action}, unwrapped`, v);
   for (const d of unwrapped.real) docs.add("real, unwrapped from SOAP", d);
   const seen = docs.items.slice();
@@ -349,9 +338,9 @@ test("DIDL-Lite: built byte for byte, and read back (items, durations, hms) from
     "a:b", "1:2:x", "0x10:0b1", "Infinity", "1e3:1", "", null, 0, 125, true, [], ["1:00"], {}, "1:00:00\u00a0", "\ufeff1:00", "１:00", "-0", "-1:-1"];
   const djob = plain({ docs: docs.items, hms, seconds });
   const got = csharp({ fn: "didl", ...djob });
-  same("DIDL.parseItems", docs.labels, djob.docs, got.items, () => djob.docs.map(d => NODE.DIDL.parseItems(d)));
-  same("DIDL.hms", djob.hms.map(() => "hms"), djob.hms, got.hms, () => djob.hms.map(NODE.DIDL.hms));
-  same("DIDL.toSeconds", djob.seconds.map(() => "toSeconds"), djob.seconds, got.seconds, () => djob.seconds.map(NODE.DIDL.toSeconds));
+  same("DIDL.parseItems", docs.labels, djob.docs, got.items);
+  same("DIDL.hms", djob.hms.map(() => "hms"), djob.hms, got.hms);
+  same("DIDL.toSeconds", djob.seconds.map(() => "toSeconds"), djob.seconds, got.seconds);
 });
 
 test("planMoves: the queue's Play now / Play next plan, for every kind of pick", { skip }, () => {
@@ -372,7 +361,7 @@ test("planMoves: the queue's Play now / Play next plan, for every kind of pick",
     plans.add(`seed ${seed}`, c);
   }
   const job = plain({ plans: plans.items });
-  same("planMoves", plans.labels, job.plans, csharp({ fn: "moves", ...job }).plans, () => job.plans.map(c => tryOr(() => NODE.planMoves(c.length, c.current, c.positions))));
+  same("planMoves", plans.labels, job.plans, csharp({ fn: "moves", ...job }).plans);
 });
 
 /* A household of up to five groups: members with and without every attribute, satellites, pairs, home theatres, bridges. */
@@ -413,7 +402,7 @@ test("topology: ZoneGroupState read into members, the household's rooms and grou
   const { zgs } = fakeAnswers();
   const states = new Cases();
   states.add("real ZoneGroupState", ...REAL_ZGS).add("fake household", ...zgs);
-  states.add("fake household, unwrapped from SOAP", kept.input("a ZoneGroupState unwrapped", RECORD && (() => NODE.SOAP.parseResponse(envelope("GetZoneGroupState", ZGT, { ZoneGroupState: REAL_ZGS[0] }), "GetZoneGroupState").ZoneGroupState)));
+  states.add("fake household, unwrapped from SOAP", kept.input("a ZoneGroupState unwrapped"));
   // Every Location form, a member apiece.
   for (let i = 0; i < LOCATIONS.length; i += 8) {
     states.add("locations", `<ZoneGroups><ZoneGroup Coordinator="RINCON_L"><${LOCATIONS.slice(i, i + 8).map((l, k) => `ZoneGroupMember UUID="RINCON_L${k}" Location="${XML.escape(l)}"/`).join("><")}></ZoneGroup></ZoneGroups>`);
@@ -489,19 +478,14 @@ test("topology: ZoneGroupState read into members, the household's rooms and grou
 
   const job = plain({ states: states.items, channel_maps: channelMaps, households: households.items, headers, lans, locals, searches });
   const got = csharp({ fn: "topology", ...job });
-  same("parseZoneGroupState", states.labels, job.states, got.zones, () => job.states.map(s => tryOr(() => NODE.TOPO.parseZoneGroupState(s))));
-  same("parseChannelMap", job.channel_maps.map(() => "channel map"), job.channel_maps, got.channel_maps,
-    () => job.channel_maps.map(v => tryOr(() => Object.fromEntries(Object.entries(NODE.TOPO.parseChannelMap(v)).map(([k, s]) => [k, [...s]])))));
-  same("Topology's rooms, groups, coordinators and signature", households.labels, job.households, got.households, () => job.households.map(c => tryOr(() => {
-    const t = new NODE.TOPO.Topology({ include: c.include, exclude: c.exclude });
-    t.all = new Map(NODE.TOPO.parseZoneGroupState(c.state).map(m => [m.uid, m]));
-    return { rooms: t.rooms(), groups: t.groups(), signature: t.signature(), coordinators: c.uids.map(u => t.coordinatorOf(u)), members: c.uids.map(u => t.member(u)), allowed: c.names.map(n => t.allowed(n)) };
-  })));
-  same("parseHeaders", job.headers.map((_, i) => i < 7 ? "by hand" : `seed ${60000 + i - 7}`), job.headers, got.headers, () => job.headers.map(b => NODE.TOPO.parseHeaders(Buffer.from(b, "base64"))));
-  same("lanAddresses", job.lans.map((_, i) => i < 7 ? "by hand" : `seed ${70000 + i - 7}`), job.lans, got.lans, () => job.lans.map(ifs => tryOr(() => NODE.TOPO.lanAddresses(ifs))));
+  same("parseZoneGroupState", states.labels, job.states, got.zones);
+  same("parseChannelMap", job.channel_maps.map(() => "channel map"), job.channel_maps, got.channel_maps);
+  same("Topology's rooms, groups, coordinators and signature", households.labels, job.households, got.households);
+  same("parseHeaders", job.headers.map((_, i) => i < 7 ? "by hand" : `seed ${60000 + i - 7}`), job.headers, got.headers);
+  same("lanAddresses", job.lans.map((_, i) => i < 7 ? "by hand" : `seed ${70000 + i - 7}`), job.lans, got.lans);
   const seedOr = (c, i) => `seed ${70000 + i}`;
-  same("localIp", job.locals.map(seedOr), job.locals, got.locals, () => job.locals.map(([p, ifs]) => tryOr(() => NODE.TOPO.localIp(p, ifs))));
-  same("searchAddresses", job.searches.map(seedOr), job.searches, got.searches, () => job.searches.map(([b, ifs]) => tryOr(() => NODE.TOPO.searchAddresses(b, ifs))));
+  same("localIp", job.locals.map(seedOr), job.locals, got.locals);
+  same("searchAddresses", job.searches.map(seedOr), job.searches, got.searches);
 
   // No interfaces given: this machine's own, read as os.networkInterfaces() gives them (the Node server's default; v0.8.49
   // fix), the rule over them the one held above.
@@ -512,9 +496,9 @@ test("topology: ZoneGroupState read into members, the household's rooms and grou
 });
 
 test("SOAP: the envelope sent, and the answer read (arguments by name, or the player's fault)", { skip }, () => {
-  const { metas, answers } = fakeAnswers();
+  const { answers } = fakeAnswers();
   const requests = new Cases();
-  const didl = fakeDidl(metas).soap;
+  const didl = fakeDidl().soap;
   requests.add("device.js", { service: AVT, action: "Play", args: { InstanceID: 0, Speed: 1 } }, { service: AVT, action: "SetAVTransportURI", args: { InstanceID: 0, CurrentURI: "x-rincon:RINCON_A", CurrentURIMetaData: "" } },
     { service: AVT, action: "AddMultipleURIsToQueue", args: { InstanceID: 0, UpdateID: 0, NumberOfURIs: 2, EnqueuedURIs: "http://a/1 http://a/2", EnqueuedURIsMetaData: didl + " " + didl, ContainerURI: "", ContainerMetaData: "", DesiredFirstTrackNumberEnqueued: 3, EnqueueAsNext: 1 } },
     { service: CD, action: "Browse", args: { ObjectID: "Q:0", BrowseFlag: "BrowseDirectChildren", Filter: "dc:title,res,dc:creator,upnp:artist,upnp:album,upnp:albumArtURI", StartingIndex: 0, RequestedCount: 1000, SortCriteria: "" } },
@@ -562,9 +546,6 @@ test("SOAP: the envelope sent, and the answer read (arguments by name, or the pl
   }
   const job = plain({ requests: requests.items, responses: responses.items });
   const got = csharp({ fn: "soap", ...job });
-  same("buildRequest", requests.labels, job.requests, got.requests, () => job.requests.map(c => tryOr(() => NODE.SOAP.buildRequest(c.service, c.action, c.args))));
-  same("parseResponse", responses.labels, job.responses, got.responses, () => job.responses.map(c => {
-    try { return { out: NODE.SOAP.parseResponse(c.body, c.action) }; }
-    catch (e) { return e instanceof NODE.SOAP.UPnPError ? { error: { code: e.code, description: e.description, message: e.message } } : { threw: true }; }
-  }));
+  same("buildRequest", requests.labels, job.requests, got.requests);
+  same("parseResponse", responses.labels, job.responses, got.responses);
 });

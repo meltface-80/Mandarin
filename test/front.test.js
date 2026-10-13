@@ -1,9 +1,9 @@
 "use strict";
 /*
  * Mandarin's server in C# (v0.8.1 on, server/): which server answers what.
- * Runs when the suite goes through the C# server (MANDARIN_FRONT=1, as CI
- * does on Node 22). Each part moved to C# is pinned here, so a part can't
- * quietly fall back to the Node server behind it.
+ * Each part moved to C# was pinned here as it moved, so a part couldn't
+ * quietly fall back to the Node server behind it; since v0.9.0 there is no
+ * Node server, and the pins hold on the program alone.
  *   - v0.8.1: everything is passed on, through C#;
  *   - v0.8.2: sign-in, devices and the gate are answered by C#; a streamer's
  *     NOTIFY still reaches the Node server unsigned; /internal/ stops at the door;
@@ -105,9 +105,7 @@
  *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
  *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
  *   - v0.8.50 (stage 7): the program alone, no Node server anywhere: every pin here is held on it
- *     (test/server.js). What the Node server did with the work it handed over (its loops stopped, its
- *     MusicBrainz turn, its private addresses) is the last test, run while index.js is still here
- *     (MANDARIN_FRONT=1); it goes with the Node server.
+ *     (test/server.js); the Node server's code went in stage 7 part 6.
  */
 const ports = require("./ports");
 const test = require("node:test");

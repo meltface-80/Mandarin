@@ -3,8 +3,8 @@
  * Playlists: a user playlist made from tracks or whole albums, a Dynamic
  * Playlist saved from a Library view, and sharing — the MDRP1 blob MusicD
  * Remote writes and reads, so a playlist goes either way between the two.
- * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8), their
- * sharing (v0.8.21) and the Dynamic Playlists saved (v0.8.22) are made there.
+ * Your playlists (v0.8.8), their sharing (v0.8.21) and the Dynamic
+ * Playlists saved (v0.8.22) are made by the C# server.
  */
 const ports = require("./ports");
 const test = require("node:test");

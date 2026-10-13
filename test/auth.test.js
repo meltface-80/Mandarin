@@ -12,7 +12,7 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const SRP = require("../public/srp");
-const { built } = require("./server");
+const { built, BIN } = require("./server");
 const { score } = require("./score");
 const { signIn, post, USER, PASS } = require("./auth-helper");
 
@@ -131,8 +131,8 @@ test("MusicD Server behind its account", { timeout: 60000 }, async (t) => {
     await srv.stop();
   }
 
-  // Forgotten password: reset on the server, then create the account again.
-  const out = execFileSync(process.execPath, [path.join(__dirname, "..", "reset-password.js")], { env: Object.assign({}, process.env, { DATA_DIR: dataDir }) }).toString();
+  // Forgotten password: reset on the server (`mandarin-server reset-password`), then create the account again.
+  const out = execFileSync(BIN, ["reset-password"], { env: Object.assign({}, process.env, { DATA_DIR: dataDir }) }).toString();
   assert.match(out, /removed/);
   ({ srv, ctx } = await startServer(dataDir));
   // Connections kept alive to the stopped server fail once each; use them up.

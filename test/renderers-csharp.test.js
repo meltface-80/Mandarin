@@ -13,8 +13,8 @@
  * all. Skipped where the C# server isn't built.
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
- * (test/golden.js's answers(), test/golden/renderers-csharp.json), made with
- * RECORD_RENDERERS=1 while lib/ was here; the cases are still made here,
+ * (test/golden.js's answers(), test/golden/renderers-csharp.json), made
+ * while lib/ was here; the cases are still made here,
  * seeded, and the C# program alone is held to them case for case. URLs are
  * still held to this Node's own `new URL`.
  */
@@ -28,13 +28,10 @@ const XML = require("./fake-xml");
 const { FakeRenderer, SINK_WIIM } = require("./fake-renderer");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_RENDERERS === "1";
-// The Node server's modules, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? { XML: require("../lib/xml"), ...require("../lib/renderers/description"), ...require("../lib/renderers/protocolinfo"), G: require("../lib/renderers/gena"), PR: require("../lib/renderers/profiles") } : null;
-const kept = answers("renderers-csharp", RECORD);
+const kept = answers("renderers-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_RENDERERS=1 made it)");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
 test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
@@ -54,8 +51,8 @@ function rng(seed) {
 }
 
 /* Each answer the Node server's (kept), the first that isn't shown with what was asked (and the seed that made it). */
-function same(what, inputs, got, want, seed) {
-  kept.same(what, inputs.map(() => seed != null ? `seed ${seed}` : "by hand"), inputs, got, RECORD && (() => plain(want())));
+function same(what, inputs, got, seed) {
+  kept.same(what, inputs.map(() => seed != null ? `seed ${seed}` : "by hand"), inputs, got);
 }
 
 // ---------------------------------------------------------------- samples
@@ -64,8 +61,7 @@ const LS = ch(0x2028), NBSP = ch(0xA0), BOM = ch(0xFEFF), LONE = ch(0xD800), NEL
 const SINK_POLY = "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/x-dsf:*";
 const SINK_PLAYBACK = "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*";
 /* profiles.js's tables and a register row's advertised layer from parseSink, as the Node server had them (kept). */
-const NODE_TABLES = kept.input("profiles.js's tables and parseSink's rows", RECORD && (() => ({ RATES: NODE.PR.RATES, BITS: NODE.PR.BITS, DSD: NODE.PR.DSD, TIMEOUT_S: NODE.G.TIMEOUT_S,
-  sinks: [SINK_WIIM, SINK_POLY, SINK_PLAYBACK].map(x => NODE.parseSink(x)) })));
+const NODE_TABLES = kept.input("profiles.js's tables and parseSink's rows");
 const PR = { RATES: NODE_TABLES.RATES, BITS: NODE_TABLES.BITS, DSD: NODE_TABLES.DSD };
 
 /* The fake renderer's own description, as the other tests serve it. */
@@ -431,13 +427,6 @@ function genNotify(r) {
 const TIMEOUTS = ["Second-1800", "second-300", "SECOND-0", "Second-infinite", "infinite", "", null, 5, "Second-0042", "Second-12abc", "xSecond-7", "Second--5", "Second-" + "9".repeat(400),
   "Second-١٢٣", "Second-1 Second-2", LONG_S + "econd-5", "Second-\n5", "Second-5,Second-6", "Second-" + KELVIN, "Second-", "Second-x Second-9", true, ["Second-30"], {}];
 
-/* gena.js's seconds() is its own: read from the file and run as written, since the module keeps it to itself (recording). */
-function genaSeconds() {
-  const src = fs.readFileSync(path.join(__dirname, "..", "lib", "renderers", "gena.js"), "utf8");
-  const m = /\nfunction seconds\(v\) \{[\s\S]*?\n\}\n/.exec(src);
-  assert.ok(m, "gena.js's seconds() found");
-  return new Function("TIMEOUT_S", m[0] + "\nreturn seconds;")(NODE.G.TIMEOUT_S);
-}
 
 /* Profiles: every model the table knows, written many ways, beside makers and families. */
 const PROFILE_MODELS = ["WiiM Pro Plus", "WiiM Pro", "WiiM  Pro\tPlus", "wiimpro", "WiiM Pro Plus 2", "WiiM ProPlus", "WiiM Pro/WiiM Pro Plus", "WiiM Pro Plus/WiiM Pro", "WiiM Ultra", "WiiM Amp",
@@ -516,9 +505,6 @@ const REAL_RECORDS = [
   { id: "UPNP_box", kind: "upnp", family: "openhome", manufacturer: "Acme", model: "Streamer", caps: { advertised: NODE_TABLES.sinks[2], verified: { rates: { "96000": "x" }, bits: { "24": "y" } } } }
 ];
 
-const RE = (k, v) => v instanceof RegExp ? String(v) : v;
-const plainProfile = p => JSON.parse(JSON.stringify(p, RE));
-const guard = f => { try { return plain(f()); } catch (e) { return { threw: true }; } };
 
 // ---------------------------------------------------------------- tests
 
@@ -535,7 +521,7 @@ test("lib/xml.js's trees: device documents, events, soup and DOCTYPEs read the s
       texts = Array.from({ length: 1500 }, () => what === "soup" ? xmlSoup(r) : xmlTree(r));
     }
     const job = plain({ fn: "description", xml: texts });
-    same("XML.parse " + what, job.xml, csharp(job).xml, () => job.xml.map(t => plain(NODE.XML.parse(t))), seed);
+    same("XML.parse " + what, job.xml, csharp(job).xml, seed);
   }
 });
 
@@ -592,12 +578,12 @@ test("device descriptions: the fakes, real devices, sloppy and broken ones, and 
   samples.push({ xml: null, location: "http://x/" }, { xml: 5 }, { location: "http://x/" });
   const job = plain({ fn: "description", short, cases: samples });
   const got = csharp(job);
-  same("shortType", job.short, got.short, () => job.short.map(t => NODE.shortType(t)));
-  same("parseDescription (samples)", job.cases, got.parsed, () => job.cases.map(c => plain(NODE.parseDescription(c.xml, c.location))));
+  same("shortType", job.short, got.short);
+  same("parseDescription (samples)", job.cases, got.parsed);
 
   const r = rng(3704);
   const gen = plain({ fn: "description", cases: Array.from({ length: 1200 }, () => genDescription(r)) });
-  same("parseDescription (generated)", gen.cases, csharp(gen).parsed, () => gen.cases.map(c => plain(NODE.parseDescription(c.xml, c.location))), 3704);
+  same("parseDescription (generated)", gen.cases, csharp(gen).parsed, 3704);
 });
 
 test("GetProtocolInfo's Sink: containers, MIME types and rates only from raw PCM, the same both ways", { skip }, () => {
@@ -608,8 +594,8 @@ test("GetProtocolInfo's Sink: containers, MIME types and rates only from raw PCM
   const mimes = SINK_FORMATS.concat(SINK_FORMATS.map(m => m.toUpperCase()), [null, 5, "audio/flac\n", "audio/flac" + LS, "audio/x-flacx", "xaudio/flac"]);
   const job = plain({ fn: "protocolinfo", sinks, mimes });
   const got = csharp(job);
-  same("parseSink", job.sinks, got.sinks, () => job.sinks.map(s => plain(NODE.parseSink(s))), 3705);
-  same("containerOf", job.mimes, got.containers, () => job.mimes.map(m => NODE.containerOf(m)));
+  same("parseSink", job.sinks, got.sinks, 3705);
+  same("containerOf", job.mimes, got.containers);
 });
 
 test("GENA: NOTIFY bodies read into the same variables, the TIMEOUT header into the same lifetime", { skip }, () => {
@@ -619,8 +605,8 @@ test("GENA: NOTIFY bodies read into the same variables, the TIMEOUT header into 
   const job = plain({ fn: "gena", bodies, timeouts });
   const got = csharp(job);
   assert.equal(got.timeout_s, NODE_TABLES.TIMEOUT_S);
-  same("parseNotify", job.bodies, got.notify, () => job.bodies.map(b => plain(NODE.G.parseNotify(b))), 3706);
-  same("seconds", job.timeouts, got.seconds, () => { const seconds = genaSeconds(); return plain(job.timeouts.map(t => seconds(t))); }, 3706);
+  same("parseNotify", job.bodies, got.notify, 3706);
+  same("seconds", job.timeouts, got.seconds, 3706);
 });
 
 test("profiles: the tables, the profile every model gets, and the chips with the layers they come from", { skip }, () => {
@@ -639,8 +625,7 @@ test("profiles: the tables, the profile every model gets, and the chips with the
     Array.from({ length: 1500 }, () => ({ record: genRecord(r) })));
   const job = plain({ fn: "profiles", lookups, records });
   const got = csharp(job);
-  same("the tables", ["rates", "bits", "dsd", "floor", "profiles", "local"], [got.rates, got.bits, got.dsd, got.floor, got.profiles, got.local],
-    () => [NODE.PR.RATES, NODE.PR.BITS, NODE.PR.DSD, plain(NODE.PR.FLOOR), plainProfile(NODE.PR.PROFILES), plainProfile(NODE.PR.LOCAL)]);
-  same("profileFor", job.lookups, got.profile, () => job.lookups.map(a => { try { return plainProfile(NODE.PR.profileFor(a.device)); } catch (e) { return { threw: true }; } }));
-  same("effective", job.records, got.effective, () => job.records.map(x => guard(() => NODE.PR.effective(x.record))), 3707);
+  same("the tables", ["rates", "bits", "dsd", "floor", "profiles", "local"], [got.rates, got.bits, got.dsd, got.floor, got.profiles, got.local]);
+  same("profileFor", job.lookups, got.profile);
+  same("effective", job.records, got.effective, 3707);
 });

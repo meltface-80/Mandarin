@@ -16,7 +16,7 @@
  *     rate; two booklets chosen from a sheet; the pages shown; Escape and the
  *     phone's Back close the booklet, not the album.
  *
- * Through the C# server only (MANDARIN_FRONT=1): the Node server has no booklets.
+ * The C# server's alone: the Node server never had booklets.
  */
 const ports = require("./ports");
 const test = require("node:test");

@@ -7,8 +7,7 @@
  * from the RSS feed when the page can't be read) and a review's match in the
  * library, the link that opens the Qobuz app, the Pitchfork part of the
  * search, and the share card's settings. Wikipedia, Qobuz's site, Pitchfork
- * and MusicBrainz are fakes on loopback. The same answers from either server;
- * behind the C# server (MANDARIN_FRONT=1), made there (v0.8.21).
+ * and MusicBrainz are fakes on loopback. Made by the C# server since v0.8.21.
  */
 const ports = require("./ports");
 const test = require("node:test");

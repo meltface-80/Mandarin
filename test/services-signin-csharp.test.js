@@ -28,8 +28,8 @@
  * test/qobuz.test.js and test/tidal.test.js are the services' own.
  *
  * Since v0.8.50 (stage 7) the Node server's side is a recording
- * (test/golden/services-signin-node.json, test/golden.js): made with
- * RECORD_SERVICES_SIGNIN=1 through the C# server with the Node server behind
+ * (test/golden/services-signin-node.json, test/golden.js): made
+ * through the C# server with the Node server behind
  * it (MANDARIN_FRONT=1, while index.js was still there); every run since starts
  * the program alone and holds it to the recording. A conversion is held to the
  * very file ffmpeg makes with the Node server's arguments, as recorded, from
@@ -51,10 +51,8 @@ const { built } = require("./server");
 const { recording } = require("./golden");
 const { spawnSync } = require("child_process");
 
-const RECORD = process.env.RECORD_SERVICES_SIGNIN === "1";
-const rec = recording("services-signin-node", RECORD);
-const skip = (RECORD ? process.env.MANDARIN_FRONT !== "1" && "recording goes through the C# server with the Node server behind it (MANDARIN_FRONT=1)"
-  : built() || (!rec.exists() && "no recording of the Node server's answers (RECORD_SERVICES_SIGNIN=1 makes one)")) || (!haveFfmpeg() && "ffmpeg is not installed");
+const rec = recording("services-signin-node");
+const skip = built() || (!rec.exists() && "no recording of the Node server's answers") || (!haveFfmpeg() && "ffmpeg is not installed");
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 const SOXR = haveSoxr();
 const DAY = 86400e3;
@@ -88,7 +86,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
   await tidal.start();
   await house.start();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const { createServer } = RECORD ? require("../index.js") : require("./server");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false,
     qobuzBaseUrl: qobuz.base, tidalBaseUrl: tidal.base, tidalAuthUrl: tidal.authBase, tidalImagesUrl: tidal.authBase + "/images/",
     // The import and the watch out of the way: nothing is brought in unasked.
@@ -98,19 +96,14 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
   const token = await signIn(B);
   const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
   // The Node server behind the C# server (recording only), asked straight.
-  const NODE = RECORD ? "http://127.0.0.1:" + ctx.listeningOn : "";
   const raw = ctx.db.raw;
   /* The data folder and any port on loopback by name; a time written as the test ran in days from now. */
   const named = (text) => String(text).split(lib.data).join("<data>").replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>")
     // The tokens the fakes hand out, new each sign-in.
     .replace(/\b(tok|at|rt)-[0-9a-f]{12}\b/g, "$1-<new>")
     .replace(/(":)(1\d{12})\b/g, (m, pre, t) => { const d = (Number(t) - Date.now()) / DAY; return Math.abs(d) < 3 ? `${pre}"<now ${Math.round(d)} d>"` : m; });
-  /* The Node server's answer to the same request: asked now (recording, the services its own if [mine]) or as recorded. */
-  const theirs = (label, p, body, { owned = false, fix = named } = {}) => rec.want(label, async () => {
-    const n = owned ? await own(() => call(NODE, p, body)) : await call(NODE, p, body);
-    assert.equal(n.by, null, p + ": the Node server's own");
-    return { status: n.status, text: fix(n.text) };
-  });
+  /* The Node server's answer to the same request, as recorded. */
+  const theirs = (label) => rec.want(label);
   const call = async (base, p, body) => {
     const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
     const text = await r.text();
@@ -120,20 +113,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
   };
   const get = (p) => call(B, p);
   const post = (p, body) => call(B, p, body || {});
-  // The Node server's own for one request (recording): the services its for that moment (it may sign in, refresh, stream).
-  let owning = false;
-  const own = async (fn) => {
-    ctx.frontRuns.delete("services"); ctx.frontRuns.delete("import");
-    owning = true;
-    try { return await fn(); } finally { owning = false; ctx.frontRuns.add("services"); ctx.frontRuns.add("import"); }
-  };
-  // The Node server's own refresh of Tidal's token, counted (recording): asked for its own runs only, never for a request through C#.
-  const refreshed = { own: 0, else: 0 };
-  if (RECORD) {
-    const r = ctx.tidal.api.refresh;
-    ctx.tidal.api.refresh = (...a) => { refreshed[owning ? "own" : "else"]++; return r(...a); };
-  }
-  t.after(() => assert.equal(refreshed.else, 0, "the Node server's own refresh never asked but for its own runs"));
   const setting = (k) => { const r = raw.prepare("SELECT value FROM settings WHERE key = ?").get(k); return r ? r.value : undefined; };
 
   await until(() => ctx.frontRuns && ctx.frontRuns.has("services"), 30000, "the services handed over");
@@ -147,14 +126,9 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       assert.deepEqual([c.status, c.by, c.j.connected], [200, "C#", false]);
       assert.equal(named(c.text), n.text, s);
       for (const body of [{ quality: "cd" }, { quality: "nope" }, { quality: null }, { import: true }, { import: false, quality: s === "qobuz" ? "hires192" : "hires" }]) {
-        const was = setting(s + "Settings");
         const mine = await post("settings/" + s, body);
         const written = setting(s + "Settings");
-        const n = await rec.want("signed out, a switch: " + s + " " + JSON.stringify(body), async () => {
-          if (was === undefined) raw.prepare("DELETE FROM settings WHERE key = ?").run(s + "Settings"); else ctx.db.setSetting(s + "Settings", JSON.parse(was));
-          const x = await call(NODE, "settings/" + s, body);
-          return { status: x.status, text: named(x.text), written: setting(s + "Settings") };
-        });
+        const n = await rec.want("signed out, a switch: " + s + " " + JSON.stringify(body));
         assert.deepEqual([mine.status, mine.by, named(mine.text)], [n.status, "C#", n.text], s + " " + JSON.stringify(body));
         assert.equal(written, n.written, s + ": written the same");
       }
@@ -178,12 +152,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const account = kept();
     assert.equal(account.includes("pw"), false, "the password is not kept");
     assert.equal(JSON.parse(account).token, qobuz.token);
-    const n = await rec.want("Qobuz's sign-in", async () => {
-      ctx.db.setSetting("qobuz", null);
-      t0 = Date.now();
-      const x = await call(NODE, "settings/qobuz/signin", { username: "tester@example.com", password: "pw" });
-      return { text: named(x.text), account: named(kept()) };
-    });
+    const n = await rec.want("Qobuz's sign-in");
     assert.equal(named(mine.text), n.text, "the same answer");
     assert.equal(named(account), n.account, "the same account");
     // Signed in, the state as the Node server's.
@@ -212,15 +181,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const after = tidal.polls;
     await sleep(1300);
     assert.equal(tidal.polls, after, "Tidal no longer asked");
-    const n = await rec.want("Tidal's sign-in begun", async () => {
-      const n0 = Date.now();
-      const x = await call(NODE, "settings/tidal/signin", {});
-      const n1 = Date.now();
-      await sleep(1600);
-      const st = await call(NODE, "settings/tidal");
-      const off = await call(NODE, "settings/tidal/signin/cancel", {});
-      return { text: sansExpiry(x.text, n0, n1), state: sansExpiry(st.text, n0, n1), cancelled: off.text };
-    });
+    const n = await rec.want("Tidal's sign-in begun");
     assert.equal(sansExpiry(mine.text, t0, t1), n.text, "the same answer");
     assert.equal(sansExpiry(state.text, t0, t1), n.state, "the same state");
     assert.equal(cancelled.text, n.cancelled, "let go the same");
@@ -244,7 +205,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     assert.equal(c.st.by, "C#");
     assert.deepEqual([c.st.j.user.login, c.st.j.user.name, c.st.j.user.country, c.st.j.subscription, c.st.j.hires, c.st.j.pending], ["tester@example.com", "Tess", "GB", "HIFI_PLUS", true, undefined]);
     assert.equal(JSON.parse(c.account).token.access, tidal.access);
-    const theirsIn = await rec.want("Tidal approved", async () => { const x = await own(() => signedIn(NODE)); return { account: named(x.account), text: named(x.st.text) }; });
+    const theirsIn = await rec.want("Tidal approved");
     assert.equal(named(c.account), theirsIn.account, "the same account");
     assert.equal(named(c.st.text), theirsIn.text, "the same state");
     // Signed in already: asking again changes nothing.
@@ -270,7 +231,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const sans = (text) => text.replace(/"expires_at":\d+/, `"expires_at":"…"`);
     for (const how of ["clock", "tidal"]) {
       const mine = await expired(B, how);
-      const n = await rec.want("Tidal's sign-in expired: " + how, async () => { const x = await own(() => expired(NODE, how)); return { st: sans(named(x.st.text)), fresh: sans(named(x.fresh.text)) }; });
+      const n = await rec.want("Tidal's sign-in expired: " + how);
       assert.equal(mine.st.by, "C#");
       assert.equal(mine.st.j.pending.error, "The sign-in link expired — ask for a new one", how);
       assert.equal(sans(named(mine.st.text)), n.st, how + ": the same state");
@@ -287,11 +248,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
         const mine = await post(`settings/${s}/${how}`);
         assert.deepEqual([mine.status, mine.by, mine.j.connected], [200, "C#", false], mine.text);
         assert.equal(setting(s), "null", "let go");
-        const n = await rec.want("signing out: " + s + " " + how, async () => {
-          ctx.db.setSetting(s, JSON.parse(acc));
-          const x = await call(NODE, `settings/${s}/${how}`, {});
-          return { text: named(x.text), kept: setting(s) };
-        });
+        const n = await rec.want("signing out: " + s + " " + how);
         assert.deepEqual([named(mine.text), setting(s)], [n.text, n.kept], s + " " + how);
         ctx.db.setSetting(s, JSON.parse(acc));
       }
@@ -301,7 +258,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
 
   await t.test("Tidal's token: refreshed by the C# server alone, one at a time; refused in the Node server's words", async () => {
     const due = () => { const a = JSON.parse(setting("tidal")); a.token.expires = Date.now() + 1000; ctx.db.setSetting("tidal", a); };
-    const node = refreshed.own;
     // Due for a request: refreshed first, the new token kept.
     due();
     let before = tidal.refreshes;
@@ -330,7 +286,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       for (const [p, body] of [["tidal/search?q=refused", null], ["tidal/favorite", { album_id: "2001" }], ["settings/tidal/import", {}]]) {
         due();
         const mine = body ? await post(p, body) : await get(p);
-        const n = await rec.want("a refresh refused: " + p, async () => { due(); const x = await own(() => call(NODE, body ? p : p + "+node", body)); return { text: x.text }; });
+        const n = await rec.want("a refresh refused: " + p);
         assert.deepEqual([mine.status, mine.by, mine.j], [401, "C#", { error: "invalid_grant", connected: false }], p + ": " + mine.text);
         assert.equal(mine.text, n.text, p + ": the same words");
       }
@@ -355,8 +311,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       }, 20000, "the watch, once no import runs");
       assert.deepEqual([w.ok, w.services.tidal.failed, w.refreshed], [true, 0, 1], "the watch refreshed the token due, once: " + JSON.stringify(w));
     } finally { ctx.db.setSetting("tidalSettings", { quality: "hires", import: false }); await ctx.library.reload(); }
-    if (RECORD) assert.ok(refreshed.own - node >= 3, "the Node server's own, for its own requests");
-    assert.equal(refreshed.else, 0, "and never for a request through C#");
   });
 
   // ---------------------------------------------------------------- playing
@@ -396,17 +350,11 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
         await until(() => room.queue.length >= want.length, 15000, what + ": the queue");
         return { r, rows: rows(key), queue: titles() };
       };
-      // Where the C# server holds playback (v0.8.49, stage 6) the Node server's hub never starts, so its own play can't be run for comparison: the C# server's is held to what the room must be sent.
-      const front = !!(ctx.frontRuns && ctx.frontRuns.has("playback"));
-      const mine = await run(B), theirs = front ? null : await run(NODE);
+      // The C# server holds playback (v0.8.49, stage 6): its play is held to what the room must be sent.
+      const mine = await run(B);
       assert.deepEqual([mine.r.status, mine.r.by, mine.r.j.ok, mine.r.j.offset], [200, "C#", true, mine.rows.id], what + ": " + mine.r.text);
       assert.deepEqual(mine.r.j.action, ["play_now", "play_next", "queue", "shuffle"].includes(body.kind) ? body.kind : "play_now");
       assert.deepEqual(mine.queue, want, what + ": the room's queue");
-      if (!theirs) continue;
-      assert.equal(mine.r.text.replace(`"offset":${mine.rows.id}`, `"offset":"ID"`), theirs.r.text.replace(`"offset":${theirs.rows.id}`, `"offset":"ID"`), what + ": the same answer");
-      assert.deepEqual(mine.rows.album, theirs.rows.album, what + ": the album's row");
-      assert.deepEqual(mine.rows.tracks, theirs.rows.tracks, what + ": its tracks' rows");
-      assert.deepEqual(mine.queue, theirs.queue, what + ": as the Node server queues it");
     }
     // Refused, in the same words: signed in but asked wrongly.
     for (const [p, body] of [["qobuz/play", {}], ["qobuz/play", { album_id: "q100" }], ["qobuz/play", { album_id: "q100", zone_or_output_id: kitchen.zone_id, track: 9 }],
@@ -415,9 +363,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       assert.deepEqual([mine.by, mine.status, named(mine.text).split(kitchen.zone_id).join("<room>")], ["C#", n.status, n.text], p + " " + JSON.stringify(body));
       assert.ok(mine.status >= 400, mine.text);
     }
-    assert.equal(refreshed.else, 0, "nothing refreshed by the Node server");
     // Its part, from the C# server only (recording: the Node server's own address).
-    if (RECORD) assert.equal((await fetch(NODE + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ zone_or_output_id: kitchen.zone_id, offset: 1 }) })).status, 403);
   });
 
   // ---------------------------------------------------------------- the streams
@@ -461,13 +407,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     assert.equal(r.status, 0, String(r.stderr));
     return fs.readFileSync(out);
   };
-  /* The ffmpeg arguments the Node server ran for its stream (recording), as a template: its input and output marked. */
-  const caught = [];
-  if (RECORD) {
-    const CPU = require("../lib/cpu");
-    const wrap = CPU.wrap.bind(CPU);
-    CPU.wrap = (bin, args, kind) => { if (owning) caught.push(args.slice()); return wrap(bin, args, kind); };
-  }
   /*
    * One stream from each, from the same start (nothing of it in the
    * transcode folder): the first answer (sent as it is made) and a second
@@ -488,15 +427,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     };
     const mine = await go(B)();
     const trackPath = raw.prepare("SELECT path FROM tracks WHERE id = ?").get(Number(id)).path;
-    const theirs = await rec.want("streamed: " + what, async () => {
-      caught.length = 0;
-      const x = await own(go(NODE));
-      assert.equal(caught.length, 1, what + ": one ffmpeg run there");
-      const args = caught[0], i = args.indexOf("-i");
-      const tpl = args.map((a, k) => k === i + 1 ? "<in>" : k === args.length - 1 ? "<out>" : a);
-      assert.ok(remade(tpl, source(trackPath)).equals(x.bytes), what + ": the Node server's file, made again from the same audio by its arguments");
-      return { first: heads(x.first), second: heads(x.second), file: fileName(x.file), asks: x.asks, tpl };
-    });
+    const theirs = await rec.want("streamed: " + what);
     assert.deepEqual([mine.first.by, mine.second.by], ["C#", "C#"], what);
     assert.deepEqual(heads(mine.first), theirs.first, what + ": the first answer's headers");
     assert.deepEqual(heads(mine.second), theirs.second, what + ": the second's");
@@ -536,7 +467,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     const acc0 = setting("qobuz");
     await post("settings/qobuz/signout");
     ctx.db.setSetting("qobuz", JSON.parse(acc0));
-    if (RECORD) await ctx.qobuz.stop();
     const plays = async (base) => {
       await settle();
       qobuz.reports.length = 0;
@@ -549,7 +479,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       return qobuz.reports.map(x => ({ which: x.which, fields: Object.keys(x.event).join(","), event: Object.assign({}, x.event, { date: typeof x.event.date, duration: x.which === "end" ? x.event.duration >= 1 && x.event.duration <= 3 : x.event.duration }) }));
     };
     const mine = await plays(B);
-    const theirs = await rec.want("Qobuz's plays reported", () => own(() => plays(NODE)));
+    const theirs = await rec.want("Qobuz's plays reported");
     assert.deepEqual(mine.map(x => x.which + ":" + x.event.track_id), ["start:5001", "end:5001", "start:5002"]);
     assert.deepEqual(mine, theirs, "the same reports");
     assert.deepEqual([mine[0].event.user_id, mine[0].event.credential_id, mine[0].event.format_id, mine[0].event.intent, mine[0].event.device_id], [4242, 77, 6, "streaming", 9001]);
@@ -559,25 +489,9 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     clear();
     qobuz.reports.length = 0;
     const three = trackId("qobuz://track/5003");
-    if (RECORD) {
-      let played = 0;
-      const own0 = ctx.qobuz.played.bind(ctx.qobuz);
-      ctx.qobuz.played = (...a) => { played++; return own0(...a); };
-      try {
-        const r = await fetchStream(NODE, `/stream/t${three}.flac`);
-        assert.deepEqual([r.status, r.by], [200, null]);
-        assert.ok(r.body.length > 0);
-        await until(() => qobuz.reports.some(x => x.which === "start" && x.event.track_id === 5003), 10000, "reported by C#");
-        assert.equal(played, 0, "not reported by the Node server");
-        assert.equal(ctx.transcoder.jobs.size, 0, "nor made there");
-        assert.ok(fs.readdirSync(made).some(f => f.startsWith(three + "-") && f.endsWith(".flac")), "made by C#");
-      } finally { ctx.qobuz.played = own0; }
-      await ctx.qobuz.stop();
-    } else {
-      const r = await fetchStream(B, `/stream/t${three}.flac`);
-      assert.deepEqual([r.status, r.by], [200, "C#"]);
-      await until(() => qobuz.reports.some(x => x.which === "start" && x.event.track_id === 5003), 10000, "reported");
-    }
+    const r = await fetchStream(B, `/stream/t${three}.flac`);
+    assert.deepEqual([r.status, r.by], [200, "C#"]);
+    await until(() => qobuz.reports.some(x => x.which === "start" && x.event.track_id === 5003), 10000, "reported");
     // Signing out ends the play under way: reported, as the Node server's sign-out does.
     qobuz.reports.length = 0;
     const acc = setting("qobuz");
@@ -587,7 +501,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     // Signed out, nothing of Qobuz streams, made already or not.
     ctx.db.setSetting("qobuz", null);
     const refused = await fetchStream(B, `/stream/t${one}.flac`);
-    const theirs2 = await rec.want("signed out, a stream", async () => ({ status: (await fetchStream(NODE, `/stream/t${one}.flac`)).status }));
+    const theirs2 = await rec.want("signed out, a stream");
     assert.deepEqual([refused.status, refused.by, refused.body.length], [403, "C#", 0]);
     assert.equal(theirs2.status, 403);
     ctx.db.setSetting("qobuz", JSON.parse(acc));
@@ -597,31 +511,23 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     await post("tidal/open", { album_id: "2001" });
     await post("tidal/open", { album_id: "2002" });
     const song = trackId("tidal://track/8001"), hiRes = trackId("tidal://track/9001");
-    // The Node server's loopback address for DASH, counted (recording): never asked for the C# server's run.
-    let dash = 0;
-    const pieces = RECORD ? ctx.tidal.dashPieces.bind(ctx.tidal) : null;
-    if (RECORD) ctx.tidal.dashPieces = (k) => { dash++; return pieces(k); };
-    try {
-      let x = await streamed(`/stream/t${song}.flac`, "CD to Sonos, as it comes");
-      assert.ok(x.mine.bytes.equals(fs.readFileSync(cd[0])), "the FLAC frames as Tidal sent them");
-      await settle();
-      tidal.playbackCalls.length = 0;
-      tidal.dashFetches.length = 0;
-      dash = 0;
-      clear();
-      // From DASH: the C# server's own run first, the Node server's loopback address never asked.
-      const first = await fetchStream(B, `/stream/t${hiRes}.flac`);
-      assert.deepEqual([first.status, first.by], [200, "C#"]);
-      await until(() => fs.readdirSync(made).some(f => f.endsWith(".flac")), 20000, "kept");
-      assert.equal(dash, 0, "no address of the Node server's in between");
-      assert.ok(tidal.dashFetches.some(f => f.piece === "init.mp4") && tidal.dashFetches.some(f => f.piece === "1.m4s"), "the pieces fetched: " + JSON.stringify(tidal.dashFetches));
-      assert.deepEqual(tidal.playbackCalls.map(c => c.quality), ["HI_RES_LOSSLESS"]);
-      x = await streamed(`/stream/t${hiRes}.flac`, "24/96 to Sonos from DASH, converted to 24/48");
-      assert.deepEqual(probe(x.mine.bytes), { rate: 48000, channels: 2, bits: 24 });
-      x = await streamed(`/stream/t${hiRes}.96000-24.flac`, "24/96 to a streamer, from DASH");
-      assert.deepEqual(probe(x.mine.bytes), { rate: 96000, channels: 2, bits: 24 });
-      assert.deepEqual(raw.prepare("SELECT sample_rate, bits FROM tracks WHERE path = 'tidal://track/9001'").get(), { sample_rate: 96000, bits: 24 });
-    } finally { if (RECORD) ctx.tidal.dashPieces = pieces; }
+    let x = await streamed(`/stream/t${song}.flac`, "CD to Sonos, as it comes");
+    assert.ok(x.mine.bytes.equals(fs.readFileSync(cd[0])), "the FLAC frames as Tidal sent them");
+    await settle();
+    tidal.playbackCalls.length = 0;
+    tidal.dashFetches.length = 0;
+    clear();
+    // From DASH: the C# server's own run first, the Node server's loopback address never asked.
+    const first = await fetchStream(B, `/stream/t${hiRes}.flac`);
+    assert.deepEqual([first.status, first.by], [200, "C#"]);
+    await until(() => fs.readdirSync(made).some(f => f.endsWith(".flac")), 20000, "kept");
+    assert.ok(tidal.dashFetches.some(f => f.piece === "init.mp4") && tidal.dashFetches.some(f => f.piece === "1.m4s"), "the pieces fetched: " + JSON.stringify(tidal.dashFetches));
+    assert.deepEqual(tidal.playbackCalls.map(c => c.quality), ["HI_RES_LOSSLESS"]);
+    x = await streamed(`/stream/t${hiRes}.flac`, "24/96 to Sonos from DASH, converted to 24/48");
+    assert.deepEqual(probe(x.mine.bytes), { rate: 48000, channels: 2, bits: 24 });
+    x = await streamed(`/stream/t${hiRes}.96000-24.flac`, "24/96 to a streamer, from DASH");
+    assert.deepEqual(probe(x.mine.bytes), { rate: 96000, channels: 2, bits: 24 });
+    assert.deepEqual(raw.prepare("SELECT sample_rate, bits FROM tracks WHERE path = 'tidal://track/9001'").get(), { sample_rate: 96000, bits: 24 });
   });
 
   await t.test("an account Tidal gives CD to: asked for hi-res once, then CD, copied as it comes, the rows learnt; as the Node server", async () => {
@@ -649,12 +555,7 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
     };
     try {
       const mine = await run(B);
-      const theirs = await rec.want("an account Tidal gives CD to", async () => {
-        const x = await own(() => run(NODE));
-        // The same files as the C# server's (each the fixture's own, below).
-        for (let i = 0; i < mine.bytes.length; i++) assert.ok(mine.bytes[i].equals(x.bytes[i]), mine.files[i] + ": the same file");
-        return { calls: x.calls, files: x.files.map(fileName), rows: x.rows };
-      });
+      const theirs = await rec.want("an account Tidal gives CD to");
       assert.deepEqual(mine.calls, ["9001:HI_RES_LOSSLESS", "9002:LOSSLESS"], "hi-res asked for once; CD from then on");
       assert.deepEqual(mine.calls, theirs.calls);
       assert.deepEqual([mine.a.by, mine.a.status, mine.b.status], ["C#", 200, 200]);
@@ -664,30 +565,6 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
       assert.deepEqual(mine.rows, theirs.rows, "the rows learnt the same");
       assert.deepEqual(mine.rows.find(r => r.path === "tidal://track/9001"), { path: "tidal://track/9001", sample_rate: 44100, bits: 16 });
     } finally { tidal.denyHires = false; await reset(); }
-  });
-
-  await t.test("the Node server never asked Qobuz or Tidal for anything on its own, nor refreshed the token", { skip: !RECORD && "the Node server's own clients: looked at while recording" }, async () => {
-    // Through the C# server: browsing, opening, playing, streaming — the Node server's own refresh never asked.
-    await settle();
-    clear();
-    tidal.expireAccess();
-    const asked = [];
-    // Every way the Node server's services fetch: their clients, and the services themselves (covers, DASH).
-    const spied = [[ctx.qobuz.api, "qobuz"], [ctx.qobuz, "qobuz"], [ctx.tidal.api, "tidal"], [ctx.tidal, "tidal"]].map(([o, s]) => {
-      const f = o.fetch;
-      o.fetch = (...a) => { asked.push(s + " " + String(a[0])); return f(...a); };
-      return () => { o.fetch = f; };
-    });
-    try {
-      for (const p of ["qobuz/search?q=q", "tidal/search?q=t", "settings/qobuz", "settings/tidal", "search/external?q=album", "qobuz/album?id=q100"]) assert.equal((await get(p)).by, "C#", p);
-      room.queue = [];
-      room.fetches.length = 0;
-      assert.equal((await post("tidal/play", { album_id: "2001", zone_or_output_id: kitchen.zone_id, kind: "play_now" })).by, "C#");
-      await until(() => room.fetches.some(f => f.done && f.status === 200), 20000, "the room's fetch");
-      await until(() => fs.readdirSync(made).filter(f => f.endsWith(".flac")).length >= 3, 20000, "the next made ready behind it");
-      assert.deepEqual(asked, [], "the Node server asked neither");
-      assert.equal(refreshed.else, 0, "nor refreshed the token");
-    } finally { for (const undo of spied) undo(); }
   });
   t.after(() => rec.done());
 });

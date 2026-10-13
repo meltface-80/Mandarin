@@ -10,8 +10,8 @@
  * are compared too. Skipped where the C# server isn't built.
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's side is kept
- * (test/golden.js's answers(), test/golden/scan-csharp.json, made with
- * RECORD_SCAN=1 while lib/ was here) and `mandarin-server scan` alone is held
+ * (test/golden.js's answers(), test/golden/scan-csharp.json, made
+ * while lib/ was here) and `mandarin-server scan` alone is held
  * to it, step for step. What depends on the machine is held by rule: the
  * folder's own path; a file's length and time as the file has them, and the
  * cover's key the scan makes from those; a lossy file's length in seconds as
@@ -32,14 +32,11 @@ const Database = require("better-sqlite3");
 const { haveFfmpeg, gen, FFMPEG } = require("./fixtures");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_SCAN === "1";
-// The Node server's scanner, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? { DB: require("../lib/library/db"), Scanner: require("../lib/library/scanner").Scanner } : null;
-const kept = answers("scan-csharp", RECORD);
+const kept = answers("scan-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") ||
-  (!RECORD && !kept.exists() && "no recording of the Node server's scans (RECORD_SCAN=1 made it)");
+  (!kept.exists() && "no recording of the Node server's scans");
 
 /* A music folder with something of everything. */
 function makeMixedLibrary() {
@@ -229,111 +226,92 @@ test("the scan made by the C# server writes what the Node server's scan writes",
   const csData = path.join(lib.root, "data-cs");
   assert.equal(spawnSync(BIN, ["db", csData]).status, 0, "the C# server's database made");
   // The Node server's database as it started one (DB.open, then the Features constructor's tables), as `mandarin-server db` makes it.
-  const node = RECORD ? { db: NODE.DB.open(path.join(lib.root, "data-node"), { log: () => {} }), lines: [] } : null;
-  if (RECORD) new (require("../lib/server/features").Features)({ db: node.db, log: () => {} });
-  const nodeScanner = (opts = {}) => new NODE.Scanner(Object.assign({ db: node.db, root: lib.music, log: l => node.lines.push(l), program: null }, opts));
-  let s = RECORD ? nodeScanner() : null, massRemoval = 500, scanRoot = lib.music;
+  let massRemoval = 500, scanRoot = lib.music;
   // Each database, opened for a moment: written to between scans, or read whole.
   const withDb = (fn) => { const d = new Database(path.join(csData, "musicd.db")); try { return fn(d); } finally { d.close(); } };
   const both = async (what, opts = {}) => {
     files.look();
-    let want = null;
-    if (RECORD) {
-      node.lines.length = 0;
-      const a = await s.scan(opts);
-      want = { result: named(result(a), lib.root), said: named(said(node.lines), lib.root), state: STATE.map(k => s.state[k]), tables: normalised(dump(node.db.raw), lib.root, files) };
-    }
     const c = scanCs(csData, scanRoot, Object.assign({ massRemoval }, opts));
     assert.ok(c.lines.some(l => /made by the C# server/.test(l)), what + ": the C# server made it\n" + c.lines.join("\n"));
     const tables = normalised(withDb(d => dump(d)), lib.root, files);
-    kept.same(what + ": the result, what was said, the state", ["result", "said", "state"], [what], [named(result(c.result), lib.root), named(said(c.lines), lib.root), STATE.map(k => c.state[k])],
-      RECORD && (() => [want.result, want.said, want.state]));
-    kept.same(what + ": the tables", ["tables"], [what], [Object.keys(tables)], RECORD && (() => [Object.keys(want.tables)]));
+    kept.same(what + ": the result, what was said, the state", ["result", "said", "state"], [what], [named(result(c.result), lib.root), named(said(c.lines), lib.root), STATE.map(k => c.state[k])]);
+    kept.same(what + ": the tables", ["tables"], [what], [Object.keys(tables)]);
     for (const t of Object.keys(tables)) {
-      kept.same(`${what}: table ${t}`, tables[t].rows.map((_, i) => `${t} row ${i + 1}`), tables[t].rows.map(() => tables[t].cols), tables[t].rows, RECORD && (() => want.tables[t].rows));
+      kept.same(`${what}: table ${t}`, tables[t].rows.map((_, i) => `${t} row ${i + 1}`), tables[t].rows.map(() => tables[t].cols), tables[t].rows);
     }
     return c.result;
   };
-  try {
-    const first = await both("the first scan");
-    assert.equal(first.status, "updated");
-    assert.ok(first.albums >= 20, "albums: " + first.albums);
-    assert.ok(first.errors >= 1, "the broken file said so");
+  const first = await both("the first scan");
+  assert.equal(first.status, "updated");
+  assert.ok(first.albums >= 20, "albums: " + first.albums);
+  assert.ok(first.errors >= 1, "the broken file said so");
 
-    // What hangs on an album's key, put on Album One in each database.
-    const put = (d, set) => {
-      const key = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get().key;
-      const song1 = d.prepare("SELECT id FROM tracks WHERE title = 'Song 1'").get().id;
-      d.prepare("INSERT INTO favourites(key, added_at) VALUES(?, 1)").run(key);
-      d.prepare("INSERT INTO album_edits(key, year, updated_at) VALUES(?, 1998, 1)").run(key);
-      d.prepare("INSERT INTO album_matches(key, status, checked_at) VALUES(?, 'unidentified', 1)").run(key);
-      d.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('mbday', ?, '{\"date\":\"1997-02-04\"}', 1)").run(key);
-      d.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, -9.5, -0.2, 1)").run(song1);
-      set(d, "album_of_the_day", { date: "2026-10-08", key, why: "ÿ" });
-      return key;
-    };
-    const setRaw = (d, k, v) => d.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(k, JSON.stringify(v));
-    const key = withDb(d => put(d, setRaw));
-    if (RECORD) put(node.db.raw, (d, k, v) => node.db.setSetting(k, v));
-    assert.equal((await both("nothing changed")).status, "unchanged");
+  // What hangs on an album's key, put on Album One in each database.
+  const put = (d, set) => {
+    const key = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get().key;
+    const song1 = d.prepare("SELECT id FROM tracks WHERE title = 'Song 1'").get().id;
+    d.prepare("INSERT INTO favourites(key, added_at) VALUES(?, 1)").run(key);
+    d.prepare("INSERT INTO album_edits(key, year, updated_at) VALUES(?, 1998, 1)").run(key);
+    d.prepare("INSERT INTO album_matches(key, status, checked_at) VALUES(?, 'unidentified', 1)").run(key);
+    d.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('mbday', ?, '{\"date\":\"1997-02-04\"}', 1)").run(key);
+    d.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, -9.5, -0.2, 1)").run(song1);
+    set(d, "album_of_the_day", { date: "2026-10-08", key, why: "ÿ" });
+    return key;
+  };
+  const setRaw = (d, k, v) => d.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(k, JSON.stringify(v));
+  const key = withDb(d => put(d, setRaw));
+  assert.equal((await both("nothing changed")).status, "unchanged");
 
-    // A file changed, a folder renamed, a file gone, one new, an album's tags rewritten.
-    const one = path.join(lib.music, "Artist A/Album One");
-    fs.utimesSync(path.join(one, "01 Song 1.flac"), new Date(), new Date(Date.now() - 3600e3));
-    fs.renameSync(one, one + " (Remaster)");
-    fs.unlinkSync(path.join(lib.music, "Mixed/02 b.flac"));
-    gen(path.join(lib.music, "Mixed/03 c.flac"), { seconds: 1, tags: { title: "c", artist: "M", album: "First" } });
-    gen(path.join(lib.music, "AA/01.flac"), { seconds: 1, tags: { title: "duet", artist: "X & Y", album: "Duets (Deluxe)", album_artist: "X" } });
-    const changed = await both("files changed, renamed, gone and new");
-    assert.ok(changed.relocated >= 1 && changed.removed >= 1, JSON.stringify(changed));
-    withDb(d => {
-      const moved = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get();
-      assert.ok(moved && moved.key !== key, "Album One has its new folder's key");
-      assert.equal(d.prepare("SELECT COUNT(*) AS n FROM favourites WHERE key = ?").get(moved.key).n, 1, "its heart went with it");
-      assert.equal(JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_of_the_day'").get().value).key, moved.key, "and Album of the day");
-    });
+  // A file changed, a folder renamed, a file gone, one new, an album's tags rewritten.
+  const one = path.join(lib.music, "Artist A/Album One");
+  fs.utimesSync(path.join(one, "01 Song 1.flac"), new Date(), new Date(Date.now() - 3600e3));
+  fs.renameSync(one, one + " (Remaster)");
+  fs.unlinkSync(path.join(lib.music, "Mixed/02 b.flac"));
+  gen(path.join(lib.music, "Mixed/03 c.flac"), { seconds: 1, tags: { title: "c", artist: "M", album: "First" } });
+  gen(path.join(lib.music, "AA/01.flac"), { seconds: 1, tags: { title: "duet", artist: "X & Y", album: "Duets (Deluxe)", album_artist: "X" } });
+  const changed = await both("files changed, renamed, gone and new");
+  assert.ok(changed.relocated >= 1 && changed.removed >= 1, JSON.stringify(changed));
+  withDb(d => {
+    const moved = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get();
+    assert.ok(moved && moved.key !== key, "Album One has its new folder's key");
+    assert.equal(d.prepare("SELECT COUNT(*) AS n FROM favourites WHERE key = ?").get(moved.key).n, 1, "its heart went with it");
+    assert.equal(JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_of_the_day'").get().value).key, moved.key, "and Album of the day");
+  });
 
-    // Most of a folder gone at once is kept; so is a drive that isn't there.
-    massRemoval = 1;
-    if (RECORD) s = nodeScanner({ massRemoval: 1 });
-    fs.unlinkSync(path.join(lib.music, "Flagged/01.flac"));
-    fs.unlinkSync(path.join(lib.music, "Flagged/02.flac"));
-    const kept1 = await both("most of a folder gone at once");
-    assert.equal(kept1.removed, 0);
-    assert.ok(kept1.kept_offline >= 2, JSON.stringify(kept1));
-    fs.renameSync(path.join(lib.music, "Artist B"), path.join(lib.root, "Artist B"));
-    fs.mkdirSync(path.join(lib.music, "Artist B"));
-    const drive = await both("a drive not mounted");
-    assert.ok(drive.offline_dirs.some(d => d.name === "Artist B" && d.reason === "empty"), JSON.stringify(drive.offline_dirs));
-    fs.rmdirSync(path.join(lib.music, "Artist B"));
-    fs.renameSync(path.join(lib.root, "Artist B"), path.join(lib.music, "Artist B"));
-    // A folder that can't be read (here a link that loops onto itself): its albums kept.
-    const unnamed = path.join(lib.music, "Art/Two Unnamed");
-    fs.renameSync(unnamed, path.join(lib.root, "Two Unnamed"));
-    fs.symlinkSync(unnamed, unnamed);
-    const unreadable = await both("a folder that can't be read");
-    assert.ok(unreadable.offline_dirs.some(d => d.reason === "unreadable"), JSON.stringify(unreadable.offline_dirs));
-    fs.unlinkSync(unnamed);
-    fs.renameSync(path.join(lib.root, "Two Unnamed"), unnamed);
+  // Most of a folder gone at once is kept; so is a drive that isn't there.
+  massRemoval = 1;
+  fs.unlinkSync(path.join(lib.music, "Flagged/01.flac"));
+  fs.unlinkSync(path.join(lib.music, "Flagged/02.flac"));
+  const kept1 = await both("most of a folder gone at once");
+  assert.equal(kept1.removed, 0);
+  assert.ok(kept1.kept_offline >= 2, JSON.stringify(kept1));
+  fs.renameSync(path.join(lib.music, "Artist B"), path.join(lib.root, "Artist B"));
+  fs.mkdirSync(path.join(lib.music, "Artist B"));
+  const drive = await both("a drive not mounted");
+  assert.ok(drive.offline_dirs.some(d => d.name === "Artist B" && d.reason === "empty"), JSON.stringify(drive.offline_dirs));
+  fs.rmdirSync(path.join(lib.music, "Artist B"));
+  fs.renameSync(path.join(lib.root, "Artist B"), path.join(lib.music, "Artist B"));
+  // A folder that can't be read (here a link that loops onto itself): its albums kept.
+  const unnamed = path.join(lib.music, "Art/Two Unnamed");
+  fs.renameSync(unnamed, path.join(lib.root, "Two Unnamed"));
+  fs.symlinkSync(unnamed, unnamed);
+  const unreadable = await both("a folder that can't be read");
+  assert.ok(unreadable.offline_dirs.some(d => d.reason === "unreadable"), JSON.stringify(unreadable.offline_dirs));
+  fs.unlinkSync(unnamed);
+  fs.renameSync(path.join(lib.root, "Two Unnamed"), unnamed);
 
-    // Everything read again; and every folder regrouped (the emptied folder filled again first).
-    massRemoval = 500;
-    if (RECORD) s = nodeScanner();
-    await both("a forced rescan", { force: true });
-    withDb(d => setRaw(d, "album_regroup", true));
-    if (RECORD) node.db.setSetting("album_regroup", true);
-    gen(path.join(lib.music, "Flagged/01.flac"), { seconds: 1, tags: { title: "f1", artist: "P", album: "Hits", compilation: "1" } });
-    gen(path.join(lib.music, "Flagged/02.flac"), { seconds: 1, tags: { title: "f2", artist: "P", album: "Hits", compilation: "1" } });
-    const rg = await both("the regroup");
-    assert.deepEqual(rg.offline_dirs, []);
-    assert.equal(withDb(d => JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_regroup'").get().value)), false, "the regroup done");
+  // Everything read again; and every folder regrouped (the emptied folder filled again first).
+  massRemoval = 500;
+  await both("a forced rescan", { force: true });
+  withDb(d => setRaw(d, "album_regroup", true));
+  gen(path.join(lib.music, "Flagged/01.flac"), { seconds: 1, tags: { title: "f1", artist: "P", album: "Hits", compilation: "1" } });
+  gen(path.join(lib.music, "Flagged/02.flac"), { seconds: 1, tags: { title: "f2", artist: "P", album: "Hits", compilation: "1" } });
+  const rg = await both("the regroup");
+  assert.deepEqual(rg.offline_dirs, []);
+  assert.equal(withDb(d => JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_regroup'").get().value)), false, "the regroup done");
 
-    // No music at all: nothing touched.
-    scanRoot = path.join(lib.root, "nowhere");
-    if (RECORD) s = new NODE.Scanner({ db: node.db, root: scanRoot, log: l => node.lines.push(l), program: null });
-    assert.equal((await both("no music folder")).status, "no-music");
-    kept.done();
-  } finally {
-    if (RECORD) node.db.close();
-  }
+  // No music at all: nothing touched.
+  scanRoot = path.join(lib.root, "nowhere");
+  assert.equal((await both("no music folder")).status, "no-music");
+  kept.done();
 });

@@ -16,46 +16,26 @@
  * AutoEq's bands) is held to the same answers. Nothing here changes what runs.
  * Skipped where the C# server isn't built.
  *
- * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept (test/golden/streams-csharp.json, made with
- * RECORD_STREAMS=1 while lib/ was here) and the C# program alone held to them; what a case is made of that the
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept (test/golden/streams-csharp.json, made
+ * while lib/ was here) and the C# program alone held to them; what a case is made of that the
  * Node server worked out (a plan, a gain, a renderer's chips, a signed address) is asked of the C# program first,
  * held the same way. public/biquad.js, the page's own, is still asked live.
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const Biquad = require("../public/biquad");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_STREAMS === "1";
-const kept = answers("streams-csharp", RECORD);
+const kept = answers("streams-csharp");
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_STREAMS=1 made it)");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
 // Every kept answer asked for, where every test ran (on Node without fdlibm's Math some are left out: below).
 test.after(() => { if (!skip && !onlyFdlibm()) kept.done(); });
 const DAY = 24 * 60 * 60 * 1000;
 const SIX_MONTHS_MS = 183 * DAY;   // lib/radio-memory.js's window
-
-/* The Node server's modules, asked while recording (lib/, until v0.8.50): lib/stream.js with the functions it keeps to itself. */
-const NODE = RECORD ? (() => {
-  const { createRequire } = require("module");
-  const file = path.join(__dirname, "..", "lib", "stream.js");
-  const mod = { exports: {} };
-  const names = ["plan", "rendererPlan", "rendererMime", "nativeMime", "mimeForExt", "family", "repack", "withDsp", "withGain", "ffmpegArgs", "Transcoder"];
-  const S = new Function("require", "module", "exports", "__filename", "__dirname", fs.readFileSync(file, "utf8") + `\n;return { ${names.join(", ")} };`)(
-    createRequire(file), mod, mod.exports, file, path.dirname(file));
-  const FF = require("../lib/ffmpeg");
-  return {
-    S, FF, DSP: require("../lib/dsp"), LOUD: require("../lib/loudness"), planFor: require("../lib/server/playback").planFor, SV: require("../lib/services"),
-    ...require("../lib/radio-memory"), PROFILES: require("../lib/renderers/profiles"),
-    keyFor: (track, p) => S.Transcoder.prototype.keyFor.call(null, track, p),
-    // ffmpegArgs as it runs with an ffmpeg that has libsoxr, or hasn't.
-    withSoxr(soxr, fn) { const real = FF.info; FF.info = () => ({ ok: true, bin: "ffmpeg", soxr: !!soxr, flac32: false }); try { return fn(); } finally { FF.info = real; } }
-  };
-})() : null;
 
 // ------------------------------------------------------------------ the wire
 
@@ -134,10 +114,10 @@ function same(what, cases, got, want, seed) {
   }
   compared += cases.length;
 }
-/* The C# server's answers held to the Node server's, kept ([want] asked while recording). */
-function held(what, cases, got, want, seed) {
+/* The C# server's answers held to the Node server's, kept. */
+function held(what, cases, got, seed) {
   assert.ok(Array.isArray(got), what + ": no answers from the C# server");
-  kept.same(what, cases.map(() => seed != null ? "seed " + seed : "by hand"), cases.map(c => JSON.parse(JSON.stringify(c ?? null, enc))), got, RECORD && want);
+  kept.same(what, cases.map(() => seed != null ? "seed " + seed : "by hand"), cases.map(c => JSON.parse(JSON.stringify(c ?? null, enc))), got);
   compared += cases.length;
 }
 
@@ -229,13 +209,13 @@ function targetFrom(record, caps, flac32, rest) {
 let TABLES = null;
 function tables() {
   if (TABLES) return TABLES;
-  const got = csharp({ fn: "profiles", lookups: [], records: [] }), P = RECORD && NODE.PROFILES;
-  held("profiles' tables (to make cases)", ["rates", "bits", "dsd"], [got.rates, got.bits, got.dsd], RECORD && (() => [P.RATES, P.BITS, P.DSD]));
+  const got = csharp({ fn: "profiles", lookups: [], records: [] });
+  held("profiles' tables (to make cases)", ["rates", "bits", "dsd"], [got.rates, got.bits, got.dsd]);
   return (TABLES = { RATES: got.rates, BITS: got.bits, DSD: got.dsd });
 }
 function effectiveOf(records) {
   const got = csharp({ fn: "profiles", lookups: [], records: records.map(record => ({ record })) }).effective;
-  held("effective (to make cases)", records, got, RECORD && (() => records.map(x => JSON.parse(JSON.stringify(NODE.PROFILES.effective(x))))));
+  held("effective (to make cases)", records, got);
   return got;
 }
 const CONTAINER_SETS = [[], ["flac"], ["flac", "wav"], ["mp3"], ["flac", "mp3", "aac", "alac", "wav", "aiff", "ogg", "opus", "dsd"],
@@ -370,43 +350,18 @@ function plansMade(toPlan, toGain) {
   if (!toPlan.length) return;
   const pairs = toPlan.map(x => [x.t, x.target]);
   const plans = csharp(wire({ fn: "plans", plan: pairs })).plan;
-  held("plans.plan (to make cases)", pairs, plans, RECORD && (() => run(wire(pairs), ([t, target]) => NODE.S.plan(t, target))));
+  held("plans.plan (to make cases)", pairs, plans);
   toPlan.forEach((x, i) => Object.assign(x.p, plans[i] && plans[i].$throws ? { transcode: true, rate: 44100, bits: 16 } : unmark(plans[i]), x.extra || {}));
   const gains = toGain.map(x => [x.p, x.t, null, x.g]);
   const gained = csharp(wire({ fn: "plans", with_gain: gains })).with_gain;
-  held("plans.with_gain (to make cases)", gains, gained, RECORD && (() => run(wire(gains), ([p, t, target, g]) => NODE.S.withGain(p, t, target, g))));
+  held("plans.with_gain (to make cases)", gains, gained);
   toGain.forEach((x, i) => Object.assign(x.gp, gained[i] && gained[i].$throws ? JSON.parse(JSON.stringify(x.p)) : unmark(gained[i])));
-}
-
-/* Node's answers for a plans job (recording). */
-function plansNode(job) {
-  const { S, keyFor, withSoxr, planFor, SV } = NODE;
-  return {
-    native: run(job.native, t => S.nativeMime(t)),
-    ext_mime: run(job.ext_mime, e => S.mimeForExt(e)),
-    family: run(job.family, h => S.family(Number(h))),
-    renderer_mime: run(job.renderer_mime, ([t, c]) => S.rendererMime(t, x => c.includes(x))),
-    plan: run(job.plan, ([t, target]) => S.plan(t, target)),
-    repack: run(job.repack, ([p, t]) => S.repack(p, t)),
-    with_gain: run(job.with_gain, ([p, t, target, g]) => S.withGain(p, t, target, g)),
-    with_dsp: run(job.with_dsp, ([p, target, inRate]) => S.withDsp(p, target, inRate)),
-    args: run(job.args, ([src, p, dest, soxr]) => withSoxr(soxr, () => S.ffmpegArgs(src, p, dest))),
-    keys: run(job.keys, ([track, p]) => keyFor(track, p)),
-    plan_for: run(job.plan_for, ([row, target, gain]) => planFor(row, target, gain)),
-    service: run(job.service, p => SV.ofPath(p)),
-    held_mime: run(job.held_mime, e => S.mimeForExt(e)),
-    // What the stream route plans from a row as the C# server reads it (v0.8.40), as playback.js's planFor plans it.
-    held_sonos: run(job.held_sonos, ([p, c, rate, bits, ch]) => planFor({ path: p, codec: c, sample_rate: rate, bits, channels: ch }, null, null)),
-    held_keys: run(job.held_keys, ([id, mtime, rate, bits, hq, exact]) => keyFor({ id, mtime }, { rate, bits, hq, exact })),
-    held_args: run(job.held_args, ([src, rate, bits, hq, exact, dest, soxr]) => withSoxr(soxr, () => S.ffmpegArgs(src, { rate, bits, hq, exact }, dest)))
-  };
 }
 
 const PLAN_KEYS = ["native", "ext_mime", "family", "renderer_mime", "plan", "repack", "with_gain", "with_dsp", "args", "keys", "plan_for", "service", "held_mime", "held_sonos", "held_keys", "held_args"];
 function comparePlans(job, seed) {
   const got = csharp(wire(job));
-  const want = RECORD ? plansNode(wire(job)) : null;
-  for (const k of PLAN_KEYS) held("plans." + k, job[k], got[k], RECORD && (() => want[k]), seed);
+  for (const k of PLAN_KEYS) held("plans." + k, job[k], got[k], seed);
 }
 
 test("V8's Math as JsMath.cs has it: Node's to the bit on x64, within the last bits on arm64", { skip }, (t) => {
@@ -502,22 +457,12 @@ function dspPage(job) {
     held_autoeq: (job.held_autoeq || []).map(([type, freq, gain, q]) => { try { return JSON.parse(JSON.stringify(Biquad.normaliseBand({ type, freq, gain, q }))); } catch (e) { return { error: e.message }; } })
   };
 }
-/* The Node server's lib/dsp.js (recording). */
-function dspNode(job) {
-  const { DSP } = NODE;
-  return {
-    band_filter: run(job.band_filter, b => DSP.bandFilter(b)),
-    filters: run(job.filters, ([d, inRate, rate, soxr]) => DSP.filters(d, { inRate, rate, soxr })),
-    plan_part: run(job.plan_part, ([d, rate]) => DSP.planPart(d, rate))
-  };
-}
 
 function compareDsp(job, seed) {
   const got = csharp(job);
   const page = dspPage(wire(job));
   for (const k of Object.keys(page)) same("dsp." + k, job[k], got[k], page[k], seed);
-  const want = RECORD ? dspNode(wire(job)) : null;
-  for (const k of ["band_filter", "filters", "plan_part"]) held("dsp." + k, job[k], got[k], RECORD && (() => want[k]), seed);
+  for (const k of ["band_filter", "filters", "plan_part"]) held("dsp." + k, job[k], got[k], seed);
 }
 
 test("the DSP: the repo's own settings, every filter type at its extremes, and generated ones", { skip: onlyFdlibm() }, () => {
@@ -563,16 +508,6 @@ test("the DSP: the repo's own settings, every filter type at its extremes, and g
 
 // ------------------------------------------------------------------ ReplayGain
 
-/* Loudness's own methods, the database stood in for by what the case says it holds (recording). */
-function loudness(measured, albums) {
-  const { LOUD } = NODE;
-  const self = {
-    q: { measured: { get: id => (measured || {})[id] }, album: { all: id => (albums || {})[id] || [] } },
-    albumOf: LOUD.Loudness.prototype.albumOf, infoOf: LOUD.Loudness.prototype.infoOf, gainOf: LOUD.Loudness.prototype.gainOf
-  };
-  return self;
-}
-
 const EBUR = [
   "[Parsed_ebur128_0 @ 0x55] Summary:\n\n  Integrated loudness:\n    I:         -9.4 LUFS\n    Threshold: -19.6 LUFS\n\n  True peak:\n    Peak:        0.6 dBFS",
   "I: -inf LUFS\nPeak: -inf dBFS", "", "Summary:\n I: -71.0 LUFS\n Peak: -3.2 dBFS", "I: -23 LUFS Peak: -1 dBFS Summary: I: -18.4 LUFS Peak: -0.5 dBFS",
@@ -610,22 +545,6 @@ function gainJob(r, n) {
   return job;
 }
 
-function gainNode(job) {
-  const { LOUD } = NODE;
-  const patch = ([cur, p]) => { try { return LOUD.levellingPatch(cur, p); } catch (e) { return { error: e.message, status: e.status }; } };
-  return {
-    levelling: run(job.levelling, v => LOUD.levelling(v)),
-    patch: run(job.patch, patch),
-    ebur: run(job.ebur, t => LOUD.parseEbur128(t)),
-    combine: run(job.combine, ps => LOUD.combine(ps)),
-    held_combine: run(job.combine, ps => LOUD.combine(ps)),
-    album: run(job.album, rows => loudness(null, { x: rows }).albumOf("x")),
-    info: run(job.info, c => { const l = loudness(c.measured, c.albums); const albums = new Map(); return c.tracks.map(t => l.infoOf(t, albums)); }),
-    gain_of: run(job.gain_of, ([info, kind, offset, unknown]) => LOUD.Loudness.prototype.gainOf.call(null, info, kind, offset, unknown)),
-    gains_for: run(job.gains_for, c => LOUD.Loudness.prototype.gainsFor.call(loudness(c.measured, c.albums), c.tracks, { shuffled: c.shuffled, levelling: c.levelling }))
-  };
-}
-
 test("ReplayGain: the repo's own cases, then generated settings, tags, measurements and albums", { skip: onlyFdlibm() }, () => {
   const job = gainJob(rng(1800), 0);
   job.levelling.push(null, { mode: "auto", target: -30, unknown: 3 });
@@ -638,84 +557,62 @@ test("ReplayGain: the repo's own cases, then generated settings, tags, measureme
     [{ track_gain: null, album_gain: null }, "track"], [{ track_gain: null, album_gain: null }, "track", 4, -5], [{ track_gain: 0.02 }, "track"]);
   const KEYS = ["levelling", "patch", "ebur", "combine", "held_combine", "album", "info", "gain_of", "gains_for"];
   const got = csharp(job);
-  const want = RECORD ? gainNode(wire(job)) : null;
-  for (const k of KEYS) held("gain." + k, job[k === "held_combine" ? "combine" : k], got[k], RECORD && (() => want[k]), 1800);
+  for (const k of KEYS) held("gain." + k, job[k === "held_combine" ? "combine" : k], got[k], 1800);
   for (const seed of [21, 22, 23]) {
     const g = gainJob(rng(seed), 800);
     const gotG = csharp(g);
-    const wantG = RECORD ? gainNode(wire(g)) : null;
-    for (const k of KEYS) held("gain." + k, g[k === "held_combine" ? "combine" : k], gotG[k], RECORD && (() => wantG[k]), seed);
+    for (const k of KEYS) held("gain." + k, g[k === "held_combine" ? "combine" : k], gotG[k], seed);
   }
 });
 
 // ------------------------------------------------------------------ signing
 
-/* The Node server's gate on a media address (recording): let through by its signature, or not. */
-function nodeGate(auth, url) {
-  const QP = require("express/lib/utils").compileQueryParser("extended"), u = require("parseurl")({ url });
-  const req = { url, originalUrl: url, method: "GET", headers: {}, socket: { remoteAddress: "198.51.100.7" }, path: u.pathname, query: QP(u.query) };
-  let passed = false;
-  const res = { status() { return this; }, json() { return this; }, redirect() { return this; }, set() { return this; } };
-  auth.gate(req, res, () => { passed = true; });
-  return passed;
-}
-
 test("URL signing: the addresses the Node server signs, and the gate's decision on them", { skip }, () => {
   const secrets = ["5f0c1e2d3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d", "sécret 😀", "x", "\ud800lone"];
   let vouched = 0, declined = 0;
   for (const [si, secret] of secrets.entries()) {
-    // The Node server's auth, with this secret, while recording.
-    const dir = RECORD ? fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-sign-")) : null, db = RECORD ? require("../lib/library/db").open(dir, { log: () => {} }) : null;
-    try {
-      const auth = RECORD ? (db.setSetting("authSecret", secret), require("../lib/server/auth").createAuth({ db, log: () => {} })) : null;
-      const r = rng(900 + si);
-      const keys = ["al-1-0", "u-0123abcd", "label-columbia", "a b", "Ünïcode 😀", "%2F", "a?b", "50%", "x#y", "", "~!*'()"];
-      const paths = [];
-      for (let i = 0; i < 300; i++) {
-        const x = r();
-        paths.push(x < 0.5 ? "/api/image/" + encodeURIComponent(pick(r, keys)) + (r() < 0.5 ? "?size=" + pick(r, [200, 300, 600, 1200]) : "")
-          : x < 0.9 ? "/stream/t" + Math.floor(r() * 1e5) + pick(r, ["", ".orig", ".96000-24", ".44100-16"]) + pick(r, [".flac", ".mp3", ".dsf"]) + pick(r, ["", "?g=-3.5", "?o=UPNP_x&g=2", "?m=audio%2Fdsf"])
-            : pick(r, ["http://192.168.1.2:4400/stream/t1.flac", "https://h/api/image/x?size=600", "x://", "http://host", "http://h/p?a=1?b=2", "", "?", "/", "http://h/a%20b", "ftp://h/a/b?c"]));
-      }
-      const urls = paths.concat(["/api/image/al-1-0?size=200", "/api/image/" + "k" + "?size=300", "/stream/t1.orig.flac"]);
-      // The addresses signed by the C# server (held to the Node server's), then every way of getting one wrong.
-      const signed = csharp({ fn: "sign", secret, urls }).urls;
-      held("sign.urls", urls, signed, RECORD && (() => urls.map(u => auth.signUrl(u))), si);
-      const targets = [];
-      for (const s of signed) {
-        const at = s.indexOf("/", s.indexOf("://") >= 0 ? s.indexOf("://") + 3 : 0);
-        const rel = at >= 0 ? s.slice(at) : s;
-        if (!/^\/(stream|api\/image)\//.test(rel)) continue;
-        const sig = rel.split("s=").pop();
-        const base = rel.slice(0, rel.lastIndexOf("s=") - 1);
-        const q = base.includes("?") ? "&" : "?";
-        targets.push(rel, base + q + "s=" + sig.slice(1) + "A", base + q + "S=" + sig, base + q + "s[]=" + sig, base + q + "s[0]=" + sig, base + q + "[s]=" + sig,
-          base + q + "s=" + sig + "&s=" + sig, base + q + "%73=" + sig, base + q + "s=" + sig.replace(/[A-Za-z]/, c => "%" + c.charCodeAt(0).toString(16)),
-          base + q + "s=" + sig + "%", base + q + "s=+" + sig, base + q + "s=" + sig + "#x", "/api/image/a b" + q + "s=" + sig, base + q + "s=" + "A".repeat(22),
-          base + q + "s=" + encodeURIComponent("é".repeat(22)), base + q + "s=" + sig + "&s", base + q + "s", base + q + "s=" + sig + "&x[s]=1",
-          base + q + "s=" + sig.toLowerCase(), base.toUpperCase() + q + "s=" + sig, base + q + "a]=b&s=" + sig, base + q + "s%5B%5D=" + sig);
-      }
-      const job = { fn: "sign", secret, sigs: urls.map(u => u.split("?")[0]), urls, valid: [], targets, queries: [], decode: [] };
-      for (const s of signed) { const sig = s.split("s=").pop(); const p = s.slice(s.indexOf("/", s.indexOf("://") >= 0 ? s.indexOf("://") + 3 : 0)).split("?")[0]; job.valid.push([p, sig], [p + "x", sig], [p, sig.slice(1)], [p, sig + "=" ]); }
-      job.queries = targets.map(t => (t.split("?")[1] || "").split("#")[0]);
-      job.decode = ["%41", "%e2%9c%93", "%E2%9C", "%", "%zz", "a+b", "%C0%AF", "%ED%A0%80", "%F4%90%80%80", "%F0%9F%98%80", "%2F%3F%23", "plain", "%c3%a9t%c3%a9", "%FF"];
-      const got = csharp(job);
-      const crypto = require("crypto");
-      const sig = p => crypto.createHmac("sha256", secret).update(p).digest("base64url").slice(0, 22);
-      same("sign.sigs", job.sigs, got.sigs, job.sigs.map(sig), si);
-      same("sign.urls", job.urls, got.urls, signed, si);
-      same("sign.valid", job.valid, got.valid, job.valid.map(([p, s]) => /^[A-Za-z0-9_-]{22}$/.test(s) && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(sig(p)))), si);
-      // The C# server says yes or no only where it can say it as the Node server does (the recording keeps where).
-      for (const v of got.targets) if (v === null) declined++; else vouched++;
-      held("sign.targets", targets, got.targets, RECORD && (() => targets.map((t, i) => got.targets[i] === null ? null : nodeGate(auth, t))), si);
-      held("sign.queries", job.queries, got.queries, RECORD && (() => {
-        const QP = require("express/lib/utils").compileQueryParser("extended");
-        return job.queries.map((q, i) => got.queries[i] === null ? null : String(QP(q).s || ""));
-      }), si);
-      same("sign.decode", job.decode, got.decode, job.decode.map(s => { try { return decodeURIComponent(s); } catch (e) { return null; } }), si);
-    } finally {
-      if (RECORD) { db.raw.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+    const r = rng(900 + si);
+    const keys = ["al-1-0", "u-0123abcd", "label-columbia", "a b", "Ünïcode 😀", "%2F", "a?b", "50%", "x#y", "", "~!*'()"];
+    const paths = [];
+    for (let i = 0; i < 300; i++) {
+      const x = r();
+      paths.push(x < 0.5 ? "/api/image/" + encodeURIComponent(pick(r, keys)) + (r() < 0.5 ? "?size=" + pick(r, [200, 300, 600, 1200]) : "")
+        : x < 0.9 ? "/stream/t" + Math.floor(r() * 1e5) + pick(r, ["", ".orig", ".96000-24", ".44100-16"]) + pick(r, [".flac", ".mp3", ".dsf"]) + pick(r, ["", "?g=-3.5", "?o=UPNP_x&g=2", "?m=audio%2Fdsf"])
+          : pick(r, ["http://192.168.1.2:4400/stream/t1.flac", "https://h/api/image/x?size=600", "x://", "http://host", "http://h/p?a=1?b=2", "", "?", "/", "http://h/a%20b", "ftp://h/a/b?c"]));
     }
+    const urls = paths.concat(["/api/image/al-1-0?size=200", "/api/image/" + "k" + "?size=300", "/stream/t1.orig.flac"]);
+    // The addresses signed by the C# server (held to the Node server's), then every way of getting one wrong.
+    const signed = csharp({ fn: "sign", secret, urls }).urls;
+    held("sign.urls", urls, signed, si);
+    const targets = [];
+    for (const s of signed) {
+      const at = s.indexOf("/", s.indexOf("://") >= 0 ? s.indexOf("://") + 3 : 0);
+      const rel = at >= 0 ? s.slice(at) : s;
+      if (!/^\/(stream|api\/image)\//.test(rel)) continue;
+      const sig = rel.split("s=").pop();
+      const base = rel.slice(0, rel.lastIndexOf("s=") - 1);
+      const q = base.includes("?") ? "&" : "?";
+      targets.push(rel, base + q + "s=" + sig.slice(1) + "A", base + q + "S=" + sig, base + q + "s[]=" + sig, base + q + "s[0]=" + sig, base + q + "[s]=" + sig,
+        base + q + "s=" + sig + "&s=" + sig, base + q + "%73=" + sig, base + q + "s=" + sig.replace(/[A-Za-z]/, c => "%" + c.charCodeAt(0).toString(16)),
+        base + q + "s=" + sig + "%", base + q + "s=+" + sig, base + q + "s=" + sig + "#x", "/api/image/a b" + q + "s=" + sig, base + q + "s=" + "A".repeat(22),
+        base + q + "s=" + encodeURIComponent("é".repeat(22)), base + q + "s=" + sig + "&s", base + q + "s", base + q + "s=" + sig + "&x[s]=1",
+        base + q + "s=" + sig.toLowerCase(), base.toUpperCase() + q + "s=" + sig, base + q + "a]=b&s=" + sig, base + q + "s%5B%5D=" + sig);
+    }
+    const job = { fn: "sign", secret, sigs: urls.map(u => u.split("?")[0]), urls, valid: [], targets, queries: [], decode: [] };
+    for (const s of signed) { const sig = s.split("s=").pop(); const p = s.slice(s.indexOf("/", s.indexOf("://") >= 0 ? s.indexOf("://") + 3 : 0)).split("?")[0]; job.valid.push([p, sig], [p + "x", sig], [p, sig.slice(1)], [p, sig + "=" ]); }
+    job.queries = targets.map(t => (t.split("?")[1] || "").split("#")[0]);
+    job.decode = ["%41", "%e2%9c%93", "%E2%9C", "%", "%zz", "a+b", "%C0%AF", "%ED%A0%80", "%F4%90%80%80", "%F0%9F%98%80", "%2F%3F%23", "plain", "%c3%a9t%c3%a9", "%FF"];
+    const got = csharp(job);
+    const crypto = require("crypto");
+    const sig = p => crypto.createHmac("sha256", secret).update(p).digest("base64url").slice(0, 22);
+    same("sign.sigs", job.sigs, got.sigs, job.sigs.map(sig), si);
+    same("sign.urls", job.urls, got.urls, signed, si);
+    same("sign.valid", job.valid, got.valid, job.valid.map(([p, s]) => /^[A-Za-z0-9_-]{22}$/.test(s) && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(sig(p)))), si);
+    // The C# server says yes or no only where it can say it as the Node server does (the recording keeps where).
+    for (const v of got.targets) if (v === null) declined++; else vouched++;
+    held("sign.targets", targets, got.targets, si);
+    held("sign.queries", job.queries, got.queries, si);
+    same("sign.decode", job.decode, got.decode, job.decode.map(s => { try { return decodeURIComponent(s); } catch (e) { return null; } }), si);
   }
   assert.ok(vouched > declined, `the C# server decides most addresses itself (${vouched} decided, ${declined} left to the Node server)`);
 });
@@ -724,27 +621,6 @@ test("URL signing: the addresses the Node server signs, and the gate's decision 
 
 const ALBUM_NAMES = ["Kid A", "Abbey Road", "ABBEY ROAD", "÷", "+", "テスト", "Blue", "Hounds of Love", "  ", "", "Björk", "The The", "Ünïcode 😀", "1999", "Σίσυφος"];
 const ARTISTS = ["Radiohead", "The Beatles", "Beatles", "Ed Sheeran", "Someone", "Joni Mitchell", "Kate Bush", "", "  ", "The", "the the", "Prince", "Ünïcode 😀", "÷"];
-
-function radioNode(run) {
-  const { createRadioMemory, radioKey } = NODE;
-  let clock = run.start, written = null;
-  const m = createRadioMemory({ load: () => run.saved, save: o => { written = o; }, now: () => clock, windowMs: run.window });
-  const results = [];
-  for (const op of run.ops) {
-    if (op.op === "tick") { clock += op.ms; results.push(null); }
-    else if (op.op === "note") { m.note(op.key); results.push(null); }
-    else if (op.op === "at") results.push(m.playedAt(op.key));
-    else if (op.op === "size") results.push(m.size());
-    else {
-      let i = 0;
-      const keyOf = op.by === "radio" ? radioKey : al => al.key;
-      const heard = op.heard ? al => op.heard.includes(al.id) : null;
-      const al = m.pick(op.pool, keyOf, heard, () => op.rnd[i++ % op.rnd.length]);
-      results.push(al == null ? null : op.pool.indexOf(al));
-    }
-  }
-  return { results, saved: written };
-}
 
 function radioJob(r, n) {
   const albums = () => Array.from({ length: Math.floor(r() * 6) }, (_, i) => ({ id: i + 1, title: pick(r, ALBUM_NAMES), artist: pick(r, ARTISTS), key: pick(r, ["A0", "A1", "A2", "5", "10", "", undefined]) }));
@@ -786,9 +662,8 @@ test("the radio's six-month memory: the repo's own sequences, then generated one
   const all = [job].concat([31, 32, 33].map(s => radioJob(rng(s), 400)));
   for (const [i, j] of all.entries()) {
     const got = csharp(j);
-    const w = wire(j);
-    held("radio.keys", j.keys, got.keys, RECORD && (() => run(w.keys, al => NODE.radioKey(al))), i === 0 ? 183 : 30 + i);
-    held("radio.runs", j.runs, got.runs, RECORD && (() => run(w.runs, radioNode)), i === 0 ? 183 : 30 + i);
+    held("radio.keys", j.keys, got.keys, i === 0 ? 183 : 30 + i);
+    held("radio.runs", j.runs, got.runs, i === 0 ? 183 : 30 + i);
   }
 });
 
