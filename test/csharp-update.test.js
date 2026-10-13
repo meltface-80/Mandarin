@@ -381,7 +381,9 @@ test("the C# server: its version, everything passed on to a Node server of anoth
     let r = await ask("/api/library/albums");
     assert.deepEqual(JSON.parse(r.text), { fake: true, path: "/api/library/albums" }, "passed on, not gated here");
     r = await ask("/server-info");
-    assert.deepEqual(JSON.parse(r.text), { server: "C#", version: pkg.version });
+    const info = JSON.parse(r.text);
+    assert.deepEqual([info.server, info.version], ["C#", pkg.version]);
+    assert.match(info.boot, /^[0-9a-f]{16}$/, "this run's own id (v0.8.50: a restart is told by it)");
     assert.equal((await ask("/internal/library")).status, 404);
     assert.equal(node.claims.length, 1, "asked once, then not again");
     assert.equal(node.claims[0].version, pkg.version, "saying its version");
