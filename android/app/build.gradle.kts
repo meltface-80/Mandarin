@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 308
-        versionName = "1.0.0"
+        versionCode = 309
+        versionName = "1.0.1"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -115,7 +115,7 @@ android {
  */
 val bundleSite = tasks.register<Copy>("bundleSite") {
     from(rootProject.file("../public")) {
-        include("index.html", "app.js", "style.css", "android.css", "sharecard.js", "srp.js", "biquad.js", "touchnav.js", "manifest.json",
+        include("index.html", "app.js", "style.css", "android.css", "sharecard.js", "srp.js", "biquad.js", "touchnav.js", "nowdisc.js", "manifest.json",
             "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico", "icons/duck-tile.png",
             "fonts/manrope.woff2", "fonts/young-serif.woff2")
     }

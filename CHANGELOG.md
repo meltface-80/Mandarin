@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.1
+**UI tweaks 1** (`v1.0.1-ui-tweaks-1`): the album page's playing track, and the Shelf's order and looks.
+
+- **The playing track has a disc** (`public/nowdisc.js`, new). On an album page, the track the
+  selected zone is playing has a small disc between its number and its name, centred in the room
+  between them and on the name's line, inside the row's lines; the names don't move for it. It
+  turns while the zone plays and stops when it pauses (and stands still with reduced motion). It
+  follows the zone: Play now, the next track, a pause. Each row now carries its track's id
+  (`data-track-id`, on the line that makes the row, so `public/app.js` stays at 19,582 lines). The
+  Android app bundles the new file for offline.
+- **The Shelf's order switches** (`public/shelforder.js`, new). The order's name above the shelf is
+  a button: **A → Z by artist** (the server's order, as before) or **A → Z by album**, by title as
+  the Library wall's Album order reads them (a leading "The", "A" or "An" aside, accents and case
+  folded). Both put titles of signs alone first, then those starting with a number, then the
+  letters. The album in front stays in front; each device keeps its choice; under Random order it
+  says so and doesn't switch. By album, the spines' tabs are the titles' letters. The help (shown again
+  after an update) says how: a seventh line, which `test/shelf.test.js` now expects.
+- **The Shelf's carousel look is gone**: covers and spines. A device that had the carousel opens on
+  the covers. `public/shelf.js` is 15 lines shorter (2,047; its allowance follows).
+- `test/now-disc.test.js` and `test/shelf-order.test.js` (new). Each was shown failing with the
+  code broken: the disc not centred; "The" not set aside; the carousel kept.
+
 ## v1.0.0
 **The release review** (`v1.0.0-release-review`): everything since the audit (v0.9.1 to v0.9.7)
 read again before the owner's merge to main. Two faults found and fixed, and a test that raced;

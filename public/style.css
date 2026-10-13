@@ -1154,6 +1154,23 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   color: var(--text-dim); font-size: 13px; line-height: 20px;
   font-variant-numeric: tabular-nums;
 }
+/* The playing track's disc (v1.0.1, nowdisc.js): a slot of no width between
+   the number and the name (nowdisc.js gives it a margin taking back the row's
+   gap, so the name doesn't move), the disc drawn in it at the middle of the room between the
+   number's last figure and the name (--nd-x), on the name's 20px line and so
+   well inside the row's lines. It turns while the zone plays. */
+.track-list li > .now-disc {
+  position: relative; flex: 0 0 0; width: 0; height: 20px; margin-left: -12px;   /* the row's gap; set by nowdisc.js */
+  align-self: flex-start; color: var(--accent); pointer-events: none;
+}
+.now-disc svg {
+  position: absolute; left: var(--nd-x, 0px); top: 50%;
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  animation: now-disc-turn 1.8s linear infinite;
+}
+.now-disc.is-paused svg { animation-play-state: paused; }
+@keyframes now-disc-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .now-disc svg { animation: none; } }
 
 /* ------------------------------------------------------------------ */
 /*  Toast                                                              */
