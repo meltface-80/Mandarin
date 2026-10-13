@@ -6,13 +6,20 @@ Versioning: each set of changes is a development build and takes the next third 
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
 ## v0.9.7
-**The Android app's file is named Mandarin-Android-0.9.7.apk** (`v0.9.7-apk-name`).
+**The Android app's file is named Mandarin-Android-0.9.7.apk, and test builds don't wait for a
+Mac** (`v0.9.7-apk-name`).
 
 - The versioned APK the build makes, on the test-android pre-release and as the build's artifact,
   is `Mandarin-Android-<version>.apk` (`…-shared-key.apk` when signed with the committed key), in
   place of `musicd-server-android-<version>.apk`. The fixed names the links use stay:
   `mandarin-android-test.apk` (test-android) and `dist/mandarin-android.apk` (main), and the app's
   update check (`dist/latest.json`) is unchanged.
+- **The Mac's tests are off the test builds' path** (a trial). GitHub has few Mac runners, and a
+  test build waited up to an hour for one, twice: before its merge into migration and again before
+  its image. They now run on main, on a pull request into main (before anything reaches a
+  release), weekly and by hand ("Run workflow" on any branch); everywhere else the Mac jobs are
+  skipped, and a skipped job holds up neither a merge nor the image. CI also runs once per commit
+  instead of twice (a pull request shows its branch's run), but for a pull request into main.
 
 ## v0.9.6
 **The touch layout** (`v0.9.6-touch-layout`): on a phone or a tablet, either way round. A desktop
