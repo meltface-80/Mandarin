@@ -1274,6 +1274,10 @@ mouse, a phone and a tablet — and checks Home, the album view and Now playing.
 browser already installed (or `CHROME_PATH`), with no extra packages, and is skipped where
 there is none.
 
+Every route the server answers is listed in [docs/specs/api.md](docs/specs/api.md): its method, its
+address, who may ask and the file and line that answers it. `node tools/api-map.js write` writes it
+from the sources, and the gates fail while it is out of date.
+
 ## License
 
 MIT. The Sonos control is ported from Caldera Sonos Bridge and the UPnP to Sonos bridge, by the
