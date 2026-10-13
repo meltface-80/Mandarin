@@ -56,7 +56,7 @@ internal static class Db
 internal sealed record Account(string Username, string Salt, string Verifier, int Iterations);
 internal sealed record Device(string Id, string Name, string Kind, long LastSeen);
 
-internal static class Auth
+internal static partial class Auth
 {
     public const string Cookie = "musicd_session";
     private const long Year = 365 * 86400;

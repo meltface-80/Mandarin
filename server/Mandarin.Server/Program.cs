@@ -121,6 +121,9 @@ if (alone)
     Front.Alone = true;
     try { ownConfig = Config.FromEnvironment(dataDir, port); }
     catch (InvalidOperationException e) { Front.Log("[server] " + e.Message + "; stopping"); return 2; }
+    // The install's secret, which the Node server made as it started (Auth.Secret.cs).
+    try { Auth.EnsureSecret(); }
+    catch (Microsoft.Data.Sqlite.SqliteException e) { Front.Log($"[server] the install's secret couldn't be written ({e.Message}); stopping"); return 1; }
 }
 else if (string.IsNullOrEmpty(upstream))
 {

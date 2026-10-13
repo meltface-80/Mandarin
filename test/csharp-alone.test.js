@@ -15,6 +15,8 @@ const assert = require("node:assert");
 const { spawnSync } = require("child_process");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { FakeHousehold } = require("./fake-sonos");
+const { FakeRenderer } = require("./fake-renderer");
 const { start, built, BIN } = require("./server");
 
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
@@ -22,7 +24,7 @@ const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 async function until(fn, ms = 30000, what = "") {
   const t0 = Date.now();
   for (;;) {
-    const v = await fn().catch(() => null);
+    const v = await Promise.resolve().then(fn).catch(() => null);
     if (v) return v;
     if (Date.now() - t0 > ms) throw new Error("timed out waiting" + (what ? " for " + what : ""));
     await new Promise(r => setTimeout(r, 100));
@@ -90,4 +92,60 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     // The Node server's private addresses: nothing there to ask, 404 at the door as before.
     assert.equal((await ask("/internal/library", { headers: H })).status, 404);
   } finally { await srv.stop(); }
+});
+
+/*
+ * Playback alone: the household at SONOS_HOSTS (Config.cs) found by this
+ * server's hub, the phone's hello, a renderer at UPNP_HOSTS in the device
+ * list and, switched on, a zone; a play on a room — the speaker fetches the
+ * track from this server's own address (Library.State.cs LocalBaseUrl:
+ * SERVER_IP and the port, with no Node server to say it).
+ */
+test("the C# server alone: the rooms from a fake household, a phone's hello, a renderer, a play", { skip, timeout: 120000 }, async () => {
+  const lib = makeLibrary();
+  const house = new FakeHousehold();
+  await house.start();
+  const wiim = new FakeRenderer({ name: "WiiM Pro Plus", manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro Plus", linkplay: { DeviceName: "Living Room WiiM" } });
+  await wiim.start();
+  const PORT = ports.port();
+  const srv = await start({ port: PORT, musicDir: lib.music, dataDir: lib.data, env: { SONOS_HOSTS: ports.host(0), UPNP_HOSTS: wiim.location } });
+  const B = srv.base;
+  try {
+    const token = await signIn(B);  // kind "android": the phone
+    const api = async (method, p, body) => {
+      const r = await fetch(B + p, { method, headers: Object.assign({ Authorization: "Bearer " + token }, body ? { "Content-Type": "application/json" } : {}), body: body ? JSON.stringify(body) : undefined });
+      return { status: r.status, by: r.headers.get("x-mandarin-answered") || "nobody", json: await r.json().catch(() => null) };
+    };
+    const zones = async () => (await api("GET", "/api/zones")).json.zones;
+    // The rooms: the two of the household, read by this server's hub from the one address it was given.
+    const rooms = await until(async () => { const z = (await zones()).filter(z => !z.is_phone); return z.length === 2 && z; }, 30000, "the rooms");
+    assert.deepEqual(rooms.map(z => z.display_name).sort(), ["Kitchen", "Study"]);
+    assert.equal((await api("GET", "/api/health")).json.rooms, 2);
+    const st = await until(async () => { const s = (await api("GET", "/api/status")).json; return s && s.index_count === 3 && s; }, 60000, "the library");
+    assert.deepEqual([st.zone_count, st.sonos.rooms], [2, 2]);
+    // The phone's hello: a zone of its own, "This phone" to itself.
+    const h = await api("POST", "/api/phone/hello", { name: "Pixel 8" });
+    assert.deepEqual([h.status, h.by, /^PHONE_/.test(h.json.zone_id)], [200, "C#", true]);
+    const mine = (await zones()).find(z => z.zone_id === h.json.zone_id);
+    assert.deepEqual([mine.display_name, mine.is_phone], ["This phone", true]);
+    // The renderer: found at its address, off until switched on, then a zone under its own name.
+    const W = "UPNP_" + wiim.udn.replace(/^uuid:/, "");
+    await until(async () => (await api("GET", "/api/audio-devices")).json.devices.some(d => d.id === W), 30000, "the renderer in the device list");
+    assert.ok(!(await zones()).some(z => z.zone_id === W), "off until switched on");
+    const on = await api("PATCH", "/api/audio-devices/" + W, { enabled: true });
+    assert.deepEqual([on.status, on.by, on.json.enabled], [200, "C#", true]);
+    const wz = await until(async () => (await zones()).find(z => z.zone_id === W), 30000, "the renderer as a zone");
+    assert.equal(wz.display_name, "Living Room WiiM");
+    // A play on the Kitchen: the speaker is handed the album and fetches the track from this server.
+    const kitchen = rooms.find(z => z.display_name === "Kitchen");
+    const cd = (await api("GET", "/api/library/albums?sort=album")).json.albums.find(a => a.title === "Album One");
+    const play = await api("POST", "/api/play", { offset: cd.offset, zone_or_output_id: kitchen.zone_id, kind: "play_now" });
+    assert.deepEqual([play.status, play.by], [200, "C#"], JSON.stringify(play.json));
+    await until(() => house.room("Kitchen").state === "PLAYING", 30000, "the Kitchen playing");
+    const f = await until(() => house.room("Kitchen").fetches.find(x => x.done), 30000, "the speaker's fetch");
+    assert.equal(f.status, 200, "the track, from this server: " + f.uri + " gave " + f.status + " " + (f.error || ""));
+    assert.ok(f.uri.startsWith(B + "/stream/"), "at this server's own address: " + f.uri);
+    const playing = await until(async () => { const z = (await api("GET", "/api/zone-state?zone=" + kitchen.zone_id)).json.zone; return z && z.state === "playing" && z.now_playing && z; }, 30000, "now playing");
+    assert.equal(playing.now_playing.line1, "Song 1");
+  } finally { await srv.stop(); await house.stop(); await wiim.stop(); }
 });

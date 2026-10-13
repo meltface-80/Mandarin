@@ -40,6 +40,14 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   answer and leaves with 0 when it was 200, else 1; the image's `HEALTHCHECK` runs it in place
   of `node -e`, and the image's smoke test runs it both ways. `test/csharp-alone.test.js` holds
   both.
+- **Playback alone** (part 1, step d): `test/csharp-alone.test.js` now also starts the program
+  with a fake Sonos household at `SONOS_HOSTS` and a fake renderer at `UPNP_HOSTS`, and holds the
+  rooms (in `/api/zones`, `/api/status` and `/api/health`), the phone's hello, the renderer in the
+  device list and as a zone once switched on, and a play on a room: the speaker fetches the track
+  from this server's own address. That last found a gap: the install's secret (the `authSecret`
+  setting, under which the addresses handed to speakers are signed and checked) was the Node
+  server's to make as it started, so alone nothing it signed was vouched for. `Auth.Secret.cs`
+  makes it at the start when none is there, as `lib/server/auth.js` did. Part 1 is complete.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,

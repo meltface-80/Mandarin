@@ -985,8 +985,14 @@ the last v0.8.x; the owner's merge to `main` is v0.9.0.
   image's health check (one GET of `/api/health`, exit 0 or 1).
 - **Tests:** `test/server.js` (new): starts the binary alone on a port, with a test's
   environment, waits for it, stops it; `test/csharp-alone.test.js` (new): sign-in, the scan, the
-  pages, the rooms from a fake household, a phone's hello, a renderer, with no Node server
-  anywhere. `test/front.test.js`'s pins read "C#" for everything.
+  pages, the rooms from a fake household, a phone's hello, a renderer, a play fetched by the
+  speaker, with no Node server anywhere. `test/front.test.js`'s pins read "C#" for everything
+  once part 2 has moved the last routes.
+- **As built** (v0.8.50, part 1): `Config.cs`, `Library.State.cs`, `Jobs.StartAlone`,
+  `Admin/Restore.cs`, `Auth.Secret.cs` (the install's secret, which `auth.js` made as the Node
+  server started, made here when none is there: without it nothing signed for a speaker was
+  vouched for), `HealthRoutes.cs`'s `--health`; `MANDARIN_NODE=0` or no `index.js` beside the
+  program. `test/server.js`, `test/config-csharp.test.js`, `test/csharp-alone.test.js`.
 
 **Part 2: the last routes.** The suite run against the server alone (part 4's helper, file by
 file) says what is still passed on or missing; each becomes the server's: `/api/tagcheck` and
@@ -1025,7 +1031,7 @@ final test from `:migration`.
 **Checklist** (ticked as each part is committed and pushed):
 
 - [x] Plan written; version 0.8.50
-- [ ] Part 1: the C# server on its own
+- [x] Part 1: the C# server on its own
 - [ ] Part 2: the last routes
 - [ ] Part 3: the launcher and updates in C#
 - [ ] Part 4: the tests drive the binary
