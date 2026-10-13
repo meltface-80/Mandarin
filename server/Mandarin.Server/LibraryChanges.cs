@@ -81,31 +81,6 @@ internal static partial class Library
         }
     }
 
-    /*
-     * The same, its answer read as it comes (v0.8.48: a scan the Node server
-     * makes at this server's ask says how it is going line by line, Scans.cs):
-     * the response with its headers read, its body still to come; null when
-     * it couldn't be asked.
-     */
-    public static async Task<HttpResponseMessage?> AskNodeStream(string path, string json, CancellationToken ct)
-    {
-        if (upstream == null) return null;
-        try
-        {
-            var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            };
-            req.Headers.Add("X-Mandarin-Front-Key", frontKey);
-            return await Patient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
-        {
-            Front.Log($"[library] the Node server wasn't asked ({path}): {e.Message}");
-            return null;
-        }
-    }
-
     private static long NowMs() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     /* A heart on (INSERT, kept if already there) or off, by the album's key. */

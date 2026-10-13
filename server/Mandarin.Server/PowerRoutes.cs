@@ -41,19 +41,20 @@ internal static partial class Library
     [GeneratedRegex(@"^app\.mandarin\.[a-z0-9.-]+$", RegexOptions.IgnoreCase)]
     private static partial Regex LaunchdLabelRule();
 
-    /* The launchd job this server runs as, when it's the installer's login item. */
-    private static string? LaunchdLabel()
+    /* The launchd job this server runs as, when it's the installer's login item ([env]: this process's, or a case's). */
+    private static string? LaunchdLabel(Func<string, string?>? env = null)
     {
-        var label = Environment.GetEnvironmentVariable("MANDARIN_LAUNCHD") is { Length: > 0 } l ? l
-            : Environment.GetEnvironmentVariable("XPC_SERVICE_NAME") ?? "";
+        env ??= Environment.GetEnvironmentVariable;
+        var label = env("MANDARIN_LAUNCHD") is { Length: > 0 } l ? l : env("XPC_SERVICE_NAME") ?? "";
         return LaunchdLabelRule().IsMatch(label) ? label : null;
     }
 
-    /* What this install can do, and how it's started again after Shut down. */
-    private static JsonObject PowerInfo()
+    /* What this install can do, and how it's started again after Shut down ([env], [mac]: this machine's, or a case's). */
+    internal static JsonObject PowerInfo(Func<string, string?>? env = null, bool? mac = null)
     {
-        var docker = Environment.GetEnvironmentVariable("DOCKER") == "1";
-        var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
+        env ??= Environment.GetEnvironmentVariable;
+        var docker = env("DOCKER") == "1";
+        var label = mac ?? OperatingSystem.IsMacOS() ? LaunchdLabel(env) : null;
         return new JsonObject
         {
             ["restart"] = true,

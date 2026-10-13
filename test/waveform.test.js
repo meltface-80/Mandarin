@@ -1,16 +1,16 @@
 "use strict";
 /*
- * The waveform behind the progress bar (lib/waveform.js; behind the C#
- * server, server/Mandarin.Server/Waveforms.cs, v0.8.19): off until it's
- * switched on; a track named by its id or by its title, album and artist;
- * 4,000 buckets, decoded once and kept; what isn't a file of ours says so.
+ * The waveform behind the progress bar (server/Mandarin.Server/Waveforms.cs,
+ * v0.8.19): off until it's switched on; a track named by its id or by its
+ * title, album and artist; 4,000 buckets, decoded once and kept, as the Node
+ * server drew them (test/waveform-rule.js); what isn't a file of ours says so.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { decodeWaveform } = require("../lib/waveform-decode");
+const { waveformOf } = require("./waveform-rule");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
@@ -51,8 +51,8 @@ test("waveforms: off until switched on, by id or by name, decoded once and kept"
     assert.equal(r.status, 200, JSON.stringify(r));
     assert.deepEqual([r.n, r.cached], [4000, false]);
     assert.match(String(r.cache), /immutable/);
-    const want = Buffer.from(await decodeWaveform(t.path, { expectSeconds: t.duration })).toString("base64");
-    assert.equal(r.peaks, want, "the same buckets as the decoder here");
+    const want = waveformOf(t.path, t.duration);
+    assert.equal(r.peaks, want, "the same buckets as the Node server drew");
     r = await get("waveform?track_id=" + t.id);
     assert.deepEqual([r.peaks, r.n, r.cached], [want, 4000, true]);
 

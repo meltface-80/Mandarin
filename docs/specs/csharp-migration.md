@@ -1046,13 +1046,36 @@ Mac jobs run the binary alone.
   refusals alone, Rescan naming the services, a hidden renderer's Stop, an unreadable JSON body
   alone.
 
-**Part 5: the image and the repository.** The Dockerfile without the node stages and npm
-packages (the engines, the binary, `public/`); `package.json` with dev dependencies only (the
-tests' `better-sqlite3`, the gates' tools); `index.js`, `launcher.js`, `reset-password.js` and
-`lib/` deleted, the ratchet's allowance and the `@ts-check` baseline shrunk by their tools; CI
-without the Node matrix (Node 22 for the tests alone); `README.md`, `server/README.md`'s table,
-the CHANGELOG, this file and `handover.md`; the pull request into `migration` for the owner's
-final test from `:migration`.
+**Part 5: the tests without `lib/`.** Every test that still asks a Node module asks the C#
+server instead, or keeps the Node server's answers, so `lib/` can go: the parity suites recorded;
+the unit tests through `mandarin-server score` or the server running; the hand-over's own tests
+dropped with it.
+- **As built** (v0.8.50, part 5; merged into `migration` on its own, the owner asked for the rest
+  on a branch of its own as part 6): `test/golden.js` `answers()` (each answer list in full where
+  small, else a sum of every 32 cases) holds sonos, renderers, extras, identify, share, backup,
+  write-ups, art search, streams, scan, db, conversions and AutoEQ to the Node server's answers
+  (`RECORD_<SUITE>=1`); `test/tag-oracle.js` keeps `readTags` over `music-metadata` as the tag
+  reader's oracle; `test/waveform-rule.js` the waveform's rule; `test/library-server.js` and
+  `test/score.js` (with `scoreAsync`) for the rest. `RulesCommand.cs` and new `score` answers
+  (`fromnames`, `dates`, `mounts`, `versions`, `soapcall`, `labelnames`, `phoneplays`, `uris`,
+  `cpu`, `auth`, `register`, `ssdp`, backup's `applies`). Found and fixed: the library's one-time
+  upgrades never made by the program alone (`Scan/Scanner.Migrate.cs`); `album-edits.json` written
+  only through the Node server; a scan read as ended before the library was read again; `/api/cpu`'s
+  DSP flag ahead of its split. The Node scanner fallback (`Scans.cs`) and the `tools/` reports that
+  ran `lib/` removed. Not yet moved, left to part 6: engine, local-output, identify, label-logos,
+  lastfm, loudness, mbpack, radio-memory, shelf, similar, stream, tailscale-builtin, and the `RECORD`
+  halves of the recorded suites with `test/setup.js`'s `MANDARIN_FRONT` block.
+
+**Part 6: the image and the repository** (branch `stage-7-part-6-node-deleted`). The tests part 5
+left; the `RECORD` halves of the recorded suites and `test/setup.js`'s Node block; the Dockerfile
+without the node stages and npm packages (the engines, the binary, `public/`); `package.json` with
+dev dependencies only (the tests' `better-sqlite3` and `music-metadata`, the gates' tools);
+`index.js`, `launcher.js`, `reset-password.js` and `lib/` deleted, and the C# server's paths for a
+Node server behind it (`Front.RunsNode`, the `/internal/*` asks, `Library.ToNode`); the ratchet's
+allowance and the `@ts-check` baseline shrunk by their tools; CI without the Node matrix (Node 22
+for the tests alone); `README.md`, the GitHub Pages site, `server/README.md`'s table, the
+CHANGELOG, this file and `handover.md`; the pull request into `migration` for the owner's final
+test from `:migration`.
 
 **Checklist** (ticked as each part is committed and pushed):
 
@@ -1061,7 +1084,8 @@ final test from `:migration`.
 - [x] Part 2: the last routes
 - [x] Part 3: the launcher and updates in C#
 - [x] Part 4: the tests drive the binary
-- [ ] Part 5: the image and the repository; docs; the pull request
+- [x] Part 5: the tests without `lib/` (the most of them), and what they found
+- [ ] Part 6: the image and the repository; docs; the pull request
 
 ### The order, and why
 

@@ -19,12 +19,10 @@
 // the tag check, the release days and Smart Picks asked of this server), and
 // after a Rescan brings Qobuz and Tidal up to date, as before.
 //
-// Taken over when the Node server says so (Jobs.cs: "scan"), whatever reads
-// the tags (v0.8.48, stage 5 part 2): where this program is trusted with them
-// (the tag check passed, or TAG_READER=csharp) the scan is its own, above;
-// where not, each scan started here is made by the Node server's own scanner
-// at this server's ask (POST /internal/scan), its state sent back line by line
-// as the program's is, the result at the end.
+// Every scan is this program's (v0.8.50, stage 7 part 5: the Node server's
+// own scanner, asked to scan where this program wasn't trusted with the tags,
+// went with it). A scan is under way until the library has been read again
+// after it, so a page that sees it ended reads the albums it made.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -46,9 +44,6 @@ internal static partial class Scans
     private static Timer? first, every;
     private static Watcher? watcher;
     private static volatile bool on, stopping;
-    // The scan made by this program (the Node server trusts it with the tags), else by the Node server's scanner at this server's ask.
-    private static volatile bool byProgram = true;
-    private static CancellationTokenSource? nodeAsk;
 
     /* The scans are made here. */
     public static bool On => on;
@@ -76,8 +71,6 @@ internal static partial class Scans
         musicDir = Text(cfg["music_dir"]) ?? (Environment.GetEnvironmentVariable("MUSIC_DIR") is { Length: > 0 } m ? m : "/music");
         massRemoval = Num(cfg["mass_removal"], 500);
         scanHours = Num(cfg["scan_hours"], 6);
-        // Whether the Node server trusts this program with the tags (index.js scansGoToFront); a Node server that doesn't say: it does.
-        byProgram = cfg["scan_program"] is not JsonValue sp || !sp.TryGetValue<bool>(out var bp) || bp;
         stopping = false;
         if (on) { Kick(); return; }
         on = true;
@@ -87,7 +80,7 @@ internal static partial class Scans
         watcher = new Watcher(Roots, () => Run(false, false), Front.Log,
             Ms("MANDARIN_WATCH_QUIET_MS", 20000), Ms("MANDARIN_WATCH_GAP_MS", 60000));
         watcher.Refresh();
-        Front.Log($"[scan] the library scans are {(byProgram ? "made here" : "started here, made by the Node server's scanner")} (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
+        Front.Log($"[scan] the library scans are made here (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
     }
 
     // The watching's waits: the tests' own, else watch.js's.
@@ -109,11 +102,8 @@ internal static partial class Scans
     public static void Halt()
     {
         Process? p;
-        CancellationTokenSource? ask;
-        lock (Gate) { p = proc; ask = nodeAsk; }
+        lock (Gate) p = proc;
         try { p?.Kill(); } catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception) { /* gone */ }
-        // A scan the Node server makes: no longer listened to (it ends with the Node server, which is about to start again).
-        try { ask?.Cancel(); } catch (ObjectDisposedException) { /* ended */ }
     }
 
     /* A scan, as the timer starts one: one already under way is left to it. */
@@ -207,14 +197,10 @@ internal static partial class Scans
     /* The Node server told how the scan is going; its answer (null when it wasn't told). */
     private static async Task<JsonObject?> Tell(JsonObject scan) => stopping ? null : await Library.Told(new JsonObject { ["scan"] = scan }, quiet: true);
 
-    /* The same, for a scan under way: a scan the Node server makes itself needs no word of its state (it has it); nothing left to say is not said. */
-    private static Task<JsonObject?> Say(JsonObject scan)
-    {
-        if (!byProgram) scan.Remove("state");
-        return scan.Count == 0 ? Task.FromResult<JsonObject?>(null) : Tell(scan);
-    }
+    /* The same, for a scan under way. */
+    private static Task<JsonObject?> Say(JsonObject scan) => Tell(scan);
 
-    /* What a scan says, line by line: the program's (Scan/ScanCommand.cs), or the Node server's scanner's at this server's ask. */
+    /* What a scan says, line by line: the program's (Scan/ScanCommand.cs). */
     private static async Task<Scanned> Scan(bool force, bool services, int g)
     {
         // Told at once, so /api/status says so before the scan's first word.
@@ -249,7 +235,9 @@ internal static partial class Scans
                     break;
                 case "result":
                     Mirror(m["state"], g);
-                    Ended(g);
+                    // Still under way until the library has been read again (below): a page that
+                    // sees it ended and asks for the albums gets the ones this scan made.
+                    lock (Gate) if (g == gen) state["running"] = true;
                     result = m["result"] as JsonObject ?? [];
                     break;
                 case "error":
@@ -258,22 +246,27 @@ internal static partial class Scans
                     break;
             }
         }
-        var (killed, why) = byProgram ? await ByProgram(force, g, Heard) : await ByNode(force, g, Heard);
-        if (error == null && result == null)
+        try
         {
-            // Ended before it said: killed (the server stopping, a backup put back), or fallen over.
-            if (killed || stopping) result = new JsonObject { ["status"] = "stopped" };
-            else error = why;
+            var (killed, why) = await ByProgram(force, g, Heard);
+            if (error == null && result == null)
+            {
+                // Ended before it said: killed (the server stopping, a backup put back), or fallen over.
+                if (killed || stopping) result = new JsonObject { ["status"] = "stopped" };
+                else error = why;
+            }
+            if (error != null)
+            {
+                Ended(g);
+                await Say(new JsonObject { ["state"] = State });
+                throw new ScanError(error);
+            }
+            var told = await Say(new JsonObject { ["state"] = State, ["done"] = true, ["services"] = services });
+            if (services) result!["services"] = told?["services"]?.DeepClone() ?? new JsonArray();
+            watcher?.Refresh();
+            return new Scanned(result!, told?["count"] is JsonValue cv && cv.TryGetValue<double>(out var count) ? count : null);
         }
-        if (error != null)
-        {
-            await Say(new JsonObject { ["state"] = State });
-            throw new ScanError(error);
-        }
-        var told = await Say(new JsonObject { ["state"] = State, ["done"] = true, ["services"] = services });
-        if (services) result!["services"] = told?["services"]?.DeepClone() ?? new JsonArray();
-        watcher?.Refresh();
-        return new Scanned(result!, told?["count"] is JsonValue cv && cv.TryGetValue<double>(out var count) ? count : null);
+        finally { Ended(g); }
     }
 
     /* The scan by this program (`mandarin-server scan`), each of its lines to [heard]; whether it was killed, and why it ended otherwise. */
@@ -319,46 +312,8 @@ internal static partial class Scans
             try { if (!p.HasExited) p.Kill(); } catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception) { /* gone */ }
             lock (Gate) if (proc == p) proc = null;
             Cpu.Forget(p);
-            Ended(g);
         }
         return (p.ExitCode is 0 or 137, "the scan stopped (" + p.ExitCode + ")");
-    }
-
-    /*
-     * The scan by the Node server's own scanner (index.js POST /internal/scan,
-     * v0.8.48): where this program isn't trusted with the tags, the lines of
-     * its answer to [heard] as the program's would be. Whether it was cut
-     * short here (Halt), and why it ended otherwise.
-     */
-    private static async Task<(bool Killed, string Why)> ByNode(bool force, int g, Func<string, Task> heard)
-    {
-        var cts = new CancellationTokenSource();
-        lock (Gate) if (g == gen) nodeAsk = cts;
-        HttpResponseMessage? res = null;
-        var cancelled = false;
-        try
-        {
-            res = await Library.AskNodeStream("/internal/scan", new JsonObject { ["force"] = force }.ToJsonString(), cts.Token);
-            if (res == null || !res.IsSuccessStatusCode)
-            {
-                Ended(g);
-                await Say(new JsonObject { ["state"] = State });
-                throw new ScanError("the Node server didn't scan" + (res != null ? $" (HTTP {(int)res.StatusCode})" : ""));
-            }
-            using var reader = new StreamReader(await res.Content.ReadAsStreamAsync(cts.Token));
-            string? line;
-            while ((line = await reader.ReadLineAsync(cts.Token)) != null) await heard(line);
-        }
-        catch (Exception e) when (e is OperationCanceledException or IOException or HttpRequestException) { /* ended: said below */ }
-        finally
-        {
-            cancelled = cts.IsCancellationRequested;
-            lock (Gate) if (nodeAsk == cts) nodeAsk = null;
-            res?.Dispose();
-            cts.Dispose();
-            Ended(g);
-        }
-        return (cancelled, "the scan stopped (the Node server's answer ended)");
     }
 
     /*

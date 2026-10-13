@@ -119,7 +119,6 @@ const { signIn } = require("./auth-helper");
 const { createServer, built } = require("./server");
 
 const skip = built();
-const skipNode = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server with the Node server behind it (MANDARIN_FRONT=1)";
 
 test("which server answers: sign-in, the gate, the page and the library in C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
@@ -538,54 +537,5 @@ test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams
     assert.deepEqual(await by("/api/queue?zone=x"), [200, "C#", { items: [], history: [] }]);
     // The Node server's part of playing a service album: never from outside.
     assert.equal((await fetch(B + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 404, "stopped at the C# server's door");
-  } finally { await srv.stop(); }
-});
-
-/*
- * The Node server behind the C# server (while index.js is here, MANDARIN_FRONT=1): the work it handed
- * over never done there — its loops stopped, its passes never run again, its MusicBrainz requests on
- * the C# server's timer, a service's token never refreshed, a service's conversion handed on — and its
- * private addresses not without the key. Goes with the Node server (stage 7 part 5).
- */
-test("the Node server behind: the work it handed over never done there; its private addresses keyed", { skip: skipNode, timeout: 60000 }, async () => {
-  const lib = makeLibrary();
-  const META = require("../lib/meta");
-  const port = ports.port(), B = "http://127.0.0.1:" + port;
-  const srv = require("../index.js").createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
-  const ctx = await srv.start();
-  try {
-    const NODE = "http://127.0.0.1:" + ctx.listeningOn;
-    const token = await signIn(B);
-    const H = { Authorization: "Bearer " + token };
-    // Handed over when the C# server started: the Node server's loops stopped for good.
-    for (let i = 0; i < 300 && !ctx.frontRuns; i++) await new Promise(r => setTimeout(r, 100));
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["cpu", "days", "identify", "import", "labels", "loudness", "mbpack", "playback", "prune", "scan", "services", "tailscale", "taste", "update"]);
-    for (const job of ["prune", "import", "services"]) assert.equal(ctx.madeByFront(job), true, job + ": the C# server's");
-    assert.equal(ctx.identifier.handedOver, true);
-    ctx.identifier.start();
-    assert.equal(ctx.identifier.timer, null, "not started again here");
-    for (const [what, done] of [["label lookups", ctx.labelLookup.handedOver], ["label logos", ctx.labelLogos.handedOver], ["release days", ctx.releaseDays.handedOver], ["Smart Picks", ctx.features.handedOver]])
-      assert.equal(done, true, what + ": handed over");
-    assert.ok(ctx.tailscale.front, "Tailscale handed to the C# server");
-    // The Node server's own passes: never started again here.
-    ctx.db.setSetting("labelsEnabled", true);
-    ctx.library.setLabelRules({ enabled: true });
-    assert.equal(ctx.labelLookup.run({ force: true }), false);
-    assert.equal(ctx.labelLogos.fetchMissing([{ key: "x", title: "X" }], { force: true }), false);
-    assert.equal(await ctx.releaseDays.run(), 0);
-    ctx.features.kickSmartPicks(true);
-    assert.equal(ctx.features.smartBuilding, null);
-    // The services: the Node server refreshes nothing, and hands a service's conversion on.
-    assert.equal(ctx.transcoder.delegate.owns({ path: "tidal://track/1" }, { transcode: true, rate: 44100, bits: 16 }), true, "a service's track made by C#");
-    await assert.rejects(ctx.tidal.api.refresh(), /the C# server's to refresh/, "Tidal's token never refreshed here");
-    // Its requests to MusicBrainz take the next turn on the C# server's timer.
-    const K = { "X-Mandarin-Front-Key": ctx.frontKey };
-    await fetch(B + "/internal/mb/slot", { headers: K });
-    const t1 = Date.now();
-    await META.mbWait();
-    assert.ok(Date.now() - t1 >= 1050, `the Node server's turn ${Date.now() - t1} ms after`);
-    // Its private addresses: not without the key.
-    assert.equal((await fetch(NODE + "/internal/library", { headers: H })).status, 403, "the key, or nothing");
-    assert.equal((await fetch(NODE + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 403);
   } finally { await srv.stop(); }
 });

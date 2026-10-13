@@ -122,6 +122,12 @@ internal static partial class Library
         var reload = keys.Any(k => k is "edits" or "merges" or "labels" or "lookups" or "days" or "services")
             || (scan != null && (Js.Truthy(scan["progress"]) || Js.Truthy(scan["done"])));
         if (Js.Truthy(what["marks"])) Interlocked.Increment(ref marks);
+        // An album edit made or dropped: album-edits.json written again (db.backupEdits), so a database that has to start over gets it back.
+        if (keys.Contains("edits"))
+        {
+            try { using var c = Db.Open(); Admin.Backup.ExportEdits(c, Path.GetDirectoryName(Db.File) ?? "."); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException) { Front.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
+        }
         if (reload) Interlocked.Increment(ref version);
         var o = new JsonObject { ["ok"] = true, ["version"] = Interlocked.Read(ref version), ["marks"] = Interlocked.Read(ref marks) };
         if (scan != null && Js.Truthy(scan["done"]))

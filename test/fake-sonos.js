@@ -11,8 +11,7 @@
  */
 const ports = require("./ports");
 const http = require("http");
-const XML = require("../lib/xml");
-const DIDL = require("../lib/sonos/didl");
+const XML = require("./fake-xml");
 
 function envelope(action, service, args) {
   const body = Object.entries(args || {}).map(([k, v]) => `<${k}>${XML.escape(v)}</${k}>`).join("");
@@ -81,11 +80,11 @@ class Room {
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": {
         const cur = this.current();
-        const it = cur ? DIDL.parseItems(cur.meta)[0] || {} : {};
+        const it = cur ? XML.parseItems(cur.meta)[0] || {} : {};
         return {
-          Track: String(cur ? this.track : 0), TrackDuration: DIDL.hms(it.duration || 0),
+          Track: String(cur ? this.track : 0), TrackDuration: XML.hms(it.duration || 0),
           TrackMetaData: cur ? cur.meta : "", TrackURI: cur ? cur.uri : "",
-          RelTime: DIDL.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "0", AbsCount: "0"
+          RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "0", AbsCount: "0"
         };
       }
       case "GetMediaInfo": return { NrTracks: String(this.queue.length), CurrentURI: this.currentUri, CurrentURIMetaData: "" };
@@ -131,7 +130,7 @@ class Room {
       case "BecomeCoordinatorOfStandaloneGroup": this.coordinator = this.uid; this.currentUri = ""; this.state = "STOPPED"; return {};
       case "Seek":
         if (a.Unit === "TRACK_NR") { this.track = Number(a.Target); this.setPos(0); if (this.state === "PLAYING") this.fetchCurrent(); }
-        else this.setPos(DIDL.toSeconds(a.Target));
+        else this.setPos(XML.toSeconds(a.Target));
         return {};
       case "Play":
         if (!this.current()) throw 701;

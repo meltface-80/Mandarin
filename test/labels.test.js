@@ -7,28 +7,29 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const { canonicalLabelName, labelKey, isLikelyNotALabel, labelFromFolder } = require("../lib/labels");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("a label's names fold together", () => {
+// The names' rules, the C# server's (Names.cs; lib/labels.js until v0.8.50).
+const one = (k, v) => score({ fn: "labelnames", [k]: [v] })[k][0];
+const canonicalLabelName = n => one("canonical", n), labelKey = n => one("keys", n), isLikelyNotALabel = n => one("not_labels", n);
+const labelFromFolder = (dir, roots, depth) => one("folders", [dir, roots, depth]);
+
+test("a label's names fold together", { skip: built() }, () => {
+  assert.deepEqual(score({ fn: "labelnames", canonical: ["Blue Note Records (UK)", "Blue Note Records, ", "Universal Music Canada", "[PIAS] America", "[PIAS]", "Deutsche Grammophon (DG)"] }).canonical,
+    ["Blue Note", "Blue Note", "Universal", "[PIAS]", "[PIAS]", "Deutsche Grammophon"]);
   assert.equal(canonicalLabelName("Blue Note Records (UK)"), "Blue Note");
-  assert.equal(canonicalLabelName("Blue Note Records, "), "Blue Note");
-  assert.equal(canonicalLabelName("Universal Music Canada"), "Universal");
-  assert.equal(canonicalLabelName("[PIAS] America"), "[PIAS]");
-  assert.equal(canonicalLabelName("[PIAS]"), "[PIAS]");
-  assert.equal(canonicalLabelName("Deutsche Grammophon (DG)"), "Deutsche Grammophon");
   assert.equal(labelKey("BLUE NOTE"), labelKey("Blue Note Records"));
   assert.equal(labelKey("Café Records"), "cafe");
   assert.notEqual(labelKey("Blue Note"), labelKey("Blue Thumb"));
-  assert.ok(isLikelyNotALabel("Big Deal Management"));
-  assert.ok(isLikelyNotALabel("Unknown"));
-  assert.ok(isLikelyNotALabel("2019"));
-  assert.ok(isLikelyNotALabel("self-released"));
+  assert.deepEqual(score({ fn: "labelnames", not_labels: ["Big Deal Management", "Unknown", "2019", "self-released", "Parlophone"] }).not_labels,
+    [true, true, true, true, false]);
   assert.ok(!isLikelyNotALabel("Parlophone"));
   // A library filed by label: /music/Jazz/Blue Note/Album is depth 2.
   const roots = ["/music", "/mnt/more"];

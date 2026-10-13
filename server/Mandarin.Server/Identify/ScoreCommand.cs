@@ -14,6 +14,12 @@
 //   { "fn": "xml" | "didl" | "moves" | "topology" | "soap", … } (v0.8.37): Playback/SonosCommand.cs
 //   { "fn": "description" | "protocolinfo" | "gena" | "profiles", … } (v0.8.37): Renderers/RendererCommand.cs
 //   { "fn": "plans" | "gain" | "dsp" | "sign" | "radio" | "math", … } (v0.8.38): Playback/StreamCommand.cs
+//   { "fn": "mounts" | "versions" | "soapcall" | "labelnames" | "phoneplays" | "uris", … } (v0.8.50): RulesCommand.cs
+//   { "fn": "fromnames", "files": [[path, [root, …]], …] } (v0.8.50): what a file's folders and name say (Scan/ScanNames.cs)
+//      → { names: [{ artist, album, year, disc, track, title }] }
+//   { "fn": "dates", "dates": [tag], "releases": [common], "albums": [[[date, …], year]], "days": [[year, tagDate, mbDay]], "keys": [date] }
+//      (v0.8.50): a date tag, a track's release date, an album's, a looked-up day laid over it, the sort's key
+//      (Tags/TagReader.cs, Scan/Scanner.cs, Library.cs) → { dates, releases: [{ year, date }], albums, days, keys }
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -107,6 +113,33 @@ internal static class ScoreCommand
                     // Stream plans, ReplayGain, DSP, signing, the radio's memory (v0.8.38).
                     case "plans" or "gain" or "dsp" or "sign" or "radio" or "math":
                         o = Playback.StreamCommand.Run(Js.Str(job["fn"]), job);
+                        break;
+                    // Small rules of the server (v0.8.50, RulesCommand.cs).
+                    case var f when RulesCommand.Fns.Contains(f):
+                        o = RulesCommand.Run(f, job);
+                        break;
+                    case "fromnames":
+                        o["names"] = L(job["files"]).Select(f0 =>
+                        {
+                            var f = L(f0);
+                            var n = ScanNames.FromNames(Js.Str(f.Count > 0 ? f[0] : ""), L(f.Count > 1 ? f[1] : null).Select(Js.Str).ToList());
+                            var x = new JsObj();
+                            x["artist"] = n.Artist; x["album"] = n.Album; x["year"] = n.Year; x["disc"] = n.Disc; x["track"] = n.Track; x["title"] = n.Title;
+                            return (object?)x;
+                        }).ToList();
+                        break;
+                    case "dates":
+                        o["dates"] = L(job["dates"]).Select(v => (object?)TagReader.DateOf(v)).ToList();
+                        o["releases"] = L(job["releases"]).Select(c =>
+                        {
+                            var (y, d) = TagReader.ReleaseDateOf(c as JsObj ?? new JsObj());
+                            var x = new JsObj();
+                            x["year"] = y; x["date"] = d;
+                            return (object?)x;
+                        }).ToList();
+                        o["albums"] = L(job["albums"]).Select(a0 => { var a = L(a0); return (object?)Scanner.AlbumDateOf(L(a.Count > 0 ? a[0] : null), a.Count > 1 ? a[1] : null); }).ToList();
+                        o["days"] = L(job["days"]).Select(d0 => { var d = L(d0); return (object?)Library.ReleaseDate(d.Count > 0 && d[0] is double y ? (long)y : null, d.Count > 1 ? d[1] as string : null, d.Count > 2 ? d[2] as string : null); }).ToList();
+                        o["keys"] = L(job["keys"]).Select(k => (object?)Library.DateKey(k as string)).ToList();
                         break;
                     default:
                         o["error"] = "unknown fn";

@@ -12,15 +12,16 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDiscogs } = require("./fake-discogs");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
-const { plainName } = require("../lib/labellookup");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("Discogs' numbered names are plain", () => {
-  assert.equal(plainName("Blue Note (2)"), "Blue Note");
-  assert.equal(plainName("4AD"), "4AD");
+test("Discogs' numbered names are plain", { skip: built() }, () => {
+  // The C# server's (Extras/LabelLookup.cs; lib/labellookup.js until v0.8.50).
+  assert.deepEqual(score({ fn: "labels", plain: ["Blue Note (2)", "4AD"] }).plain, ["Blue Note", "4AD"]);
 });
 
 test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t) => {

@@ -14,9 +14,8 @@ const assert = require("node:assert");
 const path = require("path");
 const { haveFfmpeg, makeLibrary, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
-const { FakeRenderer } = require("./fake-renderer");
+const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
-const { idFor } = require("../lib/renderers/discovery");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();

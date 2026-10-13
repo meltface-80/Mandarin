@@ -10,7 +10,14 @@
  * one, header fields, a stored block, a bad checksum) and contents that
  * aren't a playlist. Through `mandarin-server score`; skipped where the C#
  * server isn't built. The routes run against the C# server in
- * test/playlists.test.js in MANDARIN_FRONT=1.
+ * test/playlists.test.js.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/share-csharp.json), made with
+ * RECORD_SHARE=1 while lib/ was here, with the blobs it wrote and the pastes
+ * (gzip's bytes are this machine's zlib's, so they are kept whole); the C#
+ * program alone is held to them case for case, and its own blobs are read
+ * with Node's zlib as MusicD Remote reads them.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -18,11 +25,18 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const { spawnSync } = require("child_process");
-const SH = require("../lib/server/share");
+const { answers } = require("./golden");
+
+const RECORD = process.env.RECORD_SHARE === "1";
+// The Node server's share.js, asked while recording (lib/, until v0.8.50).
+const SH = RECORD ? require("../lib/server/share") : null;
+const kept = answers("share-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
-const VERSION = require("../package.json").version;
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_SHARE=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
+// The version and date a document carries, as recorded (the Node server wrote its own version).
+const VERSION = "0.8.50";
 const DATE = "2026-10-08T12:34:56.789Z";
 
 function csharp(job) {
@@ -32,8 +46,14 @@ function csharp(job) {
   assert.ok(!out.error, out.error);
   return out;
 }
-const plain = v => JSON.parse(JSON.stringify(v));
+const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
 const nodeDecode = blob => { try { return { doc: SH.decodeSharePayload(blob) }; } catch (e) { return { error: e.message }; } };
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, cases, got, want) => kept.same(what, cases.map((_, i) => what + " " + i), cases, got, RECORD && (() => plain(want())));
+/* Documents made by the C# server (held to the Node server's in the test below), for the blobs and pastes. */
+const docOf = (name, tracks) => csharp({ docs: [{ name, tracks }], date: DATE, version: VERSION }).doc[0].doc;
+/* An MDRP1 blob read as MusicD Remote reads one: base64url, gunzip, JSON. */
+const readBlob = blob => JSON.parse(zlib.gunzipSync(Buffer.from(blob.slice(6), "base64url")).toString("utf8"));
 
 const STRINGS = ["Song 1", "  spaced   out  ", "Tab\tname\nline", " nbsp　", "﻿bom﻿", "\u0085nel\u0085", " ls ", "a".repeat(600),
   " ".repeat(10) + "x".repeat(498) + "  y", "Ünïcode 😀", "😀".repeat(300), "\ud800lone", "lone\udc00", "", " ", "᠎", "​ x ​"];
@@ -49,9 +69,9 @@ test("the fields: text, numbers and addresses as share.js keeps them", { skip },
     "mailto:a", "urn:x", "e:5"], ["a:1", "b:2", "a:1", "c:3", "d:4", "e:5"], [" A+.-9:zz ", "+a:x", "a b:x", "é:x", "ab"]);
   const out = csharp({ texts, ints, uris });
   const p = plain({ texts, ints, uris });
-  assert.deepStrictEqual(out.text, p.texts.map(([v, max]) => SH.shareText(v, max)));
-  assert.deepStrictEqual(out.int, p.ints.map(([v, min, max]) => SH.shareInt(v, min, max)));
-  assert.deepStrictEqual(out.uris, p.uris.map(v => SH.shareUriList(v)));
+  same("shareText", p.texts, out.text, () => p.texts.map(([v, max]) => SH.shareText(v, max)));
+  same("shareInt", p.ints, out.int, () => p.ints.map(([v, min, max]) => SH.shareInt(v, min, max)));
+  same("shareUriList", p.uris, out.uris, () => p.uris.map(v => SH.shareUriList(v)));
 });
 
 test("a track's entry and the whole document, made the same", { skip }, () => {
@@ -77,36 +97,70 @@ test("a track's entry and the whole document, made the same", { skip }, () => {
   ];
   const out = csharp({ entries, docs, date: DATE, version: VERSION });
   const p = plain({ entries, docs });
-  assert.deepStrictEqual(out.entry, plain(p.entries.map(e => SH.buildShareDoc({}, [e]).doc.playlist.track[0] || null)));
-  const want = p.docs.map(d => {
+  same("a track's entry", p.entries, out.entry, () => p.entries.map(e => SH.buildShareDoc({}, [e]).doc.playlist.track[0] || null));
+  same("the document", p.docs, out.doc, () => p.docs.map(d => {
     const b = SH.buildShareDoc({ name: d.name, annotation: d.annotation }, d.tracks);
     b.doc.playlist.date = DATE;
-    return plain(b);
-  });
-  assert.deepStrictEqual(out.doc, want);
-  assert.deepStrictEqual(want.map(w => [w.track_count, w.skipped, w.truncated]), [[6, 9, false], [2, 0, false], [1, 0, false], [0, 0, false], [0, 0, false], [2000, 1000, true], [2000, 0, true]]);
+    return b;
+  }));
+  assert.deepStrictEqual(out.doc.map(w => [w.track_count, w.skipped, w.truncated]), [[6, 9, false], [2, 0, false], [1, 0, false], [0, 0, false], [0, 0, false], [2000, 1000, true], [2000, 0, true]]);
 });
 
 test("each side's blob read by the other", { skip }, () => {
   const docs = [
-    SH.buildShareDoc({ name: "Mine" }, [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }]).doc,
-    SH.buildShareDoc({ name: "Ünïcode 😀" }, Array.from({ length: 400 }, (_, i) => ({ title: "Track " + i + " " + "é".repeat(i % 23), artist: "Artist " + (i % 9), album: "Album " + (i % 17), track_no: (i % 25) + 1 }))).doc,
+    docOf("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }]),
+    docOf("Ünïcode 😀", Array.from({ length: 400 }, (_, i) => ({ title: "Track " + i + " " + "é".repeat(i % 23), artist: "Artist " + (i % 9), album: "Album " + (i % 17), track_no: (i % 25) + 1 }))),
     { playlist: { title: "\ud800 lone", track: [] } }
   ];
   const { encoded } = csharp({ encodes: docs });
   assert.equal(encoded.length, docs.length);
   for (const [i, blob] of encoded.entries()) {
     assert.match(blob, /^MDRP1:[A-Za-z0-9_-]+$/);
-    assert.deepStrictEqual(SH.decodeSharePayload(blob), plain(docs[i]), "the Node server reads the C# server's blob");
+    assert.deepStrictEqual(readBlob(blob), plain(docs[i]), "the C# server's blob read as MusicD Remote reads it");
+    if (RECORD) assert.deepStrictEqual(SH.decodeSharePayload(blob), plain(docs[i]), "the Node server reads the C# server's blob");
   }
-  const nodeBlobs = docs.map(d => SH.encodeSharePayload(d));
-  const { decoded } = csharp({ decodes: encoded.concat(nodeBlobs) });
-  assert.deepStrictEqual(decoded, encoded.concat(nodeBlobs).map(b => plain(nodeDecode(b))), "and each reads its own and the other's");
+  const nodeBlobs = kept.input("the Node server's blobs", RECORD && (() => docs.map(d => SH.encodeSharePayload(d))));
+  const both = encoded.concat(nodeBlobs);
+  const { decoded } = csharp({ decodes: both });
+  assert.deepStrictEqual(decoded.slice(0, encoded.length), docs.map(d => ({ doc: plain(d) })), "the C# server reads its own");
+  same("each side's blob read", both, decoded, () => both.map(b => nodeDecode(b)));
   assert.ok(decoded.every(d => d.doc), "all read");
 });
 
 test("pastes read the same, passing and failing alike", { skip }, () => {
-  const doc = SH.buildShareDoc({ name: "Mine" }, [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A" }]).doc;
+  // Kept as made, but for the large stored one, written here by hand the same everywhere.
+  const pastes = kept.input("the pastes", RECORD && (() => pastesOf())).map(p => p === BIG_STORED ? bigStored() : p);
+  const { decoded } = csharp({ decodes: pastes });
+  assert.equal(decoded.length, pastes.length);
+  same("pastes", pastes.map(p => p.slice(0, 60)), decoded, () => pastes.map(p => nodeDecode(p)));
+  // The cases meant: read, and refused for each reason.
+  const said = decoded.map(d => d.doc ? "ok" : d.error.split(" — ")[0]);
+  assert.deepStrictEqual(said.slice(0, 9), ["ok", "ok", "ok", "That playlist is damaged", "ok", "ok", "ok", "That playlist is damaged", "That playlist is damaged"]);
+  assert.ok(said.includes("That doesn't look like a MusicD Remote playlist") && said.includes("That playlist is empty") &&
+    said.includes("That playlist has no tracks in it") && said.filter(s => s === "ok").length > 15, said.join(" | "));
+});
+
+/* A large playlist, as a gzip member of stored deflate blocks (written by hand: no zlib's choices in it). */
+const BIG_STORED = "<the large playlist, stored>";
+const bigJson = () => Buffer.from(JSON.stringify(docOf("Big", Array.from({ length: 900 }, (_, i) => ({ title: "Track " + i, artist: "Artist " + (i % 11), album: "Album " + (i % 31), track_no: (i % 20) + 1, isrc: "GB" + (1000000 + i * 7919) })))));
+function bigStored() {
+  const data = bigJson(), blocks = [];
+  for (let at = 0; at < data.length; at += 65535) {
+    const chunk = data.subarray(at, at + 65535), h = Buffer.alloc(5);
+    h[0] = at + 65535 >= data.length ? 1 : 0;
+    h.writeUInt16LE(chunk.length, 1);
+    h.writeUInt16LE(~chunk.length & 0xffff, 3);
+    blocks.push(h, chunk);
+  }
+  const trailer = Buffer.alloc(8);
+  trailer.writeUInt32LE(zlib.crc32(data) >>> 0);
+  trailer.writeUInt32LE(data.length, 4);
+  return "MDRP1:" + Buffer.concat([Buffer.from([0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 3]), ...blocks, trailer]).toString("base64url");
+}
+
+/* The pastes, made while recording (this machine's zlib wrote their gzip). */
+function pastesOf() {
+  const doc = docOf("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A" }]);
   const json = Buffer.from(JSON.stringify(doc));
   const b64 = buf => buf.toString("base64url");
   const gz = (data, opts) => zlib.gzipSync(typeof data === "string" ? Buffer.from(data) : data, opts);
@@ -127,8 +181,8 @@ test("pastes read the same, passing and failing alike", { skip }, () => {
   }
   const half = Math.floor(json.length / 2);
   const flipped = Buffer.from(gz(json)); flipped[Math.floor(flipped.length / 2)] ^= 0x55;
-  const big = Buffer.from(JSON.stringify(SH.buildShareDoc({ name: "Big" }, Array.from({ length: 900 }, (_, i) => ({ title: "Track " + i, artist: "Artist " + (i % 11), album: "Album " + (i % 31), track_no: (i % 20) + 1, isrc: "GB" + (1000000 + i * 7919) }))).doc));
-  const pastes = [
+  const big = bigJson();
+  return [
     blob,
     "Here you go:\n" + blob.replace("MDRP1", "mdrp1").replace(/(.{40})/g, "$1\n") + "\nEnjoy",
     blob.replace(/(.{30})/g, "$1\n> ").replace(/^/, "> "),
@@ -150,7 +204,7 @@ test("pastes read the same, passing and failing alike", { skip }, () => {
     of(Buffer.concat([gz(json.subarray(0, half)), gz("x").subarray(0, 12)])),
     of(member(json, { name: "list.json", comment: "from a friend", extra: Buffer.from("AB\x02\x00hi"), hcrc: true, text: true })),
     of(member(json, { hcrc: "bad" })), of(member(json, { reserved: true })), of(member(json, { badCrc: true })), of(member(json, { badLength: true })),
-    of(member(json, { level: 0 })), of(member(json, { level: 1 })), of(member(big)), of(gz(big, { level: 0 })), of(flipped),
+    of(member(json, { level: 0 })), of(member(json, { level: 1 })), of(member(big)), BIG_STORED, of(flipped),
     of(member(json, { raw: Buffer.from([0x07, 0, 0, 0]) })), of(member(Buffer.alloc(0), { raw: Buffer.from([0x03, 0x00]) })),
     // Bytes that aren't UTF-8 in a title: each read as U+FFFD, the same number of them.
     of(gz(Buffer.concat([Buffer.from('{"playlist":{"title":"'), Buffer.from([0xff, 0xc3, 0x28, 0xed, 0xa0, 0x80, 0xf0, 0x9f, 0x98]), Buffer.from('","track":[]}}')]))),
@@ -160,12 +214,4 @@ test("pastes read the same, passing and failing alike", { skip }, () => {
     of('  {"playlist":{"track":[]}}\n\t'), of('{"playlist":{"track":[]}} x'), of('{"playlist":{"track":[01]}}'), of('{"playlist":{"track":["\\x"]}}'),
     "MDRP1:" + b64(Buffer.from("not gzip at all, just words")), "MDRP1:" + "A".repeat(100), "MDRP1:H4sI", "MDRP1:H4sIAAAAAAAAA"
   ];
-  const { decoded } = csharp({ decodes: pastes });
-  assert.equal(decoded.length, pastes.length);
-  for (const [i, p] of pastes.entries()) assert.deepStrictEqual(decoded[i], plain(nodeDecode(p)), "paste " + i + ": " + JSON.stringify(p.slice(0, 60)));
-  // The cases meant: read, and refused for each reason.
-  const said = decoded.map(d => d.doc ? "ok" : d.error.split(" — ")[0]);
-  assert.deepStrictEqual(said.slice(0, 9), ["ok", "ok", "ok", "That playlist is damaged", "ok", "ok", "ok", "That playlist is damaged", "That playlist is damaged"]);
-  assert.ok(said.includes("That doesn't look like a MusicD Remote playlist") && said.includes("That playlist is empty") &&
-    said.includes("That playlist has no tracks in it") && said.filter(s => s === "ok").length > 15, said.join(" | "));
-});
+}

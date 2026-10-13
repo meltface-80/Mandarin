@@ -1,9 +1,11 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert");
-const { parseZoneGroupState } = require("../lib/sonos/topology");
-const DIDL = require("../lib/sonos/didl");
-const { trackIdFromUri } = require("../lib/server/playback");
+const { built } = require("./server");
+const { score } = require("./score");
+
+// The C# server's (Playback/Topology.cs, Didl.cs, Phones.Commands.cs; lib/sonos/ and lib/server/playback.js until v0.8.50).
+const skip = built();
 
 const ZGS = `<ZoneGroupState><ZoneGroups>
 <ZoneGroup Coordinator="RINCON_A" ID="RINCON_A:1">
@@ -16,8 +18,8 @@ const ZGS = `<ZoneGroupState><ZoneGroups>
 </ZoneGroup>
 </ZoneGroups></ZoneGroupState>`;
 
-test("ZoneGroupState: rooms, groups, satellites and stereo pairs", () => {
-  const z = parseZoneGroupState(ZGS);
+test("ZoneGroupState: rooms, groups, satellites and stereo pairs", { skip }, () => {
+  const z = score({ fn: "topology", states: [ZGS] }).zones[0];
   assert.equal(z.length, 4);
   const dining = z.find(m => m.name === "Dining");
   assert.equal(dining.coordinatorUid, "RINCON_A");
@@ -26,17 +28,16 @@ test("ZoneGroupState: rooms, groups, satellites and stereo pairs", () => {
   assert.equal(z.find(m => m.uid === "RINCON_C").stereoPair, true);
 });
 
-test("DIDL carries the descriptor Sonos insists on, and parses back", () => {
-  const d = DIDL.build("http://h:1/stream/t5.flac", { title: "A & B", artist: "X", album: "Y", duration: 125, mime: "audio/flac" });
+test("DIDL carries the descriptor Sonos insists on, and parses back", { skip }, () => {
+  const d = score({ fn: "didl", builds: [{ uri: "http://h:1/stream/t5.flac", meta: { title: "A & B", artist: "X", album: "Y", duration: 125, mime: "audio/flac" } }] }).built[0];
   assert.match(d, /RINCON_AssociatedZPUDN/);
   assert.match(d, /http-get:\*:audio\/flac:\*/);
-  const [it] = DIDL.parseItems(d);
+  const [it] = score({ fn: "didl", docs: [d] }).items[0];
   assert.equal(it.title, "A & B");
   assert.equal(it.duration, 125);
   assert.equal(it.uri, "http://h:1/stream/t5.flac");
 });
 
-test("a queued URL says which library track it is", () => {
-  assert.equal(trackIdFromUri("http://10.0.0.2:3500/stream/t42.flac"), 42);
-  assert.equal(trackIdFromUri("x-sonos-spotify:abc"), null);
+test("a queued URL says which library track it is", { skip }, () => {
+  assert.deepEqual(score({ fn: "uris", uris: ["http://10.0.0.2:3500/stream/t42.flac", "x-sonos-spotify:abc"] }).tracks, [42, null]);
 });

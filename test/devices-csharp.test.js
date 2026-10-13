@@ -27,8 +27,7 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const { idFor } = require("../lib/renderers/discovery");
-const { FakeRenderer } = require("./fake-renderer");
+const { FakeRenderer, idFor } = require("./fake-renderer");
 const { FakeHousehold } = require("./fake-sonos");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");

@@ -14,14 +14,7 @@ internal static partial class Cpu
     /* wrap(bin, args, "realtime"): the audio engine and its decoder — playback's cores, raised (nice -n -10) where allowed. */
     public static void PlaceRealtime(ProcessStartInfo psi)
     {
-        Place(psi, CpuKind.Playback);
-        if (!Raise.Value) return;
-        var args = psi.ArgumentList.ToList();
-        psi.ArgumentList.Clear();
-        psi.ArgumentList.Add("-n");
-        psi.ArgumentList.Add("-10");
-        psi.ArgumentList.Add(psi.FileName);
-        foreach (var a in args) psi.ArgumentList.Add(a);
-        psi.FileName = "nice";
+        var p = plan;
+        Prefix(psi, ChainFor(CpuKind.Playback, Tools.Value, p.On, p.Playback, p.Background, raised: Raise.Value));
     }
 }

@@ -419,7 +419,7 @@ internal sealed partial class Updater
     private void Phase(string p, string version) { lock (gate) { phase = p; applyError = null; applyVersion = version; } }
 
     /* The downloaded release unpacked, by the system's tar; no shell (a path with a space stays one argument). */
-    private static bool Extract(string file, string dest)
+    internal static bool Extract(string file, string dest)
     {
         try
         {

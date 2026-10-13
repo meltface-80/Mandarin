@@ -135,7 +135,7 @@ internal static partial class TagReader
         return d >= 1 && d <= days ? $"{ym}-{m.Groups[3].Value}" : ym;
     }
 
-    private static (object? Year, object? Date) ReleaseDateOf(JsObj c)
+    internal static (object? Year, object? Date) ReleaseDateOf(JsObj c)
     {
         var year = YearOf(c["originaldate"]) ?? YearOf(c["originalyear"]) ?? YearOf(c["date"]) ?? YearOf(c["year"]);
         if (year is not double y) return (null, null);

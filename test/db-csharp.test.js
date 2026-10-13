@@ -16,13 +16,11 @@
  *   - the album edits kept twice: read back from album-edits.json into an
  *     empty table, and the file written where there are edits and none.
  *
- * And through the server: the Node server's database is the C# program's
- * (DB.open asks it, MANDARIN_SERVER_DB=1), the Features constructor making
- * none of its own; with a program that fails, the Node server's own code.
- *
- * Through the C# server only (MANDARIN_FRONT=1), which has the program built.
+ * Since v0.8.50 (stage 7 part 5) the Node server's databases, what it said
+ * and the edits it wrote are kept (test/golden.js's answers(),
+ * test/golden/db-csharp.json, made with RECORD_DB=1 while lib/ was here; its
+ * folder named "<dir>"), and `mandarin-server db` alone is held to them.
  */
-const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
@@ -30,12 +28,16 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const Database = require("better-sqlite3");
-const { makeLibrary } = require("./fixtures");
+const { answers } = require("./golden");
 
-const skip = process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1";
+const RECORD = process.env.RECORD_DB === "1";
+// The Node server's database code, asked while recording (lib/, until v0.8.50).
+const DB = RECORD ? require("../lib/library/db") : null;
+const Features = RECORD ? require("../lib/server/features").Features : null;
+const kept = answers("db-csharp", RECORD);
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const DB = require("../lib/library/db");
-const { Features } = require("../lib/server/features");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's databases (RECORD_DB=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-db-"));
 
@@ -76,6 +78,14 @@ function dump(file) {
     };
   } finally { db.close(); }
 }
+
+/* The Node server's side of a step (its database, what it said, a file it wrote: [node]() while recording), and the C# program's beside it ([mine]). */
+function held(what, mine, node) {
+  const names = Object.keys(mine);
+  kept.same(what, names, names, names.map(k => mine[k]), RECORD && (() => { const n = node(); return names.map(k => n[k]); }));
+}
+/* What was said, the folder named. */
+const said = (lines, dir) => lines.map(l => l.replace(/musicd\.old-\d+\.db/g, "musicd.old-<ms>.db").split(dir).join("<dir>"));
 
 /* Two copies of one start, a and b. */
 function twins(prepare) {
@@ -124,43 +134,45 @@ function foreignDatabase(dir) {
 
 test("a new database: the same tables, indexes, columns, version and journal", { skip }, () => {
   const { a, b } = twins();
-  const n = byNode(a), c = byCsharp(b);
-  assert.equal(n.made, "node");
+  const c = byCsharp(b);
   assert.deepEqual(c.said, { ok: true, existed: false, aside: null, version: 1 });
-  assert.deepEqual(c.lines, ["[musicd] new database at " + path.join(b, "musicd.db")], "said as the Node server says it");
-  assert.deepEqual(dump(path.join(b, "musicd.db")), dump(path.join(a, "musicd.db")));
+  held("a new database", { said: said(c.lines, b), db: dump(path.join(b, "musicd.db")) }, () => {
+    const n = byNode(a);
+    assert.equal(n.made, "node");
+    return { said: said(n.lines, a), db: dump(path.join(a, "musicd.db")) };
+  });
   // Asked again: nothing changes.
   assert.deepEqual(byCsharp(b).said, { ok: true, existed: true, aside: null, version: 1 });
-  assert.deepEqual(dump(path.join(b, "musicd.db")), dump(path.join(a, "musicd.db")));
+  held("a new database, asked again", { db: dump(path.join(b, "musicd.db")) }, () => ({ db: dump(path.join(a, "musicd.db")) }));
   assert.ok(!fs.existsSync(path.join(b, "album-edits.json")), "no edits, no file");
 });
 
 test("one from before the columns added since: brought up to date the same, its rows kept", { skip }, () => {
   const { a, b } = twins(oldDatabase);
-  byNode(a);
   const c = byCsharp(b);
   assert.deepEqual(c.said, { ok: true, existed: true, aside: null, version: 1 });
-  const da = dump(path.join(a, "musicd.db")), dc = dump(path.join(b, "musicd.db"));
-  assert.deepEqual(dc, da);
-  assert.ok(da.columns.albums.some(x => x.name === "mb_group") && da.columns.album_matches.some(x => x.name === "itunes"));
-  assert.equal(da.rows.albums.length, 1, "its album kept");
+  const dc = dump(path.join(b, "musicd.db"));
+  held("one from before the columns added since", { db: dc }, () => { byNode(a); return { db: dump(path.join(a, "musicd.db")) }; });
+  assert.ok(dc.columns.albums.some(x => x.name === "mb_group") && dc.columns.album_matches.some(x => x.name === "itunes"));
+  assert.equal(dc.rows.albums.length, 1, "its album kept");
 });
 
 test("one made by something else: moved aside, a fresh one made, what is worth keeping carried over", { skip }, () => {
   const { a, b } = twins(foreignDatabase);
-  const n = byNode(a), c = byCsharp(b);
-  const asideA = fs.readdirSync(a).find(f => /^musicd\.old-\d+\.db$/.test(f));
-  const asideB = fs.readdirSync(b).find(f => /^musicd\.old-\d+\.db$/.test(f));
-  assert.ok(asideA && asideB, "both moved it aside: " + fs.readdirSync(b).join(", "));
+  const c = byCsharp(b);
+  const aside = dir => fs.readdirSync(dir).find(f => /^musicd\.old-\d+\.db$/.test(f));
+  const asideB = aside(b);
+  assert.ok(asideB, "moved it aside: " + fs.readdirSync(b).join(", "));
   assert.equal(c.said.aside, path.join(b, asideB));
-  assert.deepEqual(dump(path.join(b, asideB)), dump(path.join(a, asideA)), "the old one as it was");
-  assert.deepEqual(dump(path.join(b, "musicd.db")), dump(path.join(a, "musicd.db")), "the new one, with what was kept");
-  // Said as the Node server says it (the file names aside).
-  const same = l => l.replace(/musicd\.old-\d+\.db/g, "musicd.old-<ms>.db").split(a).join("<dir>").split(b).join("<dir>");
-  assert.deepEqual(c.lines.map(same), n.lines.map(same));
-  assert.ok(n.lines.some(l => /kept 2 plays row\(s\)/.test(l)) && n.lines.some(l => /kept 1 album edits row\(s\)/.test(l)), n.lines.join("\n"));
-  // The edits it kept are written beside it too.
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(b, "album-edits.json"), "utf8")).edits, JSON.parse(fs.readFileSync(path.join(a, "album-edits.json"), "utf8")).edits);
+  // The old one as it was, the new one with what was kept, said as the Node server says it (the file names aside), and the
+  // edits it kept written beside it too.
+  const edits = dir => JSON.parse(fs.readFileSync(path.join(dir, "album-edits.json"), "utf8")).edits;
+  held("one made by something else", { old: dump(path.join(b, asideB)), db: dump(path.join(b, "musicd.db")), said: said(c.lines, b), edits: edits(b) }, () => {
+    const n = byNode(a);
+    assert.ok(aside(a), "the Node server moved it aside");
+    return { old: dump(path.join(a, aside(a))), db: dump(path.join(a, "musicd.db")), said: said(n.lines, a), edits: edits(a) };
+  });
+  assert.ok(c.lines.some(l => /kept 2 plays row\(s\)/.test(l)) && c.lines.some(l => /kept 1 album edits row\(s\)/.test(l)), c.lines.join("\n"));
 });
 
 test("one from a newer version (its user_version ahead): kept and used as it is", { skip }, () => {
@@ -169,9 +181,8 @@ test("one from a newer version (its user_version ahead): kept and used as it is"
     db.exec("CREATE TABLE albums (id INTEGER PRIMARY KEY, name TEXT); PRAGMA user_version = 7;");
     db.close();
   });
-  byNode(a);
   assert.equal(byCsharp(b).said.aside, null);
-  assert.deepEqual(dump(path.join(b, "musicd.db")), dump(path.join(a, "musicd.db")));
+  held("one from a newer version", { db: dump(path.join(b, "musicd.db")) }, () => { byNode(a); return { db: dump(path.join(a, "musicd.db")) }; });
   assert.ok(!fs.readdirSync(b).some(f => f.startsWith("musicd.old-")));
 });
 
@@ -183,47 +194,28 @@ test("the album edits kept twice: read back from album-edits.json, and the file 
     { title: "no key" }
   ] };
   const { a, b } = twins(dir => fs.writeFileSync(path.join(dir, "album-edits.json"), JSON.stringify(edits)));
-  const n = byNode(a), c = byCsharp(b);
-  assert.deepEqual(dump(path.join(b, "musicd.db")), dump(path.join(a, "musicd.db")));
-  assert.deepEqual(c.lines.filter(l => /restored/.test(l)).map(l => l.split(b).join("<dir>")), n.lines.filter(l => /restored/.test(l)).map(l => l.split(a).join("<dir>")));
-  assert.match(n.lines.join("\n"), /restored 2 album edit\(s\)/);
+  const c = byCsharp(b);
+  const restored = (lines, dir) => said(lines.filter(l => /restored/.test(l)), dir);
+  held("the album edits read back", { db: dump(path.join(b, "musicd.db")), said: restored(c.lines, b) }, () => {
+    const n = byNode(a);
+    return { db: dump(path.join(a, "musicd.db")), said: restored(n.lines, a) };
+  });
+  assert.match(c.lines.join("\n"), /restored 2 album edit\(s\)/);
   // Written: edits in the database, no file yet.
   for (const d of [a, b]) fs.rmSync(path.join(d, "album-edits.json"));
-  byNode(a);
   byCsharp(b);
-  const fa = JSON.parse(fs.readFileSync(path.join(a, "album-edits.json"), "utf8"));
-  const fb = JSON.parse(fs.readFileSync(path.join(b, "album-edits.json"), "utf8"));
+  const file = dir => JSON.parse(fs.readFileSync(path.join(dir, "album-edits.json"), "utf8"));
+  const fb = file(b);
   assert.ok(Math.abs(fb.saved_at - Date.now()) < 60000);
-  assert.deepEqual(Object.assign({}, fb, { saved_at: 0 }), Object.assign({}, fa, { saved_at: 0 }));
-  assert.equal(fa.edits.length, 2);
+  held("the album edits written", { file: Object.assign({}, fb, { saved_at: 0 }) }, () => { byNode(a); return { file: Object.assign({}, file(a), { saved_at: 0 }) }; });
+  assert.equal(fb.edits.length, 2);
   // An unreadable file: nothing read, the database made all the same.
   const { a: a2, b: b2 } = twins(dir => fs.writeFileSync(path.join(dir, "album-edits.json"), "{ not json"));
-  const n2 = byNode(a2), c2 = byCsharp(b2);
-  assert.ok(n2.lines.some(l => /is unreadable/.test(l)) && c2.lines.some(l => /is unreadable/.test(l)));
-  assert.deepEqual(dump(path.join(b2, "musicd.db")), dump(path.join(a2, "musicd.db")));
-});
-
-test("through the server: the Node server's database made by the C# program; one that fails, made by the Node server", { skip, timeout: 60000 }, async () => {
-  const lib = makeLibrary();
-  const PORT = ports.port();
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
-    sonosHosts: [], upnpMulticast: false, identify: false });
-  const ctx = await srv.start();
-  try {
-    assert.equal(ctx.db.madeBy, "csharp", "made by the C# program");
-    assert.ok(ctx.db.raw.prepare("SELECT 1 FROM sqlite_master WHERE name = 'radio_played'").get(), "Smart Picks' and the radio's tables with it");
-  } finally { await srv.stop(); }
-  // A program that can't (here, one that isn't there): the Node server's own code, as before.
-  const dir = tmp();
-  const lines = [];
-  const db = DB.open(dir, { log: l => lines.push(l), program: path.join(dir, "no-such-program") });
-  try {
-    assert.equal(db.madeBy, "node");
-    assert.ok(lines.some(l => /the C# server didn't make the database/.test(l)), lines.join("\n"));
-    new Features({ db, log: () => {} });
-    const ref = tmp();
-    byCsharp(ref);
-    db.raw.pragma("wal_checkpoint(TRUNCATE)");
-    assert.deepEqual(dump(path.join(dir, "musicd.db")).master, dump(path.join(ref, "musicd.db")).master);
-  } finally { db.close(); }
+  const c2 = byCsharp(b2);
+  assert.ok(c2.lines.some(l => /is unreadable/.test(l)));
+  held("an unreadable album-edits.json", { db: dump(path.join(b2, "musicd.db")) }, () => {
+    const n2 = byNode(a2);
+    assert.ok(n2.lines.some(l => /is unreadable/.test(l)));
+    return { db: dump(path.join(a2, "musicd.db")) };
+  });
 });

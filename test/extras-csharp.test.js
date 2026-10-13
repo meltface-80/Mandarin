@@ -7,22 +7,31 @@
  * lib/labellogos.js) — each asked of both, the C# server through
  * `mandarin-server score`, over awkward names and generated cases,
  * deepStrictEqual. The passes and routes themselves run against the C# server
- * in their own tests in MANDARIN_FRONT=1. Skipped where the C# server isn't built.
+ * in their own tests. Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/extras-csharp.json), made with
+ * RECORD_EXTRAS=1 while lib/ was here; the cases are still made here, seeded,
+ * and the C# program alone is held to them case for case. A year after this
+ * one (Deezer's "not a typo" limit) is kept as "<next year>", so the
+ * recording holds whatever the year.
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const share = require("../lib/share-links");
-const similar = require("../lib/similar");
-const { playedArtists } = require("../lib/played-artists");
-const { matchDays, queryFor, baseTitle } = require("../lib/library/dates");
-const { plainName } = require("../lib/labellookup");
-const { typeOf } = require("../lib/labellogos");
+const { answers } = require("./golden");
+
+const RECORD = process.env.RECORD_EXTRAS === "1";
+// The Node server's modules, asked while recording (lib/, until v0.8.50).
+const NODE = RECORD ? { share: require("../lib/share-links"), similar: require("../lib/similar"), ...require("../lib/played-artists"), ...require("../lib/library/dates"),
+  ...require("../lib/labellookup"), ...require("../lib/labellogos") } : null;
+const kept = answers("extras-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_EXTRAS=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
   const r = spawnSync(BIN, ["score"], { input: JSON.stringify(job) + "\n", maxBuffer: 256 * 1024 * 1024 });
@@ -31,7 +40,12 @@ function csharp(job) {
   assert.ok(!out.error, out.error);
   return out;
 }
-const plain = v => JSON.parse(JSON.stringify(v));
+const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, cases, got, want) => kept.same(what, cases.map(() => what), cases, got, RECORD && (() => plain(want())));
+/* A year after this one as "<next year>", wherever an answer holds a year: the limit moves with the clock, both sides alike. */
+const NEXT = new Date().getFullYear() + 1;
+const rel = v => Array.isArray(v) ? v.map(rel) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === "year" && x === NEXT ? "<next year>" : rel(x)])) : v;
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -65,15 +79,14 @@ test("the share card's links: the first act, the query, the storefront, the lang
       wikipedia: pick([null, "", "https://en.wikipedia.org/wiki/Kid_A"]), pitchfork: pick([null, "https://pitchfork.com/reviews/albums/x"]),
       wikipedia_artist: pick([null, "https://en.wikipedia.org/wiki/Radiohead"]), ids: pick(ids) });
   }
-  const node = cases.map(c => ({
-    primary: share.primaryArtist(c.artist), query: share.searchQuery(c.artist, c.album), storefront: share.qobuzStorefront(c.locale),
-    locale: share.localeFromAcceptLanguage(c.accept),
-    services: share.serviceLinks(c.artist, c.album, { locale: c.locale, enabled: c.enabled }),
-    reviews: share.reviewLinks(c.artist, c.album, { enabled: c.reviews, wikipediaUrl: c.wikipedia, pitchforkUrl: c.pitchfork, wikipediaArtistUrl: c.wikipedia_artist }),
-    services_kept: share.sanitiseIds(c.ids, share.knownServiceIds()), reviews_kept: share.sanitiseIds(c.ids, share.knownReviewIds())
-  }));
   const got = csharp({ fn: "share", cases }).share;
-  for (let i = 0; i < cases.length; i++) assert.deepStrictEqual(got[i], plain(node[i]), JSON.stringify(cases[i]));
+  same("share links", cases, got, () => cases.map(c => ({
+    primary: NODE.share.primaryArtist(c.artist), query: NODE.share.searchQuery(c.artist, c.album), storefront: NODE.share.qobuzStorefront(c.locale),
+    locale: NODE.share.localeFromAcceptLanguage(c.accept),
+    services: NODE.share.serviceLinks(c.artist, c.album, { locale: c.locale, enabled: c.enabled }),
+    reviews: NODE.share.reviewLinks(c.artist, c.album, { enabled: c.reviews, wikipediaUrl: c.wikipedia, pitchforkUrl: c.pitchfork, wikipediaArtistUrl: c.wikipedia_artist }),
+    services_kept: NODE.share.sanitiseIds(c.ids, NODE.share.knownServiceIds()), reviews_kept: NODE.share.sanitiseIds(c.ids, NODE.share.knownReviewIds())
+  })));
 });
 
 /* Deezer's answers, generated: rows of every shape the readers must take. */
@@ -144,27 +157,42 @@ test("the suggestions: Deezer read, the taste graph, the ranking, the draw, the 
     }
     tastes.push({ seeds, related: rel, now });
   }
-  // The ranking and the draw over real pools.
-  const ranks = [], chooses = [];
+  // The ranking and the draw over real pools: Deezer's rows, each from its own seed, read as held just below.
+  const rankRows = Array.from({ length: 200 }, (_, i) => { const g = rng(4000 + i); return { data: deezerRows(g, Math.floor(g() * 25)) }; });
+  const first = csharp({ fn: "similar", names: NAMES.concat(VALUES), overlaps, artists, related, pools: pools.concat(rankRows), years, tops, album_lists: albumLists, tastes });
+  const rankPools = first.pools.slice(pools.length);
+  const rankNames = rankPools.flatMap(p => p.map(a => a.name));
+  const normals = csharp({ fn: "similar", names: rankNames }).normalize;
+  same("normalize", NAMES.concat(VALUES), first.normalize, () => NAMES.concat(VALUES).map(n => NODE.similar.normalize(n)));
+  same("normalize (the ranking's)", rankNames, normals, () => rankNames.map(n => NODE.similar.normalize(n)));
+  same("namesOverlap", overlaps, first.overlap, () => overlaps.map(([a, b]) => NODE.similar.namesOverlap(a, b)));
+  same("readDeezerArtists", artists, first.artists, () => artists.map(c => NODE.similar.readDeezerArtists(c.json, c.artist)));
+  same("readDeezerRelated", related, first.related, () => related.map(c => NODE.similar.readDeezerRelated(c.json, c.wanted)));
+  same("readDeezerPool", pools.concat(rankRows), first.pools, () => pools.concat(rankRows).map(j => NODE.similar.readDeezerPool(j)));
+  same("yearOf", years, rel(first.years), () => rel(years.map(y => NODE.similar.yearOf(y))));
+  same("readDeezerTop", tops, first.tops, () => tops.map(j => NODE.similar.readDeezerTop(j)));
+  same("readDeezerAlbumList", albumLists, rel(first.album_lists), () => rel(albumLists.map(j => NODE.similar.readDeezerAlbumList(j))));
+  same("tasteGraph", tastes, first.tastes, () => tastes.map(t => [...NODE.similar.tasteGraph(t.seeds, n => t.related[n], t.now).entries()]));
+
+  // Ranked over the pools with the taste graphs read above (the Node server's, as held), then drawn from as ranked.
+  const ranks = [], rnds = [];
+  let at = 0;
   for (let i = 0; i < 200; i++) {
-    const pool = similar.readDeezerPool({ data: deezerRows(r, Math.floor(r() * 25)) });
-    const g = tastes[i % tastes.length];
-    const graph = similar.tasteGraph(g.seeds, n => g.related[n], g.now);
+    const pool = rankPools[i], normal = normals.slice(at, at += pool.length);
     const known = {};
     for (const a of pool) if (r() < 0.3) known[a.name] = r() < 0.5 ? "library" : "played";
-    const heavy = pool.filter(() => r() < 0.1).map(a => similar.normalize(a.name));
+    const heavy = normal.filter(() => r() < 0.1);
     const shown = pool.filter(() => r() < 0.2).map(a => a.id);
     const playing = r() < 0.2 ? null : pool.length && r() < 0.3 ? pool[0].name : "Artist A";
-    ranks.push({ pool, playing, taste: [...graph.entries()], known, heavy, shown });
-    const ranked = similar.rankActs(pool, { playing, taste: graph, known: n => known[n] || null, heavy: new Set(heavy), shown: new Set(shown) });
-    chooses.push({ ranked: plain(ranked), rnd: Array.from({ length: 5 }, () => r()) });
+    ranks.push({ pool, playing, taste: first.tastes[i % tastes.length], known, heavy, shown });
+    rnds.push(Array.from({ length: 5 }, () => r()));
   }
   const reasons = [], records = [];
   for (let i = 0; i < 200; i++) {
     const act = { id: "1", name: "Act", known: [null, "library", "played"][Math.floor(r() * 3)], via: ["Seed One", "Artist A", "Seed Two", "artist a"].filter(() => r() < 0.5) };
     reasons.push({ act, playing: r() < 0.2 ? null : r() < 0.5 ? "" : "Artist A" });
-    const albums = similar.readDeezerAlbumList(albumLists[i % albumLists.length]);
-    const top = similar.readDeezerTop(tops[i % tops.length]);
+    const albums = first.album_lists[i % albumLists.length];
+    const top = first.tops[i % tops.length];
     records.push({ act, top, albums, owned: albums.filter(() => r() < 0.4).map(a => a.title).concat(r() < 0.3 && top ? [top.title] : []) });
   }
   const played = [];
@@ -176,28 +204,16 @@ test("the suggestions: Deezer read, the taste graph, the ranking, the draw, the 
     played.push({ rows, limit: [8, 40, 1, 0, 3][Math.floor(r() * 5)] });
   }
 
-  const got = csharp({ fn: "similar", names: NAMES.concat(VALUES), overlaps, artists, related, pools, years, tops, album_lists: albumLists, tastes, ranks, chooses, reasons, records, played });
-  assert.deepStrictEqual(got.normalize, NAMES.concat(VALUES).map(n => similar.normalize(n)));
-  assert.deepStrictEqual(got.overlap, overlaps.map(([a, b]) => similar.namesOverlap(a, b)));
-  artists.forEach((c, i) => assert.deepStrictEqual(got.artists[i], plain(similar.readDeezerArtists(c.json, c.artist)), JSON.stringify(c)));
-  related.forEach((c, i) => assert.deepStrictEqual(got.related[i], plain(similar.readDeezerRelated(c.json, c.wanted)), JSON.stringify(c)));
-  pools.forEach((j, i) => assert.deepStrictEqual(got.pools[i], plain(similar.readDeezerPool(j)), JSON.stringify(j)));
-  assert.deepStrictEqual(got.years, plain(years.map(y => similar.yearOf(y))));
-  tops.forEach((j, i) => assert.deepStrictEqual(got.tops[i], plain(similar.readDeezerTop(j)), JSON.stringify(j)));
-  albumLists.forEach((j, i) => assert.deepStrictEqual(got.album_lists[i], plain(similar.readDeezerAlbumList(j)), JSON.stringify(j)));
-  tastes.forEach((t, i) => assert.deepStrictEqual(got.tastes[i], plain([...similar.tasteGraph(t.seeds, n => t.related[n], t.now).entries()]), JSON.stringify(t)));
-  ranks.forEach((c, i) => {
-    const want = similar.rankActs(c.pool, { playing: c.playing, taste: new Map(c.taste), known: n => c.known[n] || null, heavy: new Set(c.heavy), shown: new Set(c.shown) });
-    assert.deepStrictEqual(got.ranks[i], plain(want), JSON.stringify(c));
-  });
-  chooses.forEach((c, i) => {
+  const second = csharp({ fn: "similar", ranks, reasons, records, played });
+  same("rankActs", ranks, second.ranks, () => ranks.map(c => NODE.similar.rankActs(c.pool, { playing: c.playing, taste: new Map(c.taste), known: n => c.known[n] || null, heavy: new Set(c.heavy), shown: new Set(c.shown) })));
+  same("reasonFor", reasons, second.reasons, () => reasons.map(c => NODE.similar.reasonFor(c.act, c.playing)));
+  same("recordFor", records, rel(second.records), () => rel(records.map(c => NODE.similar.recordFor(c.act, c.top, c.albums, c.owned))));
+  same("playedArtists", played, second.played, () => played.map(c => NODE.playedArtists(c.rows, { split: NODE.share.primaryArtist, limit: c.limit })));
+  const chooses = second.ranks.map((ranked, i) => ({ ranked, rnd: rnds[i] }));
+  same("choose", chooses, csharp({ fn: "similar", chooses }).chooses, () => chooses.map(c => {
     let k = 0;
-    const want = similar.choose(plain(c.ranked), { rnd: () => c.rnd[k++ % c.rnd.length] }).map(a => a.id);
-    assert.deepStrictEqual(got.chooses[i], want, JSON.stringify(c));
-  });
-  reasons.forEach((c, i) => assert.equal(got.reasons[i], similar.reasonFor(c.act, c.playing), JSON.stringify(c)));
-  records.forEach((c, i) => assert.deepStrictEqual(got.records[i], plain(similar.recordFor(c.act, c.top, c.albums, c.owned)), JSON.stringify(c)));
-  played.forEach((c, i) => assert.deepStrictEqual(got.played[i], plain(playedArtists(c.rows, { split: share.primaryArtist, limit: c.limit })), JSON.stringify(c)));
+    return NODE.similar.choose(plain(c.ranked), { rnd: () => c.rnd[k++ % c.rnd.length] }).map(a => a.id);
+  }));
 });
 
 test("the release days: a group's day matched to an album only by its title, artist and year", { skip }, () => {
@@ -226,12 +242,9 @@ test("the release days: a group's day matched to an album only by its title, art
     batches.push({ albums, groups: r() < 0.03 ? undefined : groups });
   }
   const got = csharp({ fn: "days", titles, batches });
-  assert.deepStrictEqual(got.base, titles.map(t => baseTitle(t)));
-  batches.forEach((b, i) => {
-    assert.equal(got.query[i], queryFor(b.albums));
-    const days = matchDays(b.albums, b.groups);
-    assert.deepStrictEqual(got.days[i], b.albums.map(a => [a.key, days.get(a.key)]), JSON.stringify(b));
-  });
+  same("baseTitle", titles, got.base, () => titles.map(t => NODE.baseTitle(t)));
+  same("queryFor", batches, got.query, () => batches.map(b => NODE.queryFor(b.albums)));
+  same("matchDays", batches, got.days, () => batches.map(b => { const days = NODE.matchDays(b.albums, b.groups); return b.albums.map(a => [a.key, days.get(a.key)]); }));
 });
 
 test("the labels' rules: Discogs' numbered names, an image's kind from its bytes", { skip }, () => {
@@ -244,6 +257,6 @@ test("the labels' rules: Discogs' numbered names, an image's kind from its bytes
     [Buffer.from("RIFF\x10\x00\x00\x00webp", "latin1"), null], [Buffer.from([0xff, 0xd8, 0xff]), null], [Buffer.from([0xff, 0xd8, 0xff, 0xdb]), null]
   ];
   const got = csharp({ fn: "labels", plain: names, images: bufs.map(([b, t]) => ({ b64: b.toString("base64"), type: t })) });
-  assert.deepStrictEqual(got.plain, names.map(n => plainName(n)));
-  assert.deepStrictEqual(got.types, bufs.map(([b, t]) => typeOf(b, t)));
+  same("plainName", names, got.plain, () => names.map(n => NODE.plainName(n)));
+  same("typeOf", bufs.map(([b, t]) => ({ b64: b.toString("base64"), type: t })), got.types, () => bufs.map(([b, t]) => NODE.typeOf(b, t)));
 });

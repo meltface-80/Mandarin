@@ -53,7 +53,5 @@
   "lib/tidal/index.js",
   "lib/updater.js",
   "lib/waveform-decode.js",
-  "tools/identify-probe.js",
-  "tools/identify-report.js",
   "tools/mbpack/build.js"
 ]

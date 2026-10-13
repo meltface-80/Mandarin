@@ -8,19 +8,38 @@
  * changed, a folder renamed, files gone, most of a folder gone at once, a
  * drive gone, a forced rescan, the regroup). Their results and what they say
  * are compared too. Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's side is kept
+ * (test/golden.js's answers(), test/golden/scan-csharp.json, made with
+ * RECORD_SCAN=1 while lib/ was here) and `mandarin-server scan` alone is held
+ * to it, step for step. What depends on the machine is held by rule: the
+ * folder's own path; a file's length and time as the file has them, and the
+ * cover's key the scan makes from those; a lossy file's length in seconds as
+ * the C# reader reads it (test/tags-front.test.js holds the reader to
+ * music-metadata) and an album's as its tracks' sum; ffmpeg's name in the
+ * tags it writes; times of the scan as "<now>". The emptied folder is filled
+ * again before the regroup (its forgetting, Settings' and the C# server's own
+ * now, is held in test/scans-csharp.test.js).
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 const { spawnSync } = require("child_process");
+const Database = require("better-sqlite3");
 const { haveFfmpeg, gen, FFMPEG } = require("./fixtures");
-const DB = require("../lib/library/db");
-const { Scanner } = require("../lib/library/scanner");
+const { answers } = require("./golden");
+
+const RECORD = process.env.RECORD_SCAN === "1";
+// The Node server's scanner, asked while recording (lib/, until v0.8.50).
+const NODE = RECORD ? { DB: require("../lib/library/db"), Scanner: require("../lib/library/scanner").Scanner } : null;
+const kept = answers("scan-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)");
+const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") ||
+  (!RECORD && !kept.exists() && "no recording of the Node server's scans (RECORD_SCAN=1 made it)");
 
 /* A music folder with something of everything. */
 function makeMixedLibrary() {
@@ -90,53 +109,150 @@ function makeMixedLibrary() {
 
 // albums.updated_at is the time of the write; everything else must be the same.
 const VOLATILE = { albums: ["updated_at"] };
-function dump(db) {
+/* Every table: its columns and its rows, each value beside the kind SQLite keeps it as. */
+function dump(raw) {
   const out = {};
-  for (const { name } of db.raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all()) {
-    const cols = db.raw.prepare(`PRAGMA table_info(${name})`).all().map(c => c.name).filter(c => !(VOLATILE[name] || []).includes(c));
+  for (const { name } of raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all()) {
+    const cols = raw.prepare(`PRAGMA table_info(${name})`).all().map(c => c.name).filter(c => !(VOLATILE[name] || []).includes(c));
     if (!cols.length) continue;
     const list = cols.map(c => `"${c}", typeof("${c}")`).join(", ");
-    out[name] = db.raw.prepare(`SELECT ${list} FROM ${name} ORDER BY rowid`).raw().all();
+    out[name] = { cols, rows: raw.prepare(`SELECT ${list} FROM ${name} ORDER BY rowid`).raw().all() };
   }
   return out;
 }
 
-function same(a, b, what) {
-  const da = dump(a), db = dump(b);
-  for (const t of Object.keys(da)) assert.deepStrictEqual(db[t], da[t], `${what}: table ${t}`);
-  assert.deepStrictEqual(Object.keys(db), Object.keys(da), what + ": the tables");
+/* The scan made by the C# server's program, as the server has it made: the job on its input, a line of JSON each thing it says. */
+function scanCs(dataDir, root, { force = false, massRemoval = 500 } = {}) {
+  const r = spawnSync(BIN, ["scan"], { input: JSON.stringify({ dataDir, root, roots: [path.resolve(root)], massRemoval, force, slots: 2 }), maxBuffer: 256 * 1024 * 1024 });
+  const out = { lines: [], result: null, state: null };
+  for (const l of String(r.stdout).split("\n").filter(Boolean)) {
+    const m = JSON.parse(l);
+    if (m.type === "log") out.lines.push(m.line);
+    else if (m.type === "state" || m.type === "progress") out.state = m.state;
+    else if (m.type === "result") { out.result = m.result; out.state = m.state; }
+    else if (m.type === "error") throw new Error(m.message);
+  }
+  assert.ok(out.result, "the scan's result\n" + r.stderr);
+  return out;
 }
 
 const said = (lines) => lines
   .filter(l => !/made by the C# server/.test(l))
   .map(l => l.replace(/ in \d+\.\ds$/, " in …s"));
-
 function result(r) {
   const o = Object.assign({}, r);
   delete o.ms;
   return o;
 }
+const STATE = ["files", "parsed", "errors", "progress", "running"];
+
+/*
+ * What the files are, read before each scan: each one's length and time (the last seen, for one gone since), and
+ * a lossy file's length in seconds as the C# reader reads it.
+ */
+function looker(music) {
+  const stats = new Map(), seconds = new Map();
+  const walk = (dir) => {
+    let names;
+    try { names = fs.readdirSync(dir); } catch (e) { return; }
+    for (const n of names) {
+      const p = path.join(dir, n);
+      let st;
+      try { st = fs.statSync(p); } catch (e) { continue; }
+      if (st.isDirectory()) { if (!fs.lstatSync(p).isSymbolicLink() || !stats.has(p + "/")) { stats.set(p + "/", st); walk(p); } }
+      else stats.set(p, st);
+    }
+  };
+  return {
+    stats, seconds,
+    look() {
+      for (const k of [...stats.keys()]) if (k.endsWith("/")) stats.delete(k);
+      walk(music);
+      const lossy = [...stats.keys()].filter(p => /\.(mp3|m4a)$/i.test(p) && fs.existsSync(p));
+      if (lossy.length) {
+        const r = spawnSync(BIN, ["tags"], { input: lossy.join("\n") });
+        for (const l of String(r.stdout).trim().split("\n").filter(Boolean)) { const x = JSON.parse(l); if (x.ok) seconds.set(x.path, x.tags.duration); }
+      }
+    }
+  };
+}
+
+/* A database's tables, with what depends on the machine held by rule (above) and named for it. */
+function normalised(tables, root, files) {
+  const now = Date.now(), DAY = 86400000;
+  const text = v => typeof v === "string" ? v.split(root).join("<root>").replace(/Lav[fc]\d+(\.\d+)+/g, "Lav<ffmpeg>") : v;
+  const at = (t, c) => tables[t] ? tables[t].cols.indexOf(c) * 2 : -1;
+  const T = tables.tracks, A = tables.albums;
+  const ruled = new Set();   // "table:row:col" held by rule
+  if (T) {
+    const [pathAt, mtimeAt, sizeAt, durAt, lossAt, albumAt] = ["path", "mtime", "size", "duration", "lossless", "album_id"].map(c => at("tracks", c));
+    for (const [i, r] of T.rows.entries()) {
+      const st = files.stats.get(r[pathAt]);
+      if (st && r[mtimeAt] === Math.floor(st.mtimeMs)) { r[mtimeAt] = "<the file's time>"; ruled.add(`tracks:${i}:${mtimeAt}`); }
+      if (st && r[sizeAt] === st.size) { r[sizeAt] = "<the file's length>"; ruled.add(`tracks:${i}:${sizeAt}`); }
+      if (r[lossAt] === 0 && files.seconds.has(r[pathAt]) && r[durAt] === files.seconds.get(r[pathAt])) { r[durAt] = "<as the reader reads it>"; ruled.add(`tracks:${i}:${durAt}`); }
+    }
+    if (A) {
+      const [idAt, hashAt, artAt, aDurAt] = ["id", "art_hash", "art_path", "duration"].map(c => at("albums", c));
+      for (const [i, a] of A.rows.entries()) {
+        const mine = T.rows.filter(r => r[albumAt] === a[idAt]);
+        // Its cover's key: sha1 of a file's path, length and time (the cover's, else a track's).
+        const keyOf = (p) => { const st = files.stats.get(p); return st ? crypto.createHash("sha1").update(`${p}|${st.size}|${st.mtimeMs}`).digest("hex").slice(0, 10) : null; };
+        const from = [a[artAt]].concat(mine.map(r => r[pathAt])).find(p => p && a[hashAt] && keyOf(p) === a[hashAt]);
+        if (from) { a[hashAt] = "<the key of " + text(from) + ">"; ruled.add(`albums:${i}:${hashAt}`); }
+        // A lossy album's length: its tracks' as read, summed.
+        if (mine.some(r => r[lossAt] === 0)) {
+          const durs = mine.map(r => files.seconds.has(r[pathAt]) && r[lossAt] === 0 ? files.seconds.get(r[pathAt]) : r[durAt]);
+          const sum = durs.reduce((x, y) => x + y, 0), back = durs.slice().reverse().reduce((x, y) => x + y, 0);
+          if (a[aDurAt] === sum || a[aDurAt] === back) { a[aDurAt] = "<its tracks' summed>"; ruled.add(`albums:${i}:${aDurAt}`); }
+        }
+      }
+    }
+  }
+  for (const [t, { rows }] of Object.entries(tables)) {
+    for (const [i, r] of rows.entries()) {
+      for (let j = 0; j < r.length; j += 2) {
+        if (ruled.has(`${t}:${i}:${j}`)) continue;
+        if (typeof r[j] === "number" && r[j] > now - 3 * DAY && r[j] < now + DAY && !(t === "tracks" && j === at("tracks", "mtime"))) r[j] = "<now>";
+        else r[j] = text(r[j]);
+      }
+    }
+  }
+  return tables;
+}
+/* Anything else said: the folder's own path, and times, by name. */
+const named = (v, root) => JSON.parse(JSON.stringify(v), (k, x) => typeof x === "string" ? x.split(root).join("<root>") : typeof x === "number" && x > Date.now() - 3 * 86400000 ? "<now>" : x);
 
 test("the scan made by the C# server writes what the Node server's scan writes", { skip, timeout: 300000 }, async () => {
   const lib = makeMixedLibrary();
-  const dbs = { node: DB.open(path.join(lib.root, "data-node"), { log: () => {} }), cs: DB.open(path.join(lib.root, "data-cs"), { log: () => {} }) };
-  const lines = { node: [], cs: [] };
-  const scanners = (opts = {}) => ({
-    node: new Scanner(Object.assign({ db: dbs.node, root: lib.music, log: l => lines.node.push(l), program: null }, opts)),
-    cs: new Scanner(Object.assign({ db: dbs.cs, root: lib.music, log: l => lines.cs.push(l), program: BIN }, opts))
-  });
-  let s = scanners();
+  const files = looker(lib.music);
+  const csData = path.join(lib.root, "data-cs");
+  assert.equal(spawnSync(BIN, ["db", csData]).status, 0, "the C# server's database made");
+  // The Node server's database as it started one (DB.open, then the Features constructor's tables), as `mandarin-server db` makes it.
+  const node = RECORD ? { db: NODE.DB.open(path.join(lib.root, "data-node"), { log: () => {} }), lines: [] } : null;
+  if (RECORD) new (require("../lib/server/features").Features)({ db: node.db, log: () => {} });
+  const nodeScanner = (opts = {}) => new NODE.Scanner(Object.assign({ db: node.db, root: lib.music, log: l => node.lines.push(l), program: null }, opts));
+  let s = RECORD ? nodeScanner() : null, massRemoval = 500, scanRoot = lib.music;
+  // Each database, opened for a moment: written to between scans, or read whole.
+  const withDb = (fn) => { const d = new Database(path.join(csData, "musicd.db")); try { return fn(d); } finally { d.close(); } };
   const both = async (what, opts = {}) => {
-    lines.node.length = 0;
-    lines.cs.length = 0;
-    const a = await s.node.scan(opts);
-    const b = await s.cs.scan(opts);
-    assert.ok(lines.cs.some(l => /made by the C# server/.test(l)), what + ": the C# server made it\n" + lines.cs.join("\n"));
-    assert.deepStrictEqual(result(b), result(a), what + ": the results");
-    assert.deepStrictEqual(said(lines.cs), said(lines.node), what + ": what each said");
-    for (const k of ["files", "parsed", "errors", "progress", "running"]) assert.strictEqual(s.cs.state[k], s.node.state[k], `${what}: state.${k}`);
-    same(dbs.node, dbs.cs, what);
-    return a;
+    files.look();
+    let want = null;
+    if (RECORD) {
+      node.lines.length = 0;
+      const a = await s.scan(opts);
+      want = { result: named(result(a), lib.root), said: named(said(node.lines), lib.root), state: STATE.map(k => s.state[k]), tables: normalised(dump(node.db.raw), lib.root, files) };
+    }
+    const c = scanCs(csData, scanRoot, Object.assign({ massRemoval }, opts));
+    assert.ok(c.lines.some(l => /made by the C# server/.test(l)), what + ": the C# server made it\n" + c.lines.join("\n"));
+    const tables = normalised(withDb(d => dump(d)), lib.root, files);
+    kept.same(what + ": the result, what was said, the state", ["result", "said", "state"], [what], [named(result(c.result), lib.root), named(said(c.lines), lib.root), STATE.map(k => c.state[k])],
+      RECORD && (() => [want.result, want.said, want.state]));
+    kept.same(what + ": the tables", ["tables"], [what], [Object.keys(tables)], RECORD && (() => [Object.keys(want.tables)]));
+    for (const t of Object.keys(tables)) {
+      kept.same(`${what}: table ${t}`, tables[t].rows.map((_, i) => `${t} row ${i + 1}`), tables[t].rows.map(() => tables[t].cols), tables[t].rows, RECORD && (() => want.tables[t].rows));
+    }
+    return c.result;
   };
   try {
     const first = await both("the first scan");
@@ -145,16 +261,20 @@ test("the scan made by the C# server writes what the Node server's scan writes",
     assert.ok(first.errors >= 1, "the broken file said so");
 
     // What hangs on an album's key, put on Album One in each database.
-    const key = dbs.node.raw.prepare("SELECT key FROM albums WHERE title = 'Album One'").get().key;
-    const song1 = dbs.node.raw.prepare("SELECT id FROM tracks WHERE title = 'Song 1'").get().id;
-    for (const d of [dbs.node, dbs.cs]) {
-      d.raw.prepare("INSERT INTO favourites(key, added_at) VALUES(?, 1)").run(key);
-      d.raw.prepare("INSERT INTO album_edits(key, year, updated_at) VALUES(?, 1998, 1)").run(key);
-      d.raw.prepare("INSERT INTO album_matches(key, status, checked_at) VALUES(?, 'unidentified', 1)").run(key);
-      d.raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('mbday', ?, '{\"date\":\"1997-02-04\"}', 1)").run(key);
-      d.raw.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, -9.5, -0.2, 1)").run(song1);
-      d.setSetting("album_of_the_day", { date: "2026-10-08", key, why: "ÿ" });
-    }
+    const put = (d, set) => {
+      const key = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get().key;
+      const song1 = d.prepare("SELECT id FROM tracks WHERE title = 'Song 1'").get().id;
+      d.prepare("INSERT INTO favourites(key, added_at) VALUES(?, 1)").run(key);
+      d.prepare("INSERT INTO album_edits(key, year, updated_at) VALUES(?, 1998, 1)").run(key);
+      d.prepare("INSERT INTO album_matches(key, status, checked_at) VALUES(?, 'unidentified', 1)").run(key);
+      d.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('mbday', ?, '{\"date\":\"1997-02-04\"}', 1)").run(key);
+      d.prepare("INSERT INTO track_loudness(track_id, lufs, peak, measured_at) VALUES(?, -9.5, -0.2, 1)").run(song1);
+      set(d, "album_of_the_day", { date: "2026-10-08", key, why: "ÿ" });
+      return key;
+    };
+    const setRaw = (d, k, v) => d.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(k, JSON.stringify(v));
+    const key = withDb(d => put(d, setRaw));
+    if (RECORD) put(node.db.raw, (d, k, v) => node.db.setSetting(k, v));
     assert.equal((await both("nothing changed")).status, "unchanged");
 
     // A file changed, a folder renamed, a file gone, one new, an album's tags rewritten.
@@ -166,18 +286,21 @@ test("the scan made by the C# server writes what the Node server's scan writes",
     gen(path.join(lib.music, "AA/01.flac"), { seconds: 1, tags: { title: "duet", artist: "X & Y", album: "Duets (Deluxe)", album_artist: "X" } });
     const changed = await both("files changed, renamed, gone and new");
     assert.ok(changed.relocated >= 1 && changed.removed >= 1, JSON.stringify(changed));
-    const moved = dbs.cs.raw.prepare("SELECT key FROM albums WHERE title = 'Album One'").get();
-    assert.ok(moved && moved.key !== key, "Album One has its new folder's key");
-    assert.equal(dbs.cs.raw.prepare("SELECT COUNT(*) AS n FROM favourites WHERE key = ?").get(moved.key).n, 1, "its heart went with it");
-    assert.equal(dbs.cs.setting("album_of_the_day", null).key, moved.key, "and Album of the day");
+    withDb(d => {
+      const moved = d.prepare("SELECT key FROM albums WHERE title = 'Album One'").get();
+      assert.ok(moved && moved.key !== key, "Album One has its new folder's key");
+      assert.equal(d.prepare("SELECT COUNT(*) AS n FROM favourites WHERE key = ?").get(moved.key).n, 1, "its heart went with it");
+      assert.equal(JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_of_the_day'").get().value).key, moved.key, "and Album of the day");
+    });
 
     // Most of a folder gone at once is kept; so is a drive that isn't there.
-    s = scanners({ massRemoval: 1 });
+    massRemoval = 1;
+    if (RECORD) s = nodeScanner({ massRemoval: 1 });
     fs.unlinkSync(path.join(lib.music, "Flagged/01.flac"));
     fs.unlinkSync(path.join(lib.music, "Flagged/02.flac"));
-    const kept = await both("most of a folder gone at once");
-    assert.equal(kept.removed, 0);
-    assert.ok(kept.kept_offline >= 2, JSON.stringify(kept));
+    const kept1 = await both("most of a folder gone at once");
+    assert.equal(kept1.removed, 0);
+    assert.ok(kept1.kept_offline >= 2, JSON.stringify(kept1));
     fs.renameSync(path.join(lib.music, "Artist B"), path.join(lib.root, "Artist B"));
     fs.mkdirSync(path.join(lib.music, "Artist B"));
     const drive = await both("a drive not mounted");
@@ -193,45 +316,24 @@ test("the scan made by the C# server writes what the Node server's scan writes",
     fs.unlinkSync(unnamed);
     fs.renameSync(path.join(lib.root, "Two Unnamed"), unnamed);
 
-    // Everything read again; and every folder regrouped.
-    s = scanners();
+    // Everything read again; and every folder regrouped (the emptied folder filled again first).
+    massRemoval = 500;
+    if (RECORD) s = nodeScanner();
     await both("a forced rescan", { force: true });
-    for (const d of [dbs.node, dbs.cs]) d.setSetting("album_regroup", true);
-    // (The emptied folder let go of, as Settings does, so the regroup is done everywhere.)
-    for (const x of [s.node, s.cs]) x.forget(path.join(lib.music, "Flagged"));
+    withDb(d => setRaw(d, "album_regroup", true));
+    if (RECORD) node.db.setSetting("album_regroup", true);
+    gen(path.join(lib.music, "Flagged/01.flac"), { seconds: 1, tags: { title: "f1", artist: "P", album: "Hits", compilation: "1" } });
+    gen(path.join(lib.music, "Flagged/02.flac"), { seconds: 1, tags: { title: "f2", artist: "P", album: "Hits", compilation: "1" } });
     const rg = await both("the regroup");
     assert.deepEqual(rg.offline_dirs, []);
-    assert.equal(dbs.cs.setting("album_regroup", null), false, "the regroup done");
+    assert.equal(withDb(d => JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'album_regroup'").get().value)), false, "the regroup done");
 
     // No music at all: nothing touched.
-    s = { node: new Scanner({ db: dbs.node, root: path.join(lib.root, "nowhere"), log: l => lines.node.push(l), program: null }),
-      cs: new Scanner({ db: dbs.cs, root: path.join(lib.root, "nowhere"), log: l => lines.cs.push(l), program: BIN }) };
+    scanRoot = path.join(lib.root, "nowhere");
+    if (RECORD) s = new NODE.Scanner({ db: node.db, root: scanRoot, log: l => node.lines.push(l), program: null });
     assert.equal((await both("no music folder")).status, "no-music");
+    kept.done();
   } finally {
-    dbs.node.close();
-    dbs.cs.close();
-  }
-});
-
-test("the Node server scans as before when the C# server's program can't be started", { skip, timeout: 120000 }, async () => {
-  const lib = makeMixedLibrary();
-  const db = DB.open(path.join(lib.root, "data"), { log: () => {} });
-  try {
-    // A program that isn't one: not started, the scan made here, and not tried again.
-    const fake = path.join(lib.root, "not-a-program");
-    fs.writeFileSync(fake, "nothing to run", { mode: 0o644 });
-    const lines = [];
-    const sc = new Scanner({ db, root: lib.music, log: l => lines.push(l), program: fake });
-    const r = await sc.scan();
-    assert.equal(r.status, "updated");
-    assert.ok(lines.some(l => /didn't start/.test(l)), lines.join("\n"));
-    assert.ok(!lines.some(l => /made by the C# server/.test(l)));
-    assert.equal(sc.programNow(), null, "not asked again");
-    // None at all: the same, quietly.
-    const none = new Scanner({ db, root: lib.music, log: () => {}, program: path.join(lib.root, "missing") });
-    assert.equal(none.programNow(), null);
-    assert.equal((await none.scan()).status, "unchanged");
-  } finally {
-    db.close();
+    if (RECORD) node.db.close();
   }
 });

@@ -1,0 +1,71 @@
+{
+ "answers": {
+  "a new database": {
+   "n": 2,
+   "per": 32,
+   "sums": "726eef9f"
+  },
+  "a new database, asked again": {
+   "n": 1,
+   "per": 32,
+   "sums": "79ca73da"
+  },
+  "one from before the columns added since": {
+   "n": 1,
+   "per": 32,
+   "sums": "b8369454"
+  },
+  "one made by something else": {
+   "n": 4,
+   "per": 32,
+   "sums": "009b9ead"
+  },
+  "one from a newer version": {
+   "n": 1,
+   "per": 32,
+   "sums": "e1c56f84"
+  },
+  "the album edits read back": {
+   "n": 2,
+   "per": 32,
+   "sums": "4b36a87b"
+  },
+  "the album edits written": {
+   "n": 1,
+   "all": [
+    {
+     "version": 1,
+     "saved_at": 0,
+     "edits": [
+      {
+       "key": "k1",
+       "title": "Fixed",
+       "artist": null,
+       "year": 1999,
+       "art": "bm90IHJlYWxseSBhIGpwZWc=",
+       "art_hash": "h",
+       "art_source": "https://example.com/x.jpg",
+       "updated_at": 1700000000000
+      },
+      {
+       "key": "k2",
+       "title": null,
+       "artist": "Them",
+       "year": null,
+       "art": null,
+       "art_hash": null,
+       "art_source": null,
+       "updated_at": 5
+      }
+     ]
+    }
+   ]
+  },
+  "an unreadable album-edits.json": {
+   "n": 1,
+   "per": 32,
+   "sums": "79ca73da"
+  }
+ },
+ "inputs": {}
+}

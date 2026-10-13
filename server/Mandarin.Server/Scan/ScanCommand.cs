@@ -71,6 +71,12 @@ internal static class ScanCommand
 
             using var db = OpenDb(dataDir);
             var scanner = new Scanner(db, root, roots, massRemoval, slots, line => Send(Message("log", ("line", line))));
+            // The library's one-time upgrades first, as the Node server made them when it started (Scanner.Migrate.cs).
+            scanner.Migrate(() =>
+            {
+                try { Admin.Backup.ExportEdits(db, dataDir); }
+                catch (Exception e) { Send(Message("log", ("line", $"[musicd] couldn't write album-edits.json: {e.Message}"))); }
+            });
             scanner.OnProgress = () => Send(Message("progress", ("state", scanner.State.ToJs())));
             tick = new Timer(_ => Send(Message("state", ("state", scanner.State.ToJs()))), null, 500, 500);
             var result = scanner.Scan(force);

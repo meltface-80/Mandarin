@@ -98,7 +98,7 @@
       "lines": 559
     },
     "server/Mandarin.Server/Cpu.cs": {
-      "lines": 470
+      "lines": 410
     },
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
       "lines": 432
@@ -143,7 +143,7 @@
       "lines": 1044
     },
     "server/Mandarin.Server/Scans.cs": {
-      "lines": 540
+      "lines": 495
     },
     "server/Mandarin.Server/Schema.cs": {
       "lines": 602

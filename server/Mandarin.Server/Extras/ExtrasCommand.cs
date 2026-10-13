@@ -95,6 +95,15 @@ internal static class ExtrasCommand
             return x;
         });
         o["pretty"] = Each(job["pretty"], v => Admin.Backup.Pretty(v));
+        // A backup's server part laid over a database file (v0.8.50): the parts asked for, this phone's old id mapped to its new.
+        o["applied"] = Each(job["applies"], a0 =>
+        {
+            var a = O(a0);
+            using var c = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=" + Str(a["db"]));
+            c.Open();
+            var map = O(a["map"]).Keys.ToDictionary(k => k, k => Str(O(a["map"])[k]));
+            return Admin.Backup.Apply(c, O(a["server"]), L(a["include"]).Select(Str).ToHashSet(), map).Select(x => (object?)x).ToList();
+        });
         return o;
     }
 
