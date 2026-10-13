@@ -119,7 +119,7 @@ internal sealed partial class Hub
         hub.Devices.Start();
         hub.StartRegister();
         // Mandarin's audio engine for sound devices on this computer (v0.8.0): the image's, else fetched once in the background where that is allowed.
-        if (config.LocalAudio) Local.AudioEngine.StartUp(config.DataDir, Front.Version, log);
+        if (config.LocalAudio) Local.AudioEngine.StartUp(config.DataDir, Server.Version, log);
         return hub;
     }
 

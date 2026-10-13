@@ -42,7 +42,7 @@ internal static partial class Cpu
 
     /*
      * Back on the cores it started with, as it starts again in this same
-     * process (Front.StartAgain, v0.8.31): execv keeps a process's cores, and
+     * process (Server.StartAgain, v0.8.31): execv keeps a process's cores, and
      * the program starting again counts the machine by its own (Startup).
      * Kept to the rest of a split, it counted those alone: one core fewer
      * after every update (4, then 3 with 1 for playback, then 2 with none).
@@ -171,8 +171,8 @@ internal static partial class Cpu
             // This server's own threads on the rest (all of them when nothing is split); a thread started later inherits it.
             var own = next.On ? next.Background : next.All;
             int moved = own.Length > 0 ? PinProcess(Environment.ProcessId, own) : 0;
-            if (next.On && moved > 0) Front.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
-            else if (next.On && first) Front.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
+            if (next.On && moved > 0) Server.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
+            else if (next.On && first) Server.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
             // A conversion running outside its cores now is moved to them.
             foreach (var (pid, c) in Children)
             {

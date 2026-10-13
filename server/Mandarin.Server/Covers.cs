@@ -79,7 +79,7 @@ internal static partial class Covers
         {
             var how = Drawn.Failed;
             try { how = await make(); }
-            catch (Exception e) { Front.Log($"[art] {what}: {e.GetType().Name}: {e.Message}; not drawn"); }
+            catch (Exception e) { Server.Log($"[art] {what}: {e.GetType().Name}: {e.Message}; not drawn"); }
             finally { Inflight.TryRemove(file, out _); mine.TrySetResult(how); }
         });
         return mine.Task;
@@ -117,7 +117,7 @@ internal static partial class Covers
                 src, 32 << 20, TimeSpan.FromSeconds(30));
             if (code != 0 || jpg.Length == 0 || err.Trim().Length > 0)
             {
-                Front.Log($"[art] {what}: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
+                Server.Log($"[art] {what}: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
                 return null;
             }
             return jpg;

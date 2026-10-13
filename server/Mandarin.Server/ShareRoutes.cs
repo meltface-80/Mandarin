@@ -41,7 +41,7 @@ internal static partial class Library
         try { return await work(); }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[library] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[library] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, e.Message);
         }
     }

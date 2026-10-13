@@ -66,7 +66,7 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[admin] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[admin] {p}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, e is Backup.Refused r ? r.Status : 500, e.Message);
         }
         return false;
@@ -251,7 +251,7 @@ internal static partial class Library
         }
         catch (Exception e)
         {
-            Front.Log($"[backup] {e.Message}");
+            Server.Log($"[backup] {e.Message}");
             if (!ctx.Response.HasStarted) return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
             ctx.Abort();
         }

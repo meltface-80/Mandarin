@@ -20,7 +20,7 @@ using Js = Mandarin.Server.Tags.Js;
 
 internal static class ScanCommand
 {
-    // The protocol this program speaks, said to the Node server it starts (Front.cs): the Node server checks it.
+    // The protocol this program speaks, said to the Node server it starts (Server.cs): the Node server checks it.
     public const string Protocol = "1";
 
     private static readonly object WriteLock = new();

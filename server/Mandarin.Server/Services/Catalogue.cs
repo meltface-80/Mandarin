@@ -435,7 +435,7 @@ internal sealed partial class TidalCatalogue : Catalogue
         {
             listsLogged = true;
             var named = string.Join(", ", all.Select(x => $"{Js.Str(P(x, "name"))} ({Js.Str(P(x, "path"))})"));
-            Front.Log($"[tidal] featured lists: {(named.Length > 0 ? named : "none")}");
+            Server.Log($"[tidal] featured lists: {(named.Length > 0 ? named : "none")}");
         }
         return all.Select(x => (object?)Obj(("id", Js.Str(P(x, "path"))), ("label", Js.Str(Or(P(x, "name"), P(x, "path")))))).ToList();
     }

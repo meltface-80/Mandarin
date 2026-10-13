@@ -1,4 +1,4 @@
-// Front.Failed.cs — a request that failed here (v0.9.0, stage 7 part 7). Until
+// Server.Failed.cs — a request that failed here (v0.9.0, stage 7 part 7). Until
 // v0.9.0 a route that threw handed the request to the Node server behind this
 // one; with nothing behind it, the request fell through to "No such endpoint".
 // It is answered here instead, as the Node server's routes answered a thrown
@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;
 
-internal static partial class Front
+internal static partial class Server
 {
     /* Logged ("[area] /path: Type: message") and answered: 500 and why, as JSON. True: answered. */
     public static async Task<bool> Failed(HttpContext ctx, string area, Exception e)

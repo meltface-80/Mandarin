@@ -77,10 +77,10 @@ internal static partial class Scans
         var period = TimeSpan.FromMilliseconds(Math.Min(scanHours * 3600 * 1000, uint.MaxValue - 1d));
         first = new Timer(_ => Kick(), null, 500, Timeout.Infinite);
         every = new Timer(_ => Kick(), null, period, period);
-        watcher = new Watcher(Roots, () => Run(false, false), Front.Log,
+        watcher = new Watcher(Roots, () => Run(false, false), Server.Log,
             Ms("MANDARIN_WATCH_QUIET_MS", 20000), Ms("MANDARIN_WATCH_GAP_MS", 60000));
         watcher.Refresh();
-        Front.Log($"[scan] the library scans are made here (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
+        Server.Log($"[scan] the library scans are made here (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
     }
 
     // The watching's waits: the tests' own, else watch.js's.
@@ -110,7 +110,7 @@ internal static partial class Scans
     public static void Kick()
     {
         if (!on) return;
-        _ = Run(false, false).ContinueWith(t => { if (t.IsFaulted) Front.Log("[scan] " + t.Exception!.GetBaseException().Message); }, TaskScheduler.Default);
+        _ = Run(false, false).ContinueWith(t => { if (t.IsFaulted) Server.Log("[scan] " + t.Exception!.GetBaseException().Message); }, TaskScheduler.Default);
     }
 
     // ---------------------------------------------------------------- the folders
@@ -142,7 +142,7 @@ internal static partial class Scans
     public static SqliteConnection OpenDb() => ScanCommand.OpenDb(dataDir);
 
     /* The scanner's own rules for the folders (Scan/Scanner.cs), on this database. */
-    public static Scanner Scanner(SqliteConnection db) => new(db, musicDir, Roots(), massRemoval, Cpu.Slots, Front.Log);
+    public static Scanner Scanner(SqliteConnection db) => new(db, musicDir, Roots(), massRemoval, Cpu.Slots, Server.Log);
 
     // ---------------------------------------------------------------- the scan
 
@@ -214,11 +214,11 @@ internal static partial class Scans
             if (result != null || error != null || line.Trim().Length == 0) return;
             JsonObject? m;
             try { m = JsonNode.Parse(line) as JsonObject; } catch (JsonException) { m = null; }
-            if (m == null) { Front.Log("[scan] " + line); return; }
+            if (m == null) { Server.Log("[scan] " + line); return; }
             switch (Text(m["type"]))
             {
                 case "log":
-                    Front.Log(Js.Str(m["line"]));
+                    Server.Log(Js.Str(m["line"]));
                     break;
                 case "state":
                     Mirror(m["state"], g);
@@ -349,7 +349,7 @@ internal static partial class Scans
     {
         try { if (Access(d, 4 | 1) != 0) return false; }
         catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { /* as .NET sees it */ }
-        return NodeFs.TryStat(d, follow: true, out var st) && st.IsDirectory;
+        return PosixFs.TryStat(d, follow: true, out var st) && st.IsDirectory;
     }
 
     /* fs.existsSync("/.dockerenv") || !!process.env.DOCKER */
@@ -386,7 +386,7 @@ internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onCha
     public void Refresh()
     {
         List<string> want;
-        try { want = roots().Where(d => NodeFs.TryStat(d, follow: true, out var st) && st.IsDirectory).ToList(); }
+        try { want = roots().Where(d => PosixFs.TryStat(d, follow: true, out var st) && st.IsDirectory).ToList(); }
         catch (Exception e) when (e is IOException or SqliteException) { return; }
         lock (gate)
         {

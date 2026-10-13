@@ -1,13 +1,13 @@
-// Front.cs — the server's own plumbing: its version and data folder, its log,
+// Server.cs — the server's own plumbing: its version and data folder, its log,
 // Restart and Shut down (starting again in the same process), the app's
-// folder, and who a request came from. Named for the front door it was while
-// the Node server stood behind it (v0.8.1 to v0.8.50).
+// folder, and who a request came from. Front.cs until v0.9.2, named for the
+// front door it was while the Node server stood behind it (v0.8.1 to v0.8.50).
 using System.Net;
 using System.Runtime.InteropServices;
 
 namespace Mandarin.Server;
 
-internal static partial class Front
+internal static partial class Server
 {
     private static readonly object logLock = new();
 

@@ -140,7 +140,7 @@ Tailscale (Linux only today). This could come as part of stage 0, or straight af
 - **Updates:** `csharp-update.js` fetches the Mac's build on a Mac and signs it again if its
   signature didn't come through.
 - **What differed on a Mac:**
-  - the scan's file system calls (`Scan/NodeFs.cs`): macOS lays out directory entries and `stat`
+  - the scan's file system calls (`Scan/PosixFs.cs`): macOS lays out directory entries and `stat`
     otherwise, has no `statx`, names the 64-bit-inode forms `$INODE64` on Intel, and numbers some
     errors differently;
   - "libc" is libSystem (`Program.cs`);

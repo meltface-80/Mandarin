@@ -50,7 +50,7 @@ internal static partial class Library
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
             // As the Node server's wrap() answers what throws.
-            Front.Log($"[scan] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[scan] {p}: {e.GetType().Name}: {e.Message}");
             return await Send(ctx, new JsonObject { ["error"] = e.Message }, 500);
         }
     }
@@ -60,7 +60,7 @@ internal static partial class Library
         var roots = Scans.Roots();
         return Send(ctx, new JsonObject
         {
-            ["mounted"] = roots.Any(NodeFs.Exists), ["path"] = Scans.MusicDir,
+            ["mounted"] = roots.Any(PosixFs.Exists), ["path"] = Scans.MusicDir,
             ["paths"] = new JsonArray(roots.Select(r => (JsonNode)r).ToArray())
         });
     }
@@ -88,7 +88,7 @@ internal static partial class Library
         return new JsonArray(sc.Roots().Select(d => (JsonNode)new JsonObject
         {
             ["path"] = d, ["name"] = NodePath.Basename(d) is { Length: > 0 } b ? b : d,
-            ["exists"] = NodeFs.Exists(d), ["readable"] = Scans.Readable(d),
+            ["exists"] = PosixFs.Exists(d), ["readable"] = Scans.Readable(d),
             ["tracks"] = sc.CountUnder(d), ["default"] = d == dflt
         }).ToArray());
     }
@@ -120,7 +120,7 @@ internal static partial class Library
     {
         var d = NodePath.Resolve(Q(ctx, "path") is { Length: > 0 } q ? q : "/");
         List<Entry> entries;
-        try { entries = NodeFs.ReadDir(d); }
+        try { entries = PosixFs.ReadDir(d); }
         catch (IOException e) { return Send(ctx, new JsonObject { ["error"] = "Can't open " + d + (e.Message.StartsWith("EACCES", StringComparison.Ordinal) ? " — no permission" : "") }, 400); }
         var dirs = new List<(string Name, string Path)>();
         foreach (var e in entries)
@@ -128,7 +128,7 @@ internal static partial class Library
             if (e.Name.StartsWith('.')) continue;
             var full = NodePath.Join(d, e.Name);
             var isDir = e.Type == EntryType.Dir;
-            if (!isDir && e.Type == EntryType.Link) isDir = NodeFs.TryStat(full, follow: true, out var st) && st.IsDirectory;
+            if (!isDir && e.Type == EntryType.Link) isDir = PosixFs.TryStat(full, follow: true, out var st) && st.IsDirectory;
             if (isDir && !Never.Contains(full) && !(d == "/" && RootHide().IsMatch(e.Name))) dirs.Add((e.Name, full));
         }
         dirs = dirs.OrderBy(x => x.Name, Comparer<string>.Create(BaseNumeric)).ToList();
@@ -186,7 +186,7 @@ internal static partial class Library
         static async Task Kick()
         {
             while (Scans.On && Scans.Running) await Task.Delay(5000);
-            try { await Scans.Run(false, true); } catch (Exception e) { Front.Log("[scan] " + e.Message); }
+            try { await Scans.Run(false, true); } catch (Exception e) { Server.Log("[scan] " + e.Message); }
         }
         _ = Kick();
         JsonArray list;
@@ -222,7 +222,7 @@ internal static partial class Library
         // A big first scan takes minutes: answered at once, and the page polls.
         if (await Task.WhenAny(run, Task.Delay(8000)) != run)
         {
-            _ = run.ContinueWith(t => { if (t.IsFaulted) Front.Log("[scan] " + t.Exception!.GetBaseException().Message); }, TaskScheduler.Default);
+            _ = run.ContinueWith(t => { if (t.IsFaulted) Server.Log("[scan] " + t.Exception!.GetBaseException().Message); }, TaskScheduler.Default);
             return await Send(ctx, new JsonObject { ["status"] = "scanning", ["progress"] = Scans.State["progress"]?.DeepClone() });
         }
         var (r, count) = await run;
@@ -254,12 +254,12 @@ internal static partial class Library
         try
         {
             if (!Scans.Roots().Any(r => d == r || NodePath.Dirname(d) == r)) throw new ScanError("Not one of the music folders");
-            try { present = NodeFs.ReadDir(d).Any(e => !e.Name.StartsWith('.')); } catch (IOException) { present = false; }
+            try { present = PosixFs.ReadDir(d).Any(e => !e.Name.StartsWith('.')); } catch (IOException) { present = false; }
             var gone = present;
             var forgot = Scans.WhileNoScan(() =>
             {
                 using var db = Scans.OpenDb();
-                n = Scans.Scanner(db).RemoveUnder(d, gone ? (p => !NodeFs.Exists(p)) : null);
+                n = Scans.Scanner(db).RemoveUnder(d, gone ? (p => !PosixFs.Exists(p)) : null);
             });
             if (!forgot) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }
@@ -267,7 +267,7 @@ internal static partial class Library
         {
             return await Send(ctx, new JsonObject { ["error"] = e.Message }, 400);
         }
-        Front.Log($"[scan] forgot {d}{(present ? " (files no longer there)" : "")}: {n} tracks removed");
+        Server.Log($"[scan] forgot {d}{(present ? " (files no longer there)" : "")}: {n} tracks removed");
         var count = await Scans.Changed(d);
         return await Send(ctx, new JsonObject { ["ok"] = true, ["removed"] = n, ["count"] = count ?? await CountNow() });
     }

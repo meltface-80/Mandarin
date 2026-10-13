@@ -46,7 +46,7 @@ internal static class Images
                     if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
                 }
                 // Absent, as the Node server answered a cover it couldn't draw.
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[art] {p}: {e.GetType().Name}: {e.Message}"); Absent(ctx); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { Server.Log($"[art] {p}: {e.GetType().Name}: {e.Message}"); Absent(ctx); return; }
             }
             await next();
         });

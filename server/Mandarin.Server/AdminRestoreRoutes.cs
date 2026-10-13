@@ -25,7 +25,7 @@ internal static partial class Library
         }
         catch (Exception e)
         {
-            Front.Log($"[backup] restore: {e.Message}");
+            Server.Log($"[backup] restore: {e.Message}");
             return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
         }
         finally { Rm(upload); Interlocked.Exchange(ref backupBusy, 0); }
@@ -40,7 +40,7 @@ internal static partial class Library
         try { return await Finish(ctx, ts, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts, Prop(b, "passphrase") is string { Length: > 0 } pass ? pass : null)); }
         catch (Exception e)
         {
-            Front.Log($"[backup] restore: {e.Message}");
+            Server.Log($"[backup] restore: {e.Message}");
             return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
         }
         finally { Interlocked.Exchange(ref backupBusy, 0); }
@@ -101,7 +101,7 @@ internal static partial class Library
                 using var c = Db.Open();
                 var done = server is JsObj so ? Backup.Apply(c, so, include.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet(), map) : [];
                 restored.AddRange(done);
-                try { Backup.ExportEdits(c, DataDir); } catch (Exception e) { Front.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
+                try { Backup.ExportEdits(c, DataDir); } catch (Exception e) { Server.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
             }
             // The Tailscale identity, with the keys or the whole database: the node the backup was made on, not a new one.
             if ((Has("keys") || (Has("database") && hasDb)) && parts["tailscale"] is JsObj tsPart && tsPart["state"] is string state)
@@ -117,7 +117,7 @@ internal static partial class Library
                         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(StateFile(ts), UnixFileMode.UserRead | UnixFileMode.UserWrite);
                         restored.Add("tailscale");
                     }
-                    catch (Exception e) { Front.Log($"[backup] tailscale identity: {e.Message}"); }
+                    catch (Exception e) { Server.Log($"[backup] tailscale identity: {e.Message}"); }
                 }
             }
             var o = new JsObj();
@@ -139,7 +139,7 @@ internal static partial class Library
         await SendJs(ctx, o);
         if (TJs.Truthy(o["restarting"]))
         {
-            Front.Log($"[backup] restored {string.Join(", ", ((List<object?>)o["restored"]!).Select(x => TJs.Str(x)))}; restarting");
+            Server.Log($"[backup] restored {string.Join(", ", ((List<object?>)o["restored"]!).Select(x => TJs.Str(x)))}; restarting");
             _ = Task.Run(async () =>
             {
                 await Task.Delay(500);

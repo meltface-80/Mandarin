@@ -174,7 +174,7 @@ internal abstract partial class Catalogue
         var hash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
         var file = NodePath.Join(dir, albumId + ".jpg");
         var marker = file + ".url";
-        try { if (NodeFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }
+        try { if (PosixFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* fetched */ }
         try
         {
@@ -186,8 +186,8 @@ internal abstract partial class Catalogue
         }
         catch (Exception e) when (e is JsError or IOException or UnauthorizedAccessException)
         {
-            Front.Log($"[{Id}] cover for {albumId}: {e.Message}");
-            var have = NodeFs.Exists(file);
+            Server.Log($"[{Id}] cover for {albumId}: {e.Message}");
+            var have = PosixFs.Exists(file);
             return (have ? file : null, have ? hash : null);
         }
     }
@@ -225,7 +225,7 @@ internal abstract partial class Catalogue
         var t1 = NowMs();
         var art = await FetchArt(id, P(a, "image"));
         var t2 = NowMs();
-        if (t2 - t0 > 1500) Front.Log($"[{Id}] album {id}: {Name} answered in {Js.Num(t1 - t0)} ms, the cover in {Js.Num(t2 - t1)} ms more");
+        if (t2 - t0 > 1500) Server.Log($"[{Id}] album {id}: {Name} answered in {Js.Num(t1 - t0)} ms, the cover in {Js.Num(t2 - t1)} ms more");
         var artist = Or(P(a, "artist"), "Unknown artist");
         var date = Or(P(a, "date"), null);
         object? year = null;
@@ -360,7 +360,7 @@ internal abstract partial class Catalogue
             if (!bought)
             {
                 Keep(albumId, false);
-                Front.Log($"[{Id}] {albumId}: no longer a favourite on {Name}, let go");
+                Server.Log($"[{Id}] {albumId}: no longer a favourite on {Name}, let go");
                 await Changed();
             }
         }
@@ -530,7 +530,7 @@ internal static class Prune
         {
             if (svc == null) continue;
             try { o[svc.Id] = (double)await svc.PruneTransient(); }
-            catch (Exception e) when (e is SqliteException or JsError or IOException) { Front.Log($"[{svc.Id}] prune: {e.Message}"); /* the next day */ }
+            catch (Exception e) when (e is SqliteException or JsError or IOException) { Server.Log($"[{svc.Id}] prune: {e.Message}"); /* the next day */ }
         }
         return o;
     }

@@ -15,11 +15,11 @@ using Mandarin.Server;
 // On a Mac (v0.8.29) the C library is libSystem: what this program imports as
 // "libc" (the scan's file system, starting itself again, the pack's checks).
 if (OperatingSystem.IsMacOS())
-    NativeLibrary.SetDllImportResolver(typeof(Front).Assembly, (name, _, _) =>
+    NativeLibrary.SetDllImportResolver(typeof(Server).Assembly, (name, _, _) =>
         name == "libc" ? NativeLibrary.Load("/usr/lib/libSystem.B.dylib") : IntPtr.Zero);
 
-var version = (typeof(Front).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
-Front.Version = version;
+var version = (typeof(Server).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+Server.Version = version;
 
 // `mandarin-server --version`: this program's version, and nothing else — how
 // an update checks a newer one before putting it in place (Admin/Updater.cs).
@@ -74,7 +74,7 @@ string frontKey = Environment.GetEnvironmentVariable("MANDARIN_FRONT_KEY") is { 
     : Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
 // The data folder: the database (<data>/musicd.db), settings, caches.
 string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
-    : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
+    : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir(), "data");
 // `mandarin-server config`: what this server would be set up with, from the
 // environment (Config.cs, v0.8.50), as the hand-over carried it — for the tests.
 if (args.Length == 1 && args[0] == "config")
@@ -85,27 +85,27 @@ if (args.Length == 1 && args[0] == "config")
 // `mandarin-server reset-password`: the account removed and every device signed out (Auth.Reset.cs, v0.8.50).
 if (args.Length == 1 && args[0] == "reset-password") return Auth.ResetPasswordCommand(dataDir);
 Db.File = Path.Combine(dataDir, "musicd.db");
-Front.DataDir = dataDir;
-string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
+Server.DataDir = dataDir;
+string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
 // then the database made, or brought up to date (Schema.cs).
-Mandarin.Server.Admin.Backup.SwapStaged(dataDir, Front.Log);
-try { Schema.Bring(dataDir, Front.Log); }
+Mandarin.Server.Admin.Backup.SwapStaged(dataDir, Server.Log);
+try { Schema.Bring(dataDir, Server.Log); }
 catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
 {
-    Front.Log($"[server] the database couldn't be brought up to date ({e.Message}); stopping");
+    Server.Log($"[server] the database couldn't be brought up to date ({e.Message}); stopping");
     return 1;
 }
 System.Text.Json.Nodes.JsonObject ownConfig;
 try { ownConfig = Config.FromEnvironment(dataDir, port); }
-catch (InvalidOperationException e) { Front.Log("[server] " + e.Message + "; stopping"); return 2; }
+catch (InvalidOperationException e) { Server.Log("[server] " + e.Message + "; stopping"); return 2; }
 // The install's secret, for signed addresses (Auth.Secret.cs).
 try { Auth.EnsureSecret(); }
-catch (Microsoft.Data.Sqlite.SqliteException e) { Front.Log($"[server] the install's secret couldn't be written ({e.Message}); stopping"); return 1; }
+catch (Microsoft.Data.Sqlite.SqliteException e) { Server.Log($"[server] the install's secret couldn't be written ({e.Message}); stopping"); return 1; }
 Library.InitAlone(frontKey, ownConfig["server_ip"]?.GetValue<string>(), port);
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
-Front.Log($"[server] Mandarin's server {version} (C#) on port {port}");
+Server.Log($"[server] Mandarin's server {version} (C#) on port {port}");
 // The background work (Jobs.cs) before anything is answered.
 await Jobs.StartAlone(ownConfig, dataDir, port, version);
 // No settings files, so nothing to watch: by default ASP.NET watches its
@@ -187,7 +187,7 @@ app.UseRouting();
 // A deep link, the page for any address it opens, once no route here took it (v0.8.48, Pages.cs).
 Pages.UseDeepLinks(app);
 
-// Which server answered (Front.cs), and the account's routes (Auth.cs).
+// Which server answered (Server.cs), and the account's routes (Auth.cs).
 Routes.Map(app, version);
 Auth.Map(app);
 
@@ -196,16 +196,16 @@ Auth.Map(app);
 app.MapFallback("/{**catch-all}", Pages.NotThere);
 
 // Restart and Shut down from Settings (PowerRoutes.cs).
-Front.StopApp = app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication;
+Server.StopApp = app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication;
 
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Jobs.Stop);
 await app.StartAsync();
-Front.Log($"[server] listening on port {port}");
+Server.Log($"[server] listening on port {port}");
 await app.WaitForShutdownAsync();
 // Restart from Settings, or an update put in place (Admin/Updater.cs): this
 // program started again in this process; if that can't be done, stopped with
 // the code, and Docker's restart policy starts the container again. Shut
 // down: 0, for nothing to start it again.
-if (Front.Leaving == Front.Leave.Restart) { Front.StartAgain(args); return Front.StartAgainCode; }
-if (Front.Leaving == Front.Leave.ShutDown) return 0;
+if (Server.Leaving == Server.Leave.Restart) { Server.StartAgain(args); return Server.StartAgainCode; }
+if (Server.Leaving == Server.Leave.ShutDown) return 0;
 return Environment.ExitCode;

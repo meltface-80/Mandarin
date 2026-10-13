@@ -44,7 +44,7 @@ internal static partial class Library
         return await Send(ctx, new JsonObject
         {
             ["set"] = k.Length > 0, ["configured"] = k.Length > 0, ["masked"] = LastfmMasked(), ["source"] = LastfmSource(),
-            ["check"] = k.Length > 0 ? await fm.CheckKey(k, false, Front.Log) : null
+            ["check"] = k.Length > 0 ? await fm.CheckKey(k, false, Server.Log) : null
         });
     }
 
@@ -61,7 +61,7 @@ internal static partial class Library
         return await Send(ctx, new JsonObject
         {
             ["ok"] = true, ["set"] = k.Length > 0, ["masked"] = LastfmMasked(), ["source"] = LastfmSource(),
-            ["check"] = k.Length > 0 ? await fm.CheckKey(k, true, Front.Log) : null
+            ["check"] = k.Length > 0 ? await fm.CheckKey(k, true, Server.Log) : null
         });
     }
 
@@ -70,7 +70,7 @@ internal static partial class Library
     {
         if (e is LastfmError { Code: "nokey" }) return new JsonObject { ["enabled"] = false };
         var refused = e is LastfmError { KeyRefused: true };
-        if (!refused) Front.Log("[lastfm] " + e.Message);
+        if (!refused) Server.Log("[lastfm] " + e.Message);
         return new JsonObject { ["enabled"] = true, ["error"] = refused ? "Last.fm refused the API key" : "Last.fm did not answer" };
     }
 

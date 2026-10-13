@@ -43,8 +43,8 @@ internal static partial class AudioEngine
             if (found != null) return found;
             if (Environment.TickCount64 - lookedAt < 60000 && lookedAt != 0) return null;
             lookedAt = Environment.TickCount64;
-            var app = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
-            var data = dataDir is { Length: > 0 } ? dataDir : Front.DataDir;
+            var app = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
+            var data = dataDir is { Length: > 0 } ? dataDir : Server.DataDir;
             var tries = new[] { Environment.GetEnvironmentVariable("AUDIO_ENGINE_BIN"), Path.Combine(app, "engine", "bin", "mandarin-audio"), data.Length > 0 ? DownloadedBin(data) : null };
             foreach (var b in tries)
                 if (!string.IsNullOrEmpty(b) && Probe(b) is { } v) return found = new Found(b, v);

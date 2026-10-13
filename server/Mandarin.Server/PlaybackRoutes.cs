@@ -60,7 +60,7 @@ internal static partial class PlaybackRoutes
         catch (Exception e) when (!ctx.Response.HasStarted && e is not OperationCanceledException)
         {
             // As the Node server's wrap() answers what throws.
-            Front.Log($"[playback] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[playback] {p}: {e.GetType().Name}: {e.Message}");
             return await Fail(ctx, 500, e.Message);
         }
     }

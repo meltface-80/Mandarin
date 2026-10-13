@@ -110,7 +110,7 @@ internal static partial class Library
         using (var c = Db.Open()) titles = Tracks(c, s, al).Select(t => (object?)t.Title).ToList();
         var search = ArtSearches.GetOrAdd(key, k => new Lazy<Task<JsObj>>(() =>
         {
-            var job = ArtFind.Find(al.Title, al.Artist, titles, ArtFind.Web($"Mandarin/{AppVersion} ( https://github.com/meltface-80/Mandarin )"), Front.Log);
+            var job = ArtFind.Find(al.Title, al.Artist, titles, ArtFind.Web($"Mandarin/{AppVersion} ( https://github.com/meltface-80/Mandarin )"), Server.Log);
             _ = job.ContinueWith(async _ => { await Task.Delay(TimeSpan.FromMinutes(10)); ArtSearches.TryRemove(k, out var _); }, TaskScheduler.Default);
             return job;
         }));
@@ -237,7 +237,7 @@ internal static partial class Library
                 got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
                 if (got == null) return await JsError(ctx, 422, "Couldn't read that image");
             }
-            catch (Exception e) when (!ctx.Response.HasStarted) { return await Front.Failed(ctx, "library", e); }
+            catch (Exception e) when (!ctx.Response.HasStarted) { return await Server.Failed(ctx, "library", e); }
             var src = TJs.Str(TJs.Truthy(Prop(b, "art_source")) ? Prop(b, "art_source") : artUrl);
             f.HasArt = true;
             f.Art = got;

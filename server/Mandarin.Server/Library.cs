@@ -232,7 +232,7 @@ internal static partial class Library
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 try { await Current(); }
-                catch (Exception e) { Front.Log($"[library] {e.GetType().Name}: {e.Message}"); }
+                catch (Exception e) { Server.Log($"[library] {e.GetType().Name}: {e.Message}"); }
             }
         });
     }
@@ -266,7 +266,7 @@ internal static partial class Library
                     s = await Task.Run(() => Build(st));
                     current = s; builtAt = NowMs();
                     var ms = Environment.TickCount64 - t0;
-                    if (ms > 500) Front.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
+                    if (ms > 500) Server.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
                 }
             }
             finally { Building.Release(); }

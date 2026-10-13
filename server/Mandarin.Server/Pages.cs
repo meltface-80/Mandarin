@@ -35,7 +35,7 @@ internal static partial class Pages
 
     public static void Use(WebApplication app, string publicDir)
     {
-        if (!Directory.Exists(publicDir)) { Front.Log($"[server] no page at {publicDir}; the Node server serves it"); return; }
+        if (!Directory.Exists(publicDir)) { Server.Log($"[server] no page at {publicDir}; the Node server serves it"); return; }
         var files = new PhysicalFileProvider(publicDir);
 
         // The page itself, at / and /index.html.

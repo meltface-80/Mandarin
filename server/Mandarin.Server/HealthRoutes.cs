@@ -27,7 +27,7 @@ internal static partial class Library
         var o = new JsonObject
         {
             ["ok"] = true,
-            ["version"] = Front.Version,
+            ["version"] = Server.Version,
             ["albums"] = s.Count,
             // The rooms found, the hub's (v0.8.49).
             ["rooms"] = Playback.Hub.Current is { } hub ? hub.RoomCount : 0,

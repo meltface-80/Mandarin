@@ -10,7 +10,7 @@
 // against the release's SHA-256 sums and asked its version, and put in place
 // of the running one (which carries on from the old file). Then the bundle's
 // files are laid over the install (never the data) and this program starts
-// again from the new file, in the same process (Jobs.Restart, Front.StartAgain).
+// again from the new file, in the same process (Jobs.Restart, Server.StartAgain).
 //
 // The check by itself: half a minute after the start, then every twelve hours
 // (UPDATE_CHECK=false: never). The job "update" (Jobs.cs).

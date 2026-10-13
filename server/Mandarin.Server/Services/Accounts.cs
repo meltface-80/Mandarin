@@ -39,7 +39,7 @@ internal abstract partial class Catalogue
         try { await Stop(); } catch (Exception) { /* as .catch(() => {}) */ }
         Extras.Labels.SetSetting(Id, null);
         ForgetAnswers();
-        Front.Log($"[{Id}] signed out");
+        Server.Log($"[{Id}] signed out");
         await Changed();
         return Status();
     }
@@ -82,7 +82,7 @@ internal sealed partial class QobuzCatalogue
         Extras.Labels.SetSetting(Id, Obj(("token", token), ("user", u), ("since", NowMs())));
         Api.Cache.Clear();
         var offer = AndP(u["subscription"], "offer");
-        Front.Log($"[qobuz] signed in as {Js.Str(u["login"])}{(Js.Truthy(offer) ? " (" + Js.Str(offer) + ")" : "")}");
+        Server.Log($"[qobuz] signed in as {Js.Str(u["login"])}{(Js.Truthy(offer) ? " (" + Js.Str(offer) + ")" : "")}");
         await Changed();
         return Status();
     }
@@ -134,7 +134,7 @@ internal sealed partial class TidalCatalogue
         var next = new SignInUnderWay { DeviceCode = d.DeviceCode, Url = d.Url, Code = d.UserCode, Expires = NowMs() + d.ExpiresIn * 1000, Interval = Math.Max(1, d.Interval) };
         lock (signInGate) pending = next;
         SchedulePoll(next, next.Interval);
-        Front.Log($"[tidal] sign in at {d.Url}");
+        Server.Log($"[tidal] sign in at {d.Url}");
         return Status();
     }
 
@@ -159,7 +159,7 @@ internal sealed partial class TidalCatalogue
                 if (pending != p) return;
                 p.Error = Said(e);
             }
-            Front.Log($"[tidal] sign-in: {Said(e)}");
+            Server.Log($"[tidal] sign-in: {Said(e)}");
         }
     }
 
@@ -226,7 +226,7 @@ internal sealed partial class TidalCatalogue
         }
         catch (Exception) { /* the page shows less */ }
         Api.Cache.Clear();
-        Front.Log($"[tidal] signed in as {Js.Str(Or(Or(user["email"], user["username"]), userId))}");
+        Server.Log($"[tidal] signed in as {Js.Str(Or(Or(user["email"], user["username"]), userId))}");
         await Changed();
         if (Settings().Import && Jobs.Holds("import")) Import.Later(this);
         return Status();

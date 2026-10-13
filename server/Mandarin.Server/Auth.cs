@@ -194,7 +194,7 @@ internal static partial class Auth
         cmd.Parameters.AddWithValue("$n", name); cmd.Parameters.AddWithValue("$k", kind);
         cmd.Parameters.AddWithValue("$t", Now); cmd.Parameters.AddWithValue("$ip", ip);
         cmd.ExecuteNonQuery();
-        Front.Log($"[auth] signed in: {name} ({kind}) from {ip}");
+        Server.Log($"[auth] signed in: {name} ({kind}) from {ip}");
         return (token, new JsonObject { ["id"] = id, ["name"] = name, ["kind"] = kind });
     }
 
@@ -235,7 +235,7 @@ internal static partial class Auth
             recentFailures = recentFailures.Where(t => now - t < 3600000).Append(now).ToList();
             if (failures.Count > 5000) failures.Remove(failures.Keys.First());
         }
-        Front.Log($"[auth] wrong password from {ip}");
+        Server.Log($"[auth] wrong password from {ip}");
     }
 
     private static Task Slowdown()
@@ -352,7 +352,7 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$v", verifier.ToLowerInvariant()); cmd.Parameters.AddWithValue("$i", iterations);
             cmd.Parameters.AddWithValue("$t", Now);
             if (cmd.ExecuteNonQuery() == 0) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
-            Front.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
+            Server.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
             var (token, device) = IssueDevice(ctx, c, b);
             if (Js.Truthy(b["want_token"])) { await Json(ctx, 200, new JsonObject { ["ok"] = true, ["token"] = token, ["device"] = device, ["username"] = username }); return; }
             SetCookie(ctx, token, !Js.IsFalse(b["remember"]));
@@ -412,7 +412,7 @@ internal static partial class Auth
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
-            if (dev != null) { Drop(c, dev.Id); Front.Log($"[auth] signed out: {dev.Name}"); }
+            if (dev != null) { Drop(c, dev.Id); Server.Log($"[auth] signed out: {dev.Name}"); }
             ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
@@ -447,7 +447,7 @@ internal static partial class Auth
             if (dev == null) { await Json(ctx, 401, new JsonObject { ["error"] = "Sign in to Mandarin", ["sign_in_required"] = true }); return; }
             var id = Js.Str(b["id"]);
             int n = Drop(c, id);
-            if (n > 0) Front.Log($"[auth] device {id} signed out by {dev.Name}");
+            if (n > 0) Server.Log($"[auth] device {id} signed out by {dev.Name}");
             if (id == dev.Id) ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = n > 0 });
         });
@@ -474,7 +474,7 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$t", Now);
             cmd.ExecuteNonQuery();
             reauthed.TryRemove(dev.Id, out _);
-            Front.Log($"[auth] password changed from {dev.Name}");
+            Server.Log($"[auth] password changed from {dev.Name}");
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
     }

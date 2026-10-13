@@ -62,7 +62,7 @@ internal static partial class Streams
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/stream/", StringComparison.Ordinal))
             {
                 try { if (await Answer(ctx, p)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "stream", e); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "stream", e); return; }
             }
             await next();
         });

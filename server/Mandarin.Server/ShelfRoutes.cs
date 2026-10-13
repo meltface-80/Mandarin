@@ -38,7 +38,7 @@ internal static partial class Library
         {
             ["total"] = shelf.Total,
             ["sig"] = shelf.Sig,
-            ["version"] = Front.Version,
+            ["version"] = Server.Version,
             ["genres"] = shelf.Genres.DeepClone(),
             ["albums"] = shelf.Albums.DeepClone()
         });

@@ -1,5 +1,6 @@
-// NodeFs.cs — the file system as Node's fs module sees it (v0.8.18), for the
-// scan: a folder's entries in the order fs.readdir gives them (libuv's
+// PosixFs.cs — the file system as Node's fs module saw it (v0.8.18; NodeFs.cs
+// until v0.9.2), for the scan, so what it stores is what the Node server's
+// stored: a folder's entries in the order fs.readdir gives them (libuv's
 // scandir sorts them byte by byte, where .NET gives the disk's own order),
 // each entry's type as a Dirent has it, and stat's times to the nanosecond
 // (mtimeMs is seconds × 1000 + nanoseconds ÷ 10⁶, as a double: .NET keeps
@@ -27,7 +28,7 @@ internal readonly record struct Stat(EntryType Type, double Size, double MtimeMs
 
 internal sealed class FsError(string message) : IOException(message);
 
-internal static unsafe partial class NodeFs
+internal static unsafe partial class PosixFs
 {
     [LibraryImport("libc", EntryPoint = "opendir", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial nint OpenDir(string name);

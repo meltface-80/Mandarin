@@ -151,7 +151,7 @@ internal static partial class Library
             // A merged label let go (v0.8.16, LibraryChanges.cs).
             if (UnmergeAddress(ctx, out var source))
             {
-                try { await UnmergeLabel(ctx, source); } catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "library", e); }
+                try { await UnmergeLabel(ctx, source); } catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "library", e); }
                 return;
             }
             // Playback (v0.8.49, stage 6, PlaybackRoutes.cs: once this server holds the job); backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
@@ -181,7 +181,7 @@ internal static partial class Library
                     var cur = await Current();
                     if (cur is var (s, st) && await h(ctx, s, st)) return;
                 }
-                catch (Exception e) when (!ctx.Response.HasStarted) { await Front.Failed(ctx, "library", e); return; }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "library", e); return; }
             }
             await next();
         });

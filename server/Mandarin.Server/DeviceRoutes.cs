@@ -75,7 +75,7 @@ internal static partial class Library
         catch (Exception e) when (e is not DeviceRefusal && !ctx.Response.HasStarted)
         {
             // wrap(): e.status || 500, with its words.
-            Front.Log($"[devices] {p}: {e.GetType().Name}: {e.Message}");
+            Server.Log($"[devices] {p}: {e.GetType().Name}: {e.Message}");
             return await JsError(ctx, 500, e.Message);
         }
     }
