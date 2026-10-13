@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
@@ -32,6 +33,8 @@ import java.util.concurrent.Executors
  * the keys, the whole database if chosen) with this app's settings and this
  * screen's settings in it. Restoring sends the file to the server, which
  * applies its part and hands back the app's and the screen's, applied here.
+ * A backup sealed with a passphrase (v0.9.0) is restored with it: sent beside
+ * the file, the server opens the keys with it.
  */
 object AppBackup {
     private const val TAG = "AppBackup"
@@ -178,14 +181,16 @@ object AppBackup {
         } finally { conn.disconnect() }
     }
 
-    /** The backup at [uri] sent to the server; the app's part applied here. */
-    fun restoreFrom(c: Context, uri: Uri, parts: String): JSONObject {
+    /** The backup at [uri] sent to the server (with its [passphrase] when sealed); the app's part applied here. */
+    fun restoreFrom(c: Context, uri: Uri, parts: String, passphrase: String? = null): JSONObject {
         val conn = connect(c, "/api/backup/restore?parts=" + URLEncoder.encode(parts, "UTF-8"))
         try {
             conn.requestMethod = "POST"
             conn.doOutput = true
             conn.setChunkedStreamingMode(64 * 1024)
             conn.setRequestProperty("Content-Type", "application/gzip")
+            // A header is one byte a character: the passphrase as base64 of its UTF-8.
+            if (!passphrase.isNullOrEmpty()) conn.setRequestProperty("X-Mandarin-Passphrase", Base64.encodeToString(passphrase.toByteArray(Charsets.UTF_8), Base64.NO_WRAP))
             val input = c.contentResolver.openInputStream(uri) ?: throw IOException("Couldn't read the file")
             input.use { i -> conn.outputStream.use { o -> i.copyTo(o, 64 * 1024) } }
             if (conn.responseCode != 200) return JSONObject().put("ok", false).put("error", errorOf(conn))
@@ -214,9 +219,13 @@ class BackupBridge(private val activity: Activity) {
 
     /** Restore from one of those files. Answers window.__backupRestoreDone. */
     @JavascriptInterface
-    fun restoreFileAt(uri: String, parts: String) {
+    fun restoreFileAt(uri: String, parts: String) = restoreFileAt(uri, parts, "")
+
+    /** The same, a sealed one opened with its passphrase (v0.9.0). */
+    @JavascriptInterface
+    fun restoreFileAt(uri: String, parts: String, passphrase: String) {
         work.execute {
-            val r = runCatching { AppBackup.restoreFrom(activity, Uri.parse(uri), parts) }
+            val r = runCatching { AppBackup.restoreFrom(activity, Uri.parse(uri), parts, passphrase) }
                 .getOrElse { Log.w("AppBackup", "restore: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") }
             tell("__backupRestoreDone", r)
         }
@@ -248,11 +257,15 @@ class BackupBridge(private val activity: Activity) {
 
     /** Restore from a file: Android's "open", then sent to the server. Answers window.__backupRestoreDone. */
     @JavascriptInterface
-    fun fromFile(parts: String) {
+    fun fromFile(parts: String) = fromFile(parts, "")
+
+    /** The same, a sealed one opened with its passphrase (v0.9.0). */
+    @JavascriptInterface
+    fun fromFile(parts: String, passphrase: String) {
         (activity as? MainActivity)?.openBackupFile { uri ->
             if (uri == null) { tell("__backupRestoreDone", JSONObject().put("ok", false).put("cancelled", true)); return@openBackupFile }
             work.execute {
-                val r = runCatching { AppBackup.restoreFrom(activity, uri, parts) }
+                val r = runCatching { AppBackup.restoreFrom(activity, uri, parts, passphrase) }
                     .getOrElse { Log.w("AppBackup", "restore: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") }
                 tell("__backupRestoreDone", r)
             }

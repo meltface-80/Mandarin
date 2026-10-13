@@ -34,6 +34,10 @@
 //   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
 //   { fn: "shelf", buckets: [sortArtist], shelves: [[{ id, title, artist, sortArtist, genres, image_key, year }]] }
 //      → { buckets, shelves: [{ genres, albums, sig }] }                  ShelfRoutes.cs
+//   { fn: "addresses", ips, hosts, art: [[url, loopbackTaken]], connect: [{ url, loopbackTaken, proxy }], linkplay: [base] }
+//      → { inward, private, hosts, art: [null | refusal], connect: [status | refusal], linkplay: [status | "refused: …"] }
+//                                                                          Addresses.cs, Renderers/LinkPlay.cs
+using System.Net;
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -49,7 +53,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -65,6 +69,7 @@ internal static class RulesCommand
         "shelf" => ShelfFns(job),
         "register" => RegisterFns(job),
         "local" => LocalFns(job),
+        "addresses" => AddressFns(job).GetAwaiter().GetResult(),
         // The identification's rules by name, and the iTunes client from a script (Identify/ScoreCalls.cs).
         "scorecall" => Identify.ScoreCalls.Run(job),
         "itunes" => Identify.ScoreCalls.ITunesSteps(job).GetAwaiter().GetResult(),
@@ -243,6 +248,41 @@ internal static class RulesCommand
         o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
+        return o;
+    }
+
+    /* Where the server may go (Addresses.cs): the rules; a cover's address checked, and its connection made; a LinkPlay player asked over HTTPS. */
+    private static async Task<JsObj> AddressFns(JsObj job)
+    {
+        var o = new JsObj
+        {
+            ["inward"] = Each(job["ips"], v => Addresses.Inward(IPAddress.Parse(S(v)))),
+            ["private"] = Each(job["ips"], v => Addresses.Private(IPAddress.Parse(S(v)))),
+            ["hosts"] = Each(job["hosts"], h => Addresses.PrivateHost(S(h)))
+        };
+        var art = new List<object?>();
+        foreach (var a in L(job["art"]))
+        {
+            try { await Addresses.CheckArt(new Uri(S(At(a, 0))), TJs.Truthy(At(a, 1)), CancellationToken.None); art.Add(null); }
+            catch (AddressRefused e) { art.Add(e.Message); }
+        }
+        o["art"] = art;
+        var connect = new List<object?>();
+        foreach (var c in L(job["connect"]).Select(O))
+        {
+            var proxy = c["proxy"] as string;
+            using var http = new HttpClient(new SocketsHttpHandler { ConnectCallback = Addresses.ArtConnect(TJs.Truthy(c["loopbackTaken"])), UseProxy = proxy != null, Proxy = proxy != null ? new WebProxy(proxy) : null });
+            try { using var r = await http.GetAsync(S(c["url"])); connect.Add((double)(int)r.StatusCode); }
+            catch (HttpRequestException e) { connect.Add(e.InnerException is AddressRefused r ? r.Message : "fetch failed"); }
+        }
+        o["connect"] = connect;
+        var linkplay = new List<object?>();
+        foreach (var b in L(job["linkplay"]))
+        {
+            try { linkplay.Add(await Renderers.LinkPlay.Command(S(b), "getStatusEx") is { } j ? j : "not LinkPlay"); }
+            catch (HttpRequestException e) { linkplay.Add("refused: " + (e.InnerException?.GetType().Name ?? e.Message)); }
+        }
+        o["linkplay"] = linkplay;
         return o;
     }
 }

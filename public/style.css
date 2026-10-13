@@ -5843,6 +5843,11 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .backup-restore { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .backup-restore.hidden { display: none; }
 .backup-file-restore { border-top: 0; padding-top: 0; }
+/* A backup's passphrase (v0.9.0): to seal one, and to open a sealed one on restore. */
+.backup-pass { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }
+.backup-pass span { display: flex; flex-direction: column; }
+.backup-pass small { color: var(--text-dim); font-size: 12.5px; line-height: 1.35; }
+.backup-restore .backup-pass-in { display: block; margin: 0 0 10px; }
 
 /* The Qobuz browser's album page (v0.6.23): playing from it, and its tracks. */
 .qobuz-nr-actions { display: flex; gap: 8px; }

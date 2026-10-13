@@ -84,12 +84,31 @@ internal static partial class Pages
                 if ((t.StartsWith("text/", StringComparison.Ordinal) || t.Contains("javascript") || t.Contains("json")) && !t.Contains("charset"))
                     r.Context.Response.ContentType = t + "; charset=utf-8";
                 h["X-Mandarin-Answered"] = "C#";
+                Guarded(r.Context.Response, r.File.Name);
             }
         });
     }
 
     private static string? Dir;
     private static IFileProvider? Files;
+
+    /*
+     * Every file of the page (v0.9.0, the audit's S2): its type as named, no
+     * referrer beyond this server, and a page that acts (all but the wall
+     * display, which is shown and may be framed) only in a frame of its own
+     * origin, so no other site can frame it and steer clicks on it.
+     */
+    private static void Guarded(HttpResponse r, string name)
+    {
+        var h = r.Headers;
+        h["X-Content-Type-Options"] = "nosniff";
+        h["Referrer-Policy"] = "same-origin";
+        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && !name.Equals("display.html", StringComparison.OrdinalIgnoreCase))
+        {
+            h["Content-Security-Policy"] = "frame-ancestors 'self'";
+            h["X-Frame-Options"] = "SAMEORIGIN";
+        }
+    }
 
     /*
      * After the routes are chosen (Program.cs): a request no route of this
@@ -181,6 +200,7 @@ internal static partial class Pages
         ctx.Response.Headers.CacheControl = "public, max-age=0";
         ctx.Response.Headers.AcceptRanges = "bytes";
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        Guarded(ctx.Response, name);
         if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(etag.Tag.ToString(), StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return; }
         ctx.Response.ContentType = "text/html; charset=UTF-8";
         ctx.Response.ContentLength = info.Length;
@@ -199,6 +219,7 @@ internal static partial class Pages
         h.Vary = "User-Agent";
         h.ETag = tag;
         h["X-Mandarin-Answered"] = "C#";
+        Guarded(ctx.Response, type.StartsWith("text/html", StringComparison.Ordinal) ? "index.html" : "");
         if (ctx.Request.Headers.IfNoneMatch.ToString().Contains(tag, StringComparison.Ordinal)) { ctx.Response.StatusCode = 304; return; }
         ctx.Response.ContentType = type;
         ctx.Response.ContentLength = bytes.Length;
