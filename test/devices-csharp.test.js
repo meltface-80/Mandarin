@@ -41,9 +41,11 @@ const RECORD = process.env.RECORD_DEVICES === "1";
 const GOLDEN = path.join(__dirname, "golden", "devices-node.json");
 const skip = (RECORD ? process.env.MANDARIN_FRONT !== "1" && "recording goes through the C# server with the Node server behind it (MANDARIN_FRONT=1)"
   : built() || (!fs.existsSync(GOLDEN) && "no recording of the Node server's answers (RECORD_DEVICES=1 makes one)")) || (!haveFfmpeg() && "ffmpeg is not installed");
+/* This file's loopback addresses (test/ports.js), which the household's rooms are on: another in a full run than alone. */
+const HOSTS = Array.from({ length: ports.HOSTS }, (_, i) => [new RegExp(ports.host(i).replace(/\./g, "\\.") + "(?![0-9])", "g"), "<host " + i + ">"]);
 /* What changes from one run to the next, or with the machine's ffmpeg, made the same. */
 const steady = (v) => v === undefined ? v : JSON.parse(JSON.stringify(v, (k, val) => {
-  if (typeof val === "string") return val.replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>").replace(/"(first_seen|last_seen)":\d+/g, '"$1":"<time>"');
+  if (typeof val === "string") return HOSTS.reduce((s, [re, to]) => s.replace(re, to), val).replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>").replace(/"(first_seen|last_seen)":\d+/g, '"$1":"<time>"');
   if (k === "first_seen" || k === "last_seen") return "<time>";
   if (k === "flac32") return "<ffmpeg>";
   return val;
