@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v0.9.7
+# Mandarin — v1.0.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -27,6 +27,33 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
+
+**New in v1.0.0** (since v0.9.0)
+* **A layout for phones and tablets**, either way round, in the browser, the iPhone home-screen
+  app and the Android app. A row along the foot of the screen (Menu, Home, Library, Search) sits
+  under the mini player. Home has no top bar: the date and the greeting are at the top. On the
+  album grids the albums scroll up to the screen's edge, with the bar's buttons floating over
+  them; the Library's Focus and Sort sit at the top right. Search opens its field across the whole
+  screen. A computer with a mouse looks as before.
+* **The Android app installed over itself** comes back to what it was playing, at the same track
+  and place, paused, a downloaded album included. Music only on the phone, which the server
+  doesn't know, doesn't come back.
+* **The Android app's build is named `Mandarin-Android-<version>.apk`.** The download link below
+  keeps its fixed name, `mandarin-android.apk`, so it always points at the newest.
+* **The audit before v1.0.0:** more of the server tested; every request read and answered one way;
+  the largest server files split and the build checking the code's rules; the library's lists
+  kept once made instead of made on every request; every route listed in
+  [docs/specs/api.md](docs/specs/api.md).
+* **A USB DAC on a Mac: the install line offers Mandarin DAC Bridge, and here is why.** Mandarin's
+  audio engine plays to sound devices through ALSA, which is part of Linux; macOS has no ALSA, so
+  Mandarin can't open a DAC plugged into the Mac it runs on, and doesn't list the Mac's sound
+  devices. [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge) is a separate
+  app for the Mac that does it instead: it holds the DAC, plays each track bit-perfect at its own
+  rate, and shares the DAC with Audirvana. Mandarin finds each DAC through it as a renderer named
+  “<DAC> (Bridge)”, played like a Sonos room. The install line asks whether to add it; it is
+  optional, and only needed for a USB DAC on the Mac (Sonos rooms, UPnP renderers and the Android
+  app play without it). Playing a Mac's DAC from Mandarin itself will be looked at in a later
+  build. See [Install on a Mac](#install-on-a-mac).
 
 **New in v0.9.0: one program, no Node.js.** Mandarin's server is now a single program written in
 C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, a
@@ -68,6 +95,18 @@ Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open **Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off.
+
+</details>
+
+⸻
+
+👆 **Phones and tablets** — *new since v0.5.50*
+
+On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.
 
 </details>
 
@@ -115,7 +154,7 @@ Every album, sorted by name, artist, release date, date added, plays, last playe
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the **Library** row's title on Home. **Sort** and **Focus** are in the top bar; Focus also has *Added in the last* and *Listening* (never played, not in 6 or 12 months). **☰ → Random albums** opens a shuffled wall.
+Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's row. **Sort** and **Focus** are in the top bar (at the top right on a phone or tablet); Focus also has *Added in the last* and *Listening* (never played, not in 6 or 12 months). **☰ → Random albums** opens a shuffled wall.
 
 </details>
 
@@ -139,7 +178,7 @@ Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues besid
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.
+Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.
 
 </details>
 
@@ -415,7 +454,7 @@ Labels from your files' tags or a folder level: a Labels screen, logos from Disc
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key (**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar; hold a tile to select labels to merge.
+Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key (**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar (on a phone or tablet, #–Z at the top right and Search in the row); hold a tile to select labels to merge.
 
 </details>
 
@@ -559,7 +598,7 @@ One switch: only the music on the phone shows, and the server isn't used. With n
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **☰ → Offline mode**. While offline, a symbol sits in the top bar between the menu and the search: tap it to see why (Offline mode, or the server can't be reached).
+In the Android app, **☰ → Offline mode**. While offline, a small symbol sits in the row at the foot of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached).
 
 </details>
 
@@ -861,7 +900,7 @@ install anything, just open the server's IP address with port `:3500` in Safari 
   Mandarin, **Settings → Audio Devices**, switch on **“<DAC> (Bridge)”**: it is then a zone like a
   Sonos room. The Mac's own speakers too, with the bridge's `BRIDGE_ALL_OUTPUTS=1`. Mandarin
   doesn't play to the Mac's sound devices itself (its audio engine is Linux's), so they aren't
-  listed.
+  listed; that will be looked at in a later build.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
@@ -1019,7 +1058,8 @@ server, in the app. Its features are listed under [Features](#features).
 
 **Download: [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk)**
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
-on Android 8.0 or newer.
+on Android 8.0 or newer. The build itself is named `Mandarin-Android-<version>.apk` (since
+v0.9.7); this link keeps one name so it always points at the newest.
 
 **Updates install over the top.** From v0.6.10 the published app is a release build signed with
 the project's own private key, and every update after it installs in place.
