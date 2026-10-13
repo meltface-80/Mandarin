@@ -10,6 +10,11 @@
 // current), nothing made. A new copy (a scan, an edit) or a heart changed
 // leaves it behind, and while the library is being built every list is made
 // as before (each says so). At most 64 are kept.
+//
+// What the play history decides is the copy's no longer (v1.0.0): a wall sorted
+// or filtered by plays (Most played, Last played, Played, Not played) is made
+// every time, as the view's own cache never kept it, and the facets, which say
+// whether anything has been played yet, are kept for that answer too.
 using System.Collections.Concurrent;
 
 namespace Mandarin.Server;
@@ -24,8 +29,8 @@ internal static partial class Library
     };
     private const int KeptMost = 64;
 
-    private sealed record KeptAnswer(Snapshot Of, long Marks, byte[] Bytes, string Tag);
-    private sealed record KeepFor(string Key, Snapshot Of, long Marks);
+    private sealed record KeptAnswer(Snapshot Of, long Marks, bool Played, byte[] Bytes, string Tag);
+    private sealed record KeepFor(string Key, Snapshot Of, long Marks, bool Played);
     private static readonly ConcurrentDictionary<string, KeptAnswer> Kept = new(StringComparer.Ordinal);
     private static readonly object KeepAsk = new();
 
@@ -37,15 +42,32 @@ internal static partial class Library
     private static async Task<bool> SendKept(HttpContext ctx, string path, Snapshot s, LibState st)
     {
         if (st.Building || !Keepable.Contains(path) || !(HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method))) return false;
+        if (path == "/api/library/albums" && UsesPlays(ctx)) return false;
         var key = path + ctx.Request.QueryString.Value;
         var marks = s.Marks.N;
-        if (Kept.TryGetValue(key, out var k) && ReferenceEquals(k.Of, s) && k.Marks == marks)
+        var played = path == "/api/library/facets" && AnyPlays();
+        if (Kept.TryGetValue(key, out var k) && ReferenceEquals(k.Of, s) && k.Marks == marks && k.Played == played)
         {
             ctx.Response.Headers["X-Mandarin-Kept"] = "1";
             return await Http.Send(ctx, k.Bytes, Http.JsonType, 200, k.Tag);
         }
-        ctx.Items[KeepAsk] = new KeepFor(key, s, marks);
+        ctx.Items[KeepAsk] = new KeepFor(key, s, marks, played);
         return false;
+    }
+
+    /* A wall the play history sorts or filters (View's usesPlays). */
+    private static bool UsesPlays(HttpContext ctx)
+    {
+        var q = ctx.Request.Query;
+        var played = q["played"].ToString();
+        return (played.Length > 0 && played != "any") || q["sort"].ToString() is "plays" or "lastplayed";
+    }
+
+    /* Whether anything has been played yet (the facets' hasPlays): one row's look. */
+    private static bool AnyPlays()
+    {
+        try { using var c = Db.Open(); return Rows(c, "SELECT 1 FROM plays LIMIT 1").Count > 0; }
+        catch (Microsoft.Data.Sqlite.SqliteException) { return false; }
     }
 
     /* An answer sent: kept, when its request was marked for it and it is a 200. Those of an older copy go. */
@@ -55,6 +77,6 @@ internal static partial class Library
         foreach (var (key, old) in Kept)
             if (!ReferenceEquals(old.Of, f.Of)) Kept.TryRemove(key, out _);
         if (Kept.Count >= KeptMost) Kept.Clear();
-        Kept[f.Key] = new KeptAnswer(f.Of, f.Marks, bytes, tag);
+        Kept[f.Key] = new KeptAnswer(f.Of, f.Marks, f.Played, bytes, tag);
     }
 }

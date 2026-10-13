@@ -59,6 +59,31 @@ test("the library's lists: kept for the copy and the hearts they were made from,
   assert.notEqual(edited.tag, shelf.tag);
 });
 
+test("what the play history decides isn't kept past a play: Most played, the Played filter, the facets", { skip, timeout: 120000 }, async (t) => {
+  const { base, H, ctx, album } = await started(t);
+  const ask = async (p) => {
+    const r = await fetch(base + p, { headers: H });
+    return { kept: r.headers.get("x-mandarin-kept"), json: await r.json() };
+  };
+  const titles = (r) => r.json.albums.map(a => a.title);
+  // Nothing played yet: each answered twice, as the page asks.
+  for (const p of ["/api/library/albums?sort=plays&dir=desc", "/api/library/albums?sort=album&played=played", "/api/library/facets"]) { await ask(p); await ask(p); }
+  assert.equal((await ask("/api/library/facets")).json.hasPlays, false);
+  assert.equal((await ask("/api/library/facets")).kept, "1", "the facets kept while nothing changes");
+  assert.deepEqual(titles(await ask("/api/library/albums?sort=album&played=played")), []);
+  // A play (as the server writes one): no scan, no heart, so the library's copy is the same.
+  const hi = await album("Hi Res");
+  ctx.features.insertPlay.run(hi.offset, null, "Song", "Artist B", "Hi Res", "TEST", Date.now());
+  const most = await ask("/api/library/albums?sort=plays&dir=desc");
+  assert.equal(most.kept, null, "Most played is never sent as kept");
+  assert.equal(titles(most)[0], "Hi Res", "the album just played comes first");
+  assert.deepEqual(titles(await ask("/api/library/albums?sort=album&played=played")), ["Hi Res"], "the Played filter has it");
+  const facets = await ask("/api/library/facets");
+  assert.equal(facets.json.hasPlays, true, "the facets know something has been played");
+  assert.equal(facets.kept, null);
+  assert.equal((await ask("/api/library/facets")).kept, "1", "and are kept again for that");
+});
+
 test("the Android app's page and stylesheet: kept for the files they come from, made afresh when one changes", { skip, timeout: 120000 }, async (t) => {
   const app = fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-app-"));
   t.after(() => fs.rmSync(app, { recursive: true, force: true }));
