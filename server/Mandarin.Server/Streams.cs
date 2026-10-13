@@ -13,11 +13,15 @@
 // sent from there when made already. Since v0.8.40 (stage 3) so are those
 // with a ReplayGain (?g=), with a zone's DSP (?o=, read from audio_devices as
 // the device fetches) and 32-bit output (where ffmpeg writes it), planned as
-// the Node server plans them (Playback/StreamPlans.cs). Still passed on: Opus
-// for the phone away (?q=opus, Downloads.cs's), a track streamed from Qobuz
-// or Tidal, a ?g= or ?o= in a form this side can't read as Express does, and
-// a request this side can't vouch for (a speaker asking by its own address:
-// the Node server knows the speakers).
+// the Node server plans them (Playback/StreamPlans.cs). Opus for the phone
+// away (?q=opus) is Downloads.cs's. Since v0.8.47 (stage 4.5) a track streamed
+// from Qobuz or Tidal too, once the services are this server's: always from
+// the transcode folder, fetched from the service as a device asks for it (its
+// play reported, on Qobuz), as it comes or converted like a file
+// (Services/ServiceStreams.cs); nothing of a service streams without the
+// account. A ?g= or ?o= that isn't one plain value, as Express read them,
+// counts as none; a speaker asking by its own address is let through (the
+// hub knows the speakers).
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
@@ -44,12 +48,8 @@ internal static partial class Streams
     };
     internal static string MimeForExt(string ext) => ExtMime.TryGetValue(ext.ToLowerInvariant(), out var m) ? m : "application/octet-stream";
 
-    private static string cacheDir = "";
-
-
-    public static void Use(WebApplication app, string dataDir)
+    public static void Use(WebApplication app)
     {
-        cacheDir = Path.Combine(dataDir, "transcode");
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
@@ -57,7 +57,7 @@ internal static partial class Streams
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/stream/", StringComparison.Ordinal))
             {
                 try { if (await Answer(ctx, p)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[stream] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "stream", e); return; }
             }
             await next();
         });
@@ -72,7 +72,7 @@ internal static partial class Streams
         {
             var dash = part.IndexOf('-');
             if (dash < 0) continue;
-            static long? P(string s) { s = s.TrimStart(); int i = 0; while (i < s.Length && char.IsAsciiDigit(s[i])) i++; return i > 0 && i <= 18 ? long.Parse(s[..i]) : null; }
+            static long? P(string s) { s = s.TrimStart(); int i = 0; while (i < s.Length && char.IsAsciiDigit(s[i])) i++; return i > 0 && i <= 18 ? long.Parse(s[..i], CultureInfo.InvariantCulture) : null; }
             long? start = P(part[..dash]), end = P(part[(dash + 1)..]);
             if (start == null && end != null) { start = size - end; end = size - 1; }
             else if (end == null) end = size - 1;
@@ -83,7 +83,18 @@ internal static partial class Streams
         return true;
     }
 
-    private sealed record Track(string Path, string Codec, long Rate, long Bits, long Channels, long Mtime);
+    private sealed record Track(string Path, string Codec, long Rate, long Bits, long Channels, long Mtime, double Duration);
+
+    /*
+     * What the Node server answered with no body (index.js's stream route): 404 for a track or file that isn't
+     * there, 400 for a rate, a depth or a gain it won't make.
+     */
+    private static bool Refuse(HttpContext ctx, int status)
+    {
+        ctx.Response.StatusCode = status;
+        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        return true;
+    }
 
     private static async Task<bool> Answer(HttpContext ctx, string path)
     {
@@ -92,55 +103,57 @@ internal static partial class Streams
         var q = ctx.Request.Query;
         var opus = q["q"].ToString() == "opus";
         var seg = a.Groups[2].Value;
-        if (!long.TryParse(a.Groups[1].Value, out var id)) return false;
+        if (!long.TryParse(a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
         // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
         if (seg.Length > 0 && seg != "orig")
         {
             var rb = seg.Split('-');
-            if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return false;
-            if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return false;   // a 400: the Node server's
+            if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return Refuse(ctx, 400);
+            if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return Refuse(ctx, 400);
         }
         // ?g=<dB>: with this ReplayGain in it; ?o=<output>: with that zone's DSP (v0.8.40). Read as Express
-        // reads them: one plain value; an array or an object of either (g[]=, g=1&g=2) the Node server's.
+        // read them: one plain value (a list of one, g[]=, its value).
         var raw = ctx.Request.QueryString.HasValue ? ctx.Request.QueryString.Value![1..] : "";
-        double? gain = null;
-        if (!opus)
-        {
-            if (QueryOne(raw, "g") is not { } gq) return false;
-            if (gq.Here)
-            {
-                var g = Tags.Js.StringToNumber(gq.Value!);
-                if (!double.IsFinite(g) || g < -24 || g > 12) return false;   // a 400: the Node server's
-                gain = g;
-            }
-        }
+        var gq = QueryOne(raw, "g");
         string? output = null;
         if (segRate != 0)
         {
-            if (QueryOne(raw, "o") is not { } oq) return false;
-            if (oq.Here && oq.Value!.Length > 0) output = oq.Value;
+            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none).
+            if (QueryOne(raw, "o") is { } oq && oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
         Track? t = null;
         using (var c = Db.Open())
         {
-            if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+            // Unsigned and not signed in: a speaker asking by its own address (the hub's once this server holds playback, v0.8.49), else turned away (the gate has already, Auth.cs).
+            if (!Images.Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null && !await Images.FromSpeaker(ctx)) return false;
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime FROM tracks WHERE id = $id";
+            cmd.CommandText = "SELECT path, codec, sample_rate, bits, channels, mtime, duration FROM tracks WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);
             using var r = cmd.ExecuteReader();
             if (r.Read())
             {
                 long N(int i) => r.IsDBNull(i) ? 0 : Convert.ToInt64(r.GetValue(i), System.Globalization.CultureInfo.InvariantCulture);
                 t = new Track(r.GetString(0), r.IsDBNull(1) ? "" : Convert.ToString(r.GetValue(1), System.Globalization.CultureInfo.InvariantCulture) ?? "", N(2), N(3), N(4),
-                    r.IsDBNull(5) ? 0 : (long)Math.Floor(Convert.ToDouble(r.GetValue(5), System.Globalization.CultureInfo.InvariantCulture)));
+                    r.IsDBNull(5) ? 0 : (long)Math.Floor(Convert.ToDouble(r.GetValue(5), System.Globalization.CultureInfo.InvariantCulture)),
+                    r.IsDBNull(6) ? 0 : Convert.ToDouble(r.GetValue(6), System.Globalization.CultureInfo.InvariantCulture));
             }
         }
-        if (t == null) return false;
-        if (t.Path.Contains("://", StringComparison.Ordinal)) return false;   // Qobuz or Tidal: fetched by the Node server
-        // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12).
-        if (opus) return await Downloads.StreamOpus(ctx, id);
+        if (t == null) return Refuse(ctx, 404);
+        // Qobuz or Tidal (v0.8.47): this server's once the services are, else the Node server's.
+        var svc = Services.Catalogue.Of(t.Path);
+        if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return Refuse(ctx, 404);
+        // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12). A streamed track: the cached FLAC.
+        if (opus && svc == null) return await Downloads.StreamOpus(ctx, id);
+        if (gq is null) { if (ListOne(raw, "g") is { } one) gq = (true, one); else return Refuse(ctx, 400); }
+        double? gain = null;
+        if (gq.Value.Here)
+        {
+            var g = Tags.Js.StringToNumber(gq.Value.Value!);
+            if (!double.IsFinite(g) || g < -24 || g > 12) return Refuse(ctx, 400);
+            gain = g;
+        }
 
         // The plan, as index.js makes it: the file as stored, a renderer's rate and depth (with its zone's DSP), or the 24/48 rule.
         JsObj p;
@@ -162,6 +175,10 @@ internal static partial class Streams
             p = Jv.Obj(("transcode", false), ("mime", mime));
         }
         else p = (JsObj)StreamPlans.PlanFor(Row(t), null, null)!;
+        // A streamed track: always from the transcode folder, fetched from the service as it comes where a file would go as it is.
+        if (svc != null && !Jv.T(p["transcode"]))
+            p = Jv.Obj(("transcode", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", t.Rate != 0 ? (double)t.Rate : 44100.0), ("bits", t.Bits != 0 ? (double)t.Bits : 16.0),
+                ("reason", "from " + svc.Name + ", as it comes"));
         if (gain is { } gn)
         {
             p = (JsObj)StreamPlans.WithGain(p, Jv.Obj(("path", t.Path), ("codec", t.Codec), ("sampleRate", (double)t.Rate), ("bitsPerSample", (double)t.Bits),
@@ -169,11 +186,23 @@ internal static partial class Streams
             if (segRate != 0) p["hq"] = true;
         }
 
-        if (!File.Exists(t.Path)) return false;   // the Node server says so, as before
-        if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
+        var mtime = t.Mtime;
+        if (svc != null)
+        {
+            // Nothing of a service plays without the account, made already or not; a device fetching it is a play (reported, on Qobuz).
+            if (!svc.Connected()) { ctx.Response.StatusCode = 403; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
+            if (HttpMethods.IsGet(ctx.Request.Method)) svc.Played(new Services.StreamTrack(id, t.Path, t.Rate, t.Bits, t.Duration), p);
+            // Named by the stream quality setting where a file is named by its time.
+            mtime = (long)svc.Tier();
+        }
+        else
+        {
+            if (!File.Exists(t.Path)) return Refuse(ctx, 404);
+            if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
+        }
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
-        var job = Transcoder.Start(new ConvTrack(id, t.Path, t.Mtime), ConvPlan.Of(p));
+        var job = Transcoder.Start(new ConvTrack(id, t.Path, mtime), ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
         await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));
@@ -231,6 +260,29 @@ internal static partial class Streams
             else if (key.StartsWith(name + "[", StringComparison.Ordinal) || key.StartsWith('[')) return null;
         }
         return found != null ? (true, found) : (false, null);
+    }
+
+    /*
+     * Number(req.query[name]) where qs makes a list of it: a list of one is its value (Number(["-3"]) is -3: g[]=-3,
+     * g[0]=-3), two or more, or an object (g[a]=), not a number (null). For the program alone, as index.js read it.
+     */
+    internal static string? ListOne(string query, string name)
+    {
+        var values = new List<string>();
+        foreach (var part in query.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase).Replace("%5D", "]", StringComparison.OrdinalIgnoreCase).Split('&'))
+        {
+            var bracketEquals = part.IndexOf("]=", StringComparison.Ordinal);
+            var pos = bracketEquals == -1 ? part.IndexOf('=') : bracketEquals + 1;
+            var key = Signing.Decode(pos == -1 ? part : part[..pos]);
+            var value = pos == -1 ? "" : Signing.Decode(part[(pos + 1)..]);
+            if (key == name || key == name + "[]") values.Add(value);
+            else if (key.StartsWith(name + "[", StringComparison.Ordinal) && key.EndsWith(']'))
+            {
+                if (!key[(name.Length + 1)..^1].All(char.IsAsciiDigit)) return null;
+                values.Add(value);
+            }
+        }
+        return values.Count == 1 ? values[0] : null;
     }
 
     public static async Task<bool> SendFile(HttpContext ctx, string file, string mime)

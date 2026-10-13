@@ -1,16 +1,9 @@
 // LibraryChanges.cs — changes to the library made here (v0.8.16), from
 // lib/server/api-library.js and lib/library/index.js, rule for rule: a heart,
 // Listen later, label merges and the label settings. Each is written to the
-// database as the Node server wrote it, and the Node server is then told
-// (POST /internal/library/changed), so its own copy — which playback, Smart
-// Picks and the label lookups still use — reads it again and does what
-// follows (a label's logo looked for, the label rules applied). Its library
-// version moves with that, and this server's copy follows on the next request.
-//
-// A request in a shape the Node server would have answered with an error of
-// its own making (a TypeError on a list that isn't one) is passed to it as it
-// came, rather than guessed at.
-using System.Text;
+// database as the Node server wrote it, and the change then told (Told,
+// Library.State.cs: what libraryChanged did), so the library's version moves
+// and the copy here is read again on the next request.
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
@@ -19,38 +12,11 @@ namespace Mandarin.Server;
 
 internal static partial class Library
 {
-    /* The Node server told of a change made here, to read it again (index.js /internal/library/changed). */
-    public static async Task Tell(JsonObject what) => await Told(what, false);
+    /* A change made here told (index.js /internal/library/changed): the copy read again, and what follows it. */
+    public static async Task Tell(JsonObject what) => await Told(what);
 
-    /* The same, with its answer; null when it wasn't told. [quiet]: not logged (Scans.cs tells it every second while a scan runs). */
-    public static Task<JsonObject?> Told(JsonObject what, bool quiet) =>
-        ToNode("/internal/library/changed", what, quiet ? null : "[library] the Node server wasn't told of a change");
-
-    /* A word to the Node server at one of its /internal/ addresses, with its answer; null when it wasn't told ([failed]: what is logged then). */
-    public static async Task<JsonObject?> ToNode(string path, JsonObject what, string? failed = null)
-    {
-        if (upstream == null) return null;
-        try
-        {
-            using var req = new HttpRequestMessage(HttpMethod.Post, new Uri(upstream, path))
-            {
-                Content = new StringContent(what.ToJsonString(), Encoding.UTF8, "application/json")
-            };
-            req.Headers.Add("X-Mandarin-Front-Key", frontKey);
-            using var res = await Http.SendAsync(req);
-            if (!res.IsSuccessStatusCode)
-            {
-                if (failed != null) Front.Log($"{failed} (HTTP {(int)res.StatusCode})");
-                return null;
-            }
-            return await JsonNode.ParseAsync(await res.Content.ReadAsStreamAsync()) as JsonObject;
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
-        {
-            if (failed != null) Front.Log($"{failed} ({e.Message})");
-            return null;
-        }
-    }
+    /* The same, with its answer. */
+    public static Task<JsonObject> Told(JsonObject what) => LocalTold(what);
 
     private static long NowMs() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -169,7 +135,7 @@ internal static partial class Library
             cmd.Parameters.AddWithValue("$k", source);
             n = cmd.ExecuteNonQuery();
         }
-        // Read again by the Node server either way, as it did.
+        // The copy read again either way, as the Node server did.
         await Tell(new JsonObject { ["merges"] = true, ["unmerged"] = true });
         if (n == 0) return await Send(ctx, new JsonObject { ["error"] = "Not a merged label" }, 404);
         return await Send(ctx, new JsonObject { ["ok"] = true });
@@ -202,16 +168,15 @@ internal static partial class Library
         return await Send(ctx, new JsonObject { ["ok"] = true, ["depth"] = depth, ["rescanning"] = false });
     }
 
-    /* DELETE /api/labels/merge/<one segment>, as Express's route takes it; anything else is the Node server's. */
+    /* DELETE /api/labels/merge/<one segment>, as Express's route took it: a key of any shape (none merged: "Not a merged label"). */
     private static bool UnmergeAddress(HttpContext ctx, out string source)
     {
         source = "";
         var p = ctx.Request.Path.Value ?? "";
         const string Prefix = "/api/labels/merge/";
         if (!HttpMethods.IsDelete(ctx.Request.Method) || !p.StartsWith(Prefix, StringComparison.Ordinal)) return false;
-        // A label's key is letters and digits only: anything else is the Node server's to turn away.
         var seg = p[Prefix.Length..];
-        if (!LabelKeyShape().IsMatch(seg)) return false;
+        if (seg.Length == 0 || seg.Contains('/')) return false;
         source = seg;
         return true;
     }

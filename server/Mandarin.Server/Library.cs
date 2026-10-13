@@ -5,21 +5,16 @@
 // answered here.
 //
 // The database is the record and this is a working copy, as the Node server
-// keeps one. Which copy is current is the Node server's to say: the scanner,
-// edits, hearts and label rules still change the library there. So every
-// request first asks it (GET /internal/library, on 127.0.0.1 with the key this
-// server started it with) which copy it holds, and the copy here is rebuilt
-// from the database when that changed. Hearts and Listen later ("marks")
-// change no list's order, so they alone only re-read their own two tables.
+// kept one. Which copy is current is said by the library's state
+// (Library.State.cs: a version moved by each change), and the copy here is
+// rebuilt from the database when that changed. Hearts and Listen later
+// ("marks") change no list's order, so they alone only re-read their own two
+// tables.
 //
 // Orders are JavaScript's: localeCompare is ICU's collation, which this
 // server uses too (so it isn't built with invariant globalization), and every
 // sort is stable, as JavaScript's is.
 using System.Globalization;
-using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -43,7 +38,7 @@ internal sealed class Album
     public string DateKey = "";
     public List<string> Genres = [];
     public long? Rate, Bits, Added;
-    // albums.track_count, as the Node server has it (al.tracks): what the identification scan counts.
+    // albums.track_count, as the Node server had it (al.tracks): what the identification scan counts.
     public double? TrackCount;
     public bool Lossless, Compilation, CustomArt, Edited;
     public string? Container, Dir, Label, Service;
@@ -61,15 +56,15 @@ internal sealed record Box(string Name, long Disc, long Of, List<long> Ids);
 
 internal sealed record LibState(string Boot, long Version, long Marks, bool Building, JsonNode? Progress, bool LabelsOn, int Depth, List<string> Roots)
 {
-    // The day ("2026-10-7"), when it began, and the ISO week, on the Node server's clock.
+    // The day ("2026-10-7"), when it began, and the ISO week, on this clock.
     public string Day { get; init; } = "";
-    // The Node server's own address, as speakers and phones are given it (ctx.baseUrl, v0.8.26).
+    // The server's address, as speakers and phones are given it (ctx.baseUrl, v0.8.26).
     public string BaseUrl { get; init; } = "";
     public long DayStart { get; init; }
     public string Week { get; init; } = "";
     // The library scan running now (the identification scan waits for it).
     public bool Scanning { get; init; }
-    // When the Node server last read the library (the label wall's builtAt).
+    // When the library was last read (the label wall's builtAt).
     public double? BuiltAt { get; init; }
 
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
@@ -155,7 +150,7 @@ internal static partial class Library
     [GeneratedRegex("m4a|mp4|isom|m4b|alac", RegexOptions.IgnoreCase)] private static partial Regex RxMp4();
     [GeneratedRegex("wavpack", RegexOptions.IgnoreCase)] private static partial Regex RxWavPack();
     [GeneratedRegex("ape|monkey", RegexOptions.IgnoreCase)] private static partial Regex RxApe();
-    private static string? FormatName(string? container, bool lossless)
+    internal static string? FormatName(string? container, bool lossless)
     {
         var c = container ?? "";
         if (RxMpeg().IsMatch(c) && !lossless) return "MP3";
@@ -181,7 +176,7 @@ internal static partial class Library
     public static uint Seeded(string s, uint seed) => SeededRank(s, seed);
     private static uint ToUint32(long v) => unchecked((uint)v);
 
-    private static string? ReleaseDate(long? year, string? tagDate, string? mbDay)
+    internal static string? ReleaseDate(long? year, string? tagDate, string? mbDay)
     {
         if (year is null or 0) return null;
         var y = year.Value.ToString(CultureInfo.InvariantCulture);
@@ -200,7 +195,7 @@ internal static partial class Library
     // A JSON value as String(v) would give it, or null for null.
     private static string? JsString(JsonNode? n) => n == null ? null : n is JsonValue v && v.TryGetValue<string>(out var s) ? s : n.ToJsonString();
 
-    private static string DateKey(string? date)
+    internal static string DateKey(string? date)
     {
         if (string.IsNullOrEmpty(date)) return "";
         var p = date.Split('-');
@@ -217,16 +212,14 @@ internal static partial class Library
 
     // ------------------------------------------------------------- the state
 
-    private static Uri? upstream;
     private static string frontKey = "";
+    /* The key this server's private addresses (/internal/…, the tests') are asked with. */
     public static string FrontKey => frontKey;
-    private static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30) }) { Timeout = TimeSpan.FromSeconds(10) };
     private static volatile Snapshot? current;
     private static readonly SemaphoreSlim Building = new(1, 1);
 
-    public static void Init(Uri node, string key)
+    private static void Init(string key)
     {
-        upstream = node;
         frontKey = key;
         // Kept current in the background too (every five seconds at most), so
         // the next screen after a scan or an edit seldom waits for the rebuild.
@@ -236,55 +229,23 @@ internal static partial class Library
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 try { await Current(); }
-                catch (Exception e) { Front.Log($"[library] {e.GetType().Name}: {e.Message}"); }
+                catch (Exception e) { Server.Log($"[library] {e.GetType().Name}: {e.Message}"); }
             }
         });
     }
 
-    private static async Task<LibState?> State()
-    {
-        if (upstream == null) return null;
-        try
-        {
-            using var req = new HttpRequestMessage(HttpMethod.Get, new Uri(upstream, "/internal/library"));
-            req.Headers.Add("X-Mandarin-Front-Key", frontKey);
-            using var res = await Http.SendAsync(req);
-            if (!res.IsSuccessStatusCode) return null;
-            var j = (await JsonNode.ParseAsync(await res.Content.ReadAsStreamAsync())) as JsonObject;
-            if (j == null) return null;
-            // Which cores playback keeps (lib/cpu.js): kept to here too.
-            Cpu.Follow(j["cpu"]);
-            // Its version: everything passed to it while it isn't this one's (Front.cs, v0.8.25).
-            Front.NodeSays(JsString(j["app_version"]));
-            // A Node server started again is told again what's made here (Jobs.cs).
-            Jobs.Seen(JsString(j["boot"]) ?? "");
-            var labels = j["labels"] as JsonObject;
-            return new LibState(JsString(j["boot"]) ?? "", (long)(j["version"]?.GetValue<double>() ?? 0), (long)(j["marks"]?.GetValue<double>() ?? 0),
-                j["building"]?.GetValue<bool>() == true, j["progress"]?.DeepClone(),
-                labels?["enabled"]?.GetValue<bool>() == true, (int)(labels?["depth"]?.GetValue<double>() ?? 0),
-                (labels?["roots"] as JsonArray)?.Select(x => JsString(x) ?? "").ToList() ?? [])
-            {
-                Day = JsString(j["day"]) ?? "", BaseUrl = JsString(j["base_url"]) ?? "", DayStart = (long)(j["day_start"]?.GetValue<double>() ?? 0), Week = JsString(j["week"]) ?? "",
-                Scanning = j["scanning"] is JsonValue sv && sv.TryGetValue<bool>(out var scanning) && scanning,
-                BuiltAt = j["built_at"] is JsonValue bv && bv.TryGetValue<double>(out var built) ? built : null
-            };
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException)
-        {
-            return null;
-        }
-    }
+    private static Task<LibState?> State() => Task.FromResult<LibState?>(LocalState());
 
-    /* The Node server asked how it is (its version among it), before anything is answered (Program.cs). */
-    public static async Task Ask() => await State();
+    /* The library's version now, for what is kept no longer than it stays (Services/). */
+    public static async Task<long?> StateVersion() => (await State())?.Version;
 
-    /* The current copy, for the covers (Images.cs); null when the Node server can't say. */
+    /* The current copy, for the covers (Images.cs); null when it can't be read. */
     public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;
 
-    /* The current copy and the Node server's state with it (Identify/), or null when it can't say. */
+    /* The current copy and the library's state with it (Identify/), or null when it can't be read. */
     public static Task<(Snapshot, LibState)?> CurrentState() => Current();
 
-    /* The copy the Node server holds, built here if it isn't already. */
+    /* The current copy, built here if it isn't already. */
     private static async Task<(Snapshot, LibState)?> Current()
     {
         var st = await State();
@@ -300,9 +261,9 @@ internal static partial class Library
                 {
                     var t0 = Environment.TickCount64;
                     s = await Task.Run(() => Build(st));
-                    current = s;
+                    current = s; builtAt = NowMs();
                     var ms = Environment.TickCount64 - t0;
-                    if (ms > 500) Front.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
+                    if (ms > 500) Server.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
                 }
             }
             finally { Building.Release(); }
@@ -327,7 +288,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------- the build
 
-    private static List<object?[]> Rows(SqliteConnection c, string sql, params object[] args)
+    internal static List<object?[]> Rows(SqliteConnection c, string sql, params object[] args)
     {
         using var cmd = c.CreateCommand();
         cmd.CommandText = sql;

@@ -15,10 +15,10 @@ const assert = require("node:assert");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn, post } = require("./auth-helper");
-const { isLocal } = require("../lib/server/auth");
-const { awayAddress, inTailnet } = require("../lib/server/tailscale");
+const { score } = require("./score");
+const { built } = require("./server");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const TAILNET = "100.101.102.103";
@@ -33,22 +33,24 @@ async function until(fn, ms = 8000) {
   }
 }
 
-test("home and away addresses", () => {
-  for (const a of ["192.168.1.20", "10.0.0.5", "172.20.1.1", "127.0.0.1", "::1", "fe80::1", "fd12:3456::1"]) assert.ok(isLocal(a), a);
-  for (const a of ["100.101.102.103", "fd7a:115c:a1e0::1", "8.8.8.8", "::ffff:100.64.0.1"]) assert.ok(!isLocal(a), a);
-  assert.ok(inTailnet("100.64.0.1") && inTailnet("100.127.255.254") && !inTailnet("100.128.0.1") && !inTailnet("100.63.0.1"));
+test("home and away addresses", { skip: built() }, () => {
+  // The C# server's rules (Auth.cs, Playback/Topology.cs, PhoneRoutes.cs; lib/server/auth.js and tailscale.js until v0.8.50).
+  const home = ["192.168.1.20", "10.0.0.5", "172.20.1.1", "127.0.0.1", "::1", "fe80::1", "fd12:3456::1"];
+  const away = ["100.101.102.103", "fd7a:115c:a1e0::1", "8.8.8.8", "::ffff:100.64.0.1"];
   const ifaces = { eth0: [{ family: "IPv4", address: "192.168.1.10" }], tailscale0: [{ family: "IPv4", address: "100.90.1.2" }] };
-  assert.equal(awayAddress(3500, {}, ifaces), "http://100.90.1.2:3500");
-  assert.equal(awayAddress(3500, {}, { eth0: ifaces.eth0 }), null);
-  assert.equal(awayAddress(3500, { TAILSCALE_ADDRESS: "musicd.tail1234.ts.net" }, ifaces), "http://musicd.tail1234.ts.net:3500");
-  assert.equal(awayAddress(3500, { TAILSCALE_ADDRESS: "https://musicd.tail1234.ts.net/" }, ifaces), "https://musicd.tail1234.ts.net");
+  const r = score({ fn: "auth", locals: home.concat(away), tailnet: ["100.64.0.1", "100.127.255.254", "100.128.0.1", "100.63.0.1"], aways: [
+    { port: 3500, ifaces }, { port: 3500, ifaces: { eth0: ifaces.eth0 } },
+    { port: 3500, set: "musicd.tail1234.ts.net", ifaces }, { port: 3500, set: "https://musicd.tail1234.ts.net/", ifaces }] });
+  home.concat(away).forEach((a, i) => assert.equal(r.locals[i], i < home.length, a));
+  assert.deepEqual(r.tailnet, [true, true, false, false]);
+  assert.deepEqual(r.aways, ["http://100.90.1.2:3500", null, "http://musicd.tail1234.ts.net:3500", "https://musicd.tail1234.ts.net"]);
 });
 
 test("away, only this phone plays", { skip, timeout: 90000 }, async (t) => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] });
   await srv.start();
   const phoneToken = await signIn(B);
@@ -172,12 +174,8 @@ test("away, only this phone plays", { skip, timeout: 90000 }, async (t) => {
     await t.test("only a proxy on this machine is believed about where a request comes from", async () => {
       // From loopback with no header: home. A remote client can't set it —
       // its own address is used, and loopback is the only proxy trusted.
-      const { clientIp } = require("../lib/server/auth");
-      const req = (addr, xff) => ({ socket: { remoteAddress: addr }, headers: xff ? { "x-forwarded-for": xff } : {} });
-      assert.equal(clientIp(req("127.0.0.1", TAILNET)), TAILNET);
-      assert.equal(clientIp(req("::ffff:127.0.0.1", "1.2.3.4, " + TAILNET)), TAILNET);
-      assert.equal(clientIp(req("192.168.1.5", "10.0.0.1")), "192.168.1.5");
-      assert.equal(clientIp(req("::ffff:100.100.1.1", "192.168.1.9")), "100.100.1.1");
+      const { clients } = score({ fn: "auth", clients: [["127.0.0.1", TAILNET], ["::ffff:127.0.0.1", "1.2.3.4, " + TAILNET], ["192.168.1.5", "10.0.0.1"], ["::ffff:100.100.1.1", "192.168.1.9"]] });
+      assert.deepEqual(clients, [TAILNET, TAILNET, "192.168.1.5", "100.100.1.1"]);
     });
   } finally {
     await srv.stop();

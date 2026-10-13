@@ -4,19 +4,15 @@
 #
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
 #
-# Installs Homebrew (if it isn't there), Node.js 22, ffmpeg and poppler (an album's booklet), downloads
+# Installs Homebrew (if it isn't there), ffmpeg and poppler (an album's booklet), downloads
 # Mandarin into ~/Mandarin, asks with the Mac's own Finder windows where the
 # music is (and where to keep the MusicBrainz pack, if anywhere else), starts
 # Mandarin now and at every login, and opens it in the browser. Run it again
 # to choose other folders; it keeps the library, the account and the settings.
 #
-# From v0.8.29 Mandarin's C# server runs in front, as in the Docker image: it
-# is what launchd starts, and it starts the Node server behind it. It is this
-# Mac's build from the release of the version installed, checked against the
-# release's sums. A Mac installed before v0.8.29 gets it by running this line
-# again. To keep the Node server alone, as before:
-#
-#   MANDARIN_NODE_ONLY=1 /bin/bash -c "$(curl -fsSL …/install.sh)"
+# Mandarin's server is one program (C#, v0.9.0: no Node.js), this Mac's build
+# from the release of the version installed, checked against the release's
+# sums; it is what launchd starts.
 set -euo pipefail
 
 APP_DIR="$HOME/Mandarin"
@@ -25,9 +21,6 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPO="https://github.com/meltface-80/Mandarin.git"
 PORT=3500
 RELEASES="${MANDARIN_RELEASES:-https://github.com/meltface-80/Mandarin/releases/download}"
-NODE_ONLY="${MANDARIN_NODE_ONLY:-0}"
-# ${@+"$@"}: the Mac's bash (3.2) calls an empty "$@" unbound under set -u.
-for a in ${@+"$@"}; do if [ "$a" = "--node-only" ]; then NODE_ONLY=1; fi; done
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 # XML-safe text for the launch file.
@@ -62,7 +55,22 @@ fetch_server() {
   case "$t" in */tmp.*) rm -rf "$t" ;; esac
 }
 
-# Only the functions, for CI's Mac to try fetch_server (.github/workflows/ci.yml).
+# A USB DAC on this Mac (v0.9.0): Mandarin plays it through Mandarin DAC Bridge
+# (github.com/meltface-80/Mandarin-DAC-Bridge), optional, installed by its own
+# installer. "yes" when it is wanted: MANDARIN_DAC_BRIDGE=yes or no answers
+# without asking; installed already (in $1) it is left as it is, as its own
+# line updates it; else the Mac asks.
+BRIDGE_DIR="$HOME/Mandarin-DAC-Bridge"
+BRIDGE_INSTALL="https://raw.githubusercontent.com/meltface-80/Mandarin-DAC-Bridge/main/tools/mac/install.sh"
+bridge_wanted() {
+  local a="${MANDARIN_DAC_BRIDGE:-}"
+  if [ -z "$a" ] && [ ! -d "$1" ]; then
+    a="$(osascript -e 'button returned of (display dialog "Play to a USB DAC plugged into this Mac? Mandarin DAC Bridge holds the DAC, plays it bit-perfect at each track’s own rate, and shares it with Audirvana. (Optional: it adds a few hundred MB.)" buttons {"Not now", "Install DAC Bridge"} default button "Not now" with title "Mandarin")' 2>/dev/null || echo "Not now")"
+  fi
+  case "$a" in "Install DAC Bridge"|yes|YES|1) echo yes ;; *) echo "" ;; esac
+}
+
+# Only the functions, for CI's Mac to try fetch_server and bridge_wanted (.github/workflows/ci.yml).
 if [ "${MANDARIN_INSTALL_FUNCTIONS_ONLY:-0}" = 1 ]; then return 0 2>/dev/null || exit 0; fi
 
 if [ "$(uname)" != "Darwin" ]; then echo "This installer is for macOS. On Linux, use Docker (see the README)."; exit 1; fi
@@ -78,34 +86,35 @@ if ! command -v brew >/dev/null 2>&1 && ! use_brew; then
 fi
 BREW="$(brew --prefix)"
 
-# 2. Node.js 22 and ffmpeg; poppler draws the pages of an album's booklet (v0.8.33).
-say "Installing Node.js, ffmpeg and poppler…"
-brew install node@22 ffmpeg poppler
-NODE_BIN="$BREW/opt/node@22/bin"
-export PATH="$NODE_BIN:$BREW/bin:$PATH"
+# 2. ffmpeg; poppler draws the pages of an album's booklet (v0.8.33).
+say "Installing ffmpeg and poppler…"
+brew install ffmpeg poppler
+export PATH="$BREW/bin:$PATH"
 
-# 3. Mandarin itself (stopped first if this is a second run).
+# 3. Mandarin itself: the page and its version (stopped first if this is a second run).
 launchctl unload "$PLIST" 2>/dev/null || true
-if [ ! -f "$APP_DIR/launcher.js" ]; then
+if [ ! -f "$APP_DIR/package.json" ]; then
   say "Downloading Mandarin…"
   git clone --depth 1 "$REPO" "$APP_DIR"
+elif [ -f "$APP_DIR/launcher.js" ] && [ -d "$APP_DIR/.git" ]; then
+  # An install from before v0.9.0, on Node.js: its files brought up to date
+  # (the data folder, untracked, stays as it is), and Node's packages gone.
+  say "Bringing Mandarin up to date (no Node.js from v0.9.0)…"
+  git -C "$APP_DIR" fetch --depth 1 origin main
+  git -C "$APP_DIR" reset --hard FETCH_HEAD
+  rm -rf "$APP_DIR/node_modules"
 fi
-say "Setting Mandarin up…"
-(cd "$APP_DIR" && npm ci --omit=dev --no-audit --no-fund --loglevel=error)
 mkdir -p "$APP_DIR/data"
 
-# 3b. Mandarin's C# server (v0.8.29): this Mac's build, from the release of the
-#     version installed (an install updated from Settings is newer than the
-#     download), checked against the release's sums, signed to run here if its
-#     own signature didn't come through, and asked its version.
-SERVER=""
-if [ "$NODE_ONLY" != 1 ]; then
-  VERSION="$(node -p "require('$APP_DIR/package.json').version")"
-  fetch_server "$APP_DIR" "$VERSION"
-  if [ -z "$SERVER" ]; then
-    echo "Mandarin's C# server for v$VERSION couldn't be had for this Mac, so Mandarin runs on its Node"
-    echo "server alone for now. Update Mandarin in Settings, then run this line again."
-  fi
+# 3b. Mandarin's server: this Mac's build, from the release of the version
+#     installed (an install updated from Settings is newer than the download),
+#     checked against the release's sums, signed to run here if its own
+#     signature didn't come through, and asked its version.
+VERSION="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$APP_DIR/package.json" | head -n 1)"
+fetch_server "$APP_DIR" "$VERSION"
+if [ -z "$SERVER" ]; then
+  echo "Mandarin's server for v$VERSION couldn't be had for this Mac. Check the connection and run this line again."
+  exit 1
 fi
 
 # 4. Where the music is: the Finder's own folder chooser.
@@ -128,30 +137,25 @@ if [ "$AWAKE" = "Keep awake" ]; then
   osascript -e 'do shell script "pmset -c sleep 0" with administrator privileges' >/dev/null 2>&1 || echo "Couldn't change the sleep setting; do it in System Settings → Energy."
 fi
 
+# 6b. A USB DAC on this Mac (v0.9.0): Mandarin DAC Bridge, if wanted, installed at the end.
+BRIDGE="$(bridge_wanted "$BRIDGE_DIR")"
+
 # 7. Start Mandarin now and at every login.
 {
   echo '<?xml version="1.0" encoding="UTF-8"?>'
   echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
   echo '<plist version="1.0"><dict>'
   echo "  <key>Label</key><string>$LABEL</string>"
-  # The C# server, which starts the Node server (NODE_BIN, launcher.js in
-  # MANDARIN_APP_DIR); or, without it, the Node server alone.
-  if [ -n "$SERVER" ]; then
-    echo "  <key>ProgramArguments</key><array><string>$(xml "$SERVER")</string></array>"
-  else
-    echo "  <key>ProgramArguments</key><array><string>$(xml "$NODE_BIN/node")</string><string>$(xml "$APP_DIR/launcher.js")</string></array>"
-  fi
+  # Mandarin's server, and where its page (public/) is.
+  echo "  <key>ProgramArguments</key><array><string>$(xml "$SERVER")</string></array>"
   echo "  <key>WorkingDirectory</key><string>$(xml "$APP_DIR")</string>"
   echo '  <key>EnvironmentVariables</key><dict>'
-  if [ -n "$SERVER" ]; then
-    echo "    <key>NODE_BIN</key><string>$(xml "$NODE_BIN/node")</string>"
-    echo "    <key>MANDARIN_APP_DIR</key><string>$(xml "$APP_DIR")</string>"
-  fi
+  echo "    <key>MANDARIN_APP_DIR</key><string>$(xml "$APP_DIR")</string>"
   echo "    <key>MUSIC_DIR</key><string>$(xml "$MUSIC")</string>"
   [ -n "$PACK" ] && echo "    <key>MBPACK_DIR</key><string>$(xml "$PACK")</string>"
   echo "    <key>PORT</key><string>$PORT</string>"
   echo "    <key>MANDARIN_LAUNCHD</key><string>$LABEL</string>"
-  echo "    <key>PATH</key><string>$(xml "$NODE_BIN:$BREW/bin:/usr/bin:/bin")</string>"
+  echo "    <key>PATH</key><string>$(xml "$BREW/bin:/usr/bin:/bin")</string>"
   echo '  </dict>'
   echo '  <key>RunAtLoad</key><true/>'
   echo '  <key>KeepAlive</key><true/>'
@@ -208,6 +212,11 @@ if [ -z "$up" ]; then
 fi
 open "http://localhost:$PORT"
 
+if [ -n "$BRIDGE" ]; then
+  say "Installing Mandarin DAC Bridge…"
+  /bin/bash -c "$(curl -fsSL "$BRIDGE_INSTALL")" || echo "Mandarin DAC Bridge didn't install. Its own line is in the README (A USB DAC on a Mac)."
+fi
+
 IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
 say "Mandarin is running."
 echo "  On this Mac:   http://localhost:$PORT"
@@ -218,9 +227,8 @@ echo
 echo "Create your account in the browser window that opened. Mandarin starts by itself"
 echo "whenever you log in, and the Mandarin icon on your desktop starts it after a Shut down."
 echo "Add or change music folders any time in Settings → Music Folders."
-if [ -n "$SERVER" ]; then
-  echo "If macOS asks to let \"mandarin-server\" find devices on your network or open your files,"
-  echo "choose Allow: Mandarin needs it to reach your speakers and read your music."
-else
-  echo "If macOS asks to let \"node\" find devices on your network or open your files, choose Allow."
+echo "If macOS asks to let \"mandarin-server\" find devices on your network or open your files,"
+echo "choose Allow: Mandarin needs it to reach your speakers and read your music."
+if [ -n "$BRIDGE" ] || [ -d "$BRIDGE_DIR" ]; then
+  echo "Your USB DAC: in Settings → Audio Devices, switch on \"<DAC> (Bridge)\"."
 fi

@@ -3,9 +3,14 @@
 // through them and on to the release, never sideways or back.
 const test = require("node:test");
 const assert = require("node:assert");
-const { cmpVer } = require("../lib/updater");
+const { built } = require("./server");
+const { score } = require("./score");
 
-test("release candidates order before their release, and by number", () => {
+// The C# server's updater (Admin/Updater.cs; lib/updater.js until v0.8.50).
+const skip = built();
+const cmpVer = (a, b) => score({ fn: "versions", pairs: [[a, b]] }).cmp[0];
+
+test("release candidates order before their release, and by number", { skip }, () => {
   assert.equal(cmpVer("0.6.0-RC1", "0.5.58"), 1);
   assert.equal(cmpVer("0.6.0", "0.6.0-RC1"), 1);
   assert.equal(cmpVer("0.6.0-RC1", "0.6.0"), -1);
@@ -15,10 +20,10 @@ test("release candidates order before their release, and by number", () => {
   assert.equal(cmpVer("0.6.1", "0.6.0"), 1);
 });
 
-test("an update unpacks into a folder whose path has a space in it", () => {
+test("an update unpacks into a folder whose path has a space in it", { skip }, () => {
   const fs = require("fs"), os = require("os"), path = require("path");
   const { execFileSync } = require("child_process");
-  const { extract } = require("../lib/updater");
+  const extract = (tgz, out) => score({ fn: "versions", extracts: [[tgz, out]] }).extracted[0];
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd update "));
   const src = path.join(root, "src dir", "mandarin-1.0.0");
   fs.mkdirSync(src, { recursive: true });

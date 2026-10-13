@@ -2,7 +2,6 @@
 // lib/server/features.js: Album of the day, Label of the week, Recently played
 // and Not played lately. The day and the week are the Node server's (its time
 // zone), told with the library's state, so both servers turn over together.
-using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 
@@ -45,7 +44,7 @@ internal static partial class Library
 
     private static Task<bool> AlbumOfTheDay(HttpContext ctx, Snapshot s, LibState st)
     {
-        if (st.Day.Length == 0) return Task.FromResult(false);   // a Node server too old to say which day it is
+        if (st.Day.Length == 0) return Task.FromResult(false);   // no day known yet: "No such endpoint"
         using var c = Db.Open();
         var al = DayAlbum(c, s, st);
         if (al == null) return Send(ctx, new JsonObject { ["album"] = null, ["day"] = st.Day });

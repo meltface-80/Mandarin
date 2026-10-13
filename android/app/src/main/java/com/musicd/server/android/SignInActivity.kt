@@ -115,7 +115,7 @@ class SignInActivity : Activity() {
             setOnClickListener { toConnect() }
         })
         col.addView(TextView(this).apply {
-            text = "Forgot the password? On the server run\ndocker exec musicd-server node reset-password.js\nthen create the account again here."
+            text = "Forgot the password? On the server run\ndocker exec musicd-server /app/server/bin/mandarin-server reset-password\nthen create the account again here."
             setTextColor(0xFF6B737A.toInt())
             textSize = 12f
             setPadding(0, px(24), 0, 0)

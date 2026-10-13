@@ -1,15 +1,18 @@
-// Cpu.cs — the processor shared out as the Node server decided it (v0.8.13,
-// lib/cpu.js): playback keeps a core of its own, two while DSP is in use, and
-// this server keeps to the rest.
+// Cpu.cs — the processor shared out (v0.8.13, lib/cpu.js): playback keeps a
+// core of its own, two while DSP is in use, and this server keeps to the rest.
 //
-// The split comes with the library's state (Library.cs, every five seconds
-// at most). This server's own threads then run on the cores playback doesn't
-// keep, and each ffmpeg it starts goes where its kind belongs: a conversion a
-// device is waiting for, or one made ahead of play just below it, on
-// playback's cores; the phone's downloads on the others, at the lowest
-// priority, their disk reads last. A conversion running when the split moves
-// is moved with it. Until the split has come, and where nothing is split (not
-// Linux, two cores, PLAYBACK_CORES=0), the priorities alone apply.
+// Decided here since v0.8.48 (stage 5 part 4), as lib/cpu.js decided it: from
+// the cores this server could use when it started and PLAYBACK_CORES /
+// PLAYBACK_CORE, the DSP conversions under way counted and playback's second
+// core kept ten minutes after the last. The job "cpu" (Jobs.cs).
+//
+// This server's own threads run on the cores playback doesn't keep, and each
+// ffmpeg it starts goes where its kind belongs: a conversion a device is
+// waiting for, or one made ahead of play just below it, on playback's cores;
+// the phone's downloads on the others, at the lowest priority, their disk
+// reads last. A conversion running when the split moves is moved with it.
+// Until a split has come, and where nothing is split (not Linux, two cores,
+// PLAYBACK_CORES=0), the priorities alone apply.
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -34,15 +37,12 @@ internal static partial class Cpu
         : OperatingSystem.IsMacOS() ? (false, Have("nice", "-n", "0", "true"), false)
         : (false, false, false));
 
-    /* The split as the Node server last sent it (lib/cpu.js plan()), whole; null until it has. */
-    public static JsonNode? Last { get; private set; }
-
-    /* The cores this server could use when it started, for the Node server it starts (lib/cpu.js). */
-    public static readonly string Startup = Own();
+    /* The cores this server could use when it started (lib/cpu.js allowed: MANDARIN_CPUS, else its own). */
+    public static readonly string Startup = Environment.GetEnvironmentVariable("MANDARIN_CPUS") is { Length: > 0 } given && Expand(given).Length > 0 ? Compact(Expand(given)) : Own();
 
     /*
      * Back on the cores it started with, as it starts again in this same
-     * process (Front.StartAgain, v0.8.31): execv keeps a process's cores, and
+     * process (Server.StartAgain, v0.8.31): execv keeps a process's cores, and
      * the program starting again counts the machine by its own (Startup).
      * Kept to the rest of a split, it counted those alone: one core fewer
      * after every update (4, then 3 with 1 for playback, then 2 with none).
@@ -53,7 +53,7 @@ internal static partial class Cpu
         if (all.Length > 0) PinProcess(Environment.ProcessId, all);
     }
 
-    /* It didn't start again after all: the split kept to again with the next word of it (Follow). */
+    /* It didn't start again after all: the split kept to again with the next decision. */
     public static void Resume() => Volatile.Write(ref sig, "");
 
     /* "0-2,5" → [0, 1, 2, 5] (lib/cpu.js expand). */
@@ -84,15 +84,7 @@ internal static partial class Cpu
     private static partial long Syscall(long number, long a, long b, long c);
 
     /* How many background reads at once: one per core playback doesn't keep (lib/cpu.js slots). */
-    public static int Slots
-    {
-        get
-        {
-            var p = plan;
-            if (p.Background.Length > 0) return p.Background.Length;
-            return Math.Max(1, Environment.ProcessorCount - 1);
-        }
-    }
+    public static int Slots => SlotsFor(plan.Background);
 
     /*
      * The calling thread at the lowest priority, its disk reads last (a
@@ -162,17 +154,10 @@ internal static partial class Cpu
 
     private static string Span(int[] c) => c.Length == 1 ? "core " + c[0] : "cores " + Compact(c).Replace('-', '–');
 
-    private static int[] Cores(JsonNode? n) =>
-        n is JsonArray a ? a.Select(x => x is JsonValue v && v.TryGetValue<double>(out var d) && d >= 0 && d < 4096 && d == Math.Floor(d) ? (int)d : -1).Where(x => x >= 0).ToArray() : [];
-
-    /* The split as the Node server sent it (/internal/library "cpu"); kept to from now on. */
-    public static void Follow(JsonNode? cpu)
+    /* A split kept to: this server's threads and its conversions moved where it says. */
+    private static void Keep(Split next)
     {
-        // As the Node server sent it, for /api/cpu (PowerRoutes.cs): the decision is still its.
-        if (cpu is JsonObject whole) Last = whole.DeepClone();
-        if (cpu is not JsonObject o || !OperatingSystem.IsLinux()) return;
-        var on = o["split"] is JsonValue sv && sv.TryGetValue<bool>(out var b) && b;
-        var next = new Split(on, Cores(o["playback"]), Cores(o["background"]), Cores(o["cores"]));
+        if (!OperatingSystem.IsLinux()) return;
         if (next.On && (next.Playback.Length == 0 || next.Background.Length == 0)) return;
         var s = next.On + "|" + Compact(next.Playback) + "|" + Compact(next.Background) + "|" + Compact(next.All);
         // Asked with every request: nothing to do unless the split changed.
@@ -186,8 +171,8 @@ internal static partial class Cpu
             // This server's own threads on the rest (all of them when nothing is split); a thread started later inherits it.
             var own = next.On ? next.Background : next.All;
             int moved = own.Length > 0 ? PinProcess(Environment.ProcessId, own) : 0;
-            if (next.On && moved > 0) Front.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
-            else if (next.On && first) Front.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
+            if (next.On && moved > 0) Server.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
+            else if (next.On && first) Server.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
             // A conversion running outside its cores now is moved to them.
             foreach (var (pid, c) in Children)
             {
@@ -231,55 +216,154 @@ internal static partial class Cpu
         return moved;
     }
 
-    /*
-     * An ffmpeg to be started where its kind belongs: the program and its
-     * arguments put behind nice, ionice and taskset (lib/cpu.js wrap).
-     */
-    public static void Place(ProcessStartInfo psi, CpuKind kind)
+    // ------------------------------------------------------------ decided here (v0.8.48)
+
+    // DSP's second core is kept this long after its last conversion (lib/cpu.js DSP_HOLD_MS); the tests' own, if said.
+    private static readonly int HoldMs = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_CPU_HOLD_MS"), out var h) && h >= 0 ? h : 10 * 60 * 1000;
+    private static volatile bool deciding;
+    private static readonly object Deciding_ = new();
+    private static int dspRunning;         // DSP conversions under way
+    private static long dspUntil;          // and the second core kept until then (Environment.TickCount64)
+    private static Timer? holdTimer;
+    private static Split decided = new(false, [], [], []);
+    private static bool decidedDsp;        // whether DSP was in use when the split was last decided
+    private static readonly Lazy<bool> Raise = new(() => Tools.Value.Nice && MayRaise());
+
+    /* The split is decided (the job "cpu" is this server's, Jobs.cs). */
+    public static bool Deciding => deciding;
+
+    /* The cores to share out: as this server started (Startup), else every core the machine has. */
+    private static int[] AllCores()
     {
-        var t = Tools.Value;
-        var p = plan;
-        var chain = new List<string>();
-        if (kind == CpuKind.Background)
-        {
-            if (t.Nice) chain.AddRange(["nice", "-n", "19"]);
-            if (t.Ionice) chain.AddRange(["ionice", "-c", "2", "-n", "7"]);
-        }
-        else if (kind == CpuKind.Ahead && t.Nice) chain.AddRange(["nice", "-n", "5"]);
-        if (p.On && t.Taskset) chain.AddRange(["taskset", "-c", Compact(CoresFor(kind))]);
-        if (chain.Count == 0) return;
-        var args = psi.ArgumentList.ToList();
-        psi.ArgumentList.Clear();
-        foreach (var a in chain.Skip(1)) psi.ArgumentList.Add(a);
-        psi.ArgumentList.Add(psi.FileName);
-        foreach (var a in args) psi.ArgumentList.Add(a);
-        psi.FileName = chain[0];
+        var c = Expand(Startup);
+        return c.Length > 0 ? c : Enumerable.Range(0, Math.Max(1, Environment.ProcessorCount)).ToArray();
     }
 
-    /* A process done with: no longer followed. */
-    public static void Forget(Process proc)
+    /* Whether a process may be started at a higher priority here (lib/cpu.js mayRaise: nice says so, and runs it anyway, when not). */
+    private static bool MayRaise()
     {
-        try { Children.TryRemove(proc.Id, out _); } catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { /* never started, or let go */ }
-    }
-
-    /* A process started after Place, followed so it moves when the split does. */
-    public static void Adopt(Process proc, CpuKind kind)
-    {
-        int pid;
-        try { pid = proc.Id; } catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { return; }
-        // Where nice isn't there to start it lower: lowered now (its first thread, at least).
-        if (kind != CpuKind.Playback && !Tools.Value.Nice && OperatingSystem.IsLinux())
-        {
-            try { SetPriority(0, pid, kind == CpuKind.Background ? 19 : 5); } catch (Exception) { /* not allowed here */ }
-        }
-        var p = plan;
-        Children[pid] = (kind, p.On ? CoresFor(kind) : []);
         try
         {
-            proc.EnableRaisingEvents = true;
-            proc.Exited += (_, _) => Children.TryRemove(pid, out _);
-            if (proc.HasExited) Children.TryRemove(pid, out _);
+            var psi = new ProcessStartInfo("nice") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (var a in new[] { "-n", "-10", "true" }) psi.ArgumentList.Add(a);
+            using var p = Process.Start(psi);
+            if (p == null) return false;
+            _ = p.StandardOutput.ReadToEndAsync();
+            var err = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(5000)) { try { p.Kill(); } catch (InvalidOperationException) { /* gone */ } return false; }
+            return p.ExitCode == 0 && err.Result.Trim().Length == 0;
         }
-        catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException) { Children.TryRemove(pid, out _); }
+        catch (Exception) { return false; }
     }
+
+    /*
+     * lib/cpu.js decide: the split from the machine and the settings. Playback
+     * takes one core, or two with DSP, leaving the rest at least two where the
+     * machine has four or more; the first of playback's is the one it always
+     * has (the engine's playback thread is kept to it). [env]: PLAYBACK_CORES
+     * and PLAYBACK_CORE as given. Linux with taskset only.
+     */
+    public static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decide(bool linux, bool taskset, int[] cores, string? playbackCores, string? playbackCore, bool dsp)
+    {
+        var none = (false, cores.ToArray(), Array.Empty<int>(), cores.ToArray(), (int?)null);
+        if (!linux || !taskset) return none;
+        if (playbackCores == "0" || playbackCore == "0") return none;
+        var n = cores.Length;
+        double? fixedN = playbackCores is { Length: > 0 } pc ? Math.Floor(Tags.Js.StringToNumber(pc)) : null;
+        double? asked = playbackCore is { Length: > 0 } pk ? Tags.Js.StringToNumber(pk) : null;
+        bool fixedOk = fixedN is { } f0 && double.IsFinite(f0), askedOk = asked is { } a0 && double.IsFinite(a0);
+        var chosen = fixedOk || askedOk;
+        if (n < 2 || (n < 3 && !chosen)) return none;
+        var want = fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
+        want = Math.Max(1, Math.Min(want, chosen || n < 4 ? n - 1 : n - 2));
+        var playback = new List<int>();
+        if (askedOk) { var av = asked!.Value; playback.Add(cores.Any(c => c == av) ? (int)av : cores[n - 1]); }
+        for (int i = n - 1; i >= 0 && playback.Count < want; i--) if (!playback.Contains(cores[i])) playback.Add(cores[i]);
+        var core = playback[0];
+        playback.Sort();
+        return (true, cores.ToArray(), playback.ToArray(), cores.Where(c => !playback.Contains(c)).ToArray(), core);
+    }
+
+    private static bool DspActive() => Volatile.Read(ref dspRunning) > 0 || Environment.TickCount64 < Volatile.Read(ref dspUntil);
+
+    /* The split decided from now on, and again whenever it changes; Stop: left as it is. */
+    public static void StartDeciding()
+    {
+        lock (Deciding_)
+        {
+            deciding = true;
+            Recompute();
+        }
+    }
+    public static void StopDeciding()
+    {
+        lock (Deciding_)
+        {
+            if (!deciding) return;
+            deciding = false;
+            holdTimer?.Dispose(); holdTimer = null;
+            Volatile.Write(ref sig, "");   // the next split kept to afresh
+        }
+    }
+
+    /*
+     * A DSP conversion started (true) or ended (false) (lib/cpu.js dsp): while
+     * any runs, and for a while after, playback has its second core.
+     */
+    public static void Dsp(bool on)
+    {
+        lock (Deciding_)
+        {
+            if (on) dspRunning++;
+            else
+            {
+                dspRunning = Math.Max(0, dspRunning - 1);
+                if (dspRunning == 0)
+                {
+                    Volatile.Write(ref dspUntil, Environment.TickCount64 + HoldMs);
+                    holdTimer?.Dispose();
+                    holdTimer = new Timer(_ => { lock (Deciding_) { holdTimer = null; if (deciding) Recompute(); } }, null, HoldMs + 50, Timeout.Infinite);
+                }
+            }
+            if (deciding) Recompute();
+        }
+    }
+
+    // Under Deciding_: decided again, and kept to.
+    private static void Recompute()
+    {
+        Func<string, string?> env = Environment.GetEnvironmentVariable;
+        var dsp = DspActive();
+        var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), dsp);
+        var next = new Split(d.Split, d.Playback, d.Background, d.Cores);
+        decided = next;
+        decidedDsp = dsp;
+        Keep(next);
+    }
+
+    /* The split as decided here (lib/cpu.js plan()), with the DSP it was decided for (not a hold just over, its split still to follow): for /api/cpu. */
+    public static JsonObject Plan()
+    {
+        Split p; bool dsp;
+        lock (Deciding_) { p = decided; dsp = deciding ? decidedDsp : DspActive(); }
+        var t = Tools.Value;
+        return new JsonObject
+        {
+            ["split"] = p.On,
+            ["cores"] = new JsonArray(p.All.Select(c => (JsonNode)c).ToArray()),
+            ["playback"] = new JsonArray(p.Playback.Select(c => (JsonNode)c).ToArray()),
+            ["background"] = new JsonArray(p.Background.Select(c => (JsonNode)c).ToArray()),
+            ["core"] = p.On && p.Playback.Length > 0 ? CoreOf(p) : null,
+            ["dsp"] = dsp,
+            ["raised"] = Raise.Value,
+            ["tools"] = new JsonObject { ["taskset"] = t.Taskset, ["nice"] = t.Nice, ["ionice"] = t.Ionice }
+        };
+    }
+    // The core playback always has: the one PLAYBACK_CORE asks for when it is among playback's, else the last.
+    private static int CoreOf(Split p)
+    {
+        var asked = Environment.GetEnvironmentVariable("PLAYBACK_CORE") is { Length: > 0 } pk ? Tags.Js.StringToNumber(pk) : double.NaN;
+        return double.IsFinite(asked) && p.Playback.Any(c => c == asked) ? (int)asked : p.Playback[^1];
+    }
+
 }

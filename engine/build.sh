@@ -5,7 +5,8 @@
 set -e
 cd "$(dirname "$0")"
 RID=${RID:-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
-VERSION=${VERSION:-$(node -p "require('../package.json').version" 2>/dev/null || echo 0.0.0)}
+VERSION=${VERSION:-$(grep -m1 '"version"' ../package.json | cut -d'"' -f4)}
+VERSION=${VERSION:-0.0.0}
 dotnet publish Mandarin.Audio/Mandarin.Audio.csproj -c Release -r "$RID" -p:Version="$VERSION" -o bin/"$RID" --nologo -v quiet
 cp bin/"$RID"/mandarin-audio bin/mandarin-audio
 rm -f bin/"$RID"/*.dbg

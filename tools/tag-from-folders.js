@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 /*
  * tag-from-folders.js — for FLAC files with no artist tag: the artist from
@@ -14,13 +15,12 @@
  *   ("Disc 1", "CD2") gives its number, and the album and artist come from
  *   the folders above it.
  *
- * It only shows what it would do, unless --write is given. To see, inside
- * the Mandarin container:
- *   docker exec -i musicd-server node - --artist "808 State" < tag-from-folders.js
- * To write: the container has the music read-only, so a one-off container
- * from the same image with it writable (the host folder as in your docker run):
- *   docker run --rm -i -v /mnt/dietpi_userdata/MyMusic:/music --entrypoint node \
- *     ghcr.io/meltface-80/musicd-server:latest - --artist "808 State" --write < tag-from-folders.js
+ * It only shows what it would do, unless --write is given. Since v0.9.0 the
+ * Mandarin image has no Node.js, so it runs from a checkout of Mandarin
+ * (Node.js 20 or later, `npm ci` for music-metadata) on the machine with the
+ * music, the folder named last:
+ *   node tools/tag-from-folders.js --artist "808 State" /mnt/dietpi_userdata/MyMusic
+ *   node tools/tag-from-folders.js --artist "808 State" --write /mnt/dietpi_userdata/MyMusic
  * Without --artist, every album folder whose FLAC files have no artist tag.
  * A last argument names the folder to work in (default $MUSIC_DIR, /music).
  *

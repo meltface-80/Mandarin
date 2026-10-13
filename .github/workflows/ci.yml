@@ -3,20 +3,57 @@ name: CI
 on:
   push:
     branches: ["**"]
+  # Once per commit (v0.9.7): a pull request shows its branch's push run, so
+  # it isn't run again, but for one into main (a release on its way), which
+  # runs the Mac's tests too. Weekly (main's copy of this file), and by hand
+  # ("Run workflow", any branch), which run them as well.
   pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
 
 jobs:
+  # The quality gates (docs/quality-plan.md): the file-length ratchet, lint
+  # against its baseline, and the type check. A minute; red blocks the merge.
+  check:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # The app's own dependencies first: the checked modules import them, and tsc
+      # has to find them to read their shapes.
+      - run: npm ci --no-audit --no-fund
+      - name: The development tools (tools/lint only, never the app's dependencies)
+        run: npm run tools
+      - name: File length, @ts-check and tsc, ESLint against its suppressions
+        run: npm run gates
+      - name: The gates' own tests
+        run: node --test test/quality-gates.test.js
+
+  # The suite, in parts that run at once (v0.8.49): the test files dealt out to
+  # three jobs (node's --test-shard, each file in one of them), so the whole run
+  # takes the time of a third of it rather than nine minutes end to end. Since
+  # v0.8.50 (stage 7) the tests start the C# server alone (test/server.js);
+  # since v0.9.0 there is no Node server. Node runs the tests themselves.
   test:
+    name: test (${{ matrix.node-version }}, part ${{ matrix.shard }})
     runs-on: ubuntu-latest
     # A runner whose apt mirror stalls used to sit in "Install ffmpeg" for the
-    # whole hour; nothing here should take half of that. 25, not 15 (v0.8.28):
-    # the suite through the C# server takes about 14 minutes on its own now,
-    # and 15 cancelled a run whose tests had all passed.
-    timeout-minutes: 25
+    # whole hour; nothing here should take half of that.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        node-version: ["20", "22"]
+        include:
+          - { node-version: "22", shard: "1/3" }
+          - { node-version: "22", shard: "2/3" }
+          - { node-version: "22", shard: "3/3" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,30 +93,55 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      # The packages the two builds restore, kept between runs (v0.8.49).
+      - name: Restore the .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj') }}
       - name: Build the audio engine
         run: ./engine/build.sh
-      # Mandarin's server in C# (server/, v0.8.1): on Node 22 every test's
-      # server sits behind it, as in the image (test/setup.js, MANDARIN_FRONT);
-      # on Node 20 the suite talks to the Node server directly. Both must pass.
+      # Mandarin's server in C# (server/, v0.8.1): the server the tests start
+      # (test/server.js).
       - name: Build the C# server
         run: ./server/build.sh
-      - name: Syntax check
-        run: |
-          node --check index.js
-          node --check public/app.js
-          for f in lib/*.js lib/*/*.js; do node --check "$f"; done
+      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
+      - name: Build Mandarin DAC Bridge
+        run: .github/dac-bridge.sh
+      - name: Syntax check of the page
+        run: node --check public/app.js
+      # Kept to a file as well: the tests that failed are said again at the end,
+      # where a log read from its tail finds them, and their files run once more
+      # on their own (.github/retry-failed.sh): a pass then is a warning on the
+      # run, a race on a busy runner to fix in its turn; a failure again is red.
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
-          MANDARIN_FRONT: ${{ matrix.node-version == '22' && '1' || '' }}
-        run: npm test
+          TEST_SHARD: ${{ matrix.shard }}
+        run: |
+          set -o pipefail
+          npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log" && exit 0
+          .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
+          .github/retry-failed.sh "$RUNNER_TEMP/tests.log"
 
   # A Mac (v0.8.29): the C# server built for it and the whole suite through
   # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
-  # silicon; ffmpeg from Homebrew, as the installer has it.
+  # silicon; ffmpeg from Homebrew, as the installer has it. The test files are
+  # dealt out to two jobs (v0.8.49), as the Linux ones are to three.
+  #
+  # Off the test builds' path (v0.9.7, a trial): GitHub's Macs are few, and a
+  # test build waited up to an hour for one. Run on main and a pull request
+  # into it (before anything reaches a release), weekly and by hand; skipped
+  # on every other branch, so neither a merge into migration nor its image
+  # (.github/wait-for-ci.sh: a skipped job is no failure) waits on a Mac.
   macos:
-    name: Tests on a Mac
+    name: Tests on a Mac (part ${{ matrix.shard }})
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -104,10 +166,18 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      - name: Restore the .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj') }}
       - name: Build the C# server
         run: |
           ./server/build.sh
           codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
+      - name: Build Mandarin DAC Bridge
+        run: .github/dac-bridge.sh
       # The installer's own step (tools/mac/install.sh fetch_server), on a Mac:
       # this build served as a release, fetched, checked, signed and placed;
       # and with a sum that doesn't match, nothing placed.
@@ -132,14 +202,32 @@ jobs:
           bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
           test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
           echo "fetched, checked and placed; a wrong sum placed nothing"
+      # The installer's question about Mandarin DAC Bridge (tools/mac/install.sh
+      # bridge_wanted, v0.9.0): answered by MANDARIN_DAC_BRIDGE, and never asked
+      # where the bridge is installed already.
+      - name: The installer's DAC Bridge question
+        run: |
+          set -e
+          ask() { MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_DAC_BRIDGE="$1" bash -c 'source tools/mac/install.sh; bridge_wanted "$1"' _ "$2"; }
+          mkdir -p "$RUNNER_TEMP/bridge"
+          test "$(ask yes "$RUNNER_TEMP/none")" = yes
+          test -z "$(ask no "$RUNNER_TEMP/none")"
+          test -z "$(ask "" "$RUNNER_TEMP/bridge")"
+          test "$(ask yes "$RUNNER_TEMP/bridge")" = yes
+          echo "yes and no answered; installed already, not asked"
       # Two files at once, not package.json's four: GitHub's Mac runners have
-      # three cores, and each file here runs the C# server, the Node server and
-      # often Chromium and ffmpeg; four at once kept the machine so busy that a
-      # different timing-sensitive test lost its race on each run.
-      - name: Tests, through the C# server
+      # three cores, and each file here runs the C# server and often Chromium
+      # and ffmpeg; four at once kept the machine so busy that a different
+      # timing-sensitive test lost its race on each run.
+      - name: Tests, on the C# server
         env:
-          MANDARIN_FRONT: "1"
-        run: node --require ./test/setup.js --test --test-concurrency=2 test/*.test.js
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_CONCURRENCY: "2"
+        run: |
+          set -o pipefail
+          npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log" && exit 0
+          .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
+          .github/retry-failed.sh "$RUNNER_TEMP/tests.log"
 
   docker:
     name: Build image
@@ -166,22 +254,26 @@ jobs:
           docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
           # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
           test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
+          # The image's health check is the C# server asking itself (v0.8.50): 0 with the server
+          # up on PORT, 1 with nothing on the port it is told.
+          docker exec smoke /app/server/bin/mandarin-server --health | grep -q '"ok":true'
+          if docker exec -e PORT=9 smoke /app/server/bin/mandarin-server --health; then echo "--health passed with nothing on port 9"; exit 1; fi
           # Measure ReplayGain works with the image's own ffmpeg: its options, as
-          # the servers ask, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
-          F=$(sed -n 's/^const FILTER = "\(.*\)";$/\1/p' lib/loudness.js)
+          # the server asks, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
+          F=$(sed -n 's/^ *\(private \|public \|internal \)\?const string Filter = "\(.*\)";$/\2/p' server/Mandarin.Server/Identify/Loudness.cs)
           test -n "$F"
-          grep -q "const string Filter = \"$F\";" server/Mandarin.Server/Identify/Loudness.cs
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
             -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
           # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
           # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
-          # static ffmpeg has no drawtext, so there the Node server draws it instead.
+          # static ffmpeg has no drawtext, so there it is drawn without its title.
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -filters | grep -Eq "\sdrawtext\s"
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -v error -nostdin -f lavfi -i color=c=black:s=64x64:d=1 \
             -vf "drawtext=text=A:font=sans-serif:fontsize=40:fontcolor=white:x=10:y=10" -frames:v 1 -f null -
-          # The C# server answers on the port, with the Node server behind it.
+          # The C# server answers on the port, and there is no Node.js in the image (v0.9.0).
           curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
           curl -fs localhost:3500/server-info | grep -q '"server":"C#"'
+          if docker run --rm --entrypoint sh musicd-server:ci -c 'command -v node || test -e /app/node_modules || test -e /app/index.js'; then echo "Node.js is still in the image"; exit 1; fi
           # A new install asks for its account first: the page is the sign-in page,
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"

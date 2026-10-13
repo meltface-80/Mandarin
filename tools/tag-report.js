@@ -1,10 +1,12 @@
+// @ts-check
 "use strict";
 /*
  * tag-report.js — what tags, identifiers and loudness (ReplayGain) the music files carry, for a
  * sample of albums. Read-only: it opens files, never writes them.
  *
- * Run inside the Mandarin container (it has Node and the tag reader):
- *   docker exec -i musicd-server node - [folder] [albums] < tag-report.js > tag-report.txt
+ * Run from a checkout of Mandarin (Node.js 20 or later, `npm ci` for
+ * music-metadata; since v0.9.0 the image has no Node.js), on the machine with the music:
+ *   node tools/tag-report.js [folder] [albums] > tag-report.txt
  * folder: the music folder as the container sees it (default: $MUSIC_DIR, /music)
  * albums: how many album folders to sample (default 10), spread across the library.
  */

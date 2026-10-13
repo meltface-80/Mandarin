@@ -1459,7 +1459,7 @@
           <button id="acct-pw" class="settings-update-btn" type="button">Change password</button>
           <div id="acct-pw-status" class="settings-token-status"></div>
           <p class="settings-note">Devices already signed in stay signed in. Forgot it? On the server run
-            <code>docker exec musicd-server node reset-password.js</code> and create the account again.</p>
+            <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code> and create the account again.</p>
         </div>
       </div>
 
@@ -1914,8 +1914,10 @@
         </div>
         <p class="settings-pane-desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
+          <label class="backup-pass"><span><b>Passphrase</b><small>Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
+            <input type="password" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
           <div class="backup-actions">
             <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
             <button class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
@@ -2049,6 +2051,46 @@
     </div>
   </div>
 
+  <!-- The touch layout's row along the foot of the screen (v0.9.6,
+       touchnav.js): the menu, Home, the Library and Search, under the mini
+       player, on a phone or a tablet. A desktop never shows it (style.css).
+       Each button works the page's own control; the small Offline sign
+       between Home and Library is the top bar's, shown here. -->
+  <nav id="touch-nav" class="touch-nav" aria-label="Main">
+    <button id="tnav-menu" class="tnav-btn" type="button" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+      </svg>
+      <span>Menu</span>
+    </button>
+    <button id="tnav-home" class="tnav-btn" type="button" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/>
+      </svg>
+      <span>Home</span>
+    </button>
+    <button id="tnav-offline" class="tnav-offline" type="button" aria-label="Offline — tap for more" title="Offline" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
+        <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
+        <path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+        <line x1="3" y1="3" x2="21" y2="21"/>
+      </svg>
+    </button>
+    <button id="tnav-library" class="tnav-btn" type="button" aria-label="Library">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="4" x2="5" y2="20"/><line x1="10" y1="4" x2="10" y2="20"/><path d="m14.5 4.6 4.6 14.8"/>
+      </svg>
+      <span>Library</span>
+    </button>
+    <button id="tnav-search" class="tnav-btn" type="button" aria-label="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>Search</span>
+    </button>
+  </nav>
+
   <!-- The card's font, Manrope, is bundled (public/fonts, @font-face in
        style.css): no wait on Google Fonts, the same offline and away. -->
 
@@ -2056,5 +2098,6 @@
   <script src="/biquad.js"></script>
   <script src="/srp.js"></script>
   <script src="/app.js"></script>
+  <script src="/touchnav.js"></script>
 </body>
 </html>

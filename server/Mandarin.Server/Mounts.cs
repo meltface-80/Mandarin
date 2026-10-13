@@ -65,6 +65,12 @@ internal static partial class Mounts
     {
         string text;
         try { text = File.ReadAllText("/proc/self/mountinfo"); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+        return MusicMounts(dataDir, text);
+    }
+
+    /* The same, from a mountinfo's text (`mandarin-server score` { fn: "mounts" }). */
+    public static List<Mount> MusicMounts(string dataDir, string text)
+    {
         var data = dataDir.Length > 0 ? NodePath.Resolve(dataDir) : null;
         var byPoint = new Dictionary<string, Mount>(StringComparer.Ordinal);
         var order = new List<string>();

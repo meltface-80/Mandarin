@@ -5843,6 +5843,11 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .backup-restore { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .backup-restore.hidden { display: none; }
 .backup-file-restore { border-top: 0; padding-top: 0; }
+/* A backup's passphrase (v0.9.0): to seal one, and to open a sealed one on restore. */
+.backup-pass { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }
+.backup-pass span { display: flex; flex-direction: column; }
+.backup-pass small { color: var(--text-dim); font-size: 12.5px; line-height: 1.35; }
+.backup-restore .backup-pass-in { display: block; margin: 0 0 10px; }
 
 /* The Qobuz browser's album page (v0.6.23): playing from it, and its tracks. */
 .qobuz-nr-actions { display: flex; gap: 8px; }
@@ -6119,3 +6124,116 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 }
 .offline-text p:last-child { margin-bottom: 0; }
 .offline-box .confirm-actions { flex-wrap: wrap; }
+
+/* ------------------------------------------------------------------ */
+/*  The touch layout (v0.9.6): a phone or a tablet, either way round   */
+/* ------------------------------------------------------------------ */
+/* The menu, Home, the Library and Search in a row along the foot of the
+   screen (#touch-nav, touchnav.js), the mini player raised above it, and
+   on Home no top bar: the greeting at the top. Search opens the top bar
+   again with the field across it, and the page moves down under it. The
+   scan's progress is a thin brass line along the top edge, on every
+   screen. The same test as the touch-sized mini player above; a desktop
+   (a mouse) keeps its layout and never shows the row. touchnav.js puts
+   tn-home, tn-search, tn-lib, tn-np and tn-offline on <html>. */
+.touch-nav { display: none; }
+@media (hover: none), (pointer: coarse) {
+  :root { --tnav-h: 58px; }
+  .touch-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+    height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
+    padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .tnav-btn {
+    flex: 0 0 auto; width: 64px; height: var(--tnav-h);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: 0; padding: 0; color: var(--text-dim); font: inherit; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tnav-btn svg { width: 26px; height: 26px; }
+  .tnav-btn span { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .tnav-btn:active { transform: scale(.94); }
+  /* Where you are: Home or the Library wall, in the accent. */
+  .tn-home:not(.tn-search) #tnav-home,
+  .tn-lib #tnav-library,
+  .tn-search #tnav-search, .tn-filter #tnav-search { color: var(--accent-text); }
+  /* Offline: a small sign between Home and Library, at the row's centre. */
+  .tnav-offline {
+    display: none; position: absolute; left: 50%; top: calc(var(--tnav-h) / 2); transform: translate(-50%, -50%);
+    width: 30px; height: 30px; padding: 6px; border-radius: 50%;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--accent-text); cursor: pointer;
+  }
+  .tnav-offline svg { width: 100%; height: 100%; display: block; }
+  .tn-offline .tnav-offline { display: block; }
+  /* Now playing has its own transport, and no row. (While a field has the
+     keyboard up, the keyboard goes over the row and the mini player; in the
+     Android app, whose page shrinks above it, android.css hides them.) */
+  .tn-np .touch-nav { display: none !important; }
+
+  /* The mini player and everything that keeps room for it, raised by the row. */
+  .mini-transport { bottom: calc(var(--tnav-h) + 8px + env(safe-area-inset-bottom)); }
+  main { padding-bottom: calc(106px + var(--tnav-h) + env(safe-area-inset-bottom)); }
+  .mt-vol-popover { bottom: calc(90px + var(--tnav-h) + env(safe-area-inset-bottom)); }
+  .modal:not(.np-mode) .modal-body { padding-bottom: calc(118px + var(--tnav-h) + env(safe-area-inset-bottom)); }
+
+  /* The menu, the glass and the Offline sign live in the row now. */
+  .topbar #menu-toggle, .topbar #search-open, .topbar #offline-btn { display: none; }
+
+  /* Home: no top bar, only the status bar's strip; the greeting at the top. */
+  .tn-home:not(.tn-search) .topbar {
+    padding: env(safe-area-inset-top) 0 0; gap: 0; border-bottom: 0;
+  }
+  .tn-home:not(.tn-search) .topbar-row { display: none; }
+  .tn-home:not(.tn-search) main { padding-top: calc(env(safe-area-inset-top) + 14px); }
+  /* Search open: the field across the whole bar. */
+  .tn-search #topbar-search { flex: 1 1 auto; }
+
+  /* The grid screens: no strip. The bar's buttons float where they were,
+     over the albums, which scroll up to the screen's edge; a tap between the
+     buttons reaches the album under it. A field open (Home's search, the
+     Library's filter) brings the strip back under it. */
+  html:not(.tn-home):not(.tn-search):not(.tn-filter) .topbar {
+    background: transparent; border-bottom: 0; pointer-events: none;
+  }
+  html:not(.tn-home):not(.tn-search):not(.tn-filter) .topbar :is(button, input, a, select, .sel-menu) { pointer-events: auto; }
+  /* The screen's title is the page's heading (touchnav.js moves it into <main>). */
+  .tnav-heading { margin: 0 0 14px; }
+  .tnav-heading:has(#album-count.hidden), .tn-home .tnav-heading { display: none; }
+  #tnav-heading #album-count {
+    display: block; max-width: none; white-space: normal; overflow: visible;
+    font-size: 24px; line-height: 1.2; color: var(--text);
+  }
+  #tnav-heading #album-count.hidden, #tnav-heading #album-count.is-hidden-by-search { display: none; }
+  /* The Library: its glass gives way to Search in the row; Focus and Sort go
+     up into the buttons' line, on the right. */
+  #library-filter:not(.is-filtering) .lib-filter-btn { display: none; }
+  /* The Labels list likewise: Search in the row finds a label; #–Z alone on the right. */
+  .topbar #labels-search-btn { display: none; }
+  .topbar.lib-wall .library-controls {
+    position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 1;
+    display: flex; align-items: center; gap: 8px; height: var(--ctl-h); margin: 0; padding: 0; background: none; border: 0;
+  }
+  .topbar.lib-wall .library-controls .lib-ctl-sort { margin-left: 0; }
+  /* The bar's own padding from 720px (14px 22px): the field's edge, which they sit under. */
+  @media (min-width: 720px) {
+    .topbar.lib-wall .library-controls { top: calc(14px + env(safe-area-inset-top)); right: max(22px, env(safe-area-inset-right)); }
+  }
+  /* The filter open (v0.9.7): its field goes over Focus and Sort, which stay
+     where they are; they no longer drop back into a row of their own under it. */
+  .topbar.lib-wall #library-filter.is-filtering { position: relative; z-index: 2; }
+  /* Their words (v0.9.6): "Focus", and "Sort ⌄" — the order chosen isn't
+     shown on the button (its sheet shows it, and the button's label says it). */
+  .lib-ctl-focus .lib-ctl-chevron { display: none; }
+  .lib-ctl-sort .lib-ctl-text, .lib-ctl-sort .lib-ctl-arrow { display: none; }
+  .lib-ctl-sort::before { content: "Sort"; }
+
+  /* The scan's progress: a thin brass line along the top of the screen. */
+  .scan-progress-bar {
+    position: fixed; top: env(safe-area-inset-top); bottom: auto; left: 0; right: 0; z-index: 75;
+    height: 3px; background: transparent;
+  }
+  .scan-progress-fill { background: var(--accent); }
+}

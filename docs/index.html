@@ -338,7 +338,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v0.8.44</span>
+    <span class="badge">v1.0.0</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -350,6 +350,35 @@
 
 <section id="new">
   <div class="wrap">
+    <div class="note"><b>New in v1.0.0</b> (since v0.9.0). <b>A layout for phones and tablets</b>, either way
+      round, in the browser, the iPhone home-screen app and the Android app: a row along the foot of the screen
+      (Menu, Home, Library, Search) under the mini player; no top bar on Home, with the date and the greeting at the
+      top; on the album grids the albums scroll up to the screen's edge, with the bar's buttons floating over them;
+      Search opens its field across the whole screen. A computer with a mouse looks as before. <b>The Android app
+      installed over itself</b> comes back to what it was playing, at the same track and place, paused (music only
+      on the phone, which the server doesn't know, doesn't come back). <b>The Android app's build</b> is named
+      <code>Mandarin-Android-&lt;version&gt;.apk</code>; the download link keeps its fixed name. <b>The audit before
+      v1.0.0</b>: more of the server tested, every request read and answered one way, the largest server files
+      split, the library's lists kept once made, and every route listed.</div>
+    <div class="note"><b>A USB DAC on a Mac: the install line offers Mandarin DAC Bridge, and here is why.</b>
+      Mandarin's audio engine plays to sound devices through ALSA, which is part of Linux; macOS has no ALSA, so
+      Mandarin can't open a DAC plugged into the Mac it runs on, and doesn't list the Mac's sound devices.
+      <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge">Mandarin DAC Bridge</a> is a separate app for the
+      Mac that does it instead: it holds the DAC, plays each track bit-perfect at its own rate, and shares the DAC
+      with Audirvana. Mandarin finds each DAC through it as a renderer named “&lt;DAC&gt; (Bridge)”, played like a
+      Sonos room. The install line asks whether to add it; it is optional, and only needed for a USB DAC on the Mac
+      (Sonos rooms, UPnP renderers and the Android app play without it). Playing a Mac's DAC from Mandarin itself
+      will be looked at in a later build.</div>
+    <div class="note"><b>New in v0.9.0: one program, no Node.js.</b> Mandarin's server is now a single program
+      written in C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, a Mac
+      needs only ffmpeg and poppler beside it, and an update from Settings puts the new program and page in place and
+      starts again in the same container. It took over from the original Node.js server one part at a time through
+      the v0.8.x releases, each part held by the test suite to the Node server's own answers, so everything works as
+      before. <b>Forgot the password?</b> is now
+      <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>. <b>A USB DAC on a
+      Mac</b> plays through <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge">Mandarin DAC Bridge</a>,
+      which the Mac's install line now offers: it holds the DAC, plays each track bit-perfect at its own rate, and
+      shares the DAC with Audirvana.</div>
     <div class="note"><b>New in v0.7.4</b> (since v0.7.0). <b>Qobuz and Tidal favourites follow both ways, by
       themselves</b>: remove an album from your favourites here and it is gone within the moment; add or remove one
       in the service's own app and it follows here on the next look. <b>Music on device</b>, in the Android app:
@@ -357,7 +386,7 @@
       albums from anywhere played as one queue on This phone. <b>One Update</b> does the server first and then the
       app. <b>Hide / unhide</b> on Audio Devices, a fresh look at matching, the server's Tailscale identity in a
       backup's keys, and the duck on the share card. <b>Mac users with a USB DAC</b> connected to the Mac may have
-      trouble with it; a fix is being worked on.</div>
+      trouble with it (since v0.9.0 it plays through Mandarin DAC Bridge).</div>
   </div>
 </section>
 
@@ -393,6 +422,9 @@
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
+      <div class="card is-new"><h3><span class="em">👆</span>Phones and tablets<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
+        <p>On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.</p>
+        <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.</div></div>
       <div class="card is-new"><h3><span class="em">🎲</span>Random Album<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
         <p>The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.</p>
         <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is chosen; then tap <b>Play now</b>, <b>Play next</b> or <b>Queue</b>, or close it.</div></div>
@@ -404,13 +436,13 @@
         <div class="how" id="how-unplayed" hidden><b>How to set it up and use it.</b> A Home row; tap its title for all of them. Move or hide it in <b>Settings → Setup → Home Screen</b>.</div></div>
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
-        <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home. <b>Sort</b> and <b>Focus</b> are in the top bar; Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
+        <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home, or <b>Library</b> in a phone's or tablet's row. <b>Sort</b> and <b>Focus</b> are in the top bar (at the top right on a phone or tablet); Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
       <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
         <p>Flick through your collection as through a record shop's shelf: covers, spines or a carousel, narrowed by genre, artist letter and decade, or spun to land anywhere.</p>
         <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
         <p>Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.</p>
-        <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.</div></div>
+        <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.</div></div>
       <div class="card"><h3><span class="em">💿</span>Album pages<button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
         <p>Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.</p>
         <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album.</div></div>
@@ -455,7 +487,7 @@
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
       <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
-        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. On a Mac, set its rate in Audio MIDI Setup. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
+        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. On a Mac, through Mandarin DAC Bridge: switch on “&lt;DAC&gt; (Bridge)”. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
         <p>Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.</p>
         <div class="how" id="how-devices" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b> and tap a device. The name you give it is what the speaker list and Now playing show. <b>Output</b> is on a renderer's page. <b>Hide / unhide</b> takes devices you don't use off the list; tap it again and tick one under Hidden to bring it back.</div></div>
@@ -479,7 +511,7 @@
         <div class="how" id="how-pitchfork" hidden><b>How to set it up and use it.</b> Open <b>☰ → Pitchfork</b>.</div></div>
       <div class="card"><h3><span class="em">🏢</span>Record labels<button class="info" type="button" aria-expanded="false" aria-controls="how-labels" aria-label="How to set up and use Record labels">i</button></h3>
         <p>Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and FanArt.tv, lookups for albums without a label, and merging of duplicate names.</p>
-        <div class="how" id="how-labels" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Setup → Record labels</b>. Logos need a Discogs token or FanArt.tv key (<b>Settings → Setup → API Keys</b>). On <b>☰ → Labels</b>, search and #–Z are in the top bar; hold a tile to select labels to merge.</div></div>
+        <div class="how" id="how-labels" hidden><b>How to set it up and use it.</b> Switch it on in <b>Settings → Setup → Record labels</b>. Logos need a Discogs token or FanArt.tv key (<b>Settings → Setup → API Keys</b>). On <b>☰ → Labels</b>, search and #–Z are in the top bar (on a phone or tablet, #–Z at the top right and Search in the row); hold a tile to select labels to merge.</div></div>
       <div class="card"><h3><span class="em">📆</span>Label of the week<button class="info" type="button" aria-expanded="false" aria-controls="how-lotw" aria-label="How to set up and use Label of the week">i</button></h3>
         <p>With Record labels on, one label from your library on Home all week, with its albums. A new one each Monday.</p>
         <div class="how" id="how-lotw" hidden><b>How to set it up and use it.</b> Switch on <b>Settings → Setup → Record labels</b>; the row then shows on Home.</div></div>
@@ -515,7 +547,7 @@
         <div class="how" id="how-onphone" hidden><b>How to set it up and use it.</b> In the app, <b>Settings → Music Folders → On this phone</b> and choose the folder. Selected with other albums and played on <b>This phone</b>, they go into the one queue.</div></div>
       <div class="card is-new"><h3><span class="em">✈️</span>Offline mode<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
-        <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a symbol sits in the top bar between the menu and the search: tap it to see why (Offline mode, or the server can't be reached).</div></div>
+        <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small symbol sits in the row at the foot of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached).</div></div>
       <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
         <p>On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.</p>
         <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
@@ -530,7 +562,7 @@
         <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
       <div class="card is-new"><h3><span class="em">💾</span>Backup and restore<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
         <p>Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.</p>
-        <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts.</div></div>
+        <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts. <b>What a backup holds.</b> The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a <b>passphrase</b> (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.</div></div>
       <div class="card is-new"><h3><span class="em">🎼</span>Qobuz<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-qobuz" aria-label="How to set up and use Qobuz">i</button></h3>
         <p>Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.</p>
         <div class="how" id="how-qobuz" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Qobuz</b>: sign in. Then <b>☰ → Qobuz</b> to search and play; <b>+</b> on a cover adds an album to your Qobuz favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Qobuz favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#qobuz">Qobuz</a>.</div></div>
@@ -539,7 +571,7 @@
         <div class="how" id="how-tidal" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Tidal → Sign in on tidal.com</b>: open the link, sign in there, come back. Then <b>☰ → Tidal</b> to search and play; <b>+</b> on a cover adds an album to your Tidal favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Tidal favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#tidal">Tidal</a>.</div></div>
       <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
         <p>The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app one Update does the server first, then the app.</p>
-        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server restarts itself in a few seconds, and again once its C# server is brought up to the same version; in the app, Android's installer then asks.</div></div>
+        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server puts the new version in place and starts again in a few seconds; in the app, Android's installer then asks.</div></div>
       <!-- features:end -->
     </div>
   </div>
@@ -684,7 +716,8 @@
         or <b>Choose a folder...</b> for another drive. <b>Keep awake</b>, so the music doesn't stop. <b>Allow</b> access to your Desktop folder, for the
         Mandarin icon. And
         <b>Allow</b> if macOS asks to let <b>mandarin-server</b> find devices on your network or open your files.
-        Installed before v0.8.29? Paste the line once more, at the Mac, to bring in Mandarin's C# server.</li></ol></div>
+        Installed before v0.9.0? Paste the line once more, at the Mac: it brings Mandarin up to date and starts its
+        one-program server (no Node.js any more) in place of the old one, your library and account kept.</li></ol></div>
       <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
         whenever you log in. On a phone, open the address Terminal shows at the end. Add or change music
         folders any time in Settings &rarr; Music Folders.</li></ol></div>
@@ -695,45 +728,46 @@
       <div class="note"><b>Shut down and start again:</b> the power button at the top right of the side menu (☰)
         &rarr; Shut down stops Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts when you log
         in. Installed before v0.6.12? Paste the install line once more to get the icon.</div>
-      <div class="note"><b>A USB DAC or the Mac's speakers:</b> nothing to install or add &mdash; the Mac plays
-        them through Core Audio. Plug the DAC in, then <b>1.</b> open <b>Audio MIDI Setup</b> (Applications &rarr;
-        Utilities), click the DAC on the left and set <b>Format</b> to the rate and depth you want it to run at
-        (its highest, say 24-bit 96 kHz); macOS plays at that rate and converts anything else, so this is where
-        the rate is decided. <b>2.</b> In Mandarin, <b>Settings &rarr; Audio Devices</b>, tap the DAC and switch it
-        on. It is then a zone like a Sonos room. An existing install needs no re-run. <b>Known trouble
-        (v0.7.0):</b> some Mac users find a USB DAC connected to the Mac doesn't play as it should; a fix is
-        being worked on.</div>
+      <div class="note"><b>A USB DAC (v0.9.0):</b> through
+        <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac">Mandarin DAC Bridge</a>, which
+        the install line offers to add (or install it later with its own line). It holds the DAC for itself,
+        switches it to each track's own rate and plays it bit-perfect, and lets Audirvana use it too. In Mandarin,
+        <b>Settings &rarr; Audio Devices</b>, switch on <b>“&lt;DAC&gt; (Bridge)”</b>: it is then a zone like a Sonos
+        room. Mandarin doesn't play to the Mac's sound devices itself (its audio engine is Linux's), so they aren't
+        listed; that will be looked at in a later build.</div>
       <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
         is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
         Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security
         &rarr; Full Disk Access, click +, press Command-Shift-G, paste
-        <code>/opt/homebrew/opt/node@22/bin/node</code> (Intel Mac: <code>/usr/local/opt/node@22/bin/node</code>)
-        and click Open.</div>
+        <code>~/Mandarin/server/bin/mandarin-server</code> and click Open.</div>
       <details class="firstrun">
         <summary><b>Prefer to install by hand?</b></summary>
         <div class="out" style="margin-top:14px">
-      <div class="firstrun"><ol start="1"><li><b>Install Homebrew</b> from <a href="https://brew.sh">brew.sh</a> if you don't have it, then Node.js and ffmpeg.</li></ol></div>
+      <div class="firstrun"><ol start="1"><li><b>Install Homebrew</b> from <a href="https://brew.sh">brew.sh</a> if you don't have it, then ffmpeg and poppler.</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
-<pre>brew install node@22 ffmpeg
-echo &#x27;export PATH=&quot;$(brew --prefix)/opt/node@22/bin:$PATH&quot;&#x27; &gt;&gt; ~/.zprofile
-source ~/.zprofile</pre>
+<pre>brew install ffmpeg poppler</pre>
       </div>
-      <div class="firstrun"><ol start="2"><li><b>Download Mandarin.</b></li></ol></div>
+      <div class="firstrun"><ol start="2"><li><b>Download Mandarin</b>, and its server for your Mac from the release of that version
+        (<code>osx-arm64</code> on Apple silicon, <code>osx-x64</code> on Intel).</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
-<pre>git clone https://github.com/meltface-80/Mandarin.git ~/Mandarin
+<pre>git clone --depth 1 https://github.com/meltface-80/Mandarin.git ~/Mandarin
 cd ~/Mandarin
-npm ci --omit=dev</pre>
+V=$(sed -n &#x27;s/^ *&quot;version&quot;: *&quot;\([^&quot;]*\)&quot;.*/\1/p&#x27; package.json | head -n 1)
+mkdir -p server/bin
+curl -fL &quot;https://github.com/meltface-80/Mandarin/releases/download/v$V/mandarin-server-osx-arm64.gz&quot; | gunzip &gt; server/bin/mandarin-server
+chmod 755 server/bin/mandarin-server
+codesign --verify server/bin/mandarin-server || codesign --force --sign - server/bin/mandarin-server</pre>
       </div>
       <div class="firstrun"><ol start="3"><li><b>Start it with your music folder</b>: replace <code>$HOME/Music</code> with yours (an
         external drive is under <code>/Volumes/&hellip;</code>). To get the path without typing, type
         <code>MUSIC_DIR="</code>, drag the folder from Finder onto Terminal, then type
-        <code>" npm start</code>. Open <b>http://localhost:3500</b> and create your account.</li></ol></div>
+        <code>" server/bin/mandarin-server</code>. Open <b>http://localhost:3500</b> and create your account.</li></ol></div>
       <div class="codebox">
         <button class="copy-btn" data-copy>Copy</button>
 <pre>cd ~/Mandarin
-MUSIC_DIR=&quot;$HOME/Music&quot; npm start</pre>
+MUSIC_DIR=&quot;$HOME/Music&quot; server/bin/mandarin-server</pre>
       </div>
       <div class="firstrun"><ol start="4"><li><b>Keep the Mac awake:</b> System Settings &rarr; Energy (or Battery &rarr; Options)
         &rarr; Prevent automatic sleeping when the display is off.</li></ol></div>
@@ -747,9 +781,10 @@ cat &gt; ~/Library/LaunchAgents/app.mandarin.server.plist &lt;&lt;PLIST
 &lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
 &lt;plist version=&quot;1.0&quot;&gt;&lt;dict&gt;
   &lt;key&gt;Label&lt;/key&gt;&lt;string&gt;app.mandarin.server&lt;/string&gt;
-  &lt;key&gt;ProgramArguments&lt;/key&gt;&lt;array&gt;&lt;string&gt;$(which node)&lt;/string&gt;&lt;string&gt;$HOME/Mandarin/launcher.js&lt;/string&gt;&lt;/array&gt;
+  &lt;key&gt;ProgramArguments&lt;/key&gt;&lt;array&gt;&lt;string&gt;$HOME/Mandarin/server/bin/mandarin-server&lt;/string&gt;&lt;/array&gt;
   &lt;key&gt;WorkingDirectory&lt;/key&gt;&lt;string&gt;$HOME/Mandarin&lt;/string&gt;
   &lt;key&gt;EnvironmentVariables&lt;/key&gt;&lt;dict&gt;
+    &lt;key&gt;MANDARIN_APP_DIR&lt;/key&gt;&lt;string&gt;$HOME/Mandarin&lt;/string&gt;
     &lt;key&gt;MUSIC_DIR&lt;/key&gt;&lt;string&gt;$HOME/Music&lt;/string&gt;
     &lt;key&gt;PATH&lt;/key&gt;&lt;string&gt;$(brew --prefix)/bin:/usr/bin:/bin&lt;/string&gt;
   &lt;/dict&gt;
@@ -791,7 +826,8 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
            downloads, a USB DAC driver, and Tailscale for away from home.</p>
         <p class="fine"><a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk"><b>Download mandarin-android.apk</b></a>
            &mdash; the newest build, published on every version. Sideload on Android 8.0 or newer; the app
-           updates itself from then on.</p>
+           updates itself from then on. The build itself is named <code>Mandarin-Android-&lt;version&gt;.apk</code>
+           (since v0.9.7); this link keeps one name so it always points at the newest.</p>
         <p class="fine"><b>Installed before v0.6.10?</b> Those builds used a different signing key, so
            Android refuses the update. Uninstall once, install the download above and sign in again;
            downloaded albums need downloading again. Updates install in place after that.</p>
@@ -832,7 +868,7 @@ launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
     <h2>Troubleshooting</h2>
     <p class="lead"><code>http://&lt;server-ip&gt;:3500/api/health</code> answers without signing in;
        <code>/api/status</code> (signed in) says what the server can see. Forgot the password?
-       <code>docker exec musicd-server node reset-password.js</code>, then create the account again.</p>
+       <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>, then create the account again.</p>
     <div class="info-cards">
       <div class="info-card">
         <span class="sym">No rooms</span>

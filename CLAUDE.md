@@ -54,3 +54,16 @@ New features will adopt the above process from step 1 down to 3 and adopt my pro
 At the time of writing this branch v0.8.43 and v0.8.44 are green and getting merge by order of build number. Next will be v0.8.45 and you will follow step 4 explicitly. Advise immediately if step 4 cannot happen.
 
 You will also remove all tags/releases on main in the v0.8.x range except v0.8.44. That will remain the :latest on main for now until migration work is fully completed. Acknowledge this on next session
+
+---
+
+## 5. Quality gates (machine-enforced)
+
+`docs/quality-plan.md` says what they are and why. The rules no tool can check:
+
+* **`npm run check` is green before every push**: the gates (`npm run gates`: file length, `@ts-check` and `tsc`, ESLint) and the whole suite. The pre-commit hook runs the gates; CI runs all of it on every push and the image waits for it. Never `--no-verify`, never a hook or workflow edit that skips a gate.
+* **Baselines only shrink.** A file in `tools/quality/allowance.json`, or under `exempt` in `tools/quality/policy.json`, is never grown: what a change needs goes in a new module under 400 lines, or the file is split first. Never raise a length entry, add a lint suppression or `eslint-disable`, or add a module to `tools/quality/ts-baseline.json` to make a change pass; if it seems necessary, ask first. The baselines are written by their tools (`npm run lines -- accept`, `npm run lint:prune`), never by hand.
+* **Never loosen a rule to get green.** A lint rule a file breaks on purpose is turned off for that file in `tools/lint/eslint.config.js`, with the reason beside it. A test is never skipped, disabled or loosened; find the cause.
+* **Every new server module opens with `// @ts-check`** and carries JSDoc on what it exports. A listed module touched for a change gains the pragma when the change is in it anyway, and leaves the list.
+* **A test proves something:** break the code once and watch it fail before trusting it.
+* **This file shrinks as the tools take over.** A rule a tool can check moves out of here and into a gate.

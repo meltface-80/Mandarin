@@ -4,7 +4,7 @@
 // into the other.
 //
 // Written from a fresh object of known fields every time, never passed
-// through. Read back forgivingly, as the Node server reads it: the marker found
+// through. Read back forgivingly, as the Node server read it: the marker found
 // wherever it sits and in any case, only base64url kept after it, and the
 // sender's own words after the blob shaved off a character at a time (40 at
 // most) until gzip's checksum passes. gzip is read as Node's zlib reads it, so
@@ -187,7 +187,7 @@ internal static class ShareBlob
     {
         var compact = NoSpace(blob);
         // Found in any case (a phone lower-cases it); where it sits is read off the
-        // upper-cased text, as the Node server reads it.
+        // upper-cased text, as the Node server read it.
         var at = Js.Upper(compact).IndexOf(Magic + ":", StringComparison.Ordinal);
         if (at < 0) throw new Refused($"That doesn't look like a MusicD Remote playlist — it should contain \"{Magic}:\"");
         var from = at + Magic.Length + 1;

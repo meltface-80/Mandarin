@@ -6,14 +6,13 @@
 // database (album_edits) and laid over what the scan found: a title, an
 // artist, a year, and a cover found on the web — downloaded here, turned
 // upright, brought to 1500 pixels at most and laid on black with ffmpeg, as
-// sharp does it there. The Node server is told of each change (its copy read
-// again, and the edits kept beside the database too, album-edits.json), and
-// the sizes drawn for the album's old cover go.
+// sharp did it there. Each change is told (the copy read again, and the edits
+// kept beside the database too, album-edits.json), and the sizes drawn for the
+// album's old cover go.
 //
-// A cover in a form only sharp reads (Covers.cs) is left to the Node server:
-// the request is passed to it as it came.
+// A cover ffmpeg can't read is refused here (422): until v0.9.0 the request
+// was passed to the Node server, for sharp to try.
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
 using Mandarin.Server.Identify;
@@ -30,9 +29,11 @@ internal static partial class Library
     private const string BrowserUa = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static readonly HttpClient ArtWeb = new(new SocketsHttpHandler
     {
-        AllowAutoRedirect = true, MaxAutomaticRedirections = 20,
+        AllowAutoRedirect = false,   // followed in FetchArt: https to http too, as fetch does
         AutomaticDecompression = System.Net.DecompressionMethods.All,
-        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30)
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+        // Never this machine or its link, where the connection is made (Addresses.cs).
+        ConnectCallback = Addresses.ArtConnect(Lookups.LoopbackOnly)
     }) { Timeout = Timeout.InfiniteTimeSpan };
     // A search kept ten minutes after it ends: the editor opened again asks again.
     private static readonly ConcurrentDictionary<string, Lazy<Task<JsObj>>> ArtSearches = new();
@@ -108,7 +109,7 @@ internal static partial class Library
         using (var c = Db.Open()) titles = Tracks(c, s, al).Select(t => (object?)t.Title).ToList();
         var search = ArtSearches.GetOrAdd(key, k => new Lazy<Task<JsObj>>(() =>
         {
-            var job = ArtFind.Find(al.Title, al.Artist, titles, ArtFind.Web($"Mandarin/{AppVersion} ( https://github.com/meltface-80/Mandarin )"), Front.Log);
+            var job = ArtFind.Find(al.Title, al.Artist, titles, ArtFind.Web($"Mandarin/{AppVersion} ( https://github.com/meltface-80/Mandarin )"), Server.Log);
             _ = job.ContinueWith(async _ => { await Task.Delay(TimeSpan.FromMinutes(10)); ArtSearches.TryRemove(k, out var _); }, TaskScheduler.Default);
             return job;
         }));
@@ -164,7 +165,7 @@ internal static partial class Library
         if (f.HasArt)
         {
             art = f.Art;
-            artHash = f.Art != null ? Convert.ToHexStringLower(SHA1.HashData(f.Art))[..12] : null;
+            artHash = f.Art != null ? Convert.ToHexStringLower(Fingerprint.Sha1(f.Art))[..12] : null;
             artSource = f.Art != null && !string.IsNullOrEmpty(f.ArtSource) ? f.ArtSource : null;
         }
         using var w = c.CreateCommand();
@@ -189,7 +190,7 @@ internal static partial class Library
         w.ExecuteNonQuery();
     }
 
-    /* After a change: the Node server told, the copy here read again, the old cover's sizes gone, and the editor's view with the album's. */
+    /* After a change: told, the copy here read again, the old cover's sizes gone, and the editor's view with the album's. */
     private static async Task<bool> EditDone(HttpContext ctx, long id, string keyBefore)
     {
         await Tell(new JsonObject { ["edits"] = true });
@@ -204,14 +205,11 @@ internal static partial class Library
 
     /* POST /api/album/edit { offset, title?, artist?, year?, art_url?, art_source?, art? } */
     private static Task<bool> SaveAlbumEdit(HttpContext ctx, Snapshot s, LibState st) =>
-        !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s, st);
-    private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s, LibState st)
+        !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s);
+    private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s)
     {
-        // Kept, so the request can still go on as it came (a cover only sharp reads).
-        ctx.Request.EnableBuffering();
         var (b, answered) = await JsBody(ctx);
         if (answered) return true;
-        bool PassOn() { ctx.Request.Body.Position = 0; return false; }
 
         var al = s.Find(TJs.ToNumber(Prop(b, "offset")));
         if (al == null) return await NoAlbum(ctx);
@@ -231,19 +229,14 @@ internal static partial class Library
             byte[]? got;
             try
             {
-                var (buf, error, pass) = await FetchArt(url);
-                if (pass) return PassOn();
+                var (buf, error) = await FetchArt(url);
                 if (error != null) return await JsError(ctx, 502, "Couldn't download that image (" + error + ")");
-                var turn = Covers.Look(buf!);
-                if (turn == null) return Covers.LooksLikeImage(buf!) ? PassOn() : await JsError(ctx, 422, "That address isn't an image");
-                got = await Covers.Normalise(buf!, turn);
-                if (got == null) return PassOn();
+                if (!Covers.LooksLikeImage(buf!)) return await JsError(ctx, 422, "That address isn't an image");
+                // A picture in a form read only as ffmpeg reads it (CMYK, a profile of its own), as the covers are (Covers.cs).
+                got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
+                if (got == null) return await JsError(ctx, 422, "Couldn't read that image");
             }
-            catch (Exception e) when (!ctx.Response.HasStarted)
-            {
-                Front.Log($"[library] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}; passed to the Node server");
-                return PassOn();
-            }
+            catch (Exception e) when (!ctx.Response.HasStarted) { return await Server.Failed(ctx, "library", e); }
             var src = TJs.Str(TJs.Truthy(Prop(b, "art_source")) ? Prop(b, "art_source") : artUrl);
             f.HasArt = true;
             f.Art = got;
@@ -286,41 +279,55 @@ internal static partial class Library
 
     /*
      * Artwork.download's fetch: the picture, or why not in the Node server's
-     * words; or that it's the Node server's to try (an address a browser's
-     * parser might read otherwise, a redirect not followed here, a very big
-     * one).
+     * words. The address read as a browser reads it (a space, a backslash);
+     * redirects followed here, twenty at most as fetch follows them, from
+     * https to http too; 64 MB read at most. Each hop's address never this
+     * machine or its link (v0.9.0, Addresses.cs).
      */
-    private static async Task<(byte[]? Buf, string? Error, bool PassOn)> FetchArt(string url)
+    private static async Task<(byte[]? Buf, string? Error)> FetchArt(string url)
     {
-        if (!url.All(ch => ch > 0x20 && ch < 0x7F && ch != '\\') || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
-            return (null, null, true);
-        try { Lookups.Allowed(url); }
-        catch (LookupError e) { return (null, e.Message, false); }
+        if (!Uri.TryCreate(url.Replace('\\', '/'), UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
+            return (null, "Invalid URL");
         using var cts = new CancellationTokenSource(15000);
-        using var req = new HttpRequestMessage(HttpMethod.Get, uri);
-        // Some image hosts turn away a request that doesn't look like a browser's.
-        req.Headers.TryAddWithoutValidation("User-Agent", BrowserUa);
-        req.Headers.TryAddWithoutValidation("Accept", "image/*,*/*;q=0.8");
         try
         {
-            using var res = await ArtWeb.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            var code = (int)res.StatusCode;
-            if (code is >= 300 and < 400) return (null, null, true);
-            if (!res.IsSuccessStatusCode) return (null, "HTTP " + code, false);
-            if (res.Content.Headers.ContentLength is long len && len > 25 * 1024 * 1024) return (null, "too large", false);
-            await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
-            using var ms = new MemoryStream();
-            var buf = new byte[81920];
-            int n;
-            while ((n = await body.ReadAsync(buf, cts.Token)) > 0)
+            for (int hops = 0; ; hops++)
             {
-                ms.Write(buf, 0, n);
-                if (ms.Length > 64L << 20) return (null, null, true);
+                try
+                {
+                    await Addresses.CheckArt(uri, Lookups.LoopbackOnly, cts.Token);
+                    Lookups.Allowed(uri.AbsoluteUri);
+                }
+                catch (Exception e) when (e is AddressRefused or LookupError) { return (null, e.Message); }
+                using var req = new HttpRequestMessage(HttpMethod.Get, uri);
+                // Some image hosts turn away a request that doesn't look like a browser's.
+                req.Headers.TryAddWithoutValidation("User-Agent", BrowserUa);
+                req.Headers.TryAddWithoutValidation("Accept", "image/*,*/*;q=0.8");
+                using var res = await ArtWeb.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                var code = (int)res.StatusCode;
+                if (code is 301 or 302 or 303 or 307 or 308 && res.Headers.Location is { } to)
+                {
+                    if (hops == 20 || !Uri.TryCreate(uri, to, out var next) || (next.Scheme != "http" && next.Scheme != "https")) return (null, "fetch failed");
+                    uri = next;
+                    continue;
+                }
+                if (!res.IsSuccessStatusCode) return (null, "HTTP " + code);
+                if (res.Content.Headers.ContentLength is long len && len > 25 * 1024 * 1024) return (null, "too large");
+                await using var body = await res.Content.ReadAsStreamAsync(cts.Token);
+                using var ms = new MemoryStream();
+                var buf = new byte[81920];
+                int n;
+                while ((n = await body.ReadAsync(buf, cts.Token)) > 0)
+                {
+                    ms.Write(buf, 0, n);
+                    if (ms.Length > 64L << 20) return (null, "too large");
+                }
+                return (ms.ToArray(), null);
             }
-            return (ms.ToArray(), null, false);
         }
-        catch (OperationCanceledException) { return (null, "timed out", false); }
-        catch (HttpRequestException) { return (null, "fetch failed", false); }
-        catch (IOException) { return (null, "terminated", false); }
+        catch (OperationCanceledException) { return (null, "timed out"); }
+        catch (HttpRequestException e) when (e.InnerException is AddressRefused r) { return (null, r.Message); }
+        catch (HttpRequestException) { return (null, "fetch failed"); }
+        catch (IOException) { return (null, "terminated"); }
     }
 }

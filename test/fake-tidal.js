@@ -7,7 +7,8 @@
  * playbackinfopostpaywall — one address for CD quality, MPEG-DASH (an
  * initialisation piece and fragmented-MP4 segments, made with ffmpeg from
  * the fixture files) for a hi-res track asked for at HI_RES_LOSSLESS, as
- * Tidal does. What was asked for is recorded.
+ * Tidal does. What was asked for is recorded; a sign-in's code can be made
+ * short-lived, and a refresh held back (v0.8.47).
  */
 const http = require("http");
 const fs = require("fs");
@@ -15,7 +16,14 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
-const { credentials } = require("../lib/tidal/api");
+
+/* The plugin's credentials, read from the C# server as it carries them (Services/TidalApi.cs). */
+function credentials() {
+  const cs = fs.readFileSync(path.join(__dirname, "..", "server", "Mandarin.Server", "Services", "TidalApi.cs"), "utf8");
+  const blob = /const string Blob = "([^"]+)"/.exec(cs)[1];
+  const [clientId, secret] = JSON.parse(Buffer.from(blob.replace(/[$.]/g, "") + "==", "base64").toString("utf8"));
+  return { clientId, secret };
+}
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 
@@ -37,6 +45,9 @@ class FakeTidal {
     this.expiredTokens = new Set();    // access tokens that no longer work (to make the server refresh)
     this.polls = 0;
     this.refreshes = 0;
+    this.deviceExpiresIn = 300;        // how long a sign-in's code lasts, in seconds
+    this.refreshHold = null;           // a refresh waits on this (holdRefresh)
+    this.parkedRefreshes = 0;          // refreshes that came while held
     this.playbackCalls = [];           // { track_id, quality }
     this.albumCalls = 0;               // albums/<id> asks
     this.fetches = [];                 // one-address stream fetches { id, range }
@@ -56,6 +67,13 @@ class FakeTidal {
   }
   /* The access token the server holds stops working: its next call must refresh. */
   expireAccess() { this.expiredTokens.add(this.access); this.access = "at-" + crypto.randomBytes(6).toString("hex"); }
+  /* Refreshes wait until the returned function is called: a test sees how many come meanwhile. */
+  holdRefresh() {
+    let go;
+    this.refreshHold = new Promise(r => { go = r; });
+    this.parkedRefreshes = 0;
+    return () => { this.refreshHold = null; go(); };
+  }
 
   trackOf(id) {
     for (const a of this.albums) { const t = a.tracks.find(x => String(x.id) === String(id)); if (t) return { a, t }; }
@@ -116,7 +134,7 @@ class FakeTidal {
       const json = (code, body) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
       let body = "";
       req.on("data", c => { body += c; });
-      req.on("end", () => {
+      req.on("end", async () => {
         const form = Object.fromEntries(new URLSearchParams(body));
         // ---- pictures and audio
         if (u.pathname.startsWith("/images/")) { res.writeHead(200, { "Content-Type": "image/jpeg" }); return res.end(this.art ? fs.readFileSync(this.art) : Buffer.from("ffd8ffd9", "hex")); }
@@ -145,7 +163,7 @@ class FakeTidal {
           if (form.client_id !== creds.clientId) return json(401, { error: "invalid_client" });
           const deviceCode = "dc-" + crypto.randomBytes(4).toString("hex"), userCode = "ABCDE";
           this.devices.set(deviceCode, { approved: false, userCode });
-          return json(200, { deviceCode, userCode, verificationUri: "link.tidal.com", verificationUriComplete: "link.tidal.com/" + userCode, expiresIn: 300, interval: 1 });
+          return json(200, { deviceCode, userCode, verificationUri: "link.tidal.com", verificationUriComplete: "link.tidal.com/" + userCode, expiresIn: this.deviceExpiresIn, interval: 1 });
         }
         if (u.pathname === "/v1/oauth2/token") {
           const basic = "Basic " + Buffer.from(creds.clientId + ":" + creds.secret).toString("base64");
@@ -153,6 +171,7 @@ class FakeTidal {
           const tokens = () => ({ access_token: this.access, refresh_token: this.refreshToken, expires_in: Number(this.expiresIn) || 3600, token_type: "Bearer",
             user_id: this.user.userId, user: { userId: this.user.userId, email: this.user.email, countryCode: this.user.countryCode, username: this.user.username } });
           if (form.grant_type === "refresh_token") {
+            if (this.refreshHold) { this.parkedRefreshes++; await this.refreshHold; }
             if (form.refresh_token !== this.refreshToken) return json(401, { error: "invalid_grant" });
             this.refreshes++;
             return json(200, tokens());
@@ -221,7 +240,7 @@ class FakeTidal {
 
   stop() {
     try { fs.rmSync(this.tmp, { recursive: true, force: true }); } catch (e) { /* tmp */ }
-    return new Promise(r => this.server ? this.server.close(() => r()) : r());
+    return require("./fixtures").stopServer(this.server);
   }
 }
 

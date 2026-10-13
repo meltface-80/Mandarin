@@ -8,7 +8,7 @@
 // double-precision form by themselves, `volume` is told to, and the resample
 // is SoX at 33 bits. The final requantise with dither is StreamPlans.cs's
 // (lib/stream.js), so the chain is the same whichever depth goes out. Numbers
-// are written as the Node server writes them (rounded to a thousandth, then
+// are written as the Node server wrote them (rounded to a thousandth, then
 // String()), so the graph, like the plan's name, is the same text.
 using Mandarin.Server.Tags;
 

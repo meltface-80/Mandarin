@@ -2,8 +2,8 @@
 // display, Smart Picks' switch and hour, Home's rows; and dynamic playlists
 // (saved Library views), read through the same Library wall as Library.cs.
 // From lib/server/api-library.js and lib/server/api-playlists.js, rule for
-// rule. Each is a setting in the database the Node server reads afresh when it
-// needs it, so a change made here is the Node server's at once too.
+// rule. Each is a setting in the database, read afresh when it is needed, so a
+// change takes at once.
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;

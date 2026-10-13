@@ -55,7 +55,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
   qobuz.favouriteTracks.add("6002");
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, identify: false, qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
@@ -160,6 +160,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(start.event.format_id, 6);
       // The next track was made ready behind it (the fake room fetches only when told to move on).
       await until(() => qobuz.fetches.length >= 2);
+      // It plays a while first: the end report says how long.
       await sleep(1200);
       await api("control", { zone_or_output_id: kitchen.zone_id, command: "next" });
       await until(() => qobuz.reports.some(x => x.which === "end" && x.event.track_id === 5001), 20000);
@@ -226,28 +227,30 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal((await api("services/watch", {})).changed, false, "looked at within 15 s: nothing to do");
       // Removed in the Qobuz app: off the walls on the next look, its page still reachable.
       qobuz.favourites.delete("1003");
-      const w2 = await ctx.services.qobuz.watch();
+      const watch = async () => (await ctx.internal("/internal/jobs/watch")).services.qobuz;
+      const w2 = await watch();
       assert.deepEqual(w2, { added: 0, dropped: 1, failed: 0, changed: true });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false);
       const whyGone = (await api("album?offset=" + other.offset)).album.service_why;
       assert.equal(whyGone.kept, null); assert.equal(whyGone.held, true, "a playlist holds one of its tracks: " + JSON.stringify(whyGone));
       // Nothing changed: the watch says so and touches nothing.
-      assert.deepEqual(await ctx.services.qobuz.watch(), { added: 0, dropped: 0, failed: 0, changed: false });
+      assert.deepEqual(await watch(), { added: 0, dropped: 0, failed: 0, changed: false });
       // Removed in the Qobuz app and its page opened here before any look: the
       // page's "not in your favourites" is what the library goes by, at once.
       qobuz.favourites.add("1003");
-      await ctx.services.qobuz.watch();
+      await watch();
       assert.ok((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"));
       qobuz.favourites.delete("1003");
-      ctx.services.qobuz.api.cache.clear();   // the minute's cache of the ids gone, as a minute passing would
+      await ctx.restart(token);   // the minute's cache of the ids gone, as a minute passing would
       const pg = await api("album?offset=" + other.offset);
       assert.equal(pg.album.service_favourite, false);
       assert.equal(pg.album.service_why.kept, null, "no longer kept: " + JSON.stringify(pg.album.service_why));
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "Q Other"), false, "off the walls as the page says");
       // An import while the listing still has it (a cached page, a lagging
       // service) goes by the ids asked for now: still let go.
+      // The listing cached with it in, by the server that imports (the C# server's from v0.8.45).
       qobuz.favourites.add("1003");
-      await ctx.services.qobuz.api.favouriteAlbums();   // the listing cached with it in
+      assert.equal((await api("settings/qobuz/import", {})).status, 200);
       qobuz.favourites.delete("1003");
       const imp = await api("settings/qobuz/import", {});
       assert.equal(imp.result.dropped, 1, "the listing's page still lists it, so it is imported again, and the ids let it go: " + JSON.stringify(imp.result));
@@ -291,6 +294,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
         })()`);
         // The removal at Qobuz, waiting: the page is still open.
         await until(() => qobuz.parked["favorite/delete"] >= 1);
+        // A window: while Qobuz hasn't answered, the page must stay as it is.
         await sleep(300);
         held = await page.eval(`({ open: !document.getElementById("album-modal").classList.contains("hidden"), closed: !!window.__removed.closed })`);
         const t0 = Date.now();
@@ -341,7 +345,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           out.page_menu = [...modal.querySelectorAll(".overflow-menu .sel-menu-item")].map(b => b.textContent);
           modal.querySelector("[data-close]").click();
           await until(() => modal.classList.contains("hidden"));
-          await sleep(200);
+          await until(() => !$("qobuz-overlay").classList.contains("is-under") && !$("qobuz-overlay").classList.contains("hidden"));
           out.back_on_top = !$("qobuz-overlay").classList.contains("is-under") && !$("qobuz-overlay").classList.contains("hidden");
           out.tiles_kept = list.querySelectorAll(".album.qobuz-tile").length;
           return out;
@@ -401,10 +405,10 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
           await until(() => !$("qobuz-overlay").classList.contains("hidden") && !$("qobuz-artist-head").classList.contains("hidden"));
           out.artist_head = ($("qobuz-artist-head").textContent || "").includes("Artist A");   // the fake's artist page
           // The Library wall's filter asks the services too: letters no album here starts with.
-          $("qobuz-overlay-close").click(); await sleep(300);
-          $("topbar-back").click(); await sleep(300);
-          $("home-library-title").click(); await sleep(500);
-          document.querySelector(".topbar .lib-filter-btn").click(); await sleep(200);
+          $("qobuz-overlay-close").click(); await until(() => $("qobuz-overlay").classList.contains("hidden"));
+          $("topbar-back").click(); await until(() => !$("home-view").classList.contains("hidden"));
+          $("home-library-title").click(); await until(() => document.querySelector(".topbar #library-controls:not(.hidden) .lib-filter-btn"));
+          document.querySelector(".topbar .lib-filter-btn").click(); await until(() => document.querySelector(".topbar .lib-filter-input"));
           const lf = document.querySelector(".topbar .lib-filter-input");
           lf.value = "Whit"; lf.dispatchEvent(new Event("input", { bubbles: true }));
           const lw = await until(() => document.querySelector("#album-grid .ext-search-wrap .album.qobuz-tile"));
@@ -444,7 +448,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
 
     await t.test("an import after a restart fetches only what is new (v0.7.10)", async () => {
       // The answers cached in memory are gone after a restart; the albums kept are still here.
-      ctx.services.qobuz.api.cache.clear();
+      await ctx.restart(token);
       const asked = [];
       const count = (req) => asked.push(req.url.split("?")[0]);
       qobuz.server.on("request", count);
@@ -489,9 +493,9 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       // Off the walls and off the Playlists screen, the rows kept for the sign-in that follows.
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.source === "qobuz"), false);
       assert.equal((await api("user-playlists")).playlists.some(x => x.qobuz), false);
-      const q1 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:1001'").get().id);
+      const q1 = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:1001'").get();
       assert.ok(q1, "the rows stay");
-      const s = await fetch(B + "/stream/t" + ctx.library.tracks(q1.id)[0].id + ".flac", { headers: H });
+      const s = await fetch(B + "/stream/t" + ctx.db.raw.prepare("SELECT id FROM tracks WHERE album_id = ? ORDER BY disc_no, track_no").get(q1.id).id + ".flac", { headers: H });
       assert.notEqual(s.status, 200, "no stream without the account");
       // Clean up: signed out, every Qobuz album counts as stale; removed on request, plays kept.
       const cu = await api("library/cleanup");
@@ -499,7 +503,7 @@ test("Qobuz: sign in, the library, playing with reports, transient albums", { sk
       assert.equal(cu.qobuz.albums, 3);
       const playsBefore = ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n;
       const r2 = await api("library/cleanup", { kind: "qobuz" });
-      assert.equal(r2.removed, 3);
+      assert.equal(r2.removed, 3, JSON.stringify(r2));
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM albums WHERE key LIKE 'qobuz:%'").get().n, 0);
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n, playsBefore, "plays stay");
       assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE 'qobuz-%'").get().n, 0);

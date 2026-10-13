@@ -14,9 +14,8 @@ const assert = require("node:assert");
 const path = require("path");
 const { haveFfmpeg, makeLibrary, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
-const { FakeRenderer } = require("./fake-renderer");
+const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
-const { idFor } = require("../lib/renderers/discovery");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
@@ -44,13 +43,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const poly = new FakeRenderer({ name: "Poly", manufacturer: "Chord Electronics Ltd", model: "Poly", setNext: false,
     sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*" });
   await wiim.start(); await poly.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location, poly.location], upnpMulticast: false
   };
   let srv = createServer(options);
-  await srv.start();
+  let ctx = await srv.start();
   const token = await signIn(B);
   const auth = { Authorization: "Bearer " + token };
   const api = async (p, body, method) => {
@@ -171,6 +170,10 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // With loop on, next from the last track goes round to the first.
       await api("control", { zone_or_output_id: WIIM, command: "next" });
       await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Song 1"; });
+      // Held there: the fixture's tracks are three seconds long, and on a busy machine Song 1
+      // ran out (and Song 2 began) before the queue below was read.
+      await api("control", { zone_or_output_id: WIIM, command: "pause" });
+      await until(() => wiim.state === "PAUSED_PLAYBACK");
       await api("zone-settings", { zone_or_output_id: WIIM, loop: "disabled" });
       await api("control", { zone_or_output_id: WIIM, command: "previous" });   // > 5 s? no: at the start → stays on Song 1 from 0
       const q = await api("queue?zone=" + WIIM);
@@ -356,11 +359,12 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Song 1 plays on through the restart however long it takes: the track
       // is 3 seconds long, and a restart on a busy machine can take longer.
       wiim.hold();
-      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      // The store writes after a moment: what it kept, before the server goes.
+      await until(() => { const r = ctx.db.raw.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + WIIM); const k = r && JSON.parse(r.value); return k && k.state === "playing" && k.index === 0 && k.ids.length === 3; });
       const sets = wiim.log.filter(a => a === "SetAVTransportURI").length;
       await srv.stop();
       srv = createServer(options);
-      await srv.start();
+      ctx = await srv.start();
       await until(async () => (await api("status")).status === 200);
       // The device played on through the restart; the server finds it in the queue it kept.
       const s = await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1" && z; }, 20000);

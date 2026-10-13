@@ -7,8 +7,7 @@
  * from the RSS feed when the page can't be read) and a review's match in the
  * library, the link that opens the Qobuz app, the Pitchfork part of the
  * search, and the share card's settings. Wikipedia, Qobuz's site, Pitchfork
- * and MusicBrainz are fakes on loopback. The same answers from either server;
- * behind the C# server (MANDARIN_FRONT=1), made there (v0.8.21).
+ * and MusicBrainz are fakes on loopback. Made by the C# server since v0.8.21.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -18,7 +17,6 @@ const { signIn } = require("./auth-helper");
 const { FakeWeb, wiki } = require("./fake-web");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 
-const FRONT = process.env.MANDARIN_FRONT === "1";
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const ALBUM_TEXT = "Album One is the debut studio album by English band Artist A, released in 1997.";
@@ -36,7 +34,6 @@ test("a record's write-up and links: the same from either server", { skip: !have
   await Promise.all([mb.start(), web.start()]);
   const W = web.base;
   const pfUrl = W + "/reviews/albums/artist-a-album-one/";
-  const qzUrl = W + "/us-en/album/album-one-artist-a/abc123";
   const wikiAlbumUrl = "https://en.wikipedia.org/wiki/Album_One_(Artist_A_album)";
   const wikiArtistUrl = "https://en.wikipedia.org/wiki/Artist_A_(band)";
   Object.assign(web.pages, {
@@ -68,7 +65,7 @@ test("a record's write-up and links: the same from either server", { skip: !have
     [wiki.search('"Artist A" "Album One"', 10)]: wiki.hits("Artist A (band)", "Album One (Artist A album)")
   });
 
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
     mbBaseUrl: mb.baseUrl, wikipediaBaseUrl: W, pitchforkBaseUrl: W, qobuzWebUrl: W });
   await srv.start();
@@ -76,7 +73,7 @@ test("a record's write-up and links: the same from either server", { skip: !have
     const token = await signIn(B);
     const ask = async (p, init = {}) => {
       const r = await fetch(B + "/api/" + p, Object.assign({}, init, { headers: Object.assign({ Authorization: "Bearer " + token }, init.headers || {}) }));
-      if (FRONT) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+      assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
       return { status: r.status, headers: r.headers, body: await r.json() };
     };
     for (let i = 0; i < 150 && (await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).index_count !== 3; i++) await new Promise(res => setTimeout(res, 100));

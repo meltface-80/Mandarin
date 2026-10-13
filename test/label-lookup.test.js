@@ -12,15 +12,16 @@ const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDiscogs } = require("./fake-discogs");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
-const { plainName } = require("../lib/labellookup");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("Discogs' numbered names are plain", () => {
-  assert.equal(plainName("Blue Note (2)"), "Blue Note");
-  assert.equal(plainName("4AD"), "4AD");
+test("Discogs' numbered names are plain", { skip: built() }, () => {
+  // The C# server's (Extras/LabelLookup.cs; lib/labellookup.js until v0.8.50).
+  assert.deepEqual(score({ fn: "labels", plain: ["Blue Note (2)", "4AD"] }).plain, ["Blue Note", "4AD"]);
 });
 
 test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t) => {
@@ -36,7 +37,7 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
   ]);
   const discogs = new FakeDiscogs([], { releases: [{ title: "Fourth", artist: "Artist D", label: "Nonesuch (2)" }] });
   await Promise.all([mb.start(), discogs.start()]);
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
     discogsBaseUrl: discogs.base, mbBaseUrl: mb.baseUrl, logoPauseMs: 0, identify: false });
   const ctx = await srv.start();
@@ -69,18 +70,14 @@ test("labels looked up for untagged albums", { skip, timeout: 90000 }, async (t)
       assert.match(log, /lookups: done, 3 of 4 found/);
       const third = (await api("library/albums?sort=album")).albums.find(a => a.title === "Third");
       assert.equal((await api("album?offset=" + third.offset)).album.label, "ECM");
-      // Behind the C# server (v0.8.20): the lookups made there, the Node server's own never started.
-      if (process.env.MANDARIN_FRONT === "1") {
-        for (const p of ["filters/labels", "labels-scan-status", "labels-scan-log", "settings/labels", "settings/discogs-token", "label-albums?label=ECM"])
-          assert.equal((await api(p)).by, "C#", p + ": made by the C# server");
-        assert.equal(ctx.labelLookup.handedOver, true);
-        assert.equal(ctx.labelLookup.lines.length, 0, "nothing looked up by the Node server");
-      }
+      // The lookups made by the C# server (v0.8.20).
+      for (const p of ["filters/labels", "labels-scan-status", "labels-scan-log", "settings/labels", "settings/discogs-token", "label-albums?label=ECM"])
+        assert.equal((await api(p)).by, "C#", p + ": made by the C# server");
     });
 
     await t.test("kept by identity through a rebuild; misses not asked again; force asks everything", async () => {
       const mbHits = mb.requests.length, dHits = discogs.hits.length;
-      ctx.library.reload();
+      await ctx.library.reload();
       assert.deepEqual((await names()).map(x => x[0]), ["Blue Note", "ECM", "Nonesuch", "Parlophone", "Rhino"]);
       await api("labels/rescan", {});
       await settled();

@@ -20,3 +20,6 @@ engine/Mandarin.Audio/bin/
 server/bin/
 server/**/obj/
 server/Mandarin.Server/bin/
+.claude/*
+!.claude/settings.json
+tools/lint/node_modules/

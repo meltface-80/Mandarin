@@ -38,7 +38,7 @@ internal static partial class Library
         {
             ["total"] = shelf.Total,
             ["sig"] = shelf.Sig,
-            ["version"] = Front.Version,
+            ["version"] = Server.Version,
             ["genres"] = shelf.Genres.DeepClone(),
             ["albums"] = shelf.Albums.DeepClone()
         });
@@ -56,7 +56,7 @@ internal static partial class Library
     }
 
     /* buildShelf and shelfSignature. */
-    private static ShelfAnswer BuildShelf(List<Album> albums)
+    internal static ShelfAnswer BuildShelf(List<Album> albums)
     {
         var counts = new Dictionary<string, int>();
         var order = new List<string>();

@@ -1,0 +1,23 @@
+# The analyzer rules the server's build holds to (v0.9.2, the audit's Q3, Q5,
+# Q6 and S7, docs/specs/audit-b4-main.md). Warnings are errors in this
+# project, so each of these fails the build. A rule is listed once the code
+# keeps it; a site that breaks one on purpose says why beside it
+# ([SuppressMessage] with its Justification).
+root = false
+
+[*.cs]
+# Dead code: a using, a private member or a parameter nothing reads.
+dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_diagnostic.CA1823.severity = warning
+# A number parsed or written in the machine's locale (a Mac runs in its owner's).
+dotnet_diagnostic.CA1305.severity = warning
+# A result ignored, a bare Exception, a case-insensitive compare by lower-casing.
+dotnet_diagnostic.CA1806.severity = warning
+dotnet_diagnostic.CA2201.severity = warning
+dotnet_diagnostic.CA1862.severity = warning
+# SHA-1 and MD5: each use says what it is for (none protects anything).
+dotnet_diagnostic.CA5350.severity = warning
+dotnet_diagnostic.CA5351.severity = warning

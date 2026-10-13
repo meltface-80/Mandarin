@@ -129,7 +129,7 @@
   const real = window.fetch;
   let mark = "", seenAt = 0, timer = 0, asking = false;
   const see = (r) => {
-    let m = null;
+    let m;
     try { m = r && r.headers && r.headers.get("x-mandarin-library"); } catch (e) { return; }
     if (!m) return;
     seenAt = Date.now();
@@ -205,7 +205,7 @@ window.__afterStart = (fn) => {
       v = localStorage.getItem(o.key);
       // List was the top bar's grid ⇄ list button until v0.6.5.
       if (v === null && k === "layout" && localStorage.getItem("rra-album-view") === "list") v = "list";
-    } catch (e) {} // localStorage optional — the default stands
+    } catch (e) { /* localStorage optional — the default stands */ }
     return (mem[k] = o.allowed.indexOf(v) > -1 ? v : o.def);
   }
   // The screen's own column count, by the SAME breakpoints style.css uses for
@@ -238,7 +238,7 @@ window.__afterStart = (fn) => {
   function set(k, v) {
     const o = OPTS[k];
     if (!o || o.allowed.indexOf(v) < 0) return;
-    try { localStorage.setItem(o.key, v); } catch (e) {} // localStorage optional — applied for this session regardless
+    try { localStorage.setItem(o.key, v); } catch (e) { /* localStorage optional — applied for this session regardless */ }
     mem[k] = v;
     apply();
     // The columns moved at once (CSS); the random wall's COUNT was a screenful
@@ -406,8 +406,7 @@ window.__afterStart = (fn) => {
   // ----- Booklets (v0.8.33) ------------------------------------------------
   // The PDFs that came with an album, their pages drawn by the C# server
   // (Booklets.cs): the book on the cover when it has any, and its pages over
-  // the album page, one under another. The Node server has none, so without
-  // the C# server no album shows the book.
+  // the album page, one under another (the Node server never had them).
   const bookletBtn = document.getElementById("modal-booklet");
   let booklets = [];
   let bookletViewer = null, bookletBack;
@@ -613,7 +612,7 @@ window.__afterStart = (fn) => {
   try {
     const f = JSON.parse(localStorage.getItem("rra-filter") || "null");
     if (f && f.type && f.value) activeFilter = f;
-  } catch (e) {} // corrupt localStorage entry — start with no filter
+  } catch (e) { /* corrupt localStorage entry — start with no filter */ }
   function filterQSOf(f) {
     if (!f) return "";
     return "&filter_type=" + encodeURIComponent(f.type) +
@@ -842,7 +841,7 @@ window.__afterStart = (fn) => {
         () => { if (window.__showToast) window.__showToast("On a card that isn’t in right now", "error"); })
       : al ? homeTile(al) : buildAlbumTile(
         { title: d.title || "Album", subtitle: d.artist || "", image_key: d.image_key || null },
-        () => { try { DL.play(d.id); } catch (e) {} if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
+        () => { try { DL.play(d.id); } catch (e) { /* an app without this call (older than the page): nothing to do */ } if (window.__showToast) window.__showToast("Not in the library right now — playing from this phone"); });
       const text = downloadBadge(d);
       const wrap = tile.querySelector(".album-art-wrap");
       if (text && wrap) {
@@ -1324,7 +1323,7 @@ window.__afterStart = (fn) => {
     // title goes away AND Home's full-library tiles resolve correctly.
     if (activeFilter) {
       activeFilter = null;
-      try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
+      try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
     }
     updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
     setBanner(null);            // drop any error/empty banner left by a wall view
@@ -1448,7 +1447,7 @@ window.__afterStart = (fn) => {
     try {
       const cur = JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || "{}") || {};
       localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(Object.assign(cur, patch)));
-    } catch (e) {} // localStorage optional / over quota — persistence is best-effort
+    } catch (e) { /* localStorage optional / over quota — persistence is best-effort */ }
   }
   function readHomeCache() {
     try { return JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || "null"); }
@@ -1573,7 +1572,7 @@ window.__afterStart = (fn) => {
     if (!homeToday) return;
     // Random Album needs no answer: it shows before one arrives.
     if (!homeToday.querySelector("#home-unheard-tile")) renderHomeToday(shownAotd);
-    let aj = null;
+    let aj;
     try {
       const r = await fetch("/api/home/album-of-the-day", { cache: "no-store" });
       if (!r.ok) return;   // the index building, or a server error: what is showing stays
@@ -2060,7 +2059,7 @@ window.__afterStart = (fn) => {
     enterFullWall("Smart Picks");
     smartPicksActive = true;
     const mySeq = ++smartPicksSeq;
-    let j = null;
+    let j;
     try {
       const r = await fetch("/api/smart-picks");
       j = await r.json();
@@ -2399,7 +2398,7 @@ window.__afterStart = (fn) => {
     if (window.__exitLabels) window.__exitLabels();
     if (activeFilter) {
       activeFilter = null;
-      try { localStorage.removeItem("rra-filter"); } catch (e) {} // localStorage optional (private browsing)
+      try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
     }
     if (homeView) homeView.classList.add("hidden");
     if (homeSections) homeSections.classList.remove("hidden");
@@ -7571,7 +7570,7 @@ window.__afterStart = (fn) => {
     document.body.style.overflow = "";
     currentAlbum = null;
     window.__currentAlbum = null;
-    try { sessionStorage.removeItem("rra-modal"); } catch (e) {} // sessionStorage optional
+    try { sessionStorage.removeItem("rra-modal"); } catch (e) { /* sessionStorage optional */ }
     if (typeof window.__refreshTransport === "function") window.__refreshTransport();
   }
   modal.addEventListener("click", (e) => {
@@ -9091,10 +9090,10 @@ window.__afterStart = (fn) => {
     function stopSearch() {
       active = false;
       seq++;                                   // invalidate any pending response
-      if (abort) { try { abort.abort(); } catch (e) {} abort = null; }
+      if (abort) { try { abort.abort(); } catch (e) { /* already settled */ } abort = null; }
       clearTimeout(retryTimer);
       clearTimeout(extTimer);
-      if (extAbort) { try { extAbort.abort(); } catch (e) {} extAbort = null; }
+      if (extAbort) { try { extAbort.abort(); } catch (e) { /* already settled */ } extAbort = null; }
       extWrap = null; extWrapSeq = -1;         // release the rendered external sections
       setStatus("");
       setBanner(null);
@@ -9106,7 +9105,7 @@ window.__afterStart = (fn) => {
 
     async function run(q) {
       const mySeq = ++seq;
-      if (abort) { try { abort.abort(); } catch (e) {} }
+      if (abort) { try { abort.abort(); } catch (e) { /* already settled */ } }
       abort = new AbortController();
       clearTimeout(retryTimer);
       // Global search: the external sources (Qobuz/Tidal catalogues, Pitchfork
@@ -9250,7 +9249,7 @@ window.__afterStart = (fn) => {
     // held for a slow Pitchfork search. One wrapper, two slots in a fixed
     // order, so whichever answers first the services stay above the reviews.
     async function runExternal(q, mySeq) {
-      if (extAbort) { try { extAbort.abort(); } catch (e) {} }   // the previous keystroke's asks
+      if (extAbort) { try { extAbort.abort(); } catch (e) { /* already settled */ } }   // the previous keystroke's asks
       const ctl = extAbort = new AbortController();
       const wrap = document.createElement("div");
       wrap.className = "ext-search-wrap";
@@ -9526,7 +9525,7 @@ window.__afterStart = (fn) => {
       try {
         if (f) localStorage.setItem("rra-filter", JSON.stringify(f));
         else   localStorage.removeItem("rra-filter");
-      } catch (e) {} // localStorage optional (private browsing)
+      } catch (e) { /* localStorage optional (private browsing) */ }
       if (window.__exitLabels) window.__exitLabels();
       markActive();
       close();
@@ -9676,7 +9675,7 @@ window.__afterStart = (fn) => {
     const labelsSearchBtn   = labelsTools.querySelector("#labels-search-btn");
     const labelsSortBtn     = labelsTools.querySelector("#labels-sort-btn");
     let labelsReversed = false;
-    try { labelsReversed = localStorage.getItem("rra-labels-reversed") === "1"; } catch (e) {} // localStorage optional
+    try { labelsReversed = localStorage.getItem("rra-labels-reversed") === "1"; } catch (e) { /* localStorage optional */ }
     let lastLabels = null;   // the list as the server sent it, for re-ordering without a fetch
 
     function paintSortBtn() {
@@ -9735,7 +9734,7 @@ window.__afterStart = (fn) => {
     });
     labelsSortBtn.addEventListener("click", () => {
       labelsReversed = !labelsReversed;
-      try { localStorage.setItem("rra-labels-reversed", labelsReversed ? "1" : "0"); } catch (e) {} // localStorage optional
+      try { localStorage.setItem("rra-labels-reversed", labelsReversed ? "1" : "0"); } catch (e) { /* localStorage optional */ }
       paintSortBtn();
       if (lastLabels) { _lastLabelCount = -1; renderLabelTiles(lastLabels); }
       if (mainEl) mainEl.scrollTop = 0;
@@ -10592,13 +10591,13 @@ window.__afterStart = (fn) => {
             const m = sessionStorage.getItem("rra-modal");
             if (m) {
               const parsed = JSON.parse(m);
-              // Offline, a server album left open isn't reopened (it isn't on the phone).
-              if (parsed && parsed.album && !window.__musicdOffline) {
+              // Offline, a server album left open isn't reopened (it isn't on the phone); nor over one opened since the page loaded (v0.9.5).
+              if (parsed && parsed.album && !window.__musicdOffline && !currentAlbum) {
                 openAlbum(parsed.album, { source: parsed.source, zoneId: parsed.zoneId,
                                          filter: parsed.filter });
               }
             }
-          } catch (e) {} // corrupt sessionStorage modal state — skip restore, open normally
+          } catch (e) { /* corrupt sessionStorage modal state — skip restore, open normally */ }
 
           // Every 15 s while on screen (v0.8.36: not while hidden), and at once on coming back.
           setInterval(() => { if (!document.hidden) loadZones(); }, 15000);
@@ -10606,7 +10605,7 @@ window.__afterStart = (fn) => {
           document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(loadZones, 0); });
           return;
         }
-      } catch (e) {} // /api/status fetch failed — server not ready yet, fall through to "Waiting" banner
+      } catch (e) { /* /api/status fetch failed — server not ready yet, fall through to "Waiting" banner */ }
       setBanner("Waiting for Mandarin to start…");
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -10855,7 +10854,7 @@ window.__afterStart = (fn) => {
             window.__openAlbum(match, { source: "search" }); return;
           }
         }
-      } catch (e) {} // sessionStorage/JSON parse error — fall through to "not indexed" toast
+      } catch (e) { /* sessionStorage/JSON parse error — fall through to "not indexed" toast */ }
       if (window.__showToast) window.__showToast("Album not yet indexed — try again in a moment");
     });
   }
@@ -10895,7 +10894,7 @@ window.__afterStart = (fn) => {
         line1: np.line1 || "", line2: np.line2 || "", line3: np.line3 || "",
         image_key: np.image_key || "", state: zone.state || "stopped"
       }));
-    } catch (e) {} // localStorage optional — transport bar persistence is best-effort
+    } catch (e) { /* localStorage optional — transport bar persistence is best-effort */ }
   }
 
   // The cover for the playing track. Hidden rather than broken when the zone
@@ -10924,7 +10923,7 @@ window.__afterStart = (fn) => {
       artistEl.textContent = sub || "—";
       paintTransportArt(saved.image_key);
       bar.classList.remove("hidden");
-    } catch (e) {} // corrupt localStorage — transport bar stays hidden, no action needed
+    } catch (e) { /* corrupt localStorage — transport bar stays hidden, no action needed */ }
   }
 
   // The server's change counter as of the last answer applied, and the zone it
@@ -12052,7 +12051,8 @@ window.__afterStart = (fn) => {
     while (pollTimer === ctl) {
       const zid = selectedZoneId();
       if (!zid) { renderZone(null); await new Promise(r => setTimeout(r, 1500)); continue; }
-      const wait = zid === stateZone && stateRev >= 0 ? "&wait_for=" + stateRev + "&timeout=10000" : "";
+      const since = zid === stateZone && stateRev >= 0 ? stateRev : -1;
+      const wait = since >= 0 ? "&wait_for=" + since + "&timeout=10000" : "";
       // A connection that has silently died (the phone left its Wi-Fi with
       // mobile data up: the relayed socket to the home address hangs rather
       // than fails) would hold this ask for minutes and the bar with it
@@ -12066,6 +12066,13 @@ window.__afterStart = (fn) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json();
         if (pollTimer !== ctl) return;
+        // A counter below the one waited on (v0.8.46): the server started
+        // again since (an update, a restore), or the app's own copy answered
+        // while the server couldn't be reached. Its counter is the one now.
+        // Before, every answer was taken for an old one and dropped, and the
+        // screen kept the track from before the restart while what was
+        // tapped played, until the app was closed and opened again.
+        if (since >= 0 && zid === stateZone && typeof j.revision === "number" && j.revision < since) stateRev = -1;
         // Not newer (a one-off fetch got there first, or the room changed):
         // a breath before asking again, so a mismatch can never spin.
         if (!applyState(zid, j)) await new Promise(r => setTimeout(r, 250));
@@ -12624,7 +12631,7 @@ function settingsInfo(text) {
    */
   async function loadSimilar(artist, seq) {
     if (!similarEl || !similarLs || !artist) return;
-    let acts = [];
+    let acts;
     try {
       const r = await fetch("/api/similar?artist=" + encodeURIComponent(artist));
       if (!r.ok) return;
@@ -13213,7 +13220,7 @@ function settingsInfo(text) {
 window.__musicdAppUpd = (function () {
   const app = window.MusicdApp;
   if (!app || typeof app.appUpdateStatus !== "function") return null;
-  try { app.pageHandlesUpdates(); } catch (e) {}
+  try { app.pageHandlesUpdates(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   const waiters = [];
   const status = () => { try { return JSON.parse(app.appUpdateStatus()); } catch (e) { return null; } };
   window.__musicdAppUpdateChanged = () => { const s = status(); waiters.splice(0).forEach(w => w(s)); };
@@ -13228,7 +13235,7 @@ window.__musicdAppUpd = (function () {
         try { app.lookForAppUpdate(!!force); } catch (e) { resolve(status()); }
       });
     },
-    install() { try { app.installAppUpdate(); } catch (e) {} }
+    install() { try { app.installAppUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
   };
 })();
 
@@ -13293,7 +13300,7 @@ window.__musicdAppUpd = (function () {
   const verNewer = window.__verNewer;
 
   const dismissedVer = () => { try { return sessionStorage.getItem(DISMISS_KEY) || ""; } catch (e) { return ""; } };
-  const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) {} };
+  const setDismissed = (v) => { try { sessionStorage.setItem(DISMISS_KEY, v); } catch (e) { /* storage is optional (private browsing, over quota) */ } };
   const show = (msg) => { textEl.textContent = msg; toast.classList.add("open"); };
   const hide = () => { toast.classList.remove("open"); if (notesEl) notesEl.classList.add("hidden"); };
 
@@ -13346,7 +13353,7 @@ window.__musicdAppUpd = (function () {
     // app's build lands minutes after the server's release, and the cache
     // was what kept the banner saying "server only" for up to an hour.
     let restarted = false;
-    try { restarted = sessionStorage.getItem(RESTARTED_KEY) === "1"; if (restarted) sessionStorage.removeItem(RESTARTED_KEY); } catch (e) {}
+    try { restarted = sessionStorage.getItem(RESTARTED_KEY) === "1"; if (restarted) sessionStorage.removeItem(RESTARTED_KEY); } catch (e) { /* storage is optional (private browsing, over quota) */ }
     const want = server ? "s" + s.latest : restarted ? "r" + (s && s.current) : "";
     const force = !!want && want !== appForcedFor;
     if (force) appForcedFor = want;
@@ -13382,7 +13389,7 @@ window.__musicdAppUpd = (function () {
           // The server is back on the new version: now the app's turn (its
           // download, then Android's installer), and the page reloaded
           // under it, to ask the app afresh if its build was not there yet.
-          try { sessionStorage.setItem(RESTARTED_KEY, "1"); } catch (e) {}
+          try { sessionStorage.setItem(RESTARTED_KEY, "1"); } catch (e) { /* storage is optional (private browsing, over quota) */ }
           if (appAfterServer && appUpd) { appAfterServer = false; appUpd.install(); }
           location.reload(); return;
         }
@@ -13671,12 +13678,6 @@ window.__musicdAppUpd = (function () {
           // The C# server in front of another version (v0.8.25): being brought
           // up to this one, or (couldn't be) to be brought by a new image.
           const cs = s.csharp;
-          // A Mac still on the Node server alone (v0.8.29): the install line
-          // pasted again brings the C# server in front, as in the image.
-          if (s.mac_node_only) {
-            versionEl.textContent += " · paste the Mac install line again to bring in the C# server";
-            versionEl.title = "New server features come in Mandarin's C# server, which this Mac doesn't run yet. See Install on a Mac in the README.";
-          }
           if (cs && cs.version && cs.matched === false) {
             versionEl.textContent += going(cs) ? " · bringing its C# server up to date"
               : " · C# server v" + cs.version + (s.is_docker ? " (pull the image again to update it)" : "");
@@ -13685,7 +13686,7 @@ window.__musicdAppUpd = (function () {
           versionLoaded = !going(cs);
         }
       }
-    } catch (e) {} // network error loading version — settings panel shows without version, non-critical
+    } catch (e) { /* network error loading version — settings panel shows without version, non-critical */ }
   }
 
   const forceRescanBtn    = document.getElementById("force-rescan-btn");
@@ -16631,7 +16632,7 @@ initServiceBrowser({
     const until = Date.now() + 60 * 60 * 1000;
     while (Date.now() < until) {
       await new Promise(r => setTimeout(r, 2500));
-      let s = null;
+      let s;
       try { s = await (await fetch("/api/status", { cache: "no-store" })).json(); } catch (e) { continue; }
       const scan = s && s.scan;
       if (!scan || scan.running) continue;
@@ -16747,7 +16748,7 @@ initServiceBrowser({
     const item = document.getElementById("menu-item-offline");
     if (!item) return;
     let has = false;
-    try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) {}
+    try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) { /* an older app's settings: no offline switch */ }
     item.classList.toggle("hidden", !has);
     if (!has) return;
     const on = offlineModeOn();
@@ -16793,8 +16794,8 @@ initServiceBrowser({
         // The app reloads the page onto the phone's music, or back onto the
         // server — which would take the menu with it. It is reopened on the
         // page that follows (v0.6.20): the switch is the only thing that moved.
-        try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) {}
-        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) {}
+        try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) { /* storage is optional (private browsing, over quota) */ }
+        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
         return;
       }
       if (action === "home") {
@@ -16808,7 +16809,7 @@ initServiceBrowser({
       if (action === "shelf") {
         // A page of its own. Marked as opened from here, so its "‹ Remote"
         // goes back to this page as it was left rather than loading it again.
-        try { sessionStorage.setItem("rra-display-from-remote", "1"); } catch (e) {}
+        try { sessionStorage.setItem("rra-display-from-remote", "1"); } catch (e) { /* storage is optional (private browsing, over quota) */ }
         location.assign("/shelf");
         return;
       }
@@ -17018,7 +17019,7 @@ initServiceBrowser({
   }
   async function checkNow() {
     clearTimeout(checkTimer);
-    let j = null;
+    let j;
     try {
       // No answer in 8 s counts as none.
       const ctl = typeof AbortController === "function" ? new AbortController() : null;
@@ -17263,8 +17264,8 @@ initServiceBrowser({
   // An app from before removeMany asks for each album itself.
   function removeAlbums(ids) {
     if (!ids.length) return;
-    if (has("removeMany")) { try { dl.removeMany(JSON.stringify(ids)); } catch (e) {} }
-    else for (const id of ids) { try { dl.remove(id); } catch (e) {} }
+    if (has("removeMany")) { try { dl.removeMany(JSON.stringify(ids)); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
+    else for (const id of ids) { try { dl.remove(id); } catch (e) { /* an app without this call (older than the page): nothing to do */ } }
     for (const id of ids) chosen.delete(id);
   }
 
@@ -17435,7 +17436,7 @@ initServiceBrowser({
 
   // Music files on the phone (Stage 5), now on the Music Folders page (v0.5.41): the block's HTML, shared.
   window.__localFolderBlock = function localFolderBlock() {
-    let info = null;
+    let info;
     try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
     let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone' + settingsInfo("Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.") + "</div>";
     if (!info) {
@@ -17478,16 +17479,16 @@ initServiceBrowser({
   pane.addEventListener("click", async (e) => {
     const list = () => json(() => dl.all(), []);
     const titleOf = id => (list().find(d => d.id === id) || {}).title || "this album";
-    if (e.target.closest("[data-dl-allow]")) { try { dl.allowAllFiles(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-allow]")) { try { dl.allowAllFiles(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
     if (e.target.closest("[data-dl-move]")) {
       if (!(await ask("Move every downloaded album to the place chosen under Save to?"))) return;
-      try { dl.moveDownloads(); } catch (x) {}
+      try { dl.moveDownloads(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
-    if (e.target.closest("[data-dl-choose-folder]")) { try { dl.chooseDownloadFolder(); } catch (x) {} return; }
+    if (e.target.closest("[data-dl-choose-folder]")) { try { dl.chooseDownloadFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
     if (e.target.closest("[data-dl-forget-folder]")) {
       if (!(await ask("Forget the download folder?\n\nDownloads go to phone storage from now on. Albums already in the folder stay there, and aren’t shown until it is chosen again."))) return;
-      try { dl.forgetDownloadFolder(); } catch (x) {}
+      try { dl.forgetDownloadFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
     if (e.target.closest("[data-dl-folder]")) { view = "albums"; selecting = false; chosen.clear(); render(); pane.scrollTop = 0; return; }
@@ -17524,7 +17525,7 @@ initServiceBrowser({
       render(); return;
     }
     const play = e.target.closest("[data-dl-play]");
-    if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) {} return; }
+    if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) { /* an app without this call (older than the page): nothing to do */ } return; }
     const rm = e.target.closest("[data-dl-remove]");
     if (rm) {
       const id = Number(rm.getAttribute("data-dl-remove"));
@@ -17534,7 +17535,7 @@ initServiceBrowser({
       return;
     }
     if (e.target.closest("[data-dl-clear-cache]")) {
-      try { dl.clearCache(); } catch (err) {}
+      try { dl.clearCache(); } catch (err) { /* an app without this call (older than the page): nothing to do */ }
       paintCacheStatus();
       return;
     }
@@ -17582,7 +17583,7 @@ initServiceBrowser({
   const label = document.createElement("span");
   label.className = "settings-label";
   let v = "";
-  try { v = app.version(); } catch (e) {}
+  try { v = app.version(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   label.textContent = "Android app" + (v ? " v" + v : "");
   if (window.__musicdAppUpd) {
     // "Check for updates" above does the server and this app, so this row
@@ -17598,7 +17599,7 @@ initServiceBrowser({
   btn.type = "button";
   btn.className = "settings-update-btn";
   btn.textContent = "Check for app update";
-  btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) {} });
+  btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
   row.appendChild(label); row.appendChild(btn);
   pane.appendChild(row);
   }
@@ -17614,7 +17615,7 @@ initServiceBrowser({
       '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
     // The Tailscale button itself: the first button in the row is the ⓘ (v0.6.15 — until
     // then the tap went to the ⓘ, and Tailscale did nothing).
-    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) {} });
+    blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
     awayPane.appendChild(blk);
   }
 })();
@@ -17765,11 +17766,11 @@ initServiceBrowser({
     const t = e.target.closest("button");
     if (!t || busy) return;
     const dl = window.MusicdDownloads;
-    if (t.hasAttribute("data-local-choose")) { try { dl.chooseLocalFolder(); } catch (x) {} return; }
-    if (t.hasAttribute("data-local-rescan")) { try { dl.rescanLocal(); } catch (x) {} render(); return; }
+    if (t.hasAttribute("data-local-choose")) { try { dl.chooseLocalFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } return; }
+    if (t.hasAttribute("data-local-rescan")) { try { dl.rescanLocal(); } catch (x) { /* an app without this call (older than the page): nothing to do */ } render(); return; }
     if (t.hasAttribute("data-local-forget")) {
       if (!(await ask("Forget this folder?\n\nMandarin stops reading it. Nothing in it is deleted."))) return;
-      try { dl.forgetLocalFolder(); } catch (x) {}
+      try { dl.forgetLocalFolder(); } catch (x) { /* an app without this call (older than the page): nothing to do */ }
       render(); return;
     }
     if (t.hasAttribute("data-mf-add")) { err = ""; return browse("/"); }
@@ -17896,7 +17897,11 @@ initServiceBrowser({
     // can't be searched from there, so Look again goes.
     if (rescan) rescan.classList.toggle("hidden", away);
     if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>"; paintHideTools(); return; }
+    // Sound devices on the server's computer that it can't open (v0.6.18); a Mac's, played through Mandarin DAC Bridge until one is here (v0.9.0).
+    const localNote = away || !local || local.off ? "" : local.platform === "darwin" ? (devices.some(d => / \(Bridge\)$/.test(d.name)) ? "" : 'To play through a USB DAC plugged into the Mac Mandarin runs on, install <a id="devices-bridge" href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac" target="_blank" rel="noopener">Mandarin DAC Bridge</a>. Each DAC then shows here as “… (Bridge)”.')
+      : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
+        : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
+    if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note">' + localNote + "</div>" : ""); paintHideTools(); return; }
     let html = "";
     const shown = devices.filter(d => !d.hidden);
     const hidden = devices.filter(d => d.hidden);
@@ -17931,12 +17936,7 @@ initServiceBrowser({
     } else if (!hideMode && hidden.length) {
       html += '<div class="settings-note dev-hidden-count">' + hidden.length + (hidden.length === 1 ? " device hidden" : " devices hidden") + "</div>";
     }
-    // Sound devices on the server's computer that it can't open (v0.6.18).
-    if (!away && local && !local.off && local.platform === "linux" && !local.count && (local.hidden || local.docker)) {
-      html += '<div class="settings-note">' + (local.docker
-        ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
-        : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.") + "</div>";
-    }
+    if (localNote) html += '<div class="settings-note">' + localNote + "</div>";
     if (away) html += '<div class="settings-note">' + (window.__musicdOffline
       ? "No network: this phone is the player, through its speaker, headphones, Bluetooth or a USB DAC. Sonos rooms and streamers come back with the network."
       : "Away from home, this phone is the only player. Sonos rooms and streamers are shown at home.") + "</div>";
@@ -18645,7 +18645,6 @@ initServiceBrowser({
   const SHOW = 60;
   let st = null, loud = null, busy = false, err = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
   let lists = null;      // the albums in each state, the first of each (v0.8.17): { proposed, …, counts, at }
-  let tagcheck = null;   // the tag readers' check (v0.8.13)
   let cpu = null;        // how the processor is shared out (v0.8.13)
   let pack = null;       // the MusicBrainz pack (v0.6.4)
   let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
@@ -18655,13 +18654,13 @@ initServiceBrowser({
   const KEPT = "mandarin.scanner.v1";
   try {
     const k = JSON.parse(localStorage.getItem(KEPT) || "null");
-    if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; tagcheck = k.tagcheck || null; cpu = k.cpu || null; pack = k.pack || null; }
+    if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; cpu = k.cpu || null; pack = k.pack || null; }
   } catch (e) { /* none kept */ }
   let keepTimer = null;
   const keep = () => {
     clearTimeout(keepTimer);
     keepTimer = setTimeout(() => {
-      try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, tagcheck, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
+      try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
     }, 1000);
   };
 
@@ -18685,7 +18684,6 @@ initServiceBrowser({
       .then(() => { if (!busy) render(); });
     get("/api/identify?lists=0", v => { st = v; err = ""; if (opening || listsMoved()) loadLists(); });
     get("/api/loudness", v => { loud = v; });
-    get("/api/tagcheck", v => { tagcheck = v; });
     get("/api/cpu", v => { cpu = v; });
     if (opening || ++quiet % 6 === 0) get("/api/library/cleanup", v => { cleanup = v; });
     if (opening || (pack && pack.checking)) get("/api/identify/pack" + (opening ? "?check=1" : ""), v => {
@@ -18749,7 +18747,7 @@ initServiceBrowser({
     // A pack already here is moved: it can take a minute between drives.
     if (pack && pack.installed) { pack = Object.assign({}, pack, { job: { phase: "moving" } }); render(); }
     try { pack = await api("/api/identify/pack/folder", { dir }); packBrowse = null; err = ""; toast("The pack’s folder is set"); }
-    catch (e) { err = e.message; try { pack = await api("/api/identify/pack"); } catch (x) {} }
+    catch (e) { err = e.message; try { pack = await api("/api/identify/pack"); } catch (x) { /* the pack's state stays as it was */ } }
     busy = false;
     render();
   }
@@ -18885,7 +18883,7 @@ initServiceBrowser({
   };
   function albumRow(it, kind) {
     const a = it.album, c = it.candidate;
-    let line2 = "";
+    let line2;
     const from = c && c.source === "itunes" ? " · from iTunes" : "";
     // Why it's short of 100 % (v0.6.3): the score's own reasons.
     const why = it.why && it.why.length ? " — " + esc(it.why.join(", ")) : "";
@@ -18934,7 +18932,7 @@ initServiceBrowser({
    */
   // The schedule first (v0.8.24), then what it runs, in the order it runs it:
   // identification (with the pack and its progress), then ReplayGain.
-  const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "tagcheck", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
+  const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
   const drawn = {};
   const wait = '<span class="id-wait">…</span>';
   function blocks() {
@@ -18989,39 +18987,12 @@ initServiceBrowser({
         row("Tidal albums no longer wanted", gone(td, "tidal")) +
         '<div class="settings-note">' + (!cleanup ? "…" : qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
     }
-    // The tag readers' check (v0.8.13): the C# reader against this one, on every file.
-    // About how long it has to go (v0.8.15), at its pace of the last few minutes.
-    const timeLeft = (ms) => {
-      const min = Math.round(ms / 60000);
-      if (min < 2) return "a minute or two to go";
-      if (min < 60) return "about " + min + " minutes to go";
-      const h = Math.round(min / 60);
-      return h === 1 ? "about an hour to go" : "about " + h + " hours to go";
-    };
-    out.tagcheck = "";
-    if (tagcheck && tagcheck.available) {
-      const t = tagcheck;
-      const odd = t.different + t.node_failed + t.csharp_failed + t.crashed;
-      const said = { checking: "Reading your files both ways, in the background.", paused: "Waits while the library is being scanned.",
-        waiting: "Starts in a few minutes.", done: odd ? "Done. Please send the report." : "Done. Every file reads the same." }[t.state] || "";
-      // Who reads the scan's tags (v0.8.14).
-      const reader = t.reader === "csharp" ? "The scanner now reads tags with the new reader."
-        : odd ? "The scanner keeps the old reader until these are fixed."
-        : "The scanner moves to the new reader once every file reads the same.";
-      out.tagcheck = '<div class="settings-divider"></div><div class="settings-block">' +
-        row("New tag reader check" + info("Mandarin’s server is moving to C#. Every file is read by both the old and the new tag reader and the two are compared, a few at a time on the cores playback doesn’t keep, more gently while something is playing. Once every file reads the same, the scanner reads tags with the new reader. The check starts again only when one of the readers changes. Nothing in your library changes. Copy the report and send it to the developer."),
-          '<button type="button" class="settings-update-btn" data-tagcheck-copy' + (busy ? " disabled" : "") + ">Copy report</button>") +
-        '<div class="id-progress">' + num(t.checked) + " of " + num(t.total) + " files checked · " + num(t.same) + " the same" +
-          (odd ? " · " + num(odd) + " to look at" : "") + (t.both_failed ? " · " + num(t.both_failed) + " unreadable by both" : "") +
-          (t.time_left ? " · " + timeLeft(t.time_left) : "") + "</div>" +
-        '<div class="settings-note">' + said + " " + reader + ' <a href="/api/tagcheck/report" target="_blank" rel="noopener">Open the report</a></div></div>';
-    }
     // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.
     {
       const cores = k => k + " core" + (k === 1 ? "" : "s");
       const known = cpu && Array.isArray(cpu.cores);
       out.cpu = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Processor' +
-        info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain, the tag check and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
+        info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
         '<div class="id-progress">' + (!known ? wait : cpu.split
           ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
           : cores(cpu.cores.length) + ", shared") + "</div>" +
@@ -19078,25 +19049,6 @@ initServiceBrowser({
     const pk = e.target.closest("[data-pack]");
     if (pk) return packAct(pk.getAttribute("data-pack"));
     if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
-    if (e.target.closest("[data-tagcheck-copy]")) {
-      (async () => {
-        let text = "";
-        try { text = await (await fetch("/api/tagcheck/report", { cache: "no-store" })).text(); }
-        catch (x) { return toast("Couldn’t get the report", "error"); }
-        // execCommand first: navigator.clipboard needs https, and the server is usually plain http.
-        const ta = document.createElement("textarea");
-        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        let ok = false;
-        try { ok = !!(document.execCommand && document.execCommand("copy")); } catch (x) { /* below */ }
-        ta.remove();
-        if (!ok) { try { await navigator.clipboard.writeText(text); ok = true; } catch (x) { /* below */ } }
-        if (ok) toast("Report copied. Paste it into a message to the developer.");
-        else window.open("/api/tagcheck/report", "_blank", "noopener");
-      })();
-      return;
-    }
     const cu = e.target.closest("[data-cleanup]");
     if (cu) {
       const kind = cu.getAttribute("data-cleanup");
@@ -19420,6 +19372,7 @@ initServiceBrowser({
   const toServer = document.getElementById("backup-to-server");
   const toFile   = document.getElementById("backup-to-file");
   const fromFile = document.getElementById("restore-from-file");
+  const passEl   = document.getElementById("backup-pass");   // v0.9.0: seals the keys (Admin/Backup.Seal.cs)
   const APP = window.MusicDBackup && typeof window.MusicDBackup.available === "function" ? window.MusicDBackup : null;
   const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
@@ -19440,7 +19393,7 @@ initServiceBrowser({
     app: "Downloads, USB DAC, this phone's DSP and levelling"
   };
   let info = null;
-
+  const SEALED = "Its passphrase (for the keys and the whole database)";
   const fmtBytes = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? Math.round(n / 1e6) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB";
   const fmtDate = t => new Date(t).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -19474,8 +19427,7 @@ initServiceBrowser({
       info = await r.json();
     } catch (e) { return; }
     if (!partsEl.childElementCount) tickBoxes(partsEl, backupParts());
-    toFile.hidden = !APP;
-    fromFile.hidden = !APP;
+    toFile.hidden = fromFile.hidden = !APP;
     renderList();
   }
   document.querySelectorAll('.settings-nav-item[data-pane="backup"]').forEach(b => b.addEventListener("click", load));
@@ -19497,7 +19449,7 @@ initServiceBrowser({
     if (!items.length) { listEl.innerHTML = '<div class="settings-note">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
     listEl.innerHTML = items.map(b => {
       const title = b.where === "phone" ? "On this phone" : b.kind === "auto" ? "Before restore · on the server" : "On the server";
-      const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)];
+      const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)].concat(b.sealed ? ["sealed"] : []);
       if (b.where === "phone") meta.push(b.name || ""); else if (b.label) meta.push("from " + b.label);
       const ref = b.where === "phone" ? ' data-uri="' + esc(b.uri) + '"' : ' data-id="' + esc(b.id) + '"';
       return '<div class="backup-item" data-where="' + b.where + '"' + ref + '>' +
@@ -19513,10 +19465,11 @@ initServiceBrowser({
     }).join("");
   }
 
-  // A restore panel: the ticks for what's in it (on the phone, everything), and Restore.
-  function openRestorePanel(panel, parts, onGo, label) {
+  // A restore panel: the ticks for what's in it (on the phone, everything), a sealed one's passphrase (askPass, its placeholder), and Restore.
+  function openRestorePanel(panel, parts, onGo, label, askPass) {
     panel.classList.remove("hidden");
-    panel.innerHTML = '<div class="backup-parts"></div><button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
+    const pass = askPass ? '<input type="password" class="settings-token-input backup-pass-in" autocomplete="off" placeholder="' + esc(askPass) + '">' : "";
+    panel.innerHTML = '<div class="backup-parts"></div>' + pass + '<button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
     tickBoxes(panel.querySelector(".backup-parts"), parts);
     panel.querySelector('[data-act="go"]').addEventListener("click", async () => {
       const want = ticked(panel);
@@ -19526,7 +19479,7 @@ initServiceBrowser({
         (server.length ? " This puts them back for every device, and Mandarin restarts. A backup of how things are now is kept first." : "") +
         (want.includes("database") ? " The whole database replaces everything Mandarin knows; your account and sign-ins stay." : "");
       if (!(await ask(q))) return;
-      onGo(want);
+      onGo(want, askPass ? panel.querySelector(".backup-pass-in").value : "");
     });
   }
 
@@ -19555,7 +19508,7 @@ initServiceBrowser({
         renderList();
         return;
       }
-      if (btn.dataset.act === "restore") openRestorePanel(item.querySelector(".backup-restore"), f.parts || backupParts(), (want) => APP.restoreFileAt(uri, want.join(",")), "Restore now");
+      if (btn.dataset.act === "restore") openRestorePanel(item.querySelector(".backup-restore"), f.parts || backupParts(), (want, pass) => pass ? APP.restoreFileAt(uri, want.join(","), pass) : APP.restoreFileAt(uri, want.join(",")), "Restore now", f.sealed && SEALED);
       return;
     }
     const id = item && item.dataset.id;
@@ -19569,13 +19522,13 @@ initServiceBrowser({
     }
     if (btn.dataset.act === "restore") {
       const parts = (b.parts || []).filter(p => p !== "app" || APP);
-      openRestorePanel(item.querySelector(".backup-restore"), parts, async (want) => {
+      openRestorePanel(item.querySelector(".backup-restore"), parts, async (want, pass) => {
         try {
           const r = await fetch("/api/backup/restore/" + encodeURIComponent(id), { method: "POST",
-            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: want }) });
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: want, passphrase: pass || undefined }) });
           finishRestore(await r.json());
         } catch (err) { toast("Couldn't reach the server", "error"); }
-      }, "Restore now");
+      }, "Restore now", b.sealed && SEALED);
     }
   });
 
@@ -19585,7 +19538,7 @@ initServiceBrowser({
     toServer.disabled = true;
     noteEl.textContent = "Backing up…";
     try {
-      const body = { include: want.filter(p => p !== "page" && p !== "app") };
+      const body = { include: want.filter(p => p !== "page" && p !== "app"), passphrase: passEl.value || undefined };
       if (want.includes("page")) body.page = pageSettings();
       if (want.includes("app") && APP) body.app = JSON.parse(APP.appSettings());
       const r = await fetch("/api/backup/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -19609,9 +19562,8 @@ initServiceBrowser({
     if (!APP) return;
     const want = ticked(partsEl);
     if (!want.length) { toast("Tick something to back up", "error"); return; }
-    const req = { include: want.filter(p => p !== "page" && p !== "app") };
-    if (want.includes("page")) req.page = pageSettings();
-    if (!want.includes("app")) req.noApp = true;
+    const req = { include: want.filter(p => p !== "page" && p !== "app"), passphrase: passEl.value || undefined,
+      page: want.includes("page") ? pageSettings() : undefined, noApp: !want.includes("app") };
     toFile.disabled = true;
     noteEl.textContent = "Choose where to save the backup…";
     APP.toFile(JSON.stringify(req));
@@ -19625,6 +19577,6 @@ initServiceBrowser({
     if (!APP) return;
     let panel = pane.querySelector(".backup-file-restore");
     if (!panel) { panel = document.createElement("div"); panel.className = "backup-restore backup-file-restore"; fromFile.after(panel); }
-    openRestorePanel(panel, backupParts(), (want) => APP.fromFile(want.join(",")), "Choose the file…");
+    openRestorePanel(panel, backupParts(), (want, pass) => pass ? APP.fromFile(want.join(","), pass) : APP.fromFile(want.join(",")), "Choose the file…", "Its passphrase, if it was sealed with one");
   });
 })();

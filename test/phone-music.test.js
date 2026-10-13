@@ -47,24 +47,25 @@ const DRIVER = `(async () => {
   // Sort by artist, then reversed.
   bar.querySelector(".lib-ctl-sort").click();
   const row = await until(() => [...document.querySelectorAll(".lib-sort-row")].find(r => r.textContent.includes("Artist")));
-  row.click(); await sleep(100);
+  row.click(); await until(() => titles().join() !== out.first.join());
   out.by_artist = titles();
   bar.querySelector(".lib-ctl-sort").click();
-  (await until(() => [...document.querySelectorAll(".lib-sort-row")].find(r => r.textContent.includes("Artist")))).click(); await sleep(100);
+  (await until(() => [...document.querySelectorAll(".lib-sort-row")].find(r => r.textContent.includes("Artist")))).click();
+  await until(() => titles().join() !== out.by_artist.join());
   out.by_artist_desc = titles();
   out.sort_label = bar.querySelector(".lib-ctl-sort").textContent;
-  document.querySelector(".lib-sheet-backdrop .icon-btn").click(); await sleep(100);
+  document.querySelector(".lib-sheet-backdrop .icon-btn").click(); await until(() => !document.querySelector(".lib-sheet-backdrop"));
   // Focus: Artist → Dave Clarkson.
   bar.querySelector(".lib-ctl-focus").click();
   const head = await until(() => [...document.querySelectorAll(".lib-sheet-section-head")].find(h => h.textContent.includes("Artist")));
   head.click(); await sleep(50);
   const chip = await until(() => [...document.querySelectorAll(".lib-chip")].find(c => c.textContent.startsWith("Dave Clarkson")));
   out.chip_text = chip.textContent;
-  chip.click(); await sleep(100);
+  chip.click(); await until(() => titles().length < out.first.length);
   out.focused = titles();
   out.focus_count = $("album-count").textContent;
   out.focus_badge = (bar.querySelector(".lib-ctl-badge") || {}).textContent || "";
-  [...document.querySelectorAll(".lib-sheet-foot .action-btn")].find(b => b.textContent === "Clear").click(); await sleep(100);
+  [...document.querySelectorAll(".lib-sheet-foot .action-btn")].find(b => b.textContent === "Clear").click(); await until(() => titles().length === out.first.length);
   out.cleared = titles().length;
   // Multi-select on the wall: two of the phone's albums queued go to the phone's player, not the server.
   window.__enterAlbumSelectMode();
@@ -74,7 +75,7 @@ const DRIVER = `(async () => {
   await sleep(50);
 
   document.querySelector('[data-sel-act="queue"]').click();
-  await sleep(300);
+  await until(() => (window.__playLocalCalls || []).length >= 2 && ((document.querySelector(".toast, #toast") || {}).textContent || "") && !document.querySelector("#album-grid .album.is-selected"));
   out.play_local = window.__playLocalCalls || [];
   out.toast = (document.querySelector(".toast, #toast") || {}).textContent || "";
   out.select_left = document.querySelectorAll("#album-grid .album.is-selected").length;
@@ -86,13 +87,12 @@ const DRIVER = `(async () => {
     ts.find(t => t.querySelector(".album-title").textContent === "Shore Ghosts").click();
     ts.find(t => t.querySelector(".album-title").textContent === "Zebra Crossing").click();
     document.querySelector('[data-sel-act="' + act + '"]').click();
-    await sleep(200);
+    await until(() => window.__playLocalCalls.length >= 2);
     out[act] = window.__playLocalCalls;
   }
   // The artist view: the server's album by Artist A and the phone's, together.
   window.__showArtistAlbums("Artist A");
-  await until(() => document.querySelector("#album-grid .artist-section-header"));
-  await sleep(200);
+  await until(() => document.querySelectorAll("#album-grid .artist-section-header").length >= 2 && titles().length >= 2);
   out.artist_heads = [...document.querySelectorAll("#album-grid .artist-section-header")].map(e => e.textContent);
   out.artist_tiles = titles();
   // An artist only on the phone.
@@ -108,7 +108,7 @@ const DRIVER = `(async () => {
   // The room is listed once the page has heard of it (zones are read at start and every 15 s).
   const kitchen = await until(() => [...sel.options].find(o => o.textContent.trim() === "Kitchen"), 20000);
   sel.value = kitchen.value; sel.dispatchEvent(new Event("change"));
-  await sleep(100);
+  await until(() => localStorage.getItem("rra-zone") === kitchen.value);
   window.__playLocalCalls = [];
   window.__enterAlbumSelectMode();
   for (const t of document.querySelectorAll("#album-grid .album")) t.click();
@@ -123,7 +123,7 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {

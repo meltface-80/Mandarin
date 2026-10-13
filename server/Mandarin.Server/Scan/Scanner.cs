@@ -1,9 +1,9 @@
 // Scanner.cs — reading the music folders into the database (v0.8.18): the
 // Node server's scan (lib/library/scanner.js, scanHere), rule for rule, made
 // here. What it writes must be what that one wrote — every album's key and
-// id, every column, as the same kind of value — because the Node server reads
-// the same database, and an album's key is what its favourite, its edits and
-// its plays hang on. So the values are JavaScript's (Tags/Js.cs), and they go
+// id, every column, as the same kind of value — because a database the Node
+// server made is read here as it is, and an album's key is what its
+// favourite, its edits and its plays hang on. So the values are JavaScript's (Tags/Js.cs), and they go
 // to SQLite as better-sqlite3 sent them: every number as a double.
 //
 // Incremental: a file whose size and modification time are unchanged is not
@@ -13,7 +13,6 @@
 // read in full and it wasn't there; a folder missing, empty, unreadable or
 // suddenly mostly gone keeps its tracks.
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
@@ -219,7 +218,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
     {
         try
         {
-            return NodeFs.ReadDirNames(dir).Where(f => ImgExt.Contains(Js.Lower(NodePath.Extname(f))) && !f.StartsWith('.')).Select(f => NodePath.Join(dir, f)).ToList();
+            return PosixFs.ReadDirNames(dir).Where(f => ImgExt.Contains(Js.Lower(NodePath.Extname(f))) && !f.StartsWith('.')).Select(f => NodePath.Join(dir, f)).ToList();
         }
         catch (IOException) { return []; }
     }
@@ -249,8 +248,8 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
 
     public static string? ArtHash(string p)
     {
-        if (!NodeFs.TryStat(p, follow: true, out var st)) return null;
-        var hash = SHA1.HashData(Encoding.UTF8.GetBytes(p + "|" + Js.Num(st.Size) + "|" + Js.Num(st.MtimeMs)));
+        if (!PosixFs.TryStat(p, follow: true, out var st)) return null;
+        var hash = Fingerprint.Sha1(Encoding.UTF8.GetBytes(p + "|" + Js.Num(st.Size) + "|" + Js.Num(st.MtimeMs)));
         return Convert.ToHexString(hash).ToLowerInvariant()[..10];
     }
 
@@ -269,11 +268,11 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         {
             var dir = stack[^1];
             stack.RemoveAt(stack.Count - 1);
-            var real = NodeFs.RealPathOf(dir);
+            var real = PosixFs.RealPathOf(dir);
             if (real == null) { unreadable.Add(dir); continue; }
             if (!seen.Add(real)) { unreadable.Add(dir); continue; }   // a symlink loop: not read twice
             List<Entry> entries;
-            try { entries = NodeFs.ReadDir(dir); } catch (IOException) { unreadable.Add(dir); continue; }
+            try { entries = PosixFs.ReadDir(dir); } catch (IOException) { unreadable.Add(dir); continue; }
             listed.Add(dir);
             var files = new List<string>();
             var images = new List<string>();
@@ -285,7 +284,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                 bool isDir = e.Type == EntryType.Dir, isFile = e.Type == EntryType.File;
                 if (e.Type == EntryType.Link)
                 {
-                    if (!NodeFs.TryStat(full, follow: true, out var st)) { unreadable.Add(full); continue; }
+                    if (!PosixFs.TryStat(full, follow: true, out var st)) { unreadable.Add(full); continue; }
                     isDir = st.IsDirectory;
                     isFile = st.IsFile;
                 }
@@ -306,7 +305,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             foreach (var d in discDirs)
             {
                 List<Entry> inner;
-                try { inner = NodeFs.ReadDir(d); } catch (IOException) { unreadable.Add(d); continue; }
+                try { inner = PosixFs.ReadDir(d); } catch (IOException) { unreadable.Add(d); continue; }
                 listed.Add(d);
                 var imgs = new List<string>();
                 foreach (var e in inner)
@@ -432,7 +431,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                 var oldDir = old["dir"];
                 // Its names changed in the same folder (an untagged album named from its folders, or tags rewritten): still the same album.
                 var sameFolder = Js.Truthy(oldDir) && NodePath.Resolve(Js.Str(oldDir)) == NodePath.Resolve(dir) && !(claimed != null && claimed.Contains(Js.ToNumber(old["id"])));
-                if ((sameName && !(Js.Truthy(oldDir) && NodeFs.Exists(Js.Str(oldDir)))) || sameFolder)
+                if ((sameName && !(Js.Truthy(oldDir) && PosixFs.Exists(Js.Str(oldDir)))) || sameFolder)
                 {
                     Rekey(oldKey, g.Key);
                     Exec("UPDATE albums SET title = $title, artist = $artist, sort_title = $sort_title, sort_artist = $sort_artist, compilation = $compilation WHERE id = $id",
@@ -508,7 +507,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
     private static object? OrNull(double v) => v == 0 || double.IsNaN(v) ? null : v;
 
     /* Of several tracks' dates, the album's: the most precise one of [year], the commonest at that precision. */
-    private static string? AlbumDateOf(IEnumerable<object?> dates, object? year)
+    internal static string? AlbumDateOf(IEnumerable<object?> dates, object? year)
     {
         if (!Js.Truthy(year)) return null;
         var y = Js.Str(year);
@@ -695,7 +694,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         State.Running = true; State.Progress = 0; State.Files = 0; State.Parsed = 0; State.Errors = 0; State.StartedAt = t0; State.FinishedAt = null;
         log("[scan] made by the C# server, its tags read a few files at a time on the cores playback doesn't keep");
         var roots = Roots();
-        var present = roots.Where(NodeFs.Exists).ToList();
+        var present = roots.Where(PosixFs.Exists).ToList();
         if (present.Count == 0)
         {
             // Nothing to read at all: every track is kept as it was.
@@ -735,7 +734,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         Known? Relocate(string file, double size, double mtime)
         {
             if (!byIdentity.TryGetValue(IdOf(size, mtime, file), out var list)) return null;
-            var i = list.FindIndex(r => !seen.Contains(r.Path) && !NodeFs.Exists(r.Path));
+            var i = list.FindIndex(r => !seen.Contains(r.Path) && !PosixFs.Exists(r.Path));
             if (i < 0) return null;
             var r = list[i];
             list.RemoveAt(i);
@@ -762,7 +761,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             {
                 seen.Add(file);
                 State.Files++;
-                if (!NodeFs.TryStat(file, follow: true, out var st)) continue;
+                if (!PosixFs.TryStat(file, follow: true, out var st)) continue;
                 var mtime = Math.Floor(st.MtimeMs);
                 var prev = known.Get(file);
                 if (prev == null && !force)
@@ -891,11 +890,11 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         bool IsEmptyDir(string d)
         {
             if (emptyDirs.TryGetValue(d, out var e)) return e;
-            try { e = NodeFs.ReadDirNames(d).All(n => n.StartsWith('.')); } catch (IOException) { e = false; }
+            try { e = PosixFs.ReadDirNames(d).All(n => n.StartsWith('.')); } catch (IOException) { e = false; }
             return emptyDirs[d] = e;
         }
         var existing = new Dictionary<string, bool>(StringComparer.Ordinal);
-        bool Exists(string d) => existing.TryGetValue(d, out var x) ? x : existing[d] = NodeFs.Exists(d);
+        bool Exists(string d) => existing.TryGetValue(d, out var x) ? x : existing[d] = PosixFs.Exists(d);
         var seenTops = new HashSet<string>(StringComparer.Ordinal);
         foreach (var p in seen)
         {
@@ -1006,7 +1005,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             x["name"] = NodePath.Basename(o.Dir);
             x["tracks"] = (double)o.Tracks;
             x["reason"] = o.Reason;
-            x["missing"] = !NodeFs.Exists(o.Dir);
+            x["missing"] = !PosixFs.Exists(o.Dir);
             return (object?)x;
         }).ToList();
         result["roots"] = roots.Select(r => (object?)r).ToList();

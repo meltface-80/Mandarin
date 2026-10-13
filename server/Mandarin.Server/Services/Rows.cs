@@ -2,7 +2,7 @@
 // 4.2 of docs/specs/csharp-migration.md), from lib/services/streaming.js, rule
 // for rule:
 //
-//   - an album opened or favourited, written as the Node server writes it: a
+//   - an album opened or favourited, written as the Node server wrote it: a
 //     row in `albums` keyed "<service>:<id>" with no folder, its tracks rows
 //     whose path is "<service>://track/<id>", the same columns and the same
 //     values, in one transaction; its cover kept beside the database
@@ -13,14 +13,13 @@
 //     into line with the service's as the page opens (reconcile);
 //   - Clean up (the albums no longer wanted, with their edits, hearts and
 //     Listen later) and the month's prune (albums only ever played from the
-//     browser, a month unplayed: a job handed over, Jobs.cs).
+//     browser, a month unplayed: a job, Jobs.cs).
 //
-// Each change is told to the Node server (POST /internal/library/changed,
-// { services }), which reads its library again as each service's own
-// afterChange does there (index.js); this server's copy follows its version.
-// Its import, the favourites' watch and the service playlists stay its own
-// (stage 4.3), and so does playing.
-using System.Security.Cryptography;
+// Each change is told to the library (Library.Told, { services }), which is
+// read again as each service's own afterChange did (index.js). The import,
+// the favourites' watch and the service playlists write the same rows from
+// v0.8.45 (stage 4.3, Import.cs), and playing an album from the browser from
+// v0.8.47 (ServiceRoutes.cs), its tracks then played by the hub (Playback/).
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Scan;
@@ -44,8 +43,8 @@ internal abstract partial class Catalogue
 
     // ------------------------------------------------------------ what each service brings
 
-    /* fullAlbum(id): the album and its tracks in the plain shape, asked of the service. */
-    protected abstract Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id);
+    /* fullAlbum(id, hint): the album and its tracks in the plain shape, asked of the service; [hint] the album as a listing gave it (the import, v0.8.45). */
+    protected abstract Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint);
     /* apiFavourite(id, on): the favourite on the service itself. */
     protected abstract Task ApiFavourite(string id, bool on);
 
@@ -57,9 +56,9 @@ internal abstract partial class Catalogue
         return o;
     }
 
-    // ------------------------------------------------------------ the database, as the Node server writes it
+    // ------------------------------------------------------------ the database, as the Node server wrote it
 
-    /* A connection that deletes as the Node server's does (foreign_keys on): an album's tracks go with it, and theirs with them. */
+    /* A connection that deletes as the Node server's did (foreign_keys on): an album's tracks go with it, and theirs with them. */
     private static SqliteConnection OpenRows()
     {
         var c = Db.Open();
@@ -82,7 +81,7 @@ internal abstract partial class Catalogue
         _ => throw new JsError("SQLite3 can only bind numbers, strings, bigints, buffers, and null")
     };
 
-    private static int Run(SqliteConnection c, string sql, params (string Name, object? Value)[] args)
+    protected static int Run(SqliteConnection c, string sql, params (string Name, object? Value)[] args)
     {
         using var cmd = c.CreateCommand();
         cmd.CommandText = sql;
@@ -144,13 +143,16 @@ internal abstract partial class Catalogue
      * covers ahead ("changed"); "opened" reads it again only, as opening an
      * album there did. [favourite]: a favourite changed here, so the service's
      * answers it kept are forgotten there too, as its own setFavourite forgets
-     * them.
+     * them. This server's copy is read again then and there (v0.8.45), not at
+     * the next request: an import running on
+     * meanwhile is never seen half made.
      */
     public async Task Changed(string what = "changed", bool favourite = false)
     {
         var o = new JsonObject { ["services"] = what };
         if (favourite) o["favourite"] = Id;
         await Library.Tell(o);
+        await Library.CurrentCopy();
     }
 
     // ------------------------------------------------------------ an album's rows
@@ -166,10 +168,10 @@ internal abstract partial class Catalogue
         var u = Js.Str(url);
         var dir = NodePath.Join(DataDir, Id, "art");
         Directory.CreateDirectory(dir);
-        var hash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
+        var hash = Convert.ToHexString(Fingerprint.Md5(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
         var file = NodePath.Join(dir, albumId + ".jpg");
         var marker = file + ".url";
-        try { if (NodeFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }
+        try { if (PosixFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* fetched */ }
         try
         {
@@ -181,8 +183,8 @@ internal abstract partial class Catalogue
         }
         catch (Exception e) when (e is JsError or IOException or UnauthorizedAccessException)
         {
-            Front.Log($"[{Id}] cover for {albumId}: {e.Message}");
-            var have = NodeFs.Exists(file);
+            Server.Log($"[{Id}] cover for {albumId}: {e.Message}");
+            var have = PosixFs.Exists(file);
             return (have ? file : null, have ? hash : null);
         }
     }
@@ -210,16 +212,17 @@ internal abstract partial class Catalogue
 
     /*
      * The album (and its tracks) as library rows, written or brought up to
-     * date (streaming.js ensureAlbum): the library's id of it.
+     * date (streaming.js ensureAlbum): the library's id of it. [hint]: the
+     * album as the service listed it, if it was, for FullAlbum to use.
      */
-    public async Task<long> EnsureAlbum(string id)
+    public async Task<long> EnsureAlbum(string id, object? hint = null)
     {
         var t0 = NowMs();
-        var (a, tracks) = await FullAlbum(id);
+        var (a, tracks) = await FullAlbum(id, hint);
         var t1 = NowMs();
         var art = await FetchArt(id, P(a, "image"));
         var t2 = NowMs();
-        if (t2 - t0 > 1500) Front.Log($"[{Id}] album {id}: {Name} answered in {Js.Num(t1 - t0)} ms, the cover in {Js.Num(t2 - t1)} ms more");
+        if (t2 - t0 > 1500) Server.Log($"[{Id}] album {id}: {Name} answered in {Js.Num(t1 - t0)} ms, the cover in {Js.Num(t2 - t1)} ms more");
         var artist = Or(P(a, "artist"), "Unknown artist");
         var date = Or(P(a, "date"), null);
         object? year = null;
@@ -283,22 +286,22 @@ internal abstract partial class Catalogue
 
     // ------------------------------------------------------------ kept, and why
 
-    /* Kept (on), with why and since when, or let go (streaming.js keep). */
-    private void Keep(SqliteConnection c, string albumId, bool on, string why = "favourite")
+    /* Kept (on), with why and since when (the service's own date where the listing gave one: at || now), or let go (streaming.js keep). */
+    private void Keep(SqliteConnection c, string albumId, bool on, object? why = null, object? at = null)
     {
         if (on)
         {
             var v = new JsObj();
-            v["why"] = why;
-            v["at"] = NowMs();
+            v["why"] = why ?? "favourite";
+            v["at"] = Js.Truthy(at) ? at : NowMs();
             CachePut(c, NsKept, Key + albumId, v);
         }
         else Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", NsKept), ("$k", Key + albumId));
     }
-    private void Keep(string albumId, bool on)
+    private void Keep(string albumId, bool on, object? why = null, object? at = null)
     {
         using var c = Db.Open();
-        Keep(c, albumId, on);
+        Keep(c, albumId, on, why, at);
     }
 
     /* How it is kept (streaming.js keptInfo): null when it isn't; a row from before v0.7.3 held 1, kept for no reason known. */
@@ -354,7 +357,7 @@ internal abstract partial class Catalogue
             if (!bought)
             {
                 Keep(albumId, false);
-                Front.Log($"[{Id}] {albumId}: no longer a favourite on {Name}, let go");
+                Server.Log($"[{Id}] {albumId}: no longer a favourite on {Name}, let go");
                 await Changed();
             }
         }
@@ -381,7 +384,7 @@ internal abstract partial class Catalogue
 
     private sealed record OwnRow(long Id, string Key, object? UpdatedAt);
 
-    /* streaming.js ownAlbums: this service's albums (LIKE, as the Node server asks: case aside). */
+    /* streaming.js ownAlbums: this service's albums (LIKE, as the Node server asked: case aside). */
     private List<OwnRow> OwnAlbums(SqliteConnection c)
     {
         using var cmd = c.CreateCommand();
@@ -403,24 +406,11 @@ internal abstract partial class Catalogue
     }
 
     /*
-     * Clean up can be made here as the Node server makes it: false where the
-     * playlists it would rewrite (signed out) aren't a list — there it fails
-     * in its own words, so it is its to answer.
-     */
-    public bool CleanUpFits()
-    {
-        if (Connected()) return true;
-        using var c = Db.Open();
-        var v = SettingOf(c, "userPlaylists");
-        return v is Undef || !Js.Truthy(v) || v is List<object?>;
-    }
-
-    /*
      * Albums no longer wanted (streaming.js stale and cleanUp): signed out,
      * every one; signed in, those neither kept nor held. Removed with their
      * edits, hearts and Listen later (plays stay, as text); signed out, the
      * kept and held marks go too, and the service's playlists. How many went;
-     * the Node server is told after (Changed) when any did.
+     * the library is told after (Changed) when any did.
      */
     public int CleanUp()
     {
@@ -450,6 +440,16 @@ internal abstract partial class Catalogue
         }
         tx.Commit();
         return rows.Count;
+    }
+
+    /* streaming.js stale: how many albums Clean up would remove now (Settings → Library Scanner's counts, v0.8.48). */
+    public int Stale()
+    {
+        using var c = OpenRows();
+        var on = Connected();
+        var kept = Keys(c, NsKept);
+        var held = Keys(c, NsHeld);
+        return OwnAlbums(c).Count(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key)));
     }
 
     /*
@@ -500,8 +500,7 @@ internal abstract partial class Catalogue
 /*
  * The month's prune (index.js's daily timer): albums only ever played from a
  * service's browser, a month unplayed, let go — once a day, the first a few
- * minutes after the work is handed over, while the Node server has handed
- * it over ("prune", Jobs.cs).
+ * minutes after the start ("prune", Jobs.cs).
  */
 internal static class Prune
 {
@@ -527,7 +526,7 @@ internal static class Prune
         {
             if (svc == null) continue;
             try { o[svc.Id] = (double)await svc.PruneTransient(); }
-            catch (Exception e) when (e is SqliteException or JsError or IOException) { Front.Log($"[{svc.Id}] prune: {e.Message}"); /* the next day */ }
+            catch (Exception e) when (e is SqliteException or JsError or IOException) { Server.Log($"[{svc.Id}] prune: {e.Message}"); /* the next day */ }
         }
         return o;
     }

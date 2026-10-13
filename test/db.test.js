@@ -1,37 +1,54 @@
 "use strict";
+/*
+ * The database in the data volume, opened as the server opens it
+ * (`mandarin-server db <dir>`, v0.8.50; lib/library/db.js before).
+ */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const Database = require("better-sqlite3");
-const DB = require("../lib/library/db");
-const { Library } = require("../lib/library");
+const { built, BIN } = require("./server");
 
-const quiet = () => {};
+const skip = built();
 
-test("a database left in the volume by another program is moved aside, not crashed on", () => {
+/* Opened, and what it came to: { ok, existed, aside, version }. */
+function open(dir) {
+  const r = spawnSync(BIN, ["db", dir], { encoding: "utf8", timeout: 60000 });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  return JSON.parse(r.stdout.split("\n").filter(Boolean).pop());
+}
+
+test("a database left in the volume by another program is moved aside, not crashed on", { skip }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-db-"));
   const old = new Database(path.join(dir, "musicd.db"));
   old.exec("CREATE TABLE tracks (id INTEGER PRIMARY KEY, path TEXT, title TEXT); INSERT INTO tracks(path, title) VALUES('x', 'y');");
   old.exec("CREATE TABLE albums (id INTEGER PRIMARY KEY, title TEXT);");
   old.close();
 
-  const db = DB.open(dir, { log: quiet });
-  assert.doesNotThrow(() => new Library(db, { musicRoot: dir, log: quiet }));
-  assert.equal(db.raw.prepare("SELECT COUNT(*) n FROM tracks").get().n, 0);
-  assert.equal(db.raw.pragma("user_version", { simple: true }), DB.SCHEMA_VERSION);
+  const said = open(dir);
+  assert.ok(said.aside && /^musicd\.old-\d+\.db$/.test(path.basename(said.aside)), JSON.stringify(said));
+  assert.ok(fs.existsSync(said.aside));
+  const db = new Database(path.join(dir, "musicd.db"));
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM tracks").get().n, 0);
+  assert.equal(db.pragma("user_version", { simple: true }), said.version);
+  assert.ok(said.version > 0);
   db.close();
-  assert.ok(fs.readdirSync(dir).some(f => /^musicd\.old-\d+\.db$/.test(f)));
 });
 
-test("our own database is kept across restarts", () => {
+test("our own database is kept across restarts", { skip }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-db-"));
-  let db = DB.open(dir, { log: quiet });
-  db.setSetting("k", 42);
+  assert.equal(open(dir).existed, false);
+  let db = new Database(path.join(dir, "musicd.db"));
+  db.prepare("INSERT INTO settings(key, value) VALUES('k', '42')").run();
   db.close();
-  db = DB.open(dir, { log: quiet });
-  assert.equal(db.setting("k"), 42);
+  const said = open(dir);
+  assert.equal(said.existed, true);
+  assert.equal(said.aside, null);
+  db = new Database(path.join(dir, "musicd.db"));
+  assert.equal(JSON.parse(db.prepare("SELECT value FROM settings WHERE key = 'k'").get().value), 42);
   db.close();
   assert.deepEqual(fs.readdirSync(dir).filter(f => f.includes("old")), []);
 });

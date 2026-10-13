@@ -28,7 +28,7 @@ test("MusicD Server end to end", { skip }, async (t) => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = createServer({
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
@@ -86,12 +86,15 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal(f.status, 200);
       assert.equal(f.type, "audio/flac");
       assert.deepEqual(probe(f.body), { rate: 48000, channels: 2, bits: 24 });
-      // Played again, it comes from the finished cache file with a length.
-      await sleep(1500);
-      const again = await fetch(room.queue[0].uri);
+      // Played again, once the cache file is finished, it comes from it with a length.
+      const again = await until(async () => {
+        const x = await fetch(room.queue[0].uri);
+        const got = { status: x.status, length: Number(x.headers.get("content-length")), body: Buffer.from(await x.arrayBuffer()) };
+        return got.length > 1000 && got;
+      });
       assert.equal(again.status, 200);
-      assert.ok(Number(again.headers.get("content-length")) > 1000);
-      assert.deepEqual(probe(Buffer.from(await again.arrayBuffer())), { rate: 48000, channels: 2, bits: 24 });
+      assert.equal(again.body.length, again.length);
+      assert.deepEqual(probe(again.body), { rate: 48000, channels: 2, bits: 24 });
     });
 
     await t.test("a track range request is honoured for bit-perfect files", async () => {

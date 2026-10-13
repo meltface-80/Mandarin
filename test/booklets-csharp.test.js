@@ -16,7 +16,7 @@
  *     rate; two booklets chosen from a sheet; the pages shown; Escape and the
  *     phone's Back close the booklet, not the album.
  *
- * Through the C# server only (MANDARIN_FRONT=1): the Node server has no booklets.
+ * The C# server's alone: the Node server never had booklets.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -30,7 +30,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 const havePoppler = () => spawnSync("pdftoppm", ["-v"]).status === 0;
-const skip = (process.env.MANDARIN_FRONT !== "1" && "the C# server's: MANDARIN_FRONT=1")
+const skip = require("./server").built()
   || (!haveFfmpeg() && "ffmpeg is not installed") || (!havePoppler() && !process.env.CI && "poppler (pdftoppm) is not installed");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
@@ -44,8 +44,9 @@ const DRIVER = `(async () => {
   await until(() => document.querySelector("#home-view .album"));
   const albums = (await (await fetch("/api/library/albums?sort=album")).json()).albums;
   window.__openAlbum(albums.find(a => a.title === "Hi Res"), {});
-  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn"));
-  await sleep(800);
+  // The album's details in (a booklet would be offered with them), then a frame.
+  await until(() => document.querySelector("#modal-actions .overflow-wrap .overflow-btn") && $("modal-total").textContent);
+  await new Promise(r => requestAnimationFrame(r));
   out.hires_book = shown($("modal-booklet"));
   window.__openAlbum(albums.find(a => a.title === "Album One"), {});
   out.book_shown = !!(await until(() => shown($("modal-booklet"))));
@@ -77,7 +78,7 @@ const DRIVER = `(async () => {
     covers_album: box(viewer).t <= out.art.t && box(viewer).b >= out.art.b
   } : null;
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  await sleep(200);
+  await until(() => !shown($("booklet-viewer")));
   out.after_escape = { viewer: shown($("booklet-viewer")), album: !$("album-modal").classList.contains("hidden") };
   // The phone's Back (the Android app calls window.__musicdBack): the booklet first.
   out.back_before = typeof window.__musicdBack;
@@ -87,7 +88,7 @@ const DRIVER = `(async () => {
   await until(() => shown($("booklet-viewer")));
   out.back_open = typeof window.__musicdBack;
   out.back_answer = window.__musicdBack ? window.__musicdBack() : null;
-  await sleep(100);
+  await until(() => !shown($("booklet-viewer")));
   out.after_back = { viewer: shown($("booklet-viewer")), album: !$("album-modal").classList.contains("hidden"), back: typeof window.__musicdBack };
   return out;
 })()`;
@@ -133,7 +134,7 @@ test("an album's booklets: found, their pages drawn by the C# server, nothing el
   // Album One's booklets one level down are Album One's, not the single's.
   gen(path.join(lib.music, "Artist A", "Single.flac"), { tags: { title: "Single", artist: "Artist A", album: "Single", track: 1, date: "2001" } });
 
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   t.after(() => srv.stop());

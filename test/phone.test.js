@@ -31,7 +31,7 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const options = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] };
   let srv = createServer(options);
   let ctx = await srv.start();
@@ -96,7 +96,6 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       await phone("GET", `/api/phone/commands?after=${seq}`);
       assert.ok((await other("GET", "/api/zones")).zones.some(z => z.zone_id === zoneId), "home: listed again");
       // Its switch off (Audio Devices → the phone): only the phone sees itself.
-      ctx.devices.syncKnown();
       const off = await other("PATCH", "/api/audio-devices/" + zoneId, { shared: false });
       assert.equal(off.status, 200);
       assert.equal(off.shared, false);
@@ -386,7 +385,8 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
 
     await t.test("the server restarted (an update): the phone's queue and place are kept", async () => {
       await phone("POST", "/api/phone/state", { index: 2, position: 12, duration: 60, state: "playing", volume: 40 });
-      await new Promise(r => setTimeout(r, 600));            // the store writes after a moment
+      // The store writes after a moment: what it kept, before the server goes.
+      await until(async () => { const r = ctx.db.raw.prepare("SELECT value FROM settings WHERE key = ?").get("queue:" + zoneId); const k = r && JSON.parse(r.value); return k && k.index === 2 && k.state === "playing"; });
       await srv.stop();
       srv = createServer(options);
       ctx = await srv.start();

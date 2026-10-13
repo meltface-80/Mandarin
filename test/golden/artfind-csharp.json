@@ -1,0 +1,120 @@
+{
+ "answers": {
+  "bare": {
+   "n": 20,
+   "all": [
+    "untitled 1",
+    "airbag",
+    "kid a",
+    "song",
+    "ok computer",
+    "beyonce and jay z",
+    "spaced out",
+    "",
+    "",
+    "",
+    "",
+    "5",
+    "",
+    "a b",
+    "a b c",
+    "fullwidth",
+    "dzemal",
+    "stereo",
+    "x",
+    "σισυφος"
+   ]
+  },
+  "loose": {
+   "n": 20,
+   "all": [
+    "untitled 1 vaka",
+    "airbag",
+    "kid a",
+    "song live",
+    "ok computer oknotok 1997 2017",
+    "beyonce and jay z",
+    "spaced out",
+    "",
+    "",
+    "",
+    "",
+    "5",
+    "",
+    "a b",
+    "a b c",
+    "fullwidth",
+    "dzemal",
+    "stereo",
+    "x",
+    "σισυφος"
+   ]
+  },
+  "sameText": {
+   "n": 19,
+   "all": [
+    1,
+    1,
+    1,
+    1,
+    0,
+    0.5714285714285714,
+    1,
+    1,
+    0.5714285714285714,
+    1,
+    0,
+    1,
+    0.6666666666666666,
+    1,
+    0,
+    0,
+    0.6666666666666666,
+    0,
+    0.8
+   ]
+  },
+  "sameArtist": {
+   "n": 19,
+   "all": [
+    0,
+    0.9,
+    0.9,
+    0,
+    0,
+    0.9,
+    1,
+    1,
+    0.9,
+    1,
+    0,
+    1,
+    0.6666666666666666,
+    1,
+    0,
+    0,
+    1,
+    0,
+    1
+   ]
+  },
+  "trackMatch": {
+   "n": 7,
+   "all": [
+    1,
+    null,
+    null,
+    null,
+    0.6666666666666666,
+    0,
+    1
+   ]
+  },
+  "find": {
+   "n": 10,
+   "per": 32,
+   "sums": "1013bad5"
+  }
+ },
+ "inputs": {}
+}

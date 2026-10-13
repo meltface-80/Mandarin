@@ -20,7 +20,7 @@ using Js = Mandarin.Server.Tags.Js;
 
 internal static class ScanCommand
 {
-    // The protocol this program speaks, said to the Node server it starts (Front.cs): the Node server checks it.
+    // The protocol this program speaks, said to the server that starts it (Scans.cs), which checks it.
     public const string Protocol = "1";
 
     private static readonly object WriteLock = new();
@@ -39,7 +39,7 @@ internal static class ScanCommand
             }
             catch (IOException)
             {
-                // The Node server is gone: so is this scan (what it was writing is rolled back).
+                // The server that started this scan is gone: so is the scan (what it was writing is rolled back).
                 Environment.Exit(3);
             }
         }
@@ -71,6 +71,12 @@ internal static class ScanCommand
 
             using var db = OpenDb(dataDir);
             var scanner = new Scanner(db, root, roots, massRemoval, slots, line => Send(Message("log", ("line", line))));
+            // The library's one-time upgrades first, as the Node server made them when it started (Scanner.Migrate.cs).
+            scanner.Migrate(() =>
+            {
+                try { Admin.Backup.ExportEdits(db, dataDir); }
+                catch (Exception e) { Send(Message("log", ("line", $"[musicd] couldn't write album-edits.json: {e.Message}"))); }
+            });
             scanner.OnProgress = () => Send(Message("progress", ("state", scanner.State.ToJs())));
             tick = new Timer(_ => Send(Message("state", ("state", scanner.State.ToJs()))), null, 500, 500);
             var result = scanner.Scan(force);

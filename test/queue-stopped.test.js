@@ -14,9 +14,8 @@ const test = require("node:test");
 const assert = require("node:assert");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
-const { FakeRenderer } = require("./fake-renderer");
+const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
-const { idFor } = require("../lib/renderers/discovery");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
@@ -37,7 +36,7 @@ test("Queue and Play next on a zone that isn't playing: added to what's there, n
   await house.start();
   const wiim = new FakeRenderer({ name: "WiiM", manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro" });
   await wiim.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpHosts: [wiim.location], upnpMulticast: false, identify: false });
   await srv.start();
@@ -61,15 +60,17 @@ test("Queue and Play next on a zone that isn't playing: added to what's there, n
       await until(() => room.queue.length === 3 && room.state === "PLAYING");
       room.state = state;
       if (!onQueue) room.currentUri = "";
-      // The server polls the room once a second: it has seen how it is now.
-      await sleep(2500);
+      // The server polls the room once a second: once it has seen how it is now.
+      await until(async () => { const z = (await api("zone-state?zone=" + kitchen)).zone; return z && z.state === (state === "STOPPED" ? "stopped" : "paused"); });
     };
     const titles = () => room.queue.map(q => /<dc:title>([^<]*)</.exec(q.meta)[1]);
     for (const [state, onQueue, how] of [["STOPPED", true, "queue"], ["PAUSED_PLAYBACK", true, "queue"], ["STOPPED", false, "queue"],
       ["STOPPED", true, "play_next"], ["STOPPED", false, "play_next"]]) {
       await setUp(state, onQueue);
       assert.equal((await api("play", { offset: hi.offset, zone_or_output_id: kitchen, kind: how })).status, 200);
-      await sleep(800);
+      await until(() => room.queue.length === 5);
+      // A window: the room must not be started in it.
+      await sleep(300);
       const what = `${how}, ${state.toLowerCase()}${onQueue ? "" : ", not on its queue"}`;
       assert.equal(room.queue.length, 5, what + ": added to the three there, none taken away");
       assert.deepEqual(titles().filter(x => /^Song/.test(x)), ["Song 1", "Song 2", "Song 3"], what + ": the queue there kept");
@@ -79,7 +80,7 @@ test("Queue and Play next on a zone that isn't playing: added to what's there, n
     await api("queue/clear", { zone_or_output_id: kitchen });
     await until(() => room.queue.length === 0);
     room.state = "STOPPED";
-    await sleep(2500);
+    await until(async () => { const z = (await api("zone-state?zone=" + kitchen)).zone; return z && z.state === "stopped"; });
     assert.equal((await api("play", { offset: hi.offset, zone_or_output_id: kitchen, kind: "queue" })).status, 200);
     await until(() => room.state === "PLAYING" && room.queue.length === 2);
   });
@@ -94,7 +95,9 @@ test("Queue and Play next on a zone that isn't playing: added to what's there, n
     await until(async () => (await api("zone-state?zone=" + WIIM)).zone.state === "stopped");
     const sets = wiim.log.filter(a => a === "SetAVTransportURI").length;
     assert.equal((await api("play", { offset: hi.offset, zone_or_output_id: WIIM, kind: "queue" })).status, 200);
-    await sleep(800);
+    await until(async () => (await api("queue?zone=" + WIIM)).items.length === 5);
+    // A window: the renderer must not be started in it.
+    await sleep(300);
     assert.deepEqual((await api("queue?zone=" + WIIM)).items.map(i => i.title), ["Song 1", "Song 2", "Song 3", "Hi 1", "Hi 2"], "joined the queue");
     assert.equal(wiim.log.filter(a => a === "SetAVTransportURI").length, sets, "nothing started");
     assert.equal(wiim.state, "STOPPED");

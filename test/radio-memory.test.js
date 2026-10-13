@@ -2,135 +2,155 @@
 /*
  * Random Album Radio does not repeat itself within six months (from Rouen,
  * MusicD Remote v1.9.3): an album the radio played is not played BY THE
- * RADIO again for six months (lib/radio-memory.js). Albums only, never a dead
- * end, an album used up only once the room has taken it, and the memory kept
- * in the database so it outlives a restart (lib/server/features.js).
+ * RADIO again for six months. Albums only, never a dead end, an album used
+ * up only once the room has taken it, and the memory kept in the database so
+ * it outlives a restart.
+ *
+ * The C# server's (Playback/RadioMemory.cs, History.cs; lib/radio-memory.js and
+ * lib/server/features.js until v0.8.50): the memory asked through
+ * `mandarin-server score` { fn: "radio" }, the radio itself through the server.
  */
+const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const { createRadioMemory, radioKey, SIX_MONTHS_MS } = require("../lib/radio-memory");
+const { makeLibrary, haveFfmpeg } = require("./fixtures");
+const { FakeHousehold } = require("./fake-sonos");
+const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
+const { score } = require("./score");
 
+const rules = built();
 const DAY = 24 * 60 * 60 * 1000;
-const albums = (n) => Array.from({ length: n }, (_, i) => ({ title: "A" + i, subtitle: "X" }));
-const keyOf = (al) => al.title;
+const SIX_MONTHS_MS = 183 * DAY;
+const START = 1e12;
+const albums = (n) => Array.from({ length: n }, (_, i) => ({ id: i, key: "A" + i, title: "A" + i, subtitle: "X" }));
+/* One memory, from what was saved, at START: ops in order ({ op: note|tick|at|size|pick }) → each one's answer, and what it saved. */
+const run = (ops, saved, start = START) => score({ fn: "radio", runs: [{ saved, start, ops }] }).runs[0];
+const pick = (pool, heard) => ({ op: "pick", pool, by: "key", heard, rnd: Array.from({ length: 4 }, Math.random) });
+const title = (pool, at) => at === null ? null : pool[at].title;
 
-function memory(start, saved) {
-  let clock = start || 1e12;
-  let written = null;
-  const m = createRadioMemory({ load: () => saved || null, save: (o) => { written = o; }, now: () => clock });
-  return { m, tick: (ms) => { clock += ms; }, written: () => written };
-}
-
-test("the radio's memory", async (t) => {
+test("the radio's memory", { skip: rules }, async (t) => {
   await t.test("an album the radio played is not picked again", () => {
-    const { m } = memory();
     const pool = albums(3);
-    m.note("A0"); m.note("A1");
-    for (let i = 0; i < 50; i++) assert.equal(m.pick(pool, keyOf, null, Math.random).title, "A2");
+    const r = run([{ op: "note", key: "A0" }, { op: "note", key: "A1" }, ...Array.from({ length: 50 }, () => pick(pool))]).results.slice(2);
+    for (const at of r) assert.equal(title(pool, at), "A2");
   });
   await t.test("six months is the window: still out at 170 days, back after 183", () => {
-    const { m, tick } = memory();
     const pool = albums(2);
-    m.note("A0");
-    tick(170 * DAY);
-    assert.notEqual(m.playedAt("A0"), null, "dropped before six months");
-    tick(SIX_MONTHS_MS - 170 * DAY + 1);
-    assert.equal(m.playedAt("A0"), null, "still excluded after six months");
-    const seen = new Set();
-    for (let i = 0; i < 60; i++) seen.add(m.pick(pool, keyOf, null, Math.random).title);
-    assert.ok(seen.has("A0"));
-    assert.equal(SIX_MONTHS_MS, 183 * DAY);
+    const r = run([{ op: "note", key: "A0" }, { op: "tick", ms: 170 * DAY }, { op: "at", key: "A0" }, { op: "tick", ms: SIX_MONTHS_MS - 170 * DAY + 1 }, { op: "at", key: "A0" },
+      ...Array.from({ length: 60 }, () => pick(pool))]).results;
+    assert.notEqual(r[2], null, "dropped before six months");
+    assert.equal(r[4], null, "still excluded after six months");
+    assert.ok(r.slice(5).some(at => title(pool, at) === "A0"));
   });
   await t.test("the older preference (not heard lately) leans the pick, but never refuses one", () => {
-    const { m } = memory();
     const pool = albums(3);
-    const heard = (al) => al.title !== "A1";
-    for (let i = 0; i < 30; i++) assert.equal(m.pick(pool, keyOf, heard, Math.random).title, "A1");
-    assert.ok(m.pick(pool, keyOf, () => true, Math.random), "a library heard in full stopped the radio");
+    // Heard lately: every album but A1 (by id).
+    const r = run([...Array.from({ length: 30 }, () => pick(pool, [0, 2])), pick(pool, [0, 1, 2])]).results;
+    for (const at of r.slice(0, 30)) assert.equal(title(pool, at), "A1");
+    assert.notEqual(r[30], null, "a library heard in full stopped the radio");
   });
   await t.test("never a dead end: with everything played, the longest-ago radio play comes round first", () => {
-    const { m, tick } = memory();
     const pool = albums(3);
-    m.note("A1"); tick(DAY); m.note("A0"); tick(DAY); m.note("A2");
-    assert.equal(m.pick(pool, keyOf, null, Math.random).title, "A1");
+    const r = run([{ op: "note", key: "A1" }, { op: "tick", ms: DAY }, { op: "note", key: "A0" }, { op: "tick", ms: DAY }, { op: "note", key: "A2" }, pick(pool)]).results;
+    assert.equal(title(pool, r[5]), "A1");
   });
-  await t.test("it survives a restart: what was saved is what is excluded", () => {
-    const first = memory();
-    first.m.note("A0");
-    const again = memory(1e12 + DAY, first.written());
-    assert.notEqual(again.m.playedAt("A0"), null);
-    assert.equal(again.m.pick(albums(2), keyOf, null, Math.random).title, "A1");
-  });
-  await t.test("what can never exclude anything again is not kept", () => {
-    const first = memory();
-    first.m.note("A0");
-    assert.equal(memory(1e12 + SIX_MONTHS_MS + DAY, first.written()).m.size(), 0);
+  await t.test("it survives a restart: what was saved is what is excluded; what can never exclude anything again is not kept", () => {
+    const { saved } = run([{ op: "note", key: "A0" }]);
+    const again = run([{ op: "at", key: "A0" }, pick(albums(2))], saved, START + DAY).results;
+    assert.notEqual(again[0], null);
+    assert.equal(title(albums(2), again[1]), "A1");
+    assert.deepEqual(run([{ op: "size" }], saved, START + SIX_MONTHS_MS + DAY).results, [0]);
   });
   await t.test("an empty pool is no pick, not a crash", () => {
-    assert.equal(memory().m.pick([], keyOf, null, Math.random), null);
+    assert.deepEqual(run([pick([])]).results, [null]);
   });
 });
 
-test("every album has a radio key, including titles the fold empties", () => {
-  const a = radioKey({ title: "÷", artist: "Ed Sheeran" });
-  const b = radioKey({ title: "+", artist: "Ed Sheeran" });
-  const c = radioKey({ title: "テスト", artist: "Someone" });
+test("every album has a radio key, including titles the fold empties", { skip: rules }, () => {
+  const [a, b, c, kid, abbey, beatles] = score({ fn: "radio", keys: [{ title: "÷", artist: "Ed Sheeran" }, { title: "+", artist: "Ed Sheeran" }, { title: "テスト", artist: "Someone" },
+    { title: "Kid A", artist: "Radiohead" }, { title: "Abbey Road", artist: "The Beatles" }, { title: "ABBEY ROAD", artist: "Beatles" }] }).keys;
   assert.ok(a && b && c, "an empty key can never be noted, so the rule would never apply");
   assert.equal(new Set([a, b, c]).size, 3);
-  assert.equal(radioKey({ title: "Kid A", artist: "Radiohead" }), "kid a|radiohead");
-  assert.equal(radioKey({ title: "Abbey Road", artist: "The Beatles" }), radioKey({ title: "ABBEY ROAD", artist: "Beatles" }), "the library's own identity");
+  assert.equal(kid, "kid a|radiohead");
+  assert.equal(abbey, beatles, "the library's own identity");
 });
 
-test("Random Album Radio uses it: exact, used up only once the room has the album, kept in the database", async () => {
-  const { Features } = require("../lib/server/features");
-  const DB = require("../lib/library/db");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-radio-"));
-  const db = DB.open(dir, { log: () => {} });
-  const lib = {
-    albums: ["Abbey Road", "Kid A", "Blue", "Hounds of Love"].map((title, i) => ({ id: i + 1, title, artist: "Someone " + i })),
-    get count() { return this.albums.length; },
-    heard: new Set(),
-    playedAlbumIdsSince() { return this.heard; }
-  };
-  const queued = [];
-  let refuse = false;
-  const playback = { async playAlbum(zone, id, how) { if (refuse) throw new Error("the room didn't answer"); queued.push([zone, id, how]); } };
-  const make = () => new Features({ db, library: lib, playback, log: () => {} });
-  try {
-    let f = make();
-    // Heard lately: Blue. It comes last while the others are free.
-    lib.heard = new Set([3]);
-    for (let i = 0; i < 3; i++) await f.radioTopUp("kitchen", true);
-    assert.deepEqual(queued.map(q => q[2]), ["queue", "queue", "queue"]);
-    assert.deepEqual(new Set(queued.map(q => q[1])), new Set([1, 2, 4]), "three different albums, none heard lately");
-    await f.radioTopUp("kitchen", true);
-    assert.equal(queued[3][1], 3, "then the one heard lately, rather than a repeat");
-    // Every album the radio's: the one longest ago comes round. (The times
-    // set apart, and read back, so no two share a millisecond.)
-    const at = (id, daysAgo) => db.raw.prepare("UPDATE radio_played SET ts = ? WHERE key = ?").run(Date.now() - daysAgo * DAY, radioKey(lib.albums[id - 1]));
-    at(1, 3); at(2, 40); at(3, 1); at(4, 9);
-    f = make();
-    await f.radioTopUp("kitchen", true);
-    assert.equal(queued[4][1], 2, "Kid A, the radio's 40 days ago");
-    // A refused add uses nothing up.
-    const rows = () => db.raw.prepare("SELECT key, ts FROM radio_played ORDER BY key").all();
-    const before = rows();
-    refuse = true;
-    await assert.rejects(f.radioTopUp("kitchen", true));
-    refuse = false;
-    assert.deepEqual(rows(), before);
-    assert.equal(before.length, 4);
-    assert.ok(before.every(r => /\|someone \d$/.test(r.key)), "albums by their identity, not their ids");
-    // A restart: the memory is read back.
-    db.raw.prepare("DELETE FROM radio_played WHERE key = ?").run(radioKey(lib.albums[1]));
-    f = make();
-    queued.length = 0;
-    await f.radioTopUp("kitchen", true);
-    assert.equal(queued[0][1], 2, "the one album the database says is free");
-  } finally {
-    db.raw.close();
+const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+const ZONE = "RINCON_KITCHEN01400";
+
+async function until(fn, ms, what) {
+  const t0 = Date.now();
+  for (;;) {
+    const v = await Promise.resolve().then(fn).catch(() => null);
+    if (v) return v;
+    if (Date.now() - t0 > ms) throw new Error("timed out waiting for " + what);
+    await new Promise(r => setTimeout(r, 100));
   }
+}
+
+test("Random Album Radio uses it: exact, used up only once the room has the album, kept in the database", { skip: rules || (!haveFfmpeg() && "ffmpeg is not installed"), timeout: 120000 }, async (t) => {
+  const house = new FakeHousehold();
+  await house.start();
+  // The Kitchen never starts (a silent room, where each switch-on queues one album, and
+  // nothing playing that the radio would top up by itself), and refuses what's added to
+  // its queue when the test says.
+  const kitchen = house.room("Kitchen");
+  const handle = kitchen.handle.bind(kitchen);
+  let refuse = false, refused = 0;
+  kitchen.handle = (action, args) => {
+    if (action === "Play") return {};
+    if (refuse && /^Add/.test(action)) { refused++; throw 701; }
+    return handle(action, args);
+  };
+  const lib = makeLibrary();
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
+  const ctx = await srv.start();
+  t.after(async () => { await srv.stop(); await house.stop(); });
+  const token = await signIn(B);
+  const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  const get = async p => (await fetch(B + p, { headers: H })).json();
+  const ready = () => until(async () => (await get("/api/status")).index_count === 3 && (await get("/api/zones")).zones.some(z => z.zone_id === ZONE), 30000, "the library and the Kitchen");
+  await ready();
+  const shelf = (await get("/api/library/albums?sort=album")).albums;
+  const idOf = name => shelf.find(a => a.title === name).offset;
+  // Switched on in the silent Kitchen, the radio queues one album: which, from what it says.
+  const radio = async () => {
+    const said = ctx.logs.length;
+    const r = await fetch(B + "/api/radio", { method: "POST", headers: H, body: JSON.stringify({ zone: ZONE, enabled: true }) });
+    assert.equal(r.status, 200);
+    const line = await until(() => ctx.logs.slice(said).find(l => /\[radio\]/.test(l)), 10000, "the radio's album");
+    return /queued "(.*)" by/.exec(line)[1];
+  };
+  const rows = () => ctx.db.raw.prepare("SELECT key, ts FROM radio_played ORDER BY key").all();
+
+  // Heard lately: Album One. It comes last while the others are free.
+  ctx.features.insertPlay.run(idOf("Album One"), null, "Song 1", "Artist A", "Album One", "z", Date.now() - DAY);
+  assert.deepEqual([await radio(), await radio()].sort(), ["Best Of", "Hi Res"], "two different albums, none heard lately");
+  assert.equal(await radio(), "Album One", "then the one heard lately, rather than a repeat");
+  const keys = score({ fn: "radio", keys: ["Album One", "Best Of", "Hi Res"].map(name => ({ title: name, artist: shelf.find(a => a.title === name).subtitle })) }).keys;
+  assert.deepEqual(rows().map(r => r.key), [...keys].sort(), "albums by their identity, not their ids");
+
+  // A refused add uses nothing up.
+  const before = rows();
+  refuse = true;
+  await fetch(B + "/api/radio", { method: "POST", headers: H, body: JSON.stringify({ zone: ZONE, enabled: true }) });
+  await until(() => refused > 0, 10000, "the Kitchen asked");
+  // A window: nothing may be used up in it.
+  await new Promise(r => setTimeout(r, 500));
+  refuse = false;
+  assert.deepEqual(rows(), before);
+
+  // Every album the radio's: the one longest ago comes round, read back after a restart.
+  const at = (name, daysAgo) => ctx.db.raw.prepare("UPDATE radio_played SET ts = ? WHERE key = ?").run(Date.now() - daysAgo * DAY, keys[["Album One", "Best Of", "Hi Res"].indexOf(name)]);
+  at("Album One", 3); at("Best Of", 40); at("Hi Res", 9);
+  await ctx.restart(token);
+  await ready();
+  assert.equal(await radio(), "Best Of", "Best Of, the radio's 40 days ago");
+
+  // Another restart: the one album the database says is free.
+  ctx.db.raw.prepare("DELETE FROM radio_played WHERE key = ?").run(keys[2]);
+  await ctx.restart(token);
+  await ready();
+  assert.equal(await radio(), "Hi Res");
 });

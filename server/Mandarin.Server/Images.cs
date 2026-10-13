@@ -1,19 +1,14 @@
 // Images.cs — album covers and record labels' logos (v0.8.5), from the
 // /api/image route of lib/server/api-library.js.
 //
-// Every size of every cover is drawn once and kept in <data>/art; after each
-// scan the Node server draws the tile size of every album ahead (lib/library/
-// artwork.js, with sharp). So nearly every cover asked for is already a file,
-// and those are sent from here. One not drawn yet is drawn here (Covers.cs,
-// v0.8.22) from the album's own cover; an album with none gets its drawn one,
-// and a picture from elsewhere (a "u-" key) is fetched and drawn, here too
-// (CoversDrawn.cs, v0.8.34). What's left — a picture sharp would draw
-// differently — is passed to the Node server, which draws and keeps it, and
-// the next ask is answered here.
+// Every size of every cover is drawn once and kept in <data>/art, and sent
+// from there. One not drawn yet is drawn here (Covers.cs, v0.8.22) from the
+// album's own cover; an album with none gets its drawn one, and a picture from
+// elsewhere (a "u-" key) is fetched and drawn, here too (CoversDrawn.cs,
+// v0.8.34). One that can't be drawn is an empty 404.
 //
-// Who may see one: a signed-in device, or an address the Node server signed
-// (a cover handed to a speaker). Anything else is passed on as it came: the
-// Node server knows the speakers, which fetch covers by their own address.
+// Who may see one: a signed-in device, a signed address (a cover handed to a
+// speaker), or a speaker asking by its own address (v0.8.48).
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -43,15 +38,21 @@ internal static class Images
             var m = ctx.Request.Method;
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/api/image/", StringComparison.Ordinal) && p.Length > 11 && p.IndexOf('/', 11) < 0)
             {
-                try { if (await Answer(ctx, p, p[11..])) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[art] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                try
+                {
+                    if (await Answer(ctx, p[11..])) return;
+                    // A speaker asking by its own address for a cover there isn't (v0.8.49): 404, as the Node server's route answered past its gate.
+                    if (Playback.Hub.Holds && !ctx.Response.HasStarted && await FromSpeaker(ctx)) { ctx.Response.StatusCode = 404; return; }
+                }
+                // Absent, as the Node server answered a cover it couldn't draw.
+                catch (Exception e) when (!ctx.Response.HasStarted) { Server.Log($"[art] {p}: {e.GetType().Name}: {e.Message}"); Absent(ctx); return; }
             }
             await next();
         });
     }
 
     // HMAC-SHA256 of the path under the install's secret, base64url, 22 characters (auth.js, sig),
-    // checked as the Node server's gate checks it (Playback/Signing.cs): the path as the request
+    // checked as the Node server's gate checked it (Playback/Signing.cs): the path as the request
     // wrote it, not decoded, and s as Express reads the query. Where that can't be said here, not.
     public static bool Signed(HttpContext ctx, SqliteConnection c)
     {
@@ -60,10 +61,15 @@ internal static class Images
         return Playback.Signing.Gate(secret, raw) == true;
     }
 
-    private static async Task<bool> Answer(HttpContext ctx, string path, string key)
+    /* auth.js speakerIps(): a request from one of the speakers' own addresses, as the hub knows them (v0.8.49). */
+    public static Task<bool> FromSpeaker(HttpContext ctx) =>
+        Task.FromResult(Playback.Hub.Current is { } hub && hub.SpeakerHosts.Contains(Auth.ClientIp(ctx)));
+
+    private static async Task<bool> Answer(HttpContext ctx, string key)
     {
-        using (var c = Db.Open())
-            if (!Signed(ctx, c) && Auth.DeviceOf(ctx, c) == null) return false;   // the Node server's to decide
+        bool may;
+        using (var c = Db.Open()) may = Signed(ctx, c) || Auth.DeviceOf(ctx, c) != null;
+        if (!may && !await FromSpeaker(ctx)) return false;
 
         // A record label's logo, as kept: its address changes with it.
         if (key.StartsWith("label-", StringComparison.Ordinal))
@@ -107,8 +113,7 @@ internal static class Images
         if (safe.Length > 200) safe = safe[..200];
         var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
         // Not drawn yet: drawn here — the album's own cover, else its placeholder,
-        // or a picture from elsewhere (v0.8.34); what only sharp would draw the
-        // same is the Node server's.
+        // or a picture from elsewhere (v0.8.34); where sharp drew otherwise, Covers.cs says.
         if (!File.Exists(cached))
         {
             Covers.Drawn how;
@@ -120,13 +125,24 @@ internal static class Images
             else if (Covers.ForeignUrl(key) is { } url)
             {
                 how = await Covers.DrawForeign(url, cached, Snap(size));
-                // Not to be had: absent, as the Node server answers it.
+                // Not to be had: absent, as the Node server answered it.
                 if (how == Covers.Drawn.NoCover) { ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; ctx.Response.StatusCode = 404; return true; }
             }
-            else return false;
-            if (how != Covers.Drawn.Yes) return false;
+            else return Absent(ctx);
+            if (how != Covers.Drawn.Yes) return Absent(ctx);
         }
         await SendFile(ctx, cached, "image/jpeg", current ? "public, max-age=604800, immutable" : "no-cache");
+        return true;
+    }
+
+    /*
+     * A cover that can't be had, nor drawn: answered as api-library.js did when artwork.get gave nothing (sharp
+     * failing, a key of no album): an empty 404.
+     */
+    private static bool Absent(HttpContext ctx)
+    {
+        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+        ctx.Response.StatusCode = 404;
         return true;
     }
 

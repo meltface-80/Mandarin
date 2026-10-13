@@ -1,9 +1,9 @@
 "use strict";
 /*
  * Mandarin's server in C# (v0.8.1 on, server/): which server answers what.
- * Runs when the suite goes through the C# server (MANDARIN_FRONT=1, as CI
- * does on Node 22). Each part moved to C# is pinned here, so a part can't
- * quietly fall back to the Node server behind it.
+ * Each part moved to C# was pinned here as it moved, so a part couldn't
+ * quietly fall back to the Node server behind it; since v0.9.0 there is no
+ * Node server, and the pins hold on the program alone.
  *   - v0.8.1: everything is passed on, through C#;
  *   - v0.8.2: sign-in, devices and the gate are answered by C#; a streamer's
  *     NOTIFY still reaches the Node server unsigned; /internal/ stops at the door;
@@ -80,27 +80,50 @@
  *   - v0.8.44: Qobuz's and Tidal's albums as library rows, by C#: an album opened, favourited and taken
  *     away, a streamed album's page (its favourite brought into line, why it is here), Clean up of a
  *     service's albums where the scans are C#'s, and the month's prune, a job handed over ("prune"),
- *     each held to what the Node server writes and answers (test/services-rows-csharp.test.js;
+ *     each held to what the Node server wrote and answered (test/services-rows-csharp.test.js;
  *     test/qobuz.test.js and test/tidal.test.js in this mode). A request Tidal's token has to be
  *     refreshed for is still the Node server's, as are signing in, the settings, the import and playing
- *     (the v0.8.44 test here; the job list in the v0.8.19 one).
+ *     (the v0.8.44 test here; the job list in the v0.8.19 one);
+ *   - v0.8.45: Qobuz's and Tidal's import, the favourites' watch and the service playlists, by C#, a job
+ *     handed over ("import"): Settings → Services' state and switches signed in, Update library now, the
+ *     page's quick look (/api/services/watch), the first import after the hand-over, one every six hours
+ *     and one after a Rescan or a sign-in, and the watch on its timer, each held to what the Node server
+ *     writes and answers (test/services-import-csharp.test.js; test/qobuz.test.js and test/tidal.test.js
+ *     in this mode). Signed out, Settings → Services was still the Node server's (a Tidal sign-in under
+ *     way its), as were signing in and out, playing, and a step Tidal's token had to be refreshed for
+ *     (the v0.8.45 test here; the job list in the v0.8.19 one);
+ *   - v0.8.47: Qobuz and Tidal whole, by C#, a job handed over ("services"): Settings → Services signed
+ *     out too (a Tidal sign-in under way among it), signing in (Qobuz's password, Tidal's link and code)
+ *     and out, Tidal's token refreshed by C# alone, playing an album from their browser (its rows written
+ *     by C#, its tracks then played by the Node server's playback through /internal/playback/play), their
+ *     streams (fetched, copied or converted, Qobuz's plays reported, Tidal's DASH), and the services'
+ *     part of the search from Home, each held to the Node server's own answer, write and bytes
+ *     (test/services-signin-csharp.test.js; test/qobuz.test.js and test/tidal.test.js in this mode).
+ *     Playback itself (the rooms, the queue, /api/play…) is still the Node server's (the v0.8.47 test
+ *     here; the job list in the v0.8.19 one);
+ *   - v0.8.48 (stage 5, everything but playback): the database made and brought up to date by C#
+ *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
+ *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
+ *   - v0.8.50 (stage 7): the program alone, no Node server anywhere: every pin here is held on it
+ *     (test/server.js); the Node server's code went in stage 7 part 6.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
-const { makeLibrary, haveDrawtext } = require("./fixtures");
+const { makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
-const skip = process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server (MANDARIN_FRONT=1)";
+const skip = built();
 
 test("which server answers: sign-in, the gate, the page and the library in C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
-  const ctx = await srv.start();
+  await srv.start();
   try {
     const by = async (p, init) => { const r = await fetch(B + p, init); return { status: r.status, by: r.headers.get("x-mandarin-answered") || "Node", via: r.headers.get("x-mandarin-server") || "", r }; };
     const info = await (await fetch(B + "/server-info")).json();
@@ -128,16 +151,15 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.deepEqual([x.status, x.by], [200, "C#"], "the library: read by C# " + JSON.stringify([x.status, x.by]));
     assert.equal((await x.r.json()).total, 3);
     x = await by("/api/status", { headers: H });
-    assert.deepEqual([x.status, x.by], [200, "Node"], "the server's state: passed on, signed in by C#'s token");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "the server's state: the C# server's since v0.8.48 (the scans are its), signed in by C#'s token");
     // The Node server's private address for the C# server: not from outside, and not without its key.
     x = await by("/internal/library", { headers: H });
     assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/library answered 404 at the door");
-    assert.equal((await fetch("http://127.0.0.1:" + ctx.listeningOn + "/internal/library", { headers: H })).status, 403, "the key, or nothing");
     x = await by("/api/library/albums", { headers: { Authorization: "Bearer not-a-token" } });
     assert.deepEqual([x.status, x.by], [401, "C#"], "a bad token stops at C#");
-    // A streamer's NOTIFY (it can't sign in): passed on, as the Node server takes it before its gate.
+    // A streamer's NOTIFY (it can't sign in): taken before the gate, by the hub (v0.8.49), as the Node server took it before its own.
     x = await by("/upnp/event/uuid:nobody", { method: "NOTIFY", headers: { "Content-Type": "text/xml", NT: "upnp:event", NTS: "upnp:propchange", SID: "uuid:x" }, body: "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"/>" });
-    assert.deepEqual([x.status, x.by], [200, "Node"], "a renderer's event, not stopped at the gate");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "a renderer's event, not stopped at the gate");
     // The Node server's loopback-only routes: never through the front door.
     x = await by("/internal/dash/nope", { redirect: "manual" });
     assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/ answered 404 at the door");
@@ -170,9 +192,10 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
+    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/pages-csharp.test.js).
     for (const p of ["/login", "/display", "/library"]) {
       x = await by(p, { headers: H, redirect: "manual" });
-      assert.equal(x.by, "Node", p + ": a Node route or the page for a deep link, passed on");
+      assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");
     }
     // v0.8.16: hearts, Listen later and label changes made by C# (an album that isn't there, said by C#).
     const J = Object.assign({ "Content-Type": "application/json" }, H);
@@ -187,23 +210,16 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     x = await by("/api/settings/label-folder-depth", { method: "POST", headers: J, body: JSON.stringify({ depth: -1 }) });
     assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
-    assert.deepEqual([x.status, x.by], [200, "Node"], "health, open, passed on");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "health, open, by C# since v0.8.48");
   } finally { await srv.stop(); }
 });
 
-test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on one timer by both servers", { skip, timeout: 60000 }, async () => {
+test("v0.8.19: MusicBrainz asked on one timer: a turn each, 1.1 s apart", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
-  const META = require("../lib/meta");
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   try {
-    // Handed over when the C# server started: the Node server's loops stopped for good.
-    assert.deepEqual([...(ctx.frontRuns || [])].sort(), ["days", "identify", "labels", "loudness", "mbpack", "prune", "scan", "tailscale", "taste"]);
-    assert.equal(ctx.identifier.handedOver, true);
-    ctx.identifier.start();
-    assert.equal(ctx.identifier.timer, null, "not started again here");
     // The one timer: loopback with the key, a turn each, 1.1 s apart.
     const K = { "X-Mandarin-Front-Key": ctx.frontKey };
     assert.equal((await fetch(B + "/internal/mb/slot")).status, 404, "not without the key");
@@ -212,31 +228,16 @@ test("v0.8.19: the identification scan's work handed to C#; MusicBrainz asked on
     assert.deepEqual([a.status, await a.json()], [200, { ok: true }]);
     await fetch(B + "/internal/mb/slot", { headers: K });
     const t1 = Date.now();
-    // And the Node server's own requests take the next turn on it.
-    await META.mbWait();
-    const t2 = Date.now();
     assert.ok(t1 - t0 >= 1050, `two turns ${t1 - t0} ms apart`);
-    assert.ok(t2 - t1 >= 1050, `the Node server's turn ${t2 - t1} ms after`);
   } finally { await srv.stop(); }
 });
 
-test("v0.8.20: record labels, release days and the taste work handed to C#; the Node server's own never run", { skip, timeout: 60000 }, async () => {
+test("v0.8.20: record labels, release days and the taste work answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   try {
-    for (const [what, done] of [["label lookups", ctx.labelLookup.handedOver], ["label logos", ctx.labelLogos.handedOver], ["release days", ctx.releaseDays.handedOver], ["Smart Picks", ctx.features.handedOver]])
-      assert.equal(done, true, what + ": handed over");
-    // The Node server's own passes: never started again here.
-    ctx.db.setSetting("labelsEnabled", true);
-    ctx.library.setLabelRules({ enabled: true });
-    assert.equal(ctx.labelLookup.run({ force: true }), false);
-    assert.equal(ctx.labelLogos.fetchMissing([{ key: "x", title: "X" }], { force: true }), false);
-    assert.equal(await ctx.releaseDays.run(), 0);
-    ctx.features.kickSmartPicks(true);
-    assert.equal(ctx.features.smartBuilding, null);
     // The C# server's own addresses for the Node server: loopback, with the key, or nothing.
     const K = { "X-Mandarin-Front-Key": ctx.frontKey };
     for (const p of ["/internal/jobs/after-scan", "/internal/jobs/taste"]) {
@@ -261,7 +262,6 @@ test("v0.8.20: record labels, release days and the taste work handed to C#; the 
 
 test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   // Every source a closed port on loopback: asked, and failing at once.
   const closed = "http://127.0.0.1:9";
@@ -278,13 +278,13 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
     }
-    // Pitchfork's lists with neither the page nor the feed to be had: the error, as the Node server gives it.
+    // Pitchfork's lists with neither the page nor the feed to be had: the error, as the Node server gave it.
     for (const p of ["/api/pitchfork/reviews", "/api/pitchfork/reviews?type=best"]) {
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), await r.json()], [500, "C#", { error: "fetch failed" }], p);
     }
     let r = await fetch(B + "/api/search/external?q=album", { headers: H });
-    assert.equal(r.headers.get("x-mandarin-answered"), null, "the search's services: still the Node server's");
+    assert.equal(r.headers.get("x-mandarin-answered"), "C#", "the search's services: C#'s too since v0.8.47");
     r = await fetch(B + "/api/settings/share-links", { method: "POST", headers: J, body: JSON.stringify({ card_review: false }) });
     assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).card], [200, "C#", { review: false }], "the share card's settings, kept by C#");
     r = await fetch(B + "/api/share/encode", { method: "POST", headers: J, body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }] }) });
@@ -298,7 +298,6 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
 
 test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag filter, the album editor and covers answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
@@ -312,8 +311,6 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, by(r)], [200, "C#"], p);
     }
-    // The Node server's own Tailscale engine handed over, never started there.
-    assert.ok(ctx.tailscale.front, "Tailscale handed to the C# server");
     // A backup kept here: made, downloaded and deleted by C#.
     let r = await post("/api/backup/save", { include: { settings: true } });
     assert.deepEqual([r.status, by(r)], [200, "C#"], "a backup kept here");
@@ -339,9 +336,9 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     const drawn = Buffer.from(await r.arrayBuffer());
     assert.deepEqual([drawn[0], drawn[1]], [0xff, 0xd8], "a JPEG");
     assert.ok(fs.existsSync(path.join(lib.data, "art", one.image_key + "@120.jpg")), "kept with the others");
-    // Where this ffmpeg can't draw text (no drawtext: CI's static build, Homebrew's), the Node server draws it, as before.
+    // Where this ffmpeg can't draw text (no drawtext: CI's static build, Homebrew's), drawn without the words (v0.8.50).
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
-    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, haveDrawtext() ? "C#" : null, "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
+    assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "image/jpeg"], "no cover of its own: its placeholder drawn by C#");
     await r.arrayBuffer();
     assert.ok(fs.existsSync(path.join(lib.data, "art", hi.image_key + "@120.jpg")), "and kept");
     r = await fetch(B + "/api/image/" + hi.image_key + "?size=120", { headers: H });
@@ -375,7 +372,7 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
 test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false, lastfmKey: "" });
   await srv.start();
   try {
@@ -398,12 +395,12 @@ test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answer
   } finally { await srv.stop(); }
 });
 
-test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in and playing still the Node server's", { skip, timeout: 60000 }, async () => {
+test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
-  const ctx = await srv.start();
+  await srv.start();
   try {
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
@@ -411,14 +408,14 @@ test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in and play
       const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
       return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json()];
     };
-    for (let i = 0; i < 300 && !ctx.frontRuns; i++) await new Promise(r => setTimeout(r, 100));
     // Signed out: refused by C#, in the Node server's words.
     for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
       for (const p of ["new-releases", "featured", "search?q=x", "artist-albums?artist_id=1", "album?id=1", "state?album_id=1"]) {
         assert.deepEqual(await by(`/api/${s}/${p}`), [401, "C#", { error: "Not signed in to " + name, connected: false }], p);
       }
-      assert.deepEqual((await by(`/api/settings/${s}`)).slice(0, 2), [200, "Node"]);
-      assert.deepEqual((await by(`/api/${s}/play`, { album_id: "1", zone_or_output_id: "x" })).slice(0, 2), [401, "Node"]);
+      // Settings → Services and playing: the C# server's since v0.8.47 (the v0.8.47 test below).
+      assert.deepEqual((await by(`/api/settings/${s}`)).slice(0, 2), [200, "C#"]);
+      assert.deepEqual(await by(`/api/${s}/play`, { album_id: "1", zone_or_output_id: "x" }), [401, "C#", { error: "Not signed in to " + name, connected: false }]);
     }
     assert.deepEqual(await by("/api/tidal/lists"), [401, "C#", { error: "Not signed in to Tidal", connected: false }]);
   } finally { await srv.stop(); }
@@ -427,7 +424,7 @@ test("v0.8.39: Qobuz's and Tidal's catalogue answered by C#; signing in and play
 test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean up and the prune answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const srv = require("../index.js").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
   try {
@@ -437,12 +434,8 @@ test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean 
       const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
       return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json().catch(() => null)];
     };
-    for (let i = 0; i < 300 && !ctx.frontRuns; i++) await new Promise(r => setTimeout(r, 100));
     // The library read on first start (Clean up waits for a scan under way).
     for (let i = 0; i < 300; i++) { const st = (await by("/api/status"))[2]; if (st.index_count >= 3 && !st.library_importing) break; await new Promise(r => setTimeout(r, 100)); }
-    // The prune handed over: the Node server's daily timer does nothing.
-    assert.equal(ctx.frontRuns.has("prune"), true);
-    assert.equal(ctx.madeByFront("prune"), true);
     for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
       for (const p of ["open", "favorite", "unfavorite"])
         assert.deepEqual(await by(`/api/${s}/${p}`, { album_id: "1" }), [401, "C#", { error: "Not signed in to " + name, connected: false }], s + "/" + p);
@@ -450,7 +443,7 @@ test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean 
     // A streamed album's page: by C#, signed out without the service's fields.
     const now = Date.now();
     ctx.db.raw.prepare(`INSERT INTO albums(key, title, artist, dir, track_count, added_at, updated_at) VALUES('qobuz:9', 'Q', 'A', 'qobuz://album/9', 0, ?, ?)`).run(now, now);
-    ctx.library.reload();
+    await ctx.library.reload();
     const id = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:9'").get().id;
     const page = await by("/api/album?offset=" + id);
     assert.deepEqual(page.slice(0, 2), [200, "C#"], "a streamed album's page");
@@ -458,7 +451,89 @@ test("v0.8.44: Qobuz's and Tidal's albums opened, favourited, their page, Clean 
     assert.equal(page[2].album.service_why, undefined, "signed out: nothing of the service");
     // Clean up of a service's albums where the scans are C#'s: signed out, every one goes.
     assert.deepEqual(await by("/api/library/cleanup", { kind: "qobuz" }), [200, "C#", { ok: true, kind: "qobuz", removed: 1, count: 3 }]);
-    assert.deepEqual((await by("/api/library/cleanup", { kind: "files" })).slice(0, 2), [200, "Node"], "the music folders' kind, the Node server's");
-    assert.deepEqual((await by("/api/library/cleanup")).slice(0, 2), [200, "Node"], "the counts, the Node server's");
+    // The music folders' kind and the counts: the C# server's too since v0.8.48 (HousekeepingRoutes.cs).
+    assert.deepEqual(await by("/api/library/cleanup", { kind: "files" }), [200, "C#", { ok: true, kind: "files", removed: 0, albums: 0, count: 3 }], "the music folders' kind");
+    assert.deepEqual(await by("/api/library/cleanup"), [200, "C#", { files: { albums: 0, tracks: 0, folders: 0 }, qobuz: { albums: 0, signed_in: false }, tidal: { albums: 0, signed_in: false } }], "the counts");
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.45: Qobuz's and Tidal's import, the watch and Settings → Services signed in answered by C#", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+    sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const by = async (p, body) => {
+      const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
+      return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json().catch(() => null)];
+    };
+    for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
+      // Signed out: Settings → Services the C# server's since v0.8.47 (the Node server's before); Update library now refused by C#.
+      assert.deepEqual((await by(`/api/settings/${s}`)).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual((await by(`/api/settings/${s}`, { import: false })).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual(await by(`/api/settings/${s}/import`, {}), [401, "C#", { error: "Not signed in to " + name, connected: false }], s);
+    }
+    // The page's quick look: by C#, nothing signed in to look at.
+    assert.deepEqual(await by("/api/services/watch", {}), [200, "C#", { changed: false, services: {} }]);
+    // Signed in (the accounts as signing in keeps them): the state, the quality and Update library now by C#; signing out and playing C#'s too since v0.8.47.
+    ctx.db.setSetting("qobuz", { token: "t", user: { id: 1, login: "tester@example.com" } });
+    ctx.db.setSetting("tidal", { token: { access: "a", refresh: "r", expires: Date.now() + 3600e3 }, userId: 7, user: { email: "tester@example.com" } });
+    for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
+      const st = await by(`/api/settings/${s}`);
+      assert.deepEqual([st[0], st[1], st[2].connected, st[2].importing], [200, "C#", true, false], s);
+      assert.deepEqual((await by(`/api/settings/${s}`, { quality: "cd" })).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual(await by(`/api/settings/${s}/import`, {}), [409, "C#", { error: "Switch on " + name + " in the library first", import: false }], s);
+      assert.deepEqual((await by(`/api/settings/${s}/signout`, {})).slice(0, 2), [200, "C#"], s + ": signing out, the C# server's");
+      assert.deepEqual(await by(`/api/${s}/play`, { album_id: "1", zone_or_output_id: "x" }), [401, "C#", { error: "Not signed in to " + name, connected: false }], s + ": playing, signed out again");
+    }
+  } finally { await srv.stop(); }
+});
+
+test("v0.8.47: Qobuz and Tidal whole (signing in and out, playing, their streams) answered by C#; playback C#'s too since v0.8.49", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
+    sonosHosts: [], upnpMulticast: false, identify: false, qobuzSyncDelayMs: 100000 });
+  const ctx = await srv.start();
+  try {
+    const token = await signIn(B);
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const by = async (p, body) => {
+      const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
+      return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json().catch(() => null)];
+    };
+    for (let i = 0; i < 300; i++) { const st = (await by("/api/status"))[2]; if (st.index_count >= 3 && !st.library_importing) break; await new Promise(r => setTimeout(r, 100)); }
+    for (const [s, name] of [["qobuz", "Qobuz"], ["tidal", "Tidal"]]) {
+      const st = await by(`/api/settings/${s}`);
+      assert.deepEqual([st[0], st[1], st[2].connected], [200, "C#", false], s + ": signed out, by C#");
+      assert.deepEqual((await by(`/api/settings/${s}`, { quality: "cd" })).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual((await by(`/api/settings/${s}/signin/cancel`, {})).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual((await by(`/api/settings/${s}/signout`, {})).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual((await by(`/api/settings/${s}/disconnect`, {})).slice(0, 2), [200, "C#"], s);
+      assert.deepEqual(await by(`/api/${s}/play`, { album_id: "1", zone_or_output_id: "x" }), [401, "C#", { error: "Not signed in to " + name, connected: false }], s + ": playing");
+    }
+    // Qobuz's sign-in, both needed: refused by C# in the Node server's words (Qobuz not asked).
+    assert.deepEqual(await by("/api/settings/qobuz/signin", { username: "x" }), [400, "C#", { error: "Username and password needed" }]);
+    // The search from Home: the services' part by C# too (signed out: nothing of them).
+    const ext = await by("/api/search/external?q=album&parts=services");
+    assert.deepEqual(ext.slice(0, 2), [200, "C#"]);
+    assert.deepEqual([ext[2].qobuz, ext[2].tidal], [null, null]);
+    // A service's track streamed: by C#, refused signed out as the Node server refuses it.
+    const now = Date.now();
+    ctx.db.raw.prepare(`INSERT INTO albums(key, title, artist, dir, track_count, added_at, updated_at) VALUES('qobuz:9', 'Q', 'A', 'qobuz://album/9', 1, ?, ?)`).run(now, now);
+    const al = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'qobuz:9'").get().id;
+    ctx.db.raw.prepare(`INSERT INTO tracks(album_id, path, mtime, size, title, sample_rate, bits, channels) VALUES(?, 'qobuz://track/9', 0, 0, 'Q1', 44100, 16, 2)`).run(al);
+    const tr = ctx.db.raw.prepare("SELECT id FROM tracks WHERE path = 'qobuz://track/9'").get().id;
+    const sr = await fetch(B + `/stream/t${tr}.flac`, { headers: H });
+    assert.deepEqual([sr.status, sr.headers.get("x-mandarin-answered")], [403, "C#"], "no stream without the account");
+    // Playback is C#'s too since v0.8.49 (stage 6, test/playback-csharp.test.js): the rooms, playing from the library, the queue.
+    assert.deepEqual((await by("/api/zones")).slice(0, 2), [200, "C#"]);
+    assert.deepEqual(await by("/api/play", { offset: 999999, zone_or_output_id: "x", kind: "play_now" }), [404, "C#", { error: "That album is no longer in the library" }]);
+    assert.deepEqual(await by("/api/queue?zone=x"), [200, "C#", { items: [], history: [] }]);
+    // The Node server's part of playing a service album: never from outside.
+    assert.equal((await fetch(B + "/internal/playback/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 404, "stopped at the C# server's door");
   } finally { await srv.stop(); }
 });

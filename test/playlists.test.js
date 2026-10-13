@@ -3,42 +3,43 @@
  * Playlists: a user playlist made from tracks or whole albums, a Dynamic
  * Playlist saved from a Library view, and sharing — the MDRP1 blob MusicD
  * Remote writes and reads, so a playlist goes either way between the two.
- * Behind the C# server (MANDARIN_FRONT=1), your playlists (v0.8.8), their
- * sharing (v0.8.21) and the Dynamic Playlists saved (v0.8.22) are made there.
+ * Your playlists (v0.8.8), their sharing (v0.8.21) and the Dynamic
+ * Playlists saved (v0.8.22) are made by the C# server.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const SH = require("../lib/server/share");
+const { built } = require("./server");
+const { score } = require("./score");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
-const FRONT = process.env.MANDARIN_FRONT === "1";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("the share blob is MusicD Remote's: MDRP1, gzip, JSPF", () => {
-  const built = SH.buildShareDoc({ name: "Mine" }, [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "" }]);
-  assert.equal(built.track_count, 1); assert.equal(built.skipped, 1);
-  const blob = SH.encodeSharePayload(built.doc);
+test("the share blob is MusicD Remote's: MDRP1, gzip, JSPF", { skip: built() }, () => {
+  // The C# server's (Extras/ShareBlob.cs; lib/server/share.js until v0.8.50).
+  const made = score({ fn: "blob", docs: [{ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "" }] }] }).doc[0];
+  assert.equal(made.track_count, 1); assert.equal(made.skipped, 1);
+  const blob = score({ fn: "blob", encodes: [made.doc] }).encoded[0];
   assert.match(blob, /^MDRP1:[A-Za-z0-9_-]+$/);
   // Pasted with words around it, wrapped, and the marker lower-cased by a phone.
-  const doc = SH.decodeSharePayload("Here you go:\n" + blob.replace("MDRP1", "mdrp1").replace(/(.{40})/g, "$1\n") + "\nEnjoy");
-  assert.equal(doc.playlist.title, "Mine");
-  assert.deepEqual(doc.playlist.track[0], { title: "Song 1", creator: "Artist A", album: "Album One", trackNum: 1 });
-  assert.throws(() => SH.decodeSharePayload("nothing here"), /MusicD Remote playlist/);
+  const [pasted, nothing] = score({ fn: "blob", decodes: ["Here you go:\n" + blob.replace("MDRP1", "mdrp1").replace(/(.{40})/g, "$1\n") + "\nEnjoy", "nothing here"] }).decoded;
+  assert.equal(pasted.doc.playlist.title, "Mine");
+  assert.deepEqual(pasted.doc.playlist.track[0], { title: "Song 1", creator: "Artist A", album: "Album One", trackNum: 1 });
+  assert.match(nothing.error, /MusicD Remote playlist/);
 });
 
 test("playlists", { skip, timeout: 60000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false });
   await srv.start();
   const token = await signIn(B);
   const api = async (p, body) => {
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
-    if (FRONT && /^(share|user-playlists?|smart-playlists?)\b/.test(p)) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
+    if (/^(share|user-playlists?|smart-playlists?)\b/.test(p)) assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by the C# server");
     return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
   };
   try {
@@ -105,22 +106,22 @@ test("playlists", { skip, timeout: 60000 }, async (t) => {
       assert.equal(saved.track_total, 7);
       // What MusicD Remote writes: the same document, its own generator stamp, and
       // a track whose album this library doesn't have under that name.
-      const theirs = SH.buildShareDoc({ name: "From Roon" }, [
+      const theirs = score({ fn: "blob", docs: [{ name: "From Roon", tracks: [
         { title: "Song 3", artist: "Artist A", album: "Album One (Deluxe)", track_no: 3 },
         { title: "Never Heard", artist: "Nobody", album: "Nothing" }
-      ]).doc;
+      ] }] }).doc[0].doc;
       theirs.playlist.extension["https://musicbrainz.org/doc/jspf#playlist"].additional_metadata.generator = "MusicD Remote";
-      const imp2 = await api("share/import", { blob: SH.encodeSharePayload(theirs) });
+      const imp2 = await api("share/import", { blob: score({ fn: "blob", encodes: [theirs] }).encoded[0] });
       assert.equal(imp2.name, "From Roon");
       assert.equal(imp2.resolved.length, 1);
       assert.deepEqual(imp2.substituted.map(s => [s.title, s.found_album]), [["Song 3", "Album One"]], "found by title and artist, the album substitution reported");
       assert.deepEqual(imp2.missing.map(m => m.title), ["Never Heard"]);
       assert.equal((await api("share/import", { blob: "hello" })).status, 400);
-      // Past the body parser's 2 MB: refused by the Node server, the body passed to it unread.
+      // Past the body parser's 2 MB: refused, the rest left unread, as the Node server's express.json refused it.
       const huge = await fetch(B + "/api/share/import", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({ blob: "MDRP1:" + "A".repeat(2200000) }) });
       assert.equal(huge.status, 413);
-      assert.notEqual(huge.headers.get("x-mandarin-answered"), "C#");
+      assert.equal(huge.headers.get("x-mandarin-answered"), "C#");
     });
   } finally {
     await srv.stop();

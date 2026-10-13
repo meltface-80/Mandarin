@@ -7,10 +7,10 @@
 //   POST /api/download/albums { ids }            the phone's albums as they are now
 //   POST /api/phone/plays { plays }              plays made with no server, written to history
 //
-// A cover's address for the phone is signed as the Node server signs it
-// (auth.js signUrl), at the address it gives speakers (its baseUrl, told with
-// the library's state). Answered here once the Node server has handed over its
-// work; until then (and the picks while it makes them), by it.
+// A cover's address for the phone is signed as the Node server signed it
+// (auth.js signUrl), at the address speakers are given (the library state's
+// baseUrl). Since v0.8.48 (stage 5 part 3) a streamed album's list too, and a
+// request Express refused with its own error page, refused alike.
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Mandarin.Server.Tags;
@@ -106,8 +106,8 @@ internal static partial class Library
         if (!Jobs.Held || st.BaseUrl.Length == 0) return false;
         var al = s.Find(Num(Q(ctx, "offset")));
         if (al == null) return await JsError(ctx, 404, "That album is no longer in the library");
-        // A streamed album's tracks have no file here: the Node server's.
-        if (al.Service != null) return false;
+        // A streamed album's too (v0.8.48): its tracks planned as FLAC, as the Node server planned them
+        // (the phone is then refused each one, Downloads.cs).
         var q = DownloadQuality(Q(ctx, "quality"));
         using var c = Db.Open();
         const string sql = "SELECT * FROM tracks WHERE album_id = $1 ORDER BY COALESCE(disc_no,1), COALESCE(track_no, 9999), path";
@@ -206,8 +206,8 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         var given = (FromNode(b) as JsObj ?? new JsObj())["ids"];
-        // Anything but a list (or nothing) is the Node server's to refuse as it does.
-        if (given is not List<object?> && TJs.Truthy(given)) return false;
+        // Anything but a list (or nothing): ids.map isn't a function there, and Express answers its 500.
+        if (given is not List<object?> && TJs.Truthy(given)) return await ExpressError(ctx);
         var ids = given as List<object?> ?? [];
         using var c = Db.Open();
         var albums = new List<object?>();
@@ -244,6 +244,8 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         var given = (FromNode(b) as JsObj ?? new JsObj())["plays"];
+        // plays.slice: a list, or text (its letters, none of them a play); anything else Express's 500.
+        if (given is not List<object?> && given is not string && TJs.Truthy(given)) return await ExpressError(ctx);
         var plays = (given as List<object?> ?? []).Take(5000).ToList();
         var now = (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var n = 0;
@@ -276,6 +278,25 @@ internal static partial class Library
         o["ok"] = true;
         o["recorded"] = (double)n;
         return await SendJs(ctx, o);
+    }
+
+    /*
+     * What Express answers a route that throws (finalhandler), as in the image
+     * (NODE_ENV=production): 500 and a short page saying so.
+     */
+    internal static async Task<bool> ExpressError(HttpContext ctx)
+    {
+        const string doc = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Internal Server Error</pre>\n</body>\n</html>\n";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(doc);
+        var h = ctx.Response.Headers;
+        ctx.Response.StatusCode = 500;
+        h["X-Mandarin-Answered"] = "C#";
+        h["Content-Security-Policy"] = "default-src 'none'";
+        h["X-Content-Type-Options"] = "nosniff";
+        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.ContentLength = bytes.Length;
+        if (!HttpMethods.IsHead(ctx.Request.Method)) await ctx.Response.Body.WriteAsync(bytes);
+        return true;
     }
 
     /* library.track(id): its title as corrected, where it was. */

@@ -46,7 +46,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
   tidal.favouriteTracks.add("9002");
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, identify: false, tidalBaseUrl: tidal.base, tidalAuthUrl: tidal.authBase, tidalImagesUrl: tidal.authBase + "/images/", qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
@@ -69,7 +69,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(p.connected, false);
       assert.equal(p.pending.url, "https://link.tidal.com/ABCDE");
       assert.equal(p.pending.code, "ABCDE");
-      await sleep(1500);
+      await until(() => tidal.polls >= 1);
       assert.equal((await api("settings/tidal")).connected, false, "still waiting for the person");
       assert.ok(tidal.polls >= 1, "asked Tidal whether it has happened");
       // The person signs in on tidal.com.
@@ -157,7 +157,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
           out.source = $("modal-source").className;
           modal.querySelector("[data-close]").click();
           await until(() => modal.classList.contains("hidden"));
-          await sleep(200);
+          await until(() => !$("tidal-overlay").classList.contains("is-under") && !$("tidal-overlay").classList.contains("hidden"));
           out.back_on_top = !$("tidal-overlay").classList.contains("is-under") && !$("tidal-overlay").classList.contains("hidden");
           return out;
         })()`);
@@ -207,21 +207,34 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
 
     await t.test("an account Tidal gives CD to: asked once, then CD straight away, never upsampled", async () => {
       tidal.denyHires = true;
+      const t2 = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2002'").get();
+      const [a, b] = ctx.db.raw.prepare("SELECT id FROM tracks WHERE album_id = ? ORDER BY disc_no, track_no").all(t2.id).map(x => x.id);
+      // The conversions made so far gone, and the server started again: each track asked of Tidal afresh.
+      require("fs").rmSync(require("path").join(lib.data, "transcode"), { recursive: true, force: true });
+      await ctx.restart(token);
       tidal.playbackCalls.length = 0;
-      const t2 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2002'").get().id);
-      const [a, b] = ctx.library.tracks(t2.id);
-      const ra = await ctx.tidal.resolve(a, { rate: 96000, bits: 24 });
-      const rb = await ctx.tidal.resolve(b, { rate: 96000, bits: 24 });
+      const at = async (id, seg) => {
+        const r = await fetch(`${B}/stream/t${id}${seg ? "." + seg : ""}.flac`, { headers: H });
+        assert.equal(r.status, 200, `t${id} ${seg || ""}`);
+        await r.arrayBuffer();
+      };
+      // A room's own address (the 24/48 rule): what Tidal gives below it (CD) is copied as it comes, never upsampled.
+      // (The fake serves the same bytes whatever the quality: the plan is what the server says it made.)
+      await at(a); await at(b);
       assert.deepEqual(tidal.playbackCalls.map(c => c.quality), ["HI_RES_LOSSLESS", "LOSSLESS"], "hi-res asked for once; CD from then on");
-      assert.deepEqual([ra.rate, ra.bits, rb.rate, rb.bits], [44100, 16, 44100, 16]);
-      assert.equal(ctx.tidal.hiresDenied, true);
-      // The transcoder copies such a stream as it is rather than upsampling it to the plan.
-      const plan = await ctx.transcoder.resolve.get(a, { transcode: true, rate: 96000, bits: 24, mime: "audio/flac", ext: "flac" });
-      assert.deepEqual([plan.plan.copy, plan.plan.rate, plan.plan.bits], [true, 44100, 16]);
+      for (const tid of ["9001", "9002"]) {
+        assert.ok(ctx.logs.some(l => new RegExp(`\\[stream\\] ${tid}: .*→ FLAC 16/44\\.1 kHz \\(as it comes\\)`).test(l)),
+          `${tid} copied at CD: ` + ctx.logs.filter(l => l.includes(`[stream] ${tid}`)).join(" | "));
+      }
+      assert.ok(ctx.logs.some(l => /\[tidal\] hi-res asked for, .* given: CD quality from here on/.test(l)), "said once");
+      // What Tidal gave was learnt (the rows now say CD); listed as hi-res again, as a new album of it would be.
+      ctx.db.raw.prepare("UPDATE tracks SET sample_rate = 96000, bits = 24 WHERE id = ?").run(b);
       // The setting touched: asked again, in case the account changed.
       await api("settings/tidal", { quality: "hires" });
-      assert.equal(ctx.tidal.hiresDenied, false);
       tidal.denyHires = false;
+      tidal.playbackCalls.length = 0;
+      await at(b, "88200-24");
+      assert.equal(tidal.playbackCalls.length && tidal.playbackCalls[0].quality, "HI_RES_LOSSLESS", "hi-res asked for again");
     });
 
     await t.test("a token that stops working is refreshed, unasked", async () => {
@@ -257,12 +270,12 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false);
       // The favourites watched (v0.7.3): a change made in the Tidal app follows here on the next look.
       tidal.favourites.add("2003");
-      assert.deepEqual(await ctx.services.tidal.watch(), { added: 1, dropped: 0, failed: 0, changed: true });
+      assert.deepEqual((await ctx.internal("/internal/jobs/watch")).services.tidal, { added: 1, dropped: 0, failed: 0, changed: true });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), true, "added on Tidal: on the walls");
       const why = (await api("album?offset=" + o.offset)).album.service_why;
       assert.equal(why.kept, "favourite", JSON.stringify(why));
       tidal.favourites.delete("2003");
-      assert.deepEqual(await ctx.services.tidal.watch(), { added: 0, dropped: 1, failed: 0, changed: true });
+      assert.deepEqual((await ctx.internal("/internal/jobs/watch")).services.tidal, { added: 0, dropped: 1, failed: 0, changed: true });
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false, "removed on Tidal: off the walls");
       const ext = await api("search/external?q=T+Album");
       assert.equal(ext.tidal.length, 1, "beside the library's search");
@@ -299,9 +312,9 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(ctx.db.setting("tidal"), null);
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.source === "tidal"), false);
       assert.equal((await api("user-playlists")).playlists.some(x => x.service === "tidal"), false);
-      const t1 = ctx.library.album(ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2001'").get().id);
+      const t1 = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2001'").get();
       assert.ok(t1, "the rows stay");
-      const s = await fetch(B + "/stream/t" + ctx.library.tracks(t1.id)[0].id + ".flac", { headers: H });
+      const s = await fetch(B + "/stream/t" + ctx.db.raw.prepare("SELECT id FROM tracks WHERE album_id = ? ORDER BY disc_no, track_no").get(t1.id).id + ".flac", { headers: H });
       assert.notEqual(s.status, 200, "no stream without the account");
       const cu = await api("library/cleanup");
       assert.deepEqual(cu.tidal, { albums: 3, signed_in: false });

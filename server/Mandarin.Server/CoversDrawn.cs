@@ -23,7 +23,6 @@
 // has it.
 using System.Diagnostics;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -37,7 +36,7 @@ internal static partial class Covers
     {
         var yes = DrawsText();
         // Said once: from ffmpeg 6.1 drawtext needs harfbuzz, which some builds leave out (a static one, Homebrew's).
-        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn by the Node server");
+        if (!yes && Transcoder.FfOk) Server.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn without their titles");
         return yes;
     });
 
@@ -59,9 +58,9 @@ internal static partial class Covers
     public static Task<Drawn> DrawPlaceholder(Album al, string file, int size) =>
         Once(file, al.ImageKey, async () =>
         {
-            if (!Text.Value) return Drawn.NodeIts;
+            // No drawtext (v0.8.50): the colour and the note's place without the words.
             var jpg = await Placeholder(al.Title, al.Artist, size);
-            if (jpg == null) return Drawn.NodeIts;
+            if (jpg == null) return Drawn.Failed;
             Write(file, jpg);
             return Drawn.Yes;
         });
@@ -95,7 +94,7 @@ internal static partial class Covers
 
     /* The placeholder's colour: its title and artist's MD5, the first byte as a hue. */
     public static int Hue(string title, string artist) =>
-        (int)Math.Round(MD5.HashData(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
+        (int)Math.Round(Fingerprint.Md5(Encoding.UTF8.GetBytes(title + "|" + artist))[0] / 255.0 * 360, MidpointRounding.AwayFromZero);
 
     private static async Task<byte[]?> Placeholder(string title, string artist, int size)
     {
@@ -116,12 +115,15 @@ internal static partial class Covers
             // The SVG's diagonal gradient, corner to corner.
             var f = new List<string>
             {
-                $"geq=r='{r0}+({r1}-{r0})*(X+Y)/1198':g='{g0}+({g1}-{g0})*(X+Y)/1198':b='{b0}+({b1}-{b0})*(X+Y)/1198'",
-                Draw(Put("note", "♪"), ":charset=266a", 110, "white@0.18", "540-text_w", "140"),
+                $"geq=r='{r0}+({r1}-{r0})*(X+Y)/1198':g='{g0}+({g1}-{g0})*(X+Y)/1198':b='{b0}+({b1}-{b0})*(X+Y)/1198'"
             };
-            var top = 470 - (lines.Count - 1) * 58;
-            for (int i = 0; i < lines.Count; i++) f.Add(Draw(Put("t" + i, lines[i]), ":style=Bold", 50, "white", "40", (top + i * 58).ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            f.Add(Draw(Put("by", by), "", 30, "white@0.75", "40", "540"));
+            if (Text.Value)
+            {
+                f.Add(Draw(Put("note", "♪"), ":charset=266a", 110, "white@0.18", "540-text_w", "140"));
+                var top = 470 - (lines.Count - 1) * 58;
+                for (int i = 0; i < lines.Count; i++) f.Add(Draw(Put("t" + i, lines[i]), ":style=Bold", 50, "white", "40", (top + i * 58).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                f.Add(Draw(Put("by", by), "", 30, "white@0.75", "40", "540"));
+            }
             f.Add($"scale={size}:{size}:flags=lanczos+accurate_rnd+full_chroma_int,format=yuvj420p");
             await Drawing.WaitAsync();
             try
@@ -131,7 +133,7 @@ internal static partial class Covers
                     null, 8 << 20, TimeSpan.FromSeconds(30));
                 if (code != 0 || jpg.Length == 0)
                 {
-                    Front.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)}); passed to the Node server");
+                    Server.Log($"[art] a placeholder: ffmpeg couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[0] : "exit " + code)})");
                     return null;
                 }
                 return jpg;
@@ -165,22 +167,22 @@ internal static partial class Covers
         return Regex.IsMatch(url, "^https?://") ? url : null;
     }
 
-    /* A picture from elsewhere drawn at this size into `file`: NoCover when it can't be had (a 404, as the Node server answers). */
+    /* A picture from elsewhere drawn at this size into `file`: NoCover when it can't be had (a 404, as the Node server answered). */
     public static Task<Drawn> DrawForeign(string url, string file, int size) =>
         Once(file, "a picture from elsewhere", async () =>
         {
-            if (!ProbeOk) return Drawn.NodeIts;
+            if (!ProbeOk) return Drawn.Failed;
             byte[] src;
             try { src = await Fetch(url, 0); }
             catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidDataException or UriFormatException or Identify.LookupError)
             {
-                Front.Log($"[art] {url}: {e.Message}");
+                Server.Log($"[art] {url}: {e.Message}");
                 return Drawn.NoCover;
             }
             var turn = Look(src);
-            if (turn == null) return Drawn.NodeIts;
+            if (turn == null) return Drawn.Failed;
             var jpg = await Fit(src, turn, size, "4", "a picture from elsewhere");
-            if (jpg == null) return Drawn.NodeIts;
+            if (jpg == null) return Drawn.Failed;
             Write(file, jpg);
             return Drawn.Yes;
         });

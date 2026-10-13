@@ -12,8 +12,7 @@
  * one, the renderer simply stops, as a device without that action would.
  */
 const http = require("http");
-const XML = require("../lib/xml");
-const DIDL = require("../lib/sonos/didl");
+const XML = require("./fake-xml");
 
 function envelope(action, service, args) {
   const body = Object.entries(args || {}).map(([k, v]) => `<${k}>${XML.escape(v)}</${k}>`).join("");
@@ -111,7 +110,7 @@ class FakeRenderer {
   }
   setPos(s) { this.position = s; this.at = Date.now(); }
   duration() {
-    const it = DIDL.parseItems(this.meta || "")[0] || {};
+    const it = XML.parseItems(this.meta || "")[0] || {};
     return it.duration || 3;
   }
 
@@ -162,10 +161,10 @@ class FakeRenderer {
       case "GetProtocolInfo": return { Source: "", Sink: this.sink };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": return {
-        Track: this.uri ? "1" : "0", TrackDuration: DIDL.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.uri,
-        RelTime: DIDL.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
+        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.uri,
+        RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
       };
-      case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: DIDL.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
+      case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: XML.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
       case "SetAVTransportURI":
         if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
         this.uri = a.CurrentURI; this.meta = a.CurrentURIMetaData || "";
@@ -190,7 +189,7 @@ class FakeRenderer {
         return {};
       case "Seek":
         if (a.Unit !== "REL_TIME") throw 710;
-        this.setPos(DIDL.toSeconds(a.Target));
+        this.setPos(XML.toSeconds(a.Target));
         if (this.state === "PLAYING") this.armEnd();
         return {};
       case "GetVolume": return { CurrentVolume: String(this.volume) };
@@ -292,4 +291,7 @@ class FakeRenderer {
   }
 }
 
-module.exports = { FakeRenderer, SINK_WIIM };
+/* A renderer's id in the server's lists, from its UDN (Renderers/Discovery.cs IdFor). */
+const idFor = (udn) => "UPNP_" + String(udn || "").replace(/^uuid:/i, "").trim();
+
+module.exports = { FakeRenderer, SINK_WIIM, idFor };

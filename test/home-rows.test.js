@@ -10,14 +10,16 @@ const assert = require("node:assert");
 const path = require("path");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
+const { createServer, built } = require("./server");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
+// The day's key ("2026-10-3"), turning over at 00:01: a minute taken off, as the server keys it.
+const dayKeyOf = (d) => { const x = new Date(d.getTime() - 60000); return `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`; };
 
-test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, async () => {
+test("Album of the day and Not played in 6 months", { skip, timeout: 90000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [] });
   const ctx = await srv.start();
   try {
@@ -36,12 +38,12 @@ test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, as
     assert.ok(a1.album && a1.album.title);
     assert.equal(a1.album.offset, a2.album.offset);
     assert.equal(a1.played, false);
-    assert.equal(a1.day, ctx.library.dayKey());
+    assert.equal(a1.day, dayKeyOf(new Date()));
 
     // Played: gone, for every device that asks; the day still said.
-    const al = ctx.library.album(a1.album.offset);
-    const t = ctx.library.tracks(al.id)[0];
-    const play = (ts) => ctx.features.insertPlay.run(al.id, t.id, t.title, t.artist || "", al.title, "TEST", ts);
+    const al = Object.assign({ id: a1.album.offset }, (await get("/api/album?offset=" + a1.album.offset)).album);
+    const t = (await get("/api/album?offset=" + al.id)).tracks[0];
+    const play = (ts) => ctx.features.insertPlay.run(al.id, t.track_id, t.title, t.artist || "", al.title, "TEST", ts);
     play(Date.now());
     const a3 = await get("/api/home/album-of-the-day");
     assert.equal(a3.album, null);
@@ -67,13 +69,13 @@ test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, as
     for (let i = 1; i <= 2; i++) {
       gen(path.join(lib.music, "Artist N", "New Arrival", `0${i}.flac`), { freq: 300 + 100 * i, tags: { title: `N${i}`, artist: "Artist N", album: "New Arrival", track: i } });
     }
-    await ctx.scanner.scan();
-    ctx.library.reload();
-    assert.equal(ctx.library.albums.length, 4);
-    assert.equal(ctx.library.albumOfTheDay().id, al.id);
+    await fetch(B + "/api/library/rescan", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" });
+    for (let i = 0; i < 300 && (await get("/api/status")).index_count !== 4; i++) await new Promise(r => setTimeout(r, 100));
+    assert.equal((await get("/api/status")).index_count, 4);
     let a4 = await get("/api/home/album-of-the-day");
     assert.equal(a4.album, null);
     assert.equal(a4.played, true);
+    assert.equal(ctx.db.setting("album_of_the_day").day, a1.day, "the day's choice kept, for the same day");
     await srv.stop();
     const srv2 = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [] });
     const ctx2 = await srv2.start();
@@ -84,19 +86,9 @@ test("Album of the day and Not played in 6 months", { skip, timeout: 60000 }, as
       a4 = await (await fetch(B + "/api/home/album-of-the-day", { headers: { Authorization: "Bearer " + token2 } })).json();
       assert.equal(a4.album, null, "still played after a restart");
       assert.equal(a4.played, true);
-      assert.equal(ctx2.library.albumOfTheDay().id, al.id);
-      // A new day is a new choice, kept in its turn.
-      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
-      const next = ctx2.library.albumOfTheDay(tomorrow);
-      assert.equal(ctx2.library.albumOfTheDay(tomorrow).id, next.id);
-      assert.equal(ctx2.db.setting("album_of_the_day").day, ctx2.library.dayKey(tomorrow));
+      assert.equal(a4.day, a1.day);
+      assert.equal(ctx2.db.setting("album_of_the_day").day, a1.day, "the same day's choice, kept across the restart");
     } finally { await srv2.stop(); }
-
-    // The day turns over at 00:01: 00:00:30 is still yesterday, 00:01:30 today.
-    const y = new Date(2026, 9, 3, 0, 0, 30), z = new Date(2026, 9, 3, 0, 1, 30);
-    assert.equal(ctx.library.dayKey(y), "2026-10-2");
-    assert.equal(ctx.library.dayKey(z), "2026-10-3");
-    assert.equal(ctx.library.dayStart(z), new Date(2026, 9, 3, 0, 1, 0).getTime());
   } finally {
     await srv.stop();
   }

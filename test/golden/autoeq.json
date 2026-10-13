@@ -1,0 +1,221 @@
+{
+ "answers": {
+  "the index": {
+   "n": 1,
+   "all": [
+    [
+     {
+      "id": "oratory1990/over-ear/Sennheiser HD 650",
+      "name": "Sennheiser HD 650",
+      "source": "oratory1990",
+      "rig": "",
+      "form": "over-ear"
+     },
+     {
+      "id": "crinacle/GRAS 43AG-7 over-ear/Sennheiser HD 650",
+      "name": "Sennheiser HD 650",
+      "source": "crinacle",
+      "rig": "GRAS 43AG-7",
+      "form": "over-ear"
+     },
+     {
+      "id": "oratory1990/over-ear/Sennheiser HD 600",
+      "name": "Sennheiser HD 600",
+      "source": "oratory1990",
+      "rig": "",
+      "form": "over-ear"
+     },
+     {
+      "id": "crinacle/711 in-ear/Moondrop Aria",
+      "name": "Moondrop Aria",
+      "source": "crinacle",
+      "rig": "711",
+      "form": "in-ear"
+     },
+     {
+      "id": "crinacle/711 in-ear/Moondrop Blessing 2",
+      "name": "Moondrop Blessing 2",
+      "source": "crinacle",
+      "rig": "711",
+      "form": "in-ear"
+     },
+     {
+      "id": "Rtings/earbud/Apple AirPods",
+      "name": "Apple AirPods",
+      "source": "Rtings",
+      "rig": "",
+      "form": "earbud"
+     },
+     {
+      "id": "oratory1990/over-ear/Café Phones",
+      "name": "Café Phones",
+      "source": "oratory1990",
+      "rig": "",
+      "form": "over-ear"
+     },
+     {
+      "id": "a/b/Indented",
+      "name": "Indented",
+      "source": "someone",
+      "rig": "rig one on rig two",
+      "form": ""
+     }
+    ]
+   ]
+  },
+  "profiles": {
+   "n": 8,
+   "all": [
+    {
+     "preamp": -6.1,
+     "bands": [
+      {
+       "type": "low_shelf",
+       "freq": 105,
+       "gain": 6.4,
+       "q": 0.7
+      },
+      {
+       "type": "peak",
+       "freq": 8800,
+       "gain": 5.1,
+       "q": 1.42
+      },
+      {
+       "type": "high_shelf",
+       "freq": 10000,
+       "gain": -2.1,
+       "q": 0.7
+      },
+      {
+       "type": "high_pass",
+       "freq": 20,
+       "gain": 0,
+       "q": 0.7
+      }
+     ]
+    },
+    {
+     "preamp": 0,
+     "bands": [
+      {
+       "type": "peak",
+       "freq": 100,
+       "gain": 1,
+       "q": 1
+      }
+     ]
+    },
+    {
+     "preamp": null,
+     "bands": [
+      {
+       "type": "low_pass",
+       "freq": 15000,
+       "gain": 0,
+       "q": 0.5
+      },
+      {
+       "type": "peak",
+       "freq": 105.3,
+       "gain": -6.1,
+       "q": 0.707
+      }
+     ]
+    },
+    {
+     "preamp": null,
+     "bands": [
+      {
+       "type": "low_shelf",
+       "freq": 100,
+       "gain": 0,
+       "q": 0.707
+      },
+      {
+       "type": "high_shelf",
+       "freq": 12000,
+       "gain": 2.3,
+       "q": 0.1
+      }
+     ]
+    },
+    {
+     "preamp": null,
+     "bands": [
+      {
+       "type": "peak",
+       "freq": 100,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 200,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 300,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 400,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 500,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 600,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 700,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 800,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 900,
+       "gain": 1,
+       "q": 1
+      },
+      {
+       "type": "peak",
+       "freq": 1000,
+       "gain": 1,
+       "q": 1
+      }
+     ]
+    },
+    {
+     "error": "No filters found — a profile reads like “Filter 1: ON PK Fc 105 Hz Gain 3.1 dB Q 0.70”"
+    },
+    {
+     "error": "No filters found — a profile reads like “Filter 1: ON PK Fc 105 Hz Gain 3.1 dB Q 0.70”"
+    },
+    {
+     "error": "No filters found — a profile reads like “Filter 1: ON PK Fc 105 Hz Gain 3.1 dB Q 0.70”"
+    }
+   ]
+  }
+ },
+ "inputs": {}
+}

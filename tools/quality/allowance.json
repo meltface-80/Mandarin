@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "allowance": {
+    "android/app/src/main/java/com/musicd/server/android/DownloadStore.kt": {
+      "lines": 522
+    },
+    "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
+      "lines": 466
+    },
+    "android/app/src/main/java/com/musicd/server/android/MainActivity.kt": {
+      "lines": 954
+    },
+    "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
+      "lines": 437
+    },
+    "android/app/src/main/java/com/musicd/server/android/OfflineApi.kt": {
+      "lines": 477
+    },
+    "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": {
+      "lines": 1440
+    },
+    "android/musicdnet/main.go": {
+      "lines": 401
+    },
+    "engine/Mandarin.Audio/Engine.cs": {
+      "lines": 502
+    },
+    "public/app.js": {
+      "lines": 19582
+    },
+    "public/display.js": {
+      "lines": 654
+    },
+    "public/sharecard.js": {
+      "lines": 582
+    },
+    "public/shelf.js": {
+      "lines": 2062
+    },
+    "server/Mandarin.Server/Admin/Tailscale.cs": {
+      "lines": 433
+    },
+    "server/Mandarin.Server/Admin/Updater.cs": {
+      "lines": 584
+    },
+    "server/Mandarin.Server/Auth.cs": {
+      "lines": 546
+    },
+    "server/Mandarin.Server/Covers.cs": {
+      "lines": 559
+    },
+    "server/Mandarin.Server/Extras/LabelLogos.cs": {
+      "lines": 431
+    },
+    "server/Mandarin.Server/Extras/ShareBlob.cs": {
+      "lines": 512
+    },
+    "server/Mandarin.Server/Extras/Taste.cs": {
+      "lines": 474
+    },
+    "server/Mandarin.Server/Extras/WriteUps.cs": {
+      "lines": 553
+    },
+    "server/Mandarin.Server/Identify/Pack.cs": {
+      "lines": 723
+    },
+    "server/Mandarin.Server/Identify/Score.cs": {
+      "lines": 514
+    },
+    "server/Mandarin.Server/Library.cs": {
+      "lines": 581
+    },
+    "server/Mandarin.Server/Playback/JsMath.cs": {
+      "lines": 615
+    },
+    "server/Mandarin.Server/Playback/StreamPlans.cs": {
+      "lines": 401
+    },
+    "server/Mandarin.Server/Playback/WebUrl.cs": {
+      "lines": 767
+    },
+    "server/Mandarin.Server/Playback/Xml.cs": {
+      "lines": 634
+    },
+    "server/Mandarin.Server/Scan/Scanner.cs": {
+      "lines": 1043
+    },
+    "server/Mandarin.Server/Scans.cs": {
+      "lines": 493
+    },
+    "server/Mandarin.Server/Schema.cs": {
+      "lines": 602
+    },
+    "server/Mandarin.Server/ServiceRoutes.cs": {
+      "lines": 491
+    },
+    "server/Mandarin.Server/Services/Catalogue.cs": {
+      "lines": 506
+    },
+    "server/Mandarin.Server/Services/Import.cs": {
+      "lines": 693
+    },
+    "server/Mandarin.Server/Services/Rows.cs": {
+      "lines": 533
+    },
+    "server/Mandarin.Server/Services/ServiceStreams.cs": {
+      "lines": 431
+    },
+    "server/Mandarin.Server/Tags/Case.cs": {
+      "lines": 3132
+    },
+    "server/Mandarin.Server/Tags/Collector.cs": {
+      "lines": 620
+    },
+    "server/Mandarin.Server/Tags/Formats.cs": {
+      "lines": 813
+    },
+    "server/Mandarin.Server/Tags/Id3.cs": {
+      "lines": 730
+    },
+    "server/Mandarin.Server/Tags/Mp4.cs": {
+      "lines": 632
+    },
+    "server/Mandarin.Server/Tags/TagReader.cs": {
+      "lines": 540
+    },
+    "server/Mandarin.Server/Transcoder.cs": {
+      "lines": 404
+    }
+  }
+}

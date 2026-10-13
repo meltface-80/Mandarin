@@ -33,7 +33,8 @@ const SHOW = `(async () => {
   $("mt-title").textContent = "Generate"; $("mt-artist").textContent = "Collective Soul";
   window.__infoClicks = 0;
   document.querySelector("#mini-transport .mt-info").addEventListener("click", () => window.__infoClicks++);
-  await sleep(100);
+  // Laid out where it is shown, then a frame.
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   return true;
 })()`;
 const BOX = `(() => { const el = document.getElementById("mini-transport"), b = el.getBoundingClientRect();
@@ -53,7 +54,7 @@ async function drag(page, from, dx, dy, steps = 8) {
 
 test("the desktop mini player can be dragged about, stays on screen, and is remembered", { skip, timeout: 180000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -95,7 +96,11 @@ test("the desktop mini player can be dragged about, stays on screen, and is reme
 
       // Remembered.
       await page.eval("location.reload()").catch(() => {});
-      await sleep(1500);
+      // The page again, with Home drawn (an eval during the reload finds no page: asked again).
+      for (let i = 0; i < 150; i++) {
+        if (await page.eval(`!!document.querySelector("#home-view .album") && !!document.getElementById("mini-transport")`).catch(() => false)) break;
+        await sleep(100);
+      }
       await page.eval(SHOW);
       const back = await page.eval(BOX);
       assert.deepEqual([back.l, back.t], [edge.l, edge.t], "there again after a reload");

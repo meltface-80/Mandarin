@@ -5,6 +5,887 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.0
+**The release review** (`v1.0.0-release-review`): everything since the audit (v0.9.1 to v0.9.7)
+read again before the owner's merge to main. Two faults found and fixed, and a test that raced;
+the README and the Pages site say what is new since v0.9.0.
+
+- **Lists that follow the play history went stale after a play** (`LibraryRoutes.Kept.cs`, from
+  v0.9.3's kept lists). A kept list was keyed on the copy of the library and the hearts, and a play
+  changes neither, so the wall sorted by Most played or Last played, the Played filter, and the
+  facets' Played counts came back as they were before the play (a 304 to a page whose copy was
+  current), until a scan, an edit or a heart. Now the wall is made afresh whenever its sort or
+  filter reads the plays, and the facets are kept apart for "no plays yet" and "some plays".
+  `test/library-kept.test.js` plays a track and asks again: it failed on the old code and
+  passes now.
+- **A renderer's tick came before its rate was kept** (`Renderers/Players.Commands.cs`). When a
+  WiiM (or a sound device on Linux) confirmed the rate it was sent, Now playing showed ✓ first and
+  the rate was marked verified on Audio Devices after; a page that opened the device's page on
+  seeing the tick could still find the rate "profile". The rate is now kept first, then the tick
+  shown. Found when `test/renderer-playback.test.js` failed on a busy machine; with a 1.5 s pause
+  put before the write it failed every time on the old order, and passes on the new.
+- `test/backup.test.js` waits for a restore's restart (half a second after its answer) before
+  asking anything more. On a busy machine the next request reached the server as it started again
+  ("fetch failed"); with an 800 ms pause put in after the restore it failed every time, and passes
+  now.
+- **README and Pages**: a "New in v1.0.0" note (the phone and tablet layout, the Android app
+  installed over itself, the APK's name, the audit), and why a Mac's install line offers Mandarin
+  DAC Bridge: Mandarin's audio engine plays through ALSA, which macOS doesn't have, so the bridge
+  plays a USB DAC on a Mac instead; playing it from Mandarin itself is for a later build. The
+  phone and tablet layout is a feature of its own (`tools/docs/features.py`), and the Library,
+  Search, Labels and Offline notes say where their controls are on a phone or a tablet.
+- `tools/docs/features.py`, which writes both feature lists, had fallen behind the README in four
+  notes (matches applied from 85%, a Mac's DAC through the bridge, what a backup holds, how an
+  update starts again): run, it would have put the old words back. It now holds the README's, and
+  joins a note's two paragraphs into one on the site's card.
+- Version 1.0.0 (Android `versionCode` 308).
+
+## v0.9.7
+**The Android app's file is named Mandarin-Android-0.9.7.apk, and test builds don't wait for a
+Mac** (`v0.9.7-apk-name`).
+
+- The versioned APK the build makes, on the test-android pre-release and as the build's artifact,
+  is `Mandarin-Android-<version>.apk` (`…-shared-key.apk` when signed with the committed key), in
+  place of `musicd-server-android-<version>.apk`. The fixed names the links use stay:
+  `mandarin-android-test.apk` (test-android) and `dist/mandarin-android.apk` (main), and the app's
+  update check (`dist/latest.json`) is unchanged.
+- **The Mac's tests are off the test builds' path** (a trial). GitHub has few Mac runners, and a
+  test build waited up to an hour for one, twice: before its merge into migration and again before
+  its image. They now run on main, on a pull request into main (before anything reaches a
+  release), weekly and by hand ("Run workflow" on any branch); everywhere else the Mac jobs are
+  skipped, and a skipped job holds up neither a merge nor the image. CI also runs once per commit
+  instead of twice (a pull request shows its branch's run), but for a pull request into main.
+- **The Library's filter covers Focus and Sort** (phones and tablets): opened, its field goes over
+  them where they float, in ‹'s line; they no longer drop back into a row of their own under it,
+  pushing the albums down. On a tablet they sit at the bar's own edge (its 22px), so the field
+  covers them whole.
+- `test/renderer-playback.test.js` holds the renderer on its first track before reading its queue:
+  the fixture's tracks are three seconds long, and on a busy machine the track ran out and the next
+  began first (the queue read 2 tracks, not 3). Shown with a 3.5 s pause put in: it failed every
+  time before, and passes now.
+
+## v0.9.6
+**The touch layout** (`v0.9.6-touch-layout`): on a phone or a tablet, either way round. A desktop
+(a mouse) is as it was.
+
+- **A row along the foot of the screen:** Menu on the left, then Home, Library, and Search on the
+  right. Home and Library light up on their own screens; a second tap goes back to the top. From an
+  album's page, Home or Library closes it first. The row shows on every screen but Now playing.
+- **The mini player sits above the row.** Everything that kept room for it (the page's foot, the
+  volume sheet, an album's page) keeps room for both.
+- **Home has no top bar:** the date and the greeting are at the top of the screen. The menu and the
+  glass moved to the row; other screens keep their top bar (Back, Filter, Select, Shuffle).
+- **The grid screens** (Library, Random albums, a genre, Listen later, Playlists, Smart Picks, a
+  label, an artist) have no top bar's strip: the albums scroll up to the screen's edge, and the
+  bar's buttons float where they were (‹ on the left; Shuffle, a label's logo on the right). The
+  screen's title is the page's heading, at the top of the grid.
+- **The Library:** Focus and Sort move up into ‹'s line, on the right, and say just "Focus" and
+  "Sort ⌄" (the order chosen is in the sheet Sort opens); its glass gives way to
+  Search in the row, which opens the Library's filter ("starts with") as the glass did, with the
+  strip back under the field while it is open. **The Labels list** likewise: #–Z alone on the
+  right in ‹'s line, and Search finds a label.
+- **Search** opens the top bar again with the field across the whole screen, and the page moves
+  down under it, so no result is behind it. While a field has the keyboard up, the keyboard goes
+  over the row and the mini player (in the Android app, whose page shrinks above the keyboard,
+  they step aside).
+- **Offline** is a small sign between Home and Library; a tap says what the matter is, as before.
+  **The library scan's progress** is a thin brass line along the top edge of the screen.
+- `public/touchnav.js` works the page's own controls (the menu, Home, the Library wall, the search),
+  so each does what it did; the app bundles it for offline. `test/touch-nav.test.js` holds the
+  layout at phone and tablet sizes, both ways round, and a desktop's. The Offline, Settings and UI
+  Settings tests check the phone's and tablet's places for what moved (the Offline sign in the row;
+  the top bar's disc measured on ‹; the Library's Focus and Sort in ‹'s line, no glass), and still
+  the desktop's.
+
+## v0.9.5
+**The Android app installed over itself plays what it was playing** (`v0.9.5-rc1-phone-queue-after-reinstall`).
+
+- After the app was installed over itself, it showed an album from earlier in the day, and played
+  it with only that album queued. The app's player starts empty and asks the server for the list it
+  had; the server handed back its own queue, the last album played through the server, even when the
+  phone had since played a list of its own (a download, the phone's own music).
+- Now the server hands back the list the phone last played, at the same track and place, paused.
+  A list of its own comes back when the server knows every track in it (a download), and nothing
+  comes back when it doesn't (the phone's own music), never the older album. The server keeps the
+  same list across its own restart.
+- The app tells the server the track ids of downloaded tracks it plays, so a downloaded album comes
+  back. `test/phone-resume.test.js` holds all three cases.
+- An album opened just after the page loaded could be put back to "Loading…" and drawn again: the
+  page, as it started, reopened the album left open before a reload, which by then was the one
+  just opened. It now does so only when no album has been opened yet. `test/play-next.test.js`,
+  which failed on this about one run in seven (and on `migration` at v0.9.4), passes every time.
+
+## v0.9.4
+**The audit's documentation** (`docs/specs/audit-b4-main.md` module 5). Nothing changes in use.
+
+- **Every route listed** (D2, `docs/specs/api.md`): 202 routes, each with its method, address, who
+  may ask (open, signed in, a signed address, the server's own key) and the file that answers it.
+  `tools/api-map.js` writes it from the C# sources, and `npm run gates` fails while it is out of
+  date. `test/api-map.test.js` holds every GET it lists to a route the server answers.
+- **Comments say what the server does now** (D1). Some 70 still described a Node server standing
+  behind this one (work "handed over", a Node server "told" of changes, covers "left to" it); each
+  now says what happens. The Node server's own behaviour, where it is kept byte for byte, is in the
+  past tense. `server/README.md` says how to read one of its files as it last was.
+- **The page's empty catch blocks each say why they do nothing** (D4): storage being optional, an
+  abort already settled, an app older than the page. The page scripts now carry no lint
+  suppressions, so a new empty one fails the lint. `public/app.js` stays at 19,582 lines.
+
+## v0.9.3
+**The audit's performance** (`docs/specs/audit-b4-main.md` module 4). The same answers, made
+less often.
+
+- **The library's lists are kept once made** (P1, `LibraryRoutes.Kept.cs`):
+  - which lists: the wall and its facets, the Shelf, the artists and an artist's albums, genres
+    and decades, hearts and Listen later;
+  - each was made, written out and hashed for its ETag every time it was asked for, even when the
+    page's copy was current; the Shelf is every album in the library, each time it opens;
+  - now each is kept for the copy of the library it was made from and the hearts it shows, and
+    sent as kept (a 304 while the page's copy is current), marked `X-Mandarin-Kept`;
+  - a scan, an edit or a heart makes it afresh, and while the library is being built every list
+    is made as before.
+- **The Android app's page and stylesheet are kept once made** (P2, `Pages.Kept.cs`), while the
+  files they come from are as they were; an update's new files are made once.
+- `test/library-kept.test.js` (new).
+
+## v0.9.2
+**The audit's code quality** (`docs/specs/audit-b4-main.md` module 1). Nearly nothing changes in
+use: the server reads and answers requests one way everywhere, and its code is split, renamed
+and checked by its build.
+
+- **One way in and one way out for every route** (Q1, `Http.cs`). Each route file ported from
+  the Node server had its own JSON body reader (four) and JSON writer (eight), and they had
+  drifted. Now:
+  - a body is turned down alike wherever it is sent: not JSON, or not an object or an array, a
+    400 "Bad JSON"; a charset that isn't a UTF one a 415; past 2 MB a 413. Before, sign-in's and
+    playback's routes took a bare string as `{}` and read any charset as UTF-8;
+  - every JSON answer carries its weak ETag, is "not modified" for a copy still current and has
+    no body for a HEAD. Before, sign-in's, playback's, a download's and the not-found answers had
+    no tag;
+  - the two sign-in GET routes and `/server-info` answer a HEAD, as Express's `app.get` did.
+- **Names from the Node era** (Q7): `Front` is `Server`, `Scan/NodeFs.cs` is `Scan/PosixFs.cs`.
+- **The build checks the analyzer rules the code now keeps** (Q3, Q5, Q6, S7;
+  `server/Mandarin.Server/.editorconfig`). Breaking any of them fails the build:
+  - dead code: unused `using`s (50 removed), private members, parameters;
+  - a number parsed or written without a culture (18 fixed, the Sonos metadata's included);
+  - an ignored result, a bare `Exception`, a compare by lower-casing (each fixed);
+  - SHA-1 and MD5 outside `Fingerprint.cs`, which says what each of the nine uses is for (ETags,
+    cover fingerprints, cache names, Qobuz's request signature) and why none protects anything.
+- **The three largest server files split along their seams** (Q2): `LibraryRoutes.cs`,
+  `Identify/Identifier.cs` and `Admin/Backup.cs`, each now a few files under 400 lines.
+- `test/http-body.test.js` (new) sends each refused body to every kind of reader and checks each
+  writer's answer.
+
+## v0.9.1
+**The audit's tests** (`docs/specs/audit-b4-main.md` module 2), the first of the audit's stages
+to take a version of its own: one patch version a stage from here (the owner's choice). Nothing
+changes in use; the tests reach what they didn't, and wait for what they read.
+
+- The routes no test called, now tested: identification's accept and reject
+  (`test/identify-verdicts.test.js`), several albums at once, tracks played before put next or
+  at the end, the shortcut's Random Album, the outputs a Sonos room hasn't and the playlist
+  routes gone since v0.6 (`test/play-routes.test.js`), Tailscale's sign-out, the update's status.
+- A test waits for the state it reads, not a fixed time; a sleep stays only where a test proves
+  something doesn't happen in a window, and says so.
+- `test/helpers.js`: `until`, a signed-in `/api` client and a server started on the fixture
+  library, shared from now on.
+- The two tests that asserted one thing on Linux and another on a Mac are a test each.
+
+## v0.9.0
+**No Node.js.** Stage 7 part 6 of the move to C# (`docs/specs/csharp-migration.md`): the Node
+server's code leaves the repository and Node.js the image. Mandarin's server is one program
+(`server/`, C#), as it has been behind the scenes since v0.8.50; this release takes away what
+stood behind it. Everything the page, the apps and the speakers see is as in v0.8.50.
+
+- **The image** (`Dockerfile`): Debian with ffmpeg, poppler, the Tailscale engine, the audio
+  engine, the server and the page (`public/`) — no Node.js, no `node_modules`, no npm stage.
+  CI's image check now also fails if Node.js is in it.
+- **The repository**: `index.js`, `launcher.js`, `reset-password.js` and `lib/` deleted.
+  `package.json` keeps the tests' packages only, as development dependencies (`better-sqlite3`,
+  `fast-xml-parser`, `music-metadata`, and `sharp` for `tools/icons`); the tests stay JavaScript
+  (`node:test`) and run against the program. `server/build.sh` and `engine/build.sh` read the
+  version without Node.
+- **The server's paths for a Node server behind it, gone**: starting and waiting for one,
+  passing requests on to it (the reverse proxy and its package with it), the version match, the
+  work handed over and claimed back, the library's state asked of it, its words to and from
+  this server (`/internal/library`, `/internal/cpu/*`, `/internal/tags`,
+  `/internal/transcode/prefetch`, `/internal/tailscale`, `/internal/services/played`,
+  `/internal/jobs/import`, `/internal/devices/changed`, `/internal/playback/*`), and the
+  updater's launcher path and npm run. The server always runs as it ran alone in v0.8.50; the
+  `/internal/` addresses the tests use (a scan ended, the taste work, the prune, the services'
+  watch, a change made by hand, the hub's revision, MusicBrainz's one timer) stay.
+  `mandarin-server config` no longer carries the hand-over's `via_launcher`, `cpu_dsp` and
+  `scan_program`.
+- **The tests**: the parity suites lose their recording halves (`RECORD_<SUITE>=1`, which asked
+  `lib/` live) and are held to what they kept in `test/golden/` alone; `test/golden.js` only
+  reads. The last tests that asked `lib/` (the engine, sound devices, identification, label
+  logos, Last.fm, loudness, the MusicBrainz pack, the radio's memory, Shelf, similar artists,
+  streams, Tailscale) ask the program (`mandarin-server score`, new answers) or the server
+  running. The in-app update's end-to-end test (`test/update.test.js`: the page's one Update for
+  the server and the Android app, the library and an edit kept across the restart) runs on the
+  C# server, which builds its next version to update to (or takes `MANDARIN_SERVER_BIN_NEXT`).
+  `test/setup.js`'s Node block (`MANDARIN_FRONT`) is gone, and CI with it.
+- **Found and fixed on the way**: Last.fm's similar artists failed on a list of one (its answer
+  isn't an array then), and its quarter-second spacing between calls could fall short on a busy
+  machine (it is measured on a monotonic clock now). The engine's seek test was tightened after a
+  deliberate break slipped past it.
+- **Forgot the password?** `docker exec musicd-server /app/server/bin/mandarin-server
+  reset-password` (the sign-in page, Settings → Account, the Android app and the site say so).
+- **The Mac installer** (`tools/mac/install.sh`) installs ffmpeg and poppler only, and starts the
+  server alone; run on a Mac installed before v0.9.0, it brings the files up to date and puts the
+  server in Node's place. `tools/tag-report.js` and `tools/tag-from-folders.js` run from a
+  checkout now (the image has no Node.js).
+- **Docs**: the README and the GitHub Pages site (v0.9.0 on top, the Mac's install by hand, the
+  password reset, how it works, development), `server/README.md` (how it runs, alone), the spec.
+- **What the server used to hand to the Node server, answered here** (stage 7 part 7): with
+  nothing behind it, such a request fell through to "No such endpoint". The album editor's cover
+  from an address follows redirects here (https to http too, as fetch did; twenty at most), reads
+  an address as a browser does (a space in it), and refuses a picture ffmpeg can't read (422,
+  "Couldn't read that image") or one past 64 MB (502, too large). A JSON body sent without a
+  length is read to the 2 MB limit (413 past it). A route that fails says why (500 and the error,
+  as the Node server's routes did: a stream, a download, a library write with the database held,
+  a service's Clean up, status or settings); a cover that can't be drawn is absent (404), as
+  before. A merged label let go by a key of any shape: "Not a merged label". Tested in
+  `test/nothing-behind.test.js`.
+- **A USB DAC on a Mac** plays through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge)
+  (stage 7 part 7): the Mac's install line offers to add it (`MANDARIN_DAC_BRIDGE=yes` or `no`
+  answers without asking; installed already, it is left as it is), and each DAC is a renderer,
+  "<DAC> (Bridge)", which the bridge holds, switches to each track's rate and plays bit-perfect,
+  sharing it with Audirvana. Mandarin's audio engine plays through ALSA, so a Mac's own sound
+  devices, listed but not played since v0.8.49, are no longer offered; Audio Devices points to
+  the bridge instead. CI plays a queue through the bridge's fake DAC, end to end
+  (`test/dac-bridge.test.js`).
+- **The loudness order test** read the order files were measured in from the order their ffmpeg
+  stand-ins wrote a line, so files started together could be noted out of order on a busy
+  machine; it reads the processes' order now.
+- **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
+  `test/security.test.js`, `test/backup-sealed.test.js` and `test/backup-page.test.js`):
+  - **A backup sealed with a passphrase** (Settings → Backup & restore, 8 characters or more).
+    The API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity go into one
+    sealed part (AES-256-GCM, its key from the passphrase by PBKDF2-SHA256, 600 000 rounds). A
+    whole database's copy leaves them out too, with what a restore never takes from it (the
+    account, the signed-in devices, the signing secret), deleted so they leave no trace in the
+    file. Restoring the keys or the whole database asks for the passphrase: without it, or
+    with another, nothing changes. Everything else in a sealed backup restores without it, and
+    a backup without a passphrase is as before. The list marks a sealed backup; the app sends
+    the passphrase with a file (`X-Mandarin-Passphrase`). The page says what a backup holds.
+  - Every page that acts (the page, sign-in, Shelf) may be framed only by Mandarin itself
+    (`frame-ancestors 'self'`, `X-Frame-Options`), so another site can't steer clicks on
+    Settings or Restart. The wall display may still be framed. Every file is taken as the type
+    it is named (`nosniff`), and no address is sent to another site (`Referrer-Policy`).
+  - A cover from an address in the album editor is never fetched from the server itself or its
+    link (loopback, link-local such as a cloud's `169.254.169.254`, `0.0.0.0`). Every redirect
+    hop is checked, by the address's name and by what DNS answers for it, and again where the
+    connection is made. Addresses on your network are fetched as before.
+  - A WiiM's own (self-signed) certificate is taken from a private network's address only
+    (RFC 1918, link-local, IPv6 unique local).
+  - NuGet's vulnerability audit is on: a package with a known advisory fails the build.
+  - The restore routes moved to `AdminRestoreRoutes.cs` (`AdminRoutes.cs` was at its length cap).
+  - `sharp` (used by `tools/icons` only, not in the image) is 0.35.5, out of libvips' advisories.
+
+## v0.8.50
+Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
+stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the
+tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
+owner's merge to `main` is v0.9.0. The parts as they are built:
+
+- **Plan**: the five parts in the spec, each committed on its own, in small steps; a sixth since
+  part 5 (the image and the repository without Node, on a branch of its own).
+- **The configuration from the environment** (part 1, step a): `Config.cs` reads what
+  `index.js` read (`MUSIC_DIR`, `SERVER_IP`, `SONOS_HOSTS`, `UPNP_*`, `INCLUDE_ZONES`,
+  `EXCLUDE_ZONES`, `SCAN_INTERVAL_HOURS`, `MUSICDNET_BIN`, the `*_URL` stand-ins, `IDENTIFY*`,
+  `LOUDNESS_TICK_MS`, `LASTFM_*`, `LOCAL_AUDIO`, `UPDATE_*`…), with the same defaults, into the
+  shape the hand-over carried, so everything the hand-over set up takes it unchanged once no Node
+  server is there to hand it over. The tests' stand-ins, which `index.js` took as `createServer`'s
+  overrides, come as `QOBUZ_URL`, `TIDAL_URL`, `TIDAL_AUTH_URL`, `TIDAL_IMAGES_URL` and
+  `MANDARIN_CONFIG` (a JSON object laid over the whole). `mandarin-server config` prints it;
+  `test/config-csharp.test.js` holds it to `index.js`'s names and defaults, name by name.
+- **The C# server on its own** (part 1, step b): with `MANDARIN_NODE=0`, or no `index.js` in
+  the app's folder, no Node server is started or waited for. Every job is this server's from
+  the first request (`Jobs.StartAlone`: the hub, the scans, the services, the update, the
+  processor split, set up from `Config.cs` as the hand-over set them up; the speakers found
+  last time asked first, as `index.js` asked them), and the library's state is this server's
+  own (`Library.State.cs`: the version and the marks moved where the Node server was told of a
+  change, so the copy is read again on the next request; the scan's state, the label rules,
+  the day and the week on this clock, the address). A database put back from a backup goes in
+  at the start (`Admin/Restore.cs`, as `lib/backup.js` did), Restart and Shut down from
+  Settings are the program's own, and a restore's restart starts the program again in its own
+  process. What no route answers is 404, as Express said it. `test/server.js` (new) starts the
+  program alone for a test, as the image will start it; `test/csharp-alone.test.js` (new) holds
+  the account, the scan, the library, the pages, the rooms, a heart and `/api/health` to it with
+  no Node server anywhere. Behind a Node server nothing changes.
+- **The health check** (part 1, step c): on its own, `/api/health` has no `csharp` field (no
+  version to match). `mandarin-server --health` asks `/api/health` on `PORT` once, prints the
+  answer and leaves with 0 when it was 200, else 1; the image's `HEALTHCHECK` runs it in place
+  of `node -e`, and the image's smoke test runs it both ways. `test/csharp-alone.test.js` holds
+  both.
+- **Playback alone** (part 1, step d): `test/csharp-alone.test.js` now also starts the program
+  with a fake Sonos household at `SONOS_HOSTS` and a fake renderer at `UPNP_HOSTS`, and holds the
+  rooms (in `/api/zones`, `/api/status` and `/api/health`), the phone's hello, the renderer in the
+  device list and as a zone once switched on, and a play on a room: the speaker fetches the track
+  from this server's own address. That last found a gap: the install's secret (the `authSecret`
+  setting, under which the addresses handed to speakers are signed and checked) was the Node
+  server's to make as it started, so alone nothing it signed was vouched for. `Auth.Secret.cs`
+  makes it at the start when none is there, as `lib/server/auth.js` did. Part 1 is complete.
+- **The last routes** (part 2). On its own, what no route answers is not there as Express said it:
+  an `/api/` address as JSON (`{ error: "No such endpoint: GET /x" }`), anything else
+  finalhandler's page. The tag readers' check (`/api/tagcheck`, `/api/tagcheck/report`, v0.8.13)
+  goes with the Node reader: the C# reader is the reader, so the Library Scanner page's "New tag
+  reader check" panel and its Copy report button are gone (the Node side stays until part 5).
+  `mandarin-server reset-password` does what `reset-password.js` did (the account removed, every
+  device signed out, while the server runs; `docker exec musicd-server
+  /app/server/bin/mandarin-server reset-password`); the Node script and the hint on the sign-in
+  page stay until part 5. Settings → Updates' `mac_node_only` is gone (never true with the C#
+  server in front). Alone, `POST /internal/library/changed` from this machine with the front key
+  makes the server read its copy again, for a test that changed the database by hand (part 4), and
+  the tests' `/internal/playback/revision` holds. A renderer's event (`NOTIFY /upnp/event/…`)
+  says it was answered by the C# server, as it has been since v0.8.49. Covers in CMYK or with a
+  profile of their own, and placeholders where ffmpeg can't draw text (a static ffmpeg, some
+  Homebrew builds), were the Node server's to draw: alone they are drawn as ffmpeg reads them,
+  without the profile, and the placeholder without its words, until the owner decides (the spec's
+  section 6). `test/csharp-alone.test.js` holds each.
+- **The update, with no launcher** (part 3). On its own, an update from Settings is the C#
+  server's whole: GitHub asked, the release's bundle downloaded and checked (its `package.json`
+  names it; no `index.js` is looked for), its own program of the new version fetched, checked and
+  put in place of the file it runs from, the bundle's files laid over the install (never the
+  data; no `npm install`), and the server started again from the new file in its own process, as
+  Restart from Settings starts it — no `launcher.js`, no `.update/READY`, no code 75. Behind a
+  Node server the launcher's way stays until part 5. The image's `CMD` already runs the server
+  under tini and the Mac's launchd item already runs the binary; both lose their Node pieces in
+  part 5. `test/update-alone.test.js` (new) runs it for real from a copy of the program in an
+  install of its own, the new program a stand-in that writes down how it was started.
+- **The tests drive the binary** (part 4). The tests that started the Node server
+  start the program alone through `test/server.js` (its `createServer` takes `index.js`'s options
+  as the environment; what a test reached into the Node server for, it has from the database file
+  or over HTTP; the program's log is kept for a test that reads it). Moving them found three things
+  the program alone answered differently: a deep link (`/library`, an album's address, a folder's
+  redirect) was the not-found page, because the not-found route claimed every address without a
+  file extension before the page could (it stands where the Node server's catch-all stood now);
+  a stream with a rate, depth or gain the server won't make, or of a track or file that isn't
+  there, fell through to the not-found page where the Node server said 400 or 404 (`Streams.cs`
+  says them alone, and reads a gain written as a list of one, `?g[]=-3`, as that gain, as
+  Express read it); and a cover that can't be had was the same, where the Node server answered an
+  empty 404 (`Images.cs`). `test/pages-csharp.test.js`, `test/loudness.test.js` and
+  `test/covers-csharp.test.js` hold each, on the program alone. And Rescan library answered
+  with no services after it, where the Node server named the ones signed in with their import on
+  (Qobuz, Tidal) as it set them going; it names them now (`test/qobuz.test.js`).
+  The suites that compared the two servers side by side hold the C# server to a recording of the
+  Node server's answers (`test/golden/`, made again with `RECORD_…=1` while `index.js` is still
+  here). That found one more, from stage 6: a renderer or sound device hidden, or switched off,
+  while it played was let go but never sent Stop — the route writes the switch first, and the
+  hub's player refuses one switched off, so the Stop never went; the Node server stopped it before
+  writing. It is stopped now, as there (`Renderers/Players.cs` `LetGo`,
+  `test/devices-csharp.test.js`). And a JSON body that can't be read, sent where no route takes
+  it, is refused as Node's `express.json()` refused it ahead of every route (400 `Bad JSON`; 415
+  for a charset it can't read; 413 past 2 MB sent in chunks), not "No such endpoint"
+  (`Pages.NotThere.cs`, `test/csharp-alone.test.js`).
+  The recordings (`test/golden.js`): the library's screens, files, covers, conversions and
+  downloads; Audio Devices' writes; playback; the services' rows, import, sign-in and streams. What
+  follows from the machine is kept by rule rather than as it was recorded — a file's length (another
+  ffmpeg makes the fixtures a few bytes apart), ETag and Last-Modified from the file, the Node
+  server's ffmpeg arguments run again here with or without soxr, a cover's hash from its address,
+  SQLite's ids as keys, times as days from now — so each holds on Linux, a Mac and CI's static
+  ffmpeg alike. The processor split (`test/cpu-alone.test.js`, new), Restart and Shut down
+  (`test/power-csharp.test.js`), the update's refusals (`test/update-alone.test.js`) and which
+  server answers what (`test/front.test.js`) are held on the program alone; what only the Node
+  server did (its hand-over, its launcher) is run while it is there and goes with it. Two test
+  helpers were made sturdier on the way: a restart waits for the program's first scan
+  (`test/server.js`), a test that times out leaves no server holding its port, and a browser call
+  that is never answered fails by its name. CI's Node-alone job is gone.
+- **The tests on the program alone, and what they found** (part 5). The suites that still asked
+  `lib/`'s modules no longer need them: the parity suites (Sonos, renderers, extras, identify,
+  share, backup, write-ups, art search, streams, scan, database, conversions, AutoEQ) hold the C#
+  program to a recording of the Node server's answers (`test/golden.js` `answers()`: in full where
+  small, a short sum of each 32 cases otherwise), the tag reader to `music-metadata` itself
+  (`test/tag-oracle.js`), and the waveform to the Node server's rule kept in the tests
+  (`test/waveform-rule.js`); some forty unit tests ask the C# server's own rules through
+  `mandarin-server score` (new answers in `RulesCommand.cs`: mounts, versions, a SOAP call sent,
+  label names, what a phone plays, the processor split and where each kind of process starts, home
+  and away addresses, what an install can do, a device register script, the SSDP Sonos check, a
+  backup's server part with a phone's id remapped) or through the server running (the library's
+  safety, its folders, dates and names, the watch, the household read past a player that hangs, a
+  renderer seen lately; Shut down on a Mac with a stand-in `launchctl`; Restart and Shut down
+  refused over Tailscale). Tests of what only the Node server did go with it (its hand-over and
+  updater, the tag check, its own processes). Found on the way and fixed:
+  - the library's one-time upgrades (album keys with their folder, names from folders for untagged
+    tracks, disc folders' numbers) were made by the Node scanner each time it started, and never by
+    the C# program alone; `Scan/Scanner.Migrate.cs` makes them before a scan, marked done as before;
+  - an album edit made or dropped rewrote `album-edits.json` only through the Node server, so
+    without it a database that had to start over lost the edits made since; the C# server writes it;
+  - a scan read as ended on `/api/status` before the library had been read again after it, so a page
+    polling Rescan could fetch the albums from before; a scan is under way until that read is done;
+  - `/api/cpu` said DSP was no longer in use while its split was still in place (from the hold's
+    end until its timer re-decided, longer on a busy machine); it reports the DSP the split was
+    decided with (`Cpu.cs`; the placement rule moved to `Cpu.Place.cs`).
+  The Node server's scanner as a fallback (`Scans.cs`) goes, and `tools/identify-report.js`,
+  `identify-probe.js` and `artist-report.js`, which ran `lib/` with the image's Node.
+
+## v0.8.49
+Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
+whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sonos, UPnP renderers
+and sound devices on this computer — each part held to the Node server's own answers and command
+order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
+
+**Fixed after the merge (#209): no sound anywhere without `SERVER_IP`.** With no `SERVER_IP`
+set, as in the Docker install, the C# hub handed every speaker and phone `http://127.0.0.1:3500/…`
+for the music: Sonos rooms took the queue and played nothing, and the phone showed the album with no
+sound. The Node server's `lanAddresses()` reads this machine's network interfaces when it is given
+none (`os.networkInterfaces()`, its default); the C# copy read none, so its answer was always
+loopback. It reads them now (`Playback/Topology.cs`), which also brings back the search for speakers
+from every LAN interface, a renderer's event address and the phone's away-from-home address over
+Tailscale. Every test pinned `SERVER_IP` to 127.0.0.1, so none saw it; `test/stream-address.test.js`
+holds both servers to the rule with none set (the queue and the phone's track on this machine's LAN
+address, and the audio fetched from there), and `test/sonos-csharp.test.js` compares the two
+readings of this machine's own interfaces.
+
+- **The hub, the queue store, the phone as a zone, history, the radio and the play routes**
+  (part 1): the zone hub (`lib/sonos/zones.js`: one state per zone, the revision the long polls
+  wait on, the three hooks — a track started, one played long enough to count, the queue near its
+  end — the kept queues put back after a restart), the phone (`phones.js`: hello, the commands long
+  poll, the report with the phone's own list, its USB DAC and its volume steps, every command), the
+  queue store (`queue-store.js`: the same `queue:<id>` rows, the same debounce and position writes,
+  so a queue one server kept is put back by the other across an update), the items (`playback.js`:
+  signed addresses, DIDL, each track's gain, the prefetch), history and the radio (`features.js`'s
+  playback half: a play into `plays` with its album's id, Listen later's album coming off the
+  list, Random Album Radio with its six-month memory and 60-day preference), and every playback
+  and phone route (`api-playback.js`, `api-phone.js`: the gate, the name overlay, now playing and
+  its badge, Random Album, the history-to-queue routes, `/api/radio`) — in C#, answered from this
+  server's first request wherever it holds the new job `playback`. Playing a Qobuz or Tidal album
+  from its browser plays through the hub here too, the Node server no longer asked
+  (`/internal/playback/play` stays for an older C# server). `server/Mandarin.Server/Playback/`
+  (`Hub.cs`, `Hub.Commands.cs`, `Phones.cs`, `Phones.Report.cs`, `Phones.Commands.cs`,
+  `QueueStore.cs`, `Items.cs`, `Item.cs`, `Tracks.cs`, `History.cs`, `NowPlaying.cs`,
+  `Register.cs`, `ZoneState.cs`), `PlaybackRoutes.cs`, `PlaybackRoutes.Commands.cs`,
+  `PlaybackRoutes.Play.cs`, `PhoneRoutes.cs`, `ServiceRoutes.Play.cs`. The Node server's part is
+  the hand-over only (`lib/server/playback-handover.js`, new): its hub never starts where the C#
+  server names the job, and starts after all at a hand-over that leaves it out or when none comes;
+  the hand-over's `config` carries what the hub was set up with (the Sonos hosts, the server's
+  address, the include and exclude lists, the renderer hosts, multicast, the offline wait, local
+  audio). Sonos rooms (part 2) and renderers (part 3) are stubbed meanwhile: a Sonos id is refused
+  as an unavailable room. Tests: `test/playback-csharp.test.js` (new): the same requests to this
+  suite's server (behind C#) and to a Node server alone in a child process, for a phone zone, every
+  answer and refusal compared as JSON — hello, the lists, playing and controlling, the report and
+  now playing, the badge's every word, transport, queue and volume commands in order, the phone's
+  volume steps, the radio switch and its memory, away from home, the phone's own list, the queue
+  handed back with a hello and the kept row in the database, and the queue kept across a restart
+  of the C# server. `test/radio-memory.test.js` and `test/queue-moves.test.js` pass through C#;
+  the suites that drive the fake household (`test/phone.test.js` among them) wait for part 2.
+  Split for the length gate: `Jobs.Internal.cs` (the internal routes) out of `Jobs.cs`,
+  `ServiceRoutes.Play.cs` out of `ServiceRoutes.cs`.
+- **Sonos** (part 2): the player (`lib/sonos/device.js` and the sending half of `soap.js`: a
+  keep-alive pool of four, the SOAPACTION header, the ten-second timeout, one retry on a
+  connection the player closed, every failure one UPnPError), discovery and the household
+  (`topology.js`: M-SEARCH from every LAN address, the seeds and the players that answered last
+  time asked first, the household from any one player — the first known alone, then the rest at
+  once — the models fetched, the signature, `sonosKnownHosts` kept as the Node server kept it),
+  and the Sonos half of the hub (`zones.js`: the three loops — discovery every minute, the
+  household every thirty seconds, the poll every second with the watched, playing and
+  every-fifth rule — the group read into the zone's state, the volumes, the queue read from the
+  speaker and kept until its UpdateID moves, enqueue in the Node server's exact order, sixteen
+  tracks a round trip and one at a time on older firmware, each command read back promptly,
+  `playFromHere` read back before answering, every queue edit, the play modes, volume and mute,
+  pause-all, grouping and ungrouping, moving music between any two kinds, a room's queue planned
+  again for its levelling) — in C#. With them the rooms' part of `/api/status`, `/api/health`'s
+  rooms and a speaker's own address for a cover (`Images.cs`) are the hub's, and Sonos rooms and
+  phones go into the device register from the hub (`devices.js` `syncKnown`, every ten seconds
+  and at a phone's hello), so a phone's page in Audio Devices is there; a device write's effects
+  (a phone told its DSP or levelling, a room's queue planned again) are the hub's too
+  (`DeviceRoutes.cs`). `Playback/SonosDevice.cs`, `SonosTopology.cs`, `Hub.Sonos.cs`,
+  `Hub.SonosCommands.cs`, `Hub.Register.cs` (new); `POST /internal/playback/revision` for the
+  tests (the hub's change counter set). Tests: `test/playback-csharp.test.js` extended — a fake
+  household for each server, and after each scenario (played to, every transport command, the
+  queue added to, moved, played from, cut and cleared, the play modes, volume and mute, a
+  stopped room, pause-all, grouping and ungrouping, music moved from the phone to a room and back)
+  the commands each speaker was sent compared action for action, as well as every answer;
+  `test/e2e.test.js`, `test/queue-screen.test.js`, `test/play-next.test.js`,
+  `test/sonos-restart.test.js`, `test/now-playing-restart.test.js` (its counter set through the
+  internal route where C# holds playback), `test/phone.test.js` whole, `test/dsp.test.js`,
+  `test/stream.test.js` and `test/playlists.test.js` pass through C#. The suites that bring a
+  renderer (`queue-stopped`, `audio-devices`, `devices-csharp`, `renderers-csharp`,
+  `local-output`) wait for parts 3 and 4.
+- **The renderers** (part 3): the UPnP players (`lib/renderers/players.js`: the queue kept here,
+  `jump`, the next track armed once its file is complete — the conversion's state, a prefetch
+  when it has none — the device that ignores SetNextAVTransportURI noticed and started by hand,
+  three stops before a track ever plays reported rather than looped, shuffle's played set and
+  loop, the poll with the track found by its URI, the LinkPlay check of what a WiiM is really
+  playing, GENA subscriptions renewed in time and `NOTIFY /upnp/event/:id` answered before the
+  gate, the target a stream is planned to — the profile's effective chips, ffmpeg's 32-bit, the
+  DSD mimes, the zone's DSP — `replan`, `restore`, `drop`, every command and the fixed-volume
+  rule), discovery (`discovery.js`, `ssdp.js`, `linkplay.js`: M-SEARCH for MediaRenderer from
+  every LAN address, Sonos answers left aside, the location cache and its ten-minute re-check,
+  a known renderer that missed a round checked directly, the Sink read, LinkPlay's probe —
+  https then http, the certificate unverified — and the seeds), the device list's model
+  (`devices.js`: the scan every minute, `json`, `list`, `get`, `online`, `enabled`, `forget`) and
+  with it `GET /api/audio-devices`, a device's page, Look again and Forget, the switch
+  (`enabled`) and the radio on a PATCH, and the away-from-home rule — in C#, the hub's. A device
+  write's every effect is the hub's now (a renderer switched off or hidden while playing stopped
+  and let go, its queue planned again for its DSP or levelling), so the Node server is no longer
+  told of one. `Renderers/Players.cs`, `Players.Poll.cs`, `Players.Commands.cs`, `Renderer.cs`,
+  `Discovery.cs`, `Ssdp.cs`, `GenaClient.cs`, `LinkPlay.cs`, `Devices.cs`, `Playback/SoapHttp.cs`
+  (the sending half of `soap.js`, shared with Sonos), `Playback/Hub.Upnp.cs`,
+  `UpnpEventRoutes.cs`, `DeviceRoutes.Read.cs` (new). Tests: `test/renderer-playback.test.js`
+  (bit-perfect and gapless, SetNext ignored, the next file waited for, transport, the queue,
+  volume, shuffle and loop, upsampling, DSP, events, fixed volume, DSD, a restart) and
+  `test/audio-devices.test.js`'s renderer half pass through C#, with `test/devices-hide.test.js`,
+  `test/queue-stopped.test.js` and `test/renderers-csharp.test.js`; `test/devices-csharp.test.js`
+  holds the switch and the radio to the Node server's own answers and rows too, and a renderer
+  hidden while playing to a Stop on the fake device. `test/local-output.test.js`'s end-to-end
+  half waits for part 4.
+- **Sound devices on this computer** (part 4): the engine's driver (`lib/local/engine.js`:
+  Mandarin's audio engine found in the same order — `AUDIO_ENGINE_BIN`, the image's, the one
+  downloaded into the data folder, each asked for `protocol 1` — fetched once in the background
+  where the image lacks it and that is allowed, checked against its SHA256SUMS, and driven over
+  its stdin and stdout as before: the commands, the events — `pos`, `format`, `ended`, `xrun`,
+  `error` — what it was given mapped back to the track the player knows, the gain on the audio
+  taper, the engine on playback's own core at a raised priority where the system allows, `halt`),
+  the device list (`lib/local/devices.js`: ALSA's cards from `/proc/asound` and `/dev/snd` with a
+  USB DAC's own rates and depths, a Mac's outputs from `system_profiler`, the id from the name,
+  `hw_params` for the verified tick) and the scan every half minute into the register
+  (`devices.js` `scanLocal`, with the list's `local` counts) — in C#, the hub's. A sound device's
+  volume is kept in the register (`local_volume`) and its queue put back after a restart, stopped,
+  as before. `Local/AudioEngine.cs` (grown out of `HealthRoutes.cs`), `Local/EngineOutput.cs`,
+  `Local/LocalDevices.cs`, `Cpu.Engine.cs` (new). Not ported, as planned: `lib/local/output.js`,
+  the ffmpeg sink a device was played through before the engine — a Mac's sound devices are
+  listed and not played from this server (the Node server plays them until stage 7 decides). The
+  hand-over carries a test's own device list (`local_devices`), so `test/local-output.test.js`'s
+  end-to-end half passes through C# with a `file:` device played by the engine; the Node-alone
+  run is unchanged.
+- **What was left, and the Node hub idle** (part 5): the wall display's content takes the zone's
+  track from the hub here (`/api/display/content`; `POST /internal/playback/now` is no longer
+  asked — it stays, with `/internal/devices/changed` and `/internal/playback/play`, for an older
+  C# server). With it nothing of playback is the Node server's where this server holds the job:
+  its hub never starts, its device scans never run, and it answers nothing a page or a speaker
+  asks of playback. A speaker asking for a stream or a cover by its own address, unsigned (a
+  queue made before an update), is vouched for by the hub here (`Streams.cs`, `Images.cs`): the
+  Node server no longer knows the speakers and would turn it away. The hub never holds a thread
+  waiting on the library's copy (now playing, a play recorded, a queue rebuilt for another player,
+  the kept queues put back): each is asynchronous, so a busy machine with few cores can't be
+  starved into a hang — CI's runners were. The device list and its routes came with part 3, the rooms' part of
+  `/api/status` and `/api/health` with part 2. `test/housekeeping-csharp.test.js` holds
+  `/api/status` to the Node server's own answer with the rooms' part set aside (the Node hub
+  being idle, it counts none) and the display's content to the hub's track.
+- **The suite, steady and quicker.** A phone's report that brings a USB DAC (or takes it away) is
+  answered once its queue has been planned again, so the app's next poll has the new queue (the
+  replanning had been left running after the answer, and a poll straight after found nothing).
+  The parity test for the Sonos rooms compares a room's state until both hubs have read it, never
+  once (each reads its room on a timer of its own), and reads the room paused before moving its
+  music back to the phone (the fixture's tracks are three seconds long). A test's request to a
+  server fails after a minute and a half naming its address (`test/setup.js`), so a server that
+  never answers is a failure with a name rather than a file held to its five-minute timeout. CI
+  deals the test files out to three Linux jobs and two Mac jobs (`npm run test:shard`, node's
+  `--test-shard`) and keeps the .NET packages between runs: the whole run takes the time of a
+  part. Two more races found by the first sharded run: the server takes its port with a few
+  tries over five seconds (`lib/server/listen.js`, new) rather than failing on the moment the one
+  before is still letting go of it (a restore's restart; the in-app update's restart has the same
+  shape at home); and a scan made by the C# program is given once the program has gone, never
+  while it still holds the database (a database replaced underneath it read "disk I/O error" on
+  a Mac). And a test file that fails in CI is run once more on its own (`.github/retry-failed.sh`):
+  a pass then is a warning on the run naming the file, a race on a busy runner to fix in its turn;
+  a failure again is red. The re-run's first catch was no race: a page's `Last-Modified` from the
+  C# server (`Pages.cs`, a backup's download too) is now the file's time rounded to the
+  millisecond first, as Node's `fs.Stats` gives it and `sendFile` sends it, so a file written at
+  .9995 s is the next second from either server.
+
+## v0.8.48
+Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
+but play moves to the C# server**, part by part, each held to the Node server's own answers and
+writes. After it the Node server is playback and nothing else (stage 6 moves that; stage 7 removes
+Node). The parts as they are built:
+
+- **The database** (part 8): made and brought up to date by the C# server, as the Node server made
+  it, statement for statement: its tables and indexes, the columns added since a table first
+  shipped, a database made by something else moved aside (`musicd.old-<ms>.db`) and what is worth
+  keeping carried over, the album edits read back from `album-edits.json` or written there, and
+  Smart Picks' and the radio's tables. The C# server does it before it starts the Node server, and
+  the Node server asks it again as it opens the database (`mandarin-server db`), so a backup put back
+  is brought up to date by C# too. `server/Mandarin.Server/Schema.cs` (new), `Program.cs`, `Front.cs`.
+  The Node server's part is the hand-over only: `lib/library/db.js` asks the program when the C#
+  server that started it has it (`MANDARIN_SERVER_DB=1`), checks the tables have what it needs, and
+  only then leaves out its own; `lib/server/features.js` makes none of its tables then; a Mac on
+  Node alone, an older C# server or a program that fails, its own code as before. Tests:
+  `test/db-csharp.test.js` (new): a new database, one from before the added columns, one made by
+  something else, one from a newer version, and `album-edits.json` both ways, each made by the C#
+  program and by `lib/library/db.js` from the same start and compared file for file; through the
+  server, the Node server's database is the program's, and with a program that fails its own.
+- **The pages** (part 7): the sign-in page (`/login`), the wall display's page (`/display`), and the
+  page for any other address it opens (a deep link, the Android app's form of it too), sent by the C#
+  server as the Node server sent them (the same file, tag and caching); a folder of the page's files
+  asked for without its slash is sent there (301), as before. `/api/health` (Docker's health check)
+  by the C# server too, field for field: the rooms found and how bringing the C# server to the Node
+  server's version went, as the Node server says them with its state; the library's count, ffmpeg,
+  the conversions under way and the audio engine there. `server/Mandarin.Server/HealthRoutes.cs`
+  (new), `Pages.cs` (a page's tag now gives its time to the nearest millisecond, as Node's does:
+  Shelf's page's tag changes once), `Program.cs`, `Library.cs`, `Transcoder.cs`. The Node server's
+  part: two fields more in `/internal/library` (`rooms`, `csharp_update`). Tests:
+  `test/pages-csharp.test.js` (new), each page, deep link, redirect and `/api/health` held to the
+  Node server's own answer; `test/front.test.js`'s pins moved on to C#.
+- **The phone's download lists, what was left** (part 3): a streamed album's download list (its
+  tracks planned as FLAC, as before; the phone is then refused each one, as before), a track whose file
+  is gone from the disk (404), and the phone's albums or offline plays sent as something that can't be
+  read as a list (Express's own 500 page, as in the image), all answered by the C# server now. A
+  download refused for a streamed track says "can't" with its apostrophe, as the Node server wrote it
+  (`\u0027` before). `DownloadListRoutes.cs`, `Downloads.cs`. Tests: `test/library-front.test.js`'s
+  download checks, each of these held to the Node server's own answer.
+- **Last.fm, what was left** (part 6): its routes moved in v0.8.26 and its pictures in v0.8.34, but
+  they waited for the Node server's hand-over, which brought Last.fm's address and the environment's
+  key. The C# server now has both from its own environment (`LASTFM_URL`, `LASTFM_KEY`, the same
+  container) from its start, the Node server's word taking over when it comes (the tests' stand-in),
+  so a Node server starting again no longer takes Last.fm with it for a moment. `Jobs.cs`,
+  `LastfmRoutes.cs`. Tests: `test/lastfm.test.js`, a C# server in front of a stand-in that hands
+  nothing over, answering Last.fm from its own environment, the stand-in never asked.
+- **The in-app update and the processor split** (part 4). Settings → Updates is the C# server's once
+  the Node server hands it over (the job `update`): the status, Check now, Install and the check every
+  twelve hours, as the Node server made them, with the same words for each refusal (GitHub turning the
+  check down, no update, a download that fails, a bundle that isn't Mandarin's). An install fetches
+  and checks the C# server of the new version first and stops with nothing changed if it can't be
+  had, as before; then the bundle is staged for the launcher and the Node server asked to start again,
+  on which the launcher lays the new files in and the new Node server asks this program to start again
+  from its new file, as before. `server/Mandarin.Server/Admin/Updater.cs` (new, `lib/updater.js` and
+  `csharp-update.js`'s `prepare` rule for rule), `UpdateRoutes.cs` (new), `Jobs.cs`. The processor
+  split (which cores playback keeps, the rest for everything else; two for playback while DSP
+  converts and ten minutes after) is decided by the C# server now (the job `cpu`), from the same rule
+  as `lib/cpu.js` and counting both servers' DSP conversions, and sent to the Node server, which
+  follows it for playback's own processes (the audio engine, its decoder) and tells the C# server of a
+  DSP conversion it makes itself; `/api/cpu` (Settings → Library Scanner) answers from that decision.
+  `Cpu.cs`, `PowerRoutes.cs`, `Transcoder.cs`. The Node server's part is the hand-over: `update` and
+  `cpu` in `FRONT_JOBS`, its own update checks not started once handed over, where GitHub is asked
+  and whether it runs under the launcher said in the hand-over's settings (`index.js`,
+  `lib/server/api-playlists.js`), and `lib/cpu.js` following a split given to it (`follow`,
+  `unfollow`, `tellDspTo`). Tests: `test/update-csharp.test.js` (new): a stand-in GitHub, the server
+  through the C# server on a copy of the app and of the program, every refusal word for word, then an
+  install staged under the launcher with the program of the new version in place first and the Node
+  server asked to start again with 75; without a launcher, the files laid in. `test/cpu.test.js`: the
+  C# server's decision held to `lib/cpu.js`'s for the same cores, followed by the Node server, both
+  moving when DSP takes and gives back its second core.
+- **Audio Devices, the writes** (part 1). What you change on a device's page in Settings → Audio
+  Devices is written by the C# server now: its name, hidden, sharing (a phone's), output (mode, bits,
+  volume), DSP, Volume Levelling and the rates, depths and DSD you tick, each checked and written as
+  the Node server wrote it, in the same order and with the same words for a refusal (a write made
+  before a refusal stays, as before). The Node server is then told, so what each write did there
+  still happens (the name everywhere, a renderer's or sound device's queue planned again with its
+  new DSP or levelling, a phone told its own, a Sonos room's queue planned again, a device hidden
+  while on switched off and let go), and answers the device as its page shows it, which the C#
+  server sends on. Switching a player on or off and the radio stay the Node server's until playback
+  moves (stage 6), as do the list, a device's page, Look again and Forget. Away from home, only the
+  phone the app is on, by the Node server as before. `server/Mandarin.Server/DeviceRoutes.cs` (new),
+  `LibraryRoutes.cs`; the Node server's part is the hand-over (`lib/renderers/devices.js` `changed`,
+  `registry.js` `refreshName`, `index.js` `/internal/devices/changed`). Tests:
+  `test/devices-csharp.test.js` (new): every write and refusal made from the same row through the
+  C# server and by the Node server itself, the rows and answers compared; the Node server's effects
+  seen.
+- **Library housekeeping** (part 2). The library scans are the C# server's to start whatever reads
+  the tags: where it is trusted with them (the tag check passed, or `TAG_READER=csharp`) its own
+  program scans, as since v0.8.34; where not (`TAG_READER=node`, or the check still to pass) each
+  scan it starts (its timer, the music folders' watcher, Rescan, Reindex, a folder added) is made by
+  the Node server's own scanner at its ask, which says how it is going line by line, as the program
+  does. Before, the scans stayed with the Node server then, with Rescan, Reindex and the music
+  folders' routes. `/api/status` (what the setup screen and the pages poll) is the C# server's: the
+  library's part from it (the scan's state, the music folders, the count, whether the data folder is
+  a Docker volume), the rooms' part as the Node server says it with its state. Clean up (Settings →
+  Library Scanner): what could go counted by the C# server — the albums whose folder has gone from
+  the disk, and each service's — and the music folders' kind made there (the albums removed with
+  their edits, hearts and Listen later, the Node server's copy read again; a service's kind the C#
+  server's since v0.8.44); each refusal in the same words. The wall display's content: the zone's
+  track asked of the Node server, the artist's photos (MusicBrainz for the act, FanArt.tv for the
+  pictures, kept a week), the album's write-up, the artists' stories and more by the artist from the
+  C# server. `server/Mandarin.Server/HousekeepingRoutes.cs` (new), `Scans.cs`, `ScanRoutes.cs`,
+  `LibraryChanges.cs`, `Services/Rows.cs`, `WriteUpRoutes.cs`, `Jobs.cs`. The Node server's part is
+  the hand-over: the scans handed over whatever the tag reader, whether the program is trusted said
+  with it, its scanner at the C# server's ask (`index.js` `/internal/scan`), a zone's track
+  (`/internal/playback/now`), the rooms' part with its state, and Clean up's word
+  (`lib/server/api-library.js`). Tests: `test/housekeeping-csharp.test.js` (new): `/api/status`, the
+  counts, Clean up and the display's content held to the Node server's own answers; a folder gone
+  from the disk counted and cleaned; with `TAG_READER=node`, the scans started by the C# server and
+  made by the Node server's scanner, the library the same as its own scan makes; `test/front.test.js`
+  and `test/scans-csharp.test.js` brought up to date.
+- **A speaker's cover** (part 5, in part). A Sonos speaker fetches a cover by its own address, with
+  no sign-in and no signature; the Node server's gate knows its speakers and lets them through. The
+  C# server now does the same: the speakers' addresses come with the Node server's state, and a
+  cover one asks for is sent by the C# server like any other. `server/Mandarin.Server/Images.cs`;
+  `index.js` (`speakers` with the state). Tests: `test/covers-csharp.test.js`, a cover asked for
+  from a speaker's address and from a stranger's, each answered as the Node server answers it. The
+  pictures in another colour space than sRGB (CMYK, or carrying a profile of their own) still go to
+  the Node server to draw, as before: drawing them the same needs the colour maths libvips does, and
+  how to have that in the C# server is put to the owner (`docs/specs/csharp-migration.md`, part 5).
+- The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
+
+## v0.8.47
+Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
+C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
+album from their browser and their streams join the catalogue, the rows and the import moved before.
+With the C# server in front and the services handed over, the Node server doesn't ask Qobuz or Tidal
+for anything, refresh a token or make a service's stream: for a service album it plays the library's
+tracks, as for an album of your own. (Before the hand-over, in its first seconds, it makes them as it
+always did, so nothing a speaker asks for meanwhile goes unanswered.) Each is held to the Node server's own answer, write and bytes.
+
+- **Signing in** (Settings → Services): Qobuz with your username and password, asked of Qobuz once,
+  the token kept and never the password; Tidal with a link and a code, Tidal asked every few seconds
+  until you have signed in on tidal.com, the code expires or you let it go, then your account, name
+  and subscription kept. Turned down in the services' own words, as before. Signed in with the
+  import switched on, your favourites are brought in at once, by the C# server.
+- **Signing out** and Disconnect: a Qobuz play under way reported over first, the account let go.
+- **Settings → Services signed out** (`GET` and `POST /api/settings/<s>`), a Tidal sign-in under way
+  among it.
+- **Tidal's token** is refreshed by the C# server alone: when it is due within the minute, before the
+  request; when Tidal turns it down, then the request asked once more; one refresh at a time, the
+  others waiting for it; the refresh token kept when Tidal sends none. A refresh Tidal refuses is
+  said as before. An import or a favourites' watch is now made whole by the C# server however the
+  token stands (v0.8.45 left a step to the Node server for it).
+- **Playing an album from the browser** (`POST /api/qobuz/play`, `/api/tidal/play`): its rows
+  written by the C# server (asked of the service each time, as before), then its tracks played by the
+  Node server's playback, the album or one track of it, now, next or at the end.
+- **Their streams**: a Qobuz or Tidal track a speaker, a streamer or the phone fetches is fetched,
+  copied or converted by the C# server, into the same transcode folder, under the same name, with the
+  same ffmpeg arguments: as it comes where the service already sends what was planned (or less, for
+  Sonos: never upsampled), converted like a file otherwise (with a ReplayGain, a zone's DSP, 32 bits
+  where taken). Qobuz: one signed ask per track for the format the device takes and the account
+  allows, and every play reported (Start as a device starts fetching, End when the next starts, it
+  has played through, or you sign out). Tidal: its playbackinfo, CD from one address, hi-res from
+  MPEG-DASH, its pieces fetched one after another and fed straight to ffmpeg (no address of the
+  server's in between); an account Tidal answers a hi-res ask with CD for is asked for CD from then
+  on, until a setting is written; and the rows corrected to what Tidal really streams. The next
+  tracks made ready behind the one playing are made by the C# server too. Signed out, nothing of a
+  service streams, made already or not.
+- **The search from Home**: Qobuz's and Tidal's albums and artists beside the library's
+  (`GET /api/search/external`), asked by the C# server.
+- `server/Mandarin.Server/Services/Accounts.cs` and `ServiceStreams.cs` (new), `TidalApi.cs`,
+  `QobuzApi.cs`, `Catalogue.cs`, `Import.cs`, `Rows.cs`, `ServiceHttp.cs`, `ServiceRoutes.cs`,
+  `Streams.cs`, `Transcoder.cs`, `WriteUpRoutes.cs`, `LibraryRoutes.cs`, `LibraryChanges.cs`, `Jobs.cs`,
+  `Auth.cs`. Gone: the hand-backs that existed only because the Node server owned Tidal's token
+  (`ToNode`, `TidalApi.GoodFor`, `Import`'s step left to the Node server). The Node server's part is
+  the hand-over only:
+  - `index.js`: "services" added to the work it hands over; once it is, a service's track handed to
+    the C# server to make like any conversion, a speaker fetching one from the Node server itself
+    told to it (`/internal/services/played`) rather than reported to Qobuz, and Tidal's token refused
+    a refresh there; at the hand-over a Tidal sign-in under way let go, a refresh under way finished
+    first and a Qobuz play reported over; where Tidal's sign-in is asked handed over with the rest;
+    `POST /internal/services/step` removed; and `POST /internal/playback/play`, a service album the
+    C# server wrote played here, as `api-service.js`'s play does once the album is in the library.
+  - `lib/server/api-service.js`: that part of its play route made one function (`play`), so both
+    run the same lines.
+- **Tests:** `test/services-signin-csharp.test.js` (new), through the C# server, each held to the
+  Node server's own answer, write or file for the same request from the same start: Settings →
+  Services signed out and its switches word for word; Qobuz's sign-in, refused (each way) and made
+  (the answer, the account kept, never the password); Tidal's sign-in begun, asked again, approved
+  (the account, its user and subscription), let go, and expired by the clock and by Tidal's word;
+  signing out and Disconnect; Tidal's token due for a request, an import and a watch, three asking at
+  once and one refresh, and one Tidal refuses (a request, a favourite, Update library now) in the
+  same words; playing an album, a track of it now and at the end, and refused, with the same rows,
+  the same answer and the same queue on a stand-in Sonos room; the streams, each file the very one
+  the Node server makes and the answers' headers the same (Qobuz's CD as it comes, 24/96 to Sonos at
+  24/48, to a streamer as it comes and promised 192 kHz, with a ReplayGain; Tidal's CD, its hi-res from
+  DASH, the Node server's loopback address never asked; the CD an account without hi-res gets, the
+  rows learnt the same); Qobuz's play reports, the same events; a speaker asking the Node server
+  itself; and, through it all, the Node server asking Qobuz and Tidal for nothing and refreshing
+  nothing. Adjusted, as this version changes what they pinned: the token cases in
+  `test/services-csharp.test.js`, `test/services-rows-csharp.test.js` and
+  `test/services-import-csharp.test.js` (refreshed by the C# server, the Node server never asked; its
+  step's route gone; Settings → Services signed out and signing in now the C# server's), and
+  `test/conversions-csharp.test.js` (a service's track handed over too). `test/fake-tidal.js` can
+  make a sign-in's code short-lived and hold a refresh back. `test/front.test.js` pins which server
+  answers what (its v0.8.47 test and header line; the v0.8.21, v0.8.39 and v0.8.45 tests moved on to
+  C# where this version moved them; "services" in the v0.8.19 test's job list).
+- Last.fm: the quarter of a second between two asks is counted from the answer, not the ask, so a
+  first ask that opens its connection slowly can't reach Last.fm closer than that to the next (a test
+  measuring it at Last.fm's end saw 235 ms on a busy machine).
+- The Android app for this version is 0.8.47 (version code 247). Nothing in it changed.
+
+## v0.8.46
+**Now playing follows the room again after the server has started again.** Reported on the Android
+app: left for another app, back, a track further down the queue played; it played, but Now playing
+kept the track from before (paused, it paused), and only closing the app and opening it again put the
+screen right.
+
+- Why: every answer the page polls for carries the server's change counter, and the page drops one
+  older than the last it painted (a slow one-off answer landing after a newer one). The counter starts
+  again at 1 whenever the server does (an update, a restore, the C# server starting it again), so a
+  page kept open across that took every answer after it for an old one. The screen stayed as it was,
+  and the page asked about four times a second, the server answering at once each time.
+- Now a counter below the one the page asked to wait on is taken for what it is: the server's counter
+  now (or the app's own copy's, when it answered while the server couldn't be reached). The page shows
+  the room as it is and goes back to waiting on it (`public/app.js`). Nothing on the server changed.
+- **Tests:** `test/now-playing-restart.test.js`, in a browser with a stand-in Sonos room: Now playing
+  shows track 1; the server's counter starts again; Play from here on track 3: Now playing shows it,
+  and the page waits on the server again rather than asking over and over. Without the fix it stays on
+  track 1.
+- The Android app for this version is 0.8.46 (version code 246). Nothing in it changed.
+- **The app for the migration branch** (CLAUDE.md section 4): each push to `migration` that changes
+  the app or the page puts its APK on the rolling "test-android" pre-release, at one fixed address
+  (`releases/download/test-android/mandarin-android-test.apk`), as test branches' apps already were.
+  The file there is replaced; no tag or release is made, and the app's own update check still reads
+  main's, so it's offered to nobody who didn't fetch it.
+
+## v0.8.45
+Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
+favourites' watch and the service playlists are the C# server's**, handed over as the job "import".
+Each writes what the Node server wrote, row for row and mark for mark, and answers in its words; the
+Node server is told and reads its library again, as before.
+
+- **The import**: your favourites (and on Qobuz your purchases) brought into the library, every
+  album, only what is new or a week old asked of the service again; one no longer wanted let go, by
+  the ids asked for then; then the playlists. Made 20 seconds after the C# server takes the work over
+  (as the Node server made it after its start), every six hours, after a Rescan and after signing in
+  with the import on (the Node server asks the C# server for these two), and by **Update library
+  now** (`POST /api/settings/<s>/import`). What it made is kept as before (Settings → Services'
+  "updated" line).
+- **The favourites' watch**: every two minutes, and when the page comes back to Home or the Library
+  wall (`POST /api/services/watch`, not more than once in 15 seconds), an album favourited in the
+  service's own app is brought in and one taken away there let go.
+- **The service playlists**: each Qobuz or Tidal playlist, and your favourite tracks, as a playlist
+  here, the albums their tracks are from held; one gone from the service goes from here. Your own
+  playlists, and the other service's, are kept as they were.
+- **Settings → Services, signed in**: its state (`GET /api/settings/<s>`, an import running among
+  it), the stream quality and the import's switch (`POST /api/settings/<s>`): switched on, the albums
+  are back at once and the import starts; off, they are out at once. A setting written there tells
+  the Node server, so an account Tidal gave CD for hi-res is asked for hi-res again, as before.
+  Signed out, Settings → Services stays the Node server's (a Tidal sign-in under way is its), as do
+  signing in and out (stage 4.4) and playing.
+- **Tidal's token** is still refreshed by the Node server alone. An import or a watch is made by the
+  C# server only with a token good for five more minutes; otherwise, or when Tidal refuses it
+  partway, it is left to the Node server from there, which makes it with its own import or watch and
+  refreshes the token (`POST /internal/services/step`). What was brought in before stays, each album
+  written whole and kept once its rows are; the counts are then those of the Node server's run.
+- **Where the two servers meet:**
+  - a step left to the Node server that fails (Tidal refuses it a new token too): what the C# server
+    brought in before is told to it all the same, so it is on the walls;
+  - the imports on the timers (the first after the hand-over, then every six hours) are made one
+    service after the other, not side by side, so a step left to the Node server never writes the
+    playlists while the other service's import here writes them;
+  - a backup put back stops an import or a watch under way at its next album (waited for up to 20
+    seconds) before the Node server starts again, rather than writing on into the database put back.
+- The C# server's copy of the library is now read again as soon as it tells the Node server of a
+  service's change, as the Node server's own is, rather than at the next request: an import running
+  meanwhile is never seen half made.
+- `server/Mandarin.Server/Services/Import.cs` (new), `Rows.cs`, `Catalogue.cs`, `QobuzApi.cs`,
+  `TidalApi.cs`, `ServiceRoutes.cs`, `LibraryRoutes.cs`, `LibraryChanges.cs`, `Library.cs`,
+  `Jobs.cs`. The Node server's part is the hand-over only:
+  - `index.js`: "import" added to the work it hands over; its import and watch timers left idle once
+    it is (and the first import made after all if the C# server never takes the work over); an
+    import or watch of its own running at the hand-over finished first; when the first import comes
+    and how often the watch looks handed over with the rest; and `POST /internal/services/step`, a
+    step the C# server leaves to it, made by the service's own import or watch.
+  - `lib/server/api-service.js`: the import it would start after signing in asked of the C# server
+    instead.
+  - `lib/server/api-library.js`: the imports after a Rescan asked of the C# server instead (the
+    answer still names them); and the C# server's word that a service's settings were written
+    (`settings` in `libraryChanged`): Tidal's hi-res asked for again, as its own setSettings did.
+- **Tests:** `test/services-import-csharp.test.js`, through the C# server, each held to the Node
+  server's own import, watch and answer for the same request from the same start: Settings →
+  Services' state word for word, the quality (and one not offered, refused in the same words) and the
+  switch (on: importing, the import made; off: out of the library); Update library now from nothing,
+  again with everything here (nothing fetched), with a favourite taken away on the service and with a
+  playlist gone there (every column of every album and track and the type SQLite keeps it as, the
+  kept marks with the service's own dates, Tidal's "+0000" among them, the held marks, the playlists
+  as text, yours and the other service's kept as they were, what it made, the answer); the watch;
+  the page's quick look and its 15 seconds; Tidal's token due (the import and the watch made once,
+  by the Node server, which refreshed it), refused partway (the same library in the end) and
+  refused with no new token to be had (what was brought in before on the walls); the
+  import after a Rescan and after signing in made by the C# server; and its timers, the Node
+  server's own idle. `test/qobuz.test.js` now caches Qobuz's listing with an import through the
+  front door rather than inside the Node server. `test/fake-qobuz.js` can date a favourite and a
+  purchase. `test/front.test.js` pins which server answers what (its v0.8.45 test and header line;
+  "import" in the v0.8.19 test's job list).
+- The Android app for this version is 0.8.45 (version code 245). Nothing in it changed.
+
 ## v0.8.44
 Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
 rows in the library are the C# server's**: opening one, adding it to your favourites and taking it

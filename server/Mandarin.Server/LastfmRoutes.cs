@@ -8,8 +8,9 @@
 // (its errors 10 and 26) is said so, the one failure the user can fix;
 // anything else leaves the sections out. Whether an artist or an album is in
 // the library is decided here, before the tap. Last.fm's pictures go through
-// this server's image address ("u-" keys, drawn by the Node server).
-// Answered here once the Node server has handed over its work; until then, by it.
+// this server's image address ("u-" keys, drawn here since v0.8.34).
+// Answered here from the start since v0.8.48 (stage 5 part 6), Last.fm's
+// address and the environment's key the configuration's (Jobs.cs).
 using System.Text;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
@@ -21,7 +22,7 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private static Lastfm? HeldLastfm => Jobs.Held ? Jobs.Lastfm : null;
+    private static Lastfm? HeldLastfm => Jobs.Lastfm;
 
     /* The key saved in Settings: absent (null) until one is, even an empty one. */
     private static string? SavedLastfmKey()
@@ -41,7 +42,7 @@ internal static partial class Library
         return await Send(ctx, new JsonObject
         {
             ["set"] = k.Length > 0, ["configured"] = k.Length > 0, ["masked"] = LastfmMasked(), ["source"] = LastfmSource(),
-            ["check"] = k.Length > 0 ? await fm.CheckKey(k, false, Front.Log) : null
+            ["check"] = k.Length > 0 ? await fm.CheckKey(k, false, Server.Log) : null
         });
     }
 
@@ -58,7 +59,7 @@ internal static partial class Library
         return await Send(ctx, new JsonObject
         {
             ["ok"] = true, ["set"] = k.Length > 0, ["masked"] = LastfmMasked(), ["source"] = LastfmSource(),
-            ["check"] = k.Length > 0 ? await fm.CheckKey(k, true, Front.Log) : null
+            ["check"] = k.Length > 0 ? await fm.CheckKey(k, true, Server.Log) : null
         });
     }
 
@@ -67,7 +68,7 @@ internal static partial class Library
     {
         if (e is LastfmError { Code: "nokey" }) return new JsonObject { ["enabled"] = false };
         var refused = e is LastfmError { KeyRefused: true };
-        if (!refused) Front.Log("[lastfm] " + e.Message);
+        if (!refused) Server.Log("[lastfm] " + e.Message);
         return new JsonObject { ["enabled"] = true, ["error"] = refused ? "Last.fm refused the API key" : "Last.fm did not answer" };
     }
 

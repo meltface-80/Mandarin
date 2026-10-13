@@ -3,22 +3,28 @@
  * The album editor's cover search (v0.8.22): the C# server's (server/
  * Mandarin.Server/Extras/ArtFind.cs) held to lib/library/artfind.js — the
  * same names compared the same way, and whole searches over the same canned
- * catalogue answers (as test/artfind.test.js gives them) ending in the same
+ * catalogue answers ending in the same
  * candidates, scored, ordered and cut alike; odd answers (a field missing, a
  * list that isn't one, a release group with no cover) doing the same there as
  * here. Through `mandarin-server score`; skipped where the C# server isn't
  * built. The route itself runs against the C# server in test/front.test.js.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/artfind-csharp.json), made with
+ * while lib/ was here; the C# program alone is held to them.
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const ArtFind = require("../lib/library/artfind");
-const N = require("../lib/library/normalize");
+const { answers } = require("./golden");
+
+const kept = answers("artfind-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
+test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
   const r = spawnSync(BIN, ["score"], { input: JSON.stringify(Object.assign({ fn: "artfind" }, job)) + "\n", maxBuffer: 64 * 1024 * 1024 });
@@ -27,15 +33,9 @@ function csharp(job) {
   assert.ok(!out.error, out.error);
   return out;
 }
-const plain = v => JSON.parse(JSON.stringify(v));
-
-// test/artfind.test.js's canned web: the first address prefix that fits.
-function fakeWeb(routes) {
-  return async (url) => {
-    for (const [prefix, body] of routes) if (url.startsWith(prefix)) return body;
-    throw new Error("HTTP 404");
-  };
-}
+const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, cases, got) => kept.same(what, cases.map((_, i) => what + " " + i), cases, got);
 
 const SIGUR = ["Untitled #1 (Vaka)", "Untitled #2 (Fyrsta)", "Untitled #3 (Samskeyti)", "Untitled #4 (Njósnavélin)"];
 const itunesAlbum = (id, name, artist, extra) => Object.assign({ collectionId: id, collectionName: name, artistName: artist, artworkUrl100: `https://is1.example/${id}/100x100bb.jpg` }, extra || {});
@@ -143,21 +143,28 @@ const MATCHES = [[["Untitled #1 (Vaka)", "Airbag (Remastered)"], ["Untitled #1",
 
 test("names compared as artfind.js compares them", { skip }, () => {
   const out = csharp({ bares: NAMES, looses: NAMES, texts: PAIRS, artists: PAIRS, matches: MATCHES, cases: [] });
-  assert.deepStrictEqual(out.bare, NAMES.map(n => ArtFind.bare(n)));
-  assert.deepStrictEqual(out.loose, NAMES.map(n => N.loose(n)));
-  assert.deepStrictEqual(out.text, PAIRS.map(([a, b]) => ArtFind.sameText(a, b)));
-  assert.deepStrictEqual(out.artist, PAIRS.map(([a, b]) => ArtFind.sameArtist(a, b)));
-  assert.deepStrictEqual(out.tracks, MATCHES.map(([l, r]) => ArtFind.trackMatch(l, r)));
+  same("bare", NAMES, out.bare);
+  same("loose", NAMES, out.loose);
+  same("sameText", PAIRS, out.text);
+  same("sameArtist", PAIRS, out.artist);
+  same("trackMatch", MATCHES, out.tracks);
+  // Track names compared without their brackets and edition notes; nothing to compare, no score.
+  assert.equal(out.tracks[0], 1);
+  assert.equal(out.tracks[1], null);
 });
 
-test("whole searches over the same answers end in the same candidates", { skip }, async () => {
+test("whole searches over the same answers end in the same candidates", { skip }, () => {
   const out = csharp({ cases: plain(CASES) });
-  for (const [i, c] of CASES.entries()) {
-    const want = plain(await ArtFind.find(c.album, c.tracks, { get: fakeWeb(plain(c.routes)) }));
-    assert.deepStrictEqual(out.found[i], want, `case ${i} (${c.album.title})`);
-  }
+  same("find", CASES.map(c => c.album), out.found);
   // The searches said something worth checking: sure picks, cut at twelve, dead groups gone.
   assert.equal(out.found[0].sure.url, "https://is1.example/1/1200x1200bb.jpg");
+  assert.equal(out.found[0].sure.match.tracks, 1);
+  assert.equal(out.found[0].candidates.length, 2);
+  // A title-and-artist match with no track list is only a suggestion; the right tracks under the wrong artist aren't sure.
+  assert.equal(out.found[1].sure, null);
+  assert.equal(out.found[1].candidates[0].url, "https://dz.example/9.jpg");
+  assert.equal(out.found[2].sure, null);
+  assert.equal(out.found[2].candidates.length, 1);
   assert.equal(out.found[3].candidates.length, 12);
   assert.equal(out.found[8].candidates.length, 12);
   assert.deepEqual(out.found[9].candidates.map(c => c.url), ["https://coverartarchive.org/release-group/has/front-1200"], "a release group with no cover isn't offered");

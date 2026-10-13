@@ -60,6 +60,7 @@ const DRIVER = `(async () => {
   out.card_at = at;
   out.card_ms = Math.round(out.card_at - t0);
   await until(() => out.requests.some(r => r.url.startsWith("/api/similar")), 8000);
+  // A window for whatever else the card asks for to be asked.
   await sleep(500);
   // Only what was asked for once the share was: a request started before it
   // and answered after isn't the card's.
@@ -72,7 +73,7 @@ test("the share card is drawn from the page's own cover and tile, and the sugges
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   try {

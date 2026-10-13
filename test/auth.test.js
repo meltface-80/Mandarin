@@ -12,7 +12,8 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const SRP = require("../public/srp");
-const { isLocal, deviceNameFromUA } = require("../lib/server/auth");
+const { built, BIN } = require("./server");
+const { score } = require("./score");
 const { signIn, post, USER, PASS } = require("./auth-helper");
 
 const PORT = ports.port();
@@ -21,20 +22,22 @@ const B = "http://127.0.0.1:" + PORT;
 async function startServer(dataDir) {
   const music = path.join(dataDir, "..", "music");
   fs.mkdirSync(music, { recursive: true });
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: music, dataDir, serverIp: "127.0.0.1", sonosHosts: [] });
   const ctx = await srv.start();
   return { srv, ctx };
 }
 const get = (p, token, extra) => fetch(B + p, Object.assign({ redirect: "manual", headers: token ? { Authorization: "Bearer " + token } : {} }, extra));
 
-test("home network addresses, and device names from browsers", () => {
-  for (const ip of ["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.0.57", "::1", "::ffff:192.168.1.4", "fe80::1", "fd12:3456::1"]) {
-    assert.equal(isLocal(ip), true, ip);
-  }
-  for (const ip of ["8.8.8.8", "172.32.0.1", "100.101.102.103", "2a00:1450::1", ""]) assert.equal(isLocal(ip), false, ip);
-  assert.equal(deviceNameFromUA("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"), "iPhone · Safari");
-  assert.equal(deviceNameFromUA("Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"), "Android · Chrome");
+test("home network addresses, and device names from browsers", { skip: built() }, () => {
+  // The C# server's rules (Auth.cs; lib/server/auth.js until v0.8.50).
+  const home = ["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.0.57", "::1", "::ffff:192.168.1.4", "fe80::1", "fd12:3456::1"];
+  const away = ["8.8.8.8", "172.32.0.1", "100.101.102.103", "2a00:1450::1", ""];
+  const { locals, names } = score({ fn: "auth", locals: home.concat(away), uas: [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"] });
+  home.concat(away).forEach((ip, i) => assert.equal(locals[i], i < home.length, ip));
+  assert.deepEqual(names, ["iPhone · Safari", "Android · Chrome"]);
 });
 
 test("MusicD Server behind its account", { timeout: 60000 }, async (t) => {
@@ -128,8 +131,8 @@ test("MusicD Server behind its account", { timeout: 60000 }, async (t) => {
     await srv.stop();
   }
 
-  // Forgotten password: reset on the server, then create the account again.
-  const out = execFileSync(process.execPath, [path.join(__dirname, "..", "reset-password.js")], { env: Object.assign({}, process.env, { DATA_DIR: dataDir }) }).toString();
+  // Forgotten password: reset on the server (`mandarin-server reset-password`), then create the account again.
+  const out = execFileSync(BIN, ["reset-password"], { env: Object.assign({}, process.env, { DATA_DIR: dataDir }) }).toString();
   assert.match(out, /removed/);
   ({ srv, ctx } = await startServer(dataDir));
   // Connections kept alive to the stopped server fail once each; use them up.
@@ -164,16 +167,18 @@ test("a queue made before the update keeps playing: speakers need no signature",
   await house.start();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-auth-sonos-"));
   fs.mkdirSync(path.join(tmp, "music"));
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const port = ports.port();
   const srv = createServer({ port, musicDir: path.join(tmp, "music"), dataDir: path.join(tmp, "data"), serverIp: "127.0.0.1", sonosHosts: [ports.host(0)] });
-  const ctx = await srv.start();
+  await srv.start();
   const from = (ip) => new Promise((resolve) => {
     const r = http.get({ host: "127.0.0.1", port, path: "/api/image/al-1-0", localAddress: ip, agent: false }, (x) => { x.resume(); resolve(x.statusCode); });
     r.on("error", (e) => resolve(e.message));
   });
   try {
-    for (let i = 0; i < 50 && !ctx.zones.topology.hosts.includes(ports.host(1)); i++) await new Promise(r => setTimeout(r, 200));
+    // The household read by the hub (v0.8.49; /api/health counts its rooms).
+    const known = async () => (await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()).rooms >= 2;
+    for (let i = 0; i < 50 && !(await known()); i++) await new Promise(r => setTimeout(r, 200));
     assert.notEqual(await from(ports.host(1)), 401, "a speaker gets through unsigned");
     assert.equal(await from(ports.host(3)), 401, "anything else needs to sign in");
   } finally {

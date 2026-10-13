@@ -1,10 +1,12 @@
 "use strict";
 /*
  * The MusicBrainz pack (v0.6.4): tools/mbpack/build.js turns a MusicBrainz
- * data dump into one SQLite file of the releases with a barcode, and
- * lib/identify/mbpack.js answers the scan's barcode and release questions
- * from it, as musicbrainz.org would. Here a dump of a few rows, written in
- * the dump's own COPY text, escapes and \N included.
+ * data dump into one SQLite file of the releases with a barcode, and the
+ * server (Identify/Pack.cs; lib/identify/mbpack.js until v0.8.50) answers the
+ * scan's barcode and release questions from it, as musicbrainz.org would —
+ * read here through `mandarin-server score` { fn: "mbpack" }, kept up to date
+ * through the server's Settings routes. A dump of a few rows, written in the
+ * dump's own COPY text, escapes and \N included.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -13,8 +15,13 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { build, columnsFrom, field, codeOf } = require("../tools/mbpack/build");
-const { MbPack, withPack } = require("../lib/identify/mbpack");
-const SCORE = require("../lib/identify/score");
+const { FakeMusicBrainz } = require("./fake-musicbrainz");
+const { createServer, built: notBuilt } = require("./server");
+const { score, scoreAsync } = require("./score");
+
+const rules = notBuilt();
+/* The pack format this server reads. */
+const FORMAT = rules ? 0 : score({ fn: "mbpack" }).format;
 
 const G = n => `${String(n).padStart(8, "0")}-0000-4000-8000-000000000000`;
 const N = "\\N";
@@ -62,157 +69,68 @@ test("COPY text fields and barcodes", () => {
   assert.deepEqual(cols.release_country, ["release", "country"]);
 });
 
-test("the pack: built from a dump, read by the scan", async () => {
+test("the pack: built from a dump, read by the scan", { skip: rules }, async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbpack-"));
   writeDump(dir);
   const out = path.join(dir, "mbpack.sqlite");
   const r = await build({ dump: dir, out });
   assert.equal(r.releases, 2, "the two releases with a barcode (an empty one is none)");
-  const pack = MbPack.open(out);
-  try {
-    assert.ok(pack);
-    assert.equal(pack.info().releases, 2);
-    // Both forms of the barcode find it.
-    for (const code of ["0081227934019", "081227934019", "81227934019"]) {
-      assert.deepEqual(pack.byBarcode(code).map(f => f.mbid), [G(100)], code);
-    }
-    assert.deepEqual(pack.byBarcode("0075679082424").map(f => f.mbid), [G(101)]);
-    assert.deepEqual(pack.byBarcode("123"), []);
+  // musicbrainz.org, for what the pack hasn't.
+  const mb = await new FakeMusicBrainz([{ id: "x", title: "Something Else", artist: "Someone", barcode: "999", tracks: [["One", 100]] },
+    { id: G(102), title: "Tales From Topographic Oceans", artist: "Yes", tracks: [["Not packed", 1]] }]).start();
+  t.after(() => mb.stop());
+  const p = await scoreAsync({ fn: "mbpack", file: out, barcodes: ["0081227934019", "081227934019", "81227934019", "0075679082424", "123"],
+    releases: [G(100), G(101), G(102)], mb: mb.baseUrl,
+    // The scan's MusicBrainz, the pack first.
+    first: [{ barcode: "081227934019" }, { release: G(100) }, { barcode: "999" }, { release: G(102) }, { search: ["Tales From Topographic Oceans", "Yes"] }] });
+  assert.equal(p.opened, true);
+  assert.equal(p.info.releases, 2);
+  // Both forms of the barcode find it.
+  for (let i = 0; i < 3; i++) assert.deepEqual(p.barcodes[i].map(f => f.mbid), [G(100)], String(i));
+  assert.deepEqual(p.barcodes[3].map(f => f.mbid), [G(101)]);
+  assert.deepEqual(p.barcodes[4], []);
 
-    const rel = pack.release(G(100));
-    assert.equal(rel.title, "Tales From Topographic Oceans");
-    assert.equal(rel.group_mbid, G(10));
-    assert.equal(rel.group_note, "Steven Wilson remix");
-    assert.equal(rel.edition, "2016\tremix");
-    assert.equal(rel.type, "Album + Remix");
-    assert.equal(rel.release_date, "2016-10-21");
-    assert.equal(rel.country, "GB", "the earliest release event's");
-    assert.equal(rel.discs, 2);
-    assert.deepEqual(rel.tracks, [
-      { disc: 1, no: 1, title: "Dance of the Dawn", artist: "Steven Wilson", length: 60 },
-      { disc: 1, no: 2, title: "The Revealing Science of God", artist: "", length: 1221 },
-      { disc: 2, no: 1, title: "The Ancient", artist: "", length: 1100 },
-      { disc: 2, no: 2, title: "Ritual", artist: "", length: null }]);
-    // The group's first date is its earliest release's, packed or not.
-    const old = pack.release(G(101));
-    assert.equal(old.year, 1973);
-    assert.equal(old.date, "1973-12-07");
-    assert.equal(old.release_year, 1989);
-    assert.equal(pack.release(G(102)), null, "no barcode, not packed");
-    // Scored as a release from musicbrainz.org would be.
-    const input = { title: "Tales From Topographic Oceans", artist: "Yes", year: 2016, tracks: rel.tracks.map(t => ({ title: t.title, length: t.length || 600, disc: t.disc, no: t.no })) };
-    assert.ok(SCORE.distance(input, rel).distance < 0.2);
-  } finally { pack.close(); }
+  const [rel, old, none] = p.releases;
+  assert.equal(rel.title, "Tales From Topographic Oceans");
+  assert.equal(rel.group_mbid, G(10));
+  assert.equal(rel.group_note, "Steven Wilson remix");
+  assert.equal(rel.edition, "2016\tremix");
+  assert.equal(rel.type, "Album + Remix");
+  assert.equal(rel.release_date, "2016-10-21");
+  assert.equal(rel.country, "GB", "the earliest release event's");
+  assert.equal(rel.discs, 2);
+  assert.deepEqual(rel.tracks, [
+    { disc: 1, no: 1, title: "Dance of the Dawn", artist: "Steven Wilson", length: 60 },
+    { disc: 1, no: 2, title: "The Revealing Science of God", artist: "", length: 1221 },
+    { disc: 2, no: 1, title: "The Ancient", artist: "", length: 1100 },
+    { disc: 2, no: 2, title: "Ritual", artist: "", length: null }]);
+  // The group's first date is its earliest release's, packed or not.
+  assert.equal(old.year, 1973);
+  assert.equal(old.date, "1973-12-07");
+  assert.equal(old.release_year, 1989);
+  assert.equal(none, null, "no barcode, not packed");
+  // Scored as a release from musicbrainz.org would be.
+  const input = { title: "Tales From Topographic Oceans", artist: "Yes", year: 2016, tracks: rel.tracks.map(t => ({ title: t.title, length: t.length || 600, disc: t.disc, no: t.no })) };
+  assert.ok(score({ fn: "scorecall", calls: [["distance", input, rel]] }).results[0].distance < 0.2);
 
-  // The scan's MusicBrainz, the pack first.
-  const asked = [];
-  const mb = { byBarcode: async c => { asked.push("barcode " + c); return [{ mbid: "x" }]; }, release: async m => { asked.push("release " + m); return { mbid: m }; }, search: async () => { asked.push("search"); return []; } };
-  const p = MbPack.open(out);
-  const both = withPack(mb, () => p);
-  assert.deepEqual((await both.byBarcode("081227934019")).map(f => f.mbid), [G(100)]);
-  assert.equal((await both.release(G(100))).from_pack, true);
-  assert.deepEqual(await both.byBarcode("999"), [{ mbid: "x" }], "not in the pack: musicbrainz.org");
-  assert.deepEqual(await both.release(G(102)), { mbid: G(102) });
-  await both.search({});
-  assert.deepEqual(asked, ["barcode 999", "release " + G(102), "search"]);
-  p.close();
-  assert.equal(MbPack.open(path.join(dir, "none.sqlite")), null);
+  // What the pack has, from it; the rest from musicbrainz.org.
+  const [byPack, fromPack, byMb, fromMb] = p.first;
+  assert.deepEqual(byPack.map(f => f.mbid), [G(100)]);
+  assert.equal(fromPack.from_pack, true);
+  assert.deepEqual(byMb.map(f => f.mbid), ["x"], "not in the pack: musicbrainz.org");
+  assert.equal(fromMb.mbid, G(102));
+  assert.equal(fromMb.from_pack, undefined);
+  const asked = mb.requests.map(u => decodeURIComponent(u));
+  assert.equal(asked.length, 3, JSON.stringify(asked));
+  assert.ok(/barcode:999/.test(asked[0]) && asked[1].startsWith("/ws/2/release/" + G(102)) && /release:"Tales From Topographic Oceans"/.test(asked[2]), JSON.stringify(asked));
+  assert.equal(score({ fn: "mbpack", file: path.join(dir, "none.sqlite") }).opened, false);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("the pack downloaded from where it's published, checked, kept up to date, removed", async () => {
+test("the pack from Settings: what's published (and a newer one), downloaded, kept in another folder (or the one MBPACK_DIR sets), removed — a bad download, or a folder that has gone, said", { skip: rules, timeout: 120000 }, async () => {
   const http = require("http");
   const zlib = require("zlib");
   const crypto = require("crypto");
-  const { PackStore, FORMAT } = require("../lib/identify/mbpack");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbpack-store-"));
-  const dumpDir = path.join(dir, "dump"); fs.mkdirSync(dumpDir);
-  writeDump(dumpDir);
-  const built = path.join(dir, "built.sqlite");
-  await build({ dump: dumpDir, out: built });
-  const gz = zlib.gzipSync(fs.readFileSync(built));
-  let desc = { format: FORMAT, built: "2026-10-01T00:00:00Z", releases: "2", file: `mbpack-${FORMAT}.sqlite.gz`, gz_size: gz.length, size: fs.statSync(built).size, sha256: crypto.createHash("sha256").update(gz).digest("hex") };
-  let served = gz;
-  const srv = http.createServer((req, res) => {
-    if (req.url.endsWith(".json")) return res.end(JSON.stringify(desc));
-    if (req.url.endsWith(".gz")) return res.end(served);
-    res.statusCode = 404; res.end();
-  });
-  await new Promise(r => srv.listen(0, "127.0.0.1", r));
-  const settings = {};
-  const db = { setting: (k, d) => (k in settings ? settings[k] : d), setSetting: (k, v) => { settings[k] = v; } };
-  const store = new PackStore({ dataDir: dir, db, url: `http://127.0.0.1:${srv.address().port}` });
-  try {
-    assert.equal(store.get(), null);
-    assert.equal(store.status().installed, null);
-    await store.describe();
-    assert.equal(store.status().latest.gz_size, gz.length);
-
-    // A download that doesn't match its checksum is thrown away.
-    served = Buffer.from(gz); served[served.length - 1] ^= 1;
-    await store.download(); await store.running;
-    assert.match(store.status().job.error, /checksum|unexpected end|incorrect|invalid/i);
-    assert.equal(store.get(), null);
-    assert.ok(!fs.existsSync(store.file + ".download"));
-
-    served = gz;
-    await store.download(); await store.running;
-    assert.equal(store.status().job.phase, "done");
-    assert.equal(store.status().installed.releases, 2);
-    assert.deepEqual(store.get().byBarcode("081227934019").map(f => f.mbid), [G(100)]);
-    assert.equal(settings.mbpack, true);
-    assert.equal(store.status().newer, false, "built before the one here");
-
-    // A newer one published is seen.
-    desc = Object.assign({}, desc, { built: "2099-01-01T00:00:00Z" });
-    await store.describe();
-    assert.equal(store.status().newer, true);
-
-    // Kept in another folder (another drive): the pack moves there and is still read.
-    const other = path.join(dir, "elsewhere"); fs.mkdirSync(other);
-    await assert.rejects(store.setDir(path.join(dir, "missing")), /Can't write/);
-    const st = await store.setDir(other);
-    assert.equal(st.dir, other);
-    assert.equal(settings.mbpack_dir, other);
-    assert.ok(fs.existsSync(path.join(other, "mbpack.sqlite")));
-    assert.ok(!fs.existsSync(path.join(dir, "mbpack.sqlite")));
-    assert.equal(store.get().info().releases, 2);
-    assert.ok(st.free > 0);
-    // And back to the data folder.
-    assert.equal((await store.setDir(null)).dir, path.resolve(dir));
-    assert.equal(settings.mbpack_dir, null);
-    assert.ok(fs.existsSync(path.join(dir, "mbpack.sqlite")));
-    // MBPACK_DIR on the server decides, and can't be changed from Settings.
-    const fixed = new PackStore({ dataDir: dir, dir: other, db, url: "http://127.0.0.1:9" });
-    assert.equal(fixed.status().dir, other);
-    assert.equal(fixed.status().dir_fixed, true);
-    await assert.rejects(fixed.setDir(dir), /MBPACK_DIR/);
-
-    // A chosen folder that has gone (a container started without its mount):
-    // said in words, before any download, not an ENOENT from it.
-    settings.mbpack_dir = path.join(dir, "gone");
-    assert.match(store.status().dir_problem, /gone isn't there/);
-    await store.download();
-    assert.match(store.status().job.error, /isn't there/);
-    settings.mbpack_dir = null;
-    assert.equal(store.status().dir_problem, null);
-
-    store.remove();
-    assert.equal(store.get(), null);
-    assert.ok(!fs.existsSync(store.file));
-    assert.equal(settings.mbpack, false);
-  } finally {
-    store.stop();
-    srv.close();
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("the pack from Settings: what's published, downloaded, kept in another folder, removed — and a bad download thrown away", { timeout: 90000 }, async () => {
-  const http = require("http");
-  const zlib = require("zlib");
-  const crypto = require("crypto");
-  const { FORMAT } = require("../lib/identify/mbpack");
   const { signIn } = require("./auth-helper");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mbpack-api-"));
   const dumpDir = path.join(dir, "dump"); fs.mkdirSync(dumpDir);
@@ -230,13 +148,11 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
   await new Promise(r => pub.listen(0, "127.0.0.1", r));
   const music = path.join(dir, "music"), data = path.join(dir, "data");
   fs.mkdirSync(music); fs.mkdirSync(data);
-  delete require.cache[require.resolve("../index.js")];
-  const { createServer } = require("../index.js");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
-  const srv = createServer({ port, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
-    mbpackUrl: `http://127.0.0.1:${pub.address().port}` });
-  await srv.start();
-  const token = await signIn(base);
+  const options = { port, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, mbpackUrl: `http://127.0.0.1:${pub.address().port}` };
+  let srv = createServer(options);
+  const ctx = await srv.start();
+  let token = await signIn(base);
   const api = async (p, body) => {
     const r = await fetch(base + "/api/" + p, body ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     return Object.assign({ status: r.status }, await r.json());
@@ -246,11 +162,9 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
     for (;;) { const v = await fn(); if (v || Date.now() - t0 > ms) return v; await new Promise(r => setTimeout(r, 100)); }
   };
   try {
-    // Behind the C# server (MANDARIN_FRONT=1), the pack is kept by it (v0.8.19).
-    if (process.env.MANDARIN_FRONT === "1") {
-      const h = await fetch(base + "/api/identify/pack", { headers: { Authorization: "Bearer " + token } });
-      assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the pack is the C# server's");
-    }
+    // The pack is kept by the C# server (v0.8.19).
+    const h = await fetch(base + "/api/identify/pack", { headers: { Authorization: "Bearer " + token } });
+    assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the pack is the C# server's");
     let s = await api("identify/pack");
     assert.equal(s.installed, null);
     assert.equal(s.dir, path.resolve(data));
@@ -288,6 +202,13 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
     assert.equal(s.dir, path.resolve(data));
     assert.ok(fs.existsSync(path.join(data, "mbpack.sqlite")));
 
+    // A newer one published is seen: asked again before each download (the background check
+    // keeps to once in ten minutes), and newer than the one here, which was built from its dump.
+    desc.built = "2099-01-01T00:00:00Z";
+    await api("identify/pack/download", {});
+    s = await until(async () => { const j = await api("identify/pack"); return j.job && (j.job.phase === "done" || j.job.error) && j; });
+    assert.deepEqual([s.job.error, s.latest.built, s.newer], [null, desc.built, true]);
+
     // Removed.
     s = await api("identify/pack/remove", {});
     assert.equal(s.installed, null);
@@ -300,6 +221,28 @@ test("the pack from Settings: what's published, downloaded, kept in another fold
     assert.match(String(s.job.error), /checksum|unexpected end|incorrect|invalid/i);
     assert.equal(s.installed, null);
     assert.ok(!fs.existsSync(path.join(data, "mbpack.sqlite.download")));
+
+    // A chosen folder that has gone (a container started without its mount):
+    // said in words, before any download, not an ENOENT from it.
+    served = gz;
+    ctx.db.setSetting("mbpack_dir", path.join(dir, "gone"));
+    assert.match((await api("identify/pack")).dir_problem, /gone isn't there/);
+    await api("identify/pack/download", {});
+    s = await until(async () => { const j = await api("identify/pack"); return j.job && j.job.error && j; });
+    assert.match(String(s.job.error), /isn't there/);
+    ctx.db.setSetting("mbpack_dir", null);
+    assert.equal((await api("identify/pack")).dir_problem, null);
+
+    // MBPACK_DIR on the server decides, and can't be changed from Settings.
+    await srv.stop();
+    srv = createServer(Object.assign({ mbpackDir: other }, options));
+    await srv.start();
+    token = await signIn(base);
+    s = await api("identify/pack");
+    assert.deepEqual([s.dir, s.dir_fixed], [other, true]);
+    const refused = await api("identify/pack/folder", { dir: data });
+    assert.equal(refused.status, 409);
+    assert.match(refused.error, /MBPACK_DIR/);
   } finally {
     await srv.stop();
     pub.close();

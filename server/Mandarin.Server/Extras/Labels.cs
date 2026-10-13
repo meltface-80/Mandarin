@@ -1,6 +1,6 @@
 // Labels.cs — the record labels' background work, as this server holds it
 // (v0.8.20): the lookups (LabelLookup.cs) and the logos (LabelLogos.cs),
-// made here once the Node server has handed them over (Jobs.cs). The routes
+// set up at the start (Jobs.cs). The routes
 // that show them and start them are LabelRoutes.cs.
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;

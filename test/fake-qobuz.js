@@ -9,7 +9,15 @@
 const http = require("http");
 const fs = require("fs");
 const crypto = require("crypto");
-const { credentials } = require("../lib/qobuz/api");
+const path = require("path");
+
+/* The plugin's credentials, read from the C# server as it carries them (Services/QobuzApi.cs). */
+function credentials() {
+  const cs = fs.readFileSync(path.join(__dirname, "..", "server", "Mandarin.Server", "Services", "QobuzApi.cs"), "utf8");
+  const s = Buffer.from(/const string Blob = "([0-9a-f]+)"/.exec(cs)[1], "hex").toString("ascii");
+  const m = /^(\d{9})([a-f0-9]{32})(\d{9})/i.exec(s);
+  return { appId: m[1], secret: m[2], webAppId: m[3] };
+}
 
 class FakeQobuz {
   /* albums: [{ id, title, artist, tracks: [{ id, title, file, duration, rate, bits }] , rate, bits, year, label }] */
@@ -22,6 +30,7 @@ class FakeQobuz {
     this.token = "tok-" + crypto.randomBytes(6).toString("hex");
     this.favourites = new Set();
     this.purchases = new Set();
+    this.dates = new Map();     // album id -> when it was made a favourite or bought, in seconds (favorited_at, purchased_at)
     this.reports = [];          // { which, event }
     this.fileUrlCalls = [];     // { track_id, format_id, sig_ok }
     this.fetches = [];          // stream fetches
@@ -118,7 +127,8 @@ class FakeQobuz {
               return json(200, { tracks: { total: list.length, offset, limit, items: list.slice(offset, offset + limit) } });
             }
             const list = [...this.favourites].map(id => find(id)).filter(Boolean);
-            return json(200, { albums: { total: list.length, offset, limit, items: list.slice(offset, offset + limit).map(a => this.albumJson(a, false)) } });
+            const dated = (a) => Object.assign(this.albumJson(a, false), this.dates.has(String(a.id)) ? { favorited_at: this.dates.get(String(a.id)) } : {});
+            return json(200, { albums: { total: list.length, offset, limit, items: list.slice(offset, offset + limit).map(dated) } });
           }
           case "playlist/getUserPlaylists": return json(200, { playlists: { total: this.playlists.length, items: this.playlists.map(p => ({ id: p.id, name: p.name, tracks_count: p.tracks.length, owner: { id: 4242 } })) } });
           case "playlist/get": {
@@ -130,7 +140,8 @@ class FakeQobuz {
           }
           case "purchase/getUserPurchases": {
             const list = [...this.purchases].map(id => find(id)).filter(Boolean);
-            return json(200, { albums: { total: list.length, items: list.map(a => this.albumJson(a, false)) } });
+            const dated = (a) => Object.assign(this.albumJson(a, false), this.dates.has(String(a.id)) ? { purchased_at: this.dates.get(String(a.id)) } : {});
+            return json(200, { albums: { total: list.length, items: list.map(dated) } });
           }
           case "favorite/getUserFavoriteIds": return json(200, { albums: [...this.favourites], tracks: [], artists: [] });
           case "purchase/getUserPurchasesIds": return json(200, { albums: { total: this.purchases.size, items: [...this.purchases].map(id => ({ id })) }, tracks: { total: 0, items: [] } });
@@ -168,7 +179,7 @@ class FakeQobuz {
     return new Promise(resolve => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; resolve(this); }));
   }
 
-  stop() { return new Promise(r => this.server ? this.server.close(() => r()) : r()); }
+  stop() { return require("./fixtures").stopServer(this.server); }
 }
 
 module.exports = { FakeQobuz };

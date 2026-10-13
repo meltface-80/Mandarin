@@ -22,9 +22,9 @@ const path = require("path");
 const { makeLibrary, gen, haveFfmpeg } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
+const { createServer, built } = require("./server");
 
-const FRONT = process.env.MANDARIN_FRONT === "1";
-const skip = (!FRONT && "the C# server's mark (MANDARIN_FRONT=1)") || (!haveFfmpeg() && "ffmpeg is not installed") ||
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") ||
   (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -37,7 +37,6 @@ const ROW = (sel) => `[...document.querySelectorAll(${JSON.stringify(sel)})].fil
 
 test("albums added show up by themselves: Home's Library row and the Library wall", { skip, timeout: 180000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   t.after(() => srv.stop());
@@ -60,7 +59,7 @@ test("albums added show up by themselves: Home's Library row and the Library wal
     assert.equal(r.headers.get("x-mandarin-answered"), "C#");
     assert.match(j.albums, /^3-[0-9a-f]+$/);
     assert.equal(r.headers.get("x-mandarin-library"), j.albums);
-    // On what the Node server answers too, passed through.
+    // On every /api/ answer to a signed-in device, whichever route made it.
     r = await fetch(B + "/api/status", { headers: H });
     assert.equal(r.headers.get("x-mandarin-library"), j.albums);
     // Not to anyone who hasn't signed in, not even on what is open to them.
@@ -114,6 +113,7 @@ test("albums added show up by themselves: Home's Library row and the Library wal
       window.__openAlbum(first.__album, {});
       await until(() => !document.getElementById("album-modal").classList.contains("hidden"));
       window.__libraryChanged({ live: true });
+      // A window: the wall must not be rebuilt under the open album in it.
       await new Promise(r => setTimeout(r, 1500));
       return { same: document.querySelector("#album-grid .album") === first, open: !document.getElementById("album-modal").classList.contains("hidden") };
     })()`);

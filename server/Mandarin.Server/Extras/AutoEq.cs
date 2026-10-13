@@ -3,7 +3,7 @@
 //
 // AutoEq publishes, for thousands of headphones, a parametric EQ that brings
 // each measured response to a target. Its index (results/INDEX.md) is fetched
-// once a day and kept in the cache table, as the Node server keeps it (the
+// once a day and kept in the cache table, as the Node server kept it (the
 // same rows, so either reads the other's); a profile is fetched when chosen
 // and kept for good. A profile pasted by hand goes through the same parser.
 using System.Globalization;
@@ -145,7 +145,7 @@ internal sealed partial class AutoEq(string? baseUrl, Action<string> log)
             if (m.Success) { var p = Library.Num(m.Groups[1].Value); preamp = double.IsNaN(p) ? double.NaN : Math.Min(0, p); continue; }
             m = Filter().Match(line);
             if (!m.Success) continue;
-            if (m.Groups[1].Value.ToUpperInvariant() == "OFF") continue;
+            if (string.Equals(m.Groups[1].Value, "OFF", StringComparison.OrdinalIgnoreCase)) continue;
             if (!TypeOf.TryGetValue(m.Groups[2].Value.ToUpperInvariant(), out var type)) continue;
             var freq = Library.Num(m.Groups[3].Value);
             var gain = m.Groups[4].Success ? Library.Num(m.Groups[4].Value) : 0;

@@ -22,6 +22,7 @@ const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2; // the Playlists t
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (f, ms = 5000) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(25); } return true; };
   const $ = id => document.getElementById(id);
   const out = {};
   // The app's Offline switch, as the Android app provides it.
@@ -29,8 +30,16 @@ const DRIVER = `(async () => {
   window.MusicdDownloads = { settings: () => JSON.stringify(settings), set: (k, v) => { settings[k] = v; } };
   const overlay = $("menu-overlay"), drawer = overlay.querySelector(".menu-drawer");
   const open = () => !overlay.classList.contains("hidden");
+  // The menu open and its drawer done sliding in (style.css menuSlideIn), then a frame: on a
+  // slow runner a fixed wait tapped before it was there (v0.8.48).
+  const menuIn = async () => {
+    for (let i = 0; i < 300; i++) {
+      if (open() && drawer.getAnimations().every(a => a.playState === "finished")) { await new Promise(r => requestAnimationFrame(r)); return; }
+      await sleep(16);
+    }
+  };
   const tapAt = (x, y) => { const el = document.elementFromPoint(x, y); el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y })); return el; };
-  $("menu-toggle").click(); await sleep(400);
+  $("menu-toggle").click(); await menuIn();
   out.opened = open();
   const d = drawer.getBoundingClientRect();
   const home = overlay.querySelector('.menu-item[data-action="later"]');
@@ -46,23 +55,25 @@ const DRIVER = `(async () => {
   out.offline_shown = !off.classList.contains("hidden");
   const o = off.getBoundingClientRect();
   tapAt(o.right - 20, o.top + o.height / 2);
+  await until(() => settings.offlineMode === "true");
+  // A window: the menu must stay open through it.
   await sleep(100);
   out.offline_set = settings.offlineMode;
   out.open_after_offline = open();
   out.reopen_flagged = !!localStorage.getItem("rra-menu-reopen");
   // An item: chosen, and the menu closes.
-  home.click(); await sleep(100);
+  home.click(); await until(() => !open());
   out.open_after_item = open();
   // Beside the menu: closes.
-  $("menu-toggle").click(); await sleep(400);
-  tapAt(window.innerWidth - 10, window.innerHeight / 2); await sleep(100);
+  $("menu-toggle").click(); await menuIn();
+  tapAt(window.innerWidth - 10, window.innerHeight / 2); await until(() => !open());
   out.open_after_outside = open();
   return out;
 })()`;
 
 test("the side menu: items hug their words, Offline keeps it open, an item or the page beside it closes it", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -75,10 +86,12 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
       assert.deepEqual(page.errors, []);
       // The reload the app does on the switch: the menu is open on the page that follows, once.
       const next = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
-      r.open_after_reload = await next.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
+      const menuOpen = `!document.getElementById("menu-overlay").classList.contains("hidden")`;
+      r.open_after_reload = await next.eval(`(async () => { for (let i = 0; i < 200 && !(${menuOpen}); i++) await new Promise(r => setTimeout(r, 25)); return ${menuOpen}; })()`);
       r.flag_cleared = await next.eval(`!localStorage.getItem("rra-menu-reopen")`);
       const later = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
-      r.open_on_next_visit = await later.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return !document.getElementById("menu-overlay").classList.contains("hidden"); })()`);
+      // A window: on this visit the menu must not open by itself.
+      r.open_on_next_visit = await later.eval(`(async () => { await new Promise(r => setTimeout(r, 300)); return ${menuOpen}; })()`);
     } finally { await b.close(); }
     assert.equal(r.opened, true);
     assert.equal(r.item_text, "Listen later");
@@ -101,7 +114,7 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
 // screen, above the grid. And the Random albums wall is titled (v0.6.24).
 test("Playlists: Import sits in the top-right corner; the Random albums wall has its title", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
@@ -114,37 +127,46 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
       const page = await b.page(B2 + "/", { cookies: [{ name: "musicd_session", value: token, url: B2 }] });
       r = await page.eval(`(async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
-        document.getElementById("menu-toggle").click(); await sleep(400);
-        document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click(); await sleep(600);
+        const until = async (f, ms = 5000) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(25); } return true; };
+        const $ = id => document.getElementById(id);
+        const shown = id => !$(id).classList.contains("hidden");
+        document.getElementById("menu-toggle").click();
+        // The menu open and its drawer done sliding in, then a frame (as above).
+        const overlay = document.getElementById("menu-overlay"), drawer = overlay.querySelector(".menu-drawer");
+        for (let i = 0; i < 300 && (overlay.classList.contains("hidden") || drawer.getAnimations().some(a => a.playState !== "finished")); i++) await sleep(16);
+        await new Promise(r => requestAnimationFrame(r));
+        document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click();
+        await until(() => document.querySelector("#content-count .playlists-import"));
         const btn = document.querySelector("#content-count .playlists-import");
         if (!btn) return { shown: false };
         const r = btn.getBoundingClientRect(), bar = document.getElementById("content-count").getBoundingClientRect();
         const top = document.querySelector(".topbar").getBoundingClientRect();
         const out = { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1 };
         // Home, then the Random albums wall from its row's heading: titled; Home again: no title.
-        document.getElementById("topbar-back").click(); await sleep(300);
+        const menuShown = () => shown("menu-toggle"), backShown = () => shown("topbar-back");
+        const onHome = () => shown("home-view") && menuShown() && !backShown();
+        document.getElementById("topbar-back").click(); await until(onHome);
         // Back on Home, Import goes with the Playlists screen (v0.8.9: it stayed).
         const importLeft = () => { const pc = document.getElementById("content-count"); return !!(pc && !pc.classList.contains("hidden") && pc.querySelector(".playlists-import")); };
         out.import_on_home = importLeft();
-        document.getElementById("home-random-title").click(); await sleep(600);
+        document.getElementById("home-random-title").click();
         const count = document.getElementById("album-count");
+        await until(() => !count.classList.contains("hidden") && count.textContent);
         out.random_title = count.classList.contains("hidden") ? "" : count.textContent;
-        document.getElementById("topbar-back").click(); await sleep(300);
+        document.getElementById("topbar-back").click(); await until(() => onHome() && count.classList.contains("hidden"));
         out.home_title_hidden = count.classList.contains("hidden");
         // The menu button is Home's alone: every other screen shows ‹ in its place.
-        const $ = id => document.getElementById(id);
-        const menuShown = () => !$("menu-toggle").classList.contains("hidden"), backShown = () => !$("topbar-back").classList.contains("hidden");
         out.home_buttons = [menuShown(), backShown()];
         const screens = {};
         for (const [name, open] of [["random", () => $("home-random-title").click()], ["library", () => $("home-library-title").click()],
                                     ["later", () => window.__showListenLater()], ["playlists", () => window.__showPlaylists()], ["wall", () => window.__showWall()]]) {
-          open(); await sleep(400);
+          open(); await until(() => backShown() && !shown("home-view"));
           screens[name] = [menuShown(), backShown()];
-          $("topbar-back").click(); await sleep(300);
+          $("topbar-back").click(); await until(onHome);
         }
         out.screens = screens;
-        window.__showPlaylists(); await sleep(400);
-        window.__showHome(); await sleep(300);
+        window.__showPlaylists(); await until(() => document.querySelector("#content-count .playlists-import"));
+        window.__showHome(); await until(onHome);
         out.import_on_home_again = importLeft();
         out.home_after = [menuShown(), backShown()];
         return out;

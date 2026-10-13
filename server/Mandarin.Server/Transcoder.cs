@@ -12,18 +12,15 @@
 // This side makes the conversions of the music folders' own files: since
 // v0.8.40 (stage 3) with a ReplayGain, a zone's DSP and 32-bit output too, the
 // name and ffmpeg's arguments as lib/stream.js writes them
-// (Playback/StreamPlans.cs). The Node server still makes a track fetched from
-// Qobuz or Tidal (a service's track has its own id, so their names never
-// meet). It hands its "make these next" for the rest to this side
-// (POST /internal/transcode/prefetch), so one file is only ever made by one.
-// While a conversion with DSP runs, the Node server is told (it gives
-// playback its second core, lib/cpu.js) and its split is kept to at once.
+// (Playback/StreamPlans.cs). Since v0.8.47 (stage 4.5) a track fetched from
+// Qobuz or Tidal too: the service asked where its audio is first
+// (Services/ServiceStreams.cs), then copied as it comes or converted like a
+// file, Tidal's DASH pieces fed to ffmpeg one after another. While a
+// conversion with DSP runs, playback has its second core (Cpu.cs).
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;
 
@@ -38,11 +35,14 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public double Gain { get; init; }
     public JsObj? Dsp { get; init; }
     public double InRate { get; init; }
+    // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
+    public bool Copy { get; init; }
 
     /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
     public JsObj ToJs()
     {
         var o = Jv.Obj(("transcode", true), ("rate", (double)Rate), ("bits", (double)Bits), ("reason", Reason));
+        if (Copy) o["copy"] = true;
         if (Hq) o["hq"] = true;
         if (Exact) o["exact"] = true;
         if (Dsp != null) { o["dsp"] = Dsp; o["inRate"] = InRate; }
@@ -75,7 +75,7 @@ internal static partial class Transcoder
     private static string dir = "";
     private static long maxBytes;
     private static int concurrency;
-    private static readonly ConcurrentDictionary<string, ConvJob> Jobs = new();
+    internal static readonly ConcurrentDictionary<string, ConvJob> Jobs = new();
     private static readonly List<(string Key, ConvTrack T, ConvPlan P)> Queue = [];
     private static int running;
     private static readonly Lazy<(string Bin, bool Ok, bool Soxr, bool Flac32)> Ff = new(Probe);
@@ -148,6 +148,19 @@ internal static partial class Transcoder
     /* ffmpeg is there and runs (ffmpeg.js info().ok). */
     public static bool FfOk => Ff.Value.Ok;
 
+    /* The cache as /api/health says it (lib/stream.js cacheStats): its FLAC files, their size, what is being made and what waits. */
+    public static (int Files, double Bytes, int Running, int Queued) CacheStats()
+    {
+        try
+        {
+            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal)).ToList();
+            int queued;
+            lock (Queue) queued = Queue.Count;
+            return (files.Count, files.Sum(f => (double)f.Length), Jobs.Count, queued);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return (0, 0, 0, 0); }
+    }
+
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
     public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
     public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
@@ -192,47 +205,70 @@ internal static partial class Transcoder
             }
             job.Done = true;
             if (dspOn) { dspOn = false; DspEnded(); }
-            if (job.Failed) Front.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
+            if (job.Failed) Server.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
             Jobs.TryRemove(key, out _);
             job.Wake();
             job.Finished.TrySetResult();
             Prune();
         }
-        try
+        void Begin(string src, ConvPlan plan, List<string>? pieces)
         {
-            var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
-            foreach (var a in Args(t.Path, p, job.Part)) psi.ArgumentList.Add(a);
-            // On playback's cores (Cpu.cs): made ahead, not waited for, just below what a device is waiting for.
-            var kind = background ? CpuKind.Ahead : CpuKind.Playback;
-            Cpu.Place(psi, kind);
-            var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
-            proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
-            // DSP: playback has a second core while it runs, and for a while after (lib/cpu.js, the Node server's to decide).
-            if (p.Dsp != null) { dspOn = true; DspStarted(); }
-            proc.Start();
-            Cpu.Adopt(proc, kind);
-            proc.StandardInput.Close();
-            proc.BeginErrorReadLine();
-            Front.Log($"[stream] {Path.GetFileName(t.Path)}: {p.Reason} → FLAC {p.Bits}/{(p.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz");
-            // A reader waiting for more is woken as the .part grows.
+            try
+            {
+                var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
+                foreach (var a in Args(src, plan, job.Part)) psi.ArgumentList.Add(a);
+                // On playback's cores (Cpu.cs): made ahead, not waited for, just below what a device is waiting for.
+                var kind = background ? CpuKind.Ahead : CpuKind.Playback;
+                Cpu.Place(psi, kind);
+                var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+                proc.ErrorDataReceived += (_, e) => { if (e.Data != null && err.Length < 4000) lock (err) err.AppendLine(e.Data); };
+                proc.Exited += (_, _) => { proc.WaitForExit(); Cpu.Forget(proc); Finish(proc.ExitCode); proc.Dispose(); };
+                // DSP: playback has a second core while it runs, and for a while after (lib/cpu.js, the Node server's to decide).
+                if (plan.Dsp != null) { dspOn = true; DspStarted(); }
+                proc.Start();
+                Cpu.Adopt(proc, kind);
+                // Tidal's DASH: its pieces written in, one after another, as ffmpeg reads them.
+                if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
+                else proc.StandardInput.Close();
+                proc.BeginErrorReadLine();
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                // A reader waiting for more is woken as the .part grows.
+                _ = Task.Run(async () =>
+                {
+                    long last = -1;
+                    while (!job.Done)
+                    {
+                        await Task.Delay(100);
+                        long len = 0;
+                        try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
+                        if (len != last) { last = len; job.Wake(); }
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                err.Append(e.Message);
+                Finish(-1);
+            }
+        }
+        // A track whose audio has to be asked for first (Qobuz's, Tidal's): the
+        // service says where it is, and whether it can be copied as it is.
+        if (Services.Catalogue.IsStreamed(t.Path))
+        {
             _ = Task.Run(async () =>
             {
-                long last = -1;
-                while (!job.Done)
+                (string Src, ConvPlan Plan, List<string>? Pieces) from;
+                try { from = await Services.Catalogue.Source(t, p); }
+                catch (Exception e)
                 {
-                    await Task.Delay(100);
-                    long len = 0;
-                    try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
-                    if (len != last) { last = len; job.Wake(); }
+                    err.Append(Services.Catalogue.Said(e));
+                    Finish(-1);
+                    return;
                 }
+                Begin(from.Src, from.Plan, from.Pieces);
             });
         }
-        catch (Exception e)
-        {
-            err.Append(e.Message);
-            Finish(-1);
-        }
+        else Begin(t.Path, p, null);
         return job;
     }
 
@@ -240,9 +276,8 @@ internal static partial class Transcoder
     private static void DspEnded() { if (Interlocked.Decrement(ref dspRunning) == 0) _ = TellDsp(); }
 
     /*
-     * The Node server told whether a DSP conversion runs here, one word at a
-     * time and only when that changes (on, then off); its split kept to at
-     * once. Not heard (it was starting again): told with the next change.
+     * The split told whether a DSP conversion runs here (Cpu.cs), one word at a
+     * time and only when that changes (on, then off).
      */
     private static async Task TellDsp()
     {
@@ -251,11 +286,8 @@ internal static partial class Transcoder
         {
             var on = Volatile.Read(ref dspRunning) > 0;
             if (on == dspTold) return;
-            if (await Library.ToNode("/internal/cpu/dsp", new JsonObject { ["on"] = on }) is { } said)
-            {
-                dspTold = on;
-                Cpu.Follow(said["cpu"]);
-            }
+            dspTold = on;
+            Cpu.Dsp(on);
         }
         finally { DspTelling.Release(); }
     }
@@ -368,68 +400,5 @@ internal static partial class Transcoder
         }
         catch (OperationCanceledException) { /* the device went away */ }
         finally { fs?.Dispose(); }
-    }
-
-    // ------------------------------------------------------ from the Node server
-
-    /*
-     * POST /internal/transcode/prefetch, from this machine with the key: the
-     * Node server's "make these next" for the conversions this side makes.
-     * Before the gate (which turns /internal/ away at the door).
-     */
-    public static void UseInternal(WebApplication app)
-    {
-        app.Use(async (ctx, next) =>
-        {
-            if (ctx.Request.Path.Value != "/internal/transcode/prefetch") { await next(); return; }
-            var from = ctx.Connection.RemoteIpAddress;
-            var key = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
-            if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
-                || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(Library.FrontKey)))
-            {
-                ctx.Response.StatusCode = 404;
-                return;
-            }
-            JsonArray? items = null;
-            try { items = await JsonNode.ParseAsync(ctx.Request.Body) as JsonArray; } catch (System.Text.Json.JsonException) { /* none */ }
-            var work = new List<(ConvTrack, ConvPlan)>();
-            foreach (var it in items ?? [])
-            {
-                if (it is not JsonObject o || o["track"] is not JsonObject t || o["plan"] is not JsonObject p) continue;
-                if (Parse(t, p) is { } w) work.Add(w);
-            }
-            Prefetch(work);
-            ctx.Response.StatusCode = 204;
-        });
-    }
-
-    /* A track and plan as the Node server sends them, when this side makes such a conversion. */
-    private static (ConvTrack, ConvPlan)? Parse(JsonObject t, JsonObject p)
-    {
-        static double Num(JsonNode? n) => n is JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.Number ? double.Parse(v.ToJsonString(), CultureInfo.InvariantCulture) : double.NaN;
-        static bool Truthy(JsonNode? n) => Js.Truthy(n);
-        var path = Js.Str(t["path"]);
-        var id = Num(t["id"]);
-        var rate = Num(p["rate"]);
-        var bits = Num(p["bits"]);
-        if (path.Length == 0 || path.Contains("://", StringComparison.Ordinal) || double.IsNaN(id) || !Truthy(p["transcode"])) return null;
-        if (Truthy(p["copy"])) return null;   // a service's, as it comes: the Node server's
-        if (!(bits is 16 or 24 || (bits == 32 && Flac32)) || !(rate >= 8000 && rate <= 768000)) return null;
-        // A ReplayGain and a zone's DSP (v0.8.40), as the Node server planned them: its fingerprint names the file.
-        var gain = Truthy(p["gain"]) ? Num(p["gain"]) : 0;
-        if (double.IsNaN(gain)) return null;
-        JsObj? dsp = null;
-        if (Truthy(p["dsp"]))
-        {
-            if (Mandarin.Server.Scan.JsJson.Parse(p["dsp"]!.ToJsonString()) is not JsObj d || d["hash"] is not string || !Jv.T(d["dsp"])) return null;
-            dsp = d;
-        }
-        var mtime = Num(t["mtime"]);
-        var inRate = Num(p["inRate"]);
-        return (new ConvTrack((long)id, path, double.IsNaN(mtime) ? 0 : (long)Math.Floor(mtime)),
-                new ConvPlan((long)rate, (int)bits, Truthy(p["hq"]), Truthy(p["exact"]), Js.Str(p["reason"]))
-                {
-                    Gain = gain, Dsp = dsp, InRate = dsp != null && !double.IsNaN(inRate) ? inRate : 0
-                });
     }
 }

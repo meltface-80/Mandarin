@@ -15,7 +15,7 @@
 // can't carry travel as { "$js": "NaN" | "Infinity" | "-Infinity" | "-0" }
 // both ways, so a NaN or a −0 is compared too; a case that throws (as it
 // does there) is { "$throws": true }, or { "error": message } where the
-// message is what the Node server answers with.
+// message is what the Node server answered with.
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Playback;

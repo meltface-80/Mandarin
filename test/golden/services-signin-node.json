@@ -1,0 +1,729 @@
+[
+ {
+  "label": "signed out: settings/qobuz",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}"
+  }
+ },
+ {
+  "label": "signed out, a switch: qobuz {\"quality\":\"cd\"}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"cd\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: qobuz {\"quality\":\"nope\"}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"quality must be cd, hires96, hires192\"}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: qobuz {\"quality\":null}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"quality must be cd, hires96, hires192\"}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: qobuz {\"import\":true}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"cd\",\"import\":true,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"cd\",\"import\":true}"
+  }
+ },
+ {
+  "label": "signed out, a switch: qobuz {\"import\":false,\"quality\":\"hires192\"}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"hires192\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out: settings/tidal",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}"
+  }
+ },
+ {
+  "label": "signed out, a switch: tidal {\"quality\":\"cd\"}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"cd\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: tidal {\"quality\":\"nope\"}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"quality must be cd, hires\"}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: tidal {\"quality\":null}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"quality must be cd, hires\"}",
+   "written": "{\"quality\":\"cd\",\"import\":false}"
+  }
+ },
+ {
+  "label": "signed out, a switch: tidal {\"import\":true}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"cd\",\"import\":true,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"cd\",\"import\":true}"
+  }
+ },
+ {
+  "label": "signed out, a switch: tidal {\"import\":false,\"quality\":\"hires\"}",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "written": "{\"quality\":\"hires\",\"import\":false}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in refused: {\"username\":\"tester@example.com\"}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"Username and password needed\"}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in refused: {\"password\":\"pw\"}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"Username and password needed\"}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in refused: {}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"Username and password needed\"}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in refused: {\"username\":\"tester@example.com\",\"password\":\"wrong\"}",
+  "v": {
+   "status": 401,
+   "text": "{\"error\":\"Invalid username/password\",\"connected\":false}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in refused: {\"username\":5,\"password\":\"pw\"}",
+  "v": {
+   "status": 401,
+   "text": "{\"error\":\"Invalid username/password\",\"connected\":false}"
+  }
+ },
+ {
+  "label": "Qobuz's sign-in",
+  "v": {
+   "text": "{\"connected\":true,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"user\":{\"login\":\"tester@example.com\",\"name\":\"Tester\",\"id\":4242},\"subscription\":\"Studio\",\"hires\":true,\"lossless\":true}",
+   "account": "{\"token\":\"tok-<new>\",\"user\":{\"id\":4242,\"login\":\"tester@example.com\",\"display_name\":\"Tester\",\"firstname\":\"\",\"subscription\":{\"offer\":\"Studio\",\"end_date\":\"2030-01-01\"},\"credential\":{\"id\":77,\"label\":\"Studio\",\"parameters\":{\"hires_streaming\":true,\"lossless_streaming\":true}},\"device\":{\"id\":9001}},\"since\":\"now\"}"
+  }
+ },
+ {
+  "label": "Qobuz signed in: settings/qobuz",
+  "v": {
+   "status": 200,
+   "text": "{\"connected\":true,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"user\":{\"login\":\"tester@example.com\",\"name\":\"Tester\",\"id\":4242},\"subscription\":\"Studio\",\"hires\":true,\"lossless\":true}"
+  }
+ },
+ {
+  "label": "Tidal's sign-in begun",
+  "v": {
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"in 5 min\",\"error\":null}}",
+   "state": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"in 5 min\",\"error\":null}}",
+   "cancelled": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}"
+  }
+ },
+ {
+  "label": "Tidal approved",
+  "v": {
+   "account": "{\"token\":{\"access\":\"at-<new>\",\"refresh\":\"rt-<new>\",\"expires\":\"in an hour\"},\"userId\":7001,\"user\":{\"id\":7001,\"username\":\"tester\",\"email\":\"tester@example.com\",\"countryCode\":\"GB\",\"firstName\":\"Tess\",\"nickname\":\"\"},\"subscription\":{\"type\":\"HIFI_PLUS\",\"highestSoundQuality\":\"HI_RES_LOSSLESS\",\"validUntil\":\"2030-01-01\"},\"since\":\"now\"}",
+   "text": "{\"connected\":true,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"user\":{\"login\":\"tester@example.com\",\"name\":\"Tess\",\"id\":7001,\"country\":\"GB\"},\"subscription\":\"HIFI_PLUS\",\"hires\":true,\"lossless\":true}"
+  }
+ },
+ {
+  "label": "Tidal's sign-in expired: clock",
+  "v": {
+   "st": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"<now 0 d>\",\"error\":\"The sign-in link expired — ask for a new one\"}}",
+   "fresh": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"<now 0 d>\",\"error\":null}}"
+  }
+ },
+ {
+  "label": "Tidal's sign-in expired: tidal",
+  "v": {
+   "st": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"<now 0 d>\",\"error\":\"The sign-in link expired — ask for a new one\"}}",
+   "fresh": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0,\"pending\":{\"url\":\"https://link.tidal.com/ABCDE\",\"code\":\"ABCDE\",\"expires_at\":\"<now 0 d>\",\"error\":null}}"
+  }
+ },
+ {
+  "label": "signing out: qobuz signout",
+  "v": {
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "kept": "null"
+  }
+ },
+ {
+  "label": "signing out: qobuz disconnect",
+  "v": {
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires192\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "kept": "null"
+  }
+ },
+ {
+  "label": "signing out: tidal signout",
+  "v": {
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "kept": "null"
+  }
+ },
+ {
+  "label": "signing out: tidal disconnect",
+  "v": {
+   "text": "{\"connected\":false,\"configured\":true,\"available\":true,\"quality\":\"hires\",\"import\":false,\"importing\":false,\"last_import\":null,\"kept\":0}",
+   "kept": "null"
+  }
+ },
+ {
+  "label": "a refresh refused: tidal/search?q=refused",
+  "v": {
+   "text": "{\"error\":\"invalid_grant\",\"connected\":false}"
+  }
+ },
+ {
+  "label": "a refresh refused: tidal/favorite",
+  "v": {
+   "text": "{\"error\":\"invalid_grant\",\"connected\":false}"
+  }
+ },
+ {
+  "label": "a refresh refused: settings/tidal/import",
+  "v": {
+   "text": "{\"error\":\"invalid_grant\",\"connected\":false}"
+  }
+ },
+ {
+  "label": "a play refused: qobuz/play {}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"album_id required\"}"
+  }
+ },
+ {
+  "label": "a play refused: qobuz/play {\"album_id\":\"q100\"}",
+  "v": {
+   "status": 400,
+   "text": "{\"error\":\"zone_or_output_id required\"}"
+  }
+ },
+ {
+  "label": "a play refused: qobuz/play {\"album_id\":\"q100\",\"zone_or_output_id\":\"<room>\",\"track\":9}",
+  "v": {
+   "status": 409,
+   "text": "{\"error\":\"That track isn't on the album\"}"
+  }
+ },
+ {
+  "label": "a play refused: qobuz/play {\"album_id\":\"nope\",\"zone_or_output_id\":\"<room>\"}",
+  "v": {
+   "status": 502,
+   "text": "{\"error\":\"No such album\"}"
+  }
+ },
+ {
+  "label": "a play refused: tidal/play {\"album_id\":\"2001\",\"zone_or_output_id\":\"no-such-room\"}",
+  "v": {
+   "status": 500,
+   "text": "{\"error\":\"That room isn't available\"}"
+  }
+ },
+ {
+  "label": "streamed: CD to Sonos, as it comes",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-3-44100-16.flac",
+   "asks": [
+    "5001:6:true"
+   ],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-c:a",
+    "copy",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: 24/96 to Sonos, converted to 24/48",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-3-48000-24.flac",
+   "asks": [
+    "6001:7:true"
+   ],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-af",
+    "aresample=resampler=soxr:precision=28:osr=48000:dither_method=triangular",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
+    "-sample_fmt",
+    "s32",
+    "-bits_per_raw_sample",
+    "24",
+    "-map_metadata",
+    "0",
+    "-c:a",
+    "flac",
+    "-compression_level",
+    "5",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: 24/96 to a streamer that takes it, as it comes",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-3-96000-24-hq.flac",
+   "asks": [
+    "6001:7:true"
+   ],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-c:a",
+    "copy",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: 24/96 to a streamer promised 192",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-3-192000-24-hq.flac",
+   "asks": [
+    "6001:27:true"
+   ],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-af",
+    "aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=192000:dither_method=triangular",
+    "-ar",
+    "192000",
+    "-ac",
+    "2",
+    "-sample_fmt",
+    "s32",
+    "-bits_per_raw_sample",
+    "24",
+    "-map_metadata",
+    "0",
+    "-c:a",
+    "flac",
+    "-compression_level",
+    "5",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: CD with a ReplayGain",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-3-44100-24-g-3.5.flac",
+   "asks": [
+    "5001:6:true"
+   ],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-af",
+    "volume=volume=-3.5dB:precision=double,aresample=resampler=soxr:precision=28:osr=44100:dither_method=triangular",
+    "-ar",
+    "44100",
+    "-ac",
+    "2",
+    "-sample_fmt",
+    "s32",
+    "-bits_per_raw_sample",
+    "24",
+    "-map_metadata",
+    "0",
+    "-c:a",
+    "flac",
+    "-compression_level",
+    "5",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "Qobuz's plays reported",
+  "v": [
+   {
+    "which": "start",
+    "fields": "user_id,duration,date,online,intent,sample,device_id,track_id,local,credential_id,format_id,purchase",
+    "event": {
+     "user_id": 4242,
+     "duration": 0,
+     "date": "number",
+     "online": true,
+     "intent": "streaming",
+     "sample": false,
+     "device_id": 9001,
+     "track_id": 5001,
+     "local": false,
+     "credential_id": 77,
+     "format_id": 6,
+     "purchase": false
+    }
+   },
+   {
+    "which": "end",
+    "fields": "user_id,duration,date,online,intent,sample,device_id,track_id,local,credential_id,format_id,purchase",
+    "event": {
+     "user_id": 4242,
+     "duration": true,
+     "date": "number",
+     "online": true,
+     "intent": "streaming",
+     "sample": false,
+     "device_id": 9001,
+     "track_id": 5001,
+     "local": false,
+     "credential_id": 77,
+     "format_id": 6,
+     "purchase": false
+    }
+   },
+   {
+    "which": "start",
+    "fields": "user_id,duration,date,online,intent,sample,device_id,track_id,local,credential_id,format_id,purchase",
+    "event": {
+     "user_id": 4242,
+     "duration": 0,
+     "date": "number",
+     "online": true,
+     "intent": "streaming",
+     "sample": false,
+     "device_id": 9001,
+     "track_id": 5002,
+     "local": false,
+     "credential_id": 77,
+     "format_id": 6,
+     "purchase": false
+    }
+   }
+  ]
+ },
+ {
+  "label": "signed out, a stream",
+  "v": {
+   "status": 403
+  }
+ },
+ {
+  "label": "streamed: CD to Sonos, as it comes",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-2-44100-16.flac",
+   "asks": [],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-c:a",
+    "copy",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: 24/96 to Sonos from DASH, converted to 24/48",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-2-48000-24.flac",
+   "asks": [],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-af",
+    "aresample=resampler=soxr:precision=28:osr=48000:dither_method=triangular",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
+    "-sample_fmt",
+    "s32",
+    "-bits_per_raw_sample",
+    "24",
+    "-map_metadata",
+    "0",
+    "-c:a",
+    "flac",
+    "-compression_level",
+    "5",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "streamed: 24/96 to a streamer, from DASH",
+  "v": {
+   "first": [
+    200,
+    "audio/flac",
+    "no-store",
+    "none",
+    null
+   ],
+   "second": [
+    200,
+    "audio/flac",
+    "no-store",
+    "bytes",
+    "the body's"
+   ],
+   "file": "<id>-2-96000-24-hq.flac",
+   "asks": [],
+   "tpl": [
+    "-hide_banner",
+    "-nostdin",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    "<in>",
+    "-map",
+    "0:a:0",
+    "-vn",
+    "-af",
+    "aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=96000:dither_method=triangular",
+    "-ar",
+    "96000",
+    "-ac",
+    "2",
+    "-sample_fmt",
+    "s32",
+    "-bits_per_raw_sample",
+    "24",
+    "-map_metadata",
+    "0",
+    "-c:a",
+    "flac",
+    "-compression_level",
+    "5",
+    "-f",
+    "flac",
+    "<out>"
+   ]
+  }
+ },
+ {
+  "label": "an account Tidal gives CD to",
+  "v": {
+   "calls": [
+    "9001:HI_RES_LOSSLESS",
+    "9002:LOSSLESS"
+   ],
+   "files": [
+    "<id>-2-48000-24.flac",
+    "<id>-2-48000-24.flac"
+   ],
+   "rows": [
+    {
+     "path": "tidal://track/9001",
+     "sample_rate": 44100,
+     "bits": 16
+    },
+    {
+     "path": "tidal://track/9002",
+     "sample_rate": 44100,
+     "bits": 16
+    }
+   ]
+  }
+ }
+]

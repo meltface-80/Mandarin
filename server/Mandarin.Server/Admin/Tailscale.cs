@@ -1,7 +1,5 @@
 // Tailscale.cs — Tailscale built into the server (v0.8.22), from
-// lib/server/tsnode.js rule for rule, run here once the Node server has handed
-// it over (Jobs.cs), so the server stays on your tailnet while the Node server
-// starts again (an update, Restart, a restore).
+// lib/server/tsnode.js rule for rule.
 //
 // The image carries MusicD's own Tailscale engine (android/musicdnet, started
 // with -server). Signed in once, from Settings → Away from home or with
@@ -77,7 +75,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     {
         get
         {
-            if (Env("TAILSCALE").ToLowerInvariant() == "off") return false;
+            if (string.Equals(Env("TAILSCALE"), "off", StringComparison.OrdinalIgnoreCase)) return false;
             if (Executable(imageBin)) return true;
             var may = Env("DOCKER") == "1" || Env("TS_ENGINE_URL").Length > 0;
             return may && OperatingSystem.IsLinux() && Arch != null;
@@ -178,7 +176,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         var want = sums.Split('\n').Select(l => Regex.Split(l.Trim(), @"\s+")).FirstOrDefault(p => p.Length > 1 && p[1] == name)?[0];
         if (want == null) throw new InvalidOperationException($"no checksum for {name}");
         var gz = await Get($"{b}/{name}");
-        if (Convert.ToHexString(SHA256.HashData(gz)).ToLowerInvariant() != want) throw new InvalidOperationException("the download was damaged (checksum mismatch)");
+        if (!string.Equals(Convert.ToHexString(SHA256.HashData(gz)), want, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("the download was damaged (checksum mismatch)");
         Directory.CreateDirectory(Path.GetDirectoryName(bin)!);
         var tmp = bin + ".tmp";
         using (var src = new GZipStream(new MemoryStream(gz), CompressionMode.Decompress))
@@ -275,7 +273,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
                 : throw new InvalidOperationException("the engine didn't start"), TaskScheduler.Default);
             var m = Regex.Match(line, @"^CONTROL (\d+)");
             if (!m.Success) throw new InvalidOperationException("unexpected first line: " + line);
-            lock (gate) { if (proc == p) ctl = int.Parse(m.Groups[1].Value); }
+            lock (gate) { if (proc == p) ctl = int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture); }
             error = null;
             var body = new JsObj();
             body["Hostname"] = Hostname();

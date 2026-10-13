@@ -4,9 +4,8 @@
 // artist's story, its label, where to hear it and read about it), an artist's
 // story, Pitchfork's lists and a review's match in the library, the share
 // card's settings, the link that opens the Qobuz app, and the Pitchfork part
-// of the search. The sources are asked here once the Node server has said
-// where they are (Jobs.cs); until then, by the Node server. The wall display's
-// page, which follows what plays, stays with the Node server.
+// of the search. Where the sources are is the configuration's (Jobs.cs). The
+// wall display's content is HousekeepingRoutes.cs's.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;
 using Mandarin.Server.Tags;
@@ -133,6 +132,21 @@ internal static partial class Library
         return await SendJs(ctx, o);
     }
 
+    /* artistBio(name, album): the act's own article, kept a month (a miss too); the wall display's too (HousekeepingRoutes.cs). */
+    private static async Task<object?> ArtistBioOf(WriteUpSources w, string artist, string album)
+    {
+        var key = Fold2(artist, album);
+        if (BioMemo.TryGet(key, out var bio)) return bio;
+        bio = Taste.CacheGet("artist-bio", key, ThirtyDays);
+        if (bio is Undef)
+        {
+            bio = await Quietly(w.WikiArtist(artist, album.Length > 0 ? album : null));
+            Taste.CachePut("artist-bio", key, TJs.Truthy(bio) ? bio : null);
+        }
+        BioMemo.Set(key, bio);
+        return bio;
+    }
+
     /* GET /api/artist-bio?artist=[&album=]: the act's own article, kept a month (a miss too). */
     private static async Task<bool> ArtistBio(HttpContext ctx, Snapshot s, LibState st)
     {
@@ -140,18 +154,7 @@ internal static partial class Library
         var artist = TJs.Trim(Q(ctx, "artist") ?? "");
         if (artist.Length == 0) return await JsError(ctx, 400, "artist required");
         var album = TJs.Trim(Q(ctx, "album") ?? "");
-        var key = Fold2(artist, album);
-        object? bio;
-        if (!BioMemo.TryGet(key, out bio))
-        {
-            bio = Taste.CacheGet("artist-bio", key, ThirtyDays);
-            if (bio is Undef)
-            {
-                bio = await Quietly(w.WikiArtist(artist, album.Length > 0 ? album : null));
-                Taste.CachePut("artist-bio", key, TJs.Truthy(bio) ? bio : null);
-            }
-            BioMemo.Set(key, bio);
-        }
+        var bio = await ArtistBioOf(w, artist, album);
         var o = new JsObj();
         if (!TJs.Truthy(bio) || !TJs.Truthy(Field(bio, "description"))) { o["bio"] = null; return await SendJs(ctx, o); }
         var b = new JsObj();
@@ -286,7 +289,12 @@ internal static partial class Library
         return await SendJs(ctx, o);
     }
 
-    /* GET /api/search/external?q=&parts=pitchfork: Pitchfork's reviews the words find (the services' parts are the Node server's). */
+    /*
+     * GET /api/search/external?q=&parts=: Pitchfork's reviews the words find,
+     * and (v0.8.47) Qobuz's and Tidal's albums and artists, signed in, each
+     * asked side by side (api-library.js): `parts=` names which (qobuz, tidal,
+     * services for both, pitchfork); a service that fails answers null.
+     */
     private static async Task<bool> SearchExternal(HttpContext ctx, Snapshot s, LibState st)
     {
         if (HeldWriteUps is not { } w) return false;
@@ -299,15 +307,29 @@ internal static partial class Library
             return await SendJs(ctx, o);
         }
         var parts = (Q(ctx, "parts") is { } p0 && p0.Length > 0 ? p0 : "services,pitchfork").Split(',');
-        if (parts.Any(p => p is "services" or "qobuz" or "tidal")) return false;
-        List<object?> pf = [];
-        if (parts.Contains("pitchfork"))
+        async Task<List<object?>> Pitchfork()
         {
+            if (!parts.Contains("pitchfork")) return [];
             var search = w.SearchReviews(q, 6);
-            if (await Task.WhenAny(search, Task.Delay(10000)) == search)
-                try { pf = (await search).Select(x => (object?)x).ToList(); } catch (Exception) { pf = []; }
+            if (await Task.WhenAny(search, Task.Delay(10000)) != search) return [];
+            try { return (await search).Select(x => (object?)x).ToList(); } catch (Exception) { return []; }
         }
-        o["qobuz"] = null; o["qobuz_artists"] = null; o["tidal"] = null; o["tidal_artists"] = null;
+        async Task<JsObj?> Ask(Services.Catalogue? svc)
+        {
+            if (svc == null || !svc.Connected() || !(parts.Contains("services") || parts.Contains(svc.Id))) return null;
+            try
+            {
+                var j = await svc.Search(q, 0, new Services.Ask(st.Version), 12);
+                var a = global::Mandarin.Server.Services.ServiceHttp.Or(j["artists"], new List<object?>());
+                return Jso(("albums", global::Mandarin.Server.Services.ServiceHttp.Or(j["albums"], new List<object?>())), ("artists", a is List<object?> l ? l.Take(8).ToList() : a));
+            }
+            catch (Exception) { return null; }
+        }
+        var pfAsked = Pitchfork();
+        var qzAsked = Ask(CatalogueOf("qobuz"));
+        var tdAsked = Ask(CatalogueOf("tidal"));
+        var (pf, qz, td) = (await pfAsked, await qzAsked, await tdAsked);
+        o["qobuz"] = qz?["albums"]; o["qobuz_artists"] = qz?["artists"]; o["tidal"] = td?["albums"]; o["tidal_artists"] = td?["artists"];
         o["pitchfork"] = pf;
         return await SendJs(ctx, o);
     }

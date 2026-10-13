@@ -11,13 +11,12 @@
 //   GET /stream/t<id>.<ext>?q=opus      away from home: the track as Opus, the
 //                                       album's next two made ready behind it
 //
-// The album's list for a download (with its ReplayGain numbers) and the
-// automatic downloads are still the Node server's; neither makes a file.
+// The album's list for a download (with its ReplayGain numbers), the
+// automatic downloads, the phone's albums and its offline plays are
+// DownloadListRoutes.cs's (v0.8.26; whole since v0.8.48).
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Mandarin.Server;
@@ -69,7 +68,7 @@ internal static partial class Downloads
     [GeneratedRegex(@"\.opus\z", RegexOptions.IgnoreCase)] private static partial Regex OpusFile();
 
     /* What Android (ExoPlayer, no extensions) plays as it is. */
-    private static bool PhonePlays(Track t)
+    internal static bool PhonePlays(Track t)
     {
         var ext = Ext(t.Path);
         var codec = t.Codec.ToLowerInvariant();
@@ -224,19 +223,13 @@ internal static partial class Downloads
             if (m.Success && (HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method)) && long.TryParse(m.Groups[1].Value, out var id))
             {
                 try { if (await DownloadTrack(ctx, id)) return; }
-                catch (Exception e) when (!ctx.Response.HasStarted) { Front.Log($"[download] {ctx.Request.Path}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+                catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "download", e); return; }
             }
             await next();
         });
     }
 
-    private static Task Error(HttpContext ctx, int status, string message)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        return ctx.Response.WriteAsync(new JsonObject { ["error"] = message }.ToJsonString());
-    }
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 
     private static async Task<bool> DownloadTrack(HttpContext ctx, long id)
     {
@@ -249,8 +242,17 @@ internal static partial class Downloads
         (string Path, string Ext, string Mime) f;
         try { f = await FileFor(t, q is "original" or "opus" ? q : "original"); }
         catch (IOException e) { await Error(ctx, 500, e.Message); return true; }
-        if (!System.IO.File.Exists(f.Path)) return false;   // the Node server says so, as before
         ctx.Response.Headers["X-Download-Ext"] = f.Ext;
+        if (!System.IO.File.Exists(f.Path))
+        {
+            // Gone from the disk: 404 and nothing more, its type and the rest already set, as sendFile's error left it there.
+            ctx.Response.StatusCode = 404;
+            ctx.Response.ContentType = f.Mime;
+            ctx.Response.Headers.CacheControl = "no-store";
+            ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+            ctx.Response.ContentLength = 0;
+            return true;
+        }
         return await Streams.SendFile(ctx, f.Path, f.Mime);
     }
 
@@ -269,7 +271,7 @@ internal static partial class Downloads
         try { f = await making; }
         catch (IOException e)
         {
-            Front.Log($"[stream] opus {t.Id} {e.Message}");
+            Server.Log($"[stream] opus {t.Id} {e.Message}");
             ctx.Response.StatusCode = 500;
             ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
             return true;

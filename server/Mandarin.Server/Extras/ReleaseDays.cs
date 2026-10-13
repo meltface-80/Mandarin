@@ -34,7 +34,7 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
     private Task<int>? running;
     private volatile bool stopped;
 
-    /* Whether this server may go on (the Node server has handed the pass over). */
+    /* Whether this server may go on (the work set up, Jobs.cs). */
     public Func<bool> Ready { get; init; } = () => true;
 
     // /\s*[([][^)\]]*[)\]]\s*$/

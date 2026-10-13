@@ -3,7 +3,7 @@
 // (EBU R128 integrated loudness and true peak, by ffmpeg's ebur128 filter)
 // when "Measure ReplayGain" is on, in the background: a file at a time on each
 // core playback doesn't keep, at the lowest priority. What's measured goes
-// into track_loudness, which the Node server reads for each track's gain.
+// into track_loudness, which playback reads for each track's gain.
 //
 // When, and in what order (v0.8.24):
 //   - the hours are the identification scan's: with Scheduling on, only
@@ -23,7 +23,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Data.Sqlite;
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -47,7 +46,7 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
     private Timer? timer;
     private int ticking;
 
-    /* While the C# server doesn't hold the work (the Node server restarting): nothing is started. */
+    /* Before the work is set up (Jobs.cs, at the start): nothing is started. */
     public Func<bool> Ready = () => true;
     /* The identification scan, whose hours and order the measuring keeps to. */
     public Func<Identifier?> Identify = () => null;

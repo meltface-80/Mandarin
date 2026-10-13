@@ -2,7 +2,7 @@
 // lib/server/api-playlists.js, rule for rule: the list, one playlist, making,
 // renaming and deleting one, and adding tracks or whole albums to one.
 //
-// They are kept as the Node server keeps them, in the setting userPlaylists,
+// They are kept as the Node server kept them, in the setting userPlaylists,
 // each entry naming an album and a track's place on it (MusicD Remote's own
 // shape). A service's playlist (Qobuz, Tidal) shows only while signed in to the
 // service with its import on, the sign-in being the service's setting with its

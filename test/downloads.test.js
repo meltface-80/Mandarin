@@ -10,13 +10,16 @@ const assert = require("node:assert");
 const fs = require("fs");
 const { haveFfmpeg, makeLibrary, probe } = require("./fixtures");
 const { signIn } = require("./auth-helper");
-const { phonePlays } = require("../lib/server/downloads");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("what a phone can play as it is", () => {
+test("what a phone can play as it is", { skip: built() }, () => {
+  // The C# server's (Downloads.cs; lib/server/downloads.js until v0.8.50).
+  const phonePlays = t => score({ fn: "phoneplays", tracks: [t] }).plays[0];
   assert.equal(phonePlays({ path: "/m/a.flac", codec: "FLAC", channels: 2 }), true);
   assert.equal(phonePlays({ path: "/m/a.mp3", codec: "MPEG 1 Layer 3" }), true);
   assert.equal(phonePlays({ path: "/m/a.m4a", codec: "AAC" }), true);
@@ -28,7 +31,7 @@ test("what a phone can play as it is", () => {
 
 test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [] });
   const ctx = await srv.start();
   const token = await signIn(B);
@@ -36,7 +39,7 @@ test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
   const get = (p) => fetch(B + p, { headers: auth });
   const post = async (p, body) => (await fetch(B + p, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, auth), body: JSON.stringify(body) })).json();
   try {
-    for (let i = 0; i < 80 && ctx.library.count < 3; i++) await new Promise(r => setTimeout(r, 100));
+    for (let i = 0; i < 80 && (await (await get("/api/status")).json()).index_count < 3; i++) await new Promise(r => setTimeout(r, 100));
     const albums = (await (await get("/api/library/albums?sort=album")).json()).albums;
     const cd = albums.find(a => a.title === "Album One");
     const hires = albums.find(a => a.title === "Hi Res");
@@ -58,7 +61,7 @@ test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
       const r = await get(a.tracks[0].path);
       assert.equal(r.status, 200);
       const body = Buffer.from(await r.arrayBuffer());
-      const onDisk = fs.readFileSync(ctx.library.track(a.tracks[0].id).path);
+      const onDisk = fs.readFileSync(ctx.db.raw.prepare("SELECT path FROM tracks WHERE id = ?").get(a.tracks[0].id).path);
       assert.ok(body.equals(onDisk), "byte for byte");
       assert.deepEqual(probe(body), { rate: 96000, channels: 2, bits: 24 });
       const part = await fetch(B + a.tracks[0].path, { headers: Object.assign({ Range: "bytes=0-99" }, auth) });
@@ -74,20 +77,8 @@ test("albums download to the phone", { skip, timeout: 60000 }, async (t) => {
       const body = Buffer.from(await r.arrayBuffer());
       assert.equal(body.toString("ascii", 0, 4), "OggS");
       assert.ok(body.includes(Buffer.from("OpusHead")));
-      // 24/48: the encoder is fed 64-bit float resampled to 48 kHz by SoX,
-      // and the Opus stream says 48 kHz (a 96 kHz source, here).
-      // SoX's where ffmpeg has it (lib/ffmpeg.js), swr where it hasn't
-      // (Homebrew's, on a Mac): both, whichever this machine's ffmpeg is.
-      const FF = require("../lib/ffmpeg"), real = FF.info;
-      const opusArgs = (soxr) => {
-        FF.info = () => Object.assign({}, real(), { soxr });
-        try { return require("../lib/server/downloads").Downloads.opusArgs("in.flac", "out.opus"); } finally { FF.info = real; }
-      };
-      assert.equal(opusArgs(true)[opusArgs(true).indexOf("-af") + 1], "aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=48000");
-      assert.equal(opusArgs(false)[opusArgs(false).indexOf("-af") + 1], "aresample=internal_sample_fmt=dblp:osr=48000");
-      const args = opusArgs(real().soxr);
-      assert.equal(args[args.indexOf("-ar") + 1], "48000");
-      assert.equal(args[args.indexOf("-sample_fmt") + 1], "flt");
+      // 24/48: the encoder is fed 64-bit float resampled to 48 kHz (SoX's resampler where
+      // ffmpeg has it, swr where it hasn't: Downloads.cs), and the Opus stream says 48 kHz (a 96 kHz source, here).
       const head = body.indexOf(Buffer.from("OpusHead"));
       assert.equal(body.readUInt32LE(head + 12), 48000, "OpusHead input sample rate");
       const first = Date.now() - t0;

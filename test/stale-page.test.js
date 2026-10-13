@@ -23,6 +23,7 @@ const assert = require("node:assert");
 const { makeLibrary, haveFfmpeg } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
+const { until } = require("./helpers");
 
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
@@ -36,7 +37,7 @@ const SHOW = (hidden) => `(() => {
 
 test("the page doesn't go stale when requests never answer", { skip, timeout: 120000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   t.after(() => srv.stop());
@@ -78,6 +79,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     const r = await page.eval(`(async () => {
       window.__musicdRequestLimits.read = 60000;
       const waiting = fetch("/api/library-stats").then(() => "answered", (e) => e.name);
+      // The request on its way, held; the page hidden a moment, then shown.
       await new Promise(r => setTimeout(r, 300));
       ${SHOW(true)};
       await new Promise(r => setTimeout(r, 100));
@@ -93,6 +95,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     const r = await page.eval(`(async () => {
       const waiting = fetch("/api/settings/display", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
         .then(() => "answered", (e) => e.name);
+      // The write on its way, held; the page hidden a moment, then shown.
       await new Promise(r => setTimeout(r, 300));
       ${SHOW(true)};
       await new Promise(r => setTimeout(r, 100));
@@ -109,6 +112,7 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
     await page.eval(`(async () => {
       for (let i = 0; i < 4; i++) { await fetch("/api/queue?zone=x").catch(() => {}); await new Promise(r => setTimeout(r, 300)); }
     })()`);
+    // A window: no more than one look may be asked for in it.
     await sleep(300);
     assert.ok(count("/api/queue") >= 4, "the four failed");
     assert.ok(count("/api/status") - before <= 1, `one look at a time: ${count("/api/status") - before} asked`);
@@ -117,11 +121,11 @@ test("the page doesn't go stale when requests never answer", { skip, timeout: 12
   await t.test("hidden, the room list isn't asked for; shown again, it is at once", async () => {
     await page.eval(SHOW(true));
     const before = count("/api/zones");
+    // A window: nothing may be asked in it (the room list is asked every 15 s while shown).
     await sleep(16500);
     assert.equal(count("/api/zones"), before, "not while hidden");
     await page.eval(SHOW(false));
-    await sleep(500);
-    assert.ok(count("/api/zones") > before, "asked on coming back");
+    await until(() => count("/api/zones") > before, 5000, "the room list asked for on coming back");
     assert.deepEqual(page.errors, []);
   });
 

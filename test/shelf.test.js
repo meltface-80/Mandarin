@@ -2,8 +2,9 @@
 /*
  * Shelf (/shelf), ported from Rouen (MusicD Remote v1.9.3, brought up to
  * v1.9.7 in v0.8.27):
- *   - lib/shelf.js: the letter an artist is filed under, the list in artist
- *     order with each album's genres and year, the signature;
+ *   - the rules (ShelfRoutes.cs; lib/shelf.js until v0.8.50), asked through
+ *     `mandarin-server score` { fn: "shelf" }: the letter an artist is filed
+ *     under, the list in artist order with each album's genres and year, the signature;
  *   - /api/shelf/albums: the whole library with Mandarin's version, and "the
  *     same" for a signature still current (the C# server's answer is held to
  *     this one in test/library-front.test.js; the page and the list are C#'s,
@@ -21,7 +22,8 @@ const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
-const Shelf = require("../lib/shelf");
+const { built } = require("./server");
+const { score } = require("./score");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
@@ -32,41 +34,35 @@ const VERSION = require("../package.json").version;
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-test("the letter an artist is filed under", () => {
-  assert.equal(Shelf.shelfBucket("beatles"), "B");
-  assert.equal(Shelf.shelfBucket("Beatles, The"), "B");
-  assert.equal(Shelf.shelfBucket("Ólafur Arnalds"), "O", "accents folded");
-  assert.equal(Shelf.shelfBucket("10cc"), "1");
-  assert.equal(Shelf.shelfBucket("0 Degrees"), "#", "0 is under #");
-  assert.equal(Shelf.shelfBucket("!!!"), "#");
-  assert.equal(Shelf.shelfBucket("Кино"), "#", "another script is under #");
-  assert.equal(Shelf.shelfBucket("坂本龍一"), "#");
-  assert.equal(Shelf.shelfBucket(""), "#");
-  assert.equal(Shelf.shelfBucket(null), "#");
+const rules = built();
+
+test("the letter an artist is filed under", { skip: rules }, () => {
+  const cases = [["beatles", "B"], ["Beatles, The", "B"], ["Ólafur Arnalds", "O", "accents folded"], ["10cc", "1"], ["0 Degrees", "#", "0 is under #"], ["!!!", "#"],
+    ["Кино", "#", "another script is under #"], ["坂本龍一", "#"], ["", "#"], [null, "#"]];
+  const { buckets } = score({ fn: "shelf", buckets: cases.map(c => c[0]) });
+  cases.forEach(([name, want, why], i) => assert.equal(buckets[i], want, why || String(name)));
 });
 
-test("the shelf's list: genres commonest first, each album's genres as places in it", () => {
+test("the shelf's list: genres commonest first, each album's genres as places in it", { skip: rules }, () => {
   const al = (id, title, artist, sortArtist, genres, year) => ({ id, title, artist, sortArtist, genres, image_key: "al-" + id + "-0", year });
-  const shelf = Shelf.buildShelf([
+  const [shelf, rockPop, popRock, title1, title2, year1, year2] = score({ fn: "shelf", shelves: [[
     al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"], 1969),
     al(2, "Homogenic", "Björk", "bjork", ["Electronic"]),
     al(3, "Kind of Blue", "Miles Davis", "miles davis", ["Jazz"]),
     al(4, "Discovery", "Daft Punk", "daft punk", ["Electronic", "Electronic", ""]),
     al(5, "Untitled", "!!!", "", [])
-  ]);
+  ], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"])], [al(1, "Abbey Road", "The Beatles", "beatles", ["Pop", "Rock"])],
+  [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])], [al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])],
+  [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)]] }).shelves;
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
   assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969 });
   assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
-  const sig = Shelf.shelfSignature(shelf);
-  assert.match(sig, /^[0-9a-f]{16}$/);
-  assert.equal(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"])])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Pop", "Rock"])])), "the same shelf, the same signature");
-  assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])])), "a new title, a new signature");
-  assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)])), "a new year, a new signature");
+  assert.match(shelf.sig, /^[0-9a-f]{16}$/);
+  assert.equal(rockPop.sig, popRock.sig, "the same shelf, the same signature");
+  assert.notEqual(title1.sig, title2.sig, "a new title, a new signature");
+  assert.notEqual(year1.sig, year2.sig, "a new year, a new signature");
 });
 
 // The library: makeLibrary's three albums (1997, 2020 and a set with no year)
@@ -134,11 +130,20 @@ const DRIVE = `
   let pid = 20;
   const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
   const tap = (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); pe("pointerup", x, y, id); };
+  // A long press: held this long.
   const hold = async (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); await sleep(650); pe("pointerup", x, y, id); await sleep(60); };
   const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   // The cover on show at the front: a pooled one put away may still carry its number.
   const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000); await sleep(900); };
+  // Turned over: its back drawn, and the case all the way round (a .65 s transition), then a frame.
+  const turnedRound = () => { const b = document.querySelector(".it.flipped .box"); return !!b && new DOMMatrix(getComputedStyle(b).transform).m11 < -0.999 && b.getAnimations().every(a => a.playState !== "running"); };
+  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000);
+    await until(turnedRound, 4000); await new Promise(r => requestAnimationFrame(r)); };
+  // At rest: no move under way, on a case, nothing on the shelf still moving; then a frame.
+  const rest = async () => {
+    await until(() => S().mode === "idle" && Math.abs(S().p - Math.round(S().p)) < 0.01 && stage.getAnimations({ subtree: true }).every(a => a.playState !== "running"), 6000);
+    await new Promise(r => requestAnimationFrame(r));
+  };
   const row = (i) => document.querySelector('.it.flipped li[data-i="' + i + '"]');
   const tapRow = async (i) => { const c = mid(row(i)); tap(c.x, c.y); await sleep(60); };
   const holdRow = async (i) => { const c = mid(row(i)); await hold(c.x, c.y); };
@@ -150,7 +155,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   const lib = library();
   const house = new FakeHousehold();
   await house.start();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
   await srv.start();
   const b = await Browser.launch({ width: 1440, height: 900, mouse: true });
@@ -214,6 +219,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
 
     await t.test("the gestures: no legend on the shelf, said once in a popup — again after an update, never once ticked", async () => {
       const state = `JSON.parse(localStorage.getItem("rra-shelf-help") || "null")`;
+      // A window for the popup to come in, if it is to come.
       const look = (then) => `(async () => { ${HELPERS} ${ready} await sleep(600);
         const out = { help: shown("#help"), items: [...document.querySelectorAll("#help li")].map(li => li.textContent.trim()),
           focus: document.activeElement && document.activeElement.id, saved: ${state},
@@ -222,7 +228,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.after = ${state}; out.helpAfter = shown("#help");
         return out; })()`;
       {
-        const first = await (await open()).eval(look(`$("#help-ok").click(); await sleep(100);`));
+        const first = await (await open()).eval(look(`$("#help-ok").click(); await until(() => !shown("#help"));`));
         assert.equal(first.help, true, "shown the first time");
         assert.equal(first.saved, null);
         assert.equal(first.focus, "help-ok", "Dismiss has the focus");
@@ -238,7 +244,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const again = await (await open()).eval(look());
       assert.equal(again.help, false, "not again on the same version");
       const updated = await (await open()).eval(`localStorage.setItem("rra-shelf-help", JSON.stringify({ seen: "0.0.1", never: false }))`).then(() => open());
-      const r = await updated.eval(look(`$("#help-never").checked = true; document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await sleep(100);`));
+      const r = await updated.eval(look(`$("#help-never").checked = true; document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await until(() => !shown("#help"));`));
       assert.equal(r.help, true, "again after an update");
       assert.equal(r.helpAfter, false, "Escape dismisses it");
       assert.deepEqual(r.after, { seen: VERSION, never: true });
@@ -435,7 +441,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
-        await until(() => S().mode === "idle"); await sleep(300);
+        await rest();
         const box = stage.getBoundingClientRect(), y = box.top + box.height * 0.5, x0 = box.left + box.width * 0.5;
         const swipe = async (dx, ms, hold) => {
           const id = ++pid, n = Math.max(2, Math.round(ms / 16));
@@ -472,7 +478,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         const out = {};
         // Rock by an artist under A: Album One alone, three tracks.
         tile("genre", "Rock").click(); $('.tab[data-tab="artist"]').click(); tile("artist", "A").click();
-        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 1 && S().mode === "idle"); await rest();
         out.front = S().title;
         await turnOver();
         out.rows = rows();
@@ -556,7 +562,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="artist"]').click(); tile("artist", "V").click();
-        await until(() => S().N === 1 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 1 && S().mode === "idle"); await rest();
         const out = { front: S().title };
         await turnOver();
         out.rows = rows();
@@ -640,7 +646,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         // At the soft limit: no further.
         $("#vol-slider").value = "58"; $("#vol-slider").dispatchEvent(new Event("input", { bubbles: true }));
         await until(() => vols().some(v => v.value === 58));
-        $("#vol-plus").click(); await sleep(300); $("#vol-plus").click(); await sleep(300);
+        for (let i = 0; i < 2; i++) { const n = vols().length; $("#vol-plus").click(); await until(() => vols().length > n); }
         out.capped = vols().slice(-2).map(v => v.value);
         // A press on the shelf closes the sheet.
         $("#stage").dispatchEvent(new PointerEvent("pointerdown", { pointerId: 9, button: 0, clientX: 10, clientY: 10, bubbles: true }));
@@ -727,28 +733,26 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r, { open: true, expanded: "true", folded: { pick: false, expanded: "false", wider: true } });
       const again = await open();
       assert.equal(await again.eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), false, "still folded");
-      await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick); await sleep(300); return true; })()`);
+      await again.eval(`(async () => { ${HELPERS} ${ready} $("#pick-tab").click(); await until(() => window.__shelfState().pick && !document.querySelector(".sliding")); return true; })()`);
       assert.equal(await (await open()).eval(`(async () => { ${HELPERS} ${ready} return window.__shelfState().pick; })()`), true, "and open again");
     });
 
-    // v0.8.28: through the C# server, the page asks the Node server for playback and nothing else.
-    // Playback (the rooms, their queues, the transport) is the Node server's until stage 6.
-    await t.test("through the C# server: only playback is asked of the Node server", { skip: process.env.MANDARIN_FRONT !== "1" && "the suite isn't going through the C# server" }, async () => {
-      const PLAYBACK = ["/api/zones", "/api/zone-state", "/api/queue", "/api/control", "/api/play", "/api/play-track", "/api/play-from-here", "/api/volume"];
+    // v0.8.28: every request the page makes is the C# server's own (playback too since v0.8.49, stage 6).
+    await t.test("every request the page makes is answered by the C# server", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="year"]').click(); tile("year", "1990s").click();
-        await until(() => S().N === 2 && S().mode === "idle"); await sleep(300);
+        await until(() => S().N === 2 && S().mode === "idle"); await rest();
         await turnOver();
         $("#queue-tab").click(); await until(() => document.querySelectorAll("#q-list li").length, 6000);
         $("#queue-tab").click();
+        // A window for the rest of the answers to come in.
         $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
         return [...new Set(window.__by)].sort(); })()`);
-      const node = r.filter(x => x.endsWith(" Node")).map(x => x.slice(0, -5));
+      const others = r.filter(x => !x.endsWith(" C#"));
       const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
-      assert.deepEqual(node.filter(p => !PLAYBACK.includes(p)), [], "nothing but playback from the Node server: " + JSON.stringify(r));
-      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display"]) assert.ok(csharp.includes(p), p + " answered by C#: " + JSON.stringify(r));
-      for (const p of ["/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(node.includes(p), p + " asked, and still the Node server's: " + JSON.stringify(r));
+      assert.deepEqual(others, [], "nothing from anyone else: " + JSON.stringify(r));
+      for (const p of ["/api/shelf/albums", "/api/album", "/api/settings/display", "/api/zones", "/api/zone-state", "/api/queue", "/api/control"]) assert.ok(csharp.includes(p), p + " asked, and answered by C#: " + JSON.stringify(r));
       const shelfPage = await fetch(B + "/shelf", { headers: H });
       assert.equal(shelfPage.headers.get("x-mandarin-answered"), "C#", "the page itself");
       assert.deepEqual(page.errors, []);
@@ -758,6 +762,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const wall = async (enabled) => assert.equal((await fetch(B + "/api/settings/display", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled }) })).status, 200);
       await wall(false);
       const off = await open();
+      // A window: the way to the wall display must not appear in it.
       assert.equal(await off.eval(`(async () => { ${HELPERS} ${ready} await sleep(300); return shown("#to-wall"); })()`), false, "the wall display is off");
       await wall(true);
       const on = await open("/shelf?zone=Kitchen");

@@ -8,14 +8,12 @@
 // display is a device with its own random token, only its hash stored;
 // browsers carry it in an HttpOnly cookie, the Android app as a bearer token.
 //
-// The Node server behind keeps its own gate too (it reads the same tables), and
-// still decides alone for streams and covers: a Sonos speaker can't sign in,
-// and the addresses it is given carry a signature, or come from a speaker the
-// Node server knows.
+// Streams and covers are let through for a signed-in device, an address that
+// carries its signature (Playback/Signing.cs), or a speaker the hub knows
+// (Auth.Media.cs): a Sonos speaker can't sign in.
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Data.Sqlite;
@@ -27,7 +25,7 @@ internal static class Db
     public static string File = "";
 
     // A connection of its own each time, so a database put back from a backup
-    // (swapped in while the Node server restarts) is the one read next.
+    // (swapped in as the server starts again) is the one read next.
     public static SqliteConnection Open()
     {
         var c = new SqliteConnection(new SqliteConnectionStringBuilder
@@ -41,7 +39,7 @@ internal static class Db
         return c;
     }
 
-    // A setting as the Node server keeps it: JSON in settings.value.
+    // A setting as the Node server kept it: JSON in settings.value.
     public static JsonNode? Setting(SqliteConnection c, string key)
     {
         using var cmd = c.CreateCommand();
@@ -56,7 +54,7 @@ internal static class Db
 internal sealed record Account(string Username, string Salt, string Verifier, int Iterations);
 internal sealed record Device(string Id, string Name, string Kind, long LastSeen);
 
-internal static class Auth
+internal static partial class Auth
 {
     public const string Cookie = "musicd_session";
     private const long Year = 365 * 86400;
@@ -87,7 +85,7 @@ internal static class Auth
 
     // ------------------------------------------------------------ who is asking
 
-    public static string ClientIp(HttpContext ctx) => ForwardTransformer.ClientIp(ctx);
+    public static string ClientIp(HttpContext ctx) => Caller.ClientIp(ctx);
 
     // Private and link-local ranges: "the home network". Tailscale's addresses
     // (100.64.0.0/10, and fd7a:115c:a1e0::/48) are not: over Tailscale is away.
@@ -102,7 +100,7 @@ internal static class Auth
             && Uri.IsHexDigit(a[2]) && Uri.IsHexDigit(a[3]) && a[4] == ':') return true;
         var parts = a.Split('.');
         if (parts.Length != 4 || !parts.All(p => p.Length > 0 && p.All(char.IsAsciiDigit))) return false;
-        int x = int.Parse(parts[0]), y = int.Parse(parts[1]);
+        int x = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture), y = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
         return x == 10 || (x == 172 && y >= 16 && y <= 31) || (x == 192 && y == 168) || (x == 169 && y == 254);
     }
 
@@ -194,7 +192,7 @@ internal static class Auth
         cmd.Parameters.AddWithValue("$n", name); cmd.Parameters.AddWithValue("$k", kind);
         cmd.Parameters.AddWithValue("$t", Now); cmd.Parameters.AddWithValue("$ip", ip);
         cmd.ExecuteNonQuery();
-        Front.Log($"[auth] signed in: {name} ({kind}) from {ip}");
+        Server.Log($"[auth] signed in: {name} ({kind}) from {ip}");
         return (token, new JsonObject { ["id"] = id, ["name"] = name, ["kind"] = kind });
     }
 
@@ -235,7 +233,7 @@ internal static class Auth
             recentFailures = recentFailures.Where(t => now - t < 3600000).Append(now).ToList();
             if (failures.Count > 5000) failures.Remove(failures.Keys.First());
         }
-        Front.Log($"[auth] wrong password from {ip}");
+        Server.Log($"[auth] wrong password from {ip}");
     }
 
     private static Task Slowdown()
@@ -274,13 +272,13 @@ internal static class Auth
     public static async Task Gate(HttpContext ctx, Func<Task> next)
     {
         var p = ctx.Request.Path.Value ?? "/";
-        // The Node server's loopback-only routes (a Tidal stream's pieces for
-        // ffmpeg): it fetches them from its own port, never through here.
+        // Private addresses (/internal/…) that weren't answered before the
+        // gate (Jobs.Internal.cs and the like): not there.
         if (p.StartsWith("/internal/", StringComparison.Ordinal)) { ctx.Response.StatusCode = 404; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return; }
-        // Streams and covers: the Node server's to decide (signatures, the
-        // speakers). A renderer's NOTIFY (UPnP eventing): a device can't sign
-        // in, and the Node server takes it before its own gate, as before.
-        if (IsOpen(p) || IsMedia(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal)) { await next(); return; }
+        // Streams and covers: let through when signed, or asked for by a
+        // speaker (MediaAllowed). A renderer's NOTIFY (UPnP eventing): a
+        // device can't sign in, so it is taken before the gate.
+        if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && await MediaAllowed(ctx))) { await next(); return; }
         Account? acct; Device? dev;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
         if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }
@@ -315,7 +313,7 @@ internal static class Auth
 
     public static void Map(WebApplication app)
     {
-        app.MapGet("/api/auth/status", (HttpContext ctx) =>
+        app.MapMethods("/api/auth/status", Http.GetOrHead, (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var acct = GetAccount(c);
@@ -352,7 +350,7 @@ internal static class Auth
             cmd.Parameters.AddWithValue("$v", verifier.ToLowerInvariant()); cmd.Parameters.AddWithValue("$i", iterations);
             cmd.Parameters.AddWithValue("$t", Now);
             if (cmd.ExecuteNonQuery() == 0) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
-            Front.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
+            Server.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
             var (token, device) = IssueDevice(ctx, c, b);
             if (Js.Truthy(b["want_token"])) { await Json(ctx, 200, new JsonObject { ["ok"] = true, ["token"] = token, ["device"] = device, ["username"] = username }); return; }
             SetCookie(ctx, token, !Js.IsFalse(b["remember"]));
@@ -412,12 +410,12 @@ internal static class Auth
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
-            if (dev != null) { Drop(c, dev.Id); Front.Log($"[auth] signed out: {dev.Name}"); }
+            if (dev != null) { Drop(c, dev.Id); Server.Log($"[auth] signed out: {dev.Name}"); }
             ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
 
-        app.MapGet("/api/auth/devices", async (HttpContext ctx) =>
+        app.MapMethods("/api/auth/devices", Http.GetOrHead, async (HttpContext ctx) =>
         {
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
@@ -447,7 +445,7 @@ internal static class Auth
             if (dev == null) { await Json(ctx, 401, new JsonObject { ["error"] = "Sign in to Mandarin", ["sign_in_required"] = true }); return; }
             var id = Js.Str(b["id"]);
             int n = Drop(c, id);
-            if (n > 0) Front.Log($"[auth] device {id} signed out by {dev.Name}");
+            if (n > 0) Server.Log($"[auth] device {id} signed out by {dev.Name}");
             if (id == dev.Id) ClearCookie(ctx);
             await Json(ctx, 200, new JsonObject { ["ok"] = n > 0 });
         });
@@ -474,7 +472,7 @@ internal static class Auth
             cmd.Parameters.AddWithValue("$t", Now);
             cmd.ExecuteNonQuery();
             reauthed.TryRemove(dev.Id, out _);
-            Front.Log($"[auth] password changed from {dev.Name}");
+            Server.Log($"[auth] password changed from {dev.Name}");
             await Json(ctx, 200, new JsonObject { ["ok"] = true });
         });
     }
@@ -487,36 +485,12 @@ internal static class Auth
         return cmd.ExecuteNonQuery();
     }
 
-    // ------------------------------------------------------------ JSON in and out
+    // ------------------------------------------------------------ JSON out
 
-    // The request's JSON body, as the Node server's parser reads it: {} when
-    // there is none or it isn't JSON; a 400 (and null) when it says JSON but isn't.
-    public static async Task<JsonObject?> Body(HttpContext ctx)
-    {
-        var type = ctx.Request.ContentType ?? "";
-        if (!type.Contains("json", StringComparison.OrdinalIgnoreCase)) return [];
-        try
-        {
-            var n = await JsonNode.ParseAsync(ctx.Request.Body);
-            return n as JsonObject ?? [];
-        }
-        catch (JsonException)
-        {
-            await Error(ctx, 400, "Bad JSON");
-            return null;
-        }
-    }
+    // As res.json sends it (Http.cs); the body in is Auth.Body.cs.
+    public static Task Json(HttpContext ctx, int status, JsonObject o) => Http.Json(ctx, o, status);
 
-    public static Task Json(HttpContext ctx, int status, JsonObject o)
-    {
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        // Answered here, not passed on (the tests check which).
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        return ctx.Response.WriteAsync(o.ToJsonString());
-    }
-
-    private static Task Error(HttpContext ctx, int status, string message) => Json(ctx, status, new JsonObject { ["error"] = message });
+    private static Task Error(HttpContext ctx, int status, string message) => Http.Error(ctx, status, message);
 }
 
 // What JavaScript would make of a JSON value, where the rules above come from it.
@@ -565,7 +539,7 @@ internal static class Js
         {
             char ch = (char)b;
             if (b < 0x80 && (char.IsAsciiLetterOrDigit(ch) || "-_.!~*'()".Contains(ch))) sb.Append(ch);
-            else sb.Append('%').Append(b.ToString("X2"));
+            else sb.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }

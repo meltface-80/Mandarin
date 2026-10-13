@@ -1,14 +1,20 @@
 // QobuzApi.cs — Qobuz's API as lib/qobuz/api.js asks it (v0.8.39, stage 4.1):
 // the catalogue's calls; from v0.8.44 (stage 4.2) the purchases' ids and the
-// favourite set and taken away too. Each call is
+// favourite set and taken away too; from v0.8.45 (stage 4.3) the import's
+// lists (the favourites, the purchases, the favourite tracks, the playlists);
+// from v0.8.47 (stage 4.4) the sign-in (user/login), a track's address
+// (track/getFileUrl, signed) and the play reports. Each call is
 //
 //   https://www.qobuz.com/api.json/0.2/<call>?<the parameters, sorted>&app_id=…
 //
 // with the headers X-App-Id and X-User-Auth-Token (the signed-in account's,
 // read at each call, so a sign-out takes at once), answered as JSON. The app id
-// is the one the Lyrion plugin ships, decoded as api.js decodes it. A failure
-// is said as the Node server says it: Qobuz's own message, else "Qobuz
-// answered <status>"; 401 for a token it refuses, 502 for the rest.
+// and secret are the ones the Lyrion plugin ships, decoded as api.js decodes
+// them; a signed call carries request_ts and request_sig, md5 of the call, the
+// other parameters sorted and run together, the time and the secret, as
+// Qobuz's documentation and the plugin have it. A failure is said as the Node
+// server says it: Qobuz's own message, else "Qobuz answered <status>"; 401 for
+// a token (or a sign-in) it refuses, 502 for the rest.
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
@@ -27,6 +33,7 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
     public string BaseUrl { get; } = baseUrl is { Length: > 0 } b ? b : Base;
     public readonly AnswerCache Cache = new();
     private readonly string appId = Credentials().AppId;
+    private readonly string secret = Credentials().Secret;
 
     [GeneratedRegex(@"^(\d{9})([a-f0-9]{32})(\d{9})", RegexOptions.IgnoreCase)]
     private static partial Regex CredentialsShape();
@@ -40,22 +47,36 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
     }
 
     /*
-     * One call (api.js get): [ttl] ms kept, [fresh] asked again now. The
-     * parameters go in as given, those null or undefined left out, then
-     * app_id, the whole sorted as JavaScript sorts strings.
+     * One call (api.js get): [ttl] ms kept, [fresh] asked again now; [noToken]
+     * before signing in; [sign] a signed call (the time and the signature
+     * added). The parameters go in as given, those null or undefined left
+     * out, then app_id, the whole sorted as JavaScript sorts strings.
      */
-    public async Task<object?> Get(string call, IEnumerable<(string Key, object? Value)> prms, double ttl = 0, bool fresh = false, long? version = null)
+    public async Task<object?> Get(string call, IEnumerable<(string Key, object? Value)> prms, double ttl = 0, bool fresh = false, long? version = null,
+        bool noToken = false, bool sign = false)
     {
+        var all = prms.ToList();
         var q = new List<string>();
-        foreach (var (k, v) in prms) if (!Js.IsNullish(v)) q.Add(k + "=" + Component(Js.Str(v)));
-        var tok = token();
-        if (string.IsNullOrEmpty(tok)) throw new ServiceError("Not signed in to Qobuz", 401);
+        foreach (var (k, v) in all) if (!Js.IsNullish(v)) q.Add(k + "=" + Component(Js.Str(v)));
+        var tok = noToken ? null : token();
+        if (!noToken && string.IsNullOrEmpty(tok)) throw new ServiceError("Not signed in to Qobuz", 401);
+        if (sign)
+        {
+            var ts = Math.Floor(NowMs() / 1000);
+            var keys = all.Select(x => x.Key).Distinct().ToList();
+            keys.Sort(string.CompareOrdinal);
+            var sig = call.Replace("/", "") + string.Concat(keys.Select(k => k + Js.Str(all.Last(x => x.Key == k).Value))) + Js.Num(ts) + secret;
+            q.Add("request_ts=" + Js.Num(ts));
+            q.Add("request_sig=" + Convert.ToHexString(Fingerprint.Md5(Encoding.UTF8.GetBytes(sig))).ToLowerInvariant());
+        }
         q.Add("app_id=" + appId);
         q.Sort(string.CompareOrdinal);
         var url = BaseUrl + call + "?" + string.Join("&", q);
-        var key = url + "|" + tok;
+        var key = url + "|" + (tok ?? "");
         if (ttl > 0 && !fresh && Cache.TryGet(key, version, out var kept)) return kept;
-        var (status, text) = await ServiceHttp.Get(url, [("X-App-Id", appId), ("X-User-Auth-Token", tok)], 15000);
+        var headers = new List<(string, string)> { ("X-App-Id", appId) };
+        if (!string.IsNullOrEmpty(tok)) headers.Add(("X-User-Auth-Token", tok));
+        var (status, text) = await ServiceHttp.Get(url, headers, 15000);
         var j = ParseOrNull(text);
         if (status is < 200 or > 299)
         {
@@ -82,6 +103,47 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
         return outList;
     }
 
+    /*
+     * A form posted (api.js post: the play reports): the parameters as given,
+     * then app_id, unsorted; the answer as JSON, or null. Qobuz's status is
+     * not looked at, as there.
+     */
+    public async Task<object?> Post(string call, string body)
+    {
+        var url = BaseUrl + call + "?app_id=" + appId;
+        var headers = new List<(string, string)> { ("X-App-Id", appId) };
+        var tok = token();
+        if (!string.IsNullOrEmpty(tok)) headers.Add(("X-User-Auth-Token", tok));
+        var (_, text) = await ServiceHttp.Send("POST", url, headers, body, "application/x-www-form-urlencoded", 15000);
+        return ParseOrNull(text);
+    }
+
+    // ------------------------------------------------------------ the account (v0.8.47)
+
+    /* user/login: the token and the user, for a subscriber (api.js login); anything else, "Qobuz didn't accept that sign-in". */
+    public async Task<(object? Token, object? User)> Login(string username, string password, string deviceId)
+    {
+        var j = await Get("user/login", [("username", username), ("password", password), ("device_manufacturer_id", deviceId)], noToken: true);
+        if (!Js.Truthy(j) || !Js.Truthy(P(j, "user_auth_token")) || !Js.Truthy(P(j, "user")) || !Js.Truthy(P(P(j, "user"), "id")))
+            throw new ServiceError("Qobuz didn't accept that sign-in", 401);
+        return (P(j, "user_auth_token"), P(j, "user"));
+    }
+
+    // ------------------------------------------------------------ the stream (v0.8.47)
+
+    /*
+     * track/getFileUrl, signed: the address the audio is at for a few minutes,
+     * and what it is (api.js fileUrl). Qobuz answers with what the
+     * subscription allows; the caller reads what came back.
+     */
+    public Task<object?> FileUrl(string trackId, double formatId) =>
+        Get("track/getFileUrl", [("track_id", trackId), ("format_id", formatId), ("intent", "stream")], sign: true);
+
+    /* track/reportStreamingStart and …End, the plugin's exact event shape (api.js report). */
+    public Task<object?> Report(string which, JsObj e) =>
+        Post(which == "start" ? "track/reportStreamingStart" : "track/reportStreamingEnd",
+            "events=" + Component(Js.Json(new List<object?> { e }) ?? "[]") + "&user_auth_token=" + Component(token() ?? ""));
+
     // ------------------------------------------------------------ the catalogue
 
     private const double Month = 30 * 86400e3, Hour = 3600e3;
@@ -104,4 +166,13 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
         Cache.Clear();
         return Get(on ? "favorite/create" : "favorite/delete", [("album_ids", albumId)]);
     }
+
+    // ------------------------------------------------------------ the import (v0.8.45)
+
+    /* Every page of each, kept a minute, as api.js keeps them. */
+    public Task<List<object?>> FavouriteAlbums() => GetAll("favorite/getUserFavorites", [("type", "albums")], j => P(j, "albums"), 60e3);
+    public Task<List<object?>> Purchases() => GetAll("purchase/getUserPurchases", [], j => P(j, "albums"), 60e3);
+    public Task<List<object?>> FavouriteTracks() => GetAll("favorite/getUserFavorites", [("type", "tracks")], j => P(j, "tracks"), 60e3);
+    public Task<List<object?>> Playlists() => GetAll("playlist/getUserPlaylists", [], j => P(j, "playlists"), 60e3);
+    public Task<List<object?>> PlaylistTracks(object? id) => GetAll("playlist/get", [("playlist_id", id), ("extra", "tracks")], j => P(j, "tracks"), 60e3);
 }

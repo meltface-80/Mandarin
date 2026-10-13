@@ -1,0 +1,139 @@
+// @ts-check
+/*
+ * touchnav.js — the touch layout's row along the foot of the screen (v0.9.6):
+ * Menu, Home, Library and Search under the mini player, on a phone or a
+ * tablet in either orientation. A desktop (a mouse) never shows it: the
+ * layout is style.css's "touch layout" section, under the same media query
+ * as the touch-sized mini player.
+ *
+ * Each button works the page's own control, so there is one way to do each
+ * thing: the menu is #menu-toggle's, Library is Home's "Library" heading's
+ * (the full A–Z wall), Search is the top bar's glass, and Home is the page's
+ * own showHome. What covers the screen (an album's page) closes first, as
+ * its Back would.
+ *
+ * It also tells the layout, on <html>, what is on screen: tn-home (Home, so
+ * no top bar), tn-search (the search open, so the top bar is back with the
+ * field across it), tn-lib (the Library wall), tn-filter (the Library's
+ * filter, or the Labels list's search, open: the top bar back for its
+ * field), tn-labels (the Labels list), tn-np (Now playing, which
+ * has its own transport and no row), tn-offline (the Offline sign, shown
+ * small between Home and Library).
+ *
+ * Elsewhere (the grid screens) the top bar has no strip: its buttons float
+ * over the albums, which scroll up to the screen's edge, and the screen's
+ * title (#album-count) is the page's heading, at the top of <main>, moved
+ * there while the touch layout applies and back to the bar when it doesn't.
+ * On the Library wall Search opens its filter ("starts with"), and on the
+ * Labels list its "Find a label", not Home's: their own glasses give way.
+ */
+(function touchNav() {
+  "use strict";
+  const nav = document.getElementById("touch-nav");
+  if (!nav) return;
+  const root = document.documentElement;
+  /** @param {string} id */
+  const byId = (id) => document.getElementById(id);
+  const home = byId("home-view");
+  const topbar = document.querySelector(".topbar");
+  const search = byId("topbar-search");
+  const offline = byId("offline-btn");
+  const modal = byId("album-modal");
+  const labels = byId("labels-tools");
+  /** @param {Element | null} el @param {string} cls */
+  const has = (el, cls) => !!el && el.classList.contains(cls);
+
+  /* What is on screen, as classes on <html> for style.css. */
+  function sync() {
+    const modalOpen = !!modal && !has(modal, "hidden");
+    root.classList.toggle("tn-home", !!home && !has(home, "hidden"));
+    root.classList.toggle("tn-search", has(search, "is-open"));
+    root.classList.toggle("tn-lib", has(topbar, "lib-wall"));
+    root.classList.toggle("tn-filter", has(topbar, "lib-filtering") || has(labels, "is-searching"));
+    // The Labels list: its tools shown, with their order (#–Z), which one label's albums don't have.
+    const order = byId("labels-sort-btn");
+    root.classList.toggle("tn-labels", !!labels && !has(labels, "hidden") && !!order && !has(order, "hidden"));
+    // Now playing (the album tab of the player's own screen): as app.js's onNowPlayingScreen.
+    root.classList.toggle("tn-np", modalOpen && has(modal, "np-mode") && has(modal, "tab-album"));
+    root.classList.toggle("tn-offline", !!offline && !has(offline, "hidden"));
+  }
+  const watched = [home, topbar, search, offline, modal];
+  for (const el of watched) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"] });
+  if (labels) new MutationObserver(sync).observe(labels, { attributes: true, attributeFilter: ["class"], subtree: true });
+  sync();
+
+  /* An album's page over the screen closes, as its Back does. */
+  function clearOver() {
+    if (!modal || has(modal, "hidden")) return;
+    const back = byId("modal-close-btn");
+    if (back) back.click();
+  }
+  /* The screen already showing: back to its top, as a second tap does in other apps. */
+  function toTop() {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  const w = /** @type {any} */ (window);
+
+  /** @param {string} id @param {(e: MouseEvent) => void} fn */
+  function on(id, fn) {
+    const b = byId(id);
+    if (b) b.addEventListener("click", fn);
+  }
+  on("tnav-menu", () => { const m = byId("menu-toggle"); if (m) m.click(); });
+  on("tnav-home", () => {
+    const already = root.classList.contains("tn-home") && !(modal && !has(modal, "hidden"));
+    clearOver();
+    if (already && !root.classList.contains("tn-search")) { toTop(); return; }
+    if (typeof w.__showHome === "function") w.__showHome();
+  });
+  on("tnav-library", () => {
+    const already = root.classList.contains("tn-lib") && !(modal && !has(modal, "hidden"));
+    clearOver();
+    if (already) { toTop(); return; }
+    const heading = byId("home-library-title");
+    if (heading) heading.click();
+  });
+  on("tnav-search", (e) => {
+    // The page closes its search on any tap outside it: this one opens it.
+    e.stopPropagation();
+    if (has(search, "is-open")) { const i = byId("search-input"); if (i) i.focus(); return; }
+    clearOver();
+    // The Library wall: its own filter, opened (its glass is hidden in this layout) or, open, its field.
+    if (root.classList.contains("tn-lib")) {
+      const field = /** @type {HTMLElement | null} */ (document.querySelector("#library-filter .lib-filter-input"));
+      const glass = /** @type {HTMLElement | null} */ (document.querySelector("#library-filter .lib-filter-btn"));
+      if (field) field.focus(); else if (glass) glass.click();
+      return;
+    }
+    // The Labels list: "Find a label", opened or, open, its field.
+    if (root.classList.contains("tn-labels")) {
+      if (has(labels, "is-searching")) { const i = byId("labels-search-input"); if (i) i.focus(); }
+      else { const glass = byId("labels-search-btn"); if (glass) glass.click(); }
+      return;
+    }
+    // The search is Home's: from anywhere else, Home first.
+    if (has(search, "hidden") && typeof w.__showHome === "function") w.__showHome();
+    const glass = byId("search-open");
+    if (glass) glass.click();
+  });
+  on("tnav-offline", (e) => { e.stopPropagation(); if (offline) offline.click(); });
+
+  /* The screen's title: the page's heading in the touch layout, the bar's otherwise. */
+  const title = byId("album-count");
+  const main = document.querySelector("main");
+  if (title && title.parentNode && main) {
+    const home0 = { parent: title.parentNode, next: title.nextSibling };
+    const heading = document.createElement("div");
+    heading.id = "tnav-heading";
+    heading.className = "tnav-heading";
+    main.insertBefore(heading, main.firstChild);
+    const touch = window.matchMedia("(hover: none), (pointer: coarse)");
+    const place = () => {
+      if (touch.matches) { if (title.parentNode !== heading) heading.appendChild(title); }
+      else if (title.parentNode !== home0.parent) home0.parent.insertBefore(title, home0.next && home0.next.parentNode === home0.parent ? home0.next : null);
+    };
+    place();
+    touch.addEventListener("change", place);
+  }
+})();

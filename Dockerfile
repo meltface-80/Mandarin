@@ -2,10 +2,9 @@
 #
 # Four stages: MusicD's own Tailscale engine (Go, the same program as the
 # Android app's) is built for the image's platform; Mandarin's audio engine
-# (C#, engine/) likewise; native modules (better-sqlite3, sharp) are
-# installed where a compiler is available in case a platform has no prebuilt
-# binary; and the image that runs carries only Node, ffmpeg, the two engines
-# and the app.
+# (C#, engine/) likewise; Mandarin's server (C#, server/) likewise; and the
+# image that runs carries only ffmpeg, poppler, the three programs and the
+# page (public/). No Node.js since v0.9.0.
 # Docker Hub's official images are pulled through Google's mirror of them
 # (mirror.gcr.io/library/…, v0.8.26): the same images, without Docker Hub's
 # limit on anonymous pulls, which GitHub's shared runners kept hitting
@@ -42,9 +41,8 @@ RUN set -e; cd engine; \
     fi; \
     rm -f /out/*.dbg /out/*.pdb; ls -la /out
 
-# Mandarin's server in C# (v0.8.1): the front door, which starts the Node
-# server behind it and passes on what it doesn't answer itself, as more of
-# the server moves to C#. One self-contained file: no .NET in the image.
+# Mandarin's server in C# (v0.8.1; the whole server since v0.9.0). One
+# self-contained file: no .NET in the image.
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot AS server
 ARG TARGETARCH
 WORKDIR /src
@@ -59,16 +57,7 @@ RUN set -e; cd server; \
       -p:EnableCompressionInSingleFile=true -o /out --nologo; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
-FROM mirror.gcr.io/library/node:22-bookworm-slim AS deps
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY package.json package-lock.json ./
-ENV NPM_CONFIG_UPDATE_NOTIFIER=false
-RUN npm ci --omit=dev --no-audit --no-fund --loglevel=error
-
-FROM mirror.gcr.io/library/node:22-bookworm-slim
+FROM mirror.gcr.io/library/debian:bookworm-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
       org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
@@ -77,10 +66,10 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # ffmpeg converts anything above 24-bit/48 kHz (and formats Sonos cannot
 # read) to FLAC 24/48. Debian's build includes libsoxr, the better resampler.
 # tini reaps ffmpeg children and passes SIGTERM on, so a stop is immediate.
-# libicu: the C# server sorts names as the Node server does (server/).
+# libicu: the C# server sorts names as the Node server did (server/).
 # taskset and ionice (util-linux, in the base image): playback's own cores and
-# the background work's priority (lib/cpu.js); checked here, so the image is
-# never built without them.
+# the background work's priority (server/Mandarin.Server/Cpu.cs); checked here,
+# so the image is never built without them.
 # poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
 # album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
 RUN apt-get update \
@@ -90,21 +79,18 @@ RUN apt-get update \
     && pdftoppm -v && pdfinfo -v
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
-# TS_AUTHKEY), the server is on your tailnet by itself (lib/server/tsnode.js).
+# TS_AUTHKEY), the server is on your tailnet by itself (server/Mandarin.Server/Admin/Tailscale.cs).
 COPY --from=tsnet /out/musicdnet /usr/local/bin/musicdnet
 
 WORKDIR /app
-# Mandarin's audio engine: sound devices on this computer (lib/local/engine.js).
+# Mandarin's audio engine: sound devices on this computer (server/Mandarin.Server/Local/AudioEngine.cs).
 COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
-# Mandarin's server in C#, the front door (server/).
+# Mandarin's server in C# (server/), and the page it serves.
 COPY --from=server /out/mandarin-server /app/server/bin/mandarin-server
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json index.js launcher.js reset-password.js ./
-COPY lib ./lib
+COPY package.json ./
 COPY public ./public
 
-ENV NODE_ENV=production \
-    DOCKER=1 \
+ENV DOCKER=1 \
     PORT=3500 \
     MUSIC_DIR=/music \
     DATA_DIR=/app/data
@@ -118,12 +104,12 @@ VOLUME ["/app/data"]
 # the speakers must reach this port to fetch audio).
 EXPOSE 3500
 
+# The C# server asks itself (v0.8.50): one GET of /api/health on PORT, 0 when it answers 200.
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
-    CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3500)+'/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+    CMD ["/app/server/bin/mandarin-server", "--health"]
 
-# The C# server takes the port and starts the Node server behind it through
-# launcher.js, which, when Settings → Check for updates installs a new
-# release, swaps the files in while the Node server is stopped and starts it
-# again — the container keeps running throughout.
+# The C# server takes the port. When Settings → Check for updates installs a
+# new release, it puts the new program and page in place and starts again in
+# the same process — the container keeps running throughout.
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/server/bin/mandarin-server"]

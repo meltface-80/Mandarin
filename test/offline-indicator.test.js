@@ -4,9 +4,10 @@
  * its Offline mode is on), /api/status says so (offline, offline_mode); in
  * a browser, /api/status doesn't answer at all. The page no longer writes a
  * notice across the top of the screen; a symbol sits in the top bar between
- * the menu and the search, and a tap on it says what the matter is: the
- * server can't be reached, or Offline mode is on (with the app's switch to
- * turn it off).
+ * the menu and the search (on a phone or a tablet, v0.9.6: small, in the row
+ * along the foot, between Home and Library), and a tap on it says what the
+ * matter is: the server can't be reached, or Offline mode is on (with the
+ * app's switch to turn it off).
  *
  * The app is stood in for: its /api/status answer and its MusicdDownloads
  * bridge; a server gone away, by every /api request failing in the page. Skipped
@@ -44,15 +45,26 @@ const LOOK = `(async () => {
   const $ = id => document.getElementById(id);
   const shown = el => !!el && !el.classList.contains("hidden") && getComputedStyle(el).display !== "none";
   await until(() => document.querySelector("#home-view .album"));
-  await sleep(1500);   // the status has been read
+  // The status read (its answer in), then a frame for what it shows.
+  await until(() => performance.getEntriesByType("resource").some(e => e.name.includes("/api/status") && e.responseEnd > 0));
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const notice = $("server-notice");
-  const out = { notice: shown(notice) ? notice.textContent : "", btn: shown($("offline-btn")) };
+  // The touch layout (a phone, a tablet) shows the symbol in its row along the foot; a desktop in the top bar.
+  const touch = shown($("touch-nav"));
+  const sign = touch ? $("tnav-offline") : $("offline-btn");
+  const out = { notice: shown(notice) ? notice.textContent : "", btn: shown(sign), layout: touch ? "row" : "top bar" };
   if (!out.btn) return out;
   const box = el => el.getBoundingClientRect();
-  out.between = box($("menu-toggle")).right <= box($("offline-btn")).left && box($("offline-btn")).right <= box($("search-open")).left;
-  out.order = [...$("offline-btn").parentElement.children].filter(shown).map(e => e.id).slice(0, 3);
+  if (touch) {
+    out.between = box($("tnav-home")).right <= box(sign).left && box(sign).right <= box($("tnav-library")).left;
+    out.small = box(sign).width <= 32;
+  } else {
+    out.between = box($("menu-toggle")).right <= box(sign).left && box(sign).right <= box($("search-open")).left;
+    out.order = [...sign.parentElement.children].filter(shown).map(e => e.id).slice(0, 3);
+  }
+  // The page's own symbol says why; the row's is its copy.
   out.label = $("offline-btn").getAttribute("aria-label");
-  $("offline-btn").click();
+  sign.click();
   out.popup = shown($("offline-overlay"));
   out.title = $("offline-title").textContent;
   out.text = [...$("offline-text").querySelectorAll("p")].map(p => p.textContent);
@@ -63,7 +75,7 @@ const LOOK = `(async () => {
     out.set = window.__set;
   } else {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    await sleep(100);
+    await until(() => !shown($("offline-overlay")));
     out.menuOpen = shown($("menu-overlay"));
   }
   out.closed = !shown($("offline-overlay"));
@@ -72,7 +84,7 @@ const LOOK = `(async () => {
 
 test("offline: a symbol in the top bar, not a notice; a tap says what the matter is", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   const b = await Browser.launch({ width: 390, height: 844 });
@@ -93,12 +105,13 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
       assert.doesNotMatch(r.notice, /offline|can.t be reached/i);
     });
 
-    await t.test("the server can't be reached: the symbol between the menu and the search, and why", async () => {
+    await t.test("the server can't be reached: on a phone, the symbol small between Home and Library, and why", async () => {
       const r = await look({ offline: true, offline_mode: false });
       assert.equal(r.notice, "", "no notice across the top of the page");
       assert.equal(r.btn, true);
-      assert.equal(r.between, true, "between the menu button and the magnifying glass");
-      assert.deepEqual(r.order, ["menu-toggle", "offline-btn", "topbar-search"]);
+      assert.equal(r.layout, "row", "a phone has the touch layout");
+      assert.equal(r.between, true, "between the Home and Library buttons");
+      assert.equal(r.small, true, "a small sign");
       assert.equal(r.label, "Mandarin can't be reached — tap for more");
       assert.equal(r.popup, true);
       assert.equal(r.title, "Mandarin can’t be reached");
@@ -125,6 +138,22 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
       assert.deepEqual(r.errors, []);
     });
 
+    await t.test("a desktop: the symbol in the top bar, between the menu and the search, as before", async () => {
+      const d = await Browser.launch({ width: 1440, height: 900, mouse: true });
+      try {
+        const page = await d.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], init: init({ offline: true, offline_mode: false }) });
+        const r = await page.eval(LOOK);
+        assert.equal(r.layout, "top bar");
+        assert.equal(r.btn, true);
+        assert.equal(r.between, true, "between the menu button and the magnifying glass");
+        assert.deepEqual(r.order, ["menu-toggle", "offline-btn", "topbar-search"]);
+        assert.equal(r.popup, true);
+        assert.equal(r.title, "Mandarin can’t be reached");
+        assert.equal(r.closed, true, "Escape closes it");
+        assert.deepEqual(page.errors, []);
+      } finally { await d.close(); }
+    });
+
     await t.test("a browser that can't reach the server: the symbol in seconds (not at the next minute's look), and gone when it answers", async () => {
       const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], init: init(null) });
       const r = await page.eval(`(async () => {
@@ -139,15 +168,17 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
         // are news: the symbol within ~25 s, never inside 10.
         window.__down = true;
         await sleep(6000);
-        const out = { early: shown($("offline-btn")) };
-        out.after = await until(() => shown($("offline-btn")), 30000);
+        // The symbol where this layout shows it: the row's on a phone, the top bar's on a desktop.
+        const sign = () => shown($("touch-nav")) ? $("tnav-offline") : $("offline-btn");
+        const out = { early: shown(sign()) };
+        out.after = await until(() => shown(sign()), 30000);
         out.notice = shown($("server-notice")) ? $("server-notice").textContent : "";
         $("offline-btn").click();
         out.title = $("offline-title").textContent;
         out.text = [...$("offline-text").querySelectorAll("p")].map(p => p.textContent);
         out.switch = shown($("offline-switch"));
         window.__down = false;
-        out.back = await until(() => !shown($("offline-btn")), 20000);
+        out.back = await until(() => !shown(sign()), 20000);
         out.popupClosed = !shown($("offline-overlay"));
         return out;
       })()`);

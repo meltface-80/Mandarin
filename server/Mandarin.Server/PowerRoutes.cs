@@ -4,16 +4,14 @@
 // lib/server/api-cpu.js, in the same shapes:
 //
 //   GET  /api/system/power     what this install can do: { restart, shutdown, docker, start_again }
-//   POST /api/system/restart   both servers started again
-//   POST /api/system/shutdown  both stopped, to stay stopped (not in Docker)
+//   POST /api/system/restart   the server started again
+//   POST /api/system/shutdown  stopped, to stay stopped (not in Docker)
 //   GET  /api/cpu              the cores playback keeps and the rest (lib/cpu.js plan())
 //
-// Restart: the Node server is stopped cleanly, then this program starts again
-// in this same process, on every core it started with (Front.StartAgain, as
-// after an update), and starts a Node server afresh. Before, Restart started
-// the Node server alone again and this one carried on.
+// Restart: this program starts again in this same process, on every core it
+// started with (Server.StartAgain, as after an update).
 //
-// Shut down: both stop and stay stopped until started again.
+// Shut down: it stops and stays stopped until started again.
 //   - On a Mac, with the login item the installer makes (tools/mac/install.sh),
 //     launchd would start again a job that merely exited, so the job is unloaded
 //     instead (launchctl bootout) and the Mandarin icon on the desktop loads it
@@ -23,12 +21,10 @@
 //     so Shut down isn't offered: `docker stop` is the way.
 //
 // Both only from home: away (over Tailscale) a phone could switch off the
-// server it can't then reach to start again. Answered here only where this
-// program started the Node server itself (an install); otherwise (the tests'
-// own Node server behind it) passed on as before.
+// server it can't then reach to start again.
 //
-// The processor split is still decided by the Node server (lib/cpu.js) until
-// playback moves; /api/cpu answers with it as last sent (Cpu.cs Follow).
+// The processor split: decided here (v0.8.48, Cpu.cs), /api/cpu answering
+// with the decision.
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -40,19 +36,20 @@ internal static partial class Library
     [GeneratedRegex(@"^app\.mandarin\.[a-z0-9.-]+$", RegexOptions.IgnoreCase)]
     private static partial Regex LaunchdLabelRule();
 
-    /* The launchd job this server runs as, when it's the installer's login item. */
-    private static string? LaunchdLabel()
+    /* The launchd job this server runs as, when it's the installer's login item ([env]: this process's, or a case's). */
+    private static string? LaunchdLabel(Func<string, string?>? env = null)
     {
-        var label = Environment.GetEnvironmentVariable("MANDARIN_LAUNCHD") is { Length: > 0 } l ? l
-            : Environment.GetEnvironmentVariable("XPC_SERVICE_NAME") ?? "";
+        env ??= Environment.GetEnvironmentVariable;
+        var label = env("MANDARIN_LAUNCHD") is { Length: > 0 } l ? l : env("XPC_SERVICE_NAME") ?? "";
         return LaunchdLabelRule().IsMatch(label) ? label : null;
     }
 
-    /* What this install can do, and how it's started again after Shut down. */
-    private static JsonObject PowerInfo()
+    /* What this install can do, and how it's started again after Shut down ([env], [mac]: this machine's, or a case's). */
+    internal static JsonObject PowerInfo(Func<string, string?>? env = null, bool? mac = null)
     {
-        var docker = Environment.GetEnvironmentVariable("DOCKER") == "1";
-        var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
+        env ??= Environment.GetEnvironmentVariable;
+        var docker = env("DOCKER") == "1";
+        var label = mac ?? OperatingSystem.IsMacOS() ? LaunchdLabel(env) : null;
         return new JsonObject
         {
             ["restart"] = true,
@@ -67,7 +64,6 @@ internal static partial class Library
     /* The power and processor routes: true when answered here. */
     private static async Task<bool> PowerRoute(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         var m = ctx.Request.Method;
         var p = ctx.Request.Path.Value ?? "";
         try
@@ -79,39 +75,36 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server");
+            Server.Log($"[power] {p}: {e.GetType().Name}: {e.Message}; not answered");
             return false;
         }
     }
 
-    private static Task<bool> SystemPower(HttpContext ctx) =>
-        Front.RunsNode ? Send(ctx, PowerInfo()) : Task.FromResult(false);
+    private static Task<bool> SystemPower(HttpContext ctx) => Send(ctx, PowerInfo());
 
     private static async Task<bool> SystemRestart(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Restart only from home", ["away"] = true }, 403);
-        var first = Front.LeaveBy(Front.Leave.Restart);
+        var first = Server.LeaveBy(Server.Leave.Restart);
         await Send(ctx, new JsonObject { ["ok"] = true, ["restarting"] = true });
-        if (first) _ = Task.Delay(300).ContinueWith(_ => Front.StopApp?.Invoke(), TaskScheduler.Default);
+        if (first) _ = Task.Delay(300).ContinueWith(_ => Server.StopApp?.Invoke(), TaskScheduler.Default);
         return true;
     }
 
     private static async Task<bool> SystemShutdown(HttpContext ctx)
     {
-        if (!Front.RunsNode) return false;
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Shut down only from home", ["away"] = true }, 403);
         var info = PowerInfo();
         if (info["shutdown"]?.GetValue<bool>() != true)
             return await Send(ctx, new JsonObject { ["error"] = "In Docker, stop the container instead: docker stop musicd-server" }, 409);
-        var first = Front.LeaveBy(Front.Leave.ShutDown);
+        var first = Server.LeaveBy(Server.Leave.ShutDown);
         await Send(ctx, new JsonObject { ["ok"] = true, ["start_again"] = info["start_again"]?.GetValue<string>() });
         if (first)
         {
             _ = Task.Delay(300).ContinueWith(async _ =>
             {
                 var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
-                if (label == null || !await UnloadLoginItem(label)) Front.StopApp?.Invoke();
+                if (label == null || !await UnloadLoginItem(label)) Server.StopApp?.Invoke();
             }, TaskScheduler.Default);
         }
         return true;
@@ -119,16 +112,16 @@ internal static partial class Library
 
     /*
      * The login item, unloaded: launchd stops this server (SIGTERM, a clean
-     * stop: the Node server with it) and doesn't start it again until the icon
+     * stop) and doesn't start it again until the icon
      * or the next login loads it. False if neither way would do it.
      */
     private static async Task<bool> UnloadLoginItem(string label)
     {
-        if (await Launchctl("bootout", $"gui/{Front.Uid()}/{label}")) return true;
+        if (await Launchctl("bootout", $"gui/{Server.Uid()}/{label}")) return true;
         // Older launchctl, or bootout refused: the legacy form does the same.
         var plist = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "LaunchAgents", label + ".plist");
         if (await Launchctl("unload", plist)) return true;
-        Front.Log($"[power] couldn't unload {label}; stopping anyway");
+        Server.Log($"[power] couldn't unload {label}; stopping anyway");
         return false;
     }
 
@@ -148,10 +141,6 @@ internal static partial class Library
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or TimeoutException) { return false; }
     }
 
-    /* GET /api/cpu: the split as the Node server decides it, asked afresh. */
-    private static async Task<bool> CpuPlan(HttpContext ctx)
-    {
-        await Ask();
-        return Cpu.Last is { } plan ? await Send(ctx, plan.DeepClone()) : false;
-    }
+    /* GET /api/cpu: the split as decided here (v0.8.48, Cpu.cs). */
+    private static Task<bool> CpuPlan(HttpContext ctx) => Send(ctx, Cpu.Plan());
 }

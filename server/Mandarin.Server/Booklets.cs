@@ -208,7 +208,7 @@ internal static partial class Booklets
         {
             string? made = null;
             try { made = await Draw(b, page, width, file); }
-            catch (Exception e) { Front.Log($"[booklet] {b.Name} page {page}: {e.GetType().Name}: {e.Message}"); }
+            catch (Exception e) { Server.Log($"[booklet] {b.Name} page {page}: {e.GetType().Name}: {e.Message}"); }
             finally { Inflight.TryRemove(file, out _); mine.TrySetResult(made); }
         });
         return mine.Task;
@@ -225,7 +225,7 @@ internal static partial class Booklets
                 null, 32 << 20, TimeSpan.FromSeconds(60));
             if (code != 0 || jpg.Length < 4 || jpg[0] != 0xFF || jpg[1] != 0xD8)
             {
-                Front.Log($"[booklet] {b.Name} page {page}: pdftoppm couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[^1] : "exit " + code)})");
+                Server.Log($"[booklet] {b.Name} page {page}: pdftoppm couldn't draw it ({(err.Trim().Length > 0 ? err.Trim().Split('\n')[^1] : "exit " + code)})");
                 return null;
             }
             Directory.CreateDirectory(dir);

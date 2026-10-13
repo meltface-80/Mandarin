@@ -133,9 +133,10 @@ jobs:
         run: |
           apk=$(find app/build/outputs/apk -name '*.apk' | head -1)
           version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          # Mandarin-Android-<version>.apk (v0.9.7; musicd-server-android-… before).
           # "-shared-key": signed with the committed key rather than a private release key.
-          if [ "$HAVE_KEY" = "true" ]; then out="musicd-server-android-${version}.apk"
-          else out="musicd-server-android-${version}-shared-key.apk"; fi
+          if [ "$HAVE_KEY" = "true" ]; then out="Mandarin-Android-${version}.apk"
+          else out="Mandarin-Android-${version}-shared-key.apk"; fi
           cp "$apk" "$out"
           echo "apk=$out" >> "$GITHUB_OUTPUT"
 
@@ -147,9 +148,12 @@ jobs:
       # A test branch's app (v0.8.0 on): a direct download for the phone, from
       # the rolling "test-android" pre-release, at one fixed address. Never
       # "latest", and the app's own update check reads main's dist/, so
-      # nothing offers it to anyone who didn't fetch it.
+      # nothing offers it to anyone who didn't fetch it. From v0.8.46 the
+      # migration branch's app too (CLAUDE.md section 4), the one the owner
+      # installs beside :migration: the same pre-release's file replaced, no
+      # tag or release made.
       - name: Publish a test branch's APK
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/claude/v0.8')
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/claude/v0.8') || github.ref == 'refs/heads/migration')
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
@@ -198,7 +202,7 @@ jobs:
           if [ -f "dist/$OUT" ] && grep -q "\"version\": \"$version\"" dist/latest.json && grep -q "\"file\": \"$APK\"" dist/latest.json; then
             echo "$version already published"; exit 0
           fi
-          git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' "dist/$OUT"
+          git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' 'dist/Mandarin-Android-*.apk' "dist/$OUT"
           mkdir -p dist
           cp "android/$APK" "dist/$OUT"
           sha=$(sha256sum "dist/$OUT" | cut -d' ' -f1)

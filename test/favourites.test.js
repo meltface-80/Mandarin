@@ -25,7 +25,7 @@ async function until(fn, ms = 10000) {
 
 test("favourites", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
-  const { createServer } = require("../index.js");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false });
   const ctx = await srv.start();
   const token = await signIn(B);
@@ -51,7 +51,7 @@ test("favourites", { skip, timeout: 60000 }, async () => {
     assert.ok((await api("library/albums?sort=album")).albums.find(a => a.title === "Album One").favourite);
 
     // Survives the library being rebuilt from the files.
-    ctx.library.reload();
+    await ctx.library.reload();
     assert.deepEqual((await api("favourites")).albums.map(a => a.title), ["Hi Res", "Album One"]);
 
     r = await api("favourites", { offset: cd.offset, on: false });
