@@ -80,16 +80,11 @@ internal static partial class Library
     private static async Task<bool> Status(HttpContext ctx)
     {
         if (await Current() is not var (s, st)) return false;
-        // The rooms' part: the hub's own once this server holds playback (v0.8.49); else the Node server's, and a Node server that doesn't say it (an older one) answers itself.
+        // The rooms' part, the hub's (v0.8.49).
+        if (Playback.Hub.Current is not { } hub) return false;
         JsonNode zones; JsonObject sonos;
-        if (Playback.Hub.Current is { } hub)
-        {
-            using var c = Db.Open();
-            zones = hub.Zones().Count(z => PlaybackRoutes.Shown(c, z));
-            sonos = new JsonObject { ["rooms"] = hub.RoomCount, ["discovered"] = hub.Discovered, ["searching"] = hub.Searching, ["error"] = hub.LastError };
-        }
-        else if (st.Said["zone_count"] is JsonValue zv && st.Said["sonos"] is JsonObject so) { zones = zv.DeepClone(); sonos = so.DeepClone().AsObject(); }
-        else return false;
+        using (var c = Db.Open()) zones = hub.Zones().Count(z => PlaybackRoutes.Shown(c, z));
+        sonos = new JsonObject { ["rooms"] = hub.RoomCount, ["discovered"] = hub.Discovered, ["searching"] = hub.Searching, ["error"] = hub.LastError };
         var away = Auth.IsAway(ctx);
         var state = Scans.State;
         var roots = Scans.Roots();
@@ -234,15 +229,10 @@ internal static partial class Library
         bool on;
         using (var c = Db.Open()) on = Db.Setting(c, "displayEnabled") is { } v ? Js.Truthy(v) : true;
         if (!on) return await JsError(ctx, 403, "Wall display is turned off in Settings");
-        // The zone's track: the hub's own once this server holds playback (v0.8.49); else the Node server's, which plays it.
-        JsonObject? now;
-        if (Playback.Hub.Current is { } hub)
-        {
-            var zs = hub.Zone(Q(ctx, "zone") ?? "")?.State;
-            now = new JsonObject { ["state"] = zs == null ? null : new JsonObject { ["title"] = zs.Title, ["trackId"] = zs.TrackId, ["artist"] = zs.Artist, ["album"] = zs.Album } };
-        }
-        else now = await ToNode("/internal/playback/now", new JsonObject { ["zone"] = Q(ctx, "zone") ?? "" });
-        if (now == null) return false;
+        // The zone's track, the hub's (v0.8.49).
+        if (Playback.Hub.Current is not { } hub) return false;
+        var zs = hub.Zone(Q(ctx, "zone") ?? "")?.State;
+        var now = new JsonObject { ["state"] = zs == null ? null : new JsonObject { ["title"] = zs.Title, ["trackId"] = zs.TrackId, ["artist"] = zs.Artist, ["album"] = zs.Album } };
         if (now["state"] is not JsonObject st || (!Js.Truthy(st["title"]) && !Js.Truthy(st["trackId"])))
             return await SendJs(ctx, Jv.Obj(("artistPhotos", new List<object?>()), ("review", null), ("video", null)));
         (long AlbumId, string Artist)? t = null;

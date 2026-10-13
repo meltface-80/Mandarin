@@ -2,8 +2,9 @@
 /*
  * Shelf (/shelf), ported from Rouen (MusicD Remote v1.9.3, brought up to
  * v1.9.7 in v0.8.27):
- *   - lib/shelf.js: the letter an artist is filed under, the list in artist
- *     order with each album's genres and year, the signature;
+ *   - the rules (ShelfRoutes.cs; lib/shelf.js until v0.8.50), asked through
+ *     `mandarin-server score` { fn: "shelf" }: the letter an artist is filed
+ *     under, the list in artist order with each album's genres and year, the signature;
  *   - /api/shelf/albums: the whole library with Mandarin's version, and "the
  *     same" for a signature still current (the C# server's answer is held to
  *     this one in test/library-front.test.js; the page and the list are C#'s,
@@ -21,7 +22,8 @@ const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
-const Shelf = require("../lib/shelf");
+const { built } = require("./server");
+const { score } = require("./score");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
@@ -32,41 +34,35 @@ const VERSION = require("../package.json").version;
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-test("the letter an artist is filed under", () => {
-  assert.equal(Shelf.shelfBucket("beatles"), "B");
-  assert.equal(Shelf.shelfBucket("Beatles, The"), "B");
-  assert.equal(Shelf.shelfBucket("Ólafur Arnalds"), "O", "accents folded");
-  assert.equal(Shelf.shelfBucket("10cc"), "1");
-  assert.equal(Shelf.shelfBucket("0 Degrees"), "#", "0 is under #");
-  assert.equal(Shelf.shelfBucket("!!!"), "#");
-  assert.equal(Shelf.shelfBucket("Кино"), "#", "another script is under #");
-  assert.equal(Shelf.shelfBucket("坂本龍一"), "#");
-  assert.equal(Shelf.shelfBucket(""), "#");
-  assert.equal(Shelf.shelfBucket(null), "#");
+const rules = built();
+
+test("the letter an artist is filed under", { skip: rules }, () => {
+  const cases = [["beatles", "B"], ["Beatles, The", "B"], ["Ólafur Arnalds", "O", "accents folded"], ["10cc", "1"], ["0 Degrees", "#", "0 is under #"], ["!!!", "#"],
+    ["Кино", "#", "another script is under #"], ["坂本龍一", "#"], ["", "#"], [null, "#"]];
+  const { buckets } = score({ fn: "shelf", buckets: cases.map(c => c[0]) });
+  cases.forEach(([name, want, why], i) => assert.equal(buckets[i], want, why || String(name)));
 });
 
-test("the shelf's list: genres commonest first, each album's genres as places in it", () => {
+test("the shelf's list: genres commonest first, each album's genres as places in it", { skip: rules }, () => {
   const al = (id, title, artist, sortArtist, genres, year) => ({ id, title, artist, sortArtist, genres, image_key: "al-" + id + "-0", year });
-  const shelf = Shelf.buildShelf([
+  const [shelf, rockPop, popRock, title1, title2, year1, year2] = score({ fn: "shelf", shelves: [[
     al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"], 1969),
     al(2, "Homogenic", "Björk", "bjork", ["Electronic"]),
     al(3, "Kind of Blue", "Miles Davis", "miles davis", ["Jazz"]),
     al(4, "Discovery", "Daft Punk", "daft punk", ["Electronic", "Electronic", ""]),
     al(5, "Untitled", "!!!", "", [])
-  ]);
+  ], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"])], [al(1, "Abbey Road", "The Beatles", "beatles", ["Pop", "Rock"])],
+  [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])], [al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])],
+  [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)]] }).shelves;
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
   assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969 });
   assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
-  const sig = Shelf.shelfSignature(shelf);
-  assert.match(sig, /^[0-9a-f]{16}$/);
-  assert.equal(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock", "Pop"])])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Pop", "Rock"])])), "the same shelf, the same signature");
-  assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])])), "a new title, a new signature");
-  assert.notEqual(Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)])),
-    Shelf.shelfSignature(Shelf.buildShelf([al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)])), "a new year, a new signature");
+  assert.match(shelf.sig, /^[0-9a-f]{16}$/);
+  assert.equal(rockPop.sig, popRock.sig, "the same shelf, the same signature");
+  assert.notEqual(title1.sig, title2.sig, "a new title, a new signature");
+  assert.notEqual(year1.sig, year2.sig, "a new year, a new signature");
 });
 
 // The library: makeLibrary's three albums (1997, 2020 and a set with no year)

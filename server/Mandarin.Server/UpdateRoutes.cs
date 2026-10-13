@@ -3,14 +3,13 @@
 // same shapes:
 //
 //   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus),
-//                             with is_docker and csharp (how bringing this program
-//                             to the Node server's version went, as it says with
-//                             its state); mac_node_only went with stage 7 (v0.8.50)
+//                             with is_docker, viaLauncher (false) and csharp (null:
+//                             the Node server's word on this program's update, as
+//                             the page reads it); mac_node_only went with stage 7
 //   POST /api/update/check    GitHub asked now, then the same
 //   POST /api/update/apply    the update made: { ok, status }, or 409 { error, status }
 //
-// Answered here once the Node server has handed the update over (Jobs.cs,
-// "update"); until then by it.
+// The job "update" (Jobs.cs).
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -26,16 +25,16 @@ internal static partial class Library
         var m = ctx.Request.Method;
         try
         {
-            if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/update/status") return await SendJs(ctx, await UpdateStatus(u));
+            if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/update/status") return await SendJs(ctx, u.Status());
             if (HttpMethods.IsPost(m) && p == "/api/update/check")
             {
                 await u.CheckNow();
-                return await SendJs(ctx, await UpdateStatus(u));
+                return await SendJs(ctx, u.Status());
             }
             if (HttpMethods.IsPost(m) && p == "/api/update/apply")
             {
                 await u.Apply();
-                var st = await UpdateStatus(u);
+                var st = u.Status();
                 var o = new JsObj();
                 if (st["apply"] is JsObj apply && apply["phase"] is "error")
                 {
@@ -50,16 +49,9 @@ internal static partial class Library
         }
         catch (Exception e) when (!ctx.Response.HasStarted)
         {
-            Front.Log($"[update] {p}: {e.GetType().Name}: {e.Message}; passed to the Node server");
+            Front.Log($"[update] {p}: {e.GetType().Name}: {e.Message}; not answered");
             return false;
         }
         return false;
-    }
-
-    /* updStatus(): the updater's, with the Node server's word on this program's own update. */
-    private static async Task<JsObj> UpdateStatus(Admin.Updater u)
-    {
-        var st = await State();
-        return u.Status(st != null ? FromNode(st.Said["csharp_update"]) : null);
     }
 }

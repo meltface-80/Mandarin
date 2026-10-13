@@ -1,27 +1,22 @@
-// Updater.cs — the in-app update, made here in the Node server's place
-// (v0.8.48, stage 5 part 4 of docs/specs/csharp-migration.md): lib/updater.js,
-// and the part of lib/server/csharp-update.js an update calls first (prepare),
-// rule for rule.
+// Updater.cs — the in-app update (v0.8.48, stage 5 part 4 of
+// docs/specs/csharp-migration.md): lib/updater.js, and the part of
+// lib/server/csharp-update.js an update calls first (prepare), rule for rule.
 //
 // GitHub is asked for the latest release (or, with none published, the highest
 // version among the tags), its version compared with this one's, and on
 // request the release's bundle downloaded, unpacked with the system's tar,
-// checked (index.js, package.json, the package's name), then — before anything
-// is staged — this program of the new version fetched for this machine,
-// checked against the release's SHA-256 sums and asked its version, and put in
-// place of the running one (which carries on from the old file). Then the
-// bundle is staged for launcher.js (.update/READY) and the Node server asked
-// to start again (code 75): the launcher lays the new files in and starts a
-// new Node server, which asks this program to start again from the new file
-// (code 76). With no launcher, or on its own (v0.8.50: no Node server, no npm,
-// no index.js in the bundle), the files are laid in here and it starts again.
+// checked (package.json, the package's name), then — before anything is laid
+// in — this program of the new version fetched for this machine, checked
+// against the release's SHA-256 sums and asked its version, and put in place
+// of the running one (which carries on from the old file). Then the bundle's
+// files are laid over the install (never the data) and this program starts
+// again from the new file, in the same process (Jobs.Restart, Front.StartAgain).
 //
-// The check by itself: half a minute after the work is taken over, then every
-// twelve hours (UPDATE_CHECK=false: never). Handed over as the job "update"
-// (Jobs.cs); until then the Node server's own updater answers.
+// The check by itself: half a minute after the start, then every twelve hours
+// (UPDATE_CHECK=false: never). The job "update" (Jobs.cs).
 //
 //   UPDATE_REPO    owner/repo (meltface-80/Mandarin); UPDATE_API where GitHub
-//                  is asked (the tests' stand-in); both also said in the hand-over
+//                  is asked (the tests' stand-in)
 //   GITHUB_TOKEN   sent to api.github.com alone, never to a host a redirect names
 //   MANDARIN_SERVER_UPDATE=0   this program left as it is by an update
 using System.Diagnostics;
@@ -49,7 +44,7 @@ internal sealed partial class Updater
 
     private readonly string owner, repo, api, dir, current;
     private readonly string? token;
-    private readonly bool viaLauncher, debug;
+    private readonly bool debug;
     private readonly Action<string> log;
 
     private readonly object gate = new();
@@ -69,7 +64,7 @@ internal sealed partial class Updater
         PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30)
     }) { Timeout = Timeout.InfiniteTimeSpan };
 
-    /* [cfg]: the hand-over's settings (index.js /internal/front/runs): where GitHub is asked, under the launcher or not. */
+    /* [cfg]: the configuration (Config.cs): where GitHub is asked, and whether to check by itself. */
     public Updater(JsonObject cfg, string appDir, string version, Action<string> log)
     {
         static string? Text(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var s) && s.Length > 0 ? s : null;
@@ -78,7 +73,6 @@ internal sealed partial class Updater
         owner = slash < 0 ? repoSpec : repoSpec[..slash];
         repo = slash < 0 ? "" : repoSpec[(slash + 1)..];
         api = Text(cfg["update_api"]) ?? Env("UPDATE_API") ?? "https://api.github.com";
-        viaLauncher = cfg["via_launcher"] is JsonValue vl && vl.TryGetValue<bool>(out var b) && b;
         token = Env("GITHUB_TOKEN");
         debug = Env("DEBUG") != null;
         dir = appDir;
@@ -221,8 +215,8 @@ internal sealed partial class Updater
 
     // ------------------------------------------------------------------ status
 
-    /* getStatus(), with what api-playlists.js lays over it: is_docker and csharp (the Node server's word on this program's update). */
-    public JsObj Status(object? csharp)
+    /* getStatus(), with what api-playlists.js lays over it: is_docker, and csharp (null: the Node server's word on this program's update, gone with it). */
+    public JsObj Status()
     {
         lock (gate)
         {
@@ -242,10 +236,10 @@ internal sealed partial class Updater
             o["checkedAt"] = checkedAt;
             o["checking"] = checking;
             o["error"] = error;
-            o["viaLauncher"] = viaLauncher;
+            o["viaLauncher"] = false;
             o["apply"] = apply;
             o["is_docker"] = Environment.GetEnvironmentVariable("DOCKER") == "1";
-            o["csharp"] = csharp;
+            o["csharp"] = null;
             return o;
         }
     }
@@ -379,8 +373,7 @@ internal sealed partial class Updater
             if (!Extract(dlFile, exRoot)) throw new UpdateError("extraction failed (is `tar` installed and on PATH?)");
             var top = TopLevelDir(exRoot);
             var staged = top != null ? Path.Combine(exRoot, top) : exRoot;
-            if (!File.Exists(Path.Combine(staged, "package.json")) || (!Front.Alone && !File.Exists(Path.Combine(staged, "index.js"))))
-                throw new UpdateError(Front.Alone ? "downloaded build is missing package.json" : "downloaded build is missing index.js/package.json");
+            if (!File.Exists(Path.Combine(staged, "package.json"))) throw new UpdateError("downloaded build is missing package.json");
             string? stagedName = null;
             try { stagedName = (JsonNode.Parse(File.ReadAllText(Path.Combine(staged, "package.json"))) as JsonObject)?["name"] is JsonValue nv && nv.TryGetValue<string>(out var sn) ? sn : null; }
             catch (Exception e) when (e is System.Text.Json.JsonException or IOException) { /* not a package */ }
@@ -392,20 +385,11 @@ internal sealed partial class Updater
             Phase("preparing", target);
             await Prepare(target);
 
-            if (viaLauncher && !Front.Alone)
-            {
-                File.WriteAllText(Path.Combine(upd, "READY"), new JsonObject { ["staged"] = staged, ["version"] = target }.ToJsonString());
-                Phase("restarting", target);
-                Debug("staged; the Node server asked to start again (75) for the launcher to apply + restart");
-            }
-            else
-            {
-                ApplyStaged(staged, dir, log, npm: !Front.Alone);
-                try { Directory.Delete(upd, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* left behind */ }
-                Phase("restarting", target);
-                Debug(Front.Alone ? "applied in place; this program starts again from the new file" : "applied in place; the Node server asked to start again (75)");
-            }
-            _ = Task.Delay(400).ContinueWith(_ => Jobs.RestartNode("update"), TaskScheduler.Default);
+            ApplyStaged(staged, dir);
+            try { Directory.Delete(upd, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* left behind */ }
+            Phase("restarting", target);
+            Debug("applied in place; this program starts again from the new file");
+            _ = Task.Delay(400).ContinueWith(_ => Jobs.Restart(), TaskScheduler.Default);
         }
         // Whatever stopped it (lib/updater.js catches everything): the phase ends in
         // "error", never left in the middle, where every later ask would be turned away.
@@ -442,31 +426,8 @@ internal sealed partial class Updater
         return entries.Length == 1 && Directory.Exists(entries[0]) ? Path.GetFileName(entries[0]) : null;
     }
 
-    /* applyStaged: the staged build laid over the install dir (never the data, node_modules, .git…), and npm install if the dependencies changed ([npm]: never, alone). */
-    public static void ApplyStaged(string stagedDir, string targetDir, Action<string> log, bool npm = true)
-    {
-        static string Deps(string dirOf)
-        {
-            try { return ((JsonNode.Parse(File.ReadAllText(Path.Combine(dirOf, "package.json"))) as JsonObject)?["dependencies"] as JsonObject)?.ToJsonString() ?? "{}"; }
-            catch (Exception e) when (e is System.Text.Json.JsonException or IOException) { return "{}"; }
-        }
-        var oldDeps = Deps(targetDir);
-        CopyOverlay(stagedDir, targetDir);
-        var newDeps = Deps(targetDir);
-        if (npm && oldDeps != newDeps)
-        {
-            log("dependencies changed — running npm install");
-            try
-            {
-                var psi = new ProcessStartInfo("npm") { UseShellExecute = false, WorkingDirectory = targetDir };
-                foreach (var a in new[] { "install", "--omit=dev", "--no-audit", "--no-fund" }) psi.ArgumentList.Add(a);
-                using var p = Process.Start(psi);
-                if (p == null || !p.WaitForExit(5 * 60 * 1000)) { try { p?.Kill(); } catch (InvalidOperationException) { /* gone */ } log("npm install exited with status null (continuing)"); }
-                else if (p.ExitCode != 0) log("npm install exited with status " + p.ExitCode + " (continuing)");
-            }
-            catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException) { log("npm install exited with status null (continuing)"); }
-        }
-    }
+    /* applyStaged: the staged build laid over the install dir (never the data, node_modules, .git…). */
+    public static void ApplyStaged(string stagedDir, string targetDir) => CopyOverlay(stagedDir, targetDir);
 
     // copyOverlay: src over dest, recursively, the names in Skip left alone.
     private static void CopyOverlay(string src, string dest)

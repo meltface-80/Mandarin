@@ -8,11 +8,10 @@
  * very files ffmpeg makes with the Node server's own arguments.
  *
  * Since v0.8.50 (stage 7) the Node server's side is a recording
- * (test/golden/library-node.json, test/golden.js): made with RECORD_LIBRARY=1
- * through the C# server with the Node server behind it (MANDARIN_FRONT=1,
- * while index.js was still there), each answer put to both and the Node
- * server's kept; every run since starts the program alone and holds it to the
- * recording. What depends on the machine is kept by rule, not as it was there:
+ * (test/golden/library-node.json, test/golden.js), made through the C#
+ * server with the Node server behind it while index.js was still there, each
+ * answer put to both and the Node server's kept; every run starts the program
+ * alone and holds it to the recording. What depends on the machine is kept by rule, not as it was there:
  * a file's length (ffmpeg's versions make the fixtures a few bytes apart) in
  * the range headers, said from the file's own; ETag and Last-Modified as send
  * makes them from the file; ffmpeg's arguments with this ffmpeg's resampler.
@@ -29,10 +28,8 @@ const { recording } = require("./golden");
 const fs = require("fs");
 const os = require("os");
 
-const RECORD = process.env.RECORD_LIBRARY === "1";
-const rec = recording("library-node", RECORD);
-const skip = RECORD ? process.env.MANDARIN_FRONT !== "1" && "recording goes through the C# server with the Node server behind it (MANDARIN_FRONT=1)"
-  : built() || (!rec.exists() && "no recording of the Node server's answers (RECORD_LIBRARY=1 makes one)");
+const rec = recording("library-node");
+const skip = built() || (!rec.exists() && "no recording of the Node server's answers");
 const SOXR = haveSoxr();
 
 function library() {
@@ -63,10 +60,13 @@ const fileSizes = new Map();
 /*
  * What changes from one run to the next made the same: the day, an id made new (a dynamic playlist's), a cover's
  * key (its hash the files' own, made afresh each run) and what follows from it — a speaker's signature, Shelf's
- * signature of the list — the port, and a file's length.
+ * signature of the list — the port, a file's length, and Mandarin's version where an answer says it (Shelf's,
+ * recorded as 0.8.50 and named here as the version this checkout is).
  */
+const VERSION = require("../package.json").version;
 const steady = (v) => JSON.parse(JSON.stringify(v === undefined ? null : v, (k, x) => {
   if (k === "day" && typeof x === "string") return "<day>";
+  if (k === "version" && x === VERSION) return "<Mandarin's version>";
   if (k === "size" && typeof x === "number" && fileSizes.has(x)) return fileSizes.get(x);
   if (k === "id" && typeof x === "string" && /^[0-9a-f]{12}$/.test(x)) return "<new id>";
   if (k === "sig" && typeof x === "string") return "<sig>";
@@ -104,27 +104,19 @@ const tagged = (r, len, what) => {
 };
 
 /*
- * The Node server's ffmpeg arguments for a conversion, as a template: the file in and out marked, recorded as
- * an ffmpeg with soxr asks (lib/ffmpeg.js told so), and played back as this machine's ffmpeg has it or not.
+ * The Node server's ffmpeg arguments for a conversion, recorded as a template (the file in and out marked, as an
+ * ffmpeg with soxr asks), played back as this machine's ffmpeg has it or not.
  */
-const withSoxr = (fn) => {
-  const FF = require("../lib/ffmpeg");
-  const real = FF.info, info = real();
-  FF.info = () => Object.assign({}, info, { soxr: true });
-  try { return fn(); } finally { FF.info = real; }
-};
-const template = (args, input) => args.map(a => a === input ? "<in>" : a);
 const argsFor = (tpl, input, out) => tpl.map(a => a === "<in>" ? input : a === "<out>" ? out : SOXR ? a : a.replace(/resampler=soxr:precision=\d+:/, ""));
 
 test("the library in C# answers as the Node server did", { skip, timeout: 180000 }, async () => {
   const lib = library();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
-  const { createServer } = RECORD ? require("../index.js") : require("./server");
+  const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
     sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
-  // The Node server behind the C# server (recording only), asked straight.
-  const N = RECORD ? "http://127.0.0.1:" + ctx.listeningOn : "";
+  // The database, read straight.
   const raw = ctx.db.raw;
   try {
     const token = await signIn(B);
@@ -147,7 +139,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       const c = await fetch(B + p, { headers: H });
       const cj = await c.json();
       assert.equal(c.headers.get("x-mandarin-answered"), "C#", label + p + ": answered by C#");
-      const want = await rec.want(label + step, async () => { const n = await fetch(N + p, { headers: H }); return { status: n.status, j: steady(await n.json()) }; });
+      const want = await rec.want(label + step);
       assert.equal(c.status, want.status, label + p + ": the same status");
       assert.deepStrictEqual(steady(cj), want.j, label + p + ": the same answer");
       return cj;
@@ -178,7 +170,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       for (const p of ["/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
       for (const q of ["", "?months=1&count=3", "?months=0", "?months=99&count=500"]) {
         const shape = j => ({ n: j.albums.length, total: j.total, months: j.months, no_history: j.no_history, ready_at: j.ready_at });
-        const want = await rec.want(label + "/api/home/unplayed" + q, async () => shape(await (await fetch(N + "/api/home/unplayed" + q, { headers: H })).json()));
+        const want = await rec.want(label + "/api/home/unplayed" + q);
         assert.deepStrictEqual(shape(await getJ("/api/home/unplayed" + q)), want, label + "/api/home/unplayed" + q);
       }
       // Drawn at random: the same pool, whichever answers.
@@ -210,15 +202,12 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const laterAt = raw.prepare("SELECT MIN(added_at) AS t FROM listen_later").get().t;
     [ids[1], ids[4]].forEach((id, i) => raw.prepare("UPDATE listen_later SET added_at = ? WHERE key = (SELECT key FROM albums WHERE id = ?)").run(laterAt + i, id));
     await ctx.library.reload();
-    if (RECORD) assert.ok(ctx.library.isFavourite(ctx.library.album(ids[2])) && ctx.library.isLater(ctx.library.album(ids[4])), "the Node server's copy told");
     await post("/api/album/edit", { offset: ids[3], title: "Edited Title", artist: "The Edited", year: 1988 });
     assert.deepEqual((await change("/api/settings/labels", {})).body, { error: "enabled required" });
     assert.deepEqual((await change("/api/settings/labels", { enabled: true })).body, { ok: true, enabled: true });
-    if (RECORD) assert.equal(ctx.library.labelsOn(), true);
     assert.deepEqual(await change("/api/labels/merge", { items: [{ key: "columbia" }] }), { status: 400, body: { error: "Two or more labels are needed" } });
     assert.deepEqual((await change("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }, { key: "BAD!" }] })).body,
       { ok: true, target: "columbia", merged: ["impulse"] });
-    if (RECORD) assert.equal(ctx.library.mergedKey("impulse"), "columbia", "the Node server's merges read again");
     assert.deepEqual(await change("/api/settings/label-folder-depth", { depth: 9 }), { status: 400, body: { ok: false, error: "depth must be 0–6" } });
     assert.deepEqual((await change("/api/settings/label-folder-depth", { depth: "0" })).body, { ok: true, depth: 0, rescanning: false });
     const now = Date.now();
@@ -236,7 +225,6 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     // A merge let go, by C#; one that isn't there, said so.
     assert.deepEqual(await change("/api/labels/merge/nothing", undefined, "DELETE"), { status: 404, body: { error: "Not a merged label" } });
     assert.deepEqual(await change("/api/labels/merge/impulse", undefined, "DELETE"), { status: 200, body: { ok: true } });
-    if (RECORD) assert.equal(ctx.library.mergedKey("impulse"), "impulse");
     await same("/api/library/facets", "unmerged: ");
     await post("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }] });
     // Settings kept and read (v0.8.7).
@@ -283,7 +271,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const both = async (p, body) => {
       const mine = await made(B, p, body);
       assert.equal(mine.by, "C#", p + " answered by C#");
-      const want = await rec.want("your playlists: " + p + " " + JSON.stringify(body).slice(0, 120), async () => { const n = await made(N, p, body); delete n.by; return n; });
+      const want = await rec.want("your playlists: " + p + " " + JSON.stringify(body).slice(0, 120));
       assert.deepStrictEqual({ status: mine.status, body: mine.body, saved: mine.saved }, want, p + " " + JSON.stringify(body).slice(0, 120));
       return mine;
     };
@@ -328,12 +316,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       assert.equal(c.headers.get("x-mandarin-answered"), "C#", p + ": a cover already drawn, sent by C#");
       assert.deepEqual(Buffer.from(await c.arrayBuffer()), drawn, p + ": the same picture");
       tagged(c, drawn.length, p);
-      const want = await rec.want("cover: " + al.title, async () => {
-        const n = await fetch(N + p, { headers: H });
-        assert.deepEqual(Buffer.from(await n.arrayBuffer()), drawn);
-        for (const h of ["etag", "last-modified"]) assert.equal(c.headers.get(h), n.headers.get(h), p + ": " + h);
-        return { type: n.headers.get("content-type"), cache: n.headers.get("cache-control") };
-      });
+      const want = await rec.want("cover: " + al.title);
       assert.deepEqual({ type: c.headers.get("content-type"), cache: c.headers.get("cache-control") }, want, p + ": its type and caching");
       assert.equal((await fetch(B + p, { headers: Object.assign({ "If-None-Match": c.headers.get("etag") }, H) })).status, 304);
       // An address from before a cover change: the current cover, not kept.
@@ -358,11 +341,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const lc = await fetch(B + "/api/image/label-columbia?v=1", { headers: H });
     assert.deepEqual([lc.status, lc.headers.get("x-mandarin-answered"), lc.headers.get("content-type")], [200, "C#", "image/png"]);
     assert.deepEqual(Buffer.from(await lc.arrayBuffer()), logo);
-    const logoCache = await rec.want("a label's logo", async () => {
-      const ln = await fetch(N + "/api/image/label-columbia?v=1", { headers: H });
-      assert.deepEqual(Buffer.from(await ln.arrayBuffer()), logo);
-      return ln.headers.get("cache-control");
-    });
+    const logoCache = await rec.want("a label's logo");
     assert.equal(lc.headers.get("cache-control"), logoCache);
     assert.equal((await fetch(B + "/api/image/label-nobody", { headers: H })).status, 404, "no such logo");
 
@@ -390,13 +369,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
               const what = method + " " + addr + " " + (range || "whole");
               const cb = Buffer.from(await c.arrayBuffer());
               assert.equal(c.headers.get("x-mandarin-answered"), "C#", what);
-              const want = await rec.want("file: " + what, async () => {
-                const n = await fetch(N + addr, { method, headers: h });
-                const nb = Buffer.from(await n.arrayBuffer());
-                for (const k of ["etag", "last-modified"]) assert.equal(c.headers.get(k), n.headers.get(k), what + ": " + k);
-                if (n.status < 300) assert.deepEqual(nb, sliceOf(file, n, method), what + ": the Node server's bytes, the file's");
-                return shapeOf(n, file.length, method);
-              });
+              const want = await rec.want("file: " + what);
               assert.deepEqual(shapeOf(c, file.length, method), want, what + ": status and headers");
               assert.deepEqual([c.headers.get("etag"), c.headers.get("last-modified")], [tag.etag, tag.modified], what + ": ETag and Last-Modified, the file's");
               if (c.status < 300) assert.deepEqual(cb, sliceOf(file, c, method), what + ": the bytes");
@@ -421,19 +394,14 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     await x.arrayBuffer();
     // A track that isn't there: the Node server's 404 (passed on to it while it was there; said here alone, Streams.cs).
     x = await fetch(B + "/stream/t999999.flac", { headers: H });
-    assert.deepEqual([x.status, x.headers.get("x-mandarin-answered")], [404, RECORD ? null : "C#"], "no such track");
+    assert.deepEqual([x.status, x.headers.get("x-mandarin-answered")], [404, "C#"], "no such track");
     await x.arrayBuffer();
 
     // Conversions (v0.8.11): made by C# as they are sent, then from the cache, range for range; the very file
     // ffmpeg makes with the Node server's own arguments (lib/stream.js), byte for byte.
     const rowOf = title => raw.prepare("SELECT * FROM tracks WHERE title = ?").get(title);
     /* The Node server's plan and arguments for a track's conversion, recorded. */
-    const nodePlan = (title, plan) => rec.want("conversion: " + title, () => {
-      const STREAM = require("../lib/stream");
-      const t = rowOf(title);
-      const p = plan || STREAM.plan({ path: t.path, codec: t.codec, sampleRate: t.sample_rate, bitsPerSample: t.bits, channels: t.channels });
-      return { plan: p, args: template(withSoxr(() => STREAM.ffmpegArgs(t.path, p, "<out>")), t.path) };
-    });
+    const nodePlan = (title) => rec.want("conversion: " + title);
     const nodeMade = (t, tpl, name) => {
       const out = path.join(lib.root, "node-made-" + t.id + "-" + name);
       const r = spawnSync(FFMPEG, argsFor(tpl, t.path, out));
@@ -459,43 +427,20 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         const cb = Buffer.from(await c.arrayBuffer());
         const what = addr + " " + (range || "whole");
         assert.equal(c.headers.get("x-mandarin-answered"), "C#", what + ": once made, sent by C# from the cache");
-        const want = await rec.want("converted: " + what, async () => {
-          const n = await fetch(N + addr, { headers: h });
-          assert.deepEqual(Buffer.from(await n.arrayBuffer()), cb, what + ": the Node server's bytes");
-          return shapeOf(n, first.length, "GET");
-        });
+        const want = await rec.want("converted: " + what);
         assert.deepEqual(shapeOf(c, first.length, "GET"), want, what + ": status and headers");
         assert.deepEqual(cb, sliceOf(first, c, "GET"), what + ": the bytes");
         if (!range) assert.deepEqual(cb, first, what + ": what was made the first time");
       }
     }
     // The Node server's "make these next" (a queue being played): handed to C# while it was there (recording).
-    if (RECORD) {
-      const ahead = rowOf("Hunter");
-      const aheadPlan = { transcode: true, hq: true, rate: 48000, bits: 24, reason: "made ahead" };
-      const aheadFile = ctx.transcoder.finalPath(ctx.transcoder.keyFor(ahead, aheadPlan));
-      assert.equal(ctx.transcoder.status(ahead, aheadPlan), "none");
-      ctx.transcoder.prefetch([{ track: ahead, plan: aheadPlan }]);
-      assert.equal(ctx.transcoder.jobs.size, 0, "nothing made by the Node server");
-      assert.equal(ctx.transcoder.status(ahead, aheadPlan), "running", "handed over: on its way");
-      for (let i = 0; i < 100 && !fs.existsSync(aheadFile); i++) await new Promise(res => setTimeout(res, 100));
-      assert.ok(fs.existsSync(aheadFile), "made by C# in the cache");
-      assert.equal(ctx.transcoder.status(ahead, aheadPlan), "ready");
-    }
     // The phone's downloads and its Opus away (v0.8.12): made by C#, the same audio as ffmpeg makes with the
     // Node server's arguments (Opus compared decoded: its Ogg wrapper is numbered afresh each time).
     const decoded = file => spawnSync(FFMPEG, ["-v", "error", "-i", file, "-f", "f32le", "-"], { maxBuffer: 1 << 28 }).stdout;
     const decodedBuf = buf => { const f = path.join(lib.root, "decode-" + Date.now() + ".opus"); fs.writeFileSync(f, buf); return decoded(f); };
     /* The Node server's plan for a download (lib/server/downloads.js): its type, its cache name, its arguments; recorded. */
     const dlPlan = async (t, quality) => {
-      const d = await rec.want("download: " + t.title + " " + quality, () => {
-        const p = ctx.downloads.plan(t, quality);
-        return {
-          plan: p.file ? Object.assign({}, p, { file: true }) : p,
-          key: ctx.downloads.keyFor(t, p).replace(`${t.id}-${Math.floor(Number(t.mtime) || 0)}-`, "<id>-<mtime>-"),
-          args: p.file ? null : template(withSoxr(() => ctx.downloads.args(t, p, "<out>")), t.path)
-        };
-      });
+      const d = await rec.want("download: " + t.title + " " + quality);
       return Object.assign({}, d, { key: d.key.replace("<id>-<mtime>-", `${t.id}-${Math.floor(Number(t.mtime) || 0)}-`) });
     };
     const nodeDownload = (t, d) => {
@@ -519,11 +464,6 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         // Kept under the Node server's own name for it.
         const kept = path.join(lib.data, "download-cache", d.key + "." + d.plan.ext);
         assert.deepEqual(body, fs.readFileSync(kept), addr + ": kept under the Node server's name");
-        if (RECORD) {
-          const n = await fetch(N + addr, { headers: H });
-          assert.deepEqual(Buffer.from(await n.arrayBuffer()), body, addr + ": the Node server sends the same, made once");
-          assert.equal(ctx.downloads.jobs.size, 0);
-        }
         const theirs = nodeDownload(t, d);
         if (quality === "opus") assert.deepEqual(decoded(kept), decoded(theirs), addr + ": the same Opus audio");
         else assert.deepEqual(body, fs.readFileSync(theirs), addr + ": the same FLAC, byte for byte");
@@ -560,7 +500,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       const c = await fetch(B + p, opts);
       const cj = await c.json();
       assert.equal(c.headers.get("x-mandarin-answered"), "C#", label + p + ": answered by C#");
-      const want = await rec.want(label + p + " " + JSON.stringify(body).slice(0, 80), async () => { const n = await fetch(N + p, opts); return { status: n.status, j: steady(await n.json()) }; });
+      const want = await rec.want(label + p + " " + JSON.stringify(body).slice(0, 80));
       assert.equal(c.status, want.status, label + p + ": the same status");
       assert.deepStrictEqual(steady(cj), want.j, label + p + ": the same answer");
       return cj;
@@ -583,7 +523,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         return { status: res.status, by: res.headers.get("x-mandarin-answered") || "Node", type: res.headers.get("content-type"), ext: res.headers.get("x-download-ext"),
           cache: res.headers.get("cache-control"), csp: res.headers.get("content-security-policy"), body: await res.text() };
       };
-      const theirs = (label, p, init) => rec.want(label, async () => { const n = await answer(N, p, init); delete n.by; return n; });
+      const theirs = (label) => rec.want(label);
       let c = await answer(B, "/api/download/t" + qt);
       let n = await theirs("a streamed track", "/api/download/t" + qt);
       assert.deepEqual([c.status, c.by, JSON.parse(c.body)], [403, "C#", { error: "Streamed tracks can't be downloaded" }]);
@@ -627,7 +567,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const rows = raw.prepare("SELECT album_id, track_id, title, artist, album, zone, ts FROM plays ORDER BY id DESC LIMIT 3").all().reverse();
     assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM plays").get().n, before + 3);
     // The play as the Node server's copy of the library names it (recorded).
-    const named = await rec.want("a play named", () => { const tr = ctx.library.track(abbey.id); const al = ctx.library.album(tr.album_id); return { title: tr.title, artist: tr.artist, album: al.title }; });
+    const named = await rec.want("a play named");
     assert.match(rows[0].zone, /^PHONE_/);
     assert.deepEqual(rows[0], Object.assign({ album_id: abbey.album_id, track_id: abbey.id }, named, { zone: rows[0].zone, ts: at }));
     assert.ok(rows[1].ts >= Date.now() - 90 * 86400000 - 60000 && rows[1].ts <= Date.now() - 90 * 86400000 + 60000, "kept to the last 90 days");
@@ -636,7 +576,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     // A zone's DSP (none for a zone that isn't one) and 32-bit output: this side's since v0.8.40, the
     // latter where ffmpeg writes 32-bit FLAC (else the Node server's 400 while it was there; said here alone).
     const flac32 = haveFlac32();
-    for (const [conv, by] of [[".48000-24.flac?o=x", "C#"], [".44100-32.flac", flac32 || !RECORD ? "C#" : null]]) {
+    for (const [conv, by] of [[".48000-24.flac?o=x", "C#"], [".44100-32.flac", "C#"]]) {
       x = await fetch(B + "/stream/t" + something.id + conv, { headers: H });
       assert.equal(x.headers.get("x-mandarin-answered"), by, conv);
       if (!flac32 && conv.includes("-32.")) assert.equal(x.status, 400, conv + ": no 32-bit FLAC from this ffmpeg");

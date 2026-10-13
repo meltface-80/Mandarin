@@ -1,10 +1,10 @@
 "use strict";
 /*
- * Tailscale built into the server (lib/server/tsnode.js), driven against a
- * stand-in for the engine that answers its control API the way the real one
- * does (the real one is tested against a private tailnet in android/musicdnet).
- * Through the server's own routes, so behind the C# server (MANDARIN_FRONT=1)
- * it's the engine run there (v0.8.22, Admin/Tailscale.cs) that is driven.
+ * Tailscale built into the server (Admin/Tailscale.cs; lib/server/tsnode.js
+ * until v0.8.50), driven against a stand-in for the engine that answers its
+ * control API the way the real one does (the real one is tested against a
+ * private tailnet in android/musicdnet). Through the server's own routes; the
+ * order an away address is chosen in asked through `mandarin-server score`.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -13,7 +13,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { signIn } = require("./auth-helper");
-const { awayAddress } = require("../lib/server/tailscale");
+const { built } = require("./server");
+const { score } = require("./score");
 
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
@@ -76,7 +77,7 @@ function server(bin, extraEnv = {}, extraConfig = {}) {
   return createServer(Object.assign({ port: PORT, musicDir: path.join(dir, "music"), dataDir: path.join(dir, "data"), serverIp: "127.0.0.1", sonosHosts: [], tailscaleBin: bin }, extraConfig));
 }
 
-test("signing the server in to Tailscale from Settings", async () => {
+test("signing the server in to Tailscale from Settings", { skip: built() }, async () => {
   const eng = stubEngine();
   const srv = server(eng.bin);
   await srv.start();
@@ -117,7 +118,7 @@ async function tailscaleOf(token) {
   return (await fetch(B + "/api/tailscale", { headers: { Authorization: "Bearer " + token } })).json();
 }
 
-test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones learn its address", async () => {
+test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones learn its address", { skip: built() }, async () => {
   const eng = stubEngine();
   const srv = server(eng.bin, { TS_AUTHKEY: "tskey-auth-test" });
   await srv.start();
@@ -136,16 +137,16 @@ test("with TS_AUTHKEY it joins by itself, serves the server's port, and phones l
     const hello = await (await fetch(B + "/api/phone/hello", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" })).json();
     assert.equal(hello.away_address, "http://100.90.1.2:" + PORT);
     // And the order they're chosen in: TAILSCALE_ADDRESS, the built-in one, the host's.
-    const builtIn = { address: () => st.address };
-    assert.equal(awayAddress(PORT, {}, { tailscale0: [{ family: "IPv4", address: "100.64.9.9" }] }, builtIn), "http://100.90.1.2:" + PORT);
-    assert.equal(awayAddress(PORT, { TAILSCALE_ADDRESS: "nas.tail1.ts.net" }, {}, builtIn), "http://nas.tail1.ts.net:" + PORT);
+    const host = { tailscale0: [{ family: "IPv4", address: "100.64.9.9" }] };
+    assert.deepEqual(score({ fn: "auth", aways: [{ port: PORT, own: st.address, ifaces: host }, { port: PORT, set: "nas.tail1.ts.net", own: st.address, ifaces: host },
+      { port: PORT, ifaces: host }] }).aways, ["http://100.90.1.2:" + PORT, "http://nas.tail1.ts.net:" + PORT, "http://100.64.9.9:" + PORT]);
   } finally {
     await srv.stop();
     delete process.env.TS_AUTHKEY;
   }
 });
 
-test("without the engine (a source install) it says so and stays out of the way", async () => {
+test("without the engine (a source install) it says so and stays out of the way", { skip: built() }, async () => {
   const srv = server("/nonexistent/musicdnet");
   await srv.start();
   try {
@@ -161,75 +162,69 @@ test("without the engine (a source install) it says so and stays out of the way"
   }
 });
 
-test("an install updated in place downloads the engine, checked, once per server version", async () => {
+test("an install updated in place downloads the engine, checked, once per server version", { skip: built(), timeout: 180000 }, async (t) => {
   const eng = stubEngine();
   const zlib = require("zlib"), crypto = require("crypto"), http = require("http");
   const gz = zlib.gzipSync(fs.readFileSync(eng.bin));
   const arch = { x64: "amd64", arm64: "arm64" }[process.arch];
-  let sums = crypto.createHash("sha256").update(gz).digest("hex") + "  musicdnet-linux-" + arch + ".gz\n";
-  let fetched = 0;
+  const good = crypto.createHash("sha256").update(gz).digest("hex") + "  musicdnet-linux-" + arch + ".gz\n";
+  let sums = good, fetched = 0;
   const site = http.createServer((req, res) => {
     if (req.url === "/SHA256SUMS") return res.end(sums);
     if (req.url === "/musicdnet-linux-" + arch + ".gz") { fetched++; return res.end(gz); }
     res.writeHead(404); res.end();
   });
   await new Promise(r => site.listen(0, "127.0.0.1", r));
-  const url = "http://127.0.0.1:" + site.address().port;
-  const { TailscaleNode } = require("../lib/server/tsnode");
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-tsdl-"));
-  const settings = {};
-  const db = { setting: (k, d) => (k in settings ? settings[k] : d), setSetting: (k, v) => { settings[k] = v; } };
-  const node = (version, env = {}) => new TailscaleNode({ bin: "/nonexistent/musicdnet", dir: path.join(data, "tailscale"), port: PORT, db, version,
-    env: Object.assign({ PATH: process.env.PATH, TS_ENGINE_URL: url }, env) });
-  const running = [];
-  const node2 = (v, env) => { const n = node(v, env); running.push(n); return n; };
-  try {
-    // Not in the image, and nowhere to fetch it from: not offered (a source install).
-    assert.equal(node("0.3.21", { TS_ENGINE_URL: "" }).available, false);
+  t.after(() => { site.close(); delete process.env.TS_ENGINE_URL; });
+  // Not in the image: fetched from the release (here, the site above).
+  const srv = server("/nonexistent/musicdnet", { TS_ENGINE_URL: "http://127.0.0.1:" + site.address().port });
+  const ctx = await srv.start();
+  t.after(() => srv.stop());
+  const token = await signIn(B);
+  const bin = path.join(ctx.config.dataDir, "bin", "musicdnet");
+  const version = require("../package.json").version;
 
-    // The engine is built for Linux only: anywhere else (a Mac) it isn't
-    // offered even with somewhere to fetch it from, and nothing is fetched.
-    if (process.platform !== "linux") {
-      const m = node2("0.3.21");
-      assert.equal(m.available, false);
-      await m.start();
-      assert.equal(m.proc, null);
-      assert.equal(fetched, 0);
-      assert.ok(!fs.existsSync(path.join(data, "bin", "musicdnet")));
-      return;
-    }
-
-    const a = node2("0.3.21");
-    assert.equal(a.available, true);
-    await a.start();
-    await until(async () => a.status().state === "NeedsLogin");
-    assert.equal(fetched, 1);
-    assert.ok(fs.existsSync(path.join(data, "bin", "musicdnet")));
-    a.stop();
-
-    // The same version again: nothing fetched.
-    const b = node2("0.3.21");
-    await b.start();
-    await until(async () => b.status().state === "NeedsLogin");
-    assert.equal(fetched, 1);
-    b.stop();
-
-    // The server updated: fetched again. A damaged download is refused, and the old engine still runs.
-    sums = "0".repeat(64) + "  musicdnet-linux-" + arch + ".gz\n";
-    const c = node2("0.3.22");
-    await c.start();
-    await until(async () => c.status().state === "NeedsLogin");
-    assert.match(c.status().error || "", /checksum/);
-    c.stop();
-  } finally {
-    for (const n of running) n.stop();
-    site.close();
+  // The engine is built for Linux only: anywhere else (a Mac) it isn't
+  // offered even with somewhere to fetch it from, and nothing is fetched.
+  if (process.platform !== "linux") {
+    const s = await tailscaleOf(token);
+    assert.equal(s.available, false);
+    assert.equal(s.state, "Stopped");
+    assert.equal(fetched, 0);
+    assert.ok(!fs.existsSync(bin));
+    return;
   }
+
+  const waiting = () => until(async () => { const s = await tailscaleOf(token); return s.state === "NeedsLogin" && s; }, 30000);
+  assert.equal((await waiting()).available, true);
+  assert.equal(fetched, 1);
+  assert.ok(fs.existsSync(bin));
+  assert.equal(fs.readFileSync(bin + ".version", "utf8"), version, "fetched for this version of the server");
+
+  // The same version again: nothing fetched.
+  await ctx.restart(token);
+  await waiting();
+  assert.equal(fetched, 1);
+
+  // The server updated (the engine there was fetched for an older one): fetched again.
+  // A damaged download is refused, and the old engine still runs.
+  fs.writeFileSync(bin + ".version", "0.3.21");
+  sums = "0".repeat(64) + "  musicdnet-linux-" + arch + ".gz\n";
+  await ctx.restart(token);
+  assert.match((await waiting()).error || "", /checksum/);
+  assert.equal(fetched, 2);
+  assert.equal(fs.readFileSync(bin + ".version", "utf8"), "0.3.21");
+  // Mended: taken, and noted for this version.
+  sums = good;
+  await ctx.restart(token);
+  assert.equal((await waiting()).error, null);
+  assert.equal(fetched, 3);
+  assert.equal(fs.readFileSync(bin + ".version", "utf8"), version);
 });
 
 // The watchdog (v0.7.2): an engine that says Running but isn't online on the
 // tailnet is asked to rebind, and started afresh when that doesn't help.
-test("a node that is Running but not online is rebound, then started afresh", { timeout: 120000 }, async () => {
+test("a node that is Running but not online is rebound, then started afresh", { skip: built(), timeout: 120000 }, async () => {
   const eng = stubEngine();
   const srv = server(eng.bin, { TS_AUTHKEY: "tskey-auth-test", TS_STUB_STALE: "1" }, { tailscaleWatchdog: { rebindMs: 400, restartMs: 1500 } });
   await srv.start();

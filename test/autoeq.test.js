@@ -6,7 +6,7 @@
  *
  * The files read by the C# server (Extras/AutoEq.cs, through `mandarin-server
  * score`); since v0.8.50 (stage 7 part 5) the Node server's readings are kept
- * (test/golden/autoeq.json, made with RECORD_AUTOEQ=1 while lib/ was here).
+ * (test/golden/autoeq.json, made while lib/ was here).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -22,10 +22,7 @@ const { signIn } = require("./auth-helper");
 
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
-const RECORD = process.env.RECORD_AUTOEQ === "1";
-// The Node server's reader, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? require("../lib/autoeq") : null;
-const kept = answers("autoeq", RECORD);
+const kept = answers("autoeq");
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
 const noBin = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
 
@@ -55,7 +52,7 @@ test("AutoEq's files are read", { skip: noBin }, () => {
   assert.equal(many.bands.length, 10);
 });
 
-test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { skip: noBin || (!RECORD && !kept.exists() && "no recording of the Node server's readings (RECORD_AUTOEQ=1 made it)") }, () => {
+test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { skip: noBin || (!kept.exists() && "no recording of the Node server's readings") }, () => {
   const index = INDEX + [
     "- [Moondrop Blessing 2](./crinacle/711%20in-ear/Moondrop%20Blessing%202) by crinacle on 711",
     "- [Apple AirPods](./Rtings/earbud/Apple%20AirPods) by Rtings",
@@ -71,10 +68,8 @@ test("the C# server reads AutoEq's files as the Node server does (v0.8.26)", { s
     "Preamp: -3 dB\nnothing here", "", "Filter 1: ON PK Fc 1e3 Hz Gain 1 dB Q 1\nFilter 2: ON PK Fc -100 Hz Gain 1 dB Q 1"
   ];
   const lines = read([{ index }].concat(profiles.map(profile => ({ profile }))));
-  kept.same("the index", ["index"], [index], [lines[0].rows], RECORD && (() => [JSON.parse(JSON.stringify(NODE.parseIndex(index)))]));
-  kept.same("profiles", profiles.map((_, i) => "profile " + i), profiles, lines.slice(1), RECORD && (() => profiles.map(text => {
-    try { const p = NODE.parseProfile(text); return JSON.parse(JSON.stringify({ preamp: p.preamp, bands: p.bands })); } catch (e) { return { error: e.message }; }
-  })));
+  kept.same("the index", ["index"], [index], [lines[0].rows]);
+  kept.same("profiles", profiles.map((_, i) => "profile " + i), profiles, lines.slice(1));
   kept.done();
 });
 

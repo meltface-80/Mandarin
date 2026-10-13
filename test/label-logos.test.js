@@ -3,102 +3,99 @@
  * Record labels (Stage 8, part 2): merged labels with undo, and logos — found
  * in the background from Discogs then FanArt.tv (fakes on loopback), or
  * chosen by hand; kept under the data folder and served as label-<key> images.
+ *
+ * The C# server's (Extras/LabelLogos.cs; lib/labellogos.js until v0.8.50): the
+ * finder run step by step through `mandarin-server score` { fn: "logos" }
+ * (Extras/LogosCommand.cs), the rest through the server.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeDiscogs, FakeFanart, PNG } = require("./fake-discogs");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
-const { typeOf, LabelLogos } = require("../lib/labellogos");
+const { built, BIN } = require("./server");
+const { score, scoreAsync } = require("./score");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const rules = built();
+const skip = rules || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
-test("an image's kind is read from its bytes", () => {
-  assert.deepEqual(typeOf(PNG), ["image/png", "png"]);
-  assert.deepEqual(typeOf(Buffer.from("<svg xmlns='x'/>")), ["image/svg+xml", "svg"]);
-  assert.equal(typeOf(Buffer.from("<html>no</html>"), "text/html"), null);
+/* A data folder with the server's database in it, for the finder to keep its logos and settings in. */
+function dataDir() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-logos-"));
+  assert.equal(spawnSync(BIN, ["db", dir]).status, 0, "the database made");
+  return dir;
+}
+/* The finder, one run: { data, discogs, fanart, mb } and its steps → each step's answer. */
+const logos = async (job, ...steps) => (await scoreAsync(Object.assign({ fn: "logos", steps }, job))).results;
+
+test("an image's kind is read from its bytes", { skip: rules }, () => {
+  const b64 = s => Buffer.from(s).toString("base64");
+  assert.deepEqual(score({ fn: "labels", images: [{ b64: PNG.toString("base64") }, { b64: b64("<svg xmlns='x'/>") }, { b64: b64("<html>no</html>"), type: "text/html" }] }).types,
+    [["image/png", "png"], ["image/svg+xml", "svg"], null]);
 });
 
-test("a bare 403 says nothing about a key; one that names the key refuses it", async () => {
+test("a bare 403 says nothing about a key; one that names the key refuses it", { skip: rules }, async () => {
   const http = require("http");
-  let body = "Host not in allowlist", code = 403;
-  const srv = http.createServer((req, res) => { res.writeHead(code); res.end(body); });
+  let body = "Host not in allowlist", code = 403, asked = 0;
+  const srv = http.createServer((req, res) => { asked++; res.writeHead(code); res.end(body); });
   await new Promise(r => srv.listen(0, "127.0.0.1", r));
-  const base = "http://127.0.0.1:" + srv.address().port;
-  const settings = { discogsToken: "tok" };
-  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
-  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: base });
+  const job = { data: dataDir(), discogs: "http://127.0.0.1:" + srv.address().port };
+  const check = { check: ["discogs", true] };
   try {
-    assert.equal(await logos.checkKey("discogs"), "unknown", "a proxy's 403 is not evidence the key is wrong");
-    assert.equal(await logos.checkKey("discogs"), "unknown", "remembered");
+    assert.deepEqual(await logos(job, { set: ["discogsToken", "tok"] }, { check: ["discogs"] }, { check: ["discogs"] }), [null, "unknown", "unknown"], "a proxy's 403 is not evidence the key is wrong");
+    assert.equal(asked, 1, "remembered");
     body = '{"message": "Invalid consumer token."}';
-    assert.equal(await logos.checkKey("discogs", true), "invalid");
+    assert.deepEqual(await logos(job, check), ["invalid"]);
     code = 500;
-    assert.equal(await logos.checkKey("discogs", true), "unknown");
+    assert.deepEqual(await logos(job, check), ["unknown"]);
     code = 200;
-    assert.equal(await logos.checkKey("discogs", true), "ok");
-    settings.discogsToken = "";
-    assert.equal(await logos.checkKey("discogs", true), null);
+    assert.deepEqual(await logos(job, check), ["ok"]);
+    assert.deepEqual(await logos(job, { set: ["discogsToken", ""] }, check), [null, null]);
   } finally { srv.close(); }
 });
 
-test("a key the service refuses is shown as refused", async () => {
+test("a key the service refuses is shown as refused", { skip: rules }, async () => {
   const discogs = new FakeDiscogs([]), fanart = new FakeFanart({});
   await Promise.all([discogs.start(), fanart.start()]);
-  const settings = { discogsToken: "wrong", fanartKey: "wrong" };
-  const db = { raw: { prepare: () => ({}) }, setting: k => settings[k] };
-  const logos = new LabelLogos({ db, dataDir: "/tmp", discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base });
+  const job = { data: dataDir(), discogs: discogs.base, fanart: fanart.base };
   try {
-    assert.equal(await logos.checkKey("discogs"), "invalid");
-    assert.equal(await logos.checkKey("fanart"), "invalid");
-    Object.assign(settings, { discogsToken: "tok", fanartKey: "fk" });
-    assert.equal(await logos.checkKey("discogs"), "ok", "a new key is checked anew");
-    assert.equal(await logos.checkKey("fanart"), "ok");
+    assert.deepEqual(await logos(job, { set: ["discogsToken", "wrong"] }, { set: ["fanartKey", "wrong"] }, { check: ["discogs"] }, { check: ["fanart"] },
+      // A new key is checked anew.
+      { set: ["discogsToken", "tok"] }, { set: ["fanartKey", "fk"] }, { check: ["discogs"] }, { check: ["fanart"] }), [null, null, "invalid", "invalid", null, null, "ok", "ok"]);
   } finally { await Promise.all([discogs.stop(), fanart.stop()]); }
 });
 
-test("a key given mid-pass: the pass runs again, and a miss stands only for the keys it was asked with", { timeout: 30000 }, async () => {
-  const fs = require("fs"), os = require("os");
-  const DB = require("../lib/library/db");
-  const { MusicBrainz } = require("../lib/identify/musicbrainz");
+test("a key given mid-pass: the pass runs again, and a miss stands only for the keys it was asked with", { skip: rules, timeout: 30000 }, async () => {
   const discogs = new FakeDiscogs([{ id: 11, title: "Blue Note", image: "bluenote.jpg" }]);
   const fanart = new FakeFanart({ "mb-ecm": "ecm.png" });
   const mb = new FakeMusicBrainz([], { labels: [{ id: "mb-ecm", name: "ECM" }] });
   await Promise.all([discogs.start(), fanart.start(), mb.start()]);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-logos-"));
-  const db = DB.open(dir, { log: () => {} });
-  const logos = new LabelLogos({ db, dataDir: dir, mb: new MusicBrainz({ baseUrl: mb.baseUrl }),
-    discogsBaseUrl: discogs.base, fanartBaseUrl: fanart.base, pauseMs: 0 });
-  const labels = [{ key: "bluenote", title: "Blue Note" }, { key: "ecm", title: "ECM" }];
-  const idle = async () => { while (logos.state.running) await new Promise(r => setTimeout(r, 20)); };
+  const job = { data: dataDir(), discogs: discogs.base, fanart: fanart.base, mb: mb.baseUrl };
+  const labels = [["bluenote", "Blue Note"], ["ecm", "ECM"]];
   try {
-    // Discogs only: ECM is not found there, and that is remembered.
-    db.setSetting("discogsToken", "tok");
-    assert.equal(logos.fetchMissing(labels), true);
-    // The FanArt.tv key arrives while that pass runs; the pass asked for now
-    // is not dropped but runs straight after.
-    await new Promise(r => setTimeout(r, 0));
-    db.setSetting("fanartKey", "fk");
-    assert.equal(logos.fetchMissing(labels), true, "queued behind the running pass");
-    await idle();
-    assert.ok(logos.get("bluenote"), "from Discogs");
-    assert.ok(logos.get("ecm"), "from FanArt.tv, on the pass after the key came");
-    // A remembered miss is asked about again only when the keys change.
-    fs.rmSync(path.join(dir, "labels", logos.q.get.get("ecm").file));
-    logos.q.del.run("ecm");
-    db.cachePut("labellogo-miss", "ecm", logos.keysSig());
-    assert.equal(logos.fetchMissing(labels), false, "same keys: the miss stands");
-    db.setSetting("discogsToken", "tok2");
-    assert.equal(logos.fetchMissing(labels), true, "new keys: asked again");
-    await idle();
+    const r = await logos(job,
+      // Discogs only: ECM is not found there, and that is remembered.
+      { set: ["discogsToken", "tok"] }, { fetch: labels },
+      // The FanArt.tv key arrives while that pass runs; the pass asked for now is not dropped but runs straight after.
+      { set: ["fanartKey", "fk"] }, { fetch: labels }, { idle: 20000 }, { get: "bluenote" }, { get: "ecm" },
+      // A remembered miss is asked about again only when the keys change.
+      { forget: "ecm" }, { miss: "ecm" }, { fetch: labels }, { set: ["discogsToken", "tok2"] }, { fetch: labels }, { idle: 20000 });
+    assert.equal(r[1], true, "a pass started");
+    assert.equal(r[3], true, "queued behind the running pass");
+    assert.equal(r[4], true, "and both done");
+    assert.ok(r[5], "from Discogs");
+    assert.ok(r[6], "from FanArt.tv, on the pass after the key came");
+    assert.equal(r[9], false, "same keys: the miss stands");
+    assert.equal(r[11], true, "new keys: asked again");
   } finally {
-    db.close();
     await Promise.all([discogs.stop(), fanart.stop(), mb.stop()]);
   }
 });

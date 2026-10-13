@@ -3,13 +3,8 @@
 //
 // Decided here since v0.8.48 (stage 5 part 4), as lib/cpu.js decided it: from
 // the cores this server could use when it started and PLAYBACK_CORES /
-// PLAYBACK_CORE, the DSP conversions of both servers counted (this server's
-// own, and the Node server's word, POST /internal/cpu/dsp) and playback's
-// second core kept ten minutes after the last. The Node server is sent each
-// decision (POST /internal/cpu/plan) and follows it for playback's own
-// processes (lib/cpu.js follow). Handed over as the job "cpu" (Jobs.cs);
-// until then the split still comes from the Node server with the library's
-// state (Follow), as before.
+// PLAYBACK_CORE, the DSP conversions under way counted and playback's second
+// core kept ten minutes after the last. The job "cpu" (Jobs.cs).
 //
 // This server's own threads run on the cores playback doesn't keep, and each
 // ffmpeg it starts goes where its kind belongs: a conversion a device is
@@ -42,10 +37,7 @@ internal static partial class Cpu
         : OperatingSystem.IsMacOS() ? (false, Have("nice", "-n", "0", "true"), false)
         : (false, false, false));
 
-    /* The split as the Node server last sent it (lib/cpu.js plan()), whole; null until it has. */
-    public static JsonNode? Last { get; private set; }
-
-    /* The cores this server could use when it started, for the Node server it starts (lib/cpu.js allowed: MANDARIN_CPUS, else its own). */
+    /* The cores this server could use when it started (lib/cpu.js allowed: MANDARIN_CPUS, else its own). */
     public static readonly string Startup = Environment.GetEnvironmentVariable("MANDARIN_CPUS") is { Length: > 0 } given && Expand(given).Length > 0 ? Compact(Expand(given)) : Own();
 
     /*
@@ -61,7 +53,7 @@ internal static partial class Cpu
         if (all.Length > 0) PinProcess(Environment.ProcessId, all);
     }
 
-    /* It didn't start again after all: the split kept to again with the next word of it (Follow). */
+    /* It didn't start again after all: the split kept to again with the next decision. */
     public static void Resume() => Volatile.Write(ref sig, "");
 
     /* "0-2,5" → [0, 1, 2, 5] (lib/cpu.js expand). */
@@ -162,20 +154,6 @@ internal static partial class Cpu
 
     private static string Span(int[] c) => c.Length == 1 ? "core " + c[0] : "cores " + Compact(c).Replace('-', '–');
 
-    private static int[] Cores(JsonNode? n) =>
-        n is JsonArray a ? a.Select(x => x is JsonValue v && v.TryGetValue<double>(out var d) && d >= 0 && d < 4096 && d == Math.Floor(d) ? (int)d : -1).Where(x => x >= 0).ToArray() : [];
-
-    /* The split as the Node server sent it (/internal/library "cpu"); kept to from now on — unless it is decided here (Deciding). */
-    public static void Follow(JsonNode? cpu)
-    {
-        if (Deciding) return;
-        // As the Node server sent it, for /api/cpu (PowerRoutes.cs): the decision is still its.
-        if (cpu is JsonObject whole) Last = whole.DeepClone();
-        if (cpu is not JsonObject o || !OperatingSystem.IsLinux()) return;
-        var on = o["split"] is JsonValue sv && sv.TryGetValue<bool>(out var b) && b;
-        Keep(new Split(on, Cores(o["playback"]), Cores(o["background"]), Cores(o["cores"])));
-    }
-
     /* A split kept to: this server's threads and its conversions moved where it says. */
     private static void Keep(Split next)
     {
@@ -244,15 +222,14 @@ internal static partial class Cpu
     private static readonly int HoldMs = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_CPU_HOLD_MS"), out var h) && h >= 0 ? h : 10 * 60 * 1000;
     private static volatile bool deciding;
     private static readonly object Deciding_ = new();
-    private static int dspRunning;         // DSP conversions under way, this server's and the Node server's
-    private static int dspNode;            // of which the Node server's (its count given at the hand-over, then each told)
+    private static int dspRunning;         // DSP conversions under way
     private static long dspUntil;          // and the second core kept until then (Environment.TickCount64)
     private static Timer? holdTimer;
     private static Split decided = new(false, [], [], []);
-    private static bool toldDsp;           // whether the Node server was last told DSP is in use
+    private static bool decidedDsp;        // whether DSP was in use when the split was last decided
     private static readonly Lazy<bool> Raise = new(() => Tools.Value.Nice && MayRaise());
 
-    /* The split is decided here (the Node server handed "cpu" over). */
+    /* The split is decided (the job "cpu" is this server's, Jobs.cs). */
     public static bool Deciding => deciding;
 
     /* The cores to share out: as this server started (Startup), else every core the machine has. */
@@ -309,22 +286,13 @@ internal static partial class Cpu
 
     private static bool DspActive() => Volatile.Read(ref dspRunning) > 0 || Environment.TickCount64 < Volatile.Read(ref dspUntil);
 
-    /*
-     * The split decided from now on (the Node server told, and again whenever it
-     * changes); Stop: its own word followed again. [nodeRunning]: the DSP
-     * conversions under way on the Node server at the hand-over (its count in
-     * the hand-over's settings, cpu_dsp), counted from the start: each of them
-     * ending is told here, and playback keeps its second core until the last.
-     * A Node server started again hands over afresh: its old count goes.
-     */
-    public static void StartDeciding(int nodeRunning = 0)
+    /* The split decided from now on, and again whenever it changes; Stop: left as it is. */
+    public static void StartDeciding()
     {
         lock (Deciding_)
         {
             deciding = true;
-            dspRunning = Math.Max(0, dspRunning - dspNode) + Math.Max(0, nodeRunning);
-            dspNode = Math.Max(0, nodeRunning);
-            Recompute(force: true);
+            Recompute();
         }
     }
     public static void StopDeciding()
@@ -334,20 +302,18 @@ internal static partial class Cpu
             if (!deciding) return;
             deciding = false;
             holdTimer?.Dispose(); holdTimer = null;
-            Volatile.Write(ref sig, "");   // the Node server's next word kept to afresh
+            Volatile.Write(ref sig, "");   // the next split kept to afresh
         }
     }
 
     /*
-     * A DSP conversion started (true) or ended (false), here or on the Node
-     * server (lib/cpu.js dsp): while any runs, and for a while after, playback
-     * has its second core.
+     * A DSP conversion started (true) or ended (false) (lib/cpu.js dsp): while
+     * any runs, and for a while after, playback has its second core.
      */
-    public static void Dsp(bool on, bool node = false)
+    public static void Dsp(bool on)
     {
         lock (Deciding_)
         {
-            if (node) dspNode = on ? dspNode + 1 : Math.Max(0, dspNode - 1);
             if (on) dspRunning++;
             else
             {
@@ -356,35 +322,30 @@ internal static partial class Cpu
                 {
                     Volatile.Write(ref dspUntil, Environment.TickCount64 + HoldMs);
                     holdTimer?.Dispose();
-                    holdTimer = new Timer(_ => { lock (Deciding_) { holdTimer = null; if (deciding) Recompute(force: false); } }, null, HoldMs + 50, Timeout.Infinite);
+                    holdTimer = new Timer(_ => { lock (Deciding_) { holdTimer = null; if (deciding) Recompute(); } }, null, HoldMs + 50, Timeout.Infinite);
                 }
             }
-            if (deciding) Recompute(force: false);
+            if (deciding) Recompute();
         }
     }
 
-    // Under Deciding_: decided again, kept to, and the Node server told when it changed (or [force]).
-    // Whether DSP is in use is part of what it is told (lib/cpu.js follow keeps it as its own
-    // dspActive), so a change in that alone is told too: where nothing is split (a Mac, two
-    // cores, PLAYBACK_CORES=0) the split never changes, and the Node server would never hear.
-    private static void Recompute(bool force)
+    // Under Deciding_: decided again, and kept to.
+    private static void Recompute()
     {
         Func<string, string?> env = Environment.GetEnvironmentVariable;
         var dsp = DspActive();
         var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), dsp);
         var next = new Split(d.Split, d.Playback, d.Background, d.Cores);
-        var same = next.On == decided.On && Compact(next.Playback) == Compact(decided.Playback) && dsp == toldDsp;
         decided = next;
-        toldDsp = dsp;
+        decidedDsp = dsp;
         Keep(next);
-        if (!same || force) _ = TellNode();
     }
 
     /* The split as decided here (lib/cpu.js plan()), with the DSP it was decided for (not a hold just over, its split still to follow): for /api/cpu. */
     public static JsonObject Plan()
     {
         Split p; bool dsp;
-        lock (Deciding_) { p = decided; dsp = deciding ? toldDsp : DspActive(); }
+        lock (Deciding_) { p = decided; dsp = deciding ? decidedDsp : DspActive(); }
         var t = Tools.Value;
         return new JsonObject
         {
@@ -405,6 +366,4 @@ internal static partial class Cpu
         return double.IsFinite(asked) && p.Playback.Any(c => c == asked) ? (int)asked : p.Playback[^1];
     }
 
-    /* The Node server sent the split (POST /internal/cpu/plan), to follow for playback's own processes. */
-    public static Task TellNode() => Library.ToNode("/internal/cpu/plan", new JsonObject { ["cpu"] = Plan() }, "[cpu] the Node server wasn't sent the split");
 }

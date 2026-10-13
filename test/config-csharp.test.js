@@ -20,7 +20,7 @@ const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)
 const NAMES = ["MUSIC_DIR", "SERVER_IP", "BRIDGE_IP", "SONOS_HOSTS", "UPNP_HOSTS", "UPNP_DISCOVERY", "INCLUDE_ZONES", "EXCLUDE_ZONES",
   "SCAN_INTERVAL_HOURS", "MUSICDNET_BIN", "MUSICBRAINZ_URL", "ITUNES_URL", "MBPACK_URL", "MBPACK_DIR", "AUTOEQ_URL", "DISCOGS_URL",
   "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "LASTFM_URL", "LASTFM_KEY", "IDENTIFY", "IDENTIFY_TICK_MS",
-  "LOUDNESS_TICK_MS", "LOCAL_AUDIO", "MUSICD_VIA_LAUNCHER", "UPDATE_REPO", "UPDATE_API", "UPDATE_CHECK", "QOBUZ_URL", "TIDAL_URL",
+  "LOUDNESS_TICK_MS", "LOCAL_AUDIO", "UPDATE_REPO", "UPDATE_API", "UPDATE_CHECK", "QOBUZ_URL", "TIDAL_URL",
   "TIDAL_AUTH_URL", "TIDAL_IMAGES_URL", "MANDARIN_CONFIG"];
 
 function run(env) {
@@ -40,9 +40,9 @@ const DEFAULTS = {
   loudness_tick_ms: 5000, discogs_url: null, fanart_url: null, deezer_url: null, logo_pause_ms: null,
   wikipedia_url: null, pitchfork_url: null, qobuz_web_url: null,
   tailscale_bin: "/usr/local/bin/musicdnet", tailscale_dir: "/tmp/mandarin-config-test/tailscale", tailscale_port: 3511, tailscale_watchdog: null,
-  via_launcher: false, update_repo: null, update_api: null, update_check: true,
-  cpu_dsp: 0, lastfm_url: null, lastfm_key: null, autoeq_url: null,
-  music_dir: "/music", mass_removal: 500, scan_hours: 6, scan_program: true,
+  update_repo: null, update_api: null, update_check: true,
+  lastfm_url: null, lastfm_key: null, autoeq_url: null,
+  music_dir: "/music", mass_removal: 500, scan_hours: 6,
   sonos_hosts: [], server_ip: null, sonos_include: [], sonos_exclude: [], upnp_hosts: [], upnp_multicast: true, upnp_offline_ms: null,
   local_audio: true, local_devices: null,
   qobuz_url: null, tidal_url: null, tidal_images_url: null, tidal_auth_url: null, service_sync_delay_ms: null, service_watch_ms: null
@@ -60,7 +60,7 @@ test("every name index.js read, read here the same way", { skip }, () => {
     AUTOEQ_URL: "http://127.0.0.1:9/eq", DISCOGS_URL: "http://127.0.0.1:9/dc", FANART_URL: "http://127.0.0.1:9/fa", DEEZER_URL: "http://127.0.0.1:9/dz",
     WIKIPEDIA_URL: "http://127.0.0.1:9/wp", PITCHFORK_URL: "http://127.0.0.1:9/pf", QOBUZ_WEB_URL: "http://127.0.0.1:9/qw",
     LASTFM_URL: "http://127.0.0.1:9/fm", LASTFM_KEY: "k1", IDENTIFY: "0", IDENTIFY_TICK_MS: "250", LOUDNESS_TICK_MS: "300", LOCAL_AUDIO: "0",
-    MUSICD_VIA_LAUNCHER: "1", UPDATE_REPO: "someone/elsewhere", UPDATE_API: "http://127.0.0.1:9/gh", UPDATE_CHECK: "false",
+    UPDATE_REPO: "someone/elsewhere", UPDATE_API: "http://127.0.0.1:9/gh", UPDATE_CHECK: "false",
     QOBUZ_URL: "http://127.0.0.1:9/qb", TIDAL_URL: "http://127.0.0.1:9/td", TIDAL_AUTH_URL: "http://127.0.0.1:9/ta", TIDAL_IMAGES_URL: "http://127.0.0.1:9/ti/"
   });
   assert.deepEqual(c, Object.assign({}, DEFAULTS, {
@@ -70,7 +70,7 @@ test("every name index.js read, read here the same way", { skip }, () => {
     autoeq_url: "http://127.0.0.1:9/eq", discogs_url: "http://127.0.0.1:9/dc", fanart_url: "http://127.0.0.1:9/fa", deezer_url: "http://127.0.0.1:9/dz",
     wikipedia_url: "http://127.0.0.1:9/wp", pitchfork_url: "http://127.0.0.1:9/pf", qobuz_web_url: "http://127.0.0.1:9/qw",
     lastfm_url: "http://127.0.0.1:9/fm", lastfm_key: "k1", identify: false, identify_tick_ms: 250, loudness_tick_ms: 300, local_audio: false,
-    via_launcher: true, update_repo: "someone/elsewhere", update_api: "http://127.0.0.1:9/gh", update_check: false,
+    update_repo: "someone/elsewhere", update_api: "http://127.0.0.1:9/gh", update_check: false,
     qobuz_url: "http://127.0.0.1:9/qb", tidal_url: "http://127.0.0.1:9/td", tidal_auth_url: "http://127.0.0.1:9/ta", tidal_images_url: "http://127.0.0.1:9/ti/"
   }));
   // BRIDGE_IP, the older name, behind SERVER_IP; a number that isn't one, or 0, is the default (Number(v) || d).

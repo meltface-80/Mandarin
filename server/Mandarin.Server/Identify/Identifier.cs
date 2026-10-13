@@ -154,10 +154,10 @@ internal sealed partial class Identifier
         return s;
     }
 
-    /* Is now inside the night window? A window over midnight (22:00–04:00) counts. */
-    public static bool InWindow(JsObj s)
+    /* Is now (or [at]) inside the night window? A window over midnight (22:00–04:00) counts. */
+    public static bool InWindow(JsObj s, DateTime? at = null)
     {
-        var d = DateTime.Now;
+        var d = at ?? DateTime.Now;
         var t = d.Hour * 60 + d.Minute;
         double a = Minutes(s["start"], 60)!.Value, b = Minutes(s["end"], 360)!.Value;
         if (a == b) return false;

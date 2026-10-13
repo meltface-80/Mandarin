@@ -37,7 +37,7 @@ internal static partial class Covers
     {
         var yes = DrawsText();
         // Said once: from ffmpeg 6.1 drawtext needs harfbuzz, which some builds leave out (a static one, Homebrew's).
-        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are " + (Front.Alone ? "drawn without their titles" : "drawn by the Node server"));
+        if (!yes && Transcoder.FfOk) Front.Log("[art] this ffmpeg can't draw text (no drawtext): albums without a cover are drawn without their titles");
         return yes;
     });
 
@@ -59,10 +59,9 @@ internal static partial class Covers
     public static Task<Drawn> DrawPlaceholder(Album al, string file, int size) =>
         Once(file, al.ImageKey, async () =>
         {
-            // No drawtext: the Node server's; alone (v0.8.50), the colour and the note's place without the words.
-            if (!Text.Value && !Front.Alone) return Drawn.NodeIts;
+            // No drawtext (v0.8.50): the colour and the note's place without the words.
             var jpg = await Placeholder(al.Title, al.Artist, size);
-            if (jpg == null) return Drawn.NodeIts;
+            if (jpg == null) return Drawn.Failed;
             Write(file, jpg);
             return Drawn.Yes;
         });
@@ -173,7 +172,7 @@ internal static partial class Covers
     public static Task<Drawn> DrawForeign(string url, string file, int size) =>
         Once(file, "a picture from elsewhere", async () =>
         {
-            if (!ProbeOk) return Drawn.NodeIts;
+            if (!ProbeOk) return Drawn.Failed;
             byte[] src;
             try { src = await Fetch(url, 0); }
             catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidDataException or UriFormatException or Identify.LookupError)
@@ -182,9 +181,9 @@ internal static partial class Covers
                 return Drawn.NoCover;
             }
             var turn = Look(src);
-            if (turn == null) return Drawn.NodeIts;
+            if (turn == null) return Drawn.Failed;
             var jpg = await Fit(src, turn, size, "4", "a picture from elsewhere");
-            if (jpg == null) return Drawn.NodeIts;
+            if (jpg == null) return Drawn.Failed;
             Write(file, jpg);
             return Drawn.Yes;
         });

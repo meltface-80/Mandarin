@@ -11,7 +11,7 @@
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
  * (test/golden.js's answers(), test/golden/artfind-csharp.json), made with
- * RECORD_ARTFIND=1 while lib/ was here; the C# program alone is held to them.
+ * while lib/ was here; the C# program alone is held to them.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -20,14 +20,10 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_ARTFIND === "1";
-// The Node server's modules, asked while recording (lib/, until v0.8.50).
-const ArtFind = RECORD ? require("../lib/library/artfind") : null;
-const N = RECORD ? require("../lib/library/normalize") : null;
-const kept = answers("artfind-csharp", RECORD);
+const kept = answers("artfind-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_ARTFIND=1 made it)");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
 test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
@@ -38,16 +34,8 @@ function csharp(job) {
   return out;
 }
 const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
-/* Each answer the Node server's (kept: [want] asked while recording), the first that isn't shown with its case. */
-const same = (what, cases, got, want) => kept.same(what, cases.map((_, i) => what + " " + i), cases, got, RECORD && (() => plain(want)));
-
-// test/artfind.test.js's canned web: the first address prefix that fits.
-function fakeWeb(routes) {
-  return async (url) => {
-    for (const [prefix, body] of routes) if (url.startsWith(prefix)) return body;
-    throw new Error("HTTP 404");
-  };
-}
+/* Each answer the Node server's (kept), the first that isn't shown with its case. */
+const same = (what, cases, got) => kept.same(what, cases.map((_, i) => what + " " + i), cases, got);
 
 const SIGUR = ["Untitled #1 (Vaka)", "Untitled #2 (Fyrsta)", "Untitled #3 (Samskeyti)", "Untitled #4 (Njósnavélin)"];
 const itunesAlbum = (id, name, artist, extra) => Object.assign({ collectionId: id, collectionName: name, artistName: artist, artworkUrl100: `https://is1.example/${id}/100x100bb.jpg` }, extra || {});
@@ -155,21 +143,19 @@ const MATCHES = [[["Untitled #1 (Vaka)", "Airbag (Remastered)"], ["Untitled #1",
 
 test("names compared as artfind.js compares them", { skip }, () => {
   const out = csharp({ bares: NAMES, looses: NAMES, texts: PAIRS, artists: PAIRS, matches: MATCHES, cases: [] });
-  same("bare", NAMES, out.bare, RECORD && NAMES.map(n => ArtFind.bare(n)));
-  same("loose", NAMES, out.loose, RECORD && NAMES.map(n => N.loose(n)));
-  same("sameText", PAIRS, out.text, RECORD && PAIRS.map(([a, b]) => ArtFind.sameText(a, b)));
-  same("sameArtist", PAIRS, out.artist, RECORD && PAIRS.map(([a, b]) => ArtFind.sameArtist(a, b)));
-  same("trackMatch", MATCHES, out.tracks, RECORD && MATCHES.map(([l, r]) => ArtFind.trackMatch(l, r)));
+  same("bare", NAMES, out.bare);
+  same("loose", NAMES, out.loose);
+  same("sameText", PAIRS, out.text);
+  same("sameArtist", PAIRS, out.artist);
+  same("trackMatch", MATCHES, out.tracks);
   // Track names compared without their brackets and edition notes; nothing to compare, no score.
   assert.equal(out.tracks[0], 1);
   assert.equal(out.tracks[1], null);
 });
 
-test("whole searches over the same answers end in the same candidates", { skip }, async () => {
+test("whole searches over the same answers end in the same candidates", { skip }, () => {
   const out = csharp({ cases: plain(CASES) });
-  const want = [];
-  if (RECORD) for (const c of CASES) want.push(await ArtFind.find(c.album, c.tracks, { get: fakeWeb(plain(c.routes)) }));
-  same("find", CASES.map(c => c.album), out.found, want);
+  same("find", CASES.map(c => c.album), out.found);
   // The searches said something worth checking: sure picks, cut at twelve, dead groups gone.
   assert.equal(out.found[0].sure.url, "https://is1.example/1/1200x1200bb.jpg");
   assert.equal(out.found[0].sure.match.tracks, 1);

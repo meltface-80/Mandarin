@@ -18,7 +18,7 @@
  * part 5) the Node server's plan, its name for the file (the track's id and
  * time aside) and its ffmpeg arguments (the file in and out marked; soxr's as
  * this machine's ffmpeg has it) are kept (test/golden/conversions-csharp.json,
- * made with RECORD_CONVERSIONS=1 while lib/ was here), and the file this
+ * made while lib/ was here), and the file this
  * machine's ffmpeg makes with them is the one held to.
  */
 const ports = require("./ports");
@@ -33,27 +33,17 @@ const { answers } = require("./golden");
 
 const { createServer, built } = require("./server");
 
-const RECORD = process.env.RECORD_CONVERSIONS === "1";
-// The Node server's modules, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? { STREAM: require("../lib/stream"), DSP: require("../lib/dsp"), FF: require("../lib/ffmpeg"), planFor: require("../lib/server/playback").planFor } : null;
-const kept = answers("conversions-csharp", RECORD);
-const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!RECORD && !kept.exists() && "no recording of the Node server's conversions (RECORD_CONVERSIONS=1 made it)");
+const kept = answers("conversions-csharp");
+const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!kept.exists() && "no recording of the Node server's conversions");
 const SOXR = haveSoxr();
 test.after(() => { if (!skip) kept.done(); });
 /*
- * The Node server's way with a conversion ([plan]() while recording, else as kept): the plan, its name for the file
+ * The Node server's way with a conversion, as kept: the plan, its name for the file
  * (lib/stream.js's keyFor) but for the track's id and time, and its ffmpeg arguments as a template, the file in and out
  * marked, as an ffmpeg with soxr is asked (played back as this machine's has it or not).
  */
-function nodeWay(what, r, plan) {
-  return kept.input(what, RECORD && (() => {
-    const p = plan(), key = NODE.STREAM.Transcoder.prototype.keyFor.call(null, r, p);
-    const FF = NODE.FF, real = FF.info, info = real();
-    FF.info = () => Object.assign({}, info, { soxr: true });
-    let args;
-    try { args = NODE.STREAM.ffmpegArgs(r.path, p, "<out>"); } finally { FF.info = real; }
-    return { plan: p, name: key.slice(`${r.id}-${Math.floor(r.mtime)}-`.length), args: args.map(a => a === r.path ? "<in>" : a) };
-  }));
+function nodeWay(what) {
+  return kept.input(what);
 }
 const argsFor = (tpl, input, out) => tpl.map(a => a === "<in>" ? input : a === "<out>" ? out : SOXR ? a : a.replace(/resampler=soxr:precision=\d+:/, ""));
 const keyOf = (r, way) => `${r.id}-${Math.floor(r.mtime)}-${way.name}`;
@@ -85,7 +75,6 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
   await until(async () => (await (await fetch(B + "/api/library-stats", { headers: H })).json()).albums === 3, 30000, "the library");
   const cpu = async () => (await (await fetch(B + "/api/cpu", { headers: H })).json());
   const row = title => ctx.db.raw.prepare("SELECT * FROM tracks WHERE title = ?").get(title);
-  const info = r => ({ path: r.path, codec: r.codec, sampleRate: r.sample_rate, bitsPerSample: r.bits, channels: r.channels });
   const song = row("Song 1"), hi = row("Hi 1");
   const made = path.join(lib.data, "transcode");
   // The file ffmpeg makes with the Node server's own arguments for this plan.
@@ -123,16 +112,15 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
 
   await t.test("a ReplayGain: on Sonos's rule (the file as it is, or the 24/48 rule) and on a renderer's rate", async () => {
     // 16/44.1 FLAC, which Sonos takes as it is: with a gain, FLAC at its own rate, 24 bits.
-    const p1 = nodeWay("16/44.1 with -3 dB", song, () => NODE.STREAM.withGain(NODE.planFor(song), info(song), null, -3));
+    const p1 = nodeWay("16/44.1 with -3 dB");
     assert.deepEqual([p1.plan.rate, p1.plan.bits, p1.plan.gain, !!p1.plan.hq], [44100, 24, -3, false]);
     assert.match(await convertedAsNode(`/stream/t${song.id}.flac?g=-3`, song, p1, "16/44.1 with -3 dB"), /-44100-24-g-3$/);
     // 24/96, which the 24/48 rule converts: the gain in the same conversion.
-    const p2 = nodeWay("24/96 with +2.5 dB", hi, () => NODE.STREAM.withGain(NODE.planFor(hi), info(hi), null, 2.5));
+    const p2 = nodeWay("24/96 with +2.5 dB");
     assert.deepEqual([p2.plan.rate, p2.plan.bits, p2.plan.gain], [48000, 24, 2.5]);
     await convertedAsNode(`/stream/t${hi.id}.flac?g=2.5`, hi, p2, "24/96 with +2.5 dB");
     // A renderer's: the high-quality settings, the gain to a tenth of a dB.
-    const p3 = nodeWay("a renderer's 24/96 with -6 dB", song, () => Object.assign(NODE.STREAM.withGain({ transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate: 96000, bits: 24, reason: "what the renderer was promised" },
-      info(song), null, -6.04), { hq: true }));
+    const p3 = nodeWay("a renderer's 24/96 with -6 dB");
     assert.equal(p3.plan.gain, -6);
     assert.match(await convertedAsNode(`/stream/t${song.id}.96000-24.flac?g=-6.04`, song, p3, "a renderer's 24/96 with -6 dB"), /-96000-24-hq-g-6$/);
     // A gain too small to hear is none: the file as it is.
@@ -151,25 +139,19 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
     // A Sonos room is tuned with Trueplay: a setting written for one anyway is left out, as the Node server leaves it.
     ctx.db.raw.prepare("UPDATE audio_devices SET settings = ? WHERE id = ?").run(JSON.stringify({ dsp: { enabled: true, peq: { bands: [{ type: "peak", freq: 500, gain: 6, q: 1 }] } } }), "RINCON_TESTDSP01400");
     assert.equal(dspOf(ctx.db, "RINCON_TESTDSP01400"), null);
-    const asked = (rate, bits, o) => {
-      const p = { transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate, bits, reason: "what the renderer was promised" };
-      const part = NODE.DSP.planPart(dspOf(ctx.db, o), rate);
-      if (part) { p.dsp = part; p.inRate = Number(hi.sample_rate) || 0; }
-      return p;
-    };
     const dspBefore = (await cpu()).dsp;
-    const p1 = nodeWay("24/96 to 48 kHz with the zone's DSP", hi, () => asked(48000, 24, "UPNP_test-dsp"));
+    const p1 = nodeWay("24/96 to 48 kHz with the zone's DSP");
     assert.ok(p1.plan.dsp && p1.plan.dsp.hash, "the Node server's plan has the DSP");
     const k1 = await convertedAsNode(`/stream/t${hi.id}.48000-24.flac?o=UPNP_test-dsp`, hi, p1, "24/96 to 48 kHz with the zone's DSP");
     assert.match(k1, new RegExp(`-48000-24-hq-d${p1.plan.dsp.hash}$`));
     assert.equal(dspBefore, false, "no DSP in use before");
     await until(async () => (await cpu()).dsp, 5000, "playback's second core while DSP runs, and for a while after");
     // With a gain as well: the gain first, then the DSP.
-    const p2 = nodeWay("the zone's DSP and -4 dB", hi, () => Object.assign(NODE.STREAM.withGain(asked(96000, 24, "UPNP_test-dsp"), info(hi), null, -4), { hq: true }));
+    const p2 = nodeWay("the zone's DSP and -4 dB");
     assert.match(await convertedAsNode(`/stream/t${hi.id}.96000-24.flac?o=UPNP_test-dsp&g=-4`, hi, p2, "the zone's DSP and -4 dB"), /-hq-d[0-9a-f]+-g-4$/);
     // A Sonos room's, or a zone that isn't one: no DSP, the conversion alone.
     for (const o of ["RINCON_TESTDSP01400", "nobody"]) {
-      const p = nodeWay("?o=" + o, hi, () => asked(44100, 24, o));
+      const p = nodeWay("?o=" + o);
       assert.equal(p.plan.dsp, undefined);
       assert.match(await convertedAsNode(`/stream/t${hi.id}.44100-24.flac?o=${o}`, hi, p, "?o=" + o), /-44100-24-hq$/);
     }
@@ -177,7 +159,7 @@ test("ReplayGain, a zone's DSP and 32-bit output: converted by the C# server as 
 
   await t.test("32-bit output: made here where this ffmpeg writes 32-bit FLAC, else refused as before", async () => {
     const addr = `/stream/t${hi.id}.96000-32.flac`;
-    const way = nodeWay("a renderer's 32/96", hi, () => ({ transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate: 96000, bits: 32, reason: "what the renderer was promised" }));
+    const way = nodeWay("a renderer's 32/96");
     if (haveFlac32()) {
       await convertedAsNode(addr, hi, way, "a renderer's 32/96");
     } else {
@@ -221,7 +203,7 @@ exec "$REAL_FFMPEG" "$@"
   const token = await signIn(B);
   await until(async () => (await (await fetch(B + "/api/library-stats", { headers: { Authorization: "Bearer " + token } })).json()).albums === 3, 30000, "the library");
   const hi = ctx.db.raw.prepare("SELECT * FROM tracks WHERE title = ?").get("Hi 1");
-  const way = nodeWay("a renderer's 32/96, end to end", hi, () => ({ transcode: true, hq: true, mime: "audio/flac", ext: "flac", rate: 96000, bits: 32, reason: "what the renderer was promised" }));
+  const way = nodeWay("a renderer's 32/96, end to end");
   const r = await fetch(B + `/stream/t${hi.id}.96000-32.flac`, { headers: { Authorization: "Bearer " + token } });
   const body = Buffer.from(await r.arrayBuffer());
   assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "a renderer's 32/96, converted by C#");

@@ -1,5 +1,8 @@
 # Mandarin: moving the server to C#
 
+**Status, 13 October 2026: done.** Stage 7 part 6 (v0.9.0) deletes the Node server; what is left is the owner's
+test from `:migration` and their merge to `main` as v0.9.0. What follows is the plan as it was written and built.
+
 **Status: a draft for the owner, 9 October 2026.** Stage 0 is built (v0.8.25), stage 1's parts a to c (v0.8.26), d (v0.8.31), and e and most of f (v0.8.34); Shelf's page (v0.8.28, below); the C# server on Macs, and updates that bring both servers together (v0.8.29); stage 2 (v0.8.37, v0.8.38), stage 3 (v0.8.40), and stage 4 whole: parts 1 (v0.8.39), 2 (v0.8.44), 3 (v0.8.45), 4 and 5 (v0.8.47). **From v0.8.29, new server work is done in C# only** (2.4). **The way to a server with no Node at all, as the owner decided after v0.8.47:** stage 5 (v0.8.48), everything but playback; stage 6, playback whole; stage 7, Node removed, the v0.9.0 candidate (section 4). It is written from
 `main` at v0.8.23 (`e7676a7`), with `replaygain-fix` (v0.8.24) waiting to be merged. The owner
 decides who does each stage, and each stage is planned in detail, its questions put to the owner,
@@ -1076,6 +1079,24 @@ allowance and the `@ts-check` baseline shrunk by their tools; CI without the Nod
 for the tests alone); `README.md`, the GitHub Pages site, `server/README.md`'s table, the
 CHANGELOG, this file and `handover.md`; the pull request into `migration` for the owner's final
 test from `:migration`.
+- **As built** (v0.9.0): the twelve suites left on `lib/` ask the program (`mandarin-server score`:
+  `engine`, `local`, `scorecall`, `itunes`, `mbpack`, `logos`, `lastfm`, `shelf`) or the server
+  running; the recording halves gone from every parity suite, `test/golden.js` read-only;
+  `test/setup.js`'s `MANDARIN_FRONT` block gone; the in-app update's end-to-end test
+  (`test/update.test.js`, the page's one Update) on the program, which builds the 9.9.9 it updates
+  to. `index.js`, `launcher.js`, `reset-password.js` and `lib/` deleted. In the program: no Node
+  server started, waited for or passed to (the YARP package gone), `Front.Alone`, `Matched`,
+  `RunsNode`, `NodeSays` gone, `Jobs` without the claim and its re-claim (`Jobs.Restart` starts
+  the program again in place), the library's state local only, `ToNode`/`AskNode` and every
+  `/internal/*` ask of Node gone (the device writes, a service album's play and the wall display
+  are the hub's), the CPU split without Node's DSP word or its follow, the updater without the
+  launcher or npm, `Config` without `via_launcher`, `cpu_dsp` and `scan_program`. The image on
+  Debian with no Node; `package.json` dev dependencies only (`better-sqlite3`,
+  `fast-xml-parser`, `music-metadata`, `sharp`); CI without `MANDARIN_FRONT` and checking the image
+  has no Node; the release's update bundle the page and `package.json`; the Mac installer
+  without Node (and bringing a Node-era install up to date). The baselines shrunk by their tools.
+  Found on the way: Last.fm's list of one and its spacing (fixed). Kept: `/internal/mb/slot` (the
+  one MusicBrainz timer, pinned by `test/front.test.js`).
 
 **Checklist** (ticked as each part is committed and pushed):
 
@@ -1085,7 +1106,8 @@ test from `:migration`.
 - [x] Part 3: the launcher and updates in C#
 - [x] Part 4: the tests drive the binary
 - [x] Part 5: the tests without `lib/` (the most of them), and what they found
-- [ ] Part 6: the image and the repository; docs; the pull request
+- [x] Part 6: the image and the repository; docs; the pull request (v0.9.0, branch
+  `stage-7-part-6-node-deleted`)
 
 ### The order, and why
 

@@ -199,7 +199,7 @@ internal abstract partial class Catalogue
         // same lists the page reads an album's favourite off; the listing above
         // can lag a removal made moments ago in the service's own app.
         HashSet<string> drop;
-        try { drop = (await WantedIds(new Ask(await Library.NodeVersion()), true)).Keys.ToHashSet(StringComparer.Ordinal); }
+        try { drop = (await WantedIds(new Ask(await Library.StateVersion()), true)).Keys.ToHashSet(StringComparer.Ordinal); }
         catch (Exception) { drop = want.Select(w => w.Id).ToHashSet(StringComparer.Ordinal); }
         Going(gen);
         double dropped = 0;
@@ -344,7 +344,7 @@ internal abstract partial class Catalogue
     {
         var gen = generation;
         // Asked now, and kept the minute as the catalogue's are: no longer than the library stays as it is.
-        var want = await WantedIds(new Ask(await Library.NodeVersion()), true);
+        var want = await WantedIds(new Ask(await Library.StateVersion()), true);
         var before = KeptSet();
         double added = 0, dropped = 0, failed = 0;
         foreach (var (id, why) in want)
@@ -382,7 +382,7 @@ internal abstract partial class Catalogue
 
     /*
      * An import or a watch under way stopped at its next album, and waited
-     * for up to [most] (a backup about to be put back, Jobs.RestartNode): it
+     * for up to [most] (a backup about to be put back, Jobs.Restart): it
      * would otherwise write on across the Node server's exit and the
      * database put back, as the Node server's own never did. One started
      * after this runs as ever.

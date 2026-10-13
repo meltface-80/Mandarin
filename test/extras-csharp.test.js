@@ -10,8 +10,8 @@
  * in their own tests. Skipped where the C# server isn't built.
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
- * (test/golden.js's answers(), test/golden/extras-csharp.json), made with
- * RECORD_EXTRAS=1 while lib/ was here; the cases are still made here, seeded,
+ * (test/golden.js's answers(), test/golden/extras-csharp.json), made
+ * while lib/ was here; the cases are still made here, seeded,
  * and the C# program alone is held to them case for case. A year after this
  * one (Deezer's "not a typo" limit) is kept as "<next year>", so the
  * recording holds whatever the year.
@@ -23,14 +23,10 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const { answers } = require("./golden");
 
-const RECORD = process.env.RECORD_EXTRAS === "1";
-// The Node server's modules, asked while recording (lib/, until v0.8.50).
-const NODE = RECORD ? { share: require("../lib/share-links"), similar: require("../lib/similar"), ...require("../lib/played-artists"), ...require("../lib/library/dates"),
-  ...require("../lib/labellookup"), ...require("../lib/labellogos") } : null;
-const kept = answers("extras-csharp", RECORD);
+const kept = answers("extras-csharp");
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_EXTRAS=1 made it)");
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!kept.exists() && "no recording of the Node server's answers");
 test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
@@ -40,9 +36,8 @@ function csharp(job) {
   assert.ok(!out.error, out.error);
   return out;
 }
-const plain = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
 /* Each answer the Node server's (kept), the first that isn't shown with its case. */
-const same = (what, cases, got, want) => kept.same(what, cases.map(() => what), cases, got, RECORD && (() => plain(want())));
+const same = (what, cases, got) => kept.same(what, cases.map(() => what), cases, got);
 /* A year after this one as "<next year>", wherever an answer holds a year: the limit moves with the clock, both sides alike. */
 const NEXT = new Date().getFullYear() + 1;
 const rel = v => Array.isArray(v) ? v.map(rel) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === "year" && x === NEXT ? "<next year>" : rel(x)])) : v;
@@ -80,13 +75,7 @@ test("the share card's links: the first act, the query, the storefront, the lang
       wikipedia_artist: pick([null, "https://en.wikipedia.org/wiki/Radiohead"]), ids: pick(ids) });
   }
   const got = csharp({ fn: "share", cases }).share;
-  same("share links", cases, got, () => cases.map(c => ({
-    primary: NODE.share.primaryArtist(c.artist), query: NODE.share.searchQuery(c.artist, c.album), storefront: NODE.share.qobuzStorefront(c.locale),
-    locale: NODE.share.localeFromAcceptLanguage(c.accept),
-    services: NODE.share.serviceLinks(c.artist, c.album, { locale: c.locale, enabled: c.enabled }),
-    reviews: NODE.share.reviewLinks(c.artist, c.album, { enabled: c.reviews, wikipediaUrl: c.wikipedia, pitchforkUrl: c.pitchfork, wikipediaArtistUrl: c.wikipedia_artist }),
-    services_kept: NODE.share.sanitiseIds(c.ids, NODE.share.knownServiceIds()), reviews_kept: NODE.share.sanitiseIds(c.ids, NODE.share.knownReviewIds())
-  })));
+  same("share links", cases, got);
 });
 
 /* Deezer's answers, generated: rows of every shape the readers must take. */
@@ -163,16 +152,16 @@ test("the suggestions: Deezer read, the taste graph, the ranking, the draw, the 
   const rankPools = first.pools.slice(pools.length);
   const rankNames = rankPools.flatMap(p => p.map(a => a.name));
   const normals = csharp({ fn: "similar", names: rankNames }).normalize;
-  same("normalize", NAMES.concat(VALUES), first.normalize, () => NAMES.concat(VALUES).map(n => NODE.similar.normalize(n)));
-  same("normalize (the ranking's)", rankNames, normals, () => rankNames.map(n => NODE.similar.normalize(n)));
-  same("namesOverlap", overlaps, first.overlap, () => overlaps.map(([a, b]) => NODE.similar.namesOverlap(a, b)));
-  same("readDeezerArtists", artists, first.artists, () => artists.map(c => NODE.similar.readDeezerArtists(c.json, c.artist)));
-  same("readDeezerRelated", related, first.related, () => related.map(c => NODE.similar.readDeezerRelated(c.json, c.wanted)));
-  same("readDeezerPool", pools.concat(rankRows), first.pools, () => pools.concat(rankRows).map(j => NODE.similar.readDeezerPool(j)));
-  same("yearOf", years, rel(first.years), () => rel(years.map(y => NODE.similar.yearOf(y))));
-  same("readDeezerTop", tops, first.tops, () => tops.map(j => NODE.similar.readDeezerTop(j)));
-  same("readDeezerAlbumList", albumLists, rel(first.album_lists), () => rel(albumLists.map(j => NODE.similar.readDeezerAlbumList(j))));
-  same("tasteGraph", tastes, first.tastes, () => tastes.map(t => [...NODE.similar.tasteGraph(t.seeds, n => t.related[n], t.now).entries()]));
+  same("normalize", NAMES.concat(VALUES), first.normalize);
+  same("normalize (the ranking's)", rankNames, normals);
+  same("namesOverlap", overlaps, first.overlap);
+  same("readDeezerArtists", artists, first.artists);
+  same("readDeezerRelated", related, first.related);
+  same("readDeezerPool", pools.concat(rankRows), first.pools);
+  same("yearOf", years, rel(first.years));
+  same("readDeezerTop", tops, first.tops);
+  same("readDeezerAlbumList", albumLists, rel(first.album_lists));
+  same("tasteGraph", tastes, first.tastes);
 
   // Ranked over the pools with the taste graphs read above (the Node server's, as held), then drawn from as ranked.
   const ranks = [], rnds = [];
@@ -205,15 +194,12 @@ test("the suggestions: Deezer read, the taste graph, the ranking, the draw, the 
   }
 
   const second = csharp({ fn: "similar", ranks, reasons, records, played });
-  same("rankActs", ranks, second.ranks, () => ranks.map(c => NODE.similar.rankActs(c.pool, { playing: c.playing, taste: new Map(c.taste), known: n => c.known[n] || null, heavy: new Set(c.heavy), shown: new Set(c.shown) })));
-  same("reasonFor", reasons, second.reasons, () => reasons.map(c => NODE.similar.reasonFor(c.act, c.playing)));
-  same("recordFor", records, rel(second.records), () => rel(records.map(c => NODE.similar.recordFor(c.act, c.top, c.albums, c.owned))));
-  same("playedArtists", played, second.played, () => played.map(c => NODE.playedArtists(c.rows, { split: NODE.share.primaryArtist, limit: c.limit })));
+  same("rankActs", ranks, second.ranks);
+  same("reasonFor", reasons, second.reasons);
+  same("recordFor", records, rel(second.records));
+  same("playedArtists", played, second.played);
   const chooses = second.ranks.map((ranked, i) => ({ ranked, rnd: rnds[i] }));
-  same("choose", chooses, csharp({ fn: "similar", chooses }).chooses, () => chooses.map(c => {
-    let k = 0;
-    return NODE.similar.choose(plain(c.ranked), { rnd: () => c.rnd[k++ % c.rnd.length] }).map(a => a.id);
-  }));
+  same("choose", chooses, csharp({ fn: "similar", chooses }).chooses);
 });
 
 test("the release days: a group's day matched to an album only by its title, artist and year", { skip }, () => {
@@ -242,9 +228,9 @@ test("the release days: a group's day matched to an album only by its title, art
     batches.push({ albums, groups: r() < 0.03 ? undefined : groups });
   }
   const got = csharp({ fn: "days", titles, batches });
-  same("baseTitle", titles, got.base, () => titles.map(t => NODE.baseTitle(t)));
-  same("queryFor", batches, got.query, () => batches.map(b => NODE.queryFor(b.albums)));
-  same("matchDays", batches, got.days, () => batches.map(b => { const days = NODE.matchDays(b.albums, b.groups); return b.albums.map(a => [a.key, days.get(a.key)]); }));
+  same("baseTitle", titles, got.base);
+  same("queryFor", batches, got.query);
+  same("matchDays", batches, got.days);
 });
 
 test("the labels' rules: Discogs' numbered names, an image's kind from its bytes", { skip }, () => {
@@ -257,6 +243,6 @@ test("the labels' rules: Discogs' numbered names, an image's kind from its bytes
     [Buffer.from("RIFF\x10\x00\x00\x00webp", "latin1"), null], [Buffer.from([0xff, 0xd8, 0xff]), null], [Buffer.from([0xff, 0xd8, 0xff, 0xdb]), null]
   ];
   const got = csharp({ fn: "labels", plain: names, images: bufs.map(([b, t]) => ({ b64: b.toString("base64"), type: t })) });
-  same("plainName", names, got.plain, () => names.map(n => NODE.plainName(n)));
-  same("typeOf", bufs.map(([b, t]) => ({ b64: b.toString("base64"), type: t })), got.types, () => bufs.map(([b, t]) => NODE.typeOf(b, t)));
+  same("plainName", names, got.plain);
+  same("typeOf", bufs.map(([b, t]) => ({ b64: b.toString("base64"), type: t })), got.types);
 });

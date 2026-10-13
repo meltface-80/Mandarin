@@ -26,6 +26,14 @@
 //      → { results }: each step's, on the database in [data] (made by `mandarin-server db`), opened afresh each time
 //   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids }                   Renderers/Ssdp.cs, Discovery.cs
 //      → { sonos, seeds, ids }
+//   { fn: "engine", steps }                                               Local/EngineCommand.cs: the engine's driver from a script
+//   { fn: "local", linux: [root, dev], mac: json, hw: [[location, root]], ids, amplitude: [[pct, muted]] }
+//      → { devices, hidden, mac, hw, ids, amplitude }                    Local/LocalDevices.cs, EngineOutput.cs
+//   { fn: "scorecall" | "itunes" | "mbpack", … }                          Identify/ScoreCalls.cs
+//   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
+//   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
+//   { fn: "shelf", buckets: [sortArtist], shelves: [[{ id, title, artist, sortArtist, genres, image_key, year }]] }
+//      → { buckets, shelves: [{ genres, albums, sig }] }                  ShelfRoutes.cs
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
@@ -41,7 +49,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -52,7 +60,17 @@ internal static class RulesCommand
         "phoneplays" => new JsObj { ["plays"] = Each(job["tracks"], t => Downloads.PhonePlays(new Downloads.Track(0, S(O(t)["path"]), S(O(t)["codec"]), 0, N(O(t)["bits"]), N(O(t)["channels"]), 0, 0))) },
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
+        "logos" => Extras.LogosCommand.Run(job),
+        "lastfm" => Extras.LastfmCommand.Run(job),
+        "shelf" => ShelfFns(job),
         "register" => RegisterFns(job),
+        "local" => LocalFns(job),
+        // The identification's rules by name, and the iTunes client from a script (Identify/ScoreCalls.cs).
+        "scorecall" => Identify.ScoreCalls.Run(job),
+        "itunes" => Identify.ScoreCalls.ITunesSteps(job).GetAwaiter().GetResult(),
+        "mbpack" => Identify.ScoreCalls.PackSteps(job).GetAwaiter().GetResult(),
+        // The audio engine's driver run from a script (Local/EngineCommand.cs).
+        "engine" => Local.EngineCommand.Run(job).GetAwaiter().GetResult(),
         "ssdp" => new JsObj
         {
             ["sonos"] = Each(job["sonos"], a => Renderers.Ssdp.IsSonos(new Renderers.SsdpAnswer("", S(O(a)["usn"]), "", S(O(a)["server"]), ""))),
@@ -188,5 +206,43 @@ internal static class RulesCommand
             else throw new JsError("unknown step");
         }
         return new JsObj { ["results"] = results };
+    }
+
+    /* Shelf's rules: the letter an artist is filed under; the list built from albums as given, and its signature. */
+    private static JsObj ShelfFns(JsObj job) => new()
+    {
+        ["buckets"] = Each(job["buckets"], v => Library.ShelfBucket(v as string)),
+        ["shelves"] = Each(job["shelves"], list =>
+        {
+            var shelf = Library.BuildShelf(L(list).Select(O).Select(a => new Album
+            {
+                Id = N(a["id"]), Title = S(a["title"]), Artist = S(a["artist"]), SortArtist = S(a["sortArtist"]), ImageKey = S(a["image_key"]),
+                Genres = L(a["genres"]).Select(S).ToList(), Year = TJs.IsNullish(a["year"]) ? null : N(a["year"])
+            }).ToList());
+            return new JsObj { ["genres"] = Scan.JsJson.Parse(shelf.Genres.ToJsonString()), ["albums"] = Scan.JsJson.Parse(shelf.Albums.ToJsonString()), ["sig"] = shelf.Sig };
+        })
+    };
+
+    /* A device as the register takes it (what listing this computer's devices says of each). */
+    private static object? SeenJson(Playback.SeenInfo d) => new JsObj
+    {
+        ["id"] = d.Id, ["kind"] = d.Kind, ["family"] = d.Family, ["network_name"] = d.NetworkName, ["manufacturer"] = d.Manufacturer,
+        ["model"] = d.Model, ["location"] = d.Location, ["caps"] = d.Caps, ["playable"] = d.Playable
+    };
+
+    private static JsObj LocalFns(JsObj job)
+    {
+        var o = new JsObj();
+        if (job["linux"] is List<object?> lx)
+        {
+            var list = Local.LocalDevices.ListLinux(S(At(lx, 0)), S(At(lx, 1)));
+            o["devices"] = list.Devices.Select(SeenJson).ToList();
+            o["hidden"] = (double)list.Hidden;
+        }
+        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac).Select(SeenJson).ToList();
+        o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
+        o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
+        o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
+        return o;
     }
 }

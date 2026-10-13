@@ -3,7 +3,7 @@
  * server.js — the C# server alone, as the image will run it (v0.8.50, stage 7
  * of docs/specs/csharp-migration.md): started on a port of this file's own
  * (test/ports.js) with a test's environment, waited for, stopped. No Node
- * server anywhere: MANDARIN_NODE=0. The environment the suite gives every
+ * server anywhere (none since v0.9.0). The environment the suite gives every
  * server (test/setup.js: nothing off this machine, no identification scan, no
  * sound devices, no update checks) is given here too; a test adds its own
  * (the fakes' addresses, MANDARIN_CONFIG).
@@ -49,11 +49,11 @@ async function answers(base) {
 async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs = 60000 }) {
   const key = crypto.randomBytes(24).toString("hex");
   const e = Object.assign({}, process.env, {
-    PORT: String(port), MUSIC_DIR: musicDir, DATA_DIR: dataDir, SERVER_IP: "127.0.0.1", MANDARIN_NODE: "0", MANDARIN_APP_DIR: ROOT,
+    PORT: String(port), MUSIC_DIR: musicDir, DATA_DIR: dataDir, SERVER_IP: "127.0.0.1", MANDARIN_APP_DIR: ROOT,
     MANDARIN_FRONT_KEY: key, IDENTIFY: "0", LOCAL_AUDIO: "0", UPDATE_CHECK: "false", UPNP_DISCOVERY: "0", ITUNES_URL: "http://127.0.0.1:9"
   }, process.env.ALLOW_NETWORK ? {} : { MANDARIN_LOOPBACK_ONLY: "1" }, env);
   // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.
-  for (const k of ["MANDARIN_UPSTREAM", "MANDARIN_FRONT_RUNS", "INTERNAL_PORT", "MANDARIN_SERVER_BIN"]) delete e[k];
+  delete e.MANDARIN_SERVER_BIN;
   fs.mkdirSync(dataDir, { recursive: true });
   const base = "http://127.0.0.1:" + port;
   const left = live.get(port);

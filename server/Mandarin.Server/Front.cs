@@ -1,11 +1,9 @@
-// Front.cs — the front door's plumbing: the Node server behind it (started,
-// waited for, stopped), and how a request is passed to it.
-using System.Diagnostics;
+// Front.cs — the server's own plumbing: its version and data folder, its log,
+// Restart and Shut down (starting again in the same process), the app's
+// folder, and who a request came from. Named for the front door it was while
+// the Node server stood behind it (v0.8.1 to v0.8.50).
 using System.Net;
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Mandarin.Server;
 
@@ -13,50 +11,22 @@ internal static partial class Front
 {
     private static readonly object logLock = new();
 
-    // ------------------------------------------------------------ the two versions (v0.8.25)
-    //
-    // An update from Settings used to bring the Node server's files only, so an
-    // older C# server could be left in front of a newer Node server. Now the Node
-    // server puts the C# server of its own version in place and asks for this one
-    // to start again (lib/server/csharp-update.js, code 76 below). Until the two
-    // match, nothing is answered here: everything goes to the Node server, which
-    // has every part, and its background work stays with it (Jobs.cs).
-
     /* This program's version (Program.cs). */
     public static string Version = "0.0.0";
-    /* The data folder, shared with the Node server (Program.cs). */
+    /* The data folder (Program.cs). */
     public static string DataDir = "";
-    private static volatile string? nodeVersion;
 
-    /* The Node server's version, as it says with its state (Library.cs). */
-    public static void NodeSays(string? v)
-    {
-        var was = nodeVersion;
-        nodeVersion = v ?? "";
-        if (was == nodeVersion) return;
-        if (Matched) { if (was != null) Log($"[server] the Node server is {Version} too: answered here again"); }
-        else Log($"[server] the Node server is {(nodeVersion.Length > 0 ? nodeVersion : "of an older version")}, this one {Version}: everything passed to it until they match");
-    }
-
-    /* No Node server behind this one (v0.8.50): everything is answered here. */
-    public static bool Alone { get; set; }
-
-    /* Both of the same version (or this server alone): this server answers its share. */
-    public static bool Matched => Alone || nodeVersion == Version;
-
-    /* The Node server's word for "start this program again" (lib/server/csharp-update.js). */
+    /* The code this program leaves with when it couldn't start again in place (Docker's restart policy starts it). */
     public const int StartAgainCode = 76;
 
     /*
-     * Restart and Shut down asked for here (PowerRoutes.cs, v0.8.31): the Node
-     * server is stopped cleanly, then this program starts again in this same
-     * process (Restart) or leaves with 0 (Shut down). Only where this program
-     * started the Node server itself (RunsNode), as an install does.
+     * Restart and Shut down asked for here (PowerRoutes.cs, v0.8.31), or an
+     * update put in place (Admin/Updater.cs): this program starts again in this
+     * same process (Restart) or leaves with 0 (Shut down).
      */
     public enum Leave { No, Restart, ShutDown }
     private static int leaving;
     public static Leave Leaving => (Leave)Volatile.Read(ref leaving);
-    public static bool RunsNode { get; set; }
     public static Action? StopApp { get; set; }
     /* The first ask wins; true if this one was it. */
     public static bool LeaveBy(Leave how)
@@ -96,24 +66,15 @@ internal static partial class Front
         Cpu.Resume();
     }
 
-    // Stamped as the Node server stamps its lines.
+    // Stamped as the Node server stamped its lines.
     public static void Log(string s)
     {
         lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss") + " " + s);
     }
 
-    public static int FreeLoopbackPort()
-    {
-        var l = new TcpListener(IPAddress.Loopback, 0);
-        l.Start();
-        int port = ((IPEndPoint)l.LocalEndpoint).Port;
-        l.Stop();
-        return port;
-    }
-
-    // The app's folder, with the page (public/index.html) and, while there is
-    // one, the Node server (index.js): beside this program, or one or two up
-    // (the image keeps it in /app/server/bin; a checkout builds into server/bin).
+    // The app's folder, with the page (public/index.html): beside this program,
+    // or one or two up (the image keeps it in /app/server/bin; a checkout builds
+    // into server/bin).
     public static string FindAppDir()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -121,112 +82,17 @@ internal static partial class Front
             if (File.Exists(Path.Combine(dir.FullName, "public", "index.html"))) return dir.FullName;
         return Directory.GetCurrentDirectory();
     }
-
-    /*
-     * The Node server, through its launcher (which applies an in-app update
-     * across a restart, as before): on 127.0.0.1 only, at this port, its own
-     * output straight through to ours.
-     */
-    public static Process StartNode(string appDir, int internalPort, string frontKey, int frontPort)
-    {
-        var psi = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE_BIN") ?? "node")
-        {
-            WorkingDirectory = appDir,
-            UseShellExecute = false,
-        };
-        psi.ArgumentList.Add(Path.Combine(appDir, "launcher.js"));
-        psi.Environment["INTERNAL_PORT"] = internalPort.ToString();
-        psi.Environment["MANDARIN_FRONT"] = "csharp";
-        psi.Environment["MANDARIN_FRONT_KEY"] = frontKey;
-        // Where to hand its "make these next" for the conversions made here (Transcoder.cs).
-        psi.Environment["MANDARIN_FRONT_URL"] = "http://127.0.0.1:" + frontPort;
-        // The cores there are to share out (lib/cpu.js), as this server found them before keeping to its own.
-        if (Cpu.Startup.Length > 0) psi.Environment["MANDARIN_CPUS"] = Cpu.Startup;
-        // This program, for the library scans it makes (`mandarin-server scan`, v0.8.18), the
-        // protocol it speaks for them, and its tag reader's version (lib/library/tagcheck.js).
-        if (Environment.ProcessPath is { Length: > 0 } self)
-        {
-            psi.Environment["MANDARIN_SERVER_BIN"] = self;
-            psi.Environment["MANDARIN_SERVER_SCAN"] = Scan.ScanCommand.Protocol;
-            // And the database's tables and migrations (v0.8.48, Schema.cs): `mandarin-server db`.
-            psi.Environment["MANDARIN_SERVER_DB"] = "1";
-        }
-        psi.Environment["MANDARIN_TAG_READER"] = Tags.TagReader.Version;
-        // What this server makes in the Node server's place from the start (Jobs.cs): it doesn't start them itself.
-        psi.Environment["MANDARIN_FRONT_RUNS"] = string.Join(",", Jobs.Names);
-        var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start node");
-        Log($"[server] started the Node server (pid {proc.Id}) from {appDir}");
-        return proc;
-    }
-
-    public static async Task<bool> WaitForUpstream(Uri upstream, Process? node, TimeSpan within)
-    {
-        var until = DateTime.UtcNow + within;
-        while (DateTime.UtcNow < until)
-        {
-            if (node != null && node.HasExited) return false;
-            try
-            {
-                using var c = new TcpClient();
-                await c.ConnectAsync(upstream.Host, upstream.Port).WaitAsync(TimeSpan.FromSeconds(2));
-                return true;
-            }
-            catch (Exception) { await Task.Delay(200); }
-        }
-        return false;
-    }
-
-    [LibraryImport("libc", EntryPoint = "kill", SetLastError = true)]
-    private static partial int Kill(int pid, int sig);
-
-    // Asked to stop (SIGTERM), as Docker asks; made to after ten seconds.
-    public static void StopNode(Process node)
-    {
-        if (node.HasExited) return;
-        try
-        {
-            if (OperatingSystem.IsWindows()) node.Kill();
-            else Kill(node.Id, 15);
-            if (!node.WaitForExit(10000)) node.Kill(entireProcessTree: true);
-        }
-        catch (Exception) { /* already gone */ }
-    }
-
-    // To the Node server: no proxy of the machine's own, nothing decoded or
-    // redirected on the way, cookies passed as they are.
-    public static HttpMessageInvoker Invoker() => new(new SocketsHttpHandler
-    {
-        UseProxy = false,
-        AllowAutoRedirect = false,
-        AutomaticDecompression = DecompressionMethods.None,
-        UseCookies = false,
-        ConnectTimeout = TimeSpan.FromSeconds(15),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
-        EnableMultipleHttp2Connections = false,
-    });
 }
 
 /*
- * A request as it came, with who sent it. The Node server tells home from away
- * by the caller's address (lib/server/auth.js, clientIp): from this machine it
- * believes the last X-Forwarded-For, as a proxy here (the built-in Tailscale,
- * `tailscale serve`) speaks for the device behind it. So the same is done
- * here: the caller is that header's last address when the request came from
- * this machine, else the connection's own — and only that goes on, so no
- * device can claim to be at home by sending the header itself.
+ * Who sent a request. Home is told from away by the caller's address, as the
+ * Node server told it (lib/server/auth.js, clientIp): from this machine the
+ * last X-Forwarded-For is believed, as a proxy here (the built-in Tailscale,
+ * `tailscale serve`) speaks for the device behind it; else the connection's
+ * own address, so no device can claim to be at home by sending the header.
  */
-internal sealed class ForwardTransformer : HttpTransformer
+internal static class Caller
 {
-    public override async ValueTask TransformRequestAsync(HttpContext ctx, HttpRequestMessage proxy, string prefix, CancellationToken ct)
-    {
-        await base.TransformRequestAsync(ctx, proxy, prefix, ct);
-        proxy.Headers.Remove("X-Forwarded-For");
-        proxy.Headers.TryAddWithoutValidation("X-Forwarded-For", ClientIp(ctx));
-        // The address the request was made to, so links and redirects read as before.
-        proxy.Headers.Host = ctx.Request.Host.Value;
-        if (!IsLoopback(ctx.Connection.RemoteIpAddress)) proxy.Headers.Remove("X-Forwarded-Proto");
-    }
-
     public static string ClientIp(HttpContext ctx)
     {
         var remote = ctx.Connection.RemoteIpAddress;
@@ -245,8 +111,7 @@ internal sealed class ForwardTransformer : HttpTransformer
     private static string Bare(string s) => s.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase) ? s[7..] : s;
 }
 
-// What C# answers itself, ahead of the Node server. Each part moved here
-// says so in server/README.md and keeps the Node server's tests passing.
+// Which server answered (the tests', and a look from a browser).
 internal static class Routes
 {
     public static void Map(WebApplication app, string version)

@@ -87,7 +87,7 @@ internal static partial class Auth
 
     // ------------------------------------------------------------ who is asking
 
-    public static string ClientIp(HttpContext ctx) => ForwardTransformer.ClientIp(ctx);
+    public static string ClientIp(HttpContext ctx) => Caller.ClientIp(ctx);
 
     // Private and link-local ranges: "the home network". Tailscale's addresses
     // (100.64.0.0/10, and fd7a:115c:a1e0::/48) are not: over Tailscale is away.
@@ -274,14 +274,13 @@ internal static partial class Auth
     public static async Task Gate(HttpContext ctx, Func<Task> next)
     {
         var p = ctx.Request.Path.Value ?? "/";
-        // The Node server's loopback-only routes (a Tidal stream's pieces for
-        // its own ffmpeg, where it still streams Tidal): it fetches them from
-        // its own port, never through here.
+        // Private addresses (/internal/…) that weren't answered before the
+        // gate (Jobs.Internal.cs and the like): not there.
         if (p.StartsWith("/internal/", StringComparison.Ordinal)) { ctx.Response.StatusCode = 404; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return; }
-        // Streams and covers: the Node server's to decide (signatures, the
-        // speakers). A renderer's NOTIFY (UPnP eventing): a device can't sign
-        // in, and the Node server takes it before its own gate, as before.
-        if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && (!Front.Alone || await MediaAllowed(ctx)))) { await next(); return; }
+        // Streams and covers: let through when signed, or asked for by a
+        // speaker (MediaAllowed). A renderer's NOTIFY (UPnP eventing): a
+        // device can't sign in, so it is taken before the gate.
+        if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && await MediaAllowed(ctx))) { await next(); return; }
         Account? acct; Device? dev;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
         if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }

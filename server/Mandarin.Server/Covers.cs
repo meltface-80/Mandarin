@@ -27,8 +27,8 @@ internal static partial class Covers
     private static readonly SemaphoreSlim Drawing = new(2);
     private static readonly ConcurrentDictionary<string, Task<Drawn>> Inflight = new();
 
-    /* How a cover went: drawn; none of its own (a placeholder is drawn, CoversDrawn.cs); or the Node server's to draw. */
-    public enum Drawn { Yes, NoCover, NodeIts }
+    /* How a cover went: drawn; none of its own (a placeholder is drawn, CoversDrawn.cs); or it couldn't be drawn. */
+    public enum Drawn { Yes, NoCover, Failed }
     // The picture an album's cover is drawn from, kept a little while: its sizes are asked for together.
     private static readonly ConcurrentDictionary<string, (long At, Lazy<Task<byte[]?>> Bytes)> Sources = new();
     private const long SourceMs = 20000;
@@ -68,18 +68,18 @@ internal static partial class Covers
     public static Task<Drawn> Draw(Album al, string file, int size) =>
         Once(file, al.ImageKey, () => Make(al, file, size));
 
-    /* One drawing a file at a time; another ask for it waits for that one. Anything thrown: the Node server's. */
+    /* One drawing a file at a time; another ask for it waits for that one. Anything thrown: not drawn. */
     private static Task<Drawn> Once(string file, string what, Func<Task<Drawn>> make)
     {
-        if (!Transcoder.FfOk) return Task.FromResult(Drawn.NodeIts);
+        if (!Transcoder.FfOk) return Task.FromResult(Drawn.Failed);
         var mine = new TaskCompletionSource<Drawn>(TaskCreationOptions.RunContinuationsAsynchronously);
         var running = Inflight.GetOrAdd(file, mine.Task);
         if (running != mine.Task) return running;
         _ = Task.Run(async () =>
         {
-            var how = Drawn.NodeIts;
+            var how = Drawn.Failed;
             try { how = await make(); }
-            catch (Exception e) { Front.Log($"[art] {what}: {e.GetType().Name}: {e.Message}; passed to the Node server"); }
+            catch (Exception e) { Front.Log($"[art] {what}: {e.GetType().Name}: {e.Message}; not drawn"); }
             finally { Inflight.TryRemove(file, out _); mine.TrySetResult(how); }
         });
         return mine.Task;
@@ -87,14 +87,14 @@ internal static partial class Covers
 
     private static async Task<Drawn> Make(Album al, string file, int s)
     {
-        if (!ProbeOk) return Drawn.NodeIts;
+        if (!ProbeOk) return Drawn.Failed;
         var src = await Source(al);
-        if (src == null) return Drawn.NodeIts;
+        if (src == null) return Drawn.Failed;
         if (src.Length == 0) return Drawn.NoCover;
         var turn = Look(src);
-        if (turn == null) { if (!Front.Alone) return Drawn.NodeIts; turn = ""; }   // CMYK, a profile of its own: the Node server's; alone, as ffmpeg reads it, until the owner decides (v0.8.50)
+        turn ??= "";   // CMYK, a profile of its own: as ffmpeg reads it, until the owner decides (v0.8.50; the Node server's sharp drew these)
         var jpg = await Fit(src, turn, s, "4", al.ImageKey);
-        if (jpg == null) return Drawn.NodeIts;
+        if (jpg == null) return Drawn.Failed;
         Write(file, jpg);
         return Drawn.Yes;
     }

@@ -1,25 +1,35 @@
 "use strict";
 /*
- * Album identification (lib/identify): the distance between an album and a
- * MusicBrainz release, the verdicts, and the scan end to end against a fake
- * MusicBrainz on loopback — applied names laid over the album and its tracks,
- * a near miss (85 % or more, v0.8.41) applied as an exact one is, a poor match left alone, undo.
+ * Album identification: the distance between an album and a MusicBrainz
+ * release, the verdicts, and the scan end to end against a fake MusicBrainz on
+ * loopback — applied names laid over the album and its tracks, a near miss
+ * (85 % or more, v0.8.41) applied as an exact one is, a poor match left alone, undo.
+ *
+ * The C# server's (Identify/Score.cs, Identifier.cs, ITunes.cs; lib/identify/
+ * until v0.8.50): its rules asked by name through `mandarin-server score`
+ * (Identify/ScoreCalls.cs), a test's worth at once; the rest through the server running.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const SCORE = require("../lib/identify/score");
-const { minutes, Identifier } = require("../lib/identify/identifier");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { FakeITunes } = require("./fake-itunes");
-const { ITunes } = require("../lib/identify/itunes");
-const { createServer } = require("./server");
+const { createServer, built } = require("./server");
+const { score, scoreAsync } = require("./score");
 
-const skip = !haveFfmpeg() && "ffmpeg is not installed";
+const rules = built();
+const skip = rules || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
+
+/* The rules asked, { name: [rule, …args] } → { name: its answer }. */
+function ask(calls) {
+  const names = Object.keys(calls);
+  const { results } = score({ fn: "scorecall", calls: names.map(k => calls[k]) });
+  return Object.fromEntries(names.map((k, i) => [k, results[i]]));
+}
 
 async function until(fn, ms = 15000) {
   const t0 = Date.now();
@@ -37,161 +47,157 @@ const album = (over = {}) => Object.assign({
 }, over);
 const cand = (over = {}) => Object.assign({ mbid: "x" }, album(), over);
 
-test("score: an identical release is distance 0; names fold; noise is nearly free", () => {
-  assert.equal(SCORE.distance(album(), cand()).distance, 0);
-  assert.equal(SCORE.titleDist("Kid A", "KID A"), 0);
-  assert.equal(SCORE.titleDist("Kid A (Remastered 2009)", "Kid A"), 0.05);
-  assert.equal(SCORE.titleDist("03 Kid A", "Kid A"), 0.05);
-  assert.equal(SCORE.titleDist("Song (feat. Someone)", "Song"), 0.05);
-  assert.ok(SCORE.titleDist("Kid A", "OK Computer") > 0.5);
-  assert.equal(SCORE.lengthDist(251, 260), 0);
-  assert.equal(SCORE.lengthDist(251, 251 + 45), 1);
-  assert.equal(SCORE.lengthDist(251, 251 + 30), 0.5);
+test("score: an identical release is distance 0; names fold; noise is nearly free", { skip: rules }, () => {
+  const r = ask({ same: ["distance", album(), cand()], caps: ["titleDist", "Kid A", "KID A"], remaster: ["titleDist", "Kid A (Remastered 2009)", "Kid A"],
+    number: ["titleDist", "03 Kid A", "Kid A"], feat: ["titleDist", "Song (feat. Someone)", "Song"], other: ["titleDist", "Kid A", "OK Computer"],
+    near: ["lengthDist", 251, 260], far: ["lengthDist", 251, 251 + 45], half: ["lengthDist", 251, 251 + 30] });
+  assert.equal(r.same.distance, 0);
+  assert.equal(r.caps, 0);
+  assert.equal(r.remaster, 0.05);
+  assert.equal(r.number, 0.05);
+  assert.equal(r.feat, 0.05);
+  assert.ok(r.other > 0.5);
+  assert.equal(r.near, 0);
+  assert.equal(r.far, 1);
+  assert.equal(r.half, 0.5);
 });
 
-test("score: editions are set aside — the album is the album whatever the pressing", () => {
-  assert.equal(SCORE.bare("Kid A (2015 Remaster)"), "Kid A");
-  assert.equal(SCORE.bare("Kid A [Remastered]"), "Kid A");
-  assert.equal(SCORE.bare("Kid A - 2009 Remastered Version"), "Kid A");
-  assert.equal(SCORE.bare("Kid A (Deluxe Edition) (2015 Remaster)"), "Kid A");
-  assert.equal(SCORE.bare("(What's the Story) Morning Glory?"), "(What's the Story) Morning Glory?");
-  assert.equal(SCORE.bare("Song (feat. Someone) (Live)"), "Song");
-  // Written back: only the remaster tail goes.
-  assert.equal(SCORE.clean("Kid A (2015 Remaster)"), "Kid A");
-  assert.equal(SCORE.clean("Everything in Its Right Place - 2015 Remaster"), "Everything in Its Right Place");
-  assert.equal(SCORE.clean("Kid A (Deluxe Edition)"), "Kid A (Deluxe Edition)");
-  assert.equal(SCORE.clean("Song (Live)"), "Song (Live)");
-  assert.equal(SCORE.clean("( )"), "( )");
-  assert.equal(SCORE.editionYear("Kid A (2015 Remaster)"), 2015);
-  assert.equal(SCORE.editionYear("1999"), null);
+test("score: editions are set aside — the album is the album whatever the pressing", { skip: rules }, () => {
   // A tag from a 2015 pressing of a 1988 record: the year is right either way.
   const a = album({ title: "Kid A (2015 Remaster)", year: 2015 });
   const c = cand({ title: "Kid A", year: 2000, release_title: "Kid A", release_year: 2015 });
-  const d = SCORE.distance(a, c);
-  assert.equal(d.parts.year, 0);
-  assert.ok(d.parts.album <= 0.05, String(d.parts.album));
-  assert.equal(SCORE.distance(album({ year: 2015 }), c).parts.year, 0);
-  assert.equal(SCORE.distance(album({ year: 1997 }), c).parts.year, 1);
+  const bare = [["Kid A (2015 Remaster)", "Kid A"], ["Kid A [Remastered]", "Kid A"], ["Kid A - 2009 Remastered Version", "Kid A"],
+    ["Kid A (Deluxe Edition) (2015 Remaster)", "Kid A"], ["(What's the Story) Morning Glory?", "(What's the Story) Morning Glory?"], ["Song (feat. Someone) (Live)", "Song"]];
+  // Written back: only the remaster tail goes.
+  const clean = [["Kid A (2015 Remaster)", "Kid A"], ["Everything in Its Right Place - 2015 Remaster", "Everything in Its Right Place"],
+    ["Kid A (Deluxe Edition)", "Kid A (Deluxe Edition)"], ["Song (Live)", "Song (Live)"], ["( )", "( )"]];
+  const r = ask(Object.assign({ y2015: ["editionYear", "Kid A (2015 Remaster)"], y1999: ["editionYear", "1999"],
+    d: ["distance", a, c], d2015: ["distance", album({ year: 2015 }), c], d1997: ["distance", album({ year: 1997 }), c] },
+  Object.fromEntries(bare.map(([x], i) => ["bare" + i, ["bare", x]])), Object.fromEntries(clean.map(([x], i) => ["clean" + i, ["clean", x]]))));
+  bare.forEach(([x, want], i) => assert.equal(r["bare" + i], want, x));
+  clean.forEach(([x, want], i) => assert.equal(r["clean" + i], want, x));
+  assert.equal(r.y2015, 2015);
+  assert.equal(r.y1999, null);
+  assert.equal(r.d.parts.year, 0);
+  assert.ok(r.d.parts.album <= 0.05, String(r.d.parts.album));
+  assert.equal(r.d2015.parts.year, 0);
+  assert.equal(r.d1997.parts.year, 1);
 });
 
-test("score: a suspect artist tag is not counted, so lengths and titles decide", () => {
-  assert.ok(SCORE.artistSuspect("Various Artists", "Best Of"));
-  assert.ok(SCORE.artistSuspect("", "Best Of"));
-  assert.ok(SCORE.artistSuspect("Best Of", "Best Of"));
-  assert.ok(!SCORE.artistSuspect("Radiohead", "Kid A"));
-  const va = album({ artist: "Various Artists" });
-  const d = SCORE.distance(va, cand());
-  assert.equal(d.distance, 0);
-  assert.equal(d.parts.artist, null);
+test("score: a suspect artist tag is not counted, so lengths and titles decide", { skip: rules }, () => {
+  const r = ask({ va: ["artistSuspect", "Various Artists", "Best Of"], none: ["artistSuspect", "", "Best Of"], title: ["artistSuspect", "Best Of", "Best Of"],
+    real: ["artistSuspect", "Radiohead", "Kid A"], d: ["distance", album({ artist: "Various Artists" }), cand()],
+    wrong: ["distance", album({ artist: "Coldplay" }), cand()], verdict: ["decide", album({ artist: "Coldplay" }), [cand()]], APPLY: ["APPLY"] });
+  assert.ok(r.va);
+  assert.ok(r.none);
+  assert.ok(r.title);
+  assert.ok(!r.real);
+  assert.equal(r.d.distance, 0);
+  assert.equal(r.d.parts.artist, null);
   // With a trusted, wrong artist the same release costs the artist's weight:
   // 93 %, which was proposed at best (95 %) and is applied since v0.8.41 (85 %),
   // the names and lengths agreeing to the second.
-  const wrong = SCORE.distance(album({ artist: "Coldplay" }), cand()).distance;
-  assert.ok(wrong > 0.05 && wrong <= SCORE.APPLY, String(wrong));
-  assert.equal(SCORE.decide(album({ artist: "Coldplay" }), [cand()]).status, "applied");
+  assert.ok(r.wrong.distance > 0.05 && r.wrong.distance <= r.APPLY, String(r.wrong.distance));
+  assert.equal(r.verdict.status, "applied");
 });
 
-test("score: the verdicts — applied, unidentified, ambiguous (nothing proposed since v0.8.41)", () => {
-  assert.equal(SCORE.decide(album(), [cand()]).status, "applied");
+test("score: the verdicts — applied, unidentified, ambiguous (nothing proposed since v0.8.41)", { skip: rules }, () => {
   // One track 40 s off on a four-track album: proposed at 95 %, applied at 85 % (v0.8.41).
   const off = cand({ tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + 40 } : t) });
-  const p = SCORE.decide(album(), [off]);
-  assert.equal(p.status, "applied");
-  assert.ok(p.best.distance > 0.05 && p.best.distance <= SCORE.APPLY, String(p.best.distance));
   // Another record altogether.
   const other = cand({ title: "OK Computer", artist: "Radiohead", tracks: [["Airbag", 284], ["Paranoid Android", 383], ["Subterranean Homesick Alien", 267], ["Exit Music", 264]].map(([title, length]) => ({ title, length })) });
-  assert.equal(SCORE.decide(album(), [other]).status, "unidentified");
   // Two perfect candidates saying different names: applied all the same at
   // 85 % or more (v0.6.3; 95 % until v0.8.41), the doubt kept with it.
   const twin = cand({ mbid: "y", title: "Kid A", artist: "Radio Head" });
-  const amb = SCORE.decide(album({ artist: "Various Artists" }), [cand(), twin]);
-  assert.equal(amb.status, "applied");
-  assert.ok(amb.ambiguous);
+  const r = ask({ same: ["decide", album(), [cand()]], off: ["decide", album(), [off]], other: ["decide", album(), [other]],
+    amb: ["decide", album({ artist: "Various Artists" }), [cand(), twin]], countries: ["decide", album(), [cand(), cand({ mbid: "y" })]],
+    none: ["decide", album(), []], APPLY: ["APPLY"] });
+  assert.equal(r.same.status, "applied");
+  assert.equal(r.off.status, "applied");
+  assert.ok(r.off.best.distance > 0.05 && r.off.best.distance <= r.APPLY, String(r.off.best.distance));
+  assert.equal(r.other.status, "unidentified");
+  assert.equal(r.amb.status, "applied");
+  assert.ok(r.amb.ambiguous);
   // Two perfect candidates that are the same record (two countries): applied.
-  assert.equal(SCORE.decide(album(), [cand(), cand({ mbid: "y" })]).status, "applied");
-  assert.equal(SCORE.decide(album(), []).status, "unidentified");
+  assert.equal(r.countries.status, "applied");
+  assert.equal(r.none.status, "unidentified");
 });
 
-test("score: another pressing of the same record is not a rival", () => {
+test("score: another pressing of the same record is not a rival", { skip: rules }, () => {
   const g = { group_mbid: "g1" };
-  // The same release group, one pressing with a bonus track: the record, applied.
   const bonus = cand(Object.assign({ mbid: "y", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) }, g));
-  let v = SCORE.decide(album(), [cand(g), bonus]);
-  assert.equal(v.status, "applied");
-  assert.equal(v.ambiguous, false);
-  // Two groups that would write the same names over these four tracks: not a rival either.
-  v = SCORE.decide(album(), [cand({ group_mbid: "g1" }), cand({ mbid: "y", group_mbid: "g2", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) })]);
-  assert.equal(v.status, "applied");
-  // Another artist's name at the same distance still is (and, at 85 % or
-  // more, is applied all the same, v0.6.3; 95 % until v0.8.41).
-  v = SCORE.decide(album({ artist: "Various Artists" }), [cand(g), cand({ mbid: "y", group_mbid: "g2", artist: "Radio Head" })]);
-  assert.ok(v.ambiguous);
-  // Between equals, the one with lengths known comes first, then the earlier.
   const blank = cand({ mbid: "b", tracks: album().tracks.map(t => ({ title: t.title, length: null })) });
-  assert.equal(SCORE.decide(album(), [blank, cand({ mbid: "late", release_date: "2015-01-01" }), cand({ mbid: "early", release_date: "2000-10-02" })]).best.candidate.mbid, "early");
+  const r = ask({
+    // The same release group, one pressing with a bonus track: the record, applied.
+    bonus: ["decide", album(), [cand(g), bonus]],
+    // Two groups that would write the same names over these four tracks: not a rival either.
+    groups: ["decide", album(), [cand({ group_mbid: "g1" }), cand({ mbid: "y", group_mbid: "g2", tracks: album().tracks.concat([{ title: "Bonus", length: 180 }]) })]],
+    // Another artist's name at the same distance still is (and, at 85 % or
+    // more, is applied all the same, v0.6.3; 95 % until v0.8.41).
+    rival: ["decide", album({ artist: "Various Artists" }), [cand(g), cand({ mbid: "y", group_mbid: "g2", artist: "Radio Head" })]],
+    // Between equals, the one with lengths known comes first, then the earlier.
+    equals: ["decide", album(), [blank, cand({ mbid: "late", release_date: "2015-01-01" }), cand({ mbid: "early", release_date: "2000-10-02" })]]
+  });
+  assert.equal(r.bonus.status, "applied");
+  assert.equal(r.bonus.ambiguous, false);
+  assert.equal(r.groups.status, "applied");
+  assert.ok(r.rival.ambiguous);
+  assert.equal(r.equals.best.candidate.mbid, "early");
 });
 
-test("score: a release MusicBrainz has without lengths is judged by its names", () => {
+test("score: a release MusicBrainz has without lengths is judged by its names", { skip: rules }, () => {
   const blank = tracks => cand({ tracks: tracks.map(t => ({ title: t.title, length: null })) });
-  // Every title and the count agree: applied, as Roon would.
-  let v = SCORE.decide(album(), [blank(album().tracks)]);
-  assert.equal(v.status, "applied");
-  assert.equal(v.best.parts.no_lengths, true);
-  assert.equal(v.best.parts.track_lengths, null);
-  // Short of exact: by the same 85 % as any other (v0.6.3; 95 % until v0.8.41).
-  for (const r of [blank(album().tracks.map((t, i) => i === 2 ? { title: "The National Anthem (Live)" } : t)), blank(album().tracks.slice(0, 3))]) {
-    v = SCORE.decide(album(), [r]);
-    assert.equal(v.status, SCORE.similarity(v.best.distance) >= 85 ? "applied" : "unidentified", String(v.best.distance));
-  }
+  // Every title and the count agree: applied, as Roon would. Short of exact:
+  // by the same 85 % as any other (v0.6.3; 95 % until v0.8.41).
+  const r = ask({ all: ["decide", album(), [blank(album().tracks)]],
+    live: ["decide", album(), [blank(album().tracks.map((t, i) => i === 2 ? { title: "The National Anthem (Live)" } : t))]],
+    short: ["decide", album(), [blank(album().tracks.slice(0, 3))]] });
+  assert.equal(r.all.status, "applied");
+  assert.equal(r.all.best.parts.no_lengths, true);
+  assert.equal(r.all.best.parts.track_lengths, null);
+  const pct = ask({ live: ["similarity", r.live.best.distance], short: ["similarity", r.short.best.distance] });
+  for (const k of ["live", "short"]) assert.equal(r[k].status, pct[k] >= 85 ? "applied" : "unidentified", String(r[k].best.distance));
 });
 
-test("score: a ripper's 'null' is not part of a name", () => {
-  assert.equal(SCORE.tidy("null: Line Up (null)"), "Line Up");
-  assert.equal(SCORE.tidy("Line Up - undefined"), "Line Up");
-  assert.equal(SCORE.tidy("(Unknown) Line Up"), "Line Up");
-  assert.equal(SCORE.tidy("null"), "");
-  assert.equal(SCORE.tidy("Annulment"), "Annulment");
-  assert.equal(SCORE.titleDist("null: Line Up (null)", "Line Up"), 0);
-  assert.ok(SCORE.artistSuspect("null", "Elastica"));
+test("score: a ripper's 'null' is not part of a name", { skip: rules }, () => {
   const junk = album({ tracks: album().tracks.map(t => ({ title: "null: " + t.title + " (null)", length: t.length })) });
-  const d = SCORE.distance(junk, cand());
-  assert.equal(d.distance, 0);
-  assert.deepEqual(d.pairs, [0, 1, 2, 3]);
+  const r = ask({ both: ["tidy", "null: Line Up (null)"], tail: ["tidy", "Line Up - undefined"], unknown: ["tidy", "(Unknown) Line Up"], alone: ["tidy", "null"],
+    word: ["tidy", "Annulment"], dist: ["titleDist", "null: Line Up (null)", "Line Up"], artist: ["artistSuspect", "null", "Elastica"], d: ["distance", junk, cand()] });
+  assert.deepEqual([r.both, r.tail, r.unknown, r.alone, r.word], ["Line Up", "Line Up", "Line Up", "", "Annulment"]);
+  assert.equal(r.dist, 0);
+  assert.ok(r.artist);
+  assert.equal(r.d.distance, 0);
+  assert.deepEqual(r.d.pairs, [0, 1, 2, 3]);
 });
 
-test("score: a copy missing a track is still the record — tracks pair by likeness, not by number", () => {
+test("score: a copy missing a track is still the record — tracks pair by likeness, not by number", { skip: rules }, () => {
   // Ten of the release's eleven, the third gone: every remaining track pairs with its own.
   const full = album();
   full.tracks = [["She Runs Away", 224], ["In the Absence of Sun", 305], ["Reasons for Living", 258], ["Barely Breathing", 255], ["Days Go By", 289],
     ["Serena", 284], ["Out of Order", 271], ["November", 296], ["Home", 288], ["The End of Outside", 285], ["Little Hands", 364]].map(([title, length]) => ({ title, length }));
   const copy = album({ title: "Duncan Sheik", artist: "Duncan Sheik", year: 1996, tracks: full.tracks.filter((t, i) => i !== 2) });
   const rel = cand({ title: "Duncan Sheik", artist: "Duncan Sheik", year: 1996, tracks: full.tracks });
-  const d = SCORE.distance(copy, rel);
-  assert.deepEqual(d.pairs, [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]);
-  assert.equal(d.parts.missing_tracks, 1);
-  assert.equal(d.parts.extra_tracks, 0);
-  assert.ok(d.distance <= SCORE.APPLY, String(d.distance));
-  assert.equal(SCORE.decide(copy, [rel]).status, "applied");
   // A copy with a track the release hasn't: that one pairs with nothing and keeps its tag.
   const extra = album({ tracks: album().tracks.concat([{ title: "Hidden Jam", length: 600 }]) });
-  const e = SCORE.distance(extra, cand());
-  assert.deepEqual(e.pairs, [0, 1, 2, 3, null]);
-  assert.equal(e.parts.extra_tracks, 1);
   // Two "Untitled"s of the same length pair in order.
-  const twins = { tracks: [{ title: "Untitled", length: 100 }, { title: "Untitled", length: 100 }] };
-  assert.deepEqual(SCORE.pairTracks(twins.tracks, twins.tracks).pairs, [0, 1]);
+  const twins = [{ title: "Untitled", length: 100 }, { title: "Untitled", length: 100 }];
+  const r = ask({ d: ["distance", copy, rel], v: ["decide", copy, [rel]], e: ["distance", extra, cand()], twins: ["pairTracks", twins, twins], APPLY: ["APPLY"] });
+  assert.deepEqual(r.d.pairs, [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.equal(r.d.parts.missing_tracks, 1);
+  assert.equal(r.d.parts.extra_tracks, 0);
+  assert.ok(r.d.distance <= r.APPLY, String(r.d.distance));
+  assert.equal(r.v.status, "applied");
+  assert.deepEqual(r.e.pairs, [0, 1, 2, 3, null]);
+  assert.equal(r.e.parts.extra_tracks, 1);
+  assert.deepEqual(r.twins.pairs, [0, 1]);
 });
 
-test("the night window, including one over midnight", () => {
-  const db = { setting: () => ({ start: "22:00", end: "04:00" }), raw: { prepare: () => ({}) } };
-  const at = (h, m) => new Identifier({ db, library: {}, now: () => new Date(2026, 0, 1, h, m), mb: {} });
-  assert.equal(at(23, 0).inWindow(), true);
-  assert.equal(at(3, 59).inWindow(), true);
-  assert.equal(at(4, 0).inWindow(), false);
-  assert.equal(at(12, 0).inWindow(), false);
-  assert.equal(minutes("01:30", null), 90);
-  assert.equal(minutes("25:00", null), null);
-  assert.equal(minutes("junk", 7), 7);
+test("the night window, including one over midnight", { skip: rules }, () => {
+  const s = { start: "22:00", end: "04:00" };
+  const r = ask({ h23: ["inWindow", s, "23:00"], h359: ["inWindow", s, "03:59"], h4: ["inWindow", s, "04:00"], h12: ["inWindow", s, "12:00"],
+    m90: ["minutes", "01:30", null], m25: ["minutes", "25:00", null], junk: ["minutes", "junk", 7] });
+  assert.deepEqual([r.h23, r.h359, r.h4, r.h12], [true, true, false, false]);
+  assert.deepEqual([r.m90, r.m25, r.junk], [90, null, 7]);
 });
 
 test("the scan end to end", { skip, timeout: 90000 }, async () => {
@@ -388,16 +394,14 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
   }
 });
 
-test("iTunes: an album as Apple has it, with its lengths; Single and EP set aside; a 429 pauses it", async () => {
+test("iTunes: an album as Apple has it, with its lengths; Single and EP set aside; a 429 pauses it", { skip: rules }, async () => {
   const fake = await new FakeITunes([
     { id: 77, title: "Some Record - EP", artist: "Somebody", date: "2015-06-01", tracks: [["One", 200.4], ["Two", 181]] }
   ]).start();
   try {
-    const it = new ITunes({ baseUrl: fake.baseUrl });
-    const found = await it.search({ title: "Some Record", artist: "Somebody" });
+    const [found, c] = (await scoreAsync({ fn: "itunes", base: fake.baseUrl, steps: [{ search: { title: "Some Record", artist: "Somebody" } }, { album: "77" }] })).results;
     assert.deepEqual(found.map(f => [f.id, f.track_count]), [["77", 2]]);
     assert.ok(fake.requests[0].includes("country=US") && fake.requests[0].includes("entity=album"));
-    const c = await it.album("77");
     assert.equal(c.mbid, "itunes:77");
     assert.equal(c.source, "itunes");
     assert.equal(c.title, "Some Record");
@@ -406,22 +410,26 @@ test("iTunes: an album as Apple has it, with its lengths; Single and EP set asid
     assert.equal(c.year, null);
     assert.equal(c.release_date, "2015-06-01");
     assert.deepEqual(c.tracks.map(t => [t.title, t.length]), [["One", 200.4], ["Two", 181]]);
+    // Refused: paused, and not asked again while it is.
     fake.refuse = true;
-    await assert.rejects(it.search({ title: "x" }), e => e.paused === true);
-    assert.equal(it.paused, true);
     const n = fake.requests.length;
-    await assert.rejects(it.search({ title: "x" }), e => e.paused === true);
-    assert.equal(fake.requests.length, n);     // not asked while paused
+    const [first, state, again] = (await scoreAsync({ fn: "itunes", base: fake.baseUrl, steps: [{ search: { title: "x" } }, { paused: true }, { search: { title: "x" } }] })).results;
+    assert.equal(first.paused, true, JSON.stringify(first));
+    assert.equal(state.paused, true);
+    assert.equal(again.paused, true, JSON.stringify(again));
+    assert.equal(fake.requests.length, n + 1, "asked once: not while paused");
   } finally { await fake.stop(); }
 });
 
-test("score: exact — what a second source needs before it's applied unasked", () => {
-  const v = SCORE.decide(album(), [cand()]);
-  assert.equal(SCORE.exact(v.best), true);
-  const off = SCORE.decide(album(), [cand({ tracks: album().tracks.map((t, i) => i === 0 ? { title: t.title, length: t.length + 20 } : t) })]);
-  assert.equal(SCORE.exact(off.best), false);    // a length 20 s off: applied from MusicBrainz, not from iTunes
-  const short = SCORE.decide(album(), [cand({ tracks: album().tracks.slice(0, 3) })]);
-  assert.equal(SCORE.exact(short.best), false);
+test("score: exact — what a second source needs before it's applied unasked", { skip: rules }, () => {
+  const v = ask({ same: ["decide", album(), [cand()]],
+    // a length 20 s off: applied from MusicBrainz, not from iTunes
+    off: ["decide", album(), [cand({ tracks: album().tracks.map((t, i) => i === 0 ? { title: t.title, length: t.length + 20 } : t) })]],
+    short: ["decide", album(), [cand({ tracks: album().tracks.slice(0, 3) })]] });
+  const r = ask({ same: ["exact", v.same.best.parts], off: ["exact", v.off.best.parts], short: ["exact", v.short.best.parts] });
+  assert.equal(r.same, true);
+  assert.equal(r.off, false);
+  assert.equal(r.short, false);
 });
 
 test("iTunes for what MusicBrainz can't place: exact and near applied (85 %, v0.8.41); skipped while it says wait, then asked", { skip, timeout: 90000 }, async () => {
@@ -570,102 +578,138 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
   }
 });
 
-test("score: 85 % alike, as the page shows it, is applied unasked; 84 % is left unidentified, nothing proposed (v0.8.41)", () => {
+test("score: 85 % alike, as the page shows it, is applied unasked; 84 % is left unidentified, nothing proposed (v0.8.41)", { skip: rules }, () => {
   // The year one off (a reissue's, say) and one track long: the first
   // lengths that score 85 % and 84 %, found from the scoring itself.
   const near = off => cand({ year: 1999, tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + off } : t) });
-  const at = pct => {
-    for (let off = 0; off < 400; off++) for (const k of [0, 1, 2]) {
-      const c = near(off);
-      for (let j = 0; j < k; j++) c.tracks[(j + 2) % c.tracks.length].length += 40;
-      const v = SCORE.decide(album(), [c]);
-      if (SCORE.similarity(v.best.distance) === pct) return v;
-    }
-    return null;
-  };
+  const tries = [];
+  for (let off = 0; off < 400; off++) for (const k of [0, 1, 2]) {
+    const c = near(off);
+    for (let j = 0; j < k; j++) c.tracks[(j + 2) % c.tracks.length].length += 40;
+    tries.push(["decide", album(), [c]]);
+  }
+  const { results: verdicts } = score({ fn: "scorecall", calls: tries });
+  const { results: pcts } = score({ fn: "scorecall", calls: verdicts.map(v => ["similarity", v.best.distance]) });
+  const at = pct => verdicts[pcts.indexOf(pct)] || null;
   const v85 = at(85), v84 = at(84), v94 = at(94);
   assert.ok(v85 && v84 && v94, "the percentages reachable");
   assert.equal(v85.status, "applied");
   assert.equal(v94.status, "applied", "what was proposed at 94 % is applied now");
   assert.equal(v84.status, "unidentified", "below 85 %: left to match by hand, not proposed");
-  assert.equal(SCORE.PROPOSE, SCORE.APPLY, "nothing between applied and unidentified");
-  // Nothing else counts (v0.6.3): no lengths, missing tracks, a close rival.
-  assert.equal(SCORE.appliesUnasked({ distance: 0.13, parts: { no_lengths: true, track_titles: 0.05, missing_tracks: 1 } }), true);
-  assert.equal(SCORE.appliesUnasked({ distance: 0.16, parts: {} }), false);
+  // Nothing else counts (v0.6.3): no lengths, missing tracks, a close rival — the distance is all that's asked.
+  const r = ask({ APPLY: ["APPLY"], PROPOSE: ["PROPOSE"], at87: ["appliesUnasked", 0.13], at84: ["appliesUnasked", 0.16] });
+  assert.equal(r.PROPOSE, r.APPLY, "nothing between applied and unidentified");
+  assert.equal(r.at87, true);
+  assert.equal(r.at84, false);
 });
 
-test("proposals already waiting at 85 % or more are applied once, whatever else; the rest stay (v0.6.3, v0.8.41)", () => {
-  const fs = require("fs"), os = require("os"), path = require("path");
-  const DB = require("../lib/library/db");
-  const db = DB.open(fs.mkdtempSync(path.join(os.tmpdir(), "musicd-ident-")), { log: () => {} });
+test("proposals already waiting at 85 % or more are applied once, whatever else; the rest stay (v0.6.3, v0.8.41)", { skip, timeout: 90000 }, async (t) => {
+  const lib = makeLibrary();
+  const mb = await new FakeMusicBrainz([]).start();        // MusicBrainz knows none of them
+  const itunes = await new FakeITunes([]).start();
+  t.after(async () => { await mb.stop(); await itunes.stop(); });
+  const opts = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl };
+  // First with the scan off: the albums found, and proposals left waiting as a version before v0.8.41 left them.
+  let srv = createServer(Object.assign({ identify: false }, opts));
+  const ctx = await srv.start();
+  const keys = {};
   try {
-    const albums = ["a85", "a99", "a90", "a84", "amb", "gone"].filter(k => k !== "gone").map((key, i) => ({ id: i + 1, key, title: key, artist: "X", tracks: 4 }));
-    const id = new Identifier({ db, library: { albums, count: albums.length }, itunes: null });
-    const put = (key, distance, extra = {}) => id.q.put.run({ key, mbid: "m-" + key, distance, status: "proposed",
-      candidate: JSON.stringify(Object.assign({ artist: "X", title: key, parts: {} }, extra)), before: null, checked_at: Date.now(), applied_at: null, itunes: null });
-    put("a85", 0.15); put("a99", 0.01, { source: "itunes" }); put("a90", 0.1); put("a84", 0.16); put("amb", 0.01, { ambiguous: true }); put("gone", 0.01);
-    const accepted = [];
-    id.accept = key => { accepted.push(key); return {}; };
-    assert.equal(id.applyWaiting(), 4);
-    assert.deepEqual(accepted.sort(), ["a85", "a90", "a99", "amb"]);
-  } finally { db.close(); }
+    const token = await signIn(B);
+    await until(async () => (await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).index_count === 3);
+    for (const title of ["Album One", "Best Of", "Hi Res"]) keys[title] = ctx.db.raw.prepare("SELECT key FROM albums WHERE title = ?").get(title).key;
+    keys.gone = "an album no longer in the library";
+    const put = (key, distance, extra = {}) => ctx.db.raw.prepare("INSERT INTO album_matches(key, mbid, distance, status, candidate, before, checked_at, applied_at) VALUES(?, ?, ?, 'proposed', ?, NULL, ?, NULL)")
+      .run(key, "m-" + distance, distance, JSON.stringify(Object.assign({ artist: "X", title: "Waiting " + distance, parts: {} }, extra)), Date.now());
+    put(keys["Album One"], 0.15);                                               // 85 %
+    put(keys["Best Of"], 0.01, { source: "itunes", ambiguous: true });          // 99 %, from iTunes, with a rival
+    put(keys["Hi Res"], 0.16);                                                  // 84 %
+    put(keys.gone, 0.01);
+  } finally { ctx.db.close(); await srv.stop(); }
+  // Then with it on, at any hour: those at 85 % or more applied as if accepted, once.
+  srv = createServer(Object.assign({ identify: true, identifyTickMs: 100 }, opts));
+  const ctx2 = await srv.start();
+  t.after(() => srv.stop());
+  const said = () => ctx2.logs.filter(l => /waiting, now applied/.test(l));
+  await until(() => said().length === 2);
+  const status = key => ctx2.db.raw.prepare("SELECT status FROM album_matches WHERE key = ?").get(key).status;
+  assert.equal(status(keys["Album One"]), "applied");
+  assert.equal(status(keys["Best Of"]), "applied");
+  assert.equal(status(keys["Hi Res"]), "proposed", "84 %: left as it was");
+  assert.equal(status(keys.gone), "proposed", "no album to apply it to");
+  const edit = key => (ctx2.db.raw.prepare("SELECT title FROM album_edits WHERE key = ?").get(key) || {}).title;
+  assert.equal(edit(keys["Album One"]), "Waiting 0.15");
+  assert.equal(edit(keys["Hi Res"]), undefined);
+  await new Promise(r => setTimeout(r, 500));
+  assert.equal(said().length, 2, "once: " + JSON.stringify(said()));
 });
 
-test("names: '+', '&' and 'and', a dropped g, 'n' — the same word to the score (v0.6.3)", () => {
-  for (const [a, b] of [["Siouxsie & The Banshees", "Siouxsie and the Banshees"], ["Simon + Garfunkel", "Simon & Garfunkel"],
-    ["Kiddin", "Kiddin'"], ["Kickin'", "Kicking"], ["Kickin", "Kickin’"], ["Rock 'n' Roll", "Rock and Roll"], ["Rock n Roll", "Rock & Roll"]]) {
-    assert.equal(SCORE.stringDist(a, b), 0, a + " / " + b);
-    assert.equal(SCORE.titleDist(a, b), 0, a + " / " + b);
-  }
-  // Short words aren't stretched into others.
-  assert.ok(SCORE.stringDist("King", "Kin") > 0);
-  assert.ok(SCORE.stringDist("Sing", "Sin") > 0);
-  // So an album tagged one way and released the other is a full match.
-  const v = SCORE.decide(album({ artist: "Simon + Garfunkel", title: "Kickin' It" }), [cand({ artist: "Simon & Garfunkel", title: "Kicking It" })]);
-  assert.equal(v.best.distance, 0);
+test("names: '+', '&' and 'and', a dropped g, 'n' — the same word to the score (v0.6.3)", { skip: rules }, () => {
+  const same = [["Siouxsie & The Banshees", "Siouxsie and the Banshees"], ["Simon + Garfunkel", "Simon & Garfunkel"],
+    ["Kiddin", "Kiddin'"], ["Kickin'", "Kicking"], ["Kickin", "Kickin’"], ["Rock 'n' Roll", "Rock and Roll"], ["Rock n Roll", "Rock & Roll"]];
+  const r = ask(Object.assign({
+    // Short words aren't stretched into others.
+    king: ["stringDist", "King", "Kin"], sing: ["stringDist", "Sing", "Sin"],
+    // So an album tagged one way and released the other is a full match.
+    v: ["decide", album({ artist: "Simon + Garfunkel", title: "Kickin' It" }), [cand({ artist: "Simon & Garfunkel", title: "Kicking It" })]]
+  }, Object.fromEntries(same.flatMap(([a, b], i) => [["s" + i, ["stringDist", a, b]], ["t" + i, ["titleDist", a, b]]]))));
+  same.forEach(([a, b], i) => {
+    assert.equal(r["s" + i], 0, a + " / " + b);
+    assert.equal(r["t" + i], 0, a + " / " + b);
+  });
+  assert.ok(r.king > 0);
+  assert.ok(r.sing > 0);
+  assert.equal(r.v.best.distance, 0);
 });
 
-test("why a match is short of 100 %, in words (v0.6.3)", () => {
+test("why a match is short of 100 %, in words (v0.6.3)", { skip: rules }, () => {
   const near = cand({ year: 1999, tracks: album().tracks.map((t, i) => i === 1 ? { title: t.title, length: t.length + 30 } : t) });
-  const v = SCORE.decide(album(), [near]);
-  assert.deepEqual(SCORE.why(v.best.parts, { year: 2000 }), ["track lengths differ", "the year differs (2000 here)"]);
-  assert.deepEqual(SCORE.why(SCORE.distance(album(), cand()).parts), []);
-  assert.deepEqual(SCORE.why({ no_lengths: true, track_titles: 0.3 }), ["track names differ", "MusicBrainz has no track lengths"]);
-  assert.deepEqual(SCORE.why({ album: 0.05 }), ["edition notes in the names"]);
+  const s = ask({ v: ["decide", album(), [near]], same: ["distance", album(), cand()] });
+  const r = ask({ near: ["why", s.v.best.parts, 2000], same: ["why", s.same.parts], blank: ["why", { no_lengths: true, track_titles: 0.3 }], notes: ["why", { album: 0.05 }] });
+  assert.deepEqual(r.near, ["track lengths differ", "the year differs (2000 here)"]);
+  assert.deepEqual(r.same, []);
+  assert.deepEqual(r.blank, ["track names differ", "MusicBrainz has no track lengths"]);
+  assert.deepEqual(r.notes, ["edition notes in the names"]);
 });
 
-test("what a real library taught (v0.6.3): bracketed names, lengths first, Roman numerals, disambiguation", () => {
+test("what a real library taught (v0.6.3): bracketed names, lengths first, Roman numerals, disambiguation", { skip: rules }, () => {
   // Names with something in brackets the release hasn't — or the other way — are the same track.
-  for (const [a, b] of [["Live For (Album Version (Explicit))", "Live For"], ["Little Rio", "Little Rio (Un poco Rio)"],
-    ["Bus To Baton Rouge (Album Version (New Mastering))", "Bus to Baton Rouge"], ["The Fish", "The Fish (Schindleria Praematurus)"]]) {
-    assert.ok(SCORE.titleDist(a, b) <= 0.1, a + " / " + b);
-  }
-  assert.equal(SCORE.titleDist("Kill Time", "Pipeline/Kill Time"), 0.15, "one part of a medley's name");
-  assert.ok(SCORE.titleDist("Kid A", "OK Computer") > 0.5);
-  // Part II is Part 2, Vol. 3 is Volume III; "No More Tears" stays "No".
-  assert.equal(SCORE.titleDist("Part II", "Part 2"), 0);
-  assert.equal(SCORE.titleDist("Vol. 3", "Volume III"), 0);
-  assert.ok(SCORE.titleDist("No More Tears", "Number More Tears") > 0.2);
+  const brackets = [["Live For (Album Version (Explicit))", "Live For"], ["Little Rio", "Little Rio (Un poco Rio)"],
+    ["Bus To Baton Rouge (Album Version (New Mastering))", "Bus to Baton Rouge"], ["The Fish", "The Fish (Schindleria Praematurus)"]];
   // Two tracks the same length in the same place pair, however they're named ("Original Mix").
   const mine = { title: "Hard House", artist: "Various Artists", year: 2017, tracks: [{ title: "Better Watch Out (Original Mix)", length: 483 }, { title: "Something Like This (Original Mix)", length: 546 }] };
   const rel = cand({ title: "Hard House", artist: "Various Artists", year: 2017, tracks: [{ title: "Better Watch Out (Ben Stevens vs. Damage & Narkotique)", length: 483 }, { title: "Something Like This (Pickup & Rise vs. Adam M)", length: 546 }] });
-  const d = SCORE.distance(mine, rel);
-  assert.deepEqual([d.parts.missing_tracks, d.parts.extra_tracks], [0, 0]);
-  // The year counts least: a 2006 collection of 1955 recordings stays a match.
-  assert.equal(SCORE.decide(album({ year: 1955 }), [cand({ year: 2006 })]).status, "applied");
-  // Disambiguation: a folder that says "Remixes" prefers the release that says remix.
   const tales = { title: "Tales From Topographic Oceans", artist: "Yes", year: 1973, context: "Disc 4 - Tales From Topographic Oceans (1973) · The Steven Wilson Remixes (2018)",
     tracks: [{ title: "The Revealing Science of God", length: 1200 }] };
   const orig = { mbid: "orig", title: "Tales From Topographic Oceans", artist: "Yes", year: 1973, tracks: [{ title: "The Revealing Science of God", length: 1200 }] };
   const sw = Object.assign({}, orig, { mbid: "sw", group_note: "Steven Wilson remix" });
-  assert.equal(SCORE.decide(tales, [orig, sw]).best.candidate.mbid, "sw");
-  // And a release labelled live is charged when nothing of yours says live.
   const live = Object.assign({}, orig, { mbid: "live", edition: "live" });
-  assert.equal(SCORE.decide(Object.assign({}, tales, { context: "" }), [live, orig]).best.candidate.mbid, "orig");
-  assert.ok(SCORE.why(SCORE.distance(Object.assign({}, tales, { context: "" }), live).parts).includes("MusicBrainz marks it as another version"));
+  const plain = Object.assign({}, tales, { context: "" });
+  const r = ask(Object.assign({
+    medley: ["titleDist", "Kill Time", "Pipeline/Kill Time"], other: ["titleDist", "Kid A", "OK Computer"],
+    // Part II is Part 2, Vol. 3 is Volume III; "No More Tears" stays "No".
+    part: ["titleDist", "Part II", "Part 2"], vol: ["titleDist", "Vol. 3", "Volume III"], no: ["titleDist", "No More Tears", "Number More Tears"],
+    d: ["distance", mine, rel],
+    // The year counts least: a 2006 collection of 1955 recordings stays a match.
+    old: ["decide", album({ year: 1955 }), [cand({ year: 2006 })]],
+    // Disambiguation: a folder that says "Remixes" prefers the release that says remix.
+    remix: ["decide", tales, [orig, sw]],
+    // And a release labelled live is charged when nothing of yours says live.
+    live: ["decide", plain, [live, orig]], liveD: ["distance", plain, live]
+  }, Object.fromEntries(brackets.map(([a, b], i) => ["b" + i, ["titleDist", a, b]]))));
+  brackets.forEach(([a, b], i) => assert.ok(r["b" + i] <= 0.1, a + " / " + b));
+  assert.equal(r.medley, 0.15, "one part of a medley's name");
+  assert.ok(r.other > 0.5);
+  assert.equal(r.part, 0);
+  assert.equal(r.vol, 0);
+  assert.ok(r.no > 0.2);
+  assert.deepEqual([r.d.parts.missing_tracks, r.d.parts.extra_tracks], [0, 0]);
+  assert.equal(r.old.status, "applied");
+  assert.equal(r.remix.best.candidate.mbid, "sw");
+  assert.equal(r.live.best.candidate.mbid, "orig");
+  assert.ok(ask({ w: ["why", r.liveD.parts] }).w.includes("MusicBrainz marks it as another version"));
 });
 
-test("a fresh look at matching (v0.7.2): a bigger pressing, spaces, a disc of a set", () => {
+test("a fresh look at matching (v0.7.2): a bigger pressing, spaces, a disc of a set", { skip: rules }, () => {
   // The whole of a ten-track copy on a twenty-track anniversary pressing,
   // every track there to the name and the second: the same record, applied.
   const ten = [["Be All, End All", 361], ["Out of Sight, Out of Mind", 260], ["Make Me Laugh", 324], ["Antisocial", 266], ["Who Cares Wins", 445],
@@ -673,32 +717,37 @@ test("a fresh look at matching (v0.7.2): a bigger pressing, spaces, a disc of a 
   const copy = { title: "State Of Euphoria", artist: "Anthrax", year: 1988, tracks: ten };
   const anniversary = { mbid: "b", group_mbid: "g", title: "State of Euphoria", artist: "Anthrax", year: 1988,
     release_title: "State of Euphoria (30th Anniversary Edition)", edition: "30th anniversary", tracks: ten.concat(Array.from({ length: 10 }, (_, i) => ({ title: "Bonus " + i, length: 200 }))) };
-  const d = SCORE.distance(copy, anniversary);
-  assert.ok(SCORE.similarity(d.distance) >= 95, "applied: " + SCORE.similarity(d.distance) + " %");
-  assert.equal(d.parts.edition, true); assert.equal(d.parts.missing_tracks, 10);
-  assert.ok(SCORE.why(d.parts).includes("a bigger pressing of the same record"));
-  // Not when a track of the copy is another song: then the bonus tracks are missing tracks as before.
-  const other = SCORE.distance(Object.assign({}, copy, { tracks: ten.slice(0, 9).concat([{ title: "Another Song", length: 350 }]) }), anniversary);
-  assert.equal(other.parts.edition, false);
-  assert.ok(SCORE.similarity(other.distance) < 95);
-  // Nor when the copy has only a couple of the pressing's tracks: cautious, proposed at best.
-  const two = SCORE.distance(Object.assign({}, copy, { tracks: ten.slice(0, 2) }), anniversary);
-  assert.ok(two.parts.edition && SCORE.similarity(two.distance) < 95, "two tracks of twenty: " + SCORE.similarity(two.distance) + " %");
-  // Spaces are not a difference.
-  assert.equal(SCORE.titleDist("LateNightTales: Belle and Sebastian, Volume 2", "Late Night Tales: Belle and Sebastian, Volume 2"), 0);
-  assert.equal(SCORE.stringDist("LateNightTales", "Late Night Tales"), 0);
   // A folder that is disc 2 of a set is scored against disc 2 alone.
   const disc2 = [["A", 180], ["B", 240], ["C", 300], ["D", 360]].map(([title, length]) => ({ title, length }));
   const set = { mbid: "s", title: "Days of Future Passed", artist: "The Moody Blues", year: 1967,
     tracks: [{ title: "X", length: 100, disc: 1 }, { title: "Y", length: 120, disc: 1 }].concat(disc2.map(t => Object.assign({ disc: 2 }, t))) };
-  const e = SCORE.distance({ title: "Days Of Future Passed CD2", artist: "The Moody Blues", year: 1967, tracks: disc2 }, set);
-  assert.equal(e.parts.disc, 2); assert.equal(e.parts.missing_tracks, 0);
-  assert.equal(SCORE.similarity(e.distance), 100);
-  assert.equal(SCORE.discOf("Days Of Future Passed CD2"), 2); assert.equal(SCORE.discOf("Album (Disc 02)"), 2); assert.equal(SCORE.discOf("Album"), null);
-  assert.equal(SCORE.bare("Days Of Future Passed CD2"), "Days Of Future Passed");
-  // The context names the disc when the title doesn't.
-  const f = SCORE.distance({ title: "Days Of Future Passed", artist: "The Moody Blues", year: 1967, context: "CD2 · Days Of Future Passed", tracks: disc2 }, set);
-  assert.equal(f.parts.disc, 2);
+  const r = ask({
+    d: ["distance", copy, anniversary],
+    // Not when a track of the copy is another song: then the bonus tracks are missing tracks as before.
+    other: ["distance", Object.assign({}, copy, { tracks: ten.slice(0, 9).concat([{ title: "Another Song", length: 350 }]) }), anniversary],
+    // Nor when the copy has only a couple of the pressing's tracks: cautious, proposed at best.
+    two: ["distance", Object.assign({}, copy, { tracks: ten.slice(0, 2) }), anniversary],
+    // Spaces are not a difference.
+    spaces: ["titleDist", "LateNightTales: Belle and Sebastian, Volume 2", "Late Night Tales: Belle and Sebastian, Volume 2"], joined: ["stringDist", "LateNightTales", "Late Night Tales"],
+    e: ["distance", { title: "Days Of Future Passed CD2", artist: "The Moody Blues", year: 1967, tracks: disc2 }, set],
+    cd2: ["discOf", "Days Of Future Passed CD2"], disc02: ["discOf", "Album (Disc 02)"], none: ["discOf", "Album"], bare: ["bare", "Days Of Future Passed CD2"],
+    // The context names the disc when the title doesn't.
+    f: ["distance", { title: "Days Of Future Passed", artist: "The Moody Blues", year: 1967, context: "CD2 · Days Of Future Passed", tracks: disc2 }, set]
+  });
+  const p = ask({ d: ["similarity", r.d.distance], other: ["similarity", r.other.distance], two: ["similarity", r.two.distance], e: ["similarity", r.e.distance], why: ["why", r.d.parts] });
+  assert.ok(p.d >= 95, "applied: " + p.d + " %");
+  assert.equal(r.d.parts.edition, true); assert.equal(r.d.parts.missing_tracks, 10);
+  assert.ok(p.why.includes("a bigger pressing of the same record"));
+  assert.equal(r.other.parts.edition, false);
+  assert.ok(p.other < 95);
+  assert.ok(r.two.parts.edition && p.two < 95, "two tracks of twenty: " + p.two + " %");
+  assert.equal(r.spaces, 0);
+  assert.equal(r.joined, 0);
+  assert.equal(r.e.parts.disc, 2); assert.equal(r.e.parts.missing_tracks, 0);
+  assert.equal(p.e, 100);
+  assert.equal(r.cd2, 2); assert.equal(r.disc02, 2); assert.equal(r.none, null);
+  assert.equal(r.bare, "Days Of Future Passed");
+  assert.equal(r.f.parts.disc, 2);
 });
 
 test("applied unasked, a copy missing a track: each track named from the one it paired with (v0.8.19)", { skip, timeout: 90000 }, async () => {

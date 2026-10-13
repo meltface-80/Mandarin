@@ -1,20 +1,14 @@
 // Images.cs — album covers and record labels' logos (v0.8.5), from the
 // /api/image route of lib/server/api-library.js.
 //
-// Every size of every cover is drawn once and kept in <data>/art; after each
-// scan the Node server draws the tile size of every album ahead (lib/library/
-// artwork.js, with sharp). So nearly every cover asked for is already a file,
-// and those are sent from here. One not drawn yet is drawn here (Covers.cs,
-// v0.8.22) from the album's own cover; an album with none gets its drawn one,
-// and a picture from elsewhere (a "u-" key) is fetched and drawn, here too
-// (CoversDrawn.cs, v0.8.34). What's left — a picture sharp would draw
-// differently — is passed to the Node server, which draws and keeps it, and
-// the next ask is answered here.
+// Every size of every cover is drawn once and kept in <data>/art, and sent
+// from there. One not drawn yet is drawn here (Covers.cs, v0.8.22) from the
+// album's own cover; an album with none gets its drawn one, and a picture from
+// elsewhere (a "u-" key) is fetched and drawn, here too (CoversDrawn.cs,
+// v0.8.34). One that can't be drawn is an empty 404.
 //
-// Who may see one: a signed-in device, an address the Node server signed (a
-// cover handed to a speaker), or a speaker asking by its own address (v0.8.48:
-// the Node server, which knows its speakers, says their addresses with its
-// state). Anything else is passed on as it came, for the Node server's gate.
+// Who may see one: a signed-in device, a signed address (a cover handed to a
+// speaker), or a speaker asking by its own address (v0.8.48).
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -67,20 +61,15 @@ internal static class Images
         return Playback.Signing.Gate(secret, raw) == true;
     }
 
-    /* auth.js speakerIps(): a request from one of the speakers' own addresses — the hub's once this server holds playback (v0.8.49), else the Node server's (its state, "speakers"). */
-    public static async Task<bool> FromSpeaker(HttpContext ctx)
-    {
-        var ip = Auth.ClientIp(ctx);
-        if (Playback.Hub.Current is { } hub) return hub.SpeakerHosts.Contains(ip);
-        if (await Library.CurrentState() is not var (_, st) || st.Said["speakers"] is not System.Text.Json.Nodes.JsonArray speakers) return false;
-        return speakers.Any(s => s is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var h) && h == ip);
-    }
+    /* auth.js speakerIps(): a request from one of the speakers' own addresses, as the hub knows them (v0.8.49). */
+    public static Task<bool> FromSpeaker(HttpContext ctx) =>
+        Task.FromResult(Playback.Hub.Current is { } hub && hub.SpeakerHosts.Contains(Auth.ClientIp(ctx)));
 
     private static async Task<bool> Answer(HttpContext ctx, string path, string key)
     {
         bool may;
         using (var c = Db.Open()) may = Signed(ctx, c) || Auth.DeviceOf(ctx, c) != null;
-        if (!may && !await FromSpeaker(ctx)) return false;   // the Node server's to decide
+        if (!may && !await FromSpeaker(ctx)) return false;
 
         // A record label's logo, as kept: its address changes with it.
         if (key.StartsWith("label-", StringComparison.Ordinal))
@@ -148,12 +137,11 @@ internal static class Images
     }
 
     /*
-     * A cover that can't be had, nor drawn: the Node server's to try behind it, as before; on its own (v0.8.50) this
-     * server answers as api-library.js did when artwork.get gave nothing (sharp failing, a key of no album): an empty 404.
+     * A cover that can't be had, nor drawn: answered as api-library.js did when artwork.get gave nothing (sharp
+     * failing, a key of no album): an empty 404.
      */
     private static bool Absent(HttpContext ctx)
     {
-        if (!Front.Alone) return false;
         ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
         ctx.Response.StatusCode = 404;
         return true;
