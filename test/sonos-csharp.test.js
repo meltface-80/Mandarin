@@ -475,6 +475,8 @@ test("topology: ZoneGroupState read into members, the household's rooms and grou
     locals.push([pick(g, [null, "", 0, "10.9.9.9", "127.0.0.1", null, null]), ifs]);
     searches.push([pick(g, [null, "", 0, "10.9.9.9", "127.0.0.1", null, null, null]), ifs]);
   }
+  // No interfaces given: this machine's own, read by each (os.networkInterfaces(), the default there; v0.8.49 fix).
+  for (const p of [null, "", "10.9.9.9", "127.0.0.1"]) { locals.push([p]); searches.push([p]); }
 
   const job = plain({ states: states.items, channel_maps: channelMaps, households: households.items, headers, lans, locals, searches });
   const got = csharp({ fn: "topology", ...job });
@@ -488,8 +490,9 @@ test("topology: ZoneGroupState read into members, the household's rooms and grou
   })));
   same("parseHeaders", job.headers.map((_, i) => i < 7 ? "by hand" : `seed ${60000 + i - 7}`), job.headers, got.headers, job.headers.map(b => TOPO.parseHeaders(Buffer.from(b, "base64"))));
   same("lanAddresses", job.lans.map((_, i) => i < 7 ? "by hand" : `seed ${70000 + i - 7}`), job.lans, got.lans, job.lans.map(ifs => tryOr(() => TOPO.lanAddresses(ifs))));
-  same("localIp", job.locals.map((_, i) => `seed ${70000 + i}`), job.locals, got.locals, job.locals.map(([p, ifs]) => tryOr(() => TOPO.localIp(p, ifs))));
-  same("searchAddresses", job.searches.map((_, i) => `seed ${70000 + i}`), job.searches, got.searches, job.searches.map(([b, ifs]) => tryOr(() => TOPO.searchAddresses(b, ifs))));
+  const seedOr = (c, i) => c.length < 2 ? "this machine's own interfaces" : `seed ${70000 + i}`;
+  same("localIp", job.locals.map(seedOr), job.locals, got.locals, job.locals.map(([p, ifs]) => tryOr(() => TOPO.localIp(p, ifs))));
+  same("searchAddresses", job.searches.map(seedOr), job.searches, got.searches, job.searches.map(([b, ifs]) => tryOr(() => TOPO.searchAddresses(b, ifs))));
 });
 
 test("SOAP: the envelope sent, and the answer read (arguments by name, or the player's fault)", { skip }, () => {

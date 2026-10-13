@@ -22,6 +22,9 @@
 // Values are JavaScript's (Tags/Js.cs): a member's fields are whatever the
 // XML reading gives (Xml.cs), so even an element standing where an attribute
 // should be is carried through as the Node server carries it.
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Tags;
@@ -168,9 +171,43 @@ internal static class Topology
         _ => []
     };
 
-    /* lanAddresses(): every non-internal IPv4, best first ([{ name, address, lan }]): private LAN, then other, then link-local or CGNAT, then virtual. */
+    /*
+     * os.networkInterfaces(), the IPv4 part: each interface that is up (libuv
+     * lists those up and running; a tunnel such as tailscale0 says Unknown
+     * here), by its name, its addresses as { address, family, internal }.
+     */
+    public static JsObj MachineInterfaces()
+    {
+        var o = new JsObj();
+        NetworkInterface[] all;
+        try { all = NetworkInterface.GetAllNetworkInterfaces(); }
+        catch (NetworkInformationException) { return o; }
+        foreach (var ni in all)
+        {
+            if (ni.OperationalStatus is not (OperationalStatus.Up or OperationalStatus.Unknown)) continue;
+            var list = new List<object?>();
+            foreach (var u in ni.GetIPProperties().UnicastAddresses)
+            {
+                if (u.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                var a = new JsObj();
+                a["address"] = u.Address.ToString();
+                a["family"] = "IPv4";
+                a["internal"] = ni.NetworkInterfaceType == NetworkInterfaceType.Loopback || IPAddress.IsLoopback(u.Address);
+                list.Add(a);
+            }
+            if (list.Count > 0) o[ni.Name] = list;
+        }
+        return o;
+    }
+
+    /*
+     * lanAddresses(): every non-internal IPv4, best first ([{ name, address, lan }]): private LAN, then other, then
+     * link-local or CGNAT, then virtual. No interfaces given (undefined): this machine's, as the default parameter
+     * os.networkInterfaces() gives them there (v0.8.49 fix: without it every address handed out was 127.0.0.1).
+     */
     public static List<JsObj> LanAddresses(object? ifs)
     {
+        if (ifs is Undef) ifs = MachineInterfaces();
         var found = new List<(string Name, object? Address, int Rank)>();
         foreach (var (name, addrs0) in Entries(Js.Truthy(ifs) ? ifs : new JsObj()))
         {
