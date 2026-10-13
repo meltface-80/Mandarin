@@ -24,6 +24,8 @@ Versioning: each set of changes is a development build and takes the next third 
   after an update) says how: a seventh line, which `test/shelf.test.js` now expects.
 - **The Shelf's carousel look is gone**: covers and spines. A device that had the carousel opens on
   the covers. `public/shelf.js` is 15 lines shorter (2,047; its allowance follows).
+- `tools/lint/node_modules`, a link to a folder on the machine v0.9.4 was made on, committed by
+  mistake, is gone (the folder is git-ignored; `npm run tools` makes it).
 - `test/now-disc.test.js` and `test/shelf-order.test.js` (new). Each was shown failing with the
   code broken: the disc not centred; "The" not set aside; the carousel kept.
 
