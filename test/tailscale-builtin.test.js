@@ -98,6 +98,18 @@ test("signing the server in to Tailscale from Settings", { skip: built() }, asyn
     // A new link on asking.
     assert.equal((await api("tailscale/login", {})).auth_url, "https://login.tailscale.com/a/new456");
 
+    // Signed out (v0.9.0, the audit's T1): the engine told, then started afresh, to be signed in again.
+    const starts = () => (eng.calls().match(/POST \/start /g) || []).length;
+    const before = starts();
+    const out = await api("tailscale/logout", {});
+    assert.equal(out.enabled, true, JSON.stringify(out));
+    assert.match(eng.calls(), /POST \/logout /);
+    await until(async () => starts() === before + 1 && (await api("tailscale")).state === "NeedsLogin");
+    // Away, the way you're reaching the server is what it would change: refused, nothing asked of the engine.
+    const away = await fetch(B + "/api/tailscale/logout", { method: "POST", headers: Object.assign({ "X-Forwarded-For": "100.101.102.103" }, auth), body: "{}" });
+    assert.equal(away.status, 403);
+    assert.equal((eng.calls().match(/POST \/logout /g) || []).length, 1);
+
     // Unauthenticated: nothing.
     assert.equal((await fetch(B + "/api/tailscale")).status, 401);
 
