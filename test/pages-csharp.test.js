@@ -58,7 +58,7 @@ test("the pages, the deep links and /api/health: by the C# server, as the Node s
     for (const [p, init] of [["/login", {}], ["/login", { headers: H }], ["/display", { headers: H }], ["/display/", { headers: H }]]) {
       const [c, n] = await same(p, init);
       assert.equal(c.status, 200);
-      for (const k of ["tag", "modified", "cache", "ranges"]) assert.equal(c[k], n[k], `${p}: ${k}`);
+      for (const k of ["tag", "modified", "cache", "ranges"]) assert.equal(c[k], n[k], `${p}: ${k} | C#: ${c[k]} | Node: ${n[k]}`);
       assert.match(c.body, /<html/i);
     }
     const tag = (await ask(B, "/display", { headers: H })).tag;

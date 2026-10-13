@@ -85,6 +85,13 @@ string frontKey = Environment.GetEnvironmentVariable("MANDARIN_FRONT_KEY") is { 
 // is swapped in then). Before v0.8.48 the Node server made it.
 string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") is { Length: > 0 } dd ? dd
     : Path.Combine(Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir(), "data");
+// `mandarin-server config`: what this server would be set up with, from the
+// environment (Config.cs, v0.8.50), as the hand-over carried it — for the tests.
+if (args.Length == 1 && args[0] == "config")
+{
+    try { Console.WriteLine(Config.FromEnvironment(dataDir, port).ToJsonString()); return 0; }
+    catch (InvalidOperationException e) { Console.Error.WriteLine(e.Message); return 2; }
+}
 Db.File = Path.Combine(dataDir, "musicd.db");
 Front.DataDir = dataDir;
 Process? node = null;

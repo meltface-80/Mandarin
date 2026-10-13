@@ -11,7 +11,16 @@ stands on its own, the last routes move, the launcher and in-app updates are the
 tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
 owner's merge to `main` is v0.9.0. The parts as they are built:
 
-- **Plan**: the five parts in the spec, each committed on its own.
+- **Plan**: the five parts in the spec, each committed on its own, in small steps.
+- **The configuration from the environment** (part 1, step a): `Config.cs` reads what
+  `index.js` read (`MUSIC_DIR`, `SERVER_IP`, `SONOS_HOSTS`, `UPNP_*`, `INCLUDE_ZONES`,
+  `EXCLUDE_ZONES`, `SCAN_INTERVAL_HOURS`, `MUSICDNET_BIN`, the `*_URL` stand-ins, `IDENTIFY*`,
+  `LOUDNESS_TICK_MS`, `LASTFM_*`, `LOCAL_AUDIO`, `UPDATE_*`…), with the same defaults, into the
+  shape the hand-over carried, so everything the hand-over set up takes it unchanged once no Node
+  server is there to hand it over. The tests' stand-ins, which `index.js` took as `createServer`'s
+  overrides, come as `QOBUZ_URL`, `TIDAL_URL`, `TIDAL_AUTH_URL`, `TIDAL_IMAGES_URL` and
+  `MANDARIN_CONFIG` (a JSON object laid over the whole). `mandarin-server config` prints it;
+  `test/config-csharp.test.js` holds it to `index.js`'s names and defaults, name by name.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
