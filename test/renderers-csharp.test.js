@@ -10,8 +10,13 @@
  * use (test/fake-renderer.js, test/fake-sonos.js, test/audio-devices.test.js,
  * test/local-output.test.js), hand-picked real-world and sloppy documents, and
  * generated cases, seeded; deepStrictEqual and the same JSON, key order and
- * all. Nothing that runs uses the C# ports yet (playback, stage 6, will).
- * Skipped where the C# server isn't built.
+ * all. Skipped where the C# server isn't built.
+ *
+ * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
+ * (test/golden.js's answers(), test/golden/renderers-csharp.json), made with
+ * RECORD_RENDERERS=1 while lib/ was here; the cases are still made here,
+ * seeded, and the C# program alone is held to them case for case. URLs are
+ * still held to this Node's own `new URL`.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -19,15 +24,18 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const { spawnSync } = require("child_process");
-const XML = require("../lib/xml");
-const { parseDescription, shortType } = require("../lib/renderers/description");
-const { parseSink, containerOf } = require("../lib/renderers/protocolinfo");
-const G = require("../lib/renderers/gena");
-const PR = require("../lib/renderers/profiles");
+const XML = require("./fake-xml");
 const { FakeRenderer, SINK_WIIM } = require("./fake-renderer");
+const { answers } = require("./golden");
+
+const RECORD = process.env.RECORD_RENDERERS === "1";
+// The Node server's modules, asked while recording (lib/, until v0.8.50).
+const NODE = RECORD ? { XML: require("../lib/xml"), ...require("../lib/renderers/description"), ...require("../lib/renderers/protocolinfo"), G: require("../lib/renderers/gena"), PR: require("../lib/renderers/profiles") } : null;
+const kept = answers("renderers-csharp", RECORD);
 
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(__dirname, "..", "server", "bin", "mandarin-server");
-const skip = !fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)";
+const skip = (!fs.existsSync(BIN) && "the C# server isn't built (server/build.sh)") || (!RECORD && !kept.exists() && "no recording of the Node server's answers (RECORD_RENDERERS=1 made it)");
+test.after(() => { if (!skip) kept.done(); });
 
 function csharp(job) {
   const r = spawnSync(BIN, ["score"], { input: JSON.stringify(job) + "\n", maxBuffer: 512 * 1024 * 1024 });
@@ -45,14 +53,9 @@ function rng(seed) {
   return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
-/* Each answer the same both ways, the first that isn't shown with what was asked (and the seed that made it). */
+/* Each answer the Node server's (kept), the first that isn't shown with what was asked (and the seed that made it). */
 function same(what, inputs, got, want, seed) {
-  assert.equal(got.length, want.length, what + ": as many answers");
-  for (let i = 0; i < want.length; i++) {
-    const msg = `${what} #${i}${seed != null ? ` (seed ${seed})` : ""}: ${JSON.stringify(inputs[i]).slice(0, 1500)}`;
-    assert.deepStrictEqual(got[i], want[i], msg);
-    assert.equal(JSON.stringify(got[i]), JSON.stringify(want[i]), msg + " (key order)");
-  }
+  kept.same(what, inputs.map(() => seed != null ? `seed ${seed}` : "by hand"), inputs, got, RECORD && (() => plain(want())));
 }
 
 // ---------------------------------------------------------------- samples
@@ -60,6 +63,10 @@ function same(what, inputs, got, want, seed) {
 const LS = ch(0x2028), NBSP = ch(0xA0), BOM = ch(0xFEFF), LONE = ch(0xD800), NEL = ch(0x85), KELVIN = ch(0x212A), LONG_S = ch(0x17F);
 const SINK_POLY = "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/x-dsf:*";
 const SINK_PLAYBACK = "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*";
+/* profiles.js's tables and a register row's advertised layer from parseSink, as the Node server had them (kept). */
+const NODE_TABLES = kept.input("profiles.js's tables and parseSink's rows", RECORD && (() => ({ RATES: NODE.PR.RATES, BITS: NODE.PR.BITS, DSD: NODE.PR.DSD, TIMEOUT_S: NODE.G.TIMEOUT_S,
+  sinks: [SINK_WIIM, SINK_POLY, SINK_PLAYBACK].map(x => NODE.parseSink(x)) })));
+const PR = { RATES: NODE_TABLES.RATES, BITS: NODE_TABLES.BITS, DSD: NODE_TABLES.DSD };
 
 /* The fake renderer's own description, as the other tests serve it. */
 function fakeDescriptions() {
@@ -424,12 +431,12 @@ function genNotify(r) {
 const TIMEOUTS = ["Second-1800", "second-300", "SECOND-0", "Second-infinite", "infinite", "", null, 5, "Second-0042", "Second-12abc", "xSecond-7", "Second--5", "Second-" + "9".repeat(400),
   "Second-١٢٣", "Second-1 Second-2", LONG_S + "econd-5", "Second-\n5", "Second-5,Second-6", "Second-" + KELVIN, "Second-", "Second-x Second-9", true, ["Second-30"], {}];
 
-/* gena.js's seconds() is its own: read from the file and run as written, since the module keeps it to itself. */
+/* gena.js's seconds() is its own: read from the file and run as written, since the module keeps it to itself (recording). */
 function genaSeconds() {
   const src = fs.readFileSync(path.join(__dirname, "..", "lib", "renderers", "gena.js"), "utf8");
   const m = /\nfunction seconds\(v\) \{[\s\S]*?\n\}\n/.exec(src);
   assert.ok(m, "gena.js's seconds() found");
-  return new Function("TIMEOUT_S", m[0] + "\nreturn seconds;")(G.TIMEOUT_S);
+  return new Function("TIMEOUT_S", m[0] + "\nreturn seconds;")(NODE.G.TIMEOUT_S);
 }
 
 /* Profiles: every model the table knows, written many ways, beside makers and families. */
@@ -504,9 +511,9 @@ const REAL_RECORDS = [
   { playable: true, id: "LOCAL_000000000002", kind: "local", network_name: "HDA Intel PCH (ALC892 Analog)", manufacturer: "", model: "Built-in", caps: { advertised: { rates: [], bits: [] } } },
   { playable: true, kind: "local", network_name: "Topping E30", manufacturer: "Topping", model: "USB audio", caps: { advertised: { rates: [96000], bits: [] } } },
   // As the register rows come back (registry.js): the advertised layer from parseSink, the family from discovery.
-  { id: "UPNP_abc", kind: "upnp", family: "wiim", network_name: "Living Room", manufacturer: "Linkplay", model: "WiiM Pro Plus", caps: Object.assign({ playable: true }, { advertised: parseSink(SINK_WIIM) }) },
-  { id: "UPNP_poly", kind: "upnp", family: "generic", manufacturer: "Chord Electronics Ltd", model: "Poly", caps: { playable: true, advertised: parseSink(SINK_POLY) } },
-  { id: "UPNP_box", kind: "upnp", family: "openhome", manufacturer: "Acme", model: "Streamer", caps: { advertised: parseSink(SINK_PLAYBACK), verified: { rates: { "96000": "x" }, bits: { "24": "y" } } } }
+  { id: "UPNP_abc", kind: "upnp", family: "wiim", network_name: "Living Room", manufacturer: "Linkplay", model: "WiiM Pro Plus", caps: Object.assign({ playable: true }, { advertised: NODE_TABLES.sinks[0] }) },
+  { id: "UPNP_poly", kind: "upnp", family: "generic", manufacturer: "Chord Electronics Ltd", model: "Poly", caps: { playable: true, advertised: NODE_TABLES.sinks[1] } },
+  { id: "UPNP_box", kind: "upnp", family: "openhome", manufacturer: "Acme", model: "Streamer", caps: { advertised: NODE_TABLES.sinks[2], verified: { rates: { "96000": "x" }, bits: { "24": "y" } } } }
 ];
 
 const RE = (k, v) => v instanceof RegExp ? String(v) : v;
@@ -528,7 +535,7 @@ test("lib/xml.js's trees: device documents, events, soup and DOCTYPEs read the s
       texts = Array.from({ length: 1500 }, () => what === "soup" ? xmlSoup(r) : xmlTree(r));
     }
     const job = plain({ fn: "description", xml: texts });
-    same("XML.parse " + what, job.xml, csharp(job).xml, job.xml.map(t => plain(XML.parse(t))), seed);
+    same("XML.parse " + what, job.xml, csharp(job).xml, () => job.xml.map(t => plain(NODE.XML.parse(t))), seed);
   }
 });
 
@@ -569,8 +576,12 @@ test("URLs resolved as new URL resolves them: what devices write, and worse", { 
   const cases = all.filter(u => !adaQuirk(u));
   const got = csharp({ fn: "description", urls: cases.concat(quirks) }).urls;
   const want = cases.map(u => { try { return new URL(u.rel, u.base).toString(); } catch (e) { return null; } });
-  same("new URL", cases, got.slice(0, cases.length), want, 3703);
-  same("new URL (ada's opaque-base quirk: the standard's failure)", quirks, got.slice(cases.length), quirks.map(() => null));
+  const exactly = (what, inputs, mine, w) => {
+    assert.equal(mine.length, w.length, what + ": as many answers");
+    for (let i = 0; i < w.length; i++) assert.deepStrictEqual(mine[i], w[i], `${what} #${i}: ${JSON.stringify(inputs[i]).slice(0, 1500)}`);
+  };
+  exactly("new URL", cases, got.slice(0, cases.length), want);
+  exactly("new URL (ada's opaque-base quirk: the standard's failure)", quirks, got.slice(cases.length), quirks.map(() => null));
 });
 
 test("device descriptions: the fakes, real devices, sloppy and broken ones, and generated ones", { skip }, () => {
@@ -581,12 +592,12 @@ test("device descriptions: the fakes, real devices, sloppy and broken ones, and 
   samples.push({ xml: null, location: "http://x/" }, { xml: 5 }, { location: "http://x/" });
   const job = plain({ fn: "description", short, cases: samples });
   const got = csharp(job);
-  same("shortType", job.short, got.short, job.short.map(t => shortType(t)));
-  same("parseDescription (samples)", job.cases, got.parsed, job.cases.map(c => plain(parseDescription(c.xml, c.location))));
+  same("shortType", job.short, got.short, () => job.short.map(t => NODE.shortType(t)));
+  same("parseDescription (samples)", job.cases, got.parsed, () => job.cases.map(c => plain(NODE.parseDescription(c.xml, c.location))));
 
   const r = rng(3704);
   const gen = plain({ fn: "description", cases: Array.from({ length: 1200 }, () => genDescription(r)) });
-  same("parseDescription (generated)", gen.cases, csharp(gen).parsed, gen.cases.map(c => plain(parseDescription(c.xml, c.location))), 3704);
+  same("parseDescription (generated)", gen.cases, csharp(gen).parsed, () => gen.cases.map(c => plain(NODE.parseDescription(c.xml, c.location))), 3704);
 });
 
 test("GetProtocolInfo's Sink: containers, MIME types and rates only from raw PCM, the same both ways", { skip }, () => {
@@ -597,20 +608,19 @@ test("GetProtocolInfo's Sink: containers, MIME types and rates only from raw PCM
   const mimes = SINK_FORMATS.concat(SINK_FORMATS.map(m => m.toUpperCase()), [null, 5, "audio/flac\n", "audio/flac" + LS, "audio/x-flacx", "xaudio/flac"]);
   const job = plain({ fn: "protocolinfo", sinks, mimes });
   const got = csharp(job);
-  same("parseSink", job.sinks, got.sinks, job.sinks.map(s => plain(parseSink(s))), 3705);
-  same("containerOf", job.mimes, got.containers, job.mimes.map(m => containerOf(m)));
+  same("parseSink", job.sinks, got.sinks, () => job.sinks.map(s => plain(NODE.parseSink(s))), 3705);
+  same("containerOf", job.mimes, got.containers, () => job.mimes.map(m => NODE.containerOf(m)));
 });
 
 test("GENA: NOTIFY bodies read into the same variables, the TIMEOUT header into the same lifetime", { skip }, () => {
-  const seconds = genaSeconds();
   const r = rng(3706);
   const bodies = REAL_NOTIFIES.concat(Array.from({ length: 1500 }, () => genNotify(r)));
   const timeouts = TIMEOUTS.concat(Array.from({ length: 300 }, () => pick(r, ["", "Second-", "second-", "x", " "]) + pick(r, ["", String(Math.floor(r() * 1e6)), "0" + Math.floor(r() * 99), "-1", "infinite"]) + pick(r, ["", " ", ",Second-9", "s"])));
   const job = plain({ fn: "gena", bodies, timeouts });
   const got = csharp(job);
-  assert.equal(got.timeout_s, G.TIMEOUT_S);
-  same("parseNotify", job.bodies, got.notify, job.bodies.map(b => plain(G.parseNotify(b))), 3706);
-  same("seconds", job.timeouts, got.seconds, plain(job.timeouts.map(t => seconds(t))), 3706);
+  assert.equal(got.timeout_s, NODE_TABLES.TIMEOUT_S);
+  same("parseNotify", job.bodies, got.notify, () => job.bodies.map(b => plain(NODE.G.parseNotify(b))), 3706);
+  same("seconds", job.timeouts, got.seconds, () => { const seconds = genaSeconds(); return plain(job.timeouts.map(t => seconds(t))); }, 3706);
 });
 
 test("profiles: the tables, the profile every model gets, and the chips with the layers they come from", { skip }, () => {
@@ -629,12 +639,8 @@ test("profiles: the tables, the profile every model gets, and the chips with the
     Array.from({ length: 1500 }, () => ({ record: genRecord(r) })));
   const job = plain({ fn: "profiles", lookups, records });
   const got = csharp(job);
-  assert.deepStrictEqual(got.rates, PR.RATES);
-  assert.deepStrictEqual(got.bits, PR.BITS);
-  assert.deepStrictEqual(got.dsd, PR.DSD);
-  assert.deepStrictEqual(got.floor, plain(PR.FLOOR));
-  assert.equal(JSON.stringify(got.profiles), JSON.stringify(plainProfile(PR.PROFILES)));
-  assert.equal(JSON.stringify(got.local), JSON.stringify(plainProfile(PR.LOCAL)));
-  same("profileFor", job.lookups, got.profile, job.lookups.map(a => { try { return plainProfile(PR.profileFor(a.device)); } catch (e) { return { threw: true }; } }));
-  same("effective", job.records, got.effective, job.records.map(x => guard(() => PR.effective(x.record))), 3707);
+  same("the tables", ["rates", "bits", "dsd", "floor", "profiles", "local"], [got.rates, got.bits, got.dsd, got.floor, got.profiles, got.local],
+    () => [NODE.PR.RATES, NODE.PR.BITS, NODE.PR.DSD, plain(NODE.PR.FLOOR), plainProfile(NODE.PR.PROFILES), plainProfile(NODE.PR.LOCAL)]);
+  same("profileFor", job.lookups, got.profile, () => job.lookups.map(a => { try { return plainProfile(NODE.PR.profileFor(a.device)); } catch (e) { return { threw: true }; } }));
+  same("effective", job.records, got.effective, () => job.records.map(x => guard(() => NODE.PR.effective(x.record))), 3707);
 });

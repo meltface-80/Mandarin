@@ -16,7 +16,14 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
-const { credentials } = require("../lib/tidal/api");
+
+/* The plugin's credentials, read from the C# server as it carries them (Services/TidalApi.cs). */
+function credentials() {
+  const cs = fs.readFileSync(path.join(__dirname, "..", "server", "Mandarin.Server", "Services", "TidalApi.cs"), "utf8");
+  const blob = /const string Blob = "([^"]+)"/.exec(cs)[1];
+  const [clientId, secret] = JSON.parse(Buffer.from(blob.replace(/[$.]/g, "") + "==", "base64").toString("utf8"));
+  return { clientId, secret };
+}
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 

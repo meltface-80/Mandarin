@@ -9,7 +9,15 @@
 const http = require("http");
 const fs = require("fs");
 const crypto = require("crypto");
-const { credentials } = require("../lib/qobuz/api");
+const path = require("path");
+
+/* The plugin's credentials, read from the C# server as it carries them (Services/QobuzApi.cs). */
+function credentials() {
+  const cs = fs.readFileSync(path.join(__dirname, "..", "server", "Mandarin.Server", "Services", "QobuzApi.cs"), "utf8");
+  const s = Buffer.from(/const string Blob = "([0-9a-f]+)"/.exec(cs)[1], "hex").toString("ascii");
+  const m = /^(\d{9})([a-f0-9]{32})(\d{9})/i.exec(s);
+  return { appId: m[1], secret: m[2], webAppId: m[3] };
+}
 
 class FakeQobuz {
   /* albums: [{ id, title, artist, tracks: [{ id, title, file, duration, rate, bits }] , rate, bits, year, label }] */
