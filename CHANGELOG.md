@@ -20,6 +20,10 @@ Mac** (`v0.9.7-apk-name`).
   release), weekly and by hand ("Run workflow" on any branch); everywhere else the Mac jobs are
   skipped, and a skipped job holds up neither a merge nor the image. CI also runs once per commit
   instead of twice (a pull request shows its branch's run), but for a pull request into main.
+- **The Library's filter covers Focus and Sort** (phones and tablets): opened, its field goes over
+  them where they float, in ‹'s line; they no longer drop back into a row of their own under it,
+  pushing the albums down. On a tablet they sit at the bar's own edge (its 22px), so the field
+  covers them whole.
 - `test/renderer-playback.test.js` holds the renderer on its first track before reading its queue:
   the fixture's tracks are three seconds long, and on a busy machine the track ran out and the next
   began first (the queue read 2 tracks, not 3). Shown with a 3.5 s pause put in: it failed every

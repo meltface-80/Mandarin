@@ -114,6 +114,10 @@ const DRIVER = `(async () => {
   out.filterStrip = bg(document.querySelector(".topbar"));
   out.filterField = box(document.querySelector("#library-filter .lib-filter-input"));
   out.filterSearchOn = getComputedStyle($("tnav-search")).color;
+  // Focus and Sort stay where they float, the field over them (v0.9.7: they dropped into a row under it).
+  // (Opening it draws the controls again: found afresh.)
+  out.filterFocus = box(document.querySelector(".library-controls .lib-ctl-focus")); out.filterSort = box(document.querySelector(".library-controls .lib-ctl-sort"));
+  { const c = out.filterSort, at = document.elementFromPoint(c.l + c.w / 2, c.t + c.h / 2); out.filterCovers = !!at && !!at.closest("#library-filter"); }
   // Random albums: its Shuffle floats, its title the heading.
   window.__showHome(); await until(() => html.classList.contains("tn-home"), "Home");
   $("home-random-title").click();
@@ -211,6 +215,8 @@ test("the touch layout: Menu, Home, Library and Search along the foot on a phone
       assert.equal(r.libGlass, false, size + ": the Library's glass gives way to Search in the row");
       assert.ok(!clear(r.filterStrip), size + ": the filter open, the strip is back under its field");
       assert.ok(r.filterField.w > w / 2, `${size}: the filter's field across the bar (${r.filterField.w})`);
+      assert.deepEqual([r.filterFocus.t, r.filterSort.t], [r.libFocus.t, r.libSort.t], size + ": Focus and Sort don't move when the filter opens");
+      assert.equal(r.filterCovers, true, size + ": the field covers them");
       assert.ok(r.filterSearchOn !== r.homeOff, size + ": Search lit while the filter is open");
       assert.ok(clear(r.randomStrip), size + ": Random albums has no strip either");
       assert.ok(r.randomShuffle.r >= w - 24 && r.randomShuffle.t < 30, `${size}: its Shuffle floats where it was (${JSON.stringify(r.randomShuffle)})`);

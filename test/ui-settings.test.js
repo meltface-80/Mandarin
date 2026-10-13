@@ -268,7 +268,8 @@ test("the Library's controls under the top bar on phones, tablets and desktops",
         assert.ok(r.focus.h <= 36 && r.focus.h < r.back.h, at + ": the pills are smaller than the bar's buttons");
         assert.equal(r.title_shown, true, at + ": the title shows, as the page's heading");
         assert.ok(r.open.field.r <= r.vw && r.open.field.w > 150, at + ": the field takes the room");
-        assert.ok(r.open.focus.w > 0 && r.open.sort.w > 0 && r.open.focus.t >= r.open.field.b - 1, at + ": Focus and Sort stay, under the field");
+        assert.ok(r.open.focus.t === r.focus.t && r.open.sort.t === r.sort.t && r.open.sort.l >= r.open.field.l && r.open.sort.r <= r.open.field.r + 1,
+          at + ": Focus and Sort stay where they are, the field over them (v0.9.7): " + JSON.stringify({ focus: [r.focus.t, r.open.focus.t], sort: [r.sort.t, r.open.sort.t, r.open.sort.l, r.open.sort.r], field: [r.open.field.l, r.open.field.r] }));
         continue;
       }
       assert.ok(r.focus.t >= r.back.b - 1, at + ": Focus and Sort sit in their own row under the bar's");
