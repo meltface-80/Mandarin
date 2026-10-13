@@ -81,6 +81,34 @@ internal static partial class Library
     }
 
     /*
+     * Alone, POST /internal/library/changed from this machine with the front
+     * key (stage 7 part 2): a test that changed the database by hand says so,
+     * and the copy is read again, as the Node server's was told. Before the
+     * gate, as the other /internal/ addresses are (Jobs.Internal.cs).
+     */
+    public static void UseInternal(WebApplication app)
+    {
+        app.Use(async (ctx, next) =>
+        {
+            if (upstream != null || ctx.Request.Path.Value != "/internal/library/changed") { await next(); return; }
+            var from = ctx.Connection.RemoteIpAddress;
+            var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
+            if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
+                || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(given), System.Text.Encoding.UTF8.GetBytes(frontKey)))
+            {
+                ctx.Response.StatusCode = 404;
+                return;
+            }
+            JsonObject? what = null;
+            try { what = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
+            catch (System.Text.Json.JsonException) { /* no body: nothing but a word */ }
+            var said = await LocalTold("/internal/library/changed", what ?? []);
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync((said ?? new JsonObject { ["ok"] = false }).ToJsonString());
+        });
+    }
+
+    /*
      * The Node server's /internal/library/changed, made here (api-library.js
      * libraryChanged): a mark moved the marks, anything else the version (the
      * copy read again), and a scan's end what follows a scan; its answer.

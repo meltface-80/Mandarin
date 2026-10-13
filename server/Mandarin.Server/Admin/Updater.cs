@@ -246,8 +246,6 @@ internal sealed partial class Updater
             o["apply"] = apply;
             o["is_docker"] = Environment.GetEnvironmentVariable("DOCKER") == "1";
             o["csharp"] = csharp;
-            // A Mac on the Node server alone: never, with this server in front.
-            o["mac_node_only"] = false;
             return o;
         }
     }

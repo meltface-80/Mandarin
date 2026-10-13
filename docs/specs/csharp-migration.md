@@ -1002,6 +1002,12 @@ Settings → Updates' `mac_node_only` gone, `/internal/*` gone but `/internal/li
 (kept, front-key only, for a test that changed the database by hand) and the tests' revision
 route. Covers in CMYK or with a profile of their own: as the owner decides (section 6; until
 then drawn by ffmpeg without the profile, said in the CHANGELOG).
+- **As built** (v0.8.50, part 2): the 404s as Express said them (`Program.cs`); the tag check's
+  panel out of the page; `Auth.Reset.cs` (`mandarin-server reset-password`); `mac_node_only`
+  gone; `Library.UseInternal` (`POST /internal/library/changed`, alone, front key); the hub's
+  `X-Mandarin-Answered` on a renderer's event; CMYK and profiled covers and wordless placeholders
+  drawn alone (`Covers.cs`, `CoversDrawn.cs`). The other `/internal/*` addresses (the Node server's
+  asks of this one) go with the Node copies in part 5.
 
 **Part 3: the launcher and updates in C#** (`Admin/Updater.cs`, `Program.cs`, `Dockerfile`,
 the Mac installer). The update lays the staged bundle in itself (the running program carries on
@@ -1032,7 +1038,7 @@ final test from `:migration`.
 
 - [x] Plan written; version 0.8.50
 - [x] Part 1: the C# server on its own
-- [ ] Part 2: the last routes
+- [x] Part 2: the last routes
 - [ ] Part 3: the launcher and updates in C#
 - [ ] Part 4: the tests drive the binary
 - [ ] Part 5: the image and the repository; docs; the pull request

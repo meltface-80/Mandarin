@@ -39,7 +39,7 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
   try {
     const ask = async (p, init = {}) => {
       const r = await fetch(B + p, init);
-      return { status: r.status, by: r.headers.get("x-mandarin-answered") || "nobody", json: await r.clone().json().catch(() => null), text: await r.text() };
+      return { status: r.status, by: r.headers.get("x-mandarin-answered") || "nobody", type: r.headers.get("content-type"), json: await r.clone().json().catch(() => null), text: await r.text() };
     };
     // Before the account: the sign-in state, the gate, the sign-in page.
     let x = await ask("/api/auth/status");
@@ -76,6 +76,22 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     assert.deepEqual(x.json.albums.map(a => [a.title, !!a.favourite]), [["Album One", true], ["Best Of", false], ["Hi Res", false]], "the heart shown at once");
     x = await ask("/api/favourites", { method: "POST", headers: H, body: JSON.stringify({ offset: one.offset, on: false }) });
     assert.equal((await ask("/api/library/albums?sort=album", { headers: H })).json.albums.some(a => a.favourite), false, "and taken off at once");
+    // A change made to the database by hand (the tests, stage 7 part 2): told from this machine with the front
+    // key, the copy is read again (the version moves; a mark the marks); without the key, not there.
+    const told = async (headers, body) => ask("/internal/library/changed", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, headers), body: JSON.stringify(body) });
+    x = await told({ "X-Mandarin-Front-Key": srv.key }, { marks: true });
+    assert.deepEqual([x.status, x.json.ok, x.json.marks >= 1], [200, true, true], JSON.stringify(x.json));
+    const v0 = x.json.version;
+    x = await told({ "X-Mandarin-Front-Key": srv.key }, { edits: true });
+    assert.equal(x.json.version, v0 + 1, "the version moved: the copy is read again");
+    assert.equal((await told({}, { marks: true })).status, 404, "without the key: not there");
+    // The tests' revision route (the hub's change counter set, then bumped), the hub's own.
+    x = await ask("/internal/playback/revision", { method: "POST", headers: { "X-Mandarin-Front-Key": srv.key, "Content-Type": "application/json" }, body: JSON.stringify({ revision: 500 }) });
+    assert.deepEqual([x.status, x.json.ok, x.json.revision >= 500], [200, true, true], JSON.stringify(x.json));
+    // A cover drawn here: Best Of has none of its own, so its placeholder (its words too where this ffmpeg draws text).
+    const best = (await ask("/api/library/albums?sort=album", { headers: H })).json.albums.find(a => a.title === "Best Of");
+    x = await ask("/api/image/" + best.image_key + "?size=300", { headers: H });
+    assert.deepEqual([x.status, x.by, x.type], [200, "C#", "image/jpeg"], "the placeholder");
     // The day's album and the week's label: this clock's day and week.
     x = await ask("/api/home/album-of-the-day", { headers: H });
     assert.deepEqual([x.status, x.by], [200, "C#"]);
@@ -91,6 +107,25 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     assert.deepEqual([h.status, h.stdout], [1, ""], "--health on an empty port: " + h.stderr);
     // The Node server's private addresses: nothing there to ask, 404 at the door as before.
     assert.equal((await ask("/internal/library", { headers: H })).status, 404);
+    // What no route answers (stage 7 part 2): not there, as Express said it — an /api/ address as
+    // JSON with its path under /api (the tag readers' check among them, gone with the Node reader), the rest finalhandler's page.
+    for (const p of ["/api/no-such-thing", "/api/tagcheck", "/api/tagcheck/report"]) {
+      x = await ask(p, { headers: H });
+      assert.deepEqual([p, x.status, x.by, x.json], [p, 404, "C#", { error: "No such endpoint: GET " + p.slice(4) }]);
+    }
+    x = await ask("/nothing-here", { method: "POST", headers: H });
+    assert.deepEqual([x.status, x.by, /<pre>Cannot POST \/nothing-here<\/pre>/.test(x.text)], [404, "C#", true]);
+    // A renderer's event: taken by the hub (200, whoever it is from), as the Node server took it.
+    x = await ask("/upnp/event/uuid:nobody", { method: "NOTIFY", headers: { "Content-Type": "text/xml", NT: "upnp:event", NTS: "upnp:propchange", SID: "uuid:x" }, body: "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"/>" });
+    assert.deepEqual([x.status, x.by], [200, "C#"]);
+    // Forgot the password (reset-password.js as a subcommand, stage 7 part 2): the account removed and every
+    // device signed out while the server runs — its gate reads the database on each request; then nothing to remove.
+    const reset = () => spawnSync(BIN, ["reset-password"], { env: Object.assign({}, process.env, { DATA_DIR: lib.data }), encoding: "utf8", timeout: 20000 });
+    let rp = reset();
+    assert.deepEqual([rp.status, /^The account "tester" was removed and 1 device\(s\) signed out\.$/m.test(rp.stdout)], [0, true], rp.stdout + rp.stderr);
+    assert.deepEqual([(await ask("/api/auth/status")).json.setup_required, (await ask("/api/library/albums", { headers: H })).status], [true, 401]);
+    rp = reset();
+    assert.deepEqual([rp.status, /^There was no account to remove\.$/m.test(rp.stdout)], [0, true], rp.stdout + rp.stderr);
   } finally { await srv.stop(); }
 });
 

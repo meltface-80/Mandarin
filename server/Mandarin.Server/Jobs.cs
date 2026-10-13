@@ -157,10 +157,11 @@ internal static partial class Jobs
      * hand-over set it up; the speakers found last time asked first, as
      * index.js asked them (sonosKnownHosts).
      */
-    public static Task StartAlone(JsonObject cfg, int frontPort, string dataDir, string version)
+    public static Task StartAlone(JsonObject cfg, string frontKey, int frontPort, string dataDir, string version)
     {
         startedWith = null;
         upstream = null;
+        key = frontKey;
         port = frontPort;
         try
         {

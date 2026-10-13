@@ -3,9 +3,9 @@
 // same shapes:
 //
 //   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus),
-//                             with is_docker, csharp (how bringing this program to
-//                             the Node server's version went, as it says with its
-//                             state) and mac_node_only
+//                             with is_docker and csharp (how bringing this program
+//                             to the Node server's version went, as it says with
+//                             its state); mac_node_only went with stage 7 (v0.8.50)
 //   POST /api/update/check    GitHub asked now, then the same
 //   POST /api/update/apply    the update made: { ok, status }, or 409 { error, status }
 //

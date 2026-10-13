@@ -154,7 +154,7 @@ test("the in-app update, made by the C# server", { skip, timeout: 180000 }, asyn
     const s = await server(tt, i, { viaLauncher: true });
     assert.deepEqual(core(s.first), {
       current: pkg.version, latest: null, latestTag: null, available: false, isDowngrade: false, html_url: null, notes: null, source: null,
-      checkedAt: 0, checking: false, error: null, viaLauncher: true, apply: { phase: "idle", error: null, version: null }, is_docker: false, mac_node_only: false
+      checkedAt: 0, checking: false, error: null, viaLauncher: true, apply: { phase: "idle", error: null, version: null }, is_docker: false
     }, "nothing known yet, as lib/updater.js starts");
     assert.equal(s.first.csharp.phase, "none", "the Node server's word on this program's update, with it");
 

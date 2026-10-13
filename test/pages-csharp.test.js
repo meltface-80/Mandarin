@@ -102,10 +102,10 @@ test("the pages, the deep links and /api/health: by the C# server, as the Node s
     assert.deepEqual(jc, jn);
     assert.deepEqual([jc.ok, jc.version, jc.albums], [true, require("../package.json").version, 3]);
 
-    // Still the Node server's: an /api/ address it doesn't know, and a renderer's event.
+    // Still the Node server's: an /api/ address it doesn't know. A renderer's event is the hub's (v0.8.49), as the Node server answered it.
     const none = await ask(B, "/api/no-such-thing", { headers: H });
     assert.deepEqual([none.status, none.by, JSON.parse(none.body)], [404, "Node", { error: "No such endpoint: GET /no-such-thing" }]);
     const ev = await ask(B, "/upnp/event/uuid:nobody", { method: "NOTIFY", headers: { "Content-Type": "text/xml", NT: "upnp:event", NTS: "upnp:propchange", SID: "uuid:x" }, body: "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"/>" });
-    assert.deepEqual([ev.status, ev.by], [200, "Node"]);
+    assert.deepEqual([ev.status, ev.by], [200, "C#"]);
   } finally { await srv.stop(); }
 });

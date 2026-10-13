@@ -95,6 +95,8 @@ if (args.Length == 1 && args[0] == "config")
     try { Console.WriteLine(Config.FromEnvironment(dataDir, port).ToJsonString()); return 0; }
     catch (InvalidOperationException e) { Console.Error.WriteLine(e.Message); return 2; }
 }
+// `mandarin-server reset-password`: the account removed and every device signed out (Auth.Reset.cs, v0.8.50).
+if (args.Length == 1 && args[0] == "reset-password") return Auth.ResetPasswordCommand(dataDir);
 Db.File = Path.Combine(dataDir, "musicd.db");
 Front.DataDir = dataDir;
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Front.FindAppDir();
@@ -153,7 +155,7 @@ else
 }
 // The background work (Jobs.cs) before anything is answered: taken over from
 // the Node server, or this server's own from the start.
-if (alone) await Jobs.StartAlone(ownConfig!, port, dataDir, version); else await Jobs.Start(upstreamUri!, frontKey, port, dataDir, version);
+if (alone) await Jobs.StartAlone(ownConfig!, frontKey, port, dataDir, version); else await Jobs.Start(upstreamUri!, frontKey, port, dataDir, version);
 // No settings files, so nothing to watch: by default ASP.NET watches its
 // start folder and everything under it for appsettings.json, which from /app
 // (node_modules and all) held the start for minutes.
@@ -211,6 +213,8 @@ Mandarin.Server.Tags.TagReader.UseInternal(app);
 Mandarin.Server.Identify.Lookups.UseInternal(app);
 // The Node server's word that a library scan has ended: what follows it is made here (Jobs.cs).
 Jobs.UseInternal(app);
+// Alone, a word of a change made to the database by hand (the tests): the copy read again (Library.State.cs).
+Library.UseInternal(app);
 // A renderer's NOTIFY, once this server holds playback (UpnpEventRoutes.cs).
 UpnpEventRoutes.Use(app);
 
@@ -260,8 +264,23 @@ Pages.UseDeepLinks(app);
 Routes.Map(app, version);
 Auth.Map(app);
 
-// Alone, what no route took is not there (as Express said it); else the Node server's.
-if (alone) app.MapFallback(ctx => { ctx.Response.StatusCode = 404; return ctx.Response.WriteAsync($"Cannot {ctx.Request.Method} {ctx.Request.Path}"); });
+// Alone, what no route took is not there, as Express said it (index.js: an /api/
+// address as JSON, with its path under /api; anything else finalhandler's page);
+// else the Node server's.
+if (alone) app.MapFallback(ctx =>
+{
+    ctx.Response.StatusCode = 404;
+    ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
+    var p = ctx.Request.Path.Value ?? "/";
+    if (p == "/api" || p.StartsWith("/api/", StringComparison.Ordinal))
+    {
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+        return ctx.Response.WriteAsync(new System.Text.Json.Nodes.JsonObject { ["error"] = $"No such endpoint: {ctx.Request.Method} {(p.Length > 4 ? p[4..] : "/")}" }.ToJsonString());
+    }
+    ctx.Response.ContentType = "text/html; charset=utf-8";
+    var said = System.Net.WebUtility.HtmlEncode($"Cannot {ctx.Request.Method} {p}");
+    return ctx.Response.WriteAsync($"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>{said}</pre>\n</body>\n</html>\n");
+});
 else app.MapForwarder("/{**catch-all}", upstream!, requestConfig, transformer, invoker);
 
 // Alone: Restart and Shut down from Settings are this program's own (PowerRoutes.cs).

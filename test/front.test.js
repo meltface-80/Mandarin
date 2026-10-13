@@ -155,9 +155,9 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await fetch("http://127.0.0.1:" + ctx.listeningOn + "/internal/library", { headers: H })).status, 403, "the key, or nothing");
     x = await by("/api/library/albums", { headers: { Authorization: "Bearer not-a-token" } });
     assert.deepEqual([x.status, x.by], [401, "C#"], "a bad token stops at C#");
-    // A streamer's NOTIFY (it can't sign in): passed on, as the Node server takes it before its gate.
+    // A streamer's NOTIFY (it can't sign in): taken before the gate, by the hub (v0.8.49), as the Node server took it before its own.
     x = await by("/upnp/event/uuid:nobody", { method: "NOTIFY", headers: { "Content-Type": "text/xml", NT: "upnp:event", NTS: "upnp:propchange", SID: "uuid:x" }, body: "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"/>" });
-    assert.deepEqual([x.status, x.by], [200, "Node"], "a renderer's event, not stopped at the gate");
+    assert.deepEqual([x.status, x.by], [200, "C#"], "a renderer's event, not stopped at the gate");
     // The Node server's loopback-only routes: never through the front door.
     x = await by("/internal/dash/nope", { redirect: "manual" });
     assert.deepEqual([x.status, x.by], [404, "C#"], "/internal/ answered 404 at the door");

@@ -48,6 +48,23 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   setting, under which the addresses handed to speakers are signed and checked) was the Node
   server's to make as it started, so alone nothing it signed was vouched for. `Auth.Secret.cs`
   makes it at the start when none is there, as `lib/server/auth.js` did. Part 1 is complete.
+- **The last routes** (part 2). On its own, what no route answers is not there as Express said it:
+  an `/api/` address as JSON (`{ error: "No such endpoint: GET /x" }`), anything else
+  finalhandler's page. The tag readers' check (`/api/tagcheck`, `/api/tagcheck/report`, v0.8.13)
+  goes with the Node reader: the C# reader is the reader, so the Library Scanner page's "New tag
+  reader check" panel and its Copy report button are gone (the Node side stays until part 5).
+  `mandarin-server reset-password` does what `reset-password.js` did (the account removed, every
+  device signed out, while the server runs; `docker exec musicd-server
+  /app/server/bin/mandarin-server reset-password`); the Node script and the hint on the sign-in
+  page stay until part 5. Settings → Updates' `mac_node_only` is gone (never true with the C#
+  server in front). Alone, `POST /internal/library/changed` from this machine with the front key
+  makes the server read its copy again, for a test that changed the database by hand (part 4), and
+  the tests' `/internal/playback/revision` holds. A renderer's event (`NOTIFY /upnp/event/…`)
+  says it was answered by the C# server, as it has been since v0.8.49. Covers in CMYK or with a
+  profile of their own, and placeholders where ffmpeg can't draw text (a static ffmpeg, some
+  Homebrew builds), were the Node server's to draw: alone they are drawn as ffmpeg reads them,
+  without the profile, and the placeholder without its words, until the owner decides (the spec's
+  section 6). `test/csharp-alone.test.js` holds each.
 
 ## v0.8.49
 Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
