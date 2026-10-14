@@ -1,6 +1,6 @@
 // ScoreCommand.cs — `mandarin-server score` (v0.8.19): the scorer (Score.cs)
 // asked directly, a line of JSON in and a line out, so the tests can hold it
-// to lib/identify/score.js over many albums at once (test/identify-csharp.test.js).
+// to lib/identify/score.js over many albums at once (test/Mandarin.Tests/IdentifyCsharpTests.cs).
 //
 //   { "fn": "decide", "album": {…}, "candidates": [{…}, …] }
 //      → { status, ambiguous, scored: [{ candidate (with parts and pairs), distance }] }
