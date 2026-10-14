@@ -115,7 +115,7 @@ Per the spec, each stage is planned in detail (in the spec) before it's coded.
 1. Bump the version: package.json (and `npm install --package-lock-only`), README.md's title, the
    site's badge (`docs/index.html`), `android/app/build.gradle.kts` (versionName, and versionCode =
    300 + the patch number from 0.9.0, e.g. 0.9.1 → 301; it was 200 + the patch for 0.8.x).
-   `test/version.test.js` checks they agree. Add a CHANGELOG entry at the top, in the same style.
+   `test/Mandarin.Tests/VersionTests.cs` checks they agree. Add a CHANGELOG entry at the top, in the same style.
 2. Rebuild **both** `./engine/build.sh` and `./server/build.sh` after the bump; the engine test
    checks the engine's version.
 3. `npm run gates` (the file-length ratchet, `@ts-check` and `tsc`, ESLint against its
