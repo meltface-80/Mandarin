@@ -1,0 +1,6 @@
+# The page's script (/app.js), in the order it runs, as paths from public/.
+# Served joined (server/Mandarin.Server/Pages.Script.cs) and joined the same
+# way into the Android app's own copy (android/app/build.gradle.kts). Only the
+# parts named here are joined; a part not named here never runs.
+# docs/specs/page-modules.md says how the page is carved.
+app.js
