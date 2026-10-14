@@ -234,7 +234,7 @@ FEATURES = [
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
-     "downloads are in **Settings → Downloads** in the app."),
+     "downloads are in **Settings → Setup → Downloads** in the app."),
     ("onphone", "📂", "Music on this phone", False,
      "A folder of music already on the phone, watched for changes, on Home with Focus and Sort "
      "and on artists' pages, played like the library. The server never sees it.",

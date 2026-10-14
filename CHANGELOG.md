@@ -5,6 +5,19 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.4
+**Downloads in Setup** (`v1.0.4-downloads-in-setup`): the Android app's Downloads page is in
+Settings → Setup, before Away from home.
+
+- It was placed before Wall Display in the Settings list; when v1.0.2 moved Wall Display into
+  Setup, it fell to the foot of the list, under Updates. Now it is Setup's, and Back from it goes
+  to Setup, as its other pages' do (`public/app.js`).
+- The app's own pointer (Downloaded albums: "Download settings: Settings → Setup → Downloads."),
+  README and the Pages site say where it is now.
+- `test/downloads-tile.test.js` (new): with the app's bridge stood in, Downloads is in Setup before
+  Away from home and not in the Settings list, opens its page, and Back goes to Setup; a browser
+  has none. Shown failing on v1.0.3's page (Downloads after Updates).
+
 ## v1.0.3
 **Mac support dropped** (`v1.0.3-pull-Mac-support`): Mandarin runs on Linux, in Docker. A Mac
 can't be tested here, and a Mac's DAC playback (through Mandarin DAC Bridge) stopped on a user's

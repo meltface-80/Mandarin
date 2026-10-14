@@ -82,9 +82,9 @@ class DownloadsActivity : Activity() {
         if (intent?.getBooleanExtra(EXTRA_OFFLINE, false) == true) col.addView(offlineBanner())
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         col.addView(list)
-        // The download settings are in Settings → Downloads (the
+        // The download settings are in Settings → Setup → Downloads (the
         // app's own page, in its theme); this screen is for playing.
-        col.addView(note("Download settings: Settings → Downloads."))
+        col.addView(note("Download settings: Settings → Setup → Downloads."))
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true

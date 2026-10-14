@@ -17182,14 +17182,14 @@ initServiceBrowser({
 })();
 
 /* ------------------------------------------------------------------ */
-/*  Android app only: Settings → Downloads.                            */
+/*  Android app only: Settings → Setup → Downloads (v1.0.4).           */
 /*  A settings pane like the others — same header, back chevron, rows, */
 /*  switches and theme — with the app supplying the data and applying  */
 /*  the settings (MusicdDownloads). Browsers never get the tile.       */
 /* ------------------------------------------------------------------ */
 (function androidDownloadsPane() {
   const dl = window.MusicdDownloads;
-  const nav = document.querySelector(".settings-nav");
+  const nav = document.querySelector('.settings-view[data-pane="setup"] .settings-nav');
   const sheet = document.querySelector("#settings-overlay .settings-sheet");
   if (!dl || !nav || !sheet) return;
 
@@ -17198,13 +17198,13 @@ initServiceBrowser({
   const json = (f, fallback) => { try { return JSON.parse(f()) || fallback; } catch (e) { return fallback; } };
   const has = (name) => typeof dl[name] === "function";
 
-  // The tile, after Audio Devices (just before Wall Display), v0.6.21.
+  // The tile, in Setup before Away from home (v1.0.4; once before Wall Display, in the Settings list).
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
-  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="display"]'));
+  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="away"]'));
 
   // An app from before this pane existed: its own screen, as it was.
   if (!has("settings")) { tile.addEventListener("click", () => dl.open()); return; }
@@ -17212,8 +17212,8 @@ initServiceBrowser({
 
   const pane = document.createElement("div");
   pane.className = "settings-view settings-pane hidden";
-  pane.setAttribute("data-view", "pane");
-  pane.setAttribute("data-pane", "downloads");
+  // A page of Setup's: Back goes there, as its other pages' do.
+  for (const [k, v] of [["data-view", "pane"], ["data-pane", "downloads"], ["data-parent", "setup"]]) pane.setAttribute(k, v);
   sheet.appendChild(pane);
 
   const caret = '<svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
