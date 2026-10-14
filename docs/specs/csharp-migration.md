@@ -1042,7 +1042,7 @@ Mac jobs run the binary alone.
   services-import, services-signin; what depends on the machine is held by rule (a file's length,
   ETag, ffmpeg's arguments run again, ids as keys, times from now). `test/cpu-alone.test.js` (new),
   power-csharp alone, the update's refusals in update-alone. Left on the Node server, to go with it
-  in part 5: the hand-over's own tests (front.test.js's last, cpu.test.js's Node half, power,
+  in part 5: the hand-over's own tests (front.test.js's last, cpu.test.js's Node half (now test/Mandarin.Tests/CpuTests.cs), power,
   update, update-csharp, update-prepare, csharp-update, tag-reader-switch) and the suites whose
   oracle is a Node module (db-csharp, tags-front, and the `lib/` requires of 60-odd files), which
   part 5 records or drops with the module. Found on the way and fixed: deep links, stream and cover

@@ -19,7 +19,7 @@
  *   - v0.8.11: conversions made by C#, as the Node server made them (the same test);
  *   - v0.8.12: the phone's downloads and its Opus away, made and sent by C# (the same test);
  *   - v0.8.13: tags read by C# as the scanner reads them (test/tags-front.test.js), and the
- *     processor's split kept to by C# (test/cpu.test.js);
+ *     processor's split kept to by C# (test/Mandarin.Tests/CpuTests.cs);
  *   - v0.8.14: the scan's tags read by C#, the library the same (test/tags-front.test.js,
  *     test/tag-reader-switch.test.js);
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
@@ -51,7 +51,7 @@
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
  *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
  *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
- *     are still passed to it, and test/power.test.js's through-the-server test holds that;
+ *     are still passed to it, and test/Mandarin.Tests/PowerTests.cs's through-the-server test holds that;
  *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
  *     server has none (test/booklets-csharp.test.js holds that they're C#'s);
  *   - v0.8.34: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#

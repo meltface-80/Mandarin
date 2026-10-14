@@ -3,7 +3,7 @@
  * The processor shared out, playback first, by the program alone (v0.8.50,
  * stage 7 part 4; Cpu.cs): the cores playback keeps, decided from the cores
  * the program may use when it starts and PLAYBACK_CORES / PLAYBACK_CORE, as
- * lib/cpu.js decided it (its rule kept here, as test/cpu.test.js held it);
+ * lib/cpu.js decided it (its rule kept here, as test/Mandarin.Tests/CpuTests.cs held it);
  * every thread of the program moved to the rest; a DSP conversion given
  * playback's second core, held a while after it ends, then given back, the
  * threads moving each time. Run for real where Linux's taskset is, the
