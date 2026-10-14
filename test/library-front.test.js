@@ -389,7 +389,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     await x.arrayBuffer();
     x = await fetch(B + "/stream/t" + tid + ".orig" + path.extname(tpath));
     assert.equal(x.status, 401, "neither signed nor signed in: refused");
-    // A ReplayGain is converted here too since v0.8.40 (test/conversions-csharp.test.js).
+    // A ReplayGain is converted here too since v0.8.40 (test/Mandarin.Tests/ConversionsCsharpTests.cs).
     x = await fetch(B + "/stream/t" + tid + ".flac?g=-3", { headers: H });
     assert.equal(x.headers.get("x-mandarin-answered"), "C#", "with a ReplayGain: converted by C#");
     await x.arrayBuffer();

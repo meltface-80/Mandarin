@@ -37,6 +37,15 @@ and npm leave the project after it. Nothing the server or the page does changes.
   stood in for with a Node script is `test/StandIns`, a small C# program the tests start as the
   server would start the real one; the tests' own web servers can serve HTTPS. Shown failing: the
   page's frame guard loosened.
+- Stage T1d (`v1.0.6-tests-csharp-4-golden`): six of the suites held to the Node server's recorded
+  answers (`test/golden`): `db-csharp`, `share-csharp`, `backup-csharp`, `artfind-csharp`,
+  `extras-csharp`, `conversions-csharp`. The harness reads the recordings as JavaScript did and
+  writes JSON byte for byte as JSON.stringify wrote it (`JsJson`: a lone surrogate kept, nesting
+  unbounded, an object's number-like keys first, a number as Number's toString writes it), so the
+  recorded sums still match; the suites' seeded cases are made the same way (`JsGen`: their
+  generator, JavaScript's undefined), and a list of cases too long to copy by hand is kept as data
+  (`test/golden/artfind-csharp.cases.json`, written once from the JavaScript). Shown failing: a
+  backup's refusal reworded.
 - Version 1.0.6 (Android versionCode 314).
 
 ## v1.0.5
