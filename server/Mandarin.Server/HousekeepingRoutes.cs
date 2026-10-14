@@ -225,9 +225,7 @@ internal static partial class Library
     {
         if (HeldWriteUps is not { } w) return false;
         if (await Current() is not var (s, _)) return false;
-        bool on;
-        using (var c = Db.Open()) on = Db.Setting(c, "displayEnabled") is { } v ? Js.Truthy(v) : true;
-        if (!on) return await JsError(ctx, 403, "Wall display is turned off in Settings");
+        if (!Features.On(Features.Display)) return await JsError(ctx, 403, "Wall display is turned off in Settings");
         // The zone's track, the hub's (v0.8.49).
         if (Playback.Hub.Current is not { } hub) return false;
         var zs = hub.Zone(Q(ctx, "zone") ?? "")?.State;

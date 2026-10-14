@@ -43,6 +43,7 @@ internal static partial class Library
     {
         if (st.Building || !Keepable.Contains(path) || !(HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method))) return false;
         if (path == "/api/library/albums" && UsesPlays(ctx)) return false;
+        if (path == "/api/shelf/albums" && !Features.On(Features.Shelf)) return false;   // Shelf off: refused, never kept (Features.cs)
         var key = path + ctx.Request.QueryString.Value;
         var marks = s.Marks.N;
         var played = path == "/api/library/facets" && AnyPlays();

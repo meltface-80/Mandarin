@@ -33,7 +33,7 @@ internal static partial class Backup
     // Settings a person sets, and nothing the server keeps for itself.
     public static readonly string[] SettingsKeys = ["displayEnabled", "displaySeconds", "homeRows", "identify",
         "labelFolderDepth", "labelsEnabled", "mbpack_dir", "music_folders", "radioZones", "replaygain",
-        "shareCardReview", "shareReviews", "shareServices", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
+        "shareCardReview", "shareReviews", "shareServices", "shelfEnabled", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
     public static readonly string[] CollectionKeys = ["userPlaylists", "smartPlaylists"];
     public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches"];
     // The Qobuz and Tidal sign-ins travel with the keys: tokens, never a password.
