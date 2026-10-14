@@ -23,7 +23,6 @@
     "watch": 400
   },
   "exempt": {
-    "public/app.js": "the page, one file by the owner's rule (pages stay HTML/JS); in the ratchet, so it only ever shrinks",
     "android/app/src/main/java/com/musicd/server/android/DownloadStore.kt": "over the cap when the gate came (v0.8.48); shrinks only",
     "android/app/src/main/java/com/musicd/server/android/MainActivity.kt": "over the cap when the gate came (v0.8.48); shrinks only",
     "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": "over the cap when the gate came (v0.8.48); shrinks only",

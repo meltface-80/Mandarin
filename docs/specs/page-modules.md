@@ -31,7 +31,7 @@ function declarations hoisted over all of it, sloppy mode as before (no part add
 | 0 | The join, its tests, the tour test (below) | `v1.0.5-stage-0-groundwork` |
 | 1a | Ten small blocks before and after the rest (sign-out guard to UI settings; UI Settings to Backup), moved unchanged, each a part | `v1.0.5-stage-1a-small-blocks` |
 | 1b | Everything between the core and those: the five big add-on blocks (mini transport, share card, settings sheet, service browser, audio devices) split, and the small blocks among them moved, in their order | `v1.0.5-stage-1b-big-blocks` |
-| 2 | The core block (the first after the four small ones at the top) cut into parts, startup last | `v1.0.5-stage-2-core` |
+| 2 | The core unwrapped and cut into 33 parts in its order; `app.js` keeps only the startup that closed it | `v1.0.5-stage-2-core` |
 
 Each stage is a pull request into `migration`, squash-merged when green.
 
@@ -52,10 +52,12 @@ A block over 400 lines keeps its names in its own closure, and its pieces have t
 
 - **Unwrapped.** Most blocks lose their wrapper `(() => { ... })();` and their names move to the
   page's top, where every part sees them: the mini transport, the share card, the Settings sheet,
-  Audio Devices, the Library Scanner (stage 1b), the core (stage 2). A name that would clash once
+  Audio Devices, the Library Scanner (stage 1b), the core and its search and labels browser
+  (stage 2). A name that would clash once
   at the top is renamed where it is declared and everywhere it is read (by scope, not by text):
   one taking a browser's own name (`open`, `close`, `status`), or one two blocks both had
-  (the Library Scanner's `pane`, `body`, `busy` … become `scanPane`, `scanBody`, `scanBusy` …).
+  (the Library Scanner's `pane`, `body`, `busy` … become `scanPane`, `scanBody`, `scanBusy` …;
+  the search's `row` and `openBtn` become `searchRow` and `searchOpenBtn`).
   A guard that left the block when its elements were missing (`if (!pane) return;`) cannot
   stand at the top; the elements are in `index.html`, and the guard goes.
 - **Installed.** A block that is a factory, made more than once, keeps its closure: each piece
@@ -82,3 +84,14 @@ script of the page) declares.
   only when its screen opens, which no compiler sees; this opens them all.
 - `test/page-names.test.js`: the names gate's verdict on made-up pages.
 - The rest of the browser tests, unchanged, over the joined script.
+
+## Where it ended (stage 2)
+
+`public/app.js` is the page's startup: `bootstrap()` and its call, 68 lines, where they ran
+when the core was one file. Everything else is 80 parts under `public/app/`, none over 400
+lines, listed in run order in `public/app/parts.txt`: the five small blocks that ran first, the
+core's 33 parts, `app.js`, then the blocks that followed the core. `app.js` left the file-length
+allowance and its exemption, so the page is under the same cap as everything else.
+
+To find a screen's code: its part is named for it (`album-detail.js`, `queue.js`,
+`settings-scanner.js` …), and each part's first line says what it holds.

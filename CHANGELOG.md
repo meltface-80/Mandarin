@@ -37,6 +37,14 @@ carved into files under `public/app/`, served joined as one script.
     each read somewhere, nothing read that nothing declares. ESLint is told every part's top
     names. Shown failing with a part declaring `close`, a second `scanLoad`, a name read nowhere
     and one declared nowhere; `test/page-names.test.js` (new) holds its verdict.
+- Stage 2 (`v1.0.5-stage-2-core`): the core is 33 parts, in its order, none over 400 lines;
+  `app.js` keeps only the startup that closed it (`bootstrap()`, 68 lines), and leaves the
+  file-length allowance and its exemption.
+  - The core loses its wrapper, and so do two big blocks inside it, the search and the labels
+    browser; their names join the page's top with no clash (stage 1b renamed the add-ons' that
+    would have), but the search's `row` and `openBtn`, which the Library Scanner and Settings
+    have: `searchRow` and `searchOpenBtn`. Their guards for missing elements go, as 1b's did.
+  - 933 names at the top of 81 parts, none clashing, each read (`npm run names`).
 - `test/page-script.test.js` (new): the list and the folder agree, the three joins (server,
   Android, test) agree, and `/app.js` is the join. Shown failing with a script in `public/app/`
   the list doesn't name.
