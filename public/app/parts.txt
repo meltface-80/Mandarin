@@ -3,4 +3,14 @@
 # way into the Android app's own copy (android/app/build.gradle.kts). Only the
 # parts named here are joined; a part not named here never runs.
 # docs/specs/page-modules.md says how the page is carved.
+app/sign-out-guard.js
+app/request-limits.js
+app/library-mark.js
+app/after-start.js
+app/ui-settings.js
 app.js
+app/settings-ui.js
+app/settings-away.js
+app/toast-lift.js
+app/power.js
+app/settings-backup.js
