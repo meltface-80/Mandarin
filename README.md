@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v1.0.2
+# Mandarin — v1.0.3
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -28,6 +28,12 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
+**New in v1.0.3: Mandarin runs on Linux, in Docker.** Mac support is dropped: no Mac install
+line, no Mac build in the release, and Mandarin DAC Bridge is no longer offered. v1.0.2 is the last
+version for a Mac. A Mac install keeps working as it is, but its update from Settings finds no
+build for it and changes nothing. To carry on, make a backup (Settings → Backup & restore), install Mandarin
+on a Linux machine with Docker ([Install](#install-docker)) and restore it there.
+
 **New in v1.0.0** (since v0.9.0)
 * **A layout for phones and tablets**, either way round, in the browser, the iPhone home-screen
   app and the Android app. A row along the foot of the screen (Menu, Home, Library, Search) sits
@@ -44,28 +50,14 @@ Wikipedia, Deezer and others); your music files stay on your machine.
   the largest server files split and the build checking the code's rules; the library's lists
   kept once made instead of made on every request; every route listed in
   [docs/specs/api.md](docs/specs/api.md).
-* **A USB DAC on a Mac: the install line offers Mandarin DAC Bridge, and here is why.** Mandarin's
-  audio engine plays to sound devices through ALSA, which is part of Linux; macOS has no ALSA, so
-  Mandarin can't open a DAC plugged into the Mac it runs on, and doesn't list the Mac's sound
-  devices. [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge) is a separate
-  app for the Mac that does it instead: it holds the DAC, plays each track bit-perfect at its own
-  rate, and shares the DAC with Audirvana. Mandarin finds each DAC through it as a renderer named
-  “<DAC> (Bridge)”, played like a Sonos room. The install line asks whether to add it; it is
-  optional, and only needed for a USB DAC on the Mac (Sonos rooms, UPnP renderers and the Android
-  app play without it). Playing a Mac's DAC from Mandarin itself will be looked at in a later
-  build. See [Install on a Mac](#install-on-a-mac).
 
 **New in v0.9.0: one program, no Node.js.** Mandarin's server is now a single program written in
-C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, a
-Mac needs only ffmpeg and poppler beside it, and an update from Settings puts the new program and
+C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, and an update from Settings puts the new program and
 page in place and starts again in the same container. It took over from the original Node.js
 server one part at a time through the v0.8.x releases, each part held by the test suite to the
 Node server's own answers, so everything works as before: the library, playback to Sonos, UPnP
 renderers, the phone and sound devices, Qobuz and Tidal, identification, backups, updates.
 *Forgot the password?* is now `docker exec musicd-server /app/server/bin/mandarin-server reset-password`.
-**A USB DAC on a Mac** plays through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge),
-which the Mac's install line now offers: it holds the DAC, plays each track bit-perfect at its own
-rate, and shares the DAC with Audirvana (see [Install on a Mac](#install-on-a-mac)).
 
 **New in v0.7.4** (since v0.7.0)
 * **Qobuz and Tidal favourites follow both ways, by themselves**: remove an album from your
@@ -77,8 +69,6 @@ rate, and shares the DAC with Audirvana (see [Install on a Mac](#install-on-a-ma
 * **One Update** does the server first and then the app. **Hide / unhide** on Audio Devices. A fresh
   look at matching. The server's Tailscale identity travels with a backup's keys. The share card
   carries the duck.
-* **Mac users with a USB DAC** connected to the Mac may have trouble with it (since v0.9.0 it
-  plays through Mandarin DAC Bridge).
 
 ---
 
@@ -358,7 +348,7 @@ A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sono
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. On a Mac, through Mandarin DAC Bridge: switch on “<DAC> (Bridge)”. Details under [Sound devices on the server](#sound-devices-on-the-server).
+Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -646,7 +636,7 @@ Restart Mandarin, or shut it down so it stops finding and controlling your speak
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
 
 </details>
 
@@ -759,7 +749,7 @@ few minutes and albums appear as it goes.
 > **`--network host` is required.** Sonos players are found by multicast, which does not
 > cross Docker's default bridge network — and the speakers fetch audio from this machine's
 > own address. Docker Desktop on macOS/Windows has no real host networking, so this needs a
-> Linux host. On a Mac, run it without Docker: see [Install on a Mac](#install-on-a-mac).
+> Linux host.
 
 > **Keep the `musicd-server-data` volume.** It holds the library database, play history,
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
@@ -842,145 +832,6 @@ docker stop musicd-server && docker rm musicd-server
 # re-run the docker run command above — the data volume carries everything over
 ```
 
-## Install on a Mac
-
-Mandarin runs on a Mac without Docker: macOS 14 or newer, macOS 27 included, Apple silicon or
-Intel. The Mac needs to stay on, on the same network as your speakers.
-
-**1. Open Terminal**: press Command-Space, type **Terminal** and press Return.
-
-**2. Paste this line** and press Return:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
-```
-
-**3. Answer what it asks:**
-* **Your Mac's password**, if it asks: type it and press Return. Nothing shows as you type; that's
-  normal.
-* **Your music folder**: a Finder window opens. Click the folder your music is in (on the Mac or on
-  an external drive) and click **Choose**.
-* **The MusicBrainz pack**: where to keep it, if you download it later (optional, about 2 GB).
-  **On this Mac** is fine; **Choose a folder...** to put it on another drive.
-* **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
-* **Your Desktop folder**, if macOS asks: **Allow**, so the Mandarin icon can go on the desktop.
-* **Allow** if macOS asks to let **mandarin-server** find devices on your network or open your
-  files. Mandarin needs both to reach your speakers and read your music.
-
-**4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
-log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`). Add more
-music folders, or change them, any time in **Settings → Music Folders**.
-
-**Do you have Mandarin already running on another machine?** Yes, then this Mac doesn't need to
-install anything, just open the server's IP address with port `:3500` in Safari and choose
-**File → Add to Dock**. It opens like an app, for choosing music and playing it on your speakers.
-
-**On a Mac:**
-* **Mandarin's server** is one program, **mandarin-server** (C#; since v0.9.0 no Node.js): it's
-  what starts when you log in. It comes from the release of the version you have, built for your
-  Mac and checked against the release's sums.
-  * **Installed before v0.9.0?** Paste the install line once more, at the Mac, so you're there to
-    click **Allow** when macOS asks about **mandarin-server**. It brings Mandarin's files up to
-    date and starts the new server in place of the old one; your library, account and settings
-    stay. Node.js is no longer needed (`brew uninstall node@22`, if nothing else of yours uses it).
-* **Updates** come from the app, as on Linux (Settings → **Updates**): the server of the new
-  version for your Mac, checked, then started in place. If it can't be had, the update stops and
-  says why, with nothing changed.
-* **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
-  **Shut down** stops Mandarin; double-click
-  **Mandarin** on the desktop (or in your Applications folder) to start it again. It also starts
-  when you log in. Installed before v0.6.12? Paste the install line once more to get the icon.
-* **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
-* **Away from home:** the built-in Tailscale is for Linux only. Install the Tailscale app on the
-  Mac (Mac App Store) and sign in; Mandarin finds the Mac's Tailscale address by itself.
-* **A USB DAC (v0.9.0):** through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac),
-  which the install line offers to add (`MANDARIN_DAC_BRIDGE=yes` or `no` in front of it answers
-  without asking; or install it later with its own line). The bridge holds the DAC for itself,
-  switches it to each track's own rate and plays it bit-perfect, and lets Audirvana use it too. In
-  Mandarin, **Settings → Audio Devices**, switch on **“<DAC> (Bridge)”**: it is then a zone like a
-  Sonos room. The Mac's own speakers too, with the bridge's `BRIDGE_ALL_OUTPUTS=1`. Mandarin
-  doesn't play to the Mac's sound devices itself (its audio engine is Linux's), so they aren't
-  listed; that will be looked at in a later build.
-* **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
-  Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
-  `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
-* **Rooms not found?** Run this in Terminal with one of your speakers' IP addresses, then restart
-  the Mac: `/usr/libexec/PlistBuddy -c "Add :EnvironmentVariables:SONOS_HOSTS string 192.168.1.20" ~/Library/LaunchAgents/app.mandarin.server.plist`
-* **Stop Mandarin starting at login:** `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`
-
-<details>
-<summary><b>Prefer to install by hand?</b></summary>
-
-In **Terminal**:
-
-1. Install [Homebrew](https://brew.sh) if you don't have it, then ffmpeg and poppler:
-
-   ```bash
-   brew install ffmpeg poppler
-   ```
-
-2. Download Mandarin, and its server for your Mac from the release of that version
-   (`osx-arm64` on Apple silicon, `osx-x64` on Intel; compare the download with the release's
-   `mandarin-server.sha256` if you like):
-
-   ```bash
-   git clone --depth 1 https://github.com/meltface-80/Mandarin.git ~/Mandarin
-   cd ~/Mandarin
-   V=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' package.json | head -n 1)
-   mkdir -p server/bin
-   curl -fL "https://github.com/meltface-80/Mandarin/releases/download/v$V/mandarin-server-osx-arm64.gz" | gunzip > server/bin/mandarin-server
-   chmod 755 server/bin/mandarin-server
-   codesign --verify server/bin/mandarin-server || codesign --force --sign - server/bin/mandarin-server
-   ```
-
-   (Or build it with the .NET 10 SDK: `./server/build.sh`.)
-
-3. Start it with **your** music folder. Replace `$HOME/Music` with your own; to get its path
-   without typing, type `MUSIC_DIR="`, drag the folder from Finder onto the Terminal window, then
-   type `" server/bin/mandarin-server`. An external drive is under `/Volumes/…`.
-
-   ```bash
-   cd ~/Mandarin
-   MUSIC_DIR="$HOME/Music" server/bin/mandarin-server
-   ```
-
-   Open **`http://localhost:3500`** and create your account.
-
-4. **Keep the Mac awake:** System Settings → Energy (or Battery → Options) → **Prevent automatic
-   sleeping when the display is off**.
-
-5. **Start it at login (optional).** Stop it first (Control-C). In the file below, put the **same
-   music folder** as in step 3 where it says `$HOME/Music`, then paste it:
-
-   ```bash
-   mkdir -p ~/Mandarin/data
-   cat > ~/Library/LaunchAgents/app.mandarin.server.plist <<PLIST
-   <?xml version="1.0" encoding="UTF-8"?>
-   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-   <plist version="1.0"><dict>
-     <key>Label</key><string>app.mandarin.server</string>
-     <key>ProgramArguments</key><array><string>$HOME/Mandarin/server/bin/mandarin-server</string></array>
-     <key>WorkingDirectory</key><string>$HOME/Mandarin</string>
-     <key>EnvironmentVariables</key><dict>
-       <key>MANDARIN_APP_DIR</key><string>$HOME/Mandarin</string>
-       <key>MUSIC_DIR</key><string>$HOME/Music</string>
-       <key>PATH</key><string>$(brew --prefix)/bin:/usr/bin:/bin</string>
-     </dict>
-     <key>RunAtLoad</key><true/>
-     <key>KeepAlive</key><true/>
-     <key>StandardOutPath</key><string>$HOME/Mandarin/data/server.log</string>
-     <key>StandardErrorPath</key><string>$HOME/Mandarin/data/server.log</string>
-   </dict></plist>
-   PLIST
-   launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist
-   ```
-
-**The MusicBrainz pack (optional, about 2 GB)** needs no setup on a Mac: in **Settings → Library
-Scanner → Folder**, pick any folder, an external drive (**Volumes**) included. Unlike Docker,
-there's no `/packs` mount to add. With no folder chosen it's kept in `~/Mandarin/data`.
-
-</details>
-
 ## Configuration
 
 Everything is optional; pass any of it with `-e NAME=value`.
@@ -1035,9 +886,6 @@ back. The server stores only an SRP verifier, never the password.
 ```bash
 docker exec musicd-server /app/server/bin/mandarin-server reset-password
 ```
-
-(On a Mac: `~/Mandarin/server/bin/mandarin-server reset-password`, with `DATA_DIR=~/Mandarin/data`
-in front if you run it from another folder.)
 
 It removes the account and signs every device out; your library, edits, playlists and history
 stay. Then create the account again from a device at home.
@@ -1173,8 +1021,7 @@ to a few minutes ahead, and a thread of the engine's own writes it to the device
 next track at the same rate goes into the open device with nothing between them; a track at another
 rate reopens it. Where the device is in a track is read from ALSA itself. The image carries the
 engine; an install updated from Settings downloads it once. `AUDIO_ENGINE=0` plays as before
-v0.8.0: ffmpeg decodes each track and a second ffmpeg holds the device open. On a Mac, that is how
-it plays for now. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
+v0.8.0: ffmpeg decodes each track and a second ffmpeg holds the device open. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
 with **Fixed volume** on they are never scaled and the volume is the DAC's or amplifier's.
 
 * **Linux:** ALSA, opened as `plughw:CARD=<name>,DEV=<n>`, so a DAC on another USB port is the
@@ -1184,11 +1031,6 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   PulseAudio) holds is reported as in use.
 * **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
   the commented `devices:` and `privileged:` lines), then re-create the container.
-* **Mac (v0.9.0):** not from Mandarin itself, whose audio engine is ALSA's: a Mac's DACs play
-  through [Mandarin DAC Bridge](https://github.com/meltface-80/Mandarin-DAC-Bridge), found as
-  renderers named “<DAC> (Bridge)” (see [Install on a Mac](#install-on-a-mac)). Before v0.9.0 the Node server
-  played them through ffmpeg's `audiotoolbox` output; v0.8.49 to v0.8.50 listed them without
-  playing them.
 * DSD files go to these devices as PCM.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in

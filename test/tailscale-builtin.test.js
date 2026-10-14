@@ -231,17 +231,6 @@ test("an install updated in place downloads the engine, checked, once per server
   assert.equal(fs.readFileSync(bin + ".version", "utf8"), version);
 });
 
-// The engine is built for Linux only: anywhere else (a Mac) it isn't offered
-// even with somewhere to fetch it from, and nothing is fetched.
-test("off Linux the engine isn't offered, and nothing is fetched", { skip: built() || (process.platform === "linux" && "Linux has the engine"), timeout: 60000 }, async (t) => {
-  const { site, token, bin } = await engineSite(t);
-  const s = await tailscaleOf(token);
-  assert.equal(s.available, false);
-  assert.equal(s.state, "Stopped");
-  assert.equal(site.fetches, 0);
-  assert.ok(!fs.existsSync(bin));
-});
-
 // The watchdog (v0.7.2): an engine that says Running but isn't online on the
 // tailnet is asked to rebind, and started afresh when that doesn't help.
 test("a node that is Running but not online is rebound, then started afresh", { skip: built(), timeout: 120000 }, async () => {

@@ -24,7 +24,7 @@ internal sealed class Devices
     public readonly RendererDiscovery Discovery;
     public double LastScan;
     /* This computer's sound devices (Local/LocalDevices.cs): the platform, how many, how many hidden, whether they are turned off. */
-    public JsObj Local = Jv.Obj(("platform", OperatingSystem.IsMacOS() ? "darwin" : "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
+    public JsObj Local = Jv.Obj(("platform", "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
 
     public Devices(Hub hub)
     {
@@ -93,14 +93,11 @@ internal sealed class Devices
         try
         {
             var r = await localList();
-            // A Mac's own aren't offered (v0.9.0): Mandarin's audio engine plays through ALSA, so they play
-            // through Mandarin DAC Bridge, its DACs found as renderers; the page says so (mac: how many).
-            var mac = r.Platform == "darwin";
-            List<SeenInfo> offered = mac ? [] : r.Devices;
+            var offered = r.Devices;
             using (var c = Db.Open()) foreach (var rec in offered) Register.Seen(c, rec);
             var before = Jv.Num(Local["count"]);
             Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)offered.Count),
-                ("docker", Local["docker"]), ("off", r.Off), ("mac", mac ? (double)r.Devices.Count : 0.0));
+                ("docker", Local["docker"]), ("off", r.Off));
             if (offered.Count > 0 || before > 0) hub.Bump();
         }
         finally { lock (gate) scanningLocal = null; }
@@ -161,7 +158,7 @@ internal sealed class Devices
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
-        if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|coreaudio|file):", "");
+        if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|file):", "");
         o["rates"] = caps["rates"]; o["bits"] = caps["bits"]; o["dsd"] = caps["dsd"]; o["containers"] = caps["containers"];
         o["levelling"] = Items.LevellingFor(c, r.Id);
         if (r.Kind != "sonos")
@@ -177,7 +174,7 @@ internal sealed class Devices
             if (r.Kind != "local") o["location"] = r.Location;
             o["caps"] = r.Caps; o["settings"] = r.Settings;
             o["found_by"] = r.Kind == "sonos" ? "The Sonos household" : r.Kind == "phone" ? "The Mandarin app"
-                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)") : "UPnP discovery";
+                : r.Kind == "local" ? "This computer (ALSA)" : "UPnP discovery";
             var err = streamer ? hub.Upnp.ErrorOf(r.Id) : null;
             o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : null;
             o["openhome"] = Jv.T(r.Caps["openhome"]);

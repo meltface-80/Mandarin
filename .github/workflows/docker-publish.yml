@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/musicd-server
 
 jobs:
-  # CI on this commit, passed: every test, the Mac's included (v0.8.31). The
+  # CI on this commit, passed: every test (v0.8.31). The
   # image and the engines below wait for it, so none is published from a
   # commit whose tests fail (.github/wait-for-ci.sh).
   ci:

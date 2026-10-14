@@ -318,7 +318,6 @@
     <a href="#features">Features</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
-    <a href="#mac">Mac</a>
     <a href="#apps">Phones</a>
     <a href="#env">Environment</a>
     <a href="#trouble">Troubleshooting</a>
@@ -338,7 +337,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.0.2</span>
+    <span class="badge">v1.0.3</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -350,6 +349,11 @@
 
 <section id="new">
   <div class="wrap">
+    <div class="note"><b>New in v1.0.3: Mandarin runs on Linux, in Docker.</b> Mac support is dropped: no Mac
+      install line, no Mac build in the release, and Mandarin DAC Bridge is no longer offered. v1.0.2 is the last
+      version for a Mac. A Mac install keeps working as it is, but its update from Settings finds no build for it
+      and changes nothing. To carry on, make a backup (Settings &rarr; Backup &amp; restore), install Mandarin on a
+      Linux machine with Docker (<a href="#install">Install</a>) and restore it there.</div>
     <div class="note"><b>New in v1.0.0</b> (since v0.9.0). <b>A layout for phones and tablets</b>, either way
       round, in the browser, the iPhone home-screen app and the Android app: a row along the foot of the screen
       (Menu, Home, Library, Search) under the mini player; no top bar on Home, with the date and the greeting at the
@@ -360,33 +364,19 @@
       <code>Mandarin-Android-&lt;version&gt;.apk</code>; the download link keeps its fixed name. <b>The audit before
       v1.0.0</b>: more of the server tested, every request read and answered one way, the largest server files
       split, the library's lists kept once made, and every route listed.</div>
-    <div class="note"><b>A USB DAC on a Mac: the install line offers Mandarin DAC Bridge, and here is why.</b>
-      Mandarin's audio engine plays to sound devices through ALSA, which is part of Linux; macOS has no ALSA, so
-      Mandarin can't open a DAC plugged into the Mac it runs on, and doesn't list the Mac's sound devices.
-      <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge">Mandarin DAC Bridge</a> is a separate app for the
-      Mac that does it instead: it holds the DAC, plays each track bit-perfect at its own rate, and shares the DAC
-      with Audirvana. Mandarin finds each DAC through it as a renderer named “&lt;DAC&gt; (Bridge)”, played like a
-      Sonos room. The install line asks whether to add it; it is optional, and only needed for a USB DAC on the Mac
-      (Sonos rooms, UPnP renderers and the Android app play without it). Playing a Mac's DAC from Mandarin itself
-      will be looked at in a later build.</div>
     <div class="note"><b>New in v0.9.0: one program, no Node.js.</b> Mandarin's server is now a single program
-      written in C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, a Mac
-      needs only ffmpeg and poppler beside it, and an update from Settings puts the new program and page in place and
+      written in C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, and an update from Settings puts the new program and page in place and
       starts again in the same container. It took over from the original Node.js server one part at a time through
       the v0.8.x releases, each part held by the test suite to the Node server's own answers, so everything works as
       before. <b>Forgot the password?</b> is now
-      <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>. <b>A USB DAC on a
-      Mac</b> plays through <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge">Mandarin DAC Bridge</a>,
-      which the Mac's install line now offers: it holds the DAC, plays each track bit-perfect at its own rate, and
-      shares the DAC with Audirvana.</div>
+      <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>.</div>
     <div class="note"><b>New in v0.7.4</b> (since v0.7.0). <b>Qobuz and Tidal favourites follow both ways, by
       themselves</b>: remove an album from your favourites here and it is gone within the moment; add or remove one
       in the service's own app and it follows here on the next look. <b>Music on device</b>, in the Android app:
       Focus and Sort on its wall, the phone's albums on an artist's page beside the server's, and a selection of
       albums from anywhere played as one queue on This phone. <b>One Update</b> does the server first and then the
       app. <b>Hide / unhide</b> on Audio Devices, a fresh look at matching, the server's Tailscale identity in a
-      backup's keys, and the duck on the share card. <b>Mac users with a USB DAC</b> connected to the Mac may have
-      trouble with it (since v0.9.0 it plays through Mandarin DAC Bridge).</div>
+      backup's keys, and the duck on the share card.</div>
   </div>
 </section>
 
@@ -487,7 +477,7 @@
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
       <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
-        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. On a Mac, through Mandarin DAC Bridge: switch on “&lt;DAC&gt; (Bridge)”. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
+        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
         <p>Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.</p>
         <div class="how" id="how-devices" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b> and tap a device. The name you give it is what the speaker list and Now playing show. <b>Output</b> is on a renderer's page. <b>Hide / unhide</b> takes devices you don't use off the list; tap it again and tick one under Hidden to bring it back.</div></div>
@@ -559,7 +549,7 @@
         <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
       <div class="card is-new"><h3><span class="em">⏻</span>Restart and shut down<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
         <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
-        <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again (installed before v0.6.12? Run the install line once more for the icon). In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
+        <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
       <div class="card is-new"><h3><span class="em">💾</span>Backup and restore<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
         <p>Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.</p>
         <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts. <b>What a backup holds.</b> The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a <b>passphrase</b> (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.</div></div>
@@ -652,7 +642,6 @@
         <b>--network host is required.</b> Speakers are found by multicast, which does not cross
         Docker's default bridge network, and they fetch audio from this machine's own address.
         Docker Desktop for macOS and Windows has no real host networking, so this needs a Linux host.
-        On a Mac, run it without Docker: see <a href="#mac">Install on a Mac</a>.
       </div>
       <div class="note">
         <b>A USB DAC on this machine</b> needs both <code>--device /dev/snd</code> (the devices handed to the
@@ -693,115 +682,6 @@
       <p class="fine" style="font-size:12.5px;color:var(--muted);margin-top:12px">
         If Docker isn't installed: <code>dietpi-software install 162</code> on DietPi, or
         <code>curl -fsSL https://get.docker.com | sh</code> on Debian, Ubuntu and Raspberry Pi OS.</p>
-    </div>
-  </div>
-</section>
-
-<section id="mac">
-  <div class="wrap">
-    <h2>Install on a Mac</h2>
-    <p class="lead">No Docker needed: macOS 14 or newer, macOS 27 included, Apple silicon or Intel.
-      The Mac stays on, on the same network as your speakers.</p>
-    <div class="out">
-      <div class="firstrun"><ol start="1"><li><b>Open Terminal</b>: press Command-Space, type <b>Terminal</b> and press Return.</li></ol></div>
-      <div class="firstrun"><ol start="2"><li><b>Paste this line</b> and press Return.</li></ol></div>
-      <div class="codebox">
-        <button class="copy-btn" data-copy>Copy</button>
-<pre>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)&quot;</pre>
-      </div>
-      <div class="firstrun"><ol start="3"><li><b>Answer what it asks.</b> Your <b>Mac's password</b>, if asked (nothing shows as you
-        type; that's normal). Your <b>music folder</b>: a Finder window opens; click the folder your music
-        is in, on the Mac or an external drive, and click <b>Choose</b>. Where to keep the
-        <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB): <b>On this Mac</b>,
-        or <b>Choose a folder...</b> for another drive. <b>Keep awake</b>, so the music doesn't stop. <b>Allow</b> access to your Desktop folder, for the
-        Mandarin icon. And
-        <b>Allow</b> if macOS asks to let <b>mandarin-server</b> find devices on your network or open your files.
-        Installed before v0.9.0? Paste the line once more, at the Mac: it brings Mandarin up to date and starts its
-        one-program server (no Node.js any more) in place of the old one, your library and account kept.</li></ol></div>
-      <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
-        whenever you log in. On a phone, open the address Terminal shows at the end. Add or change music
-        folders any time in Settings &rarr; Music Folders.</li></ol></div>
-      <div class="note"><b>Do you have Mandarin already running on another machine?</b> Yes, then this
-        Mac doesn't need to install anything, just open the server's IP address with port
-        <code>:3500</code> in Safari and choose <b>File &rarr; Add to Dock</b>. It opens like an app, for
-        choosing music and playing it on your speakers.</div>
-      <div class="note"><b>Shut down and start again:</b> the power button at the top right of the side menu (☰)
-        &rarr; Shut down stops Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts when you log
-        in. Installed before v0.6.12? Paste the install line once more to get the icon.</div>
-      <div class="note"><b>A USB DAC (v0.9.0):</b> through
-        <a href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac">Mandarin DAC Bridge</a>, which
-        the install line offers to add (or install it later with its own line). It holds the DAC for itself,
-        switches it to each track's own rate and plays it bit-perfect, and lets Audirvana use it too. In Mandarin,
-        <b>Settings &rarr; Audio Devices</b>, switch on <b>“&lt;DAC&gt; (Bridge)”</b>: it is then a zone like a Sonos
-        room. Mandarin doesn't play to the Mac's sound devices itself (its audio engine is Linux's), so they aren't
-        listed; that will be looked at in a later build.</div>
-      <div class="note"><b>On a Mac:</b> updates come from the app (Settings &rarr; Updates); your data
-        is kept in <code>~/Mandarin/data</code>; for away from home, install the Tailscale app from the
-        Mac App Store and sign in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security
-        &rarr; Full Disk Access, click +, press Command-Shift-G, paste
-        <code>~/Mandarin/server/bin/mandarin-server</code> and click Open.</div>
-      <details class="firstrun">
-        <summary><b>Prefer to install by hand?</b></summary>
-        <div class="out" style="margin-top:14px">
-      <div class="firstrun"><ol start="1"><li><b>Install Homebrew</b> from <a href="https://brew.sh">brew.sh</a> if you don't have it, then ffmpeg and poppler.</li></ol></div>
-      <div class="codebox">
-        <button class="copy-btn" data-copy>Copy</button>
-<pre>brew install ffmpeg poppler</pre>
-      </div>
-      <div class="firstrun"><ol start="2"><li><b>Download Mandarin</b>, and its server for your Mac from the release of that version
-        (<code>osx-arm64</code> on Apple silicon, <code>osx-x64</code> on Intel).</li></ol></div>
-      <div class="codebox">
-        <button class="copy-btn" data-copy>Copy</button>
-<pre>git clone --depth 1 https://github.com/meltface-80/Mandarin.git ~/Mandarin
-cd ~/Mandarin
-V=$(sed -n &#x27;s/^ *&quot;version&quot;: *&quot;\([^&quot;]*\)&quot;.*/\1/p&#x27; package.json | head -n 1)
-mkdir -p server/bin
-curl -fL &quot;https://github.com/meltface-80/Mandarin/releases/download/v$V/mandarin-server-osx-arm64.gz&quot; | gunzip &gt; server/bin/mandarin-server
-chmod 755 server/bin/mandarin-server
-codesign --verify server/bin/mandarin-server || codesign --force --sign - server/bin/mandarin-server</pre>
-      </div>
-      <div class="firstrun"><ol start="3"><li><b>Start it with your music folder</b>: replace <code>$HOME/Music</code> with yours (an
-        external drive is under <code>/Volumes/&hellip;</code>). To get the path without typing, type
-        <code>MUSIC_DIR="</code>, drag the folder from Finder onto Terminal, then type
-        <code>" server/bin/mandarin-server</code>. Open <b>http://localhost:3500</b> and create your account.</li></ol></div>
-      <div class="codebox">
-        <button class="copy-btn" data-copy>Copy</button>
-<pre>cd ~/Mandarin
-MUSIC_DIR=&quot;$HOME/Music&quot; server/bin/mandarin-server</pre>
-      </div>
-      <div class="firstrun"><ol start="4"><li><b>Keep the Mac awake:</b> System Settings &rarr; Energy (or Battery &rarr; Options)
-        &rarr; Prevent automatic sleeping when the display is off.</li></ol></div>
-      <div class="firstrun"><ol start="5"><li><b>Start it at login</b> (optional). Stop it first (Control-C). Put the <b>same music
-        folder</b> as in step 3 where it says <code>$HOME/Music</code>, then paste it.</li></ol></div>
-      <div class="codebox">
-        <button class="copy-btn" data-copy>Copy</button>
-<pre>mkdir -p ~/Mandarin/data
-cat &gt; ~/Library/LaunchAgents/app.mandarin.server.plist &lt;&lt;PLIST
-&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
-&lt;plist version=&quot;1.0&quot;&gt;&lt;dict&gt;
-  &lt;key&gt;Label&lt;/key&gt;&lt;string&gt;app.mandarin.server&lt;/string&gt;
-  &lt;key&gt;ProgramArguments&lt;/key&gt;&lt;array&gt;&lt;string&gt;$HOME/Mandarin/server/bin/mandarin-server&lt;/string&gt;&lt;/array&gt;
-  &lt;key&gt;WorkingDirectory&lt;/key&gt;&lt;string&gt;$HOME/Mandarin&lt;/string&gt;
-  &lt;key&gt;EnvironmentVariables&lt;/key&gt;&lt;dict&gt;
-    &lt;key&gt;MANDARIN_APP_DIR&lt;/key&gt;&lt;string&gt;$HOME/Mandarin&lt;/string&gt;
-    &lt;key&gt;MUSIC_DIR&lt;/key&gt;&lt;string&gt;$HOME/Music&lt;/string&gt;
-    &lt;key&gt;PATH&lt;/key&gt;&lt;string&gt;$(brew --prefix)/bin:/usr/bin:/bin&lt;/string&gt;
-  &lt;/dict&gt;
-  &lt;key&gt;RunAtLoad&lt;/key&gt;&lt;true/&gt;
-  &lt;key&gt;KeepAlive&lt;/key&gt;&lt;true/&gt;
-  &lt;key&gt;StandardOutPath&lt;/key&gt;&lt;string&gt;$HOME/Mandarin/data/server.log&lt;/string&gt;
-  &lt;key&gt;StandardErrorPath&lt;/key&gt;&lt;string&gt;$HOME/Mandarin/data/server.log&lt;/string&gt;
-&lt;/dict&gt;&lt;/plist&gt;
-PLIST
-launchctl load ~/Library/LaunchAgents/app.mandarin.server.plist</pre>
-      </div>
-          <div class="note"><b>The MusicBrainz pack</b> needs no setup on a Mac: in Settings &rarr;
-            Library Scanner &rarr; Folder, pick any folder, an external drive (Volumes) included. Unlike
-            Docker there's no <code>/packs</code> mount. With none chosen it's kept in
-            <code>~/Mandarin/data</code>.</div>
-        </div>
-      </details>
     </div>
   </div>
 </section>

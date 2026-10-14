@@ -5,6 +5,31 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.3
+**Mac support dropped** (`v1.0.3-pull-Mac-support`): Mandarin runs on Linux, in Docker. A Mac
+can't be tested here, and a Mac's DAC playback (through Mandarin DAC Bridge) stopped on a user's
+Mac in ways that couldn't be reproduced; the Mac's CI jobs also held builds and releases up.
+
+- **Gone**: the Mac install line (`tools/mac/install.sh`), the Mac's builds in each release
+  (`mandarin-server-osx-arm64.gz`, `-osx-x64.gz`) and the release job that made them, the Mac
+  test jobs in CI, and Mandarin DAC Bridge (no longer offered, built or tested:
+  `.github/dac-bridge.sh`, `test/dac-bridge.test.js`).
+- **CI runs on a push** (and by hand) only: the pull request runs into main and the weekly run
+  existed for the Mac's tests.
+- **The server** keeps only Linux's ways: no Core Audio device list (`Local/LocalDevices.cs`), no
+  launchd login item for Shut down (`PowerRoutes.cs`; `start_again` is `docker` or `manual`), no
+  libSystem or macOS file system calls (`Program.cs`, `Scan/PosixFs.cs`), no BSD `nice`
+  (`Cpu.cs`), no Mac build or signing in an update (`Admin/Updater.cs`), Linux only in
+  `server/build.sh`. Audio Devices drops its Mac and DAC Bridge notes.
+- **A Mac install on v1.0.2** keeps working as it is. Its update from Settings finds no build for
+  it and changes nothing. To move: back up (Settings → Backup & restore), install on a Linux
+  machine with Docker, restore.
+- README and the Pages site: the Install on a Mac sections and the DAC Bridge notes removed; a
+  v1.0.3 note says the above.
+- The Mac's tests went with it (Core Audio parsing, launchd's Shut down, the engine off Linux,
+  Tailscale's engine off Linux); `test/power.test.js` now holds that a Mac's old login item gets
+  nothing of its own.
+
 ## v1.0.2
 **Optional features** (`v1.0.2-optional-features`): the wall display and Shelf each switch off
 whole, from Settings → Setup.

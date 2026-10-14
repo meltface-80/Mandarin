@@ -144,7 +144,7 @@ FEATURES = [
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
      "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. "
-     "On a Mac, through Mandarin DAC Bridge: switch on “<DAC> (Bridge)”. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
+     "Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
@@ -265,9 +265,7 @@ FEATURES = [
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
-     "On a Mac, double-click **Mandarin** on the desktop to "
-     "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
-     "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
+     "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", True,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
      "database, at home or away: to the server, or from the app to a file.",

@@ -23,7 +23,7 @@ internal static partial class Library
 {
     private static readonly string[] Never = ["/proc", "/sys", "/dev", "/run", "/etc", "/boot"];
     // At the top: the system's own folders, never music — what's left is where drives are
-    // (mnt, media, music, srv, home…). On a Mac that leaves Users and Volumes.
+    // (mnt, media, music, srv, home…).
     [GeneratedRegex(@"^(bin|sbin|lib|lib32|lib64|libx32|usr|var|opt|tmp|app|lost\+found|snap|sys|proc|dev|run|etc|boot|Applications|Library|System|private|cores|nix|sw)$|\.usr-is-merged$")]
     private static partial Regex RootHide();
     private const string ScanUnderWay = "A scan is running — try again when it's done";
