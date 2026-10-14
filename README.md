@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v1.0.3
+# Mandarin — v1.0.4
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -564,7 +564,7 @@ Albums kept on the phone as the original files or Opus 256, played without the s
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic downloads are in **Settings → Downloads** in the app.
+On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic downloads are in **Settings → Setup → Downloads** in the app.
 
 </details>
 
@@ -1059,7 +1059,7 @@ phone. The server decides this by where each request comes from, so it holds for
 an iPhone or a laptop on Tailscale can browse the library but has nothing to play to. At home
 everything is as before. Away, tracks stream as **Opus 256 kbps** by default (about a quarter
 of a CD-quality FLAC's data), made through a 64-bit float resample to Opus's 48 kHz and decoded
-on the phone by the app's own libopus; *Settings → Downloads → Stream as* in the app can send
+on the phone by the app's own libopus; *Settings → Setup → Downloads → Stream as* in the app can send
 the original files instead. Albums you've downloaded play from the phone. On a weak signal the
 track that's playing comes first: the tracks after it are fetched only once it has enough.
 
