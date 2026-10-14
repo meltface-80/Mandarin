@@ -5,6 +5,23 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.6
+**The tests in C#** (`docs/specs/tests-csharp.md`): the Node suite moves to C# file by file, and Node
+and npm leave the project after it. Nothing the server or the page does changes.
+
+- Stage T0 (`v1.0.6-tests-csharp-0-groundwork`): `test/Mandarin.Tests`, an xUnit v3 project, with
+  the Node suite's helpers in C# (`Harness/`): the server started and stopped, its options, ports of
+  its own, the fixture library, signing in by SRP, the HTTP rules (nothing off this machine, no
+  request waits for ever), Chromium over the DevTools WebSocket, and `mandarin-server score`.
+- Ported, their JavaScript files deleted: `srp` (the page's `srp.js` now run in Chromium, the
+  tests' own SRP client and the server's half, all held to the fixed vector), `version`,
+  `favourites`, `mounts`. Shown failing: the tests' SRP with its separator changed, favourites with
+  the server's newest-first order turned round.
+- CI and the release run both suites; the C# classes are dealt out to the same three parts, and a
+  failure runs once more on its own (`.github/csharp-tests.sh`).
+- `tools/quality/policy.json`: the C# tests are under the file-length gate (`test/**/*.cs`).
+- Version 1.0.6 (Android versionCode 314).
+
 ## v1.0.5
 **The page's script in parts** (`docs/specs/page-modules.md`): `public/app.js`, 19,579 lines, is
 carved into files under `public/app/`, served joined as one script.

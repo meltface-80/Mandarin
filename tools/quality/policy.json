@@ -3,6 +3,7 @@
     "public/**/*.js",
     "tools/**/*.js",
     "test/**/*.js",
+    "test/**/*.cs",
     "server/**/*.cs",
     "engine/**/*.cs",
     "android/**/*.kt",

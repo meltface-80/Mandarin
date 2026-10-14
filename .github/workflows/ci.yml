@@ -114,6 +114,13 @@ jobs:
           npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log" && exit 0
           .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
           .github/retry-failed.sh "$RUNNER_TEMP/tests.log"
+      # The suite in C# (test/Mandarin.Tests, v1.0.6), taking over from the Node
+      # suite above file by file: its classes dealt out to the same three parts,
+      # a failure run once more on its own (.github/csharp-tests.sh).
+      - name: Tests in C# (test/Mandarin.Tests)
+        env:
+          TEST_SHARD: ${{ matrix.shard }}
+        run: .github/csharp-tests.sh "$TEST_SHARD"
 
   docker:
     name: Build image

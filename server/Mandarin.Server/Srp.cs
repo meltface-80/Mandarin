@@ -1,6 +1,6 @@
 // Srp.cs — the server's half of SRP-6a, as public/srp.js does it (RFC 5054's
 // 2048-bit group, SHA-256). The page, the Android app (Srp.kt) and this must
-// agree to the byte: test/srp.test.js checks this one against
+// agree to the byte: test/Mandarin.Tests/SrpTests.cs checks this one against
 // test/srp-vector.json through `mandarin-server --srp-vector`.
 //
 //   B = k·v + g^b     k = H(N | PAD(g))     u = H(PAD(A) | PAD(B))

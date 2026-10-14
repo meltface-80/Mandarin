@@ -24,7 +24,7 @@ if (args.Length == 1 && args[0] == "--version")
 
 // `mandarin-server --srp-vector test/srp-vector.json`: the server's half of
 // SRP against the fixed example the page and the Android app are checked
-// against too (test/srp.test.js).
+// against too (test/Mandarin.Tests/SrpTests.cs).
 if (args.Length == 2 && args[0] == "--srp-vector")
 {
     var v = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(args[1]))!;
