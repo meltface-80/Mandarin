@@ -30,7 +30,7 @@ const { start, built, BIN } = require("./server");
 
 const ROOT = path.join(__dirname, "..");
 // The program's build for this machine, as Admin/Updater.cs names it (release.yml's assets).
-const sys = { linux: "linux", darwin: "osx" }[process.platform];
+const sys = process.platform === "linux" ? "linux" : null;
 const build = sys && ["x64", "arm64"].includes(process.arch) ? `${sys}-${process.arch}` : null;
 const skip = built() || (!build && "no C# server is built for this machine");
 
@@ -180,7 +180,7 @@ test("the in-app update with no Node server: refused with nothing changed, then 
   assert.deepEqual([r.body.ok, r.body.status.apply], [true, { phase: "restarting", error: null, version: "9.9.9" }]);
   const ended = await until(() => srv.exited(), 30000, "for the server to start again from the new file");
   assert.deepEqual(ended, { code: 3, signal: null }, "the stand-in's own leaving, in the same process");
-  // The file as the program knows itself: its real path (a Mac's temporary folder is /var, a link to /private/var).
+  // The file as the program knows itself: its real path (a temporary folder may be reached through a link).
   assert.equal(fs.readFileSync(i.marker, "utf8"), `${fs.realpathSync(i.bin)}|0|\n`, "started from its own file, with the same (no) arguments");
   assert.deepEqual(fs.readFileSync(i.bin), prog, "the new program in place");
   assert.equal(fs.readFileSync(i.bin + ".version", "utf8"), "9.9.9\n");

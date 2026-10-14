@@ -2,8 +2,7 @@
 /*
  * A sound device on the computer Mandarin runs on (v0.6.18): a USB DAC, the
  * built-in speakers.
- *   - the devices are found: ALSA cards (a USB DAC's own rates and depths),
- *     a Mac's Core Audio outputs;
+ *   - the devices are found: ALSA cards (a USB DAC's own rates and depths);
  *   - the volume is on an audio taper (untouched at 100%);
  *   - end to end: off until turned on, then a zone; an album plays to it,
  *     the next track follows, the volume is kept.
@@ -67,7 +66,7 @@ function fakeAsound() {
   return { root, dev };
 }
 
-test("this computer's sound devices: ALSA cards, a Mac's outputs", { skip: noBin }, () => {
+test("this computer's sound devices: ALSA cards", { skip: noBin }, () => {
   const { root, dev } = fakeAsound();
   const { devices, hidden } = local({ linux: [root, dev] });
   assert.equal(hidden, 1, "a card /dev/snd doesn't let us open is counted, not listed");
@@ -91,14 +90,6 @@ test("this computer's sound devices: ALSA cards, a Mac's outputs", { skip: noBin
   assert.deepEqual(chips.bits.filter(b => b.on).map(b => b.n), [16, 24, 32]);
   const hda = effective(Object.assign({ playable: true, caps: devices[0].caps }, devices[0]));
   assert.deepEqual(hda.rates.filter(r => r.on).map(r => r.hz), [44100, 48000]);
-
-  const mac = local({ mac: JSON.stringify({ SPAudioDataType: [{ _items: [
-    { _name: "MacBook Pro Microphone", coreaudio_device_input: 1, coreaudio_device_srate: 48000 },
-    { _name: "MacBook Pro Speakers", coreaudio_device_output: 2, coreaudio_device_srate: 48000, coreaudio_device_transport: "coreaudio_device_type_builtin", coreaudio_default_audio_output_device: "spaudio_yes" },
-    { _name: "Topping E30", coreaudio_device_output: 2, coreaudio_device_srate: 96000, coreaudio_device_transport: "coreaudio_device_type_usb", coreaudio_device_manufacturer: "Topping" }
-  ] }] }) }).mac;
-  assert.deepEqual(mac.map(d => [d.network_name, d.model, d.caps.advertised.rates[0]]), [["MacBook Pro Speakers", "Built-in", 48000], ["Topping E30", "USB audio", 96000]]);
-  assert.equal(mac[1].location, "coreaudio:Topping E30");
 });
 
 test("the volume is an audio taper", { skip: noBin }, () => {
@@ -153,7 +144,7 @@ async function dacPlayed(t) {
   return { r, api, ctx, DAC, out };
 }
 
-test("end to end: a sound device on this computer is a zone; an album plays to it", { skip: skip || (process.platform === "darwin" && "a Mac's sound devices play through Mandarin DAC Bridge: Mandarin's audio engine plays through ALSA"), timeout: 120000 }, async (t) => {
+test("end to end: a sound device on this computer is a zone; an album plays to it", { skip, timeout: 120000 }, async (t) => {
   const { r, api, ctx, DAC, out } = await dacPlayed(t);
   assert.equal(r.ok, true, JSON.stringify(r));
   const s1 = await until(async () => { const s = (await api("zone-state?zone=" + DAC.id)).zone; return s && s.state === "playing" && s.now_playing && s; });
@@ -170,11 +161,4 @@ test("end to end: a sound device on this computer is a zone; an album plays to i
   const kept = () => JSON.parse(ctx.db.raw.prepare("SELECT settings FROM audio_devices WHERE id = ?").get(DAC.id).settings || "{}").local_volume;
   await until(() => kept() === 30).catch(() => null);
   assert.equal(kept(), 30, "the volume is kept");
-});
-
-// On a Mac (v0.8.49 on) a sound device of this computer can't be played: Mandarin's audio engine plays
-// through ALSA (docs/specs/csharp-migration.md, stage 6 part 4); a Mac's DAC plays through Mandarin DAC Bridge.
-test("on a Mac, playing to a sound device of this computer is refused in words", { skip: skip || (process.platform !== "darwin" && "a Mac's own"), timeout: 120000 }, async (t) => {
-  const { r } = await dacPlayed(t);
-  assert.deepEqual([r.status, r.error], [409, "Test DAC can't be played from this server: Mandarin's audio engine isn't here"], JSON.stringify(r));
 });

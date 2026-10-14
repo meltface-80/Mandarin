@@ -17897,8 +17897,8 @@ initServiceBrowser({
     // can't be searched from there, so Look again goes.
     if (rescan) rescan.classList.toggle("hidden", away);
     if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-    // Sound devices on the server's computer that it can't open (v0.6.18); a Mac's, played through Mandarin DAC Bridge until one is here (v0.9.0).
-    const localNote = away || !local || local.off ? "" : local.platform === "darwin" ? (devices.some(d => / \(Bridge\)$/.test(d.name)) ? "" : 'To play through a USB DAC plugged into the Mac Mandarin runs on, install <a id="devices-bridge" href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac" target="_blank" rel="noopener">Mandarin DAC Bridge</a>. Each DAC then shows here as “… (Bridge)”.')
+    // Sound devices on the server's computer that it can't open (v0.6.18).
+    const localNote = away || !local || local.off ? ""
       : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
         : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
     if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note">' + localNote + "</div>" : ""); paintHideTools(); return; }
@@ -18069,9 +18069,7 @@ initServiceBrowser({
       : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
     if (d.kind === "sonos") html += '<div class="settings-note">Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
     if (d.kind === "phone") html += '<div class="settings-note">At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
-    if (d.kind === "local") html += '<div class="settings-note">' + (/^This Mac/.test(d.found_by || "")
-      ? "The Mac plays at the rate set for this device in Audio MIDI Setup, converting anything else. On here: that rate, 44.1 and 48 kHz, unless you tick others. DSD goes as PCM."
-      : "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.") + "</div>";
+    if (d.kind === "local") html += '<div class="settings-note">Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.</div>';
     if (d.profile && d.profile.notes) html += '<div class="settings-note">' + esc(d.profile.notes) + "</div>";
     html += "</div>";
 
@@ -19244,9 +19242,9 @@ initServiceBrowser({
 /* ------------------------------------------------------------------ */
 /*  Power (v0.6.12): the button in the side menu's top-right corner    */
 /*  Restart and Shut down. Restart stops the server and starts it      */
-/*  again; Shut down stops it until it's started again (on a Mac, from */
-/*  the Mandarin icon). A screen over the page says what's happening,  */
-/*  and reloads the page when the server answers again.                */
+/*  again; Shut down stops it until it's started again. A screen over  */
+/*  the page says what's happening, and reloads the page when the      */
+/*  server answers again.                                              */
 /* ------------------------------------------------------------------ */
 (() => {
   const openBtn    = document.getElementById("power-open");
@@ -19260,8 +19258,7 @@ initServiceBrowser({
   let info = null;
 
   const START_AGAIN = {
-    icon: "To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.",
-    manual: "To start it again, start it the way it was started (for example npm start).",
+    manual: "To start it again, start it the way it was started.",
     docker: ""
   };
 

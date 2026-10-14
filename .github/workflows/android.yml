@@ -183,7 +183,7 @@ jobs:
       # Without the signing secrets the published APK (a release build) is
       # signed with the committed key: the same every build, so updates
       # install in place.
-      # CI on this commit, passed: every test, the Mac's included (v0.8.32), as
+      # CI on this commit, passed: every test (v0.8.32), as
       # the release and the image wait for it (.github/wait-for-ci.sh). Without
       # this the app reached phones some 15 minutes before the server it goes
       # with, and before that version's tests had finished.

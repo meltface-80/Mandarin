@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .github/wait-for-ci.sh <commit>: waits for CI (ci.yml), run on a push of that
-# commit, to finish, and succeeds only if every run of it passed: Linux, the
-# image and the Mac's tests alike. The release and the image wait on it
+# commit, to finish, and succeeds only if every run of it passed: the tests and
+# the image alike. The release and the image wait on it
 # (v0.8.31), so nothing reaches anyone before every test has passed.
 #
 # CI red, then re-run to green: re-run the failed job here too ("Re-run failed

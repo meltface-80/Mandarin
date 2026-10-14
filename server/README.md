@@ -37,16 +37,14 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
 - **The background work** (`Jobs.cs`): the library scans, the identification scan, the
   MusicBrainz pack, loudness, record labels, release days, the taste work, Tailscale, Qobuz's and
   Tidal's import and accounts, the in-app update, the processor split and playback.
-- **Updates** (`Admin/Updater.cs`): each release carries this program for `linux-x64`,
-  `linux-arm64`, `osx-arm64` and `osx-x64`, with their SHA-256 sums (`release.yml`). An update from
+- **Updates** (`Admin/Updater.cs`): each release carries this program for `linux-x64` and
+  `linux-arm64`, with their SHA-256 sums (`release.yml`). An update from
   Settings fetches the one for this machine, checks its sum and that it says the new version
   (`mandarin-server --version`), puts it in place of the running one, lays the release's page in,
   and starts again from the new file in the same process (`execv`, `Front.StartAgain`).
   `test/update.test.js`, `test/update-alone.test.js`.
-- **On a Mac** (v0.8.29): built on GitHub's Mac runners (signed ad hoc, as macOS needs) and started
-  by launchd (`tools/mac/install.sh`). The scan's file system calls take macOS's forms
-  (`Scan/PosixFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has there. CI runs the whole
-  suite on a Mac runner.
+- **Linux only** since v1.0.3: v0.8.29 to v1.0.2 ran on a Mac too (its installer, its builds in the
+  release, its file system calls, launchd's login item, a Mac runner in CI); all of it is gone.
 - **Subcommands:** `--version`, `--health` (the image's health check), `config`,
   `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,
   `tags <file>…`, `waveform <file>`, `score` (the rules asked directly, for the tests),
@@ -118,10 +116,10 @@ it stood in front of until v0.9.0.
 
 ## Building and testing
 
-`./build.sh` builds `server/bin/mandarin-server` for the machine it runs on (Linux or a Mac; `RID=`
-for another): one self-contained file, no .NET needed where it runs (needs the .NET 10 SDK to build).
+`./build.sh` builds `server/bin/mandarin-server` for the Linux machine it runs on (`RID=linux-arm64`
+for the other): one self-contained file, no .NET needed where it runs (needs the .NET 10 SDK to build).
 
 `npm test` runs the whole suite (JavaScript, `node:test`) against the program: each test starts it
 on a port of its own (`test/server.js`). The parity suites hold it to the Node server's answers,
 kept in `test/golden/` from when the Node server was here (`test/golden.js`). CI runs the suite on
-Linux and on a Mac; both must pass.
+Linux; it must pass.

@@ -8,7 +8,7 @@
  * playback's second core, held a while after it ends, then given back, the
  * threads moving each time. Run for real where Linux's taskset is, the
  * program started on as many cores as each case wants (taskset -c); where
- * it isn't (a Mac), nothing is split, and a DSP conversion is still told.
+ * it isn't, nothing is split, and a DSP conversion is still told.
  */
 const ports = require("./ports");
 const test = require("node:test");
