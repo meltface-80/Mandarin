@@ -43,11 +43,23 @@ const rules = {
   }
 };
 
+// The page's script, carved into parts joined into one (docs/specs/page-modules.md): what a part
+// declares at its top, the others read. ESLint reads each part alone, so it is told every part's
+// names; tools/quality/page-names.js holds the join itself (no name twice, none the browser's, each
+// one read somewhere, nothing read that no part declares). A name a part declares for the others is
+// unused in that part on purpose: no-unused-vars looks inside functions only there.
+const parts = {
+  files: ["public/app.js", "public/app/**/*.js"],
+  languageOptions: { globals: require("../quality/page-names").partNames() },
+  rules: { "no-unused-vars": ["error", { vars: "local", args: "none", caughtErrors: "none", varsIgnorePattern: "^_" }] }
+};
+
 module.exports = [
   { ignores: ["node_modules/**", "**/bin/**", "**/obj/**", "android/**", "dist/**", "docs/**", "data/**", "https:/**"] },
   js.configs.recommended,
   node,
   pages,
   shared,
-  rules
+  rules,
+  parts
 ];
