@@ -31,6 +31,12 @@ and npm leave the project after it. Nothing the server or the page does changes.
   commands run to its end), `Bytes` (an answer as bytes) and a client that asks as a browser does
   (compressed answers accepted), and reads numbers a test wrote itself. Shown failing: the
   configuration's mass-removal default changed.
+- Stage T1c (`v1.0.6-tests-csharp-3-core`): 11 more: `engine`, `power-csharp`, `cpu-alone`,
+  `stream`, `security`, `backup-sealed`, `local-output`, `dsp` (the page's `biquad.js` run in
+  Chromium), `scans-csharp`, `update-alone`, `tailscale-builtin`. The Tailscale engine the tests
+  stood in for with a Node script is `test/StandIns`, a small C# program the tests start as the
+  server would start the real one; the tests' own web servers can serve HTTPS. Shown failing: the
+  page's frame guard loosened.
 - Version 1.0.6 (Android versionCode 314).
 
 ## v1.0.5

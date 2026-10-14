@@ -11,7 +11,7 @@ import kotlin.math.log10
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/** The same checks as the server's test/dsp.test.js, on the phone's copy of the maths. */
+/** The same checks as the server's test/Mandarin.Tests/DspTests.cs, on the phone's copy of the maths. */
 class DspTest {
     private val fs = 48000.0
     private fun at(bands: List<Dsp.Band>, f: Double) = Dsp.responseDb(bands, fs, f)

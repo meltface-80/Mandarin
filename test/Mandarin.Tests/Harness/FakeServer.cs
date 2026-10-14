@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -23,16 +24,19 @@ public sealed class FakeServer : IAsyncDisposable
     /// <summary>The port it listens on.</summary>
     public int Port { get; }
 
-    private FakeServer(WebApplication app, string host, int port) { this.app = app; Port = port; Base = $"http://{host}:{port}"; }
+    private FakeServer(WebApplication app, string host, int port, string scheme) { this.app = app; Port = port; Base = $"{scheme}://{host}:{port}"; }
 
-    /// <summary>Started on <paramref name="host"/>:<paramref name="port"/> (0: any), answering with <paramref name="handle"/>.</summary>
-    public static async Task<FakeServer> Start(Func<HttpContext, Task> handle, string host = "127.0.0.1", int port = 0)
+    /// <summary>
+    /// Started on <paramref name="host"/>:<paramref name="port"/> (0: any), answering with <paramref name="handle"/>;
+    /// over HTTPS with <paramref name="cert"/> when one is given ("https://host:port").
+    /// </summary>
+    public static async Task<FakeServer> Start(Func<HttpContext, Task> handle, string host = "127.0.0.1", int port = 0, X509Certificate2? cert = null)
     {
         var b = WebApplication.CreateSlimBuilder();
         b.Logging.ClearProviders();
         b.WebHost.ConfigureKestrel(k =>
         {
-            k.Listen(IPAddress.Parse(host), port);
+            k.Listen(IPAddress.Parse(host), port, l => { if (cert != null) l.UseHttps(cert); });
             k.AllowSynchronousIO = true;
             k.Limits.MaxRequestBodySize = null;
         });
@@ -42,7 +46,7 @@ public sealed class FakeServer : IAsyncDisposable
         await app.StartAsync();
         var addr = app.Urls.First();
         var bound = new Uri(addr.Replace("[::]", host, StringComparison.Ordinal)).Port;
-        return new FakeServer(app, host, bound);
+        return new FakeServer(app, host, bound, cert != null ? "https" : "http");
     }
 
     /// <summary>Stopped, its connections cut at once.</summary>

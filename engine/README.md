@@ -16,4 +16,4 @@ one JSON object a line; `Mandarin.Audio/Program.cs` lists the commands and event
 
 Build it with `./build.sh` (needs the .NET 10 SDK and clang): the program lands in
 `engine/bin/mandarin-audio`, where the server looks first. `RID=linux-arm64 ./build.sh` builds
-for another platform. The tests are `test/engine.test.js` in the server's suite.
+for another platform. The tests are `test/Mandarin.Tests/EngineTests.cs` in the server's suite.

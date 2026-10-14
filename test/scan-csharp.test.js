@@ -19,7 +19,7 @@
  * music-metadata) and an album's as its tracks' sum; ffmpeg's name in the
  * tags it writes; times of the scan as "<now>". The emptied folder is filled
  * again before the regroup (its forgetting, Settings' and the C# server's own
- * now, is held in test/scans-csharp.test.js).
+ * now, is held in test/Mandarin.Tests/ScansCsharpTests.cs).
  */
 const test = require("node:test");
 const assert = require("node:assert");
