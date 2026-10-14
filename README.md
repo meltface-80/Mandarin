@@ -28,11 +28,22 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.0.3: Mandarin runs on Linux, in Docker.** Mac support is dropped: no Mac install
-line, no Mac build in the release, and Mandarin DAC Bridge is no longer offered. v1.0.2 is the last
-version for a Mac. A Mac install keeps working as it is, but its update from Settings finds no
-build for it and changes nothing. To carry on, make a backup (Settings → Backup & restore), install Mandarin
-on a Linux machine with Docker ([Install](#install-docker)) and restore it there.
+**New in v1.0.4** (since v1.0.0)
+* **Mandarin runs on Linux, in Docker (v1.0.3).** Mac support is dropped: no Mac install line, no
+  Mac build in the release, and Mandarin DAC Bridge is no longer offered. v1.0.2 is the last version
+  for a Mac. A Mac install keeps working as it is, but its update from Settings finds no build for
+  it and changes nothing. To carry on, make a backup (Settings → Backup & restore), install Mandarin
+  on a Linux machine with Docker ([Install](#install-docker)) and restore it there.
+* **The wall display and Shelf switch off whole (v1.0.2)**, each from its own page in
+  **Settings → Setup**. Off, its page says so and nothing of it runs or is asked for. Shelf is off
+  on a new install; one updated from before v1.0.2 keeps it on.
+* **The playing track's disc (v1.0.1):** on an album's page a small disc turns between the track's
+  number and its name while it plays.
+* **Shelf's order (v1.0.1):** tap the order's name above the shelf to switch between **A → Z by
+  artist** and **A → Z by album** (by title), numbers before letters either way. The carousel look
+  is gone.
+* **Downloads in Setup (v1.0.4):** the Android app's Downloads page is in **Settings → Setup**,
+  before Away from home; it had fallen to the foot of the Settings list, under Updates.
 
 **New in v1.0.0** (since v0.9.0)
 * **A layout for phones and tablets**, either way round, in the browser, the iPhone home-screen
