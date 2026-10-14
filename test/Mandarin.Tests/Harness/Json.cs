@@ -12,7 +12,8 @@ public static class JsonExtensions
     public static string? Str(this JsonNode? n, string key) => n?[key] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
 
     /// <summary>The number at <paramref name="key"/>, or null.</summary>
-    public static double? Num(this JsonNode? n, string key) => n?[key] is JsonValue v && v.TryGetValue<double>(out var d) ? d : null;
+    public static double? Num(this JsonNode? n, string key) =>
+        n?[key] is JsonValue v ? v.TryGetValue<double>(out var d) ? d : v.TryGetValue<long>(out var l) ? l : v.TryGetValue<int>(out var i) ? i : null : null;
 
     /// <summary>The boolean at <paramref name="key"/>, or null.</summary>
     public static bool? Bool(this JsonNode? n, string key) => n?[key] is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;

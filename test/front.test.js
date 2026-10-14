@@ -103,7 +103,7 @@
  *     here; the job list in the v0.8.19 one);
  *   - v0.8.48 (stage 5, everything but playback): the database made and brought up to date by C#
  *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
- *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
+ *     and /api/health by C# (test/Mandarin.Tests/PagesCsharpTests.cs; the first test here).
  *   - v0.8.50 (stage 7): the program alone, no Node server anywhere: every pin here is held on it
  *     (test/server.js); the Node server's code went in stage 7 part 6.
  */
@@ -193,7 +193,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
-    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/pages-csharp.test.js).
+    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/Mandarin.Tests/PagesCsharpTests.cs).
     for (const p of ["/login", "/display", "/library"]) {
       x = await by(p, { headers: H, redirect: "manual" });
       assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");

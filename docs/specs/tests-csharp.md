@@ -45,7 +45,8 @@ or the page does changes. The page itself stays HTML, CSS and JavaScript.
 |---|---|---|
 | T0 | The project, the harness, CI; SRP, the version check, favourites, mounts | `v1.0.6-tests-csharp-0-groundwork` |
 | T1a | 17 files that need no fakes: cpu, db, http-body, listen-later, music-folders, power, queue-moves, soap-retry, topology, version-compare, watch, waveform, home-rows, relay, case, identify-verdicts, page-script | `v1.0.6-tests-csharp-1-core` |
-| T1b… | The rest of the files in batches, the fakes (Sonos household, renderers, services) as they are needed, the browser tests | `v1.0.6-tests-csharp-<n>-<what>` |
+| T1b | 10 more of the server alone: config-csharp, identify-pack, phone-resume, library-kept, pages-csharp, downloads, folder-names, playlists, nothing-behind, album-folders | `v1.0.6-tests-csharp-2-core` |
+| T1c… | The rest of the files in batches, the fakes (Sonos household, renderers, services) as they are needed, the browser tests | `v1.0.6-tests-csharp-<n>-<what>` |
 | Tools | The quality gates, the API map and the MusicBrainz pack builder in C#; Node and npm out of CI and the repository | `v1.0.6-tools-csharp` |
 
 Each stage is a pull request into `migration`, squash-merged when green.

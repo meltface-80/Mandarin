@@ -59,7 +59,7 @@ it stood in front of until v0.9.0.
 |---|---|
 | The port, who is asking, the Node server's start and stop | C# (v0.8.1) |
 | Signing in, signed-in devices, the gate (`Auth.cs`, `Srp.cs`) | C# (v0.8.2); streams and covers still gated by Node |
-| The page and its files, `public/` (`Pages.cs`) | C# (v0.8.3); Shelf's page, `/shelf`, C#'s since v0.8.28; the sign-in page (`/login`), the wall display's (`/display`), the page for any deep link and a folder's redirect C#'s since v0.8.48, held to the Node server's (`test/pages-csharp.test.js`) |
+| The page and its files, `public/` (`Pages.cs`) | C# (v0.8.3); Shelf's page, `/shelf`, C#'s since v0.8.28; the sign-in page (`/login`), the wall display's (`/display`), the page for any deep link and a folder's redirect C#'s since v0.8.48, held to the Node server's (`test/Mandarin.Tests/PagesCsharpTests.cs`) |
 | `/api/health` (open: Docker's health check), field for field (`HealthRoutes.cs`) | C# (v0.8.48): the rooms and how the C# server's own update went as the Node server says them with its state (`/internal/library`); the library's count, ffmpeg, the conversions and the audio engine here |
 | Reading the library: the Library wall and its Focus sheet, search, artists, an album's page, genres, decades, the random wall, Favourites, Listen later (`Library.cs`, `LibraryRoutes.cs`, `Names.cs`) | C# (v0.8.4); scans, edits, hearts, labels, Home's rows and a streamed album's page still Node's |
 | Which albums the library holds, as a mark on every answer to a signed-in device (`X-Mandarin-Library`) and at `/api/library/mark`: the page reads its rows again when it moves, so albums a scan adds show up by themselves (`Library.cs`, `Program.cs`) | C# (v0.8.43) |

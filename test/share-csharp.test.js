@@ -10,7 +10,7 @@
  * one, header fields, a stored block, a bad checksum) and contents that
  * aren't a playlist. Through `mandarin-server score`; skipped where the C#
  * server isn't built. The routes run against the C# server in
- * test/playlists.test.js.
+ * test/Mandarin.Tests/PlaylistsTests.cs.
  *
  * Since v0.8.50 (stage 7 part 5) the Node server's answers are kept
  * (test/golden.js's answers(), test/golden/share-csharp.json), made
