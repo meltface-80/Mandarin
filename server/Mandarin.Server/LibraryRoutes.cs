@@ -37,6 +37,7 @@ internal static partial class Library
         ["/api/home/history"] = History,
         ["/api/home/unplayed"] = Unplayed,
         ["/api/settings/display"] = DisplaySettings,
+        ["/api/settings/shelf"] = ShelfSettings,
         ["/api/settings/smart-picks"] = SmartPicksSettings,
         ["/api/settings/home-rows"] = HomeRowsSettings,
         ["/api/smart-playlists"] = SmartPlaylists,
@@ -87,6 +88,7 @@ internal static partial class Library
     private static readonly Dictionary<string, Handler> Posts = new()
     {
         ["/api/settings/display"] = SaveDisplaySettings,
+        ["/api/settings/shelf"] = SaveShelfSettings,
         ["/api/settings/smart-picks"] = SaveSmartPicksSettings,
         ["/api/settings/home-rows"] = SaveHomeRows,
         ["/api/user-playlists"] = SavePlaylist,

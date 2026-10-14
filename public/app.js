@@ -8436,7 +8436,7 @@ window.__afterStart = (fn) => {
       trackWrap.classList.remove("hidden");
       trackList.forEach((t, idx) => {
         const li = document.createElement("li");
-        li.className = "t-row";
+        li.className = "t-row"; li.dataset.trackId = t.track_id == null ? "" : String(t.track_id);   // nowdisc.js finds the playing track by it
         // Same two-line .t-text structure as the cached render above — the
         // .t-actions row stays a SIBLING of .t-text so the is-open flex-wrap
         // still drops it onto its own full-width line.
@@ -17182,14 +17182,14 @@ initServiceBrowser({
 })();
 
 /* ------------------------------------------------------------------ */
-/*  Android app only: Settings → Downloads.                            */
+/*  Android app only: Settings → Setup → Downloads (v1.0.4).           */
 /*  A settings pane like the others — same header, back chevron, rows, */
 /*  switches and theme — with the app supplying the data and applying  */
 /*  the settings (MusicdDownloads). Browsers never get the tile.       */
 /* ------------------------------------------------------------------ */
 (function androidDownloadsPane() {
   const dl = window.MusicdDownloads;
-  const nav = document.querySelector(".settings-nav");
+  const nav = document.querySelector('.settings-view[data-pane="setup"] .settings-nav');
   const sheet = document.querySelector("#settings-overlay .settings-sheet");
   if (!dl || !nav || !sheet) return;
 
@@ -17198,13 +17198,13 @@ initServiceBrowser({
   const json = (f, fallback) => { try { return JSON.parse(f()) || fallback; } catch (e) { return fallback; } };
   const has = (name) => typeof dl[name] === "function";
 
-  // The tile, after Audio Devices (just before Wall Display), v0.6.21.
+  // The tile, in Setup before Away from home (v1.0.4; once before Wall Display, in the Settings list).
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "settings-nav-item";
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
-  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="display"]'));
+  nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="away"]'));
 
   // An app from before this pane existed: its own screen, as it was.
   if (!has("settings")) { tile.addEventListener("click", () => dl.open()); return; }
@@ -17212,8 +17212,8 @@ initServiceBrowser({
 
   const pane = document.createElement("div");
   pane.className = "settings-view settings-pane hidden";
-  pane.setAttribute("data-view", "pane");
-  pane.setAttribute("data-pane", "downloads");
+  // A page of Setup's: Back goes there, as its other pages' do.
+  for (const [k, v] of [["data-view", "pane"], ["data-pane", "downloads"], ["data-parent", "setup"]]) pane.setAttribute(k, v);
   sheet.appendChild(pane);
 
   const caret = '<svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
@@ -17897,8 +17897,8 @@ initServiceBrowser({
     // can't be searched from there, so Look again goes.
     if (rescan) rescan.classList.toggle("hidden", away);
     if (away && !devices.length) { list.innerHTML = '<div class="settings-note">Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-    // Sound devices on the server's computer that it can't open (v0.6.18); a Mac's, played through Mandarin DAC Bridge until one is here (v0.9.0).
-    const localNote = away || !local || local.off ? "" : local.platform === "darwin" ? (devices.some(d => / \(Bridge\)$/.test(d.name)) ? "" : 'To play through a USB DAC plugged into the Mac Mandarin runs on, install <a id="devices-bridge" href="https://github.com/meltface-80/Mandarin-DAC-Bridge#install-on-a-mac" target="_blank" rel="noopener">Mandarin DAC Bridge</a>. Each DAC then shows here as “… (Bridge)”.')
+    // Sound devices on the server's computer that it can't open (v0.6.18).
+    const localNote = away || !local || local.off ? ""
       : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
         : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
     if (!devices.length) { list.innerHTML = '<div class="settings-note">' + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note">' + localNote + "</div>" : ""); paintHideTools(); return; }
@@ -18069,9 +18069,7 @@ initServiceBrowser({
       : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
     if (d.kind === "sonos") html += '<div class="settings-note">Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
     if (d.kind === "phone") html += '<div class="settings-note">At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
-    if (d.kind === "local") html += '<div class="settings-note">' + (/^This Mac/.test(d.found_by || "")
-      ? "The Mac plays at the rate set for this device in Audio MIDI Setup, converting anything else. On here: that rate, 44.1 and 48 kHz, unless you tick others. DSD goes as PCM."
-      : "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.") + "</div>";
+    if (d.kind === "local") html += '<div class="settings-note">Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.</div>';
     if (d.profile && d.profile.notes) html += '<div class="settings-note">' + esc(d.profile.notes) + "</div>";
     html += "</div>";
 
@@ -19244,9 +19242,9 @@ initServiceBrowser({
 /* ------------------------------------------------------------------ */
 /*  Power (v0.6.12): the button in the side menu's top-right corner    */
 /*  Restart and Shut down. Restart stops the server and starts it      */
-/*  again; Shut down stops it until it's started again (on a Mac, from */
-/*  the Mandarin icon). A screen over the page says what's happening,  */
-/*  and reloads the page when the server answers again.                */
+/*  again; Shut down stops it until it's started again. A screen over  */
+/*  the page says what's happening, and reloads the page when the      */
+/*  server answers again.                                              */
 /* ------------------------------------------------------------------ */
 (() => {
   const openBtn    = document.getElementById("power-open");
@@ -19260,8 +19258,7 @@ initServiceBrowser({
   let info = null;
 
   const START_AGAIN = {
-    icon: "To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.",
-    manual: "To start it again, start it the way it was started (for example npm start).",
+    manual: "To start it again, start it the way it was started.",
     docker: ""
   };
 

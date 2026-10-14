@@ -5,6 +5,98 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.4
+**Downloads in Setup** (`v1.0.4-downloads-in-setup`): the Android app's Downloads page is in
+Settings → Setup, before Away from home.
+
+- It was placed before Wall Display in the Settings list; when v1.0.2 moved Wall Display into
+  Setup, it fell to the foot of the list, under Updates. Now it is Setup's, and Back from it goes
+  to Setup, as its other pages' do (`public/app.js`).
+- The app's own pointer (Downloaded albums: "Download settings: Settings → Setup → Downloads."),
+  README and the Pages site say where it is now.
+- `test/downloads-tile.test.js` (new): with the app's bridge stood in, Downloads is in Setup before
+  Away from home and not in the Settings list, opens its page, and Back goes to Setup; a browser
+  has none. Shown failing on v1.0.3's page (Downloads after Updates).
+
+## v1.0.3
+**Mac support dropped** (`v1.0.3-pull-Mac-support`): Mandarin runs on Linux, in Docker. A Mac
+can't be tested here, and a Mac's DAC playback (through Mandarin DAC Bridge) stopped on a user's
+Mac in ways that couldn't be reproduced; the Mac's CI jobs also held builds and releases up.
+
+- **Gone**: the Mac install line (`tools/mac/install.sh`), the Mac's builds in each release
+  (`mandarin-server-osx-arm64.gz`, `-osx-x64.gz`) and the release job that made them, the Mac
+  test jobs in CI, and Mandarin DAC Bridge (no longer offered, built or tested:
+  `.github/dac-bridge.sh`, `test/dac-bridge.test.js`).
+- **CI runs on a push** (and by hand) only: the pull request runs into main and the weekly run
+  existed for the Mac's tests.
+- **The server** keeps only Linux's ways: no Core Audio device list (`Local/LocalDevices.cs`), no
+  launchd login item for Shut down (`PowerRoutes.cs`; `start_again` is `docker` or `manual`), no
+  libSystem or macOS file system calls (`Program.cs`, `Scan/PosixFs.cs`), no BSD `nice`
+  (`Cpu.cs`), no Mac build or signing in an update (`Admin/Updater.cs`), Linux only in
+  `server/build.sh`. Audio Devices drops its Mac and DAC Bridge notes.
+- **A Mac install on v1.0.2** keeps working as it is. Its update from Settings finds no build for
+  it and changes nothing. To move: back up (Settings → Backup & restore), install on a Linux
+  machine with Docker, restore.
+- README and the Pages site: the Install on a Mac sections and the DAC Bridge notes removed; a
+  v1.0.3 note says the above.
+- The Mac's tests went with it (Core Audio parsing, launchd's Shut down, the engine off Linux,
+  Tailscale's engine off Linux); `test/power.test.js` now holds that a Mac's old login item gets
+  nothing of its own.
+
+## v1.0.2
+**Optional features** (`v1.0.2-optional-features`): the wall display and Shelf each switch off
+whole, from Settings → Setup.
+
+- **Settings → Setup → Wall Display**: the wall display's page moved from the Settings list into
+  Setup (Back goes to Setup). On by default, as before.
+- **Settings → Setup → Shelf** (new): Shelf's switch (`/api/settings/shelf`, `shelfEnabled`,
+  carried in a backup's settings). **Off on a new install**: written off when the database is
+  first made (`Features.NewInstall`). An install from before v1.0.2 has no setting and keeps Shelf
+  on, as it was.
+- **Off is off** (`server/Mandarin.Server/Features.cs`, new). Neither part had work of its own in
+  the background; what they cost is what their screens ask for. Switched off:
+  - `/display` and `/shelf` are a page saying so (`public/display-off.html`,
+    `public/shelf-off.html`) with no script, so a screen left open on it asks for nothing more.
+    Before, a wall display switched off kept asking for its setting every minute;
+  - what only they ask for is refused: the wall display's content (as before) and Shelf's list,
+    never made, and one kept for the library let go when Shelf is switched off;
+  - a page open as it is switched off goes to that page at its next look, within 30 s;
+  - the side menu has no Shelf (`public/features.js`, new), and the wall display no Shelf button.
+  Switched on again, each is as it was.
+- `test/optional-features.test.js` (new). Shown failing with the code broken: a kept list sent
+  while off, `/shelf` always Shelf's own page, the side menu's Shelf left, a new install's Shelf
+  left on. The tests that use Shelf switch it on first, as a new install must. `test/settings-desktop.test.js`
+  now has Wall Display and Shelf among Setup's pages, Back from each to Setup.
+- `public/display.js` is 10 lines shorter (644; its allowance follows).
+- The Android app bundles `features.js` for offline, and `test/offline-bundle.test.js` (new) holds
+  every script `index.html` loads to both of the app's lists (`build.gradle.kts`, `OfflineSite.kt`):
+  each new script had been added to them by hand. Shown failing with `features.js` left out of
+  either.
+
+## v1.0.1
+**UI tweaks 1** (`v1.0.1-ui-tweaks-1`): the album page's playing track, and the Shelf's order and looks.
+
+- **The playing track has a disc** (`public/nowdisc.js`, new). On an album page, the track the
+  selected zone is playing has a small disc between its number and its name, centred in the room
+  between them and on the name's line, inside the row's lines; the names don't move for it. It
+  turns while the zone plays and stops when it pauses (and stands still with reduced motion). It
+  follows the zone: Play now, the next track, a pause. Each row now carries its track's id
+  (`data-track-id`, on the line that makes the row, so `public/app.js` stays at 19,582 lines). The
+  Android app bundles the new file for offline.
+- **The Shelf's order switches** (`public/shelforder.js`, new). The order's name above the shelf is
+  a button: **A → Z by artist** (the server's order, as before) or **A → Z by album**, by title as
+  the Library wall's Album order reads them (a leading "The", "A" or "An" aside, accents and case
+  folded). Both put titles of signs alone first, then those starting with a number, then the
+  letters. The album in front stays in front; each device keeps its choice; under Random order it
+  says so and doesn't switch. By album, the spines' tabs are the titles' letters. The help (shown again
+  after an update) says how: a seventh line, which `test/shelf.test.js` now expects.
+- **The Shelf's carousel look is gone**: covers and spines. A device that had the carousel opens on
+  the covers. `public/shelf.js` is 15 lines shorter (2,047; its allowance follows).
+- `tools/lint/node_modules`, a link to a folder on the machine v0.9.4 was made on, committed by
+  mistake, is gone (the folder is git-ignored; `npm run tools` makes it).
+- `test/now-disc.test.js` and `test/shelf-order.test.js` (new). Each was shown failing with the
+  code broken: the disc not centred; "The" not set aside; the carousel kept.
+
 ## v1.0.0
 **The release review** (`v1.0.0-release-review`): everything since the audit (v0.9.1 to v0.9.7)
 read again before the owner's merge to main. Two faults found and fixed, and a test that raced;

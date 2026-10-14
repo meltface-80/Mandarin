@@ -43,10 +43,11 @@ internal static partial class Pages
         // Shelf (v0.8.28), as the Node server sent it: the file as it is, for
         // the app's WebView too. The route takes /shelf/ as well (a second
         // route for it would be the same one twice, and neither would answer).
-        app.MapMethods("/shelf", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "shelf.html"));
+        // Switched off in Settings (v1.0.2, Features.cs), each is a page saying so.
+        app.MapMethods("/shelf", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, Features.Page(Features.Shelf, "shelf.html")));
         // The sign-in page (open) and the wall display's (v0.8.48), likewise; the route takes /display/ too.
         app.MapMethods("/login", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "login.html"));
-        app.MapMethods("/display", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, "display.html"));
+        app.MapMethods("/display", ["GET", "HEAD"], (HttpContext ctx) => SendFile(ctx, files, Features.Page(Features.Display, "display.html")));
         Dir = publicDir;
         Files = files;
 
@@ -105,7 +106,7 @@ internal static partial class Pages
         var h = r.Headers;
         h["X-Content-Type-Options"] = "nosniff";
         h["Referrer-Policy"] = "same-origin";
-        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && !name.Equals("display.html", StringComparison.OrdinalIgnoreCase))
+        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("display", StringComparison.OrdinalIgnoreCase))
         {
             h["Content-Security-Policy"] = "frame-ancestors 'self'";
             h["X-Frame-Options"] = "SAMEORIGIN";

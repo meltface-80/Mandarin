@@ -50,13 +50,15 @@ FEATURES = [
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("shelf", "🗄️", "Shelf", True,
-     "Flick through your collection as through a record shop's shelf: covers, spines or a carousel, "
-     "narrowed by genre, artist letter and decade, or spun to land anywhere.",
-     "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
+     "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
+     "by genre, artist letter and decade, or spun to land anywhere.",
+     "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
+     "offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
      "case over, and hold a track on its back to choose tracks to play. The bar at its foot plays "
      "or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
-     "the edges fold the choices away and bring in the queue."),
+     "the edges fold the choices away and bring in the queue. Tap the order's name above the shelf "
+     "(**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
@@ -69,7 +71,8 @@ FEATURES = [
      "reviewed the album. Step to the previous or next album of the row you came from.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
-     "press ← → for the previous or next album."),
+     "press ← → for the previous or next album. The track playing has a small disc turning beside "
+     "its number."),
     ("more", "🧭", "More by, and similar", True,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
      "Last.fm key, similar artists and albums. Ones in your library open here.",
@@ -141,7 +144,7 @@ FEATURES = [
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
      "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. "
-     "On a Mac, through Mandarin DAC Bridge: switch on “<DAC> (Bridge)”. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
+     "Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
@@ -209,8 +212,9 @@ FEATURES = [
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet.",
-     "Open `http://<server-ip>:3500/display` on the screen. Its options are in "
-     "**Settings → Wall Display**. Tap the screen for its controls; **Shelf ›** opens Shelf."),
+     "Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default) and options are "
+     "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
+     "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
     ("android", "📱", "The Android app", False,
      "The same interface, plus lock-screen and notification controls, volume keys, a widget, a "
@@ -230,7 +234,7 @@ FEATURES = [
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
-     "downloads are in **Settings → Downloads** in the app."),
+     "downloads are in **Settings → Setup → Downloads** in the app."),
     ("onphone", "📂", "Music on this phone", False,
      "A folder of music already on the phone, watched for changes, on Home with Focus and Sort "
      "and on artists' pages, played like the library. The server never sees it.",
@@ -261,9 +265,7 @@ FEATURES = [
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
-     "On a Mac, double-click **Mandarin** on the desktop to "
-     "start it again (installed before v0.6.12? Run the install line once more for the icon). In "
-     "Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
+     "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", True,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
      "database, at home or away: to the server, or from the app to a file.",

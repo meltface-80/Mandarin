@@ -13,7 +13,7 @@ or a red test stops the `:migration` image. A test that doesn't block a merge is
 
 | Gate | Command | Catches | Starts as | Tightens to |
 |---|---|---|---|---|
-| Tests that block | `npm test` | Regressions | The suite on Node 20 alone and Node 22 through the C# server on every push; a Mac's too on main, a pull request into it, weekly and by hand (v0.9.7); CI, the image waits | — |
+| Tests that block | `npm test` | Regressions | The suite on Node 20 alone and Node 22 through the C# server on every push (Linux only since v1.0.3); CI, the image waits | — |
 | File length | `npm run lines` | Files too big to reason about | Watch line 400, cap 500 (800 for a test); 62 files over the watch line in `tools/quality/allowance.json`, 47 of them over the cap and exempt from it, all shrink-only | The allowance empty |
 | Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on the 48 of 105 server modules that pass; the 57 that don't yet are in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, strict on, then the pages |
 | ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's 121 findings in 37 files, in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
@@ -79,12 +79,11 @@ suppressions file: what the rules found on the day the gate came, per file and r
 ## 4. Tests that block, and tests that prove something
 
 - `npm test` runs the whole suite; CI runs it on every push, on Node 20 alone and on Node 22
-  through the C# server, and a red test stops the image. On a Mac too, but since v0.9.7 (a trial)
-  only on main, a pull request into it, weekly and by hand ("Run workflow"): GitHub's Macs are
-  few, and a test build waited up to an hour for one. The migration's rule stands: never skip,
+  through the C# server, and a red test stops the image. (A Mac's run, from v0.8.29, went with Mac support in v1.0.3.)
+  The migration's rule stands: never skip,
   disable or loosen a test to get green.
-- The run is dealt out (`npm run test:shard`, node's `--test-shard`): three Linux jobs and two
-  Mac jobs, each a part of the files, so the whole run takes the time of a part. A file's tests
+- The run is dealt out (`npm run test:shard`, node's `--test-shard`): three Linux jobs,
+  each a part of the files, so the whole run takes the time of a part. A file's tests
   stay together in one job, so nothing about the order between files changes.
 - A hang is a failure with a name, not a cancelled job: a test's request to a server fails after
   a minute and a half naming its address (`test/setup.js`), the runner gives every test five

@@ -249,7 +249,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .screen.queue-on .shelf-head { padding-right: max(16px, 1.5rem); }
 /* both give way rather than run under the buttons when the shelf's column is
    narrow (v1.9.5: a queue open on a small landscape tablet) */
-.shelf-order { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
+.shelf-order { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); white-space: nowrap;
+  background: none; border: 0; padding: .35rem 0; font-family: inherit; cursor: pointer; }
+/* The order's name switches it (v1.0.1): by artist, by album. Off under Random order. */
+.shelf-order:hover:not(:disabled), .shelf-order:focus-visible { color: var(--accent); }
+.shelf-order:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: .3rem; }
+.shelf-order:disabled { cursor: default; }
 .shelf-pos { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-faint); font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .looks { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-elev); }
 .looks button { display: grid; place-items: center; width: 2.4rem; height: 2.2rem; border-radius: 999px; color: var(--text-faint); }
@@ -279,12 +284,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .stage:focus { outline: none; }
 .stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 1rem; }
 .stage.grabbing { cursor: grabbing; }
-.floor, .ledge, .ringfloor { position: absolute; display: none; pointer-events: none; }
+.floor, .ledge { position: absolute; display: none; pointer-events: none; }
 .look-covers .floor { display: block; left: 0; right: 0; top: calc(var(--top) + var(--S)); bottom: 0; background: linear-gradient(180deg, var(--floor-hi), transparent 60%); border-top: 1px solid var(--floor-hi); }
 .look-spines .ledge { display: block; left: 0; right: 0; top: calc(var(--top) + var(--S)); height: calc(var(--S) * .075); background: linear-gradient(180deg, var(--ledge-top), var(--ledge-front) 30%, var(--ledge-front)); border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); box-shadow: 0 1.4rem 2.4rem var(--shadow); }
 .look-spines .ledge::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: calc(var(--S) * 1.18); background: linear-gradient(180deg, transparent, rgba(0,0,0,.18)); }
-.look-ring .ringfloor { display: block; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, var(--shadow), transparent); }
-.stage.empty .floor, .stage.empty .ledge, .stage.empty .ringfloor { display: none; }
+.stage.empty .floor, .stage.empty .ledge { display: none; }
 .scene { position: absolute; inset: 0; }
 .rig { position: absolute; inset: 0; transform-style: preserve-3d; }
 .it { position: absolute; left: 50%; top: var(--top); width: var(--S); height: var(--S); margin-left: calc(var(--S) / -2); transform-style: preserve-3d; will-change: transform; }
@@ -362,8 +366,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
    stood on would be in the wrong place, so it fades */
 .scene { transition: transform .5s cubic-bezier(.4,0,.6,1); }
 .stage.booklet-open .scene { transition: transform .6s cubic-bezier(.3,.7,.2,1) .3s; }
-.floor, .ledge, .ringfloor { transition: opacity .3s; }
-.stage.booklet-open .floor, .stage.booklet-open .ledge, .stage.booklet-open .ringfloor { opacity: 0; }
+.floor, .ledge { transition: opacity .3s; }
+.stage.booklet-open .floor, .stage.booklet-open .ledge { opacity: 0; }
 .bk-msg { margin-top: 4cqw; font-size: 3.8cqw; color: rgba(233,230,222,.65); }
 /* the barcode smaller than it was (v0.8.28): the room is the track list's */
 .bk-foot { margin-top: 2cqw; display: flex; align-items: flex-end; justify-content: space-between; gap: 4cqw; }

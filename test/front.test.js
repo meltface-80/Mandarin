@@ -142,6 +142,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
 
     const token = await signIn(B);   // setup and SRP, against C#
     const H = { Authorization: "Bearer " + token };
+    await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });   // a new install: Shelf off until switched on (v1.0.2)
     x = await by("/api/auth/devices", { headers: H });
     assert.deepEqual([x.status, x.by], [200, "C#"], "the devices");
     assert.equal((await x.r.json()).devices.length, 1);

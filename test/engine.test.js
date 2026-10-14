@@ -47,18 +47,14 @@ function tones() {
 
 test("the engine is found and answers its protocol; something else is not used", { skip }, async () => {
   assert.equal(found.version, require("../package.json").version, "built at the server's version");
-  const [probed, no1, no2, alsa, mac] = await run([{ probe: found.bin }, { probe: "/bin/true" }, { probe: "/no/such/file" },
+  const [probed, no1, no2, alsa, other] = await run([{ probe: found.bin }, { probe: "/bin/true" }, { probe: "/no/such/file" },
     { plays: "alsa:plughw:CARD=Mojo,DEV=0" }, { plays: "coreaudio:MacBook Pro Speakers" }]);
   assert.equal(probed, found.version);
   assert.equal(no1, null, "a program that doesn't answer the protocol");
   assert.equal(no2, null);
   assert.equal(alsa, true);
-  assert.equal(mac, false, "a Mac's devices play as before");
+  assert.equal(other, false, "a location that isn't ALSA's (a Mac's, before v1.0.3) isn't the engine's");
   assert.deepEqual(await run([{ find: true }], { AUDIO_ENGINE: "0" }), [null], "AUDIO_ENGINE=0 turns it off");
-});
-
-test("off Linux there is no engine: it plays through ALSA", { skip: built() || (linux && "a Mac's own") }, async () => {
-  assert.deepEqual(await run([{ find: true }]), [null]);
 });
 
 test("the engine: two tracks into one open device, untouched; paused where it is; scaled below 100%", { skip, timeout: 60000 }, async () => {

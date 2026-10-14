@@ -9,14 +9,7 @@
 //   PORT                 the port Mandarin is reached on (3500)
 //   MANDARIN_APP_DIR     where the page is (public/; found by itself)
 using System.Net;
-using System.Runtime.InteropServices;
 using Mandarin.Server;
-
-// On a Mac (v0.8.29) the C library is libSystem: what this program imports as
-// "libc" (the scan's file system, starting itself again, the pack's checks).
-if (OperatingSystem.IsMacOS())
-    NativeLibrary.SetDllImportResolver(typeof(Server).Assembly, (name, _, _) =>
-        name == "libc" ? NativeLibrary.Load("/usr/lib/libSystem.B.dylib") : IntPtr.Zero);
 
 var version = (typeof(Server).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
 Server.Version = version;
@@ -88,9 +81,10 @@ Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
-// then the database made, or brought up to date (Schema.cs).
+// then the database made, or brought up to date (Schema.cs); a new one is a
+// new install, whose optional parts start as a new install's do (Features.cs).
 Mandarin.Server.Admin.Backup.SwapStaged(dataDir, Server.Log);
-try { Schema.Bring(dataDir, Server.Log); }
+try { if (!Schema.Bring(dataDir, Server.Log).Existed) Features.NewInstall(); }
 catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
 {
     Server.Log($"[server] the database couldn't be brought up to date ({e.Message}); stopping");

@@ -1156,14 +1156,6 @@
               <span class="settings-nav-title">Audio Devices</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="display">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Wall Display</span>
-            </span>
-          </button>
           <button class="settings-nav-item" type="button" data-pane="identify">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg>
@@ -1229,7 +1221,7 @@
           </button>
           <h2>Setup</h2>
         </div>
-        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, sharing, away from home, API keys</p>
+        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
           <button class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1261,6 +1253,22 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">UI Settings</span>
+            </span>
+          </button>
+          <button class="settings-nav-item" type="button" data-pane="display">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Wall Display</span>
+            </span>
+          </button>
+          <button class="settings-nav-item" type="button" data-pane="shelfset">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Shelf</span>
             </span>
           </button>
           <button class="settings-nav-item" type="button" data-pane="sharecard">
@@ -1633,8 +1641,8 @@
         </div>
       </div>
 
-      <!-- Wall display -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="display">
+      <!-- Wall display: one of Setup's pages (v1.0.2). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="display" data-parent="setup">
         <div class="settings-pane-head">
           <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1645,7 +1653,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Wall display <button class="settings-info-btn" data-info="An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. When off, the page shows a notice and nothing is fetched." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label">Wall display <button class="settings-info-btn" data-info="An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. On by default. When off it is off entirely: /display says only that it is turned off, with nothing running on it, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
             <label class="switch">
               <input type="checkbox" id="display-toggle" aria-label="Wall display">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1655,6 +1663,27 @@
             <span class="settings-label">Rotate every <span id="display-seconds-value">10s</span></span>
             <input type="range" id="display-seconds" class="settings-range" min="5" max="60" step="1" value="10"
                    aria-label="Display rotation interval in seconds">
+          </div>
+        </div>
+      </div>
+
+      <!-- Shelf: one of Setup's pages (v1.0.2, features.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="shelfset" data-parent="setup">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2>Shelf</h2>
+        </div>
+        <p class="settings-pane-desc">Flicking through your collection</p>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Shelf <button class="settings-info-btn" data-info="Your collection as a record shop's shelf, at this server's address followed by /shelf, and in the side menu. Off on a new install; an install from before v1.0.2 keeps it on. When off it is off entirely: the side menu and the wall display don't offer it, /shelf says only that it is turned off, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
+            <label class="switch">
+              <input type="checkbox" id="shelf-toggle" aria-label="Shelf">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
           </div>
         </div>
       </div>
@@ -2099,5 +2128,7 @@
   <script src="/srp.js"></script>
   <script src="/app.js"></script>
   <script src="/touchnav.js"></script>
+  <script src="/nowdisc.js"></script>
+  <script src="/features.js"></script>
 </body>
 </html>

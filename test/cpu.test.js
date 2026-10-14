@@ -19,7 +19,7 @@ const decide = (o) => score({ fn: "cpu", decides: [o] }).decides[0];
 const wrap = (bin, args, kind, o) => score({ fn: "cpu", places: [Object.assign({ bin, args, kind }, o)] }).places[0];
 
 test("playback's cores: the last one (two with DSP), at least two left on four or more; chosen or turned off", { skip }, () => {
-  const d = (o) => { const r = decide(Object.assign({ linux: o.platform !== "darwin", taskset: true, env: {} }, o)); return [r.split, r.playback, r.background, r.core]; };
+  const d = (o) => { const r = decide(Object.assign({ linux: !o.notLinux, taskset: true, env: {} }, o)); return [r.split, r.playback, r.background, r.core]; };
   const n = (k) => Array.from({ length: k }, (_, i) => i);
   assert.deepEqual(d({ cores: n(4) }), [true, [3], [0, 1, 2], 3], "four cores: one for playback, three for the rest");
   assert.deepEqual(d({ cores: n(4), dsp: true }), [true, [2, 3], [0, 1], 3], "with DSP: two and two");
@@ -38,7 +38,7 @@ test("playback's cores: the last one (two with DSP), at least two left on four o
   assert.deepEqual(d({ cores: n(4), env: { PLAYBACK_CORES: "1" }, dsp: true }), [true, [3], [0, 1, 2], 3], "one always, DSP or not");
   assert.deepEqual(d({ cores: n(4), env: { PLAYBACK_CORES: "9" } }), [true, [1, 2, 3], [0], 3], "never every core");
   assert.deepEqual(d({ cores: [4, 5, 6, 7] }), [true, [7], [4, 5, 6], 7], "a container's own cores");
-  assert.deepEqual(d({ cores: n(8), platform: "darwin" })[0], false, "a Mac has no taskset");
+  assert.deepEqual(d({ cores: n(8), notLinux: true })[0], false, "off Linux: no taskset, shared");
   assert.deepEqual(d({ cores: n(8), taskset: false })[0], false, "no taskset: shared");
   const { expands, compacts } = score({ fn: "cpu", expands: ["0-2,5"], compacts: [[5, 0, 2, 1]] });
   assert.deepEqual(expands[0], [0, 1, 2, 5]);
@@ -46,7 +46,7 @@ test("playback's cores: the last one (two with DSP), at least two left on four o
 });
 
 test("each kind started where it belongs, below what it should yield to", { skip }, () => {
-  // A Linux machine's plan (taskset, ionice), only decided, nothing run. A Mac's own is decided above.
+  // A Linux machine's plan (taskset, ionice), only decided, nothing run.
   const tools = { taskset: true, nice: true, ionice: true };
   const four = { tools, cores: [0, 1, 2, 3], env: {} };
   const w = (kind, o = four, bin = "ffmpeg", args = ["-i", "x"]) => wrap(bin, args, kind, o);
@@ -65,6 +65,6 @@ test("each kind started where it belongs, below what it should yield to", { skip
   assert.deepEqual(w("background", two), ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7", "ffmpeg", "-i", "x"]);
   assert.equal(decide(two).core, null);
   assert.equal(decide(two).slots, 2);
-  // No tools at all (a Mac without nice): as it is.
+  // No tools at all: as it is.
   assert.deepEqual(w("background", { tools: { taskset: false, nice: false, ionice: false }, cores: [0, 1, 2, 3], env: {} }), ["ffmpeg", "-i", "x"]);
 });

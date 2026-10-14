@@ -162,6 +162,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   try {
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
+    await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });   // a new install: Shelf off until switched on (v1.0.2)
     for (let i = 0; i < 150; i++) {
       const st = await (await fetch(B + "/api/status", { headers: H })).json();
       if (st.index_count >= 10 && !st.scan.running && st.zone_count >= 2) break;
@@ -232,11 +233,12 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         assert.equal(first.help, true, "shown the first time");
         assert.equal(first.saved, null);
         assert.equal(first.focus, "help-ok", "Dismiss has the focus");
-        assert.equal(first.items.length, 6);
+        assert.equal(first.items.length, 7);
         assert.match(first.items[0], /^Swipe moves one album/);
         assert.match(first.items[3], /^Tap a cover at the side/);
         assert.match(first.items[4], /^Hold a track on the back of the case to choose it/);
         assert.match(first.items[5], /tabs at the edges fold the choices away/);
+        assert.match(first.items[6], /^A → Z above the shelf orders it by artist or by album: tap it to change/);
         assert.equal(first.legend, 0, "nothing on the shelf itself says how it moves");
         assert.equal(first.helpAfter, false);
         assert.deepEqual(first.after, { seen: VERSION, never: false });

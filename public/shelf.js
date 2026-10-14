@@ -15,7 +15,8 @@
  *  - the shelf revolves: a short swipe moves one album, a swipe held out keeps
  *    it turning that way until the finger lifts, a hard flick spins it and it
  *    lands somewhere three seconds later;
- *  - three looks, kept per device: covers, spines, a carousel.
+ *  - two looks, kept per device: covers and spines (the carousel went in v1.0.1);
+ *    two orders, kept per device: A → Z by artist or by album (shelforder.js).
  *
  * The motion is computed here, frame by frame (a critically damped spring, a
  * cubic spin), not left to CSS transitions: a revolving shelf has to be
@@ -145,8 +146,11 @@
     for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
     return arr;
   }
+  // A → Z by album (v1.0.1): the same albums by title, made once per library.
+  let byAlbum = storeGet("rra-shelf-order") === "album", albumsByTitle = null;
   function buildList() {
-    const out = albums.filter((a) => passes(a));
+    if (byAlbum && !albumsByTitle) albumsByTitle = window.ShelfOrder.byAlbum(albums.slice());
+    const out = (byAlbum ? albumsByTitle : albums).filter((a) => passes(a));
     return sel.random.has("order") ? seededShuffle(out, shuffleSeed) : out;
   }
   function labelOf(cat, id) {
@@ -288,9 +292,9 @@
   // ---- The shelf ----------------------------------------------------------------
   const stage = $("#stage"), scene = $("#scene"), rig = $("#rig"), shelfEl = $("#shelf"), screenEl = $("#screen");
   const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const LOOKS = ["covers", "spines", "ring"];
+  const LOOKS = ["covers", "spines"];
   let look = LOOKS.indexOf(storeGet("rra-shelf-look")) > -1 ? storeGet("rra-shelf-look") : "covers";
-  let W = 0, H = 0, S = 200, T = 2, TOP = 0, stepPx = 100, K = 6, slots = 10, R = 0;
+  let W = 0, H = 0, S = 200, T = 2, TOP = 0, stepPx = 100, K = 6;
   let p = 0, vp = 0, target = 0, mode = "idle";
   let spinA = null, drag = null, flippedV = null, raf = 0, lastT = 0, wheelTimer = 0, shownIdx = -1, fadeT0 = 0;
   const live = new Map(), pool = [];
@@ -304,8 +308,8 @@
   const colourOf = new Map();
 
   function computeTabs() {
-    const alpha = !sel.random.has("order");
-    tabs = list.map((a, i) => (alpha && (i === 0 || list[i - 1].b !== a.b) ? a.b : ""));
+    const alpha = !sel.random.has("order"), f = byAlbum ? "tb" : "b";
+    tabs = list.map((a, i) => (alpha && (i === 0 || list[i - 1][f] !== a[f]) ? a[f] : ""));
   }
 
   function layout() {
@@ -320,23 +324,7 @@
     // were leaving empty, so every pane folded away makes them bigger. 0
     // (1.2:1 or narrower) keeps exactly the sizes they always had.
     const roomy = clamp((W / Math.max(1, H) - 1.2) / 1.8, 0, 1);
-    if (look === "ring") {
-      // A carousel seen from a little above: the front arc faces you, the backs
-      // of the cases show at the far side of the ring.
-      slots = wrap() ? clamp(N, 6, 12) : 6;
-      const tanA = Math.tan(Math.PI / slots);
-      S = Math.round(Math.max(90, Math.min(H * (0.37 + 0.07 * roomy), (W * 0.9 * tanA) / 1.2, 420)));
-      R = (S * 0.6) / tanA; T = 2;
-      TOP = Math.round(H / 2 - S / 2);
-      stepPx = Math.max(60, S * 1.1);
-      scene.style.perspective = Math.round(S * 5) + "px";
-      scene.style.perspectiveOrigin = `50% ${Math.round(H * 0.42)}px`;
-      rig.style.transform = `translateZ(${(-R).toFixed(1)}px) rotateX(-17deg) translateZ(${R.toFixed(1)}px)`;
-      const rf = $("#ringfloor");
-      rf.style.width = Math.round(2 * R + S) + "px";
-      rf.style.height = Math.round(0.62 * R + S * 0.4) + "px";
-      rf.style.top = Math.round(H / 2 + S * 0.62) + "px";
-    } else if (look === "spines") {
+    if (look === "spines") {
       S = Math.round(Math.max(110, Math.min(H * (0.72 + 0.08 * roomy), W * 0.42, 600)));
       T = Math.max(14, Math.round(S * 0.115));
       TOP = Math.round((H - S * 1.075) * 0.62);
@@ -377,11 +365,7 @@
   function place(d) {
     const ad = Math.abs(d), s = d < 0 ? -1 : 1, a = Math.min(1, ad);
     let tf, op;
-    if (look === "ring") {
-      tf = `translateZ(${(-R).toFixed(1)}px) rotateY(${(d * 360 / slots).toFixed(3)}deg) translateZ(${R.toFixed(1)}px)`;
-      const half = (wrap() ? Math.min(N, slots) : slots) / 2;
-      op = clamp((half - ad) / 0.7, 0, 1) * (Math.abs(d * 360 / slots) > 95 ? 0.82 : 1);
-    } else if (look === "spines") {
+    if (look === "spines") {
       const gap = Math.max(2, T * 0.08);
       const first = S / 2 + T / 2 + gap * 2;
       const ea = 1 - (1 - a) * (1 - a);           // slides out a little before it turns
@@ -410,7 +394,7 @@
   function windowRange() {
     if (!N) return [0, -1];
     if (!wrap()) return [0, N - 1];
-    const span = look === "ring" ? Math.min(N, slots) : Math.min(N, 2 * K + 2);
+    const span = Math.min(N, 2 * K + 2);
     const start = Math.floor(p - span / 2) + 1;
     return [start, start + span - 1];
   }
@@ -480,7 +464,7 @@
     } else if (st === "loading") {
       body = '<p class="bk-msg">Reading the track list…</p>';
     } else {
-      body = "";   // never turned over: the far side of the carousel shows only the name
+      body = "";   // not turned over yet: only the name
     }
     return `<div class="bk"><div class="bk-ar">${esc(a.a)}</div><div class="bk-ti">${esc(a.t)}</div>${body}
       <div class="bk-foot"><span class="bk-bar" style="background:${barcode(hash(a.t + a.a))}"></span><span class="bk-cat">Tap to turn back</span></div></div>`;
@@ -637,9 +621,8 @@
     el.classList.add("booklet");
     // The front case stands a little forward of the others (place()), so the
     // perspective draws it — and the booklet hanging from it — about 3% larger
-    // than S, grown about its middle: room is made for that, not for S. The
-    // carousel's front case is not stood forward.
-    const grow = look === "ring" ? 1 : 1.035, m = 10;
+    // than S, grown about its middle: room is made for that, not for S.
+    const grow = 1.035, m = 10;
     // a stage with no height to speak of (a phone on its side) has no room to
     // make: the booklet unfolds where it is
     if (H < 4 * m + 40) { scene.style.transform = ""; return; }
@@ -761,10 +744,9 @@
     el._album = a;
     el._front.innerHTML = coverHTML(a, !fastNow);
     el._imgOn = !fastNow;
-    // A back is drawn only where it can be seen: round the far side of the
-    // carousel, or once the case is turned over (turnOver).
-    el._backOn = look === "ring";
-    el._back.innerHTML = el._backOn ? backHTML(a) : "";
+    // A back is drawn only once the case is turned over (turnOver).
+    el._backOn = false;
+    el._back.innerHTML = "";
     el._pages = null; el._bpage = 1; el._pagedS = 0; el._bkl.textContent = "";
     if (look === "spines") { const sp = spineHTML(a, tabs[i]); el._l.innerHTML = sp; el._r.innerHTML = sp; }
     else { el._l.textContent = ""; el._r.textContent = ""; }
@@ -1058,7 +1040,6 @@
       const d = v - p, ad = Math.abs(d);
       let face = el._front;
       if (look === "spines" && ad >= 0.5) face = d < 0 ? el._l : el._r;
-      else if (look === "ring" && Math.abs(d * 360 / slots) > 90) face = el._back;
       const r = face.getBoundingClientRect();
       if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && ad < bestD) { best = v; bestD = ad; }
     }
@@ -1191,7 +1172,9 @@
     clearNodes();
     layout();
     fadeT0 = reduced || reread ? 0 : performance.now();
-    $("#shelf-order").textContent = sel.random.has("order") ? "Random order" : "A → Z by artist";
+    const ord = $("#shelf-order");
+    ord.textContent = sel.random.has("order") ? "Random order" : byAlbum ? "A → Z by album" : "A → Z by artist";
+    ord.disabled = sel.random.has("order");
     $("#spin-btn").disabled = N < 2;
     renderPick();
     updateInfo(true);
@@ -1208,6 +1191,8 @@
     clearNodes(); layout();
   }
   $("#looks").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && b.dataset.look) setLook(b.dataset.look); });
+  // The order's name switches it: by artist, by album; the album in front stays in front.
+  $("#shelf-order").addEventListener("click", () => { byAlbum = !byAlbum; storeSet("rra-shelf-order", byAlbum ? "album" : "artist"); refresh(); });
 
   // ---- Playing ---------------------------------------------------------------------
   const ZONE_KEY = "rra-shelf-zone";
@@ -1948,7 +1933,7 @@
         // genre can sit at another place in the new one.
         const namesChosen = new Map([...sel.genre].map((i) => [i, genres[i] ? genres[i].name : null]));
         genres = Array.isArray(j.genres) ? j.genres : [];
-        albums = Array.isArray(j.albums) ? j.albums : [];
+        albums = Array.isArray(j.albums) ? j.albums : []; albumsByTitle = null;
         libSig = j.sig || null;
         const at = new Map(genres.map((g, i) => [g.name, i]));
         const moved = (i) => { const n = namesChosen.get(i); return n != null && at.has(n) ? at.get(n) : -1; };
@@ -1973,7 +1958,7 @@
           if (N > 1 && !sel.random.size) { p = target = Math.floor(Math.random() * N); kick(); updateInfo(true); }
           pollNowPlaying();
         }
-      } catch (e) {
+      } catch (e) { if (e.status === 403) { location.replace("/shelf" + location.search); return; }   // switched off (v1.0.2): the page saying so
         // After the first read, a failed re-read leaves the shelf as it is —
         // what is on screen is still a true library, only older — and the next
         // look (checkLive) asks again.

@@ -51,7 +51,7 @@ internal static partial class Alsa
         catch { return "error " + err; }
     }
 
-    // Whether this machine has ALSA at all (a Mac, a container without it).
+    // Whether this machine has ALSA at all (a container without it).
     public static bool Available()
     {
         try { return NativeLibrary.TryLoad(Lib, out var h) && h != IntPtr.Zero; }

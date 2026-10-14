@@ -3,14 +3,9 @@ name: CI
 on:
   push:
     branches: ["**"]
-  # Once per commit (v0.9.7): a pull request shows its branch's push run, so
-  # it isn't run again, but for one into main (a release on its way), which
-  # runs the Mac's tests too. Weekly (main's copy of this file), and by hand
-  # ("Run workflow", any branch), which run them as well.
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: "17 4 * * 1"
+  # By hand too ("Run workflow", any branch). Linux only: Mac support was
+  # dropped in v1.0.3, and with it the Mac's tests, the pull request runs into
+  # main and the weekly run that existed for them.
   workflow_dispatch:
 
 jobs:
@@ -105,9 +100,6 @@ jobs:
       # (test/server.js).
       - name: Build the C# server
         run: ./server/build.sh
-      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
-      - name: Build Mandarin DAC Bridge
-        run: .github/dac-bridge.sh
       - name: Syntax check of the page
         run: node --check public/app.js
       # Kept to a file as well: the tests that failed are said again at the end,
@@ -117,112 +109,6 @@ jobs:
       - name: Tests (including the end-to-end run against a fake Sonos household)
         env:
           TEST_SHARD: ${{ matrix.shard }}
-        run: |
-          set -o pipefail
-          npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log" && exit 0
-          .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
-          .github/retry-failed.sh "$RUNNER_TEMP/tests.log"
-
-  # A Mac (v0.8.29): the C# server built for it and the whole suite through
-  # it, as the Mac installer runs Mandarin. GitHub's Mac runners are Apple
-  # silicon; ffmpeg from Homebrew, as the installer has it. The test files are
-  # dealt out to two jobs (v0.8.49), as the Linux ones are to three.
-  #
-  # Off the test builds' path (v0.9.7, a trial): GitHub's Macs are few, and a
-  # test build waited up to an hour for one. Run on main and a pull request
-  # into it (before anything reaches a release), weekly and by hand; skipped
-  # on every other branch, so neither a merge into migration nor its image
-  # (.github/wait-for-ci.sh: a skipped job is no failure) waits on a Mac.
-  macos:
-    name: Tests on a Mac (part ${{ matrix.shard }})
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1/2", "2/2"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-      - name: Install ffmpeg
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALL_CLEANUP: "1"
-        run: |
-          brew install ffmpeg poppler
-          ffmpeg -version | head -1
-          pdftoppm -v
-      - run: npm ci --no-audit --no-fund
-      # The tests' stand-in speakers and hosts live on loopback addresses
-      # besides 127.0.0.1, a block of them for each test file running at once
-      # (test/ports.js): Linux answers on all of 127/8, a Mac on 127.0.0.1
-      # alone until each is added.
-      - name: Loopback addresses for the stand-in speakers
-        run: for ip in $(node test/ports.js --addresses); do sudo ifconfig lo0 alias "$ip" up; done
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-      - name: Restore the .NET packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj') }}
-      - name: Build the C# server
-        run: |
-          ./server/build.sh
-          codesign --verify server/bin/mandarin-server && echo "signed to run here"
-      # Mandarin DAC Bridge, which test/dac-bridge.test.js plays an album through (v0.9.0).
-      - name: Build Mandarin DAC Bridge
-        run: .github/dac-bridge.sh
-      # The installer's own step (tools/mac/install.sh fetch_server), on a Mac:
-      # this build served as a release, fetched, checked, signed and placed;
-      # and with a sum that doesn't match, nothing placed.
-      - name: The installer fetches the Mac's C# server
-        run: |
-          set -e
-          v=$(node -p "require('./package.json').version")
-          rid=osx-$(uname -m | sed 's/x86_64/x64/')
-          rel="$RUNNER_TEMP/release"
-          mkdir -p "$rel/v$v" "$rel/v0.0.1"
-          gzip -9 -c server/bin/mandarin-server > "$rel/v$v/mandarin-server-$rid.gz"
-          (cd "$rel/v$v" && shasum -a 256 "mandarin-server-$rid.gz" > mandarin-server.sha256)
-          cp "$rel/v$v/mandarin-server-$rid.gz" "$rel/v0.0.1/"
-          echo "$(printf '0%.0s' $(seq 64))  mandarin-server-$rid.gz" > "$rel/v0.0.1/mandarin-server.sha256"
-          python3 -m http.server 8799 --bind 127.0.0.1 --directory "$rel" >/dev/null 2>&1 &
-          served=$!
-          trap 'kill $served 2>/dev/null' EXIT
-          sleep 2
-          export MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_RELEASES=http://127.0.0.1:8799
-          bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -n "$SERVER"; test "$("$SERVER" --version)" = "$2"; codesign --verify "$SERVER"' _ "$RUNNER_TEMP/app" "$v"
-          test "$(cat "$RUNNER_TEMP/app/server/bin/mandarin-server.version")" = "$v"
-          bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
-          test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
-          echo "fetched, checked and placed; a wrong sum placed nothing"
-      # The installer's question about Mandarin DAC Bridge (tools/mac/install.sh
-      # bridge_wanted, v0.9.0): answered by MANDARIN_DAC_BRIDGE, and never asked
-      # where the bridge is installed already.
-      - name: The installer's DAC Bridge question
-        run: |
-          set -e
-          ask() { MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_DAC_BRIDGE="$1" bash -c 'source tools/mac/install.sh; bridge_wanted "$1"' _ "$2"; }
-          mkdir -p "$RUNNER_TEMP/bridge"
-          test "$(ask yes "$RUNNER_TEMP/none")" = yes
-          test -z "$(ask no "$RUNNER_TEMP/none")"
-          test -z "$(ask "" "$RUNNER_TEMP/bridge")"
-          test "$(ask yes "$RUNNER_TEMP/bridge")" = yes
-          echo "yes and no answered; installed already, not asked"
-      # Two files at once, not package.json's four: GitHub's Mac runners have
-      # three cores, and each file here runs the C# server and often Chromium
-      # and ffmpeg; four at once kept the machine so busy that a different
-      # timing-sensitive test lost its race on each run.
-      - name: Tests, on the C# server
-        env:
-          TEST_SHARD: ${{ matrix.shard }}
-          TEST_CONCURRENCY: "2"
         run: |
           set -o pipefail
           npm run test:shard 2>&1 | tee "$RUNNER_TEMP/tests.log" && exit 0

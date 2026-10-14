@@ -25,6 +25,8 @@ internal static partial class Library
 {
     private static Task<bool> ShelfAlbums(HttpContext ctx, Snapshot s, LibState st)
     {
+        // Shelf switched off (v1.0.2, Features.cs): its list is never made.
+        if (!Features.On(Features.Shelf)) return JsError(ctx, 403, "Shelf is turned off in Settings");
         if (st.Building) return NotReady(ctx);
         var shelf = s.Shelf;
         if (shelf == null)

@@ -9,9 +9,9 @@
  *  - rotates between album art / artist photos / review card / artist bio
  *    (whatever /api/display/content found for the current album),
  *  - Nest-Hub-style progress strip along the bottom,
- *  - honours the Settings toggle: when off it fetches nothing and shows a
- *    "turned off" note (re-checked every 30s so flipping the toggle works
- *    without touching the wall device).
+ *  - honours the Settings switch (v1.0.2): switched off, /display is a page
+ *    saying so with no script (Features.cs); switched off while this page is
+ *    open (read again every 30s), it goes to that page and asks nothing more.
  */
 
 // Signed out (or the account reset): back to sign-in, then straight back here.
@@ -36,7 +36,6 @@
   const slideA   = $("slide-a");
   const slideB   = $("slide-b");
   const idleEl   = $("idle");
-  const offEl    = $("off");
   const barEl    = $("bottombar");
   const bbTitle  = $("bb-title");
   const bbArtist = $("bb-artist");
@@ -92,19 +91,11 @@
       // enabled:false from the server disables the display.
       return;
     }
-    offEl.classList.toggle("hidden", enabled);
-    if (!enabled) {
-      stopRotation();
-      idleEl.classList.add("hidden");
-      barEl.classList.add("hidden");
-      backdrop.classList.remove("visible");
-      slideA.classList.remove("visible");
-      slideB.classList.remove("visible");
-      // Forget the loaded album so re-enabling reloads content mid-album —
-      // without this, toggling off→on left the stage black until the album
-      // changed (tick's key check saw "nothing changed").
-      slides = []; albumKey = "";
-    }
+    // Switched off: the page that says so, which asks for nothing (v1.0.2).
+    if (!enabled) { location.replace("/display" + location.search); return; }
+    // Shelf offered while it is on (its switch, Settings → Setup → Shelf).
+    try { const sh = await jget("/api/settings/shelf"); if (toShelf) toShelf.classList.toggle("hidden", !sh.enabled); }
+    catch (e) { /* unreachable: the button as it is */ }
   }
 
   // ---- Zone selection ---------------------------------------------------
@@ -640,13 +631,12 @@
   if (ppClose) ppClose.addEventListener("click", closePlayPanel);
 
   // ---- Boot ---------------------------------------------------------------
-  // The settings check is the wake mechanism while the display is toggled off —
-  // it's the ONLY request made in that state (tick() bails when !enabled, so no
-  // zone/content polling happens). Self-scheduling: 30s while on, 60s while off.
+  // The switch read again every 30s; switched off, checkSettings leaves for the
+  // page that says so, and nothing more is asked (v1.0.2).
   function scheduleSettingsCheck() {
     setTimeout(() => {
       checkSettings().finally(scheduleSettingsCheck);
-    }, enabled ? 30000 : 60000);
+    }, 30000);
   }
   checkSettings().then(() => { if (enabled) tick(); }).finally(scheduleSettingsCheck);
   setInterval(() => { if (enabled) tick(); }, 2000);
