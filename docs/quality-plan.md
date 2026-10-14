@@ -7,16 +7,17 @@ repositories work the same way: a model writes code that works, not code that st
 and the cure is boring structural rules a tool enforces, not rules in a prompt that get skipped.
 
 `npm run check` is the bar: the gates (`npm run gates`: file length, `@ts-check` and `tsc`,
-ESLint) and then the whole suite. The pre-commit hook runs the gates (about fifteen seconds);
+ESLint, the page's names) and then the whole suite. The pre-commit hook runs the gates (about fifteen seconds);
 CI runs them as its own job on every push and the image waits for the whole run, so a red gate
 or a red test stops the `:migration` image. A test that doesn't block a merge is a suggestion.
 
 | Gate | Command | Catches | Starts as | Tightens to |
 |---|---|---|---|---|
-| Tests that block | `npm test` | Regressions | The suite on Node 20 alone and Node 22 through the C# server on every push (Linux only since v1.0.3); CI, the image waits | — |
+| Tests that block | `npm test`, `dotnet test test/Mandarin.Tests` | Regressions | The suite on Node 20 alone and Node 22 through the C# server on every push (Linux only since v1.0.3); CI, the image waits. From v1.0.6 it moves to C# file by file (`docs/specs/tests-csharp.md`), both suites run meanwhile | — |
 | File length | `npm run lines` | Files too big to reason about | Watch line 400, cap 500 (800 for a test); 62 files over the watch line in `tools/quality/allowance.json`, 47 of them over the cap and exempt from it, all shrink-only | The allowance empty |
 | Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on the 48 of 105 server modules that pass; the 57 that don't yet are in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, strict on, then the pages |
 | ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's 121 findings in 37 files, in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
+| Page names | `npm run names` | The page's script is parts joined into one: a name two parts declare, one a browser has already, one read nowhere, one read that no part declares (each fails only on the screen that uses it) | Since v1.0.5 (`docs/specs/page-modules.md`), clean | — |
 | C# | `./server/build.sh`, `./engine/build.sh` | Warnings; in the server, the analyzer rules in `server/Mandarin.Server/.editorconfig` too: dead code, a number parsed or written in the machine's locale, an ignored result, a bare `Exception`, a compare by lower-casing, SHA-1 or MD5 outside `Fingerprint.cs` | Warnings are errors, nullable on; the server's analyzer rules since v0.9.2 (the audit's Q3, Q5, Q6, S7) | More rules as the code keeps them |
 
 `npm run tools` installs the development tools once per clone (the Claude Code session hook does

@@ -5,6 +5,98 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.6
+**The tests in C#** (`docs/specs/tests-csharp.md`): the Node suite moves to C# file by file, and Node
+and npm leave the project after it. Nothing the server or the page does changes.
+
+- Stage T0 (`v1.0.6-tests-csharp-0-groundwork`): `test/Mandarin.Tests`, an xUnit v3 project, with
+  the Node suite's helpers in C# (`Harness/`): the server started and stopped, its options, ports of
+  its own, the fixture library, signing in by SRP, the HTTP rules (nothing off this machine, no
+  request waits for ever), Chromium over the DevTools WebSocket, and `mandarin-server score`.
+- Ported, their JavaScript files deleted: `srp` (the page's `srp.js` now run in Chromium, the
+  tests' own SRP client and the server's half, all held to the fixed vector), `version`,
+  `favourites`, `mounts`. Shown failing: the tests' SRP with its separator changed, favourites with
+  the server's newest-first order turned round.
+- CI and the release run both suites; the C# classes are dealt out to the same three parts, and a
+  failure runs once more on its own (`.github/csharp-tests.sh`).
+- `tools/quality/policy.json`: the C# tests are under the file-length gate (`test/**/*.cs`).
+- Stage T1a (`v1.0.6-tests-csharp-1-core`): 17 more files ported and deleted: `cpu`, `db`,
+  `http-body`, `listen-later`, `music-folders`, `power`, `queue-moves`, `soap-retry`, `topology`,
+  `version-compare`, `watch`, `waveform`, `home-rows`, `relay`, `case`, `identify-verdicts`,
+  `page-script` (each part and the join compiled by Chromium, as the page loads them). Shown
+  failing: release candidates with their numbers compared as text; two parts declaring one name.
+- Stage T1b (`v1.0.6-tests-csharp-2-core`): 10 more: `config-csharp`, `identify-pack`,
+  `phone-resume`, `library-kept`, `pages-csharp`, `downloads`, `folder-names`, `playlists`,
+  `nothing-behind`, `album-folders`. The harness gains `ServerCommand` (one of the program's own
+  commands run to its end), `Bytes` (an answer as bytes) and a client that asks as a browser does
+  (compressed answers accepted), and reads numbers a test wrote itself. Shown failing: the
+  configuration's mass-removal default changed.
+- Stage T1c (`v1.0.6-tests-csharp-3-core`): 11 more: `engine`, `power-csharp`, `cpu-alone`,
+  `stream`, `security`, `backup-sealed`, `local-output`, `dsp` (the page's `biquad.js` run in
+  Chromium), `scans-csharp`, `update-alone`, `tailscale-builtin`. The Tailscale engine the tests
+  stood in for with a Node script is `test/StandIns`, a small C# program the tests start as the
+  server would start the real one; the tests' own web servers can serve HTTPS. Shown failing: the
+  page's frame guard loosened.
+- Stage T1d (`v1.0.6-tests-csharp-4-golden`): six of the suites held to the Node server's recorded
+  answers (`test/golden`): `db-csharp`, `share-csharp`, `backup-csharp`, `artfind-csharp`,
+  `extras-csharp`, `conversions-csharp`. The harness reads the recordings as JavaScript did and
+  writes JSON byte for byte as JSON.stringify wrote it (`JsJson`: a lone surrogate kept, nesting
+  unbounded, an object's number-like keys first, a number as Number's toString writes it), so the
+  recorded sums still match; the suites' seeded cases are made the same way (`JsGen`: their
+  generator, JavaScript's undefined), and a list of cases too long to copy by hand is kept as data
+  (`test/golden/artfind-csharp.cases.json`, written once from the JavaScript). Shown failing: a
+  backup's refusal reworded.
+- Version 1.0.6 (Android versionCode 314).
+
+## v1.0.5
+**The page's script in parts** (`docs/specs/page-modules.md`): `public/app.js`, 19,579 lines, is
+carved into files under `public/app/`, served joined as one script.
+
+- Stage 0 (`v1.0.5-stage-0-groundwork`): the server makes `/app.js` from the parts
+  `public/app/parts.txt` lists, in order, kept and sent with an ETag
+  (`server/Mandarin.Server/Pages.Script.cs`); without the list, `app.js` is sent as it is. The
+  Android app's offline copy is joined the same way when the app is built. For now the list
+  names one part, `app.js` itself: nothing the page does changes.
+- Stage 1a (`v1.0.5-stage-1a-small-blocks`): ten small blocks before and after the rest of
+  `app.js` (the sign-out guard, request limits, the library mark, after-start, UI settings; UI
+  Settings, Away from home, the toast lift, power, backup and restore) are parts of their
+  own, moved unchanged and in their order: the join's tokens are the old file's.
+  `test/page-script.test.js` also compiles each part alone and the join as one script; shown failing
+  with one `const` declared in two parts.
+- Stage 1b (`v1.0.5-stage-1b-big-blocks`): everything after the core is parts, in its order, none
+  over 400 lines; `app.js` is the core alone (10,367 lines).
+  - The mini transport (5 parts), the share card (3), the Settings sheet (4), Audio Devices (3)
+    and the Library Scanner (2) lose their wrappers: their names move to the page's top. The few
+    that would clash there are renamed by scope: `open`, `close`, `when`, `USB` and `status`
+    (a browser's own names), `overlay` (both the share card's and Settings'), and the Library
+    Scanner's ten names that Audio Devices has too (`pane` → `scanPane` …). The guards that left
+    Settings, Audio Devices and the Library Scanner when their elements were missing go: the
+    elements are in `index.html`.
+  - The streaming-service browser, made once per service, keeps its closure: its album rows and
+    its views are functions it calls with `sb`, what its pieces share.
+  - The 17 small blocks among them are parts as they were.
+  - `npm run names` (`tools/quality/page-names.js`, new, in `npm run gates`): over the parts
+    joined and the page's other scripts, no name declared twice at the top, none a browser's own,
+    each read somewhere, nothing read that nothing declares. ESLint is told every part's top
+    names. Shown failing with a part declaring `close`, a second `scanLoad`, a name read nowhere
+    and one declared nowhere; `test/page-names.test.js` (new) holds its verdict.
+- Stage 2 (`v1.0.5-stage-2-core`): the core is 33 parts, in its order, none over 400 lines;
+  `app.js` keeps only the startup that closed it (`bootstrap()`, 68 lines), and leaves the
+  file-length allowance and its exemption.
+  - The core loses its wrapper, and so do two big blocks inside it, the search and the labels
+    browser; their names join the page's top with no clash (stage 1b renamed the add-ons' that
+    would have), but the search's `row` and `openBtn`, which the Library Scanner and Settings
+    have: `searchRow` and `searchOpenBtn`. Their guards for missing elements go, as 1b's did.
+  - 933 names at the top of 81 parts, none clashing, each read (`npm run names`).
+- `test/page-script.test.js` (new): the list and the folder agree, the three joins (server,
+  Android, test) agree, and `/app.js` is the join. Shown failing with a script in `public/app/`
+  the list doesn't name.
+- `test/page-tour.test.js` (new): every screen of the page opened in a browser, at a desktop and
+  at a phone, with nothing thrown. Shown failing with a name missing from Music folders.
+- `test/backup-page.test.js`: the sealed-backup test waits for the first scan before it opens the
+  page, as the test beside it does. A page drawn on an empty library reloads itself once the albums
+  come, which broke the test two runs in three.
+
 ## v1.0.4
 **Downloads in Setup** (`v1.0.4-downloads-in-setup`): the Android app's Downloads page is in
 Settings → Setup, before Away from home.

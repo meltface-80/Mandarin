@@ -227,7 +227,7 @@ const REAL_ZGS = [
     '</ZoneGroups><VanishedDevices><Device UUID="RINCON_DEAD0001400" ZoneName="Bathroom" Reason="powered off"/></VanishedDevices></ZoneGroupState>',
   // S1: the groups at the root.
   '<ZoneGroups><ZoneGroup Coordinator="RINCON_000E5859E49601400" ID="RINCON_000E5859E49601400:0"><ZoneGroupMember UUID="RINCON_000E5859E49601400" Location="http://10.1.1.20:1400/xml/device_description.xml" ZoneName="Office &amp; Den" Icon="x-rincon-roomicon:office" SoftwareVersion="57.3-77280" Invisible="0" IsZoneBridge="0"/></ZoneGroup></ZoneGroups>',
-  // test/topology.test.js's.
+  // test/Mandarin.Tests/TopologyTests.cs's.
   `<ZoneGroupState><ZoneGroups>
 <ZoneGroup Coordinator="RINCON_A" ID="RINCON_A:1">
  <ZoneGroupMember UUID="RINCON_A" ZoneName="Kitchen" Location="http://10.0.0.5:1400/xml/device_description.xml"/>

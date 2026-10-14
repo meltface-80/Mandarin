@@ -70,7 +70,7 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    history, plays, the radio, the device list and `/api/status`'s rooms, each held to the Node
    server's own answers and command order (`test/playback-csharp.test.js` with a fake household
    for each server; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`,
-   `test/local-output.test.js`). **The owner decided to try it at home once, after stage 7**,
+   `test/Mandarin.Tests/LocalOutputTests.cs`). **The owner decided to try it at home once, after stage 7**,
    rather than per stage: the merge went on CI green. The ffmpeg sink for a Mac's sound devices
    is not ported, as the spec says: on a Mac a `LOCAL_` device is refused in words by the C# hub
    until stage 7 decides. With the merge the suite was made steady (the races CI found fixed
@@ -115,7 +115,7 @@ Per the spec, each stage is planned in detail (in the spec) before it's coded.
 1. Bump the version: package.json (and `npm install --package-lock-only`), README.md's title, the
    site's badge (`docs/index.html`), `android/app/build.gradle.kts` (versionName, and versionCode =
    300 + the patch number from 0.9.0, e.g. 0.9.1 → 301; it was 200 + the patch for 0.8.x).
-   `test/version.test.js` checks they agree. Add a CHANGELOG entry at the top, in the same style.
+   `test/Mandarin.Tests/VersionTests.cs` checks they agree. Add a CHANGELOG entry at the top, in the same style.
 2. Rebuild **both** `./engine/build.sh` and `./server/build.sh` after the bump; the engine test
    checks the engine's version.
 3. `npm run gates` (the file-length ratchet, `@ts-check` and `tsc`, ESLint against its

@@ -139,6 +139,13 @@ test("a sealed backup in a browser: the passphrase seals it, and its restore ask
   ctx.db.setSetting("discogsToken", "page-secret");
   try {
     const token = await signIn(U);
+    // The first scan done before the page opens, as above: a page drawn on an empty
+    // library reloads itself once the albums come (serverNotice), under the test's feet.
+    for (let i = 0; i < 100; i++) {
+      const s = await (await fetch(U + "/api/status", { headers: { Authorization: "Bearer " + token } })).json();
+      if (s.index_count >= 3 && !s.library_importing) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
     const b = await Browser.launch({ width: 390, height: 844 });
     let made, back;
     try {

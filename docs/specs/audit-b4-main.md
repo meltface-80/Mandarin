@@ -84,7 +84,7 @@ the owner asked, everything is based on `migration`:
 - **Done (v0.9.2):** `Http.cs`: one reader (`ReadJson`, `ReadJs`: the limit, the charset, strict JSON, a
   body kept for a later route) and one writer (`Send`, `Json`, `Error`: the ETag, `X-Mandarin-Answered`,
   HEAD). The old helpers are one-line forwards to it. The two sign-in GET routes and `/server-info` take a
-  HEAD too. Tested in `test/http-body.test.js` (each refused body sent to every kind of reader, each
+  HEAD too. Tested in `test/Mandarin.Tests/HttpBodyTests.cs` (each refused body sent to every kind of reader, each
   writer's answer). Breaking the strict check, the buffering kept for a later route, or the 304 each fails it.
 - **Branch:** `audit/code-quality-fixes`
 
@@ -225,9 +225,9 @@ the owner asked, everything is based on `migration`:
   answers) changing the album's match and undo restoring it; each play route queuing the right
   tracks on the fake Sonos household. Each is broken once on purpose and seen to fail.
 - **Branch:** `audit/test-coverage-expansion`
-- **Done:** `test/identify-verdicts.test.js` (accept, reject, undo by rejecting, 404 and 409),
+- **Done:** `test/Mandarin.Tests/IdentifyVerdictsTests.cs` (accept, reject, undo by rejecting, 404 and 409),
   `test/play-routes.test.js` (the play routes against a fake Sonos household, the speaker's own queue
-  read; the refused and gone ones), Tailscale's logout in `test/tailscale-builtin.test.js`, the
+  read; the refused and gone ones), Tailscale's logout in `test/Mandarin.Tests/TailscaleBuiltinTests.cs`, the
   update's status in `test/update.test.js`. Each route broken once and its test seen to fail.
 
 ### T2. Fixed sleeps in tests (Medium)
@@ -235,7 +235,7 @@ the owner asked, everything is based on `migration`:
 - **Where:** 93 waits of 100 ms or more (`await new Promise(r => setTimeout(r, N))`):
   - `test/stale-page.test.js` and `test/front.test.js` (5 each)
   - `test/playback-csharp.test.js` (4)
-  - `test/loudness.test.js`, `test/menu.test.js`, `test/scans-csharp.test.js`,
+  - `test/loudness.test.js`, `test/menu.test.js`, `test/Mandarin.Tests/ScansCsharpTests.cs`,
     `test/share-open.test.js`, `test/library-live.test.js` (3 each)
 - **Issue:** a fixed wait is either too short on a busy runner (the two loudness races fixed
   today were of this family) or wasted time on a fast one.
@@ -263,8 +263,8 @@ the owner asked, everything is based on `migration`:
 ### T4. Assertions behind a platform test (Low)
 
 - **Where:**
-  - `test/local-output.test.js:154` (`if (process.platform === "darwin")`)
-  - `test/tailscale-builtin.test.js:189`
+  - `test/Mandarin.Tests/LocalOutputTests.cs` (`if (process.platform === "darwin")`)
+  - `test/Mandarin.Tests/TailscaleBuiltinTests.cs`
 - **Issue:** one test asserts different things depending on where it runs.
 - **Fix:** split each into a test per platform, each skipping with its reason elsewhere.
 - **Branch:** `audit/test-coverage-expansion`
@@ -299,7 +299,7 @@ the owner asked, everything is based on `migration`:
 - **Done:** `Admin/Backup.Seal.cs`, `AdminRestoreRoutes.cs` (the restore routes split out of
   `AdminRoutes.cs`, at its cap), the page and the app. A whole database's copy is scrubbed of the
   keys and of what a restore never takes from it, with `secure_delete`. Tested in
-  `test/backup-sealed.test.js` and `test/backup-page.test.js`.
+  `test/Mandarin.Tests/BackupSealedTests.cs` and `test/backup-page.test.js`.
 
 ### S2. Pages can be framed by another site (Medium)
 
@@ -312,7 +312,7 @@ the owner asked, everything is based on `migration`:
   `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin` on every page answer. A test
   reads them. The Android WebView loads the page at top level, so it isn't affected.
 - **Branch:** `audit/security-hardening`
-- **Done:** `Pages.cs` (`Guarded`). Tested in `test/security.test.js`.
+- **Done:** `Pages.cs` (`Guarded`). Tested in `test/Mandarin.Tests/SecurityTests.cs`.
 
 ### S3. A development package with known vulnerabilities (Low)
 
@@ -344,7 +344,7 @@ the owner asked, everything is based on `migration`:
   hop checked too), and keep LAN addresses for speakers' art.
 - **Branch:** `audit/security-hardening`
 - **Done:** `Addresses.cs` (`CheckArt` on every hop, `ArtConnect` where the connection is made).
-  Foreign covers keep LAN addresses, as the finding says. Tested in `test/security.test.js`.
+  Foreign covers keep LAN addresses, as the finding says. Tested in `test/Mandarin.Tests/SecurityTests.cs`.
 
 ### S6. Any certificate accepted from LinkPlay devices (Low)
 
@@ -355,7 +355,7 @@ the owner asked, everything is based on `migration`:
   analyzer with that reason where it stands.
 - **Branch:** `audit/security-hardening`
 - **Done:** `Addresses.LinkPlayCert`: a sound certificate from anywhere, the player's own from a
-  private address only. Tested in `test/security.test.js`.
+  private address only. Tested in `test/Mandarin.Tests/SecurityTests.cs`.
 
 ### S7. Hashes the analyzers call weak, used for non-security purposes (Info)
 
@@ -413,7 +413,7 @@ the owner asked, everything is based on `migration`:
   proves a second request is a 304 and the cache is dropped when the library changes.
 - **Done (v0.9.3):** `LibraryRoutes.Kept.cs`: the wall and its facets, the Shelf, the artists and an
   artist's albums, genres, decades, hearts and Listen later, kept by path and query for the copy and the
-  hearts (at most 64), not while the library is being built. Tested in `test/library-kept.test.js`; ignoring
+  hearts (at most 64), not while the library is being built. Tested in `test/Mandarin.Tests/LibraryKeptTests.cs`; ignoring
   the hearts or the copy each fails it.
 - **Branch:** `audit/performance-optimization`
 
@@ -422,7 +422,7 @@ the owner asked, everything is based on `migration`:
 - **Where:** `Pages.cs:193–200`. Same pattern for HTML pages, smaller.
 - **Fix:** the same cache, keyed by the file's write time.
 - **Done (v0.9.3):** `Pages.Kept.cs`, keyed by the source files' size and write time; ignoring them fails
-  `test/library-kept.test.js`.
+  `test/Mandarin.Tests/LibraryKeptTests.cs`.
 - **Branch:** `audit/performance-optimization`
 
 ### P3. The page script is shipped unminified (Low; deferred: remind the owner at v0.9.5)

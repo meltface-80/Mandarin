@@ -15,8 +15,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 312
-        versionName = "1.0.4"
+        versionCode = 314
+        versionName = "1.0.6"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -113,13 +113,27 @@ android {
  * the offline page until the app has saved a copy from the server (see
  * OfflineSite). So offline is always the same MusicD interface.
  */
+val pageDir = rootProject.file("../public")
 val bundleSite = tasks.register<Copy>("bundleSite") {
-    from(rootProject.file("../public")) {
-        include("index.html", "app.js", "style.css", "android.css", "sharecard.js", "srp.js", "biquad.js", "touchnav.js", "nowdisc.js", "features.js", "manifest.json",
+    from(pageDir) {
+        include("index.html", "style.css", "android.css", "sharecard.js", "srp.js", "biquad.js", "touchnav.js", "nowdisc.js", "features.js", "manifest.json",
             "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico", "icons/duck-tile.png",
             "fonts/manrope.woff2", "fonts/young-serif.woff2")
     }
     into(layout.buildDirectory.dir("generated/site/site"))
+    // The page's script, made from its parts as the server makes it (v1.0.5,
+    // server/Mandarin.Server/Pages.Script.cs): the parts public/app/parts.txt
+    // names, in its order, each headed by its name and parted by a lone ";".
+    inputs.dir(File(pageDir, "app"))
+    inputs.files(fileTree(pageDir) { include("app.js") })
+    doLast {
+        val parts = File(pageDir, "app/parts.txt").readLines().map { it.trim() }.filter { p ->
+            p.isNotEmpty() && !p.startsWith("#") && p.endsWith(".js") && !p.startsWith("/") && !p.contains("\\") &&
+                p.split("/").none { it.isEmpty() || it == "." || it == ".." }
+        }
+        val joined = parts.joinToString("\n;\n") { "// $it\n" + File(pageDir, it).readText() }
+        destinationDir.resolve("app.js").writeText(joined)
+    }
 }
 android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/site"))
 tasks.named("preBuild") { dependsOn(bundleSite) }

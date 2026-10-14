@@ -1,6 +1,6 @@
 // ExtrasCommand.cs — the pure parts of v0.8.20's ports asked directly, through
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
-// line out, so the tests hold them to the Node server's (test/extras-csharp.test.js):
+// line out, so the tests hold them to the Node server's (test/Mandarin.Tests/ExtrasCsharpTests.cs):
 //
 //   { fn: "share", cases: [{ artist, album, locale, accept, enabled, reviews, wikipedia, pitchfork, wikipedia_artist, ids }] }
 //   { fn: "similar", names, overlaps, artists, related, pools, years, tops, album_lists, tastes, ranks, chooses, reasons, records, played }

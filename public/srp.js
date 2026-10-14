@@ -8,7 +8,7 @@
  *
  * The same file runs in the browser (the sign-in page), in Node (the server
  * and its tests) and is mirrored in Kotlin (android/core Srp.kt) — they must
- * agree to the byte, which test/srp.test.js checks against a fixed vector.
+ * agree to the byte, which test/Mandarin.Tests/SrpTests.cs checks against a fixed vector.
  *
  * Everything is written out by hand, SHA-256 included: the page is usually
  * served over plain http on the home network, where browsers withhold

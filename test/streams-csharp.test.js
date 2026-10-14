@@ -376,7 +376,7 @@ test("stream plans: the repo's own cases, then every rate, depth, container and 
   const r = rng(838);
   const job = plansJob(r, 0);
   job.plan = REPO_PLANS.slice();
-  // stream.test.js: a gain changes the samples, so a repack is no longer exact.
+  // StreamTests.cs: a gain changes the samples, so a repack is no longer exact.
   const wav = { path: "/m/a.wav", codec: "pcm_s24le", sampleRate: 96000, bitsPerSample: 24, channels: 2 };
   const dac = { name: "DAC", rates: [44100, 48000, 96000], maxBits: 24, containers: ["flac"] };
   const toPlan = [{ p: {}, t: wav, target: dac }];

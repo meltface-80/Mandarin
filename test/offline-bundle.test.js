@@ -23,7 +23,9 @@ test("every script the page loads is in the Android app's offline copy, both lis
   const copied = [...include[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   const served = [...read("android/app/src/main/java/com/musicd/server/android/OfflineSite.kt").matchAll(/"\/([^"]+)" to "([^"]+)"/g)].map((m) => m[1]);
   for (const s of scripts) {
-    assert.ok(copied.includes(s), s + " is copied into the app (build.gradle.kts)");
+    // The page's own script is made from its parts (v1.0.5): joined into the app's copy, not copied (test/Mandarin.Tests/PageScriptTests.cs).
+    if (s === "app.js") assert.match(gradle, /File\(pageDir, "app\/parts\.txt"\)/, "app.js is joined from its parts into the app (build.gradle.kts)");
+    else assert.ok(copied.includes(s), s + " is copied into the app (build.gradle.kts)");
     assert.ok(served.includes(s), s + " is served offline (OfflineSite.kt)");
   }
 });

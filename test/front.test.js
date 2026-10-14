@@ -19,7 +19,7 @@
  *   - v0.8.11: conversions made by C#, as the Node server made them (the same test);
  *   - v0.8.12: the phone's downloads and its Opus away, made and sent by C# (the same test);
  *   - v0.8.13: tags read by C# as the scanner reads them (test/tags-front.test.js), and the
- *     processor's split kept to by C# (test/cpu.test.js);
+ *     processor's split kept to by C# (test/Mandarin.Tests/CpuTests.cs);
  *   - v0.8.14: the scan's tags read by C#, the library the same (test/tags-front.test.js,
  *     test/tag-reader-switch.test.js);
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
@@ -33,13 +33,13 @@
  *     in this mode, which says so; and every test that loads index.js afresh);
  *   - v0.8.20: record labels whole (the wall, a label's albums, the lookups, the logos, the keys),
  *     the release days, Smart Picks and the share card's suggestions made by C#
- *     (test/extras-csharp.test.js; the label, release day, Smart Picks and similar tests in this mode);
+ *     (test/Mandarin.Tests/ExtrasCsharpTests.cs; the label, release day, Smart Picks and similar tests in this mode);
  *   - v0.8.21: an album's write-ups and links, an artist's story, Pitchfork's lists, the Qobuz app's
  *     link, the share card's settings and a playlist shared as text, made by C#
- *     (test/writeups-csharp.test.js, test/share-csharp.test.js; the write-up and playlist tests in this mode);
+ *     (test/writeups-csharp.test.js, test/Mandarin.Tests/ShareCsharpTests.cs; the write-up and playlist tests in this mode);
  *   - v0.8.22: backup & restore, built-in Tailscale, Dynamic Playlists saved and deleted, the tag
  *     filter, the album editor (its cover search too) and covers drawn from an album's own picture,
- *     by C# (test/backup-csharp.test.js, test/artfind-csharp.test.js; the backup, Tailscale, playlist,
+ *     by C# (test/Mandarin.Tests/BackupCsharpTests.cs, test/Mandarin.Tests/ArtfindCsharpTests.cs; the backup, Tailscale, playlist,
  *     end-to-end and library tests in this mode);
  *   - v0.8.25: nothing new answered by C#. In front of a Node server of another version (an update
  *     from Settings half done) C# answers nothing but /server-info and its work stays with Node,
@@ -50,14 +50,14 @@
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
  *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
- *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
- *     are still passed to it, and test/power.test.js's through-the-server test holds that;
+ *     install; test/Mandarin.Tests/PowerCsharpTests.cs runs it so). Here the Node server is the test's own, so these
+ *     are still passed to it, and test/Mandarin.Tests/PowerTests.cs's through-the-server test holds that;
  *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
  *     server has none (test/booklets-csharp.test.js holds that they're C#'s);
  *   - v0.8.34: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
- *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
+ *     /api/music-mount and /api/search-status, by C# (test/Mandarin.Tests/ScansCsharpTests.cs, each read held to the
  *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
  *   - v0.8.37: nothing new answered by C#. Stage 2a's ports, the Sonos and renderer logic, are held to
  *     the Node server's by test/sonos-csharp.test.js and test/renderers-csharp.test.js, and used by
@@ -71,7 +71,7 @@
  *     Tidal's token has to be refreshed for is still the Node server's, as are signing in, the settings,
  *     the import, favourites, opening and playing (the v0.8.39 test here);
  *   - v0.8.40: conversions with a ReplayGain (?g=), a zone's DSP (?o=) and 32-bit output, by C#, made
- *     ahead too when the Node server hands them over (test/conversions-csharp.test.js, each file the
+ *     ahead too when the Node server hands them over (test/Mandarin.Tests/ConversionsCsharpTests.cs, each file the
  *     Node server's own byte for byte; test/library-front.test.js); only Qobuz's and Tidal's tracks
  *     are still converted by the Node server;
  *   - v0.8.43: which albums the library holds, as a mark on every answer to a signed-in device
@@ -102,8 +102,8 @@
  *     Playback itself (the rooms, the queue, /api/play…) is still the Node server's (the v0.8.47 test
  *     here; the job list in the v0.8.19 one);
  *   - v0.8.48 (stage 5, everything but playback): the database made and brought up to date by C#
- *     (test/db-csharp.test.js); the sign-in page, the wall display's page, the page for any deep link
- *     and /api/health by C# (test/pages-csharp.test.js; the first test here).
+ *     (test/Mandarin.Tests/DbCsharpTests.cs); the sign-in page, the wall display's page, the page for any deep link
+ *     and /api/health by C# (test/Mandarin.Tests/PagesCsharpTests.cs; the first test here).
  *   - v0.8.50 (stage 7): the program alone, no Node server anywhere: every pin here is held on it
  *     (test/server.js); the Node server's code went in stage 7 part 6.
  */
@@ -193,7 +193,7 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
     assert.equal((await x.r.json()).version, require("../package.json").version, "with Mandarin's version");
     x = await by("/app.js");
     assert.equal(x.status, 401, "the page's files still behind the gate");
-    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/pages-csharp.test.js).
+    // The sign-in page, the wall display's and the page for a deep link: C#'s since v0.8.48 (test/Mandarin.Tests/PagesCsharpTests.cs).
     for (const p of ["/login", "/display", "/library"]) {
       x = await by(p, { headers: H, redirect: "manual" });
       assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");

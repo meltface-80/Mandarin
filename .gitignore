@@ -20,6 +20,13 @@ engine/Mandarin.Audio/bin/
 server/bin/
 server/**/obj/
 server/Mandarin.Server/bin/
+# The C# tests' build output (dotnet test test/Mandarin.Tests)
+test/Mandarin.Tests/bin/
+test/Mandarin.Tests/obj/
 .claude/*
 !.claude/settings.json
 tools/lint/node_modules/
+
+# The stand-ins the C# tests start (test/StandIns)
+test/StandIns/bin/
+test/StandIns/obj/

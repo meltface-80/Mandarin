@@ -12,7 +12,7 @@
  * Since v0.9.0 (stage 7 part 6) on the C# server alone (Admin/Updater.cs:
  * the program put in place and started again in the same process,
  * Front.StartAgain); before, the Node server under launcher.js. The refusals
- * are test/update-alone.test.js's. The new version's program is built here
+ * are test/Mandarin.Tests/UpdateAloneTests.cs's. The new version's program is built here
  * with the .NET SDK (a minute), or named by MANDARIN_SERVER_BIN_NEXT (a build
  * that says 9.9.9).
  */
