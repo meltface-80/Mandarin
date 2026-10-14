@@ -84,7 +84,7 @@ the owner asked, everything is based on `migration`:
 - **Done (v0.9.2):** `Http.cs`: one reader (`ReadJson`, `ReadJs`: the limit, the charset, strict JSON, a
   body kept for a later route) and one writer (`Send`, `Json`, `Error`: the ETag, `X-Mandarin-Answered`,
   HEAD). The old helpers are one-line forwards to it. The two sign-in GET routes and `/server-info` take a
-  HEAD too. Tested in `test/http-body.test.js` (each refused body sent to every kind of reader, each
+  HEAD too. Tested in `test/Mandarin.Tests/HttpBodyTests.cs` (each refused body sent to every kind of reader, each
   writer's answer). Breaking the strict check, the buffering kept for a later route, or the 304 each fails it.
 - **Branch:** `audit/code-quality-fixes`
 
@@ -225,7 +225,7 @@ the owner asked, everything is based on `migration`:
   answers) changing the album's match and undo restoring it; each play route queuing the right
   tracks on the fake Sonos household. Each is broken once on purpose and seen to fail.
 - **Branch:** `audit/test-coverage-expansion`
-- **Done:** `test/identify-verdicts.test.js` (accept, reject, undo by rejecting, 404 and 409),
+- **Done:** `test/Mandarin.Tests/IdentifyVerdictsTests.cs` (accept, reject, undo by rejecting, 404 and 409),
   `test/play-routes.test.js` (the play routes against a fake Sonos household, the speaker's own queue
   read; the refused and gone ones), Tailscale's logout in `test/tailscale-builtin.test.js`, the
   update's status in `test/update.test.js`. Each route broken once and its test seen to fail.

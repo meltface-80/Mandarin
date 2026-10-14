@@ -20,6 +20,11 @@ and npm leave the project after it. Nothing the server or the page does changes.
 - CI and the release run both suites; the C# classes are dealt out to the same three parts, and a
   failure runs once more on its own (`.github/csharp-tests.sh`).
 - `tools/quality/policy.json`: the C# tests are under the file-length gate (`test/**/*.cs`).
+- Stage T1a (`v1.0.6-tests-csharp-1-core`): 17 more files ported and deleted: `cpu`, `db`,
+  `http-body`, `listen-later`, `music-folders`, `power`, `queue-moves`, `soap-retry`, `topology`,
+  `version-compare`, `watch`, `waveform`, `home-rows`, `relay`, `case`, `identify-verdicts`,
+  `page-script` (each part and the join compiled by Chromium, as the page loads them). Shown
+  failing: release candidates with their numbers compared as text; two parts declaring one name.
 - Version 1.0.6 (Android versionCode 314).
 
 ## v1.0.5

@@ -73,7 +73,7 @@ script of the page) declares.
 
 ## How it is tested
 
-- `test/page-script.test.js`: every listed part is there, once, without a BOM; every
+- `test/Mandarin.Tests/PageScriptTests.cs`: every listed part is there, once, without a BOM; every
   script in `public/app/` is listed; each part compiles alone, and the join as one script; the server's join, the Android join and the
   test's own agree; `/app.js` is served as `text/javascript`, `no-cache`, with a 304
   for its ETag, and not without signing in.
