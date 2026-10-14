@@ -162,6 +162,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
   try {
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
+    await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });   // a new install: Shelf off until switched on (v1.0.2)
     for (let i = 0; i < 150; i++) {
       const st = await (await fetch(B + "/api/status", { headers: H })).json();
       if (st.index_count >= 10 && !st.scan.running && st.zone_count >= 2) break;

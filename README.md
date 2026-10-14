@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v1.0.1
+# Mandarin — v1.0.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -166,7 +166,7 @@ A record shop's shelf of your collection: covers or spines, A → Z by artist or
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen.
+Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen.
 
 </details>
 
@@ -526,7 +526,7 @@ A full-screen now playing page for a TV or tablet.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open `http://<server-ip>:3500/display` on the screen. Its options are in **Settings → Wall Display**. Tap the screen for its controls; **Shelf ›** opens Shelf.
+Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default) and options are in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its controls; **Shelf ›** opens Shelf.
 
 </details>
 

@@ -4005,6 +4005,8 @@ input.vol-range::-moz-range-thumb {
   transition: background .12s ease, transform .06s ease;
 }
 .menu-item:hover { background: var(--bg-elev-2); }
+/* A part switched off in Settings → Setup (v1.0.2, features.js): not offered at all. */
+.menu-item.feature-off { display: none; }
 .menu-item:active { transform: scale(.99); }
 .menu-item.hidden { display: none; }
 /* Offline mode (v0.5.58): a switch in the menu, shown only in the app. */

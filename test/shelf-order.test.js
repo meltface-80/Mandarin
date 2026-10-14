@@ -68,6 +68,7 @@ test("Shelf: the order's name switches by artist and by album, kept per device; 
   try {
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
+    await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });   // a new install: Shelf off until switched on (v1.0.2)
     for (let i = 0; i < 150; i++) {
       const st = await (await fetch(B + "/api/status", { headers: H })).json();
       if (st.index_count >= 11 && !st.scan.running) break;

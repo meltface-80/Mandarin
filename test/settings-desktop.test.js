@@ -43,8 +43,8 @@ const DRIVER = `(async () => {
   const titles = sel => [...document.querySelectorAll(sel + ' .settings-nav-item:not(.hidden) .settings-nav-title')].map(t => t.textContent);
   out.order = titles('#settings-overlay .settings-view[data-view="home"]');
   out.setup_order = titles('#settings-overlay .settings-pane[data-pane="setup"]');
-  const SETUP = ["ui", "homescreen"];
-  for (const p of ["ui", "identify", "homescreen", "system"]) {
+  const SETUP = ["ui", "homescreen", "display", "shelfset"];
+  for (const p of ["ui", "identify", "homescreen", "system", "display", "shelfset"]) {
     if (SETUP.includes(p)) { document.querySelector('#settings-overlay .settings-nav-item[data-pane="setup"]').click(); await step(300); }
     document.querySelector('#settings-overlay .settings-nav-item[data-pane="' + p + '"]').click(); await step(500);
     out.panes[p] = { w: width(), overflow: sheet().scrollWidth > sheet().clientWidth + 1 };
@@ -100,10 +100,13 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
     for (const size of [{ width: 1440, height: 900, mouse: true }, { width: 1180, height: 820 }, { width: 820, height: 1180 }]) {
     const desk = await run(size);
     assert.equal(desk.list.w, desk.menu, size.width + "px: the list is the side menu's width");
-    assert.deepEqual(desk.order, ["Account", "Music Folders", "Services", "Audio Devices", "Wall Display", "Library Scanner", "Setup", "Backup & restore", "Updates"]);
-    assert.deepEqual(desk.setup_order, ["Smart Picks", "Record labels", "Home Screen", "UI Settings", "Share Card", "Away from home", "API Keys"]);
+    // Wall Display one of Setup's pages, with Shelf beside it (v1.0.2).
+    assert.deepEqual(desk.order, ["Account", "Music Folders", "Services", "Audio Devices", "Library Scanner", "Setup", "Backup & restore", "Updates"]);
+    assert.deepEqual(desk.setup_order, ["Smart Picks", "Record labels", "Home Screen", "UI Settings", "Wall Display", "Shelf", "Share Card", "Away from home", "API Keys"]);
     assert.equal(desk.back_from_ui, true, "Back from UI Settings is Setup");
     assert.equal(desk.back_from_homescreen, true);
+    assert.equal(desk.back_from_display, true, "Back from Wall Display is Setup");
+    assert.equal(desk.back_from_shelfset, true, "Back from Shelf is Setup");
     assert.equal(desk.list.left, 0, "from the left, as the menu");
     for (const [p, v] of Object.entries(desk.panes)) {
       assert.ok(v.w >= 360 && v.w <= 680, p + " is " + v.w + "px");

@@ -21,6 +21,7 @@ const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 
 test("the library's lists: kept for the copy and the hearts they were made from, made afresh when either moves", { skip, timeout: 120000 }, async (t) => {
   const { base, H, api, album } = await started(t);
+  await api("settings/shelf", { enabled: true });   // a new install: Shelf off until switched on (v1.0.2)
   const ask = async (p, headers = {}) => {
     const r = await fetch(base + p, { headers: Object.assign({}, H, headers) });
     return { status: r.status, kept: r.headers.get("x-mandarin-kept"), tag: r.headers.get("etag"), text: r.status === 200 ? await r.text() : "" };

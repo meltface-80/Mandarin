@@ -52,7 +52,8 @@ FEATURES = [
     ("shelf", "🗄️", "Shelf", True,
      "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
      "by genre, artist letter and decade, or spun to land anywhere.",
-     "Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
+     "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
+     "offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
      "case over, and hold a track on its back to choose tracks to play. The bar at its foot plays "
      "or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
@@ -211,8 +212,9 @@ FEATURES = [
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet.",
-     "Open `http://<server-ip>:3500/display` on the screen. Its options are in "
-     "**Settings → Wall Display**. Tap the screen for its controls; **Shelf ›** opens Shelf."),
+     "Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default) and options are "
+     "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
+     "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
     ("android", "📱", "The Android app", False,
      "The same interface, plus lock-screen and notification controls, volume keys, a widget, a "

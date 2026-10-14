@@ -88,9 +88,10 @@ Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
-// then the database made, or brought up to date (Schema.cs).
+// then the database made, or brought up to date (Schema.cs); a new one is a
+// new install, whose optional parts start as a new install's do (Features.cs).
 Mandarin.Server.Admin.Backup.SwapStaged(dataDir, Server.Log);
-try { Schema.Bring(dataDir, Server.Log); }
+try { if (!Schema.Bring(dataDir, Server.Log).Existed) Features.NewInstall(); }
 catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
 {
     Server.Log($"[server] the database couldn't be brought up to date ({e.Message}); stopping");

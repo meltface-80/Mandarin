@@ -5,6 +5,36 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.2
+**Optional features** (`v1.0.2-optional-features`): the wall display and Shelf each switch off
+whole, from Settings → Setup.
+
+- **Settings → Setup → Wall Display**: the wall display's page moved from the Settings list into
+  Setup (Back goes to Setup). On by default, as before.
+- **Settings → Setup → Shelf** (new): Shelf's switch (`/api/settings/shelf`, `shelfEnabled`,
+  carried in a backup's settings). **Off on a new install**: written off when the database is
+  first made (`Features.NewInstall`). An install from before v1.0.2 has no setting and keeps Shelf
+  on, as it was.
+- **Off is off** (`server/Mandarin.Server/Features.cs`, new). Neither part had work of its own in
+  the background; what they cost is what their screens ask for. Switched off:
+  - `/display` and `/shelf` are a page saying so (`public/display-off.html`,
+    `public/shelf-off.html`) with no script, so a screen left open on it asks for nothing more.
+    Before, a wall display switched off kept asking for its setting every minute;
+  - what only they ask for is refused: the wall display's content (as before) and Shelf's list,
+    never made, and one kept for the library let go when Shelf is switched off;
+  - a page open as it is switched off goes to that page at its next look, within 30 s;
+  - the side menu has no Shelf (`public/features.js`, new), and the wall display no Shelf button.
+  Switched on again, each is as it was.
+- `test/optional-features.test.js` (new). Shown failing with the code broken: a kept list sent
+  while off, `/shelf` always Shelf's own page, the side menu's Shelf left, a new install's Shelf
+  left on. The tests that use Shelf switch it on first, as a new install must. `test/settings-desktop.test.js`
+  now has Wall Display and Shelf among Setup's pages, Back from each to Setup.
+- `public/display.js` is 10 lines shorter (644; its allowance follows).
+- The Android app bundles `features.js` for offline, and `test/offline-bundle.test.js` (new) holds
+  every script `index.html` loads to both of the app's lists (`build.gradle.kts`, `OfflineSite.kt`):
+  each new script had been added to them by hand. Shown failing with `features.js` left out of
+  either.
+
 ## v1.0.1
 **UI tweaks 1** (`v1.0.1-ui-tweaks-1`): the album page's playing track, and the Shelf's order and looks.
 

@@ -1958,7 +1958,7 @@
           if (N > 1 && !sel.random.size) { p = target = Math.floor(Math.random() * N); kick(); updateInfo(true); }
           pollNowPlaying();
         }
-      } catch (e) {
+      } catch (e) { if (e.status === 403) { location.replace("/shelf" + location.search); return; }   // switched off (v1.0.2): the page saying so
         // After the first read, a failed re-read leaves the shelf as it is —
         // what is on screen is still a true library, only older — and the next
         // look (checkLive) asks again.
