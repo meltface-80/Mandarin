@@ -8,12 +8,14 @@
  *   - the server sends exactly that join, and says it has it still;
  *   - every part named is there, once, a plain file of the page;
  *   - every script in public/app/ is named: one left out would never run;
+ *   - each part compiles alone, and so does the join;
  *   - the app's join is the server's (its separator, its heading, its list).
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const { started } = require("./helpers");
 const { built } = require("./server");
 
@@ -38,6 +40,14 @@ test("every part named is there once, and every script in public/app/ is named",
   }
   const scripts = fs.readdirSync(path.join(PUB, "app")).filter(f => f.endsWith(".js")).map(f => "app/" + f);
   for (const s of scripts) assert.ok(list.includes(s), s + " is named in public/app/parts.txt, or it never runs");
+});
+
+// One script, as the browser reads it: a part cut mid-statement, or two parts declaring
+// one name (let, const, class), stops the whole page before any of it runs.
+test("the parts joined are one script that compiles, as each part alone does", () => {
+  const list = parts();
+  for (const p of list) assert.doesNotThrow(() => new vm.Script(fs.readFileSync(path.join(PUB, p), "utf8"), { filename: p }), p + " compiles alone");
+  assert.doesNotThrow(() => new vm.Script(join(list), { filename: "app.js" }), "the join compiles");
 });
 
 test("the Android app's copy is joined as the server joins it", () => {

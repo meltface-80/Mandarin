@@ -14,6 +14,12 @@ carved into files under `public/app/`, served joined as one script.
   (`server/Mandarin.Server/Pages.Script.cs`); without the list, `app.js` is sent as it is. The
   Android app's offline copy is joined the same way when the app is built. For now the list
   names one part, `app.js` itself: nothing the page does changes.
+- Stage 1a (`v1.0.5-stage-1a-small-blocks`): ten small blocks before and after the rest of
+  `app.js` (the sign-out guard, request limits, the library mark, after-start, UI settings; UI
+  Settings, Away from home, the toast lift, power, backup and restore) are parts of their
+  own, moved unchanged and in their order: the join's tokens are the old file's.
+  `test/page-script.test.js` also compiles each part alone and the join as one script; shown failing
+  with one `const` declared in two parts.
 - `test/page-script.test.js` (new): the list and the folder agree, the three joins (server,
   Android, test) agree, and `/app.js` is the join. Shown failing with a script in `public/app/`
   the list doesn't name.

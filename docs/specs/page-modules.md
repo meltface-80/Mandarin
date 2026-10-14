@@ -2,8 +2,8 @@
 
 `public/app.js` grew to one file of 19,579 lines: every screen of the page, in one
 script. Pages stay HTML and JavaScript (the owner's rule), so it is not rewritten;
-it is carved into files of its own under `public/app/`, each under the 500-line cap
-(docs/quality-plan.md), and served joined, as one script.
+it is carved into files of its own under `public/app/`, each at most 400 lines (the watch line:
+a new file over it would grow the allowance, docs/quality-plan.md), and served joined, as one script.
 
 ## How the parts are served
 
@@ -29,11 +29,14 @@ function declarations hoisted over all of it, sloppy mode as before (no part add
 | Stage | What moves | Branch |
 |---|---|---|
 | 0 | The join, its tests, the tour test (below) | `v1.0.5-stage-0-groundwork` |
-| 1a | The 21 add-on blocks under 500 lines, moved unchanged, each a part | `v1.0.5-stage-1a-small-blocks` |
-| 1b | The five big add-on blocks (mini transport, settings sheet, service browser, share card, audio devices) split | `v1.0.5-stage-1b-big-blocks` |
+| 1a | Ten small blocks before and after the rest (sign-out guard to UI settings; UI Settings to Backup), moved unchanged, each a part | `v1.0.5-stage-1a-small-blocks` |
+| 1b | Everything between the core and those: the five big add-on blocks (mini transport, share card, settings sheet, service browser, audio devices) split, and the small blocks among them moved, in their order | `v1.0.5-stage-1b-big-blocks` |
 | 2 | The core block (the first after the four small ones at the top) cut into parts, startup last | `v1.0.5-stage-2-core` |
 
 Each stage is a pull request into `migration`, squash-merged when green.
+
+Stage 1a takes only the small blocks at either end: the ones in the middle sit between big ones, and
+the order the blocks run in is kept, so they move with their neighbours in 1b.
 
 Rules for every part:
 
