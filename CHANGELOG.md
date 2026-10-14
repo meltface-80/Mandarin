@@ -20,6 +20,23 @@ carved into files under `public/app/`, served joined as one script.
   own, moved unchanged and in their order: the join's tokens are the old file's.
   `test/page-script.test.js` also compiles each part alone and the join as one script; shown failing
   with one `const` declared in two parts.
+- Stage 1b (`v1.0.5-stage-1b-big-blocks`): everything after the core is parts, in its order, none
+  over 400 lines; `app.js` is the core alone (10,367 lines).
+  - The mini transport (5 parts), the share card (3), the Settings sheet (4), Audio Devices (3)
+    and the Library Scanner (2) lose their wrappers: their names move to the page's top. The few
+    that would clash there are renamed by scope: `open`, `close`, `when`, `USB` and `status`
+    (a browser's own names), `overlay` (both the share card's and Settings'), and the Library
+    Scanner's ten names that Audio Devices has too (`pane` → `scanPane` …). The guards that left
+    Settings, Audio Devices and the Library Scanner when their elements were missing go: the
+    elements are in `index.html`.
+  - The streaming-service browser, made once per service, keeps its closure: its album rows and
+    its views are functions it calls with `sb`, what its pieces share.
+  - The 17 small blocks among them are parts as they were.
+  - `npm run names` (`tools/quality/page-names.js`, new, in `npm run gates`): over the parts
+    joined and the page's other scripts, no name declared twice at the top, none a browser's own,
+    each read somewhere, nothing read that nothing declares. ESLint is told every part's top
+    names. Shown failing with a part declaring `close`, a second `scanLoad`, a name read nowhere
+    and one declared nowhere; `test/page-names.test.js` (new) holds its verdict.
 - `test/page-script.test.js` (new): the list and the folder agree, the three joins (server,
   Android, test) agree, and `/app.js` is the join. Shown failing with a script in `public/app/`
   the list doesn't name.

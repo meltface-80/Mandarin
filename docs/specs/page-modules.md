@@ -41,15 +41,38 @@ the order the blocks run in is kept, so they move with their neighbours in 1b.
 Rules for every part:
 
 - Cut only at statement boundaries; the order of the parts is the order the code had.
-- A name one part declares for the others is marked `/* exported name */` there and
-  `/* global name */` where it is used, so ESLint (which reads each file alone) sees it.
-- Each part opens with a header saying what it is, as the blocks had.
+- At most 400 lines, so no part is born on the allowance.
+- Each part opens with a header saying what it is, as the blocks had; a block cut in several
+  says which piece it is ("2 of 3").
 - No behaviour changes in the same stage as a move.
+
+## How a big block is cut
+
+A block over 400 lines keeps its names in its own closure, and its pieces have to share them.
+
+- **Unwrapped.** Most blocks lose their wrapper `(() => { ... })();` and their names move to the
+  page's top, where every part sees them: the mini transport, the share card, the Settings sheet,
+  Audio Devices, the Library Scanner (stage 1b), the core (stage 2). A name that would clash once
+  at the top is renamed where it is declared and everywhere it is read (by scope, not by text):
+  one taking a browser's own name (`open`, `close`, `status`), or one two blocks both had
+  (the Library Scanner's `pane`, `body`, `busy` … become `scanPane`, `scanBody`, `scanBusy` …).
+  A guard that left the block when its elements were missing (`if (!pane) return;`) cannot
+  stand at the top; the elements are in `index.html`, and the guard goes.
+- **Installed.** A block that is a factory, made more than once, keeps its closure: each piece
+  becomes a function the factory calls with one object, `sb`, that carries what the pieces share.
+  A shared name that changes (`let`) is `sb.name` everywhere; one that doesn't is taken off `sb`
+  at the piece's start. The streaming-service browser (`initServiceBrowser`, one per service).
+
+What a part declares at the top is every part's. ESLint reads each part alone, so it is told
+every part's top names (`tools/lint/eslint.config.js`). `npm run names`
+(`tools/quality/page-names.js`, in `npm run gates`) holds the join itself: no name declared
+twice, none a browser's own, each read somewhere, and nothing read that no part (and no other
+script of the page) declares.
 
 ## How it is tested
 
 - `test/page-script.test.js`: every listed part is there, once, without a BOM; every
-  script in `public/app/` is listed; the server's join, the Android join and the
+  script in `public/app/` is listed; each part compiles alone, and the join as one script; the server's join, the Android join and the
   test's own agree; `/app.js` is served as `text/javascript`, `no-cache`, with a 304
   for its ETag, and not without signing in.
 - `test/page-tour.test.js`: every screen of the page opened in a real browser, at a
@@ -57,4 +80,5 @@ Rules for every part:
   the side menu, every Settings and Setup page, an album played to a room with Now
   playing over it, search and an artist. A part that loses a name another needs fails
   only when its screen opens, which no compiler sees; this opens them all.
+- `test/page-names.test.js`: the names gate's verdict on made-up pages.
 - The rest of the browser tests, unchanged, over the joined script.
