@@ -26,3 +26,7 @@ test/Mandarin.Tests/obj/
 .claude/*
 !.claude/settings.json
 tools/lint/node_modules/
+
+# The stand-ins the C# tests start (test/StandIns)
+test/StandIns/bin/
+test/StandIns/obj/

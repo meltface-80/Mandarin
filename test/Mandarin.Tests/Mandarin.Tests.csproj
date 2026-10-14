@@ -32,6 +32,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The programs the server starts, stood in for (StandIn.cs): built and carried beside the tests. -->
+    <ProjectReference Include="../StandIns/Mandarin.StandIns.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Xunit" />
   </ItemGroup>

@@ -50,14 +50,14 @@
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
  *   - v0.8.31: Restart, Shut down and /api/cpu, by C# where it started the Node server itself (every
- *     install; test/power-csharp.test.js runs it so). Here the Node server is the test's own, so these
+ *     install; test/Mandarin.Tests/PowerCsharpTests.cs runs it so). Here the Node server is the test's own, so these
  *     are still passed to it, and test/Mandarin.Tests/PowerTests.cs's through-the-server test holds that;
  *   - v0.8.33: an album's booklets (/api/album/booklets, /api/booklet/page), by C# alone: new, the Node
  *     server has none (test/booklets-csharp.test.js holds that they're C#'s);
  *   - v0.8.34: the covers sharp drew: an album's placeholder, and a picture from elsewhere ("u-"), by C#
  *     (test/covers-csharp.test.js, held to the Node server's drawing; the v0.8.22 test here); and the
  *     library scans, on C#'s timer and watcher, with Rescan, Reindex, the music folders, Forget folder,
- *     /api/music-mount and /api/search-status, by C# (test/scans-csharp.test.js, each read held to the
+ *     /api/music-mount and /api/search-status, by C# (test/Mandarin.Tests/ScansCsharpTests.cs, each read held to the
  *     Node server's own answer); the job list handed over has "scan" (the v0.8.19 test here);
  *   - v0.8.37: nothing new answered by C#. Stage 2a's ports, the Sonos and renderer logic, are held to
  *     the Node server's by test/sonos-csharp.test.js and test/renderers-csharp.test.js, and used by

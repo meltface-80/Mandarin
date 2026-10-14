@@ -70,7 +70,7 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    history, plays, the radio, the device list and `/api/status`'s rooms, each held to the Node
    server's own answers and command order (`test/playback-csharp.test.js` with a fake household
    for each server; `test/renderer-playback.test.js`, `test/devices-csharp.test.js`,
-   `test/local-output.test.js`). **The owner decided to try it at home once, after stage 7**,
+   `test/Mandarin.Tests/LocalOutputTests.cs`). **The owner decided to try it at home once, after stage 7**,
    rather than per stage: the merge went on CI green. The ffmpeg sink for a Mac's sound devices
    is not ported, as the spec says: on a Mac a `LOCAL_` device is refused in words by the C# hub
    until stage 7 decides. With the merge the suite was made steady (the races CI found fixed

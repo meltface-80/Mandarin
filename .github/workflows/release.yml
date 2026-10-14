@@ -82,7 +82,7 @@ jobs:
           pdftoppm -v
 
       # The audio engine and the C# server, built as CI builds them: on CI the
-      # tests that need them fail rather than skip (test/engine.test.js,
+      # tests that need them fail rather than skip (test/Mandarin.Tests/EngineTests.cs,
       # test/Mandarin.Tests/SrpTests.cs), so without these no 0.8.x release got past its tests.
       - uses: actions/setup-dotnet@v4
         with:

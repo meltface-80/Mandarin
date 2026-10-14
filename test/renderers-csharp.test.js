@@ -8,7 +8,7 @@
  * capability profiles and their chips (profiles.js) — each asked of both, the
  * C# server through `mandarin-server score`, over the samples the other tests
  * use (test/fake-renderer.js, test/fake-sonos.js, test/audio-devices.test.js,
- * test/local-output.test.js), hand-picked real-world and sloppy documents, and
+ * test/Mandarin.Tests/LocalOutputTests.cs), hand-picked real-world and sloppy documents, and
  * generated cases, seeded; deepStrictEqual and the same JSON, key order and
  * all. Skipped where the C# server isn't built.
  *
@@ -485,7 +485,7 @@ function genRecord(r) {
   return rec;
 }
 
-/* The records the other tests give effective(): audio-devices.test.js's and local-output.test.js's. */
+/* The records the other tests give effective(): audio-devices.test.js's and LocalOutputTests.cs's. */
 const REAL_RECORDS = [
   { kind: "upnp", manufacturer: "Linkplay", model: "WiiM Pro Plus", playable: true, caps: { advertised: { containers: ["flac", "wav"], rates: [44100, 48000] } } },
   { kind: "upnp", manufacturer: "Chord Electronics", model: "Poly", caps: {} },

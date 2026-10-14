@@ -1,6 +1,6 @@
 // EngineCommand.cs — the audio engine's driver (EngineOutput.cs, AudioEngine.cs)
 // run from a script, through `mandarin-server score` (Identify/ScoreCommand.cs,
-// RulesCommand.cs), so test/engine.test.js can play to a device step by step
+// RulesCommand.cs), so test/Mandarin.Tests/EngineTests.cs can play to a device step by step
 // as lib/local/engine.js's tests did (v0.8.50, stage 7 part 5):
 //
 //   { fn: "engine", steps: [step, …] } → { results: [one a step] }
