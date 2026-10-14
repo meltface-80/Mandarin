@@ -51,9 +51,12 @@ internal static partial class Pages
         Dir = publicDir;
         Files = files;
 
-        // The Android app's stylesheet; everyone else's is the file as it is.
+        // The page's script made from its parts (v1.0.5, Pages.Script.cs); the Android app's
+        // stylesheet; everyone else's is the file as it is.
         app.Use(async (ctx, next) =>
         {
+            if ((HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method))
+                && ctx.Request.Path.Value == "/app.js" && await SendScript(ctx, publicDir)) return;
             if ((HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method))
                 && ctx.Request.Path.Value == "/style.css" && IsApp(ctx))
             {

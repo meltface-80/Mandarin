@@ -5,6 +5,21 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.5
+**The page's script in parts** (`docs/specs/page-modules.md`): `public/app.js`, 19,579 lines, is
+carved into files under `public/app/`, served joined as one script.
+
+- Stage 0 (`v1.0.5-stage-0-groundwork`): the server makes `/app.js` from the parts
+  `public/app/parts.txt` lists, in order, kept and sent with an ETag
+  (`server/Mandarin.Server/Pages.Script.cs`); without the list, `app.js` is sent as it is. The
+  Android app's offline copy is joined the same way when the app is built. For now the list
+  names one part, `app.js` itself: nothing the page does changes.
+- `test/page-script.test.js` (new): the list and the folder agree, the three joins (server,
+  Android, test) agree, and `/app.js` is the join. Shown failing with a script in `public/app/`
+  the list doesn't name.
+- `test/page-tour.test.js` (new): every screen of the page opened in a browser, at a desktop and
+  at a phone, with nothing thrown. Shown failing with a name missing from Music folders.
+
 ## v1.0.4
 **Downloads in Setup** (`v1.0.4-downloads-in-setup`): the Android app's Downloads page is in
 Settings → Setup, before Away from home.
