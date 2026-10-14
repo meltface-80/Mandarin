@@ -25,6 +25,12 @@ and npm leave the project after it. Nothing the server or the page does changes.
   `version-compare`, `watch`, `waveform`, `home-rows`, `relay`, `case`, `identify-verdicts`,
   `page-script` (each part and the join compiled by Chromium, as the page loads them). Shown
   failing: release candidates with their numbers compared as text; two parts declaring one name.
+- Stage T1b (`v1.0.6-tests-csharp-2-core`): 10 more: `config-csharp`, `identify-pack`,
+  `phone-resume`, `library-kept`, `pages-csharp`, `downloads`, `folder-names`, `playlists`,
+  `nothing-behind`, `album-folders`. The harness gains `ServerCommand` (one of the program's own
+  commands run to its end), `Bytes` (an answer as bytes) and a client that asks as a browser does
+  (compressed answers accepted), and reads numbers a test wrote itself. Shown failing: the
+  configuration's mass-removal default changed.
 - Version 1.0.6 (Android versionCode 314).
 
 ## v1.0.5

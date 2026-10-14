@@ -25,6 +25,18 @@ public static class Http
     }))
     { Timeout = Patience };
 
+    /// <summary>
+    /// As a browser's fetch asks: compressed answers accepted (Accept-Encoding) and opened, so what a page
+    /// sends a browser (its Vary, its compression) is what the test sees.
+    /// </summary>
+    public static readonly HttpClient Browserlike = new(new LoopbackOnly(new SocketsHttpHandler
+    {
+        PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(500),
+        AllowAutoRedirect = false,
+        AutomaticDecompression = DecompressionMethods.All
+    }))
+    { Timeout = Patience };
+
     /// <summary>A response read: its status, headers, body as text, and the body as JSON when it is.</summary>
     public sealed record Answer(int Status, HttpResponseHeaders Headers, HttpContentHeaders ContentHeaders, string Text)
     {
@@ -47,14 +59,14 @@ public static class Http
         Send(HttpMethod.Post, url, body == null ? null : new StringContent(Json(body), Encoding.UTF8, "application/json"), headers);
 
     /// <summary>A request of any kind, its answer read.</summary>
-    public static async Task<Answer> Send(HttpMethod method, string url, HttpContent? content, IDictionary<string, string>? headers = null)
+    public static async Task<Answer> Send(HttpMethod method, string url, HttpContent? content, IDictionary<string, string>? headers = null, HttpClient? client = null)
     {
         using var req = new HttpRequestMessage(method, url) { Content = content };
         foreach (var (k, v) in headers ?? new Dictionary<string, string>())
             if (!req.Headers.TryAddWithoutValidation(k, v)) req.Content?.Headers.TryAddWithoutValidation(k, v);
         try
         {
-            using var r = await Client.SendAsync(req);
+            using var r = await (client ?? Client).SendAsync(req);
             var text = await r.Content.ReadAsStringAsync();
             return new Answer((int)r.StatusCode, r.Headers, r.Content.Headers, text);
         }
