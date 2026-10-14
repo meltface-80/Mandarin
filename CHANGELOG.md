@@ -46,6 +46,13 @@ and npm leave the project after it. Nothing the server or the page does changes.
   generator, JavaScript's undefined), and a list of cases too long to copy by hand is kept as data
   (`test/golden/artfind-csharp.cases.json`, written once from the JavaScript). Shown failing: a
   backup's refusal reworded.
+- Stage T1e (`v1.0.6-tests-csharp-5-suites`): four more: `scan-csharp`, `tags-front`,
+  `writeups-csharp`, `identify-csharp`. The jobs the write-up and identify suites sent the program
+  are kept as they were sent (`test/golden/*.jobs.json.gz`, a year ahead as `<NEXT YY>`), so their
+  generators need no port. The tag files are made by `Harness/TagFixtures.cs` byte for byte as
+  `test/tagfixtures.js` made them, and music-metadata's readings of them are kept
+  (`test/golden/tags-front.json`): `test/tag-oracle.js` and `test/tagfixtures.js` go. Shown failing:
+  a tag file's title changed by a letter; a track's length named under another rule.
 - Version 1.0.6 (Android versionCode 314).
 
 ## v1.0.5

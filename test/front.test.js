@@ -18,25 +18,25 @@
  *   - v0.8.10: conversions already made, sent by C# from the cache (the same test);
  *   - v0.8.11: conversions made by C#, as the Node server made them (the same test);
  *   - v0.8.12: the phone's downloads and its Opus away, made and sent by C# (the same test);
- *   - v0.8.13: tags read by C# as the scanner reads them (test/tags-front.test.js), and the
+ *   - v0.8.13: tags read by C# as the scanner reads them (test/Mandarin.Tests/TagsFrontTests.cs), and the
  *     processor's split kept to by C# (test/Mandarin.Tests/CpuTests.cs);
- *   - v0.8.14: the scan's tags read by C#, the library the same (test/tags-front.test.js,
+ *   - v0.8.14: the scan's tags read by C#, the library the same (test/Mandarin.Tests/TagsFrontTests.cs,
  *     test/tag-reader-switch.test.js);
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
  *   - v0.8.16: hearts, Listen later, label merges and the label settings made by C#, the Node
  *     server told (test/library-front.test.js);
  *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once);
- *   - v0.8.18: the library scans made by C#, the database the same (test/scan-csharp.test.js,
- *     test/tags-front.test.js; every scanner test in this mode);
+ *   - v0.8.18: the library scans made by C#, the database the same (test/Mandarin.Tests/ScanCsharpTests.cs,
+ *     test/Mandarin.Tests/TagsFrontTests.cs; every scanner test in this mode);
  *   - v0.8.19: the identification scan, the MusicBrainz pack, loudness measuring and waveforms
- *     made by C# (test/identify-csharp.test.js; every identify, pack, loudness and waveform test
+ *     made by C# (test/Mandarin.Tests/IdentifyCsharpTests.cs; every identify, pack, loudness and waveform test
  *     in this mode, which says so; and every test that loads index.js afresh);
  *   - v0.8.20: record labels whole (the wall, a label's albums, the lookups, the logos, the keys),
  *     the release days, Smart Picks and the share card's suggestions made by C#
  *     (test/Mandarin.Tests/ExtrasCsharpTests.cs; the label, release day, Smart Picks and similar tests in this mode);
  *   - v0.8.21: an album's write-ups and links, an artist's story, Pitchfork's lists, the Qobuz app's
  *     link, the share card's settings and a playlist shared as text, made by C#
- *     (test/writeups-csharp.test.js, test/Mandarin.Tests/ShareCsharpTests.cs; the write-up and playlist tests in this mode);
+ *     (test/Mandarin.Tests/WriteupsCsharpTests.cs, test/Mandarin.Tests/ShareCsharpTests.cs; the write-up and playlist tests in this mode);
  *   - v0.8.22: backup & restore, built-in Tailscale, Dynamic Playlists saved and deleted, the tag
  *     filter, the album editor (its cover search too) and covers drawn from an album's own picture,
  *     by C# (test/Mandarin.Tests/BackupCsharpTests.cs, test/Mandarin.Tests/ArtfindCsharpTests.cs; the backup, Tailscale, playlist,

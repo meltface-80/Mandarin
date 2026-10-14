@@ -4,7 +4,7 @@
 //
 // The result is readTags' own object, key for key, so the two can be compared
 // as JSON (the Node server's check, lib/library/tagcheck.js, until v0.8.50;
-// test/tag-oracle.js since).
+// its readings kept since, test/Mandarin.Tests/TagsFrontTests.cs).
 using System.Globalization;
 using System.Numerics;
 using System.Text;
