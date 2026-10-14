@@ -19,6 +19,9 @@ carved into files under `public/app/`, served joined as one script.
   the list doesn't name.
 - `test/page-tour.test.js` (new): every screen of the page opened in a browser, at a desktop and
   at a phone, with nothing thrown. Shown failing with a name missing from Music folders.
+- `test/backup-page.test.js`: the sealed-backup test waits for the first scan before it opens the
+  page, as the test beside it does. A page drawn on an empty library reloads itself once the albums
+  come, which broke the test two runs in three.
 
 ## v1.0.4
 **Downloads in Setup** (`v1.0.4-downloads-in-setup`): the Android app's Downloads page is in
