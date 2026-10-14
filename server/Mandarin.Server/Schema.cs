@@ -2,7 +2,7 @@
 // docs/specs/csharp-migration.md): made and brought up to date here, as
 // lib/library/db.js open() and the Features constructor (lib/server/
 // features.js) made them, statement for statement, so the file reads the same
-// whichever made it (test/db-csharp.test.js holds the two together).
+// whichever made it (test/Mandarin.Tests/DbCsharpTests.cs holds the two together).
 //
 //   - the tables and their indexes, with the same CREATE text (sqlite_master
 //     keeps it as written);
