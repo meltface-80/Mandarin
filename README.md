@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v1.0.6
+# Mandarin — v1.0.4
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
