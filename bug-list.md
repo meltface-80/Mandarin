@@ -18,7 +18,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 8 | Settings > Setup: options to turn off the greeting and the random album button; the rest of the UI moves up when either is off. Settings → Setup → Home Screen: Greeting and Random Album switches, on this device | `08-hide-greeting-random-button` | Ready to test |
 | 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving. The switch moves first; the app holds a picture of the screen while the page reloads under it; the menu is back open without sliding in | `09-offline-toggle-silent` | Ready to test |
 | 10 | Share card: remove the record label (long names run off the card). Taken off; the release line is the date alone | `10-share-card-no-label` | Ready to test |
-| 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size) | — | Open |
+| 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size). Columns and album text already did; List reached the Library wall alone, and the Grid screen title size reached no grid screen on a touch screen. Both fixed | `11-service-grids-follow-settings` | Ready to test |
 | 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid) | — | Open |
 | 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both | — | Open |
 | 14 | Recently played carousel should open to a grid screen (feature) | — | Open |
