@@ -1,0 +1,25 @@
+# Bug list
+
+Each item is worked on its own branch, in this order. An item is marked **Fixed** only once the owner has tested it and said so.
+
+Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Fixed**
+
+| # | Item | Branch | Status |
+|---|------|--------|--------|
+| 1 | CI red on `v1.0.6-tests-csharp-5-suites` (PRs #255 → migration, #256 → main): `TagsFrontTests` compared files made by CI's ffmpeg against readings recorded from ffmpeg 6.1.1's files | `v1.0.6-tests-csharp-5-suites` | In progress |
+| 2 | Android app occasionally becomes unresponsive (investigate) | — | Open |
+| 3 | Detecting new audio devices is slow | — | Open |
+| 4 | Library grid loses its scroll position when Focus closes via "clear selection" or "show albums" with nothing selected: must return to where it was opened from, not spring to the top | — | Open |
+| 5 | Top buttons with no top bar need a bigger touch area: missed taps hit the album below | — | Open |
+| 6 | Home Screen: overscroll stretch/bounce at the top and bottom, on Android and in the browser: remove it | — | Open |
+| 7 | Home Screen loses its scroll position after entering a genre and coming back: needs position memory | — | Open |
+| 8 | Settings > Setup: options to turn off the greeting and the random album button; the rest of the UI moves up when either is off | — | Open |
+| 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving | — | Open |
+| 10 | Share card: remove the record label (long names run off the card) | — | Open |
+| 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size) | — | Open |
+| 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid) | — | Open |
+| 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both | — | Open |
+| 14 | Recently played carousel should open to a grid screen (feature) | — | Open |
+| 15 | Spaces can't be typed in album-grid search and in Focus text (Home Screen search is fine) | — | Open |
+| 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer) | — | Open |
+| 17 | Plan: Android as a full native app instead of a WebView | — | Open |
