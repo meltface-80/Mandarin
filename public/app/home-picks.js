@@ -348,6 +348,7 @@ function buildOverflowMenu(items, opts) {
 // list tracks, and offering a grid/list switch over those would be a control
 // that does nothing.
 function enterFullWall(title, albumWall) {
+  keepHomeScroll();   // Back comes to Home where it was (home-render.js)
   // Leaving the artist view through the side menu (v0.6.1): Listen later,
   // Smart Picks, Playlists and the rest all come through here, and an
   // artist view left armed made the shared Back put the old screen back
