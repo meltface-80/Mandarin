@@ -21,7 +21,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size). Columns and album text already did; List reached the Library wall alone, and the Grid screen title size reached no grid screen on a touch screen. Both fixed | `11-service-grids-follow-settings` | Ready to test |
 | 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid). Answered: no screen-to-screen transitions today (screens swap instantly); advice in the session summary, no change made | — | Answered |
 | 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both. The field was focused while its row was still hidden; now its row is shown and the field focused within the tap | `13-search-one-tap` | Ready to test |
-| 14 | Recently played carousel should open to a grid screen (feature) | — | Open |
+| 14 | Recently played carousel should open to a grid screen (feature). Its title opens a Recently played wall: up to 60 albums played in the last 30 days, the latest first | `14-recently-played-grid` | Ready to test |
 | 15 | Spaces can't be typed in album-grid search and in Focus text (Home Screen search is fine) | — | Open |
 | 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer) | — | Open |
 | 17 | Plan: Android as a full native app instead of a WebView | — | Open |

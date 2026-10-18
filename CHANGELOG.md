@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.14
+- `14-recently-played-grid`: Home's Recently played opens to a grid screen of its own.
+
 ## v1.0.13
 - `13-search-one-tap`: Search from Home is one tap, the Android app's keyboard with it.
 
