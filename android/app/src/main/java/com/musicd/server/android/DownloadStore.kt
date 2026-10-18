@@ -35,9 +35,9 @@ object DownloadStore {
     fun listen(l: () -> Unit) { listeners += l }
     fun unlisten(l: () -> Unit) { listeners -= l }
     private fun changed() {
-        albumsCache = null; placesCache = null; usedFresh = false
+        placesCache = null; usedFresh = false
         warmSoon()
-        for (l in listeners) runCatching { l() }
+        DownloadAlbums.changed(app) { for (l in listeners) runCatching { l() } }
     }
 
     /** Slow work (removing, sizing, indexing) off the caller's thread — never the screen's (v0.5.57). */
@@ -234,7 +234,7 @@ object DownloadStore {
      * list shows them as away rather than losing them; the next time the
      * folder is there, they are simply there.
      */
-    private fun rememberFolderAlbums(c: Context, list: List<Album>) {
+    internal fun rememberFolderAlbums(c: Context, list: List<Album>) {
         val a = JSONArray()
         for (al in list) a.put(JSONObject().put("id", al.id).put("title", al.title).put("artist", al.artist)
             .put("image_key", al.imageKey ?: "").put("quality", al.quality).put("total", al.tracks.size).put("bytes", al.totalBytes))
@@ -359,25 +359,8 @@ object DownloadStore {
     fun dirOf(c: Context, id: Int): File? =
         places(c).map { File(it.dir, id.toString()) }.firstOrNull { File(it, "album.json").exists() }
 
-    @Volatile private var albumsCache: Pair<Long, List<Pair<Album, File>>>? = null
-
-    /** Every album on the phone, newest first — read from disk at most every few seconds, and again after any change here. */
-    fun albums(c: Context): List<Pair<Album, File>> {
-        albumsCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 10_000) return list }
-        return readAlbums(c).also { albumsCache = System.currentTimeMillis() to it }
-    }
-
-    private fun readAlbums(c: Context): List<Pair<Album, File>> {
-        val all = places(c)
-        val out = all.flatMap { p -> p.dir.listFiles()?.toList() ?: emptyList() }
-            .filter { File(it, "album.json").exists() }
-            .mapNotNull { d -> load(d)?.let { it to d } }
-            .sortedByDescending { it.first.addedAt }
-        all.firstOrNull { it.id == PLACE_FOLDER }?.let { fp ->
-            rememberFolderAlbums(c, out.filter { it.second.parentFile?.canonicalPath == fp.dir.canonicalPath }.map { it.first })
-        }
-        return out
-    }
+    /** Every album on the phone, newest first ([DownloadAlbums]). */
+    fun albums(c: Context): List<Pair<Album, File>> = DownloadAlbums.list(c)
 
     fun album(c: Context, id: Int): Album? = dirOf(c, id)?.let { load(it) }
 

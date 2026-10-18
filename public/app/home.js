@@ -165,6 +165,10 @@ function downloadList() {
 const downloadAlbums = new Map();   // id → album, as the server listed it
 let homeDownloads = null;
 let homeDownloadsKey = null;
+// The list as last drawn: the app says downloads changed on every return to
+// it and every track done, and redrawing a row that hasn't changed held the
+// page up and sent the row back to its first tile.
+let homeDownloadsShown = null;
 if (DL && homeSections) {
   const sec = document.createElement("div");
   sec.className = "home-section home-section-downloads hidden";
@@ -194,6 +198,9 @@ async function loadHomeDownloads() {
   try {
     const list = downloadList();
     const key = downloadsKey(list);
+    // (And the server's albums known: a row drawn while the server couldn't say is drawn again.)
+    const shown = JSON.stringify(list) + "|" + downloadAlbums.size;
+    if (shown === homeDownloadsShown && rowHasContent(homeDownloads)) return;
     if (!list.length) {
       homeDownloadsKey = key;
       homeDownloads.innerHTML = '<div class="home-carousel-empty">Nothing downloaded yet — on an album, ⋯ → Download to this phone.</div>';
@@ -204,6 +211,7 @@ async function loadHomeDownloads() {
     homeDownloads.innerHTML = "";
     homeDownloads.appendChild(frag);
     homeDownloadsKey = key;
+    homeDownloadsShown = JSON.stringify(list) + "|" + downloadAlbums.size;
   } catch (e) {
     if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
   } finally {
@@ -279,7 +287,7 @@ function localInfo() {
 }
 const isPhoneAlbum = a => !!a && typeof a.offset === "string" && a.offset.startsWith("phone:");
 const phoneKey = a => isPhoneAlbum(a) ? a.offset.slice(6) : null;
-let homeLocal = null, homeLocalKey = null;
+let homeLocal = null, homeLocalKey = null, homeLocalShown = null;   // shown: as homeDownloadsShown
 if (hasLocal && homeSections) {
   const sec = document.createElement("div");
   sec.className = "home-section home-section-local hidden";
@@ -300,6 +308,9 @@ function loadHomeLocal() {
   if (!homeLocal) return;
   const list = localList();
   homeLocalKey = localKey(list);
+  const shown = JSON.stringify(list);
+  if (list.length && shown === homeLocalShown && rowHasContent(homeLocal)) return;
+  homeLocalShown = shown;
   if (!list.length) {
     const info = localInfo();
     homeLocal.innerHTML = '<div class="home-carousel-empty">' + (info
