@@ -55,7 +55,8 @@ or the page does changes. The page itself stays HTML, CSS and JavaScript.
 | T1b | 10 more of the server alone: config-csharp, identify-pack, phone-resume, library-kept, pages-csharp, downloads, folder-names, playlists, nothing-behind, album-folders | `v1.0.6-tests-csharp-2-core` |
 | T1c | 11 more: engine, power-csharp, cpu-alone, stream, security, backup-sealed, local-output, dsp, scans-csharp, update-alone, tailscale-builtin; `test/StandIns` for the programs the server starts | `v1.0.6-tests-csharp-3-core` |
 | T1d | Six held to the recordings: db-csharp, share-csharp, backup-csharp, artfind-csharp, extras-csharp, conversions-csharp; `JsJson`, `JsGen`, `Golden` | `v1.0.6-tests-csharp-4-golden` |
-| T1e… | The rest of the files in batches, the fakes (Sonos household, renderers, services) as they are needed, the browser tests | `v1.0.6-tests-csharp-<n>-<what>` |
+| T1e | Four more held to the recordings: scan-csharp, tags-front, writeups-csharp, identify-csharp; the jobs sent kept (`*.jobs.json.gz`), the tag files made in C# (`TagFixtures`) and music-metadata's readings kept | `v1.0.6-tests-csharp-5-suites` |
+| T1f… | The rest of the files in batches, the fakes (Sonos household, renderers, services) as they are needed, the browser tests | `v1.0.6-tests-csharp-<n>-<what>` |
 | Tools | The quality gates, the API map and the MusicBrainz pack builder in C#; Node and npm out of CI and the repository | `v1.0.6-tools-csharp` |
 
 Each stage is a pull request into `migration`, squash-merged when green.

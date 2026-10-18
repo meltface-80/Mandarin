@@ -148,7 +148,7 @@ Tailscale (Linux only today). This could come as part of stage 0, or straight af
   - Sound devices stay the Node server's (Core Audio through ffmpeg) until stage 6; Tailscale stays
     Linux only, as in Node.
 - **Tested:** CI runs the whole suite through the C# server on a Mac runner, so the scan is held to
-  the Node server's there (`test/scan-csharp.test.js`), and so is everything else.
+  the Node server's there (`test/Mandarin.Tests/ScanCsharpTests.cs`), and so is everything else.
   - **There is no Mac to try it on by hand** (the owner's answer). The installer, macOS's
     permission prompts, Sonos on a real network, and whether macOS asks again after a C# update (an
     ad hoc signature changes with every build) are untested until a Mac owner tries them.

@@ -18,6 +18,19 @@ public static class Golden
     /// </summary>
     public static JsonObject Cases(string name) => JsJson.Parse(System.IO.File.ReadAllText(File(name + ".cases")))!.AsObject();
 
+    /// <summary>
+    /// The jobs a parity suite sent the program, as data (test/golden/&lt;name&gt;.jobs.json.gz): each one its
+    /// JavaScript made and sent, kept once as it went, in the order it went. A year its JavaScript took
+    /// from the clock is kept as "&lt;NEXT YY&gt;" and filled in again here (next year's last two digits).
+    /// </summary>
+    public static JsonArray Jobs(string name)
+    {
+        using var z = new System.IO.Compression.GZipStream(System.IO.File.OpenRead(File(name + ".jobs") + ".gz"), System.IO.Compression.CompressionMode.Decompress);
+        using var reader = new StreamReader(z, System.Text.Encoding.UTF8);
+        var text = reader.ReadToEnd().Replace("<NEXT YY>", ((DateTime.Now.Year + 1) % 100).ToString("00", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        return JsJson.Parse(text)!.AsArray();
+    }
+
     /// <summary>The program's rules asked with <paramref name="job"/> (`mandarin-server score`), read as JSON.parse reads.</summary>
     public static async Task<JsonNode> Score(JsonObject job)
     {
@@ -26,6 +39,17 @@ public static class Golden
         var o = JsJson.Parse(r.Out.Split('\n')[0])!;
         Assert.True(o["error"] == null, o.Str("error"));
         return o;
+    }
+
+    /// <summary>Several jobs asked of the program at once, one a line: an answer each, in order.</summary>
+    public static async Task<List<JsonNode>> ScoreMany(IEnumerable<JsonNode?> jobs)
+    {
+        var text = string.Concat(jobs.Select(j => JsJson.Stringify(j, markNegativeZero: false) + "\n"));
+        var r = await ServerCommand.Run(["score"], stdin: text);
+        Assert.True(r.Code == 0, r.Err);
+        var lines = r.Out.Split('\n').Where(l => l.Length > 0).Select(l => JsJson.Parse(l)!).ToList();
+        Assert.All(lines, l => Assert.True(l["error"] == null, l.Str("error")));
+        return lines;
     }
 
     /// <summary>A recording of steps, each under its label, compared in order.</summary>
