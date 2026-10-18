@@ -6218,6 +6218,13 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
     background: transparent; border-bottom: 0; pointer-events: none;
   }
   html:not(.tn-home):not(.tn-search):not(.tn-filter) .topbar :is(button, input, a, select, .sel-menu) { pointer-events: auto; }
+  /* With no strip round them, a tap just off a button (Focus and Sort are 32px
+     tall, ‹ 40px) went to the album under it (v1.0.7). Each takes a tap from
+     a little way round it, unseen, most of all below, where the albums are. */
+  html:not(.tn-home):not(.tn-search):not(.tn-filter) .topbar :is(button, a) { position: relative; }
+  html:not(.tn-home):not(.tn-search):not(.tn-filter) .topbar :is(button, a)::after {
+    content: ""; position: absolute; inset: -8px -6px -16px;
+  }
   /* The screen's title is the page's heading (touchnav.js moves it into <main>). */
   .tnav-heading { margin: 0 0 14px; }
   .tnav-heading:has(#album-count.hidden), .tn-home .tnav-heading { display: none; }
