@@ -23,6 +23,7 @@ internal sealed class RendererDiscovery
     private readonly List<string> seeds;
     private readonly object gate = new();
     private readonly Dictionary<string, (double At, SeenInfo? Record)> cache = [];   // location -> what was read
+    private readonly HashSet<string> heard = [];   // places announced since the last round (SsdpListen.cs)
     public string LastError = "";
 
     public RendererDiscovery(string? bindIp, IEnumerable<string> seedHosts, bool multicast, Action<string> log, Func<List<string>> known)
@@ -45,6 +46,12 @@ internal sealed class RendererDiscovery
         return $"http://{v}:49152/description.xml";
     }
 
+    /* The player read at this place, if one was (SsdpListen: an announcement from it may need no round). */
+    public string? Known(string location) { lock (gate) return cache.TryGetValue(location, out var hit) ? hit.Record?.Id : null; }
+
+    /* A place a renderer announced: read in the next round, as an answer to its search. */
+    public void Heard(string location) { lock (gate) heard.Add(location); }
+
     /* A device forgotten: read afresh if it comes back. */
     public void Forget(string id) { lock (gate) foreach (var k in cache.Where(kv => kv.Value.Record?.Id == id).Select(kv => kv.Key).ToList()) cache.Remove(k); }
 
@@ -59,6 +66,7 @@ internal sealed class RendererDiscovery
             if (a.Location.Length > 0) locations.TryAdd(a.Location, a);
         }
         foreach (var loc in seeds) locations.TryAdd(loc, new SsdpAnswer(loc, "", "", "", ""));
+        lock (gate) { foreach (var loc in heard) locations.TryAdd(loc, new SsdpAnswer(loc, "", "", "", "")); heard.Clear(); }
         // A renderer seen lately that didn't answer this time: asked directly, quietly (one that has gone is simply not found).
         List<string> lately;
         try { lately = known(); } catch (Exception e) when (e is Microsoft.Data.Sqlite.SqliteException or IOException) { lately = []; }
