@@ -26,8 +26,8 @@ const GESTURES = ["clickable", "combinedClickable", "toggleable", "triStateToggl
 const READOUTS = ["Text", "BasicText", "Image", "AsyncImage", "Icon", "Canvas", "CircularProgressIndicator", "LinearProgressIndicator"];
 
 /**
- * [src] with its comments and the insides of its strings and characters as
- * spaces, every offset and line where it was.
+ * [src] with its comments, its imports and the insides of its strings and
+ * characters as spaces, every offset and line where it was.
  * @param {string} src @returns {string}
  */
 function mask(src) {
@@ -43,7 +43,8 @@ function mask(src) {
       blank(i + 1, j); i = j + 1;
     } else i++;
   }
-  return out.join("");
+  // The imports and the package name too: `import …foundation.clickable` is no tap.
+  return out.join("").replace(/^[ \t]*(import|package)\b[^\n]*/gm, l => " ".repeat(l.length));
 }
 
 /**

@@ -1,10 +1,6 @@
 {
   "now-playing": [
-    "share",
     "tab-now-playing",
-    "tab-queue",
-    "artist",
-    "album",
-    "wave"
+    "tab-queue"
   ]
 }

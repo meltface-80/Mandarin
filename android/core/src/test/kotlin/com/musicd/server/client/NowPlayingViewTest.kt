@@ -89,6 +89,7 @@ class NowPlayingViewTest {
         assertEquals("anything else is off", 0, NowPlayingView.of(full("radio", false, "null"), 0)!!.loopState)
         val np = full("loop", true, "null").zone!!.nowPlaying!!
         assertEquals(listOf(Credit("Artist A", true), Credit("Artist B", false)), np.artists)
+        assertEquals("the screen's credits", np.artists, v.artists)
         assertEquals("42", np.albumId)
     }
 

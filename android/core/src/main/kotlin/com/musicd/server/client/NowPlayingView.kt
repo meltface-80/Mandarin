@@ -27,7 +27,9 @@ data class NowPlayingView(
     val format: Format? = null,
     /** The room's volume, from its first speaker that has one; null: fixed. */
     val volume: VolumeScale? = null,
-    val muted: Boolean = false
+    val muted: Boolean = false,
+    /** The track's artists, each a link when the library has their page; empty from an older server (show [artist]). */
+    val artists: List<Credit> = emptyList()
 ) {
     /** Shuffle's state in the contract's labels: Shuffle, Shuffle on. */
     val shuffleState: Int get() = if (shuffle) 1 else 0
@@ -65,7 +67,7 @@ data class NowPlayingView(
                 playing = z.isPlaying, seekSeconds = (np.seekSeconds ?: 0).toDouble(), lengthSeconds = np.lengthSeconds?.toDouble(),
                 canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs,
                 shuffle = z.shuffle, loop = z.loop, format = np.format,
-                volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }
+                volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }, artists = np.artists
             )
         }
 

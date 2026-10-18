@@ -99,8 +99,8 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                     nav.navigate(ShellRoute.nowPlaying(id)) { popUpTo(ShellRoute.NOW_PLAYING) { inclusive = true } }
                     NativeShell.toPage("zone", id)
                 },
-                // One of the page's own sheets: back to the page, and it opens there.
-                onPage = { what -> nav.popBackStack(); NativeShell.toPage(what) }
+                // The page's own sheets and screens (Share card, the album, an artist): back to the page, and it opens there.
+                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
             )
         }
     }
