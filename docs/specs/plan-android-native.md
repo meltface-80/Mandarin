@@ -1,6 +1,6 @@
 # Plan: the Android app as a full native app, not a WebView
 
-Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`.
+Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`.
 
 ## Is it the key to better function and performance?
 

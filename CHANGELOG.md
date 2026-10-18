@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `22-android-native-n1`: the Android app's typed client for the library (`LibraryClient`, `Library.kt`):
+  albums, an album's page, artists, search and Home's rows. The server's answers on the test library
+  are kept in `test/golden/android-api.json` (AndroidApiTests), and the app's tests read its client's
+  from there (LibraryTest): a change to either side fails until the other is told.
 - `21-android-native-n0`: the Android app's native shell (stage N0 of
   `docs/specs/plan-android-native.md`): Compose, its navigation and Mandarin's graphite and brass
   (held to the page's palette by a test), laid over the page's WebView. Nothing on screen changes;
