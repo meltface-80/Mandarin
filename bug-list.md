@@ -6,8 +6,8 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
-| 1 | CI red on `v1.0.6-tests-csharp-5-suites` (PRs #255 → migration, #256 → main): `TagsFrontTests` compared files made by CI's ffmpeg against readings recorded from ffmpeg 6.1.1's files | `v1.0.6-tests-csharp-5-suites` | In progress |
-| 2 | Android app occasionally becomes unresponsive (investigate) | — | Open |
+| 1 | CI red on `v1.0.6-tests-csharp-5-suites` (PRs #255 → migration, #256 → main): `TagsFrontTests` compared files made by CI's ffmpeg against readings recorded from ffmpeg 6.1.1's files | `v1.0.6-tests-csharp-5-suites` | Ready to test |
+| 2 | Android app occasionally becomes unresponsive (investigate): the page waited on the app re-reading every downloaded album's file after each track a download finished, and redrew Home's phone rows on every return to the app | `02-android-unresponsive` | Ready to test |
 | 3 | Detecting new audio devices is slow | — | Open |
 | 4 | Library grid loses its scroll position when Focus closes via "clear selection" or "show albums" with nothing selected: must return to where it was opened from, not spring to the top | — | Open |
 | 5 | Top buttons with no top bar need a bigger touch area: missed taps hit the album below | — | Open |

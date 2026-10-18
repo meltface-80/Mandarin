@@ -55,14 +55,14 @@ class DownloadsBridge(private val activity: Activity) {
     @JavascriptInterface
     fun ids(): String {
         val a = JSONArray()
-        for ((album, _) in DownloadStore.albums(activity)) if (album.state == "done") a.put(album.id)
+        for ((album, _) in DownloadAlbums.forPage(activity)) if (album.state == "done") a.put(album.id)
         return a.toString()
     }
 
     @JavascriptInterface
     fun all(): String {
         val a = JSONArray()
-        for ((album, _) in DownloadStore.albums(activity)) {
+        for ((album, _) in DownloadAlbums.forPage(activity)) {
             a.put(JSONObject().put("id", album.id).put("state", album.state)
                 .put("done", album.doneCount).put("total", album.tracks.size)
                 .put("title", album.title).put("artist", album.artist).put("quality", album.quality)

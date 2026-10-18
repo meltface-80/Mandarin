@@ -2,7 +2,7 @@
   "version": 1,
   "allowance": {
     "android/app/src/main/java/com/musicd/server/android/DownloadStore.kt": {
-      "lines": 522
+      "lines": 505
     },
     "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
       "lines": 466
