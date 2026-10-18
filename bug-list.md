@@ -11,7 +11,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 3 | Detecting new audio devices is slow: the network was searched once a minute and sound devices read every 30 s, and nothing listened when a renderer announced itself | `03-audio-device-detection` | Ready to test |
 | 4 | Library grid loses its scroll position when Focus closes via "clear selection" or "show albums" with nothing selected: must return to where it was opened from, not spring to the top. Both buttons reloaded the wall from its first album even when the filters were unchanged | `04-grid-position-after-focus` | Ready to test |
 | 5 | Top buttons with no top bar need a bigger touch area: missed taps hit the album below. Focus and Sort were 32px tall, ‹ 40px; each now takes taps from a little way round it, mostly below | `05-top-button-touch-area` | Ready to test |
-| 6 | Home Screen: overscroll stretch/bounce at the top and bottom, on Android and in the browser: remove it | — | Open |
+| 6 | Home Screen: overscroll stretch/bounce at the top and bottom, on Android and in the browser: remove it. In the app it was Android's own WebView stretch, which the page's CSS can't switch off; now off. The page already stops dead in browsers, now held by a test | `06-no-overscroll-bounce` | Ready to test |
 | 7 | Home Screen loses its scroll position after entering a genre and coming back: needs position memory | — | Open |
 | 8 | Settings > Setup: options to turn off the greeting and the random album button; the rest of the UI moves up when either is off | — | Open |
 | 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving | — | Open |
