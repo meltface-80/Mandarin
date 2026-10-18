@@ -9,6 +9,8 @@
  *     opened upwards, and from 720px up it rose past the panel's top edge,
  *     where the panel clips it: reported from an iPad);
  *   - scrolled so the row is near the top, it still opens downwards;
+ *   - the head a line each beside the sleeve (item 28): the title, the
+ *     artists, the date and its label, then the rate and the album's length;
  *   - from 720px up About this album sits beside the tracks;
  *   - on a phone one column, the review after the tracks.
  */
@@ -71,13 +73,15 @@ const DRIVER = `(async () => {
   out.glow = { shown: getComputedStyle(glow).display !== "none" && glow.getBoundingClientRect().height > 0, src: glow.getAttribute("src") || "" };
   out.hscroll = body.scrollWidth > body.clientWidth;
   out.viewport = [innerWidth, innerHeight];
-  // The album's total time: on the Tracks line, centred under Play Now and Queue.
-  const tot = $("modal-total"), btns = [...document.querySelectorAll("#modal-actions .action-btn")];
-  const tb = tot.getBoundingClientRect();
-  out.total = tot.textContent;
-  out.totalMid = Math.round((tb.left + tb.right) / 2);
-  out.buttonsMid = Math.round((btns[0].getBoundingClientRect().left + btns[btns.length - 1].getBoundingClientRect().right) / 2);
-  out.totalOnTracksLine = Math.abs(tb.top - document.querySelector(".tracks-head").getBoundingClientRect().top) < 4;
+  // The head, a line each beside the sleeve: the title, the artists, the date (the label after it),
+  // then the rate and the album's length. The fixture has no date or label: given one, as the server's extras would.
+  renderExtras({ release_date: "2006-11-20", album: { label: "RCA" } }, al);
+  $("modal-quality").className = "album-quality"; $("modal-quality").textContent = "16/44.1";
+  await new Promise(r => requestAnimationFrame(r));
+  out.total = $("modal-total").textContent;
+  out.head = ["modal-title", "modal-subtitle", "modal-date", "modal-facts"].map(id => Object.assign(box($(id)), { text: $(id).textContent.replace(/\\s+/g, " ").trim() }));
+  out.headArt = box(document.querySelector("#album-modal .modal-art"));
+  out.tracksHead = document.querySelector(".tracks-head").textContent.trim();
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
   body.scrollTop = Math.max(0, rowTop - 60); await new Promise(r => requestAnimationFrame(r));
@@ -118,8 +122,15 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       assert.ok(r.glow.shown && /size=96/.test(r.glow.src), `${size}: the cover's glow behind the top (${JSON.stringify(r.glow)})`);
       assert.equal(r.hscroll, false, size + ": no sideways scroll");
       assert.match(r.total, /^\d+:\d\d$/, size + ": the album's total time is shown: " + r.total);
-      assert.ok(Math.abs(r.totalMid - r.buttonsMid) <= 1, `${size}: centred under Play Now and Queue (${r.totalMid} vs ${r.buttonsMid})`);
-      assert.ok(r.totalOnTracksLine, size + ": on the Tracks line");
+      const [title, artist, date, facts] = r.head;
+      assert.equal(artist.text, "Artist A", size + ": the artists");
+      assert.match(date.text, /^\S.*2006 · RCA$/, size + ": the date, its label after it");
+      assert.equal(facts.text, "16/44.1 " + r.total, size + ": the rate and the length");
+      for (let i = 1; i < r.head.length; i++) assert.ok(r.head[i].t >= r.head[i - 1].b - 1, `${size}: a line each, in order (${JSON.stringify(r.head)})`);
+      for (const line of r.head) assert.ok(line.l > r.headArt.r, `${size}: beside the sleeve (${JSON.stringify(line)})`);
+      assert.ok(r.headArt.b - facts.b >= 0 && r.headArt.b - facts.b <= 6, `${size}: the last line at the sleeve's foot (${facts.b}, ${r.headArt.b})`);
+      assert.ok(title.b - title.t < 40 && artist.b - artist.t < 26 && date.b - date.t < 26, size + ": the title and each line one line high");
+      assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line, the total gone from it");
       assert.ok(r.panel.l <= 0 && r.panel.t <= 0 && r.panel.r >= r.viewport[0] && r.panel.b >= r.viewport[1], `${size}: the album view fills the screen, not a card (${JSON.stringify(r.panel)})`);
       if (tablet) {
         assert.ok(r.bio.l >= r.tracks.r && r.bio.t < r.tracks.b, `${size}: About this album beside the tracks (tracks ${JSON.stringify(r.tracks)}, review ${JSON.stringify(r.bio)})`);

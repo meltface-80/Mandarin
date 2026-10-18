@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `28-album-head-lines`: the album page's head is a line each beside the sleeve: the title, the artist, the
+  release date (its label and score after it), then the rate (16/44.1, hi-res in brass) and the album's
+  length. The rate leaves the cover, the length the Tracks line; the date no longer wraps with the artist.
 - `26-native-np-controls`: the Android app's native Now playing (preview) has shuffle and repeat, the format
   badge, the volume menu (its scale, a step down and up, or "Volume control is fixed") and Play on (each room,
   Group zones and Device power, which open the page's own sheets through `public/app/native-handoff.js`, and

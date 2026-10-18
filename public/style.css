@@ -926,6 +926,17 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 }
 .modal:not(.np-mode) #modal-title { margin: 0 0 6px; font-size: 24px; }
 .modal:not(.np-mode) .modal-subtitle { margin: 0; }
+/* A line each under the artists (bug list item 28): the date (its label and
+   score after it), then the rate and the album's length. A line with nothing
+   to say takes no room. */
+.modal-date { margin-top: 3px; font-size: 14px; color: var(--text-dim); }
+.modal-date:empty { display: none; }
+.modal-facts {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; margin-top: 6px;
+  font-size: 14px; color: var(--text-dim); font-variant-numeric: tabular-nums;
+}
+#modal-quality:not(.hidden) + .modal-total:not(:empty)::before { content: "· "; }
+.modal-facts:has(#modal-quality.hidden):has(.modal-total:empty) { display: none; }
 .modal:not(.np-mode) .modal-tab-pane { grid-area: pane; min-width: 0; margin-top: 20px; }
 .modal:not(.np-mode) .modal-aside { grid-area: aside; }
 .modal:not(.np-mode) .modal-actions { justify-content: center; }
@@ -1967,6 +1978,8 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
    the live now-playing block below replaces them. */
 .modal.np-mode #modal-title,
 .modal.np-mode .modal-subtitle,
+.modal.np-mode .modal-date,
+.modal.np-mode .modal-facts,
 .modal.np-mode .modal-actions,
 .modal.np-mode .track-list-wrap,
 .modal.np-mode #album-bio-section { display: none; }
@@ -4264,15 +4277,22 @@ input.vol-range::-moz-range-thumb {
 /* Better than CD. Roon marks hi-res; there is no room to say so in words, so
    the badge takes the accent instead. */
 .album-quality.is-hires { color: var(--accent-text); }
-/* The album view's artwork is far bigger than a tile, so the badge scales with
-   it rather than sitting lost in a corner. */
-#modal-quality { left: 8px; bottom: 8px; padding: 3px 7px; font-size: 12px; border-radius: 6px; }
+/* On the album's own page the rate is a line of its head, not a badge on the
+   cover (bug list item 28): a chip in the text's run, the album's length
+   after it. */
+#modal-quality {
+  position: static; display: inline-block;
+  padding: 1px 7px; font-size: 12px; border-radius: 6px;
+  background: transparent; border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none;
+  color: var(--text-dim);
+}
+#modal-quality.is-hires { color: var(--accent-text); border-color: var(--accent); }
 
 /* Larger on the album detail artwork, which is far bigger than a tile. */
-/* Bottom left of the cover, above the bit/sample badge (v0.8.33: the bottom
-   right is the booklet's), or in its place when the album has no rate shown. */
-#modal-source { width: 28px; height: 28px; top: auto; bottom: 36px; left: 8px; right: auto; border-radius: 8px; }
-#modal-source:has(+ #modal-quality.hidden) { bottom: 8px; }
+/* Bottom left of the cover (v0.8.33: the bottom right is the booklet's; the
+   rate under the title since bug list item 28). */
+#modal-source { width: 28px; height: 28px; top: auto; bottom: 8px; left: 8px; right: auto; border-radius: 8px; }
 #modal-source::before { -webkit-mask-size: 16px 16px; mask-size: 16px 16px; }
 /* The album's booklet (v0.8.33): a disc in the cover's bottom right, as the
    page's other buttons are; never on Now playing. */
@@ -5897,15 +5917,8 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The album view (v0.7.10)                                           */
 /* ------------------------------------------------------------------ */
-/* The album's total time on the Tracks line, centred under the Play Now and
-   Queue buttons: the heading spans the same column as the button row, whose
-   heart and ⋯ are the same size at either end, so the line's centre is the
-   centre between the two buttons. */
-.tracks-head { position: relative; }
-.tracks-total {
-  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-  color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
+/* The album's total time was on the Tracks line, centred under Play Now and
+   Queue (v0.7.10); it is the head's last line now, after the rate (item 28). */
 
 /* A TABLET'S ALBUM VIEW IS THE WHOLE SCREEN, as it is on a phone, not a card
    floating over the page: from 720px up on a touch screen the panel fills

@@ -64,16 +64,19 @@ async function fetchAlbumDetail(album) {
   // artist link shows), what they appear on, and Last.fm's suggestions.
   fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
     .catch(() => { /* extras: the album page stands without them */ });
+  // The notes below go at the foot of the album's head, after its date and
+  // its rate and length (bug list item 28), not between its lines.
+  const headEnd = document.getElementById("modal-facts") || modalSub;
   // Named from its folders, its files carrying no tags (v0.6.0-RC10): said
   // under the names, so they read as the best guess they are.
   {
     let note = document.getElementById("modal-names-note");
     if (j.names_from_folders) {
-      if (!note && modalSub && modalSub.parentNode) {
+      if (!note && headEnd && headEnd.parentNode) {
         note = document.createElement("div");
         note.id = "modal-names-note";
         note.className = "modal-names-note";
-        modalSub.parentNode.insertBefore(note, modalSub.nextSibling);
+        headEnd.parentNode.insertBefore(note, headEnd.nextSibling);
       }
       if (note) note.textContent = "Names from its folders — the files carry no tags";
     } else if (note) note.remove();
@@ -86,13 +89,13 @@ async function fetchAlbumDetail(album) {
   {
     let why = document.getElementById("modal-why-note");
     const w = j.album && j.album.service_why;
-    if (w && modalSub && modalSub.parentNode) {
+    if (w && headEnd && headEnd.parentNode) {
       if (!why) {
         why = document.createElement("div");
         why.id = "modal-why-note";
         why.className = "modal-names-note";
       }
-      const anchor = document.getElementById("modal-names-note") || modalSub;
+      const anchor = document.getElementById("modal-names-note") || headEnd;
       anchor.parentNode.insertBefore(why, anchor.nextSibling);
       const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
       let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
@@ -110,13 +113,13 @@ async function fetchAlbumDetail(album) {
   {
     let box = document.getElementById("modal-box-note");
     const b = j.album && j.album.box;
-    if (b && modalSub && modalSub.parentNode) {
+    if (b && headEnd && headEnd.parentNode) {
       if (!box) {
         box = document.createElement("div");
         box.id = "modal-box-note";
         box.className = "modal-box-note";
       }
-      const anchor = document.getElementById("modal-names-note") || modalSub;
+      const anchor = document.getElementById("modal-names-note") || headEnd;
       anchor.parentNode.insertBefore(box, anchor.nextSibling);
       box.innerHTML = "";
       const line = document.createElement("div");
