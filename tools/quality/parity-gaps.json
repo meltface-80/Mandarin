@@ -5,23 +5,6 @@
     "tab-queue",
     "artist",
     "album",
-    "format",
-    "wave",
-    "shuffle",
-    "repeat",
-    "device",
-    "device-title",
-    "device-room",
-    "group",
-    "power",
-    "pause-all",
-    "mute-all",
-    "unmute-all",
-    "volume",
-    "volume-level",
-    "volume-slider",
-    "volume-down",
-    "volume-up",
-    "volume-fixed"
+    "wave"
   ]
 }
