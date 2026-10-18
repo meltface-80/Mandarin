@@ -6,9 +6,10 @@ namespace Mandarin.Tests;
 /// The tag reader in C# (v0.8.13, server/Mandarin.Server/Tags/) reads every file as the Node server's
 /// scanner read it (scanner.js readTags over music-metadata 11.16.0), to the byte, as JSON: every format
 /// and tag layout (Harness/TagFixtures.cs) and each of them damaged, where a file one reader can't read
-/// must be one the other can't either. The Node reader's readings of these files, made by this machine's
-/// ffmpeg, are kept (test/golden/tags-front.json, as a sum of each run of 32), so the files must be the
-/// ones they were made from: their names are kept too (test/tags-front.test.js, in C#).
+/// must be one the other can't either. The Node reader's readings of these files are kept
+/// (test/golden/tags-front.json, as a sum of each run of 32), so the files must be the ones they were
+/// made from: ffmpeg's are kept as it made them, and their names are kept too (test/tags-front.test.js,
+/// in C#).
 /// </summary>
 public sealed class TagsFrontTests(TagsFrontTests.Book book) : IClassFixture<TagsFrontTests.Book>
 {
@@ -19,7 +20,6 @@ public sealed class TagsFrontTests(TagsFrontTests.Book book) : IClassFixture<Tag
     public async Task The_CSharp_tag_reader_reads_every_file_as_music_metadata_does()
     {
         Needs.Server();
-        Needs.Ffmpeg();
         var dir = Directory.CreateTempSubdirectory("musicd-tags-").FullName;
         try
         {

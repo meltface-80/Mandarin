@@ -1,33 +1,18 @@
-using System.Diagnostics;
+using System.Formats.Tar;
 using System.Globalization;
+using System.IO.Compression;
 
 namespace Mandarin.Tests;
 
 /// <summary>
-/// Files for checking the C# tag reader (TagsFrontTests): every format the scanner reads, made with
-/// ffmpeg, and the tag layouts ffmpeg doesn't write built here byte by byte (ID3v2.2, 2.3 and 2.4 frames
-/// of every kind the reader knows, APEv2, Lyrics3, Vorbis comments, DSF, DSDIFF, Monkey's Audio), then
-/// each copied damaged a few ways (test/tagfixtures.js, in C#: the same files, byte for byte).
+/// Files for checking the C# tag reader (TagsFrontTests): every format the scanner reads, as ffmpeg made
+/// them (kept, test/golden/tags-front.files.tar.gz), and the tag layouts ffmpeg doesn't write built here
+/// byte by byte (ID3v2.2, 2.3 and 2.4 frames of every kind the reader knows, APEv2, Lyrics3, Vorbis
+/// comments, DSF, DSDIFF, Monkey's Audio), then each copied damaged a few ways (test/tagfixtures.js, in C#: the same files, byte for byte).
 /// </summary>
 public static partial class TagFixtures
 {
-    private static readonly (string, string)[] Meta =
-    [
-        ("title", "Song Title"), ("artist", "The Artist"), ("album", "The Album"), ("album_artist", "Various Artists"), ("date", "2019-05-03"),
-        ("track", "3/12"), ("disc", "1/2"), ("genre", "Rock;Pop"), ("comment", "A comment"), ("publisher", "Label Records")
-    ];
-
-    private static bool Ff(string output, string[] args, int seconds = 2, int rate = 44100, int ch = 2, (string, string)[]? tags = null, bool noTags = false)
-    {
-        var all = new List<string> { "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
-            FormattableString.Invariant($"sine=frequency=440:duration={seconds}:sample_rate={rate}"), "-ac", ch.ToString(CultureInfo.InvariantCulture) };
-        all.AddRange(args);
-        foreach (var (k, v) in noTags ? Array.Empty<(string, string)>() : (tags ?? Meta)) all.AddRange(["-metadata", $"{k}={v}"]);
-        all.Add(output);
-        return Fixtures.Run(all).Code == 0;
-    }
-
-    private static readonly Lazy<string> Encoders = new(() => { var r = Fixtures.Run(["-hide_banner", "-encoders"]); return r.Code == 0 ? r.Out : ""; });
+    private static string Kept => Path.Combine(ServerProcess.Root, "test", "golden", "tags-front.files.tar.gz");
 
     /// <summary>Makes the files in <paramref name="dir"/>; returns their paths.</summary>
     public static List<string> Build(string dir, int damage = 8)
@@ -37,45 +22,17 @@ public static partial class TagFixtures
         var made = new List<string>();
         void Add(string n, bool ok = true) { if (ok && File.Exists(P(n))) made.Add(P(n)); }
         void Write(string n, byte[] buf) { File.WriteAllBytes(P(n), buf); Add(n); }
-        bool Has(string e) => Encoders.Value.Contains(" " + e + " ", StringComparison.Ordinal);
 
-        // ffmpeg's own.
-        if (Has("libmp3lame"))
-        {
-            Add("vbr_v24.mp3", Ff(P("vbr_v24.mp3"), ["-c:a", "libmp3lame", "-q:a", "2"], seconds: 5));
-            Add("cbr_v23_v1.mp3", Ff(P("cbr_v23_v1.mp3"), ["-c:a", "libmp3lame", "-b:a", "128k", "-id3v2_version", "3", "-write_id3v1", "1"], seconds: 5));
-            Add("cbr_noxing.mp3", Ff(P("cbr_noxing.mp3"), ["-c:a", "libmp3lame", "-b:a", "192k", "-write_xing", "0"], seconds: 5));
-            Add("mpeg2_mono.mp3", Ff(P("mpeg2_mono.mp3"), ["-c:a", "libmp3lame", "-b:a", "32k"], seconds: 5, rate: 22050, ch: 1, noTags: true));
-            Add("mpeg25.mp3", Ff(P("mpeg25.mp3"), ["-c:a", "libmp3lame", "-b:a", "16k"], seconds: 5, rate: 8000, ch: 1, noTags: true));
-            Ff(P("_bare.mp3"), ["-c:a", "libmp3lame", "-b:a", "128k", "-id3v2_version", "0"], seconds: 3, noTags: true);
-        }
-        if (Has("mp2")) Add("layer2.mp3", Ff(P("layer2.mp3"), ["-c:a", "mp2", "-b:a", "192k", "-f", "mp2"], seconds: 3));
-        Add("plain.flac", Ff(P("plain.flac"), ["-c:a", "flac"]));
-        Add("hires.flac", Ff(P("hires.flac"), ["-c:a", "flac", "-sample_fmt", "s32"], rate: 96000));
-        Add("six.flac", Ff(P("six.flac"), ["-c:a", "flac"], ch: 6, rate: 48000, noTags: true));
-        if (Has("libvorbis")) { Add("short.ogg", Ff(P("short.ogg"), ["-c:a", "libvorbis"])); Add("long.ogg", Ff(P("long.ogg"), ["-c:a", "libvorbis"], seconds: 30)); }
-        if (Has("libopus"))
-        {
-            Add("short.opus", Ff(P("short.opus"), ["-c:a", "libopus", "-metadata", "R128_TRACK_GAIN=-1234", "-metadata", "R128_ALBUM_GAIN=512"]));
-            Add("long.opus", Ff(P("long.opus"), ["-c:a", "libopus"], seconds: 30));
-            // A comment header over several pages.
-            Add("bigcomment.opus", Ff(P("bigcomment.opus"), ["-c:a", "libopus", "-metadata", "lyrics=" + string.Concat(Enumerable.Repeat("la ", 25000))]));
-        }
-        Add("flac_in.oga", Ff(P("flac_in.oga"), ["-c:a", "flac", "-f", "ogg"]));
-        if (Has("libspeex")) Add("speex.ogg", Ff(P("speex.ogg"), ["-c:a", "libspeex", "-f", "ogg"], rate: 16000, ch: 1));
-        Add("aac.m4a", Ff(P("aac.m4a"), ["-c:a", "aac", "-b:a", "128k", "-movflags", "+use_metadata_tags", "-metadata", "MusicBrainz Album Id=m4a-mbid", "-metadata", "BARCODE=5012345678900"]));
-        Add("alac.m4a", Ff(P("alac.m4a"), ["-c:a", "alac"]));
-        Add("alac_hires.m4a", Ff(P("alac_hires.m4a"), ["-c:a", "alac", "-sample_fmt", "s32p"], rate: 96000));
-        Add("frag.m4a", Ff(P("frag.m4a"), ["-c:a", "aac", "-movflags", "+frag_keyframe+empty_moov"]));
-        Add("plain.wav", Ff(P("plain.wav"), ["-c:a", "pcm_s16le"]));
-        Add("hires24.wav", Ff(P("hires24.wav"), ["-c:a", "pcm_s24le"], rate: 96000));
-        Add("six.wav", Ff(P("six.wav"), ["-c:a", "pcm_s16le"], ch: 6, rate: 48000, noTags: true));
-        Add("bext.wav", Ff(P("bext.wav"), ["-c:a", "pcm_s16le", "-write_bext", "1", "-metadata", "description=bext desc", "-metadata", "originator=me"], noTags: true));
-        Add("plain.aif", Ff(P("plain.aif"), ["-c:a", "pcm_s16be", "-write_id3v2", "1"]));
-        Add("hires.aif", Ff(P("hires.aif"), ["-c:a", "pcm_s24be"], rate: 96000, noTags: true));
-        if (Has("wavpack")) { Add("plain.wv", Ff(P("plain.wv"), ["-c:a", "wavpack"])); Add("hires.wv", Ff(P("hires.wv"), ["-c:a", "wavpack", "-sample_fmt", "s32p"], rate: 96000)); }
-        if (Has("wmav2")) Add("plain.wma", Ff(P("plain.wma"), ["-c:a", "wmav2", "-b:a", "128k"]));
-        Add("plain.aac", Ff(P("plain.aac"), ["-c:a", "aac", "-f", "adts"]));
+        // ffmpeg's own, as ffmpeg 6.1.1 made them when music-metadata's readings were kept: another ffmpeg
+        // encodes and stamps them otherwise, and its files are no longer the ones those readings are of.
+        // In the order they were made, which the damage below and the kept readings follow.
+        using (var z = new GZipStream(File.OpenRead(Kept), CompressionMode.Decompress))
+        using (var tar = new TarReader(z))
+            while (tar.GetNextEntry() is { } e)
+            {
+                e.ExtractToFile(P(e.Name), true);
+                if (!e.Name.StartsWith('_')) Add(e.Name);
+            }
 
         // Built here.
         if (File.Exists(P("_bare.mp3")))
