@@ -258,11 +258,10 @@ function buildFavButton(album, fresh) {
 
 /*
  * A menu that would be cut off, opened the other way (v0.7.8). Each menu
- * opens the way its screen has room for as a rule — downwards under the
- * button, or upwards over the cover on an album's page — but the box that
- * clips it (the nearest scrolling ancestor, within the window) is not always
- * where the rule expects: an album page scrolled so its button row is near
- * the top, a playlist's menu at the foot of the screen. A menu cut off at the
+ * opens downwards under its button as a rule, but the box that clips it
+ * (the nearest scrolling ancestor, within the window) is not always where
+ * the rule expects: a playlist's menu at the foot of the screen, an album's
+ * on a phone held sideways. A menu cut off at the
  * top cannot even be scrolled to. So it is measured as it opens, and turned
  * round when the other side has more room.
  */

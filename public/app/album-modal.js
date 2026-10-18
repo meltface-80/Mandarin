@@ -299,51 +299,6 @@ const albumNav = {
 // modal, which closing reveals as it was.
 let npReturn = null;
 
-/*
- * ROOM FOR THE ⋯ MENU ABOVE THE BUTTON ROW (v0.7.8). From 720px up the
- * album view is two columns, and the right-hand one starts with the title
- * and the artist line — all that stands between the button row and the
- * panel's top edge. The menu opens upwards from that row, and four to six
- * items rose past the edge, where the panel clips them: on an iPad the
- * first two could be neither seen nor tapped. So the column is dropped by
- * exactly the room missing, measured: the menu's own height (however many
- * items this album's has), the row's place at the top of the scroll
- * (however many lines the title takes), and the pinned Share button's
- * foot, which the menu stays clear of. Phones and Now playing: none — the
- * menu opens over the cover there. Re-measured when the title, the artist
- * line or the row changes size, and when the window does.
- */
-function fitAlbumMenuRoom() {
-  const info = modal.querySelector(".modal-info");
-  const body = modal.querySelector(".modal-body");
-  if (!info || !body) return;
-  const two = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode") &&
-    window.matchMedia && window.matchMedia("(min-width: 720px)").matches;
-  const menu = two ? modalActs.querySelector(".overflow-wrap .overflow-menu") : null;
-  if (!menu) { info.style.removeProperty("--album-menu-room"); return; }
-  const shown = !menu.classList.contains("hidden");
-  if (!shown) { menu.style.visibility = "hidden"; menu.classList.remove("hidden"); }
-  const h = menu.getBoundingClientRect().height;
-  if (!shown) { menu.classList.add("hidden"); menu.style.visibility = ""; }
-  info.style.setProperty("--album-menu-room", "0px");
-  const bodyTop = body.getBoundingClientRect().top;
-  const rowTop = modalActs.getBoundingClientRect().top - bodyTop + body.scrollTop;
-  const share = document.getElementById("modal-share-btn");
-  const sb = share && share.getClientRects().length ? share.getBoundingClientRect().bottom - bodyTop : 0;
-  const clear = Math.max(8, sb + 8);
-  const missing = Math.ceil(h + 6 + clear - rowTop);
-  info.style.setProperty("--album-menu-room", Math.max(0, missing) + "px");
-}
-{
-  let raf = 0;
-  const refit = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; fitAlbumMenuRoom(); }); };
-  window.addEventListener("resize", refit);
-  if (window.ResizeObserver) {
-    const ro = new ResizeObserver(refit);
-    for (const el of [modalTitle, modalSub, modalActs]) if (el) ro.observe(el);
-  }
-}
-
 /* An album's length: 52:41, or 1:02:15 past the hour. */
 function fmtTotal(secs) {
   const s = Math.round(secs), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;

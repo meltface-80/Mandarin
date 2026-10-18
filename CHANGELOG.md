@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `24-album-page-sleeve`: the album page leads with a 160px sleeve, the title and the artist line
+  beside it, and the buttons straight under them, on a phone, a tablet and a desktop alike; the
+  cover's colours glow behind the top again; previous and next sit beside Share; the ⋯ menu opens
+  downwards over the tracks; from 720px up About this album is a column beside the tracks.
 - `22-android-native-n1`: the Android app's typed client for the library (`LibraryClient`, `Library.kt`):
   albums, an album's page, artists, search and Home's rows. The server's answers on the test library
   are kept in `test/golden/android-api.json` (AndroidApiTests), and the app's tests read its client's
