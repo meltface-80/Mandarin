@@ -36,7 +36,7 @@ const DRIVER = `(async () => {
     const e = typeof sel === "string" ? document.querySelector(sel) : sel;
     if (!e) return null;
     const b = e.getBoundingClientRect();
-    return { top: b.top, bottom: b.bottom, w: b.width, h: b.height, mid: b.top + b.height / 2, shown: getComputedStyle(e).display !== "none" && b.width > 0 };
+    return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, w: b.width, h: b.height, mid: b.top + b.height / 2, shown: getComputedStyle(e).display !== "none" && b.width > 0 };
   };
   const colour = v => { const p = document.createElement("span"); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
   await until(() => document.querySelector("#home-random .album") && document.querySelector("#home-today .home-aotd"));
@@ -65,7 +65,7 @@ const DRIVER = `(async () => {
   out.close_label = close.getAttribute("aria-label");
   out.x = box(close.querySelector(".ico-close")).shown;
   out.chevron = box(close.querySelector(".ico-back")).shown;
-  out.close = box(close); out.art = box(".modal-art"); out.prev = box("#modal-prev"); out.next = box("#modal-next");
+  out.close = box(close); out.art = box(".modal-art"); out.prev = box("#modal-prev"); out.next = box("#modal-next"); out.share = box("#modal-share-btn");
   out.title = document.getElementById("modal-title").textContent;
 
   // Now playing over it.
@@ -155,13 +155,16 @@ test("the page in a browser: Home, the album view and Now playing at three sizes
       assert.equal(phone.close_label, "Back"); assert.equal(phone.x, false); assert.equal(phone.chevron, true);
     });
 
-    await t.test("on a card the cover starts below the corner button, previous/next on its centre line", () => {
-      for (const r of [desk, tablet]) {
-        assert.ok(r.art.top >= r.close.bottom + 8, `cover at ${r.art.top}, the × ends at ${r.close.bottom}`);
+    await t.test("the sleeve starts below the corner buttons; previous and next beside Share, above it", () => {
+      for (const r of [desk, phone, tablet]) {
+        assert.ok(r.art.top >= r.close.bottom + 8, `cover at ${r.art.top}, the corner button ends at ${r.close.bottom}`);
         for (const k of ["prev", "next"]) {
           assert.equal(r[k].shown, true, k);
-          assert.ok(Math.abs(r[k].mid - r.art.mid) <= 3, `${k} at ${r[k].mid}, the cover's middle at ${r.art.mid}`);
+          assert.ok(r[k].bottom <= r.art.top, `${k} ends at ${r[k].bottom}, the sleeve starts at ${r.art.top}`);
+          assert.ok(Math.abs(r[k].mid - r.share.mid) <= 1, `${k} on Share's line (${r[k].mid}, Share ${r.share.mid})`);
+          assert.ok(r[k].right <= r.share.left, `${k} (${r[k].right}) left of Share (${r.share.left})`);
         }
+        assert.ok(r.prev.right <= r.next.left, "previous, then next");
       }
     });
 

@@ -71,8 +71,12 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
   const b = await Browser.launch({ width: 412, height: 915 });
   t.after(() => b.close());
   const cookies = [{ name: "musicd_session", value: token, url: base }];
-  const zones = (await (await fetch(base + "/api/zones", { headers: { Authorization: "Bearer " + token } })).json()).zones || [];
-  const kitchen = zones.find(z => z.display_name === "Kitchen");
+  // The household's rooms are found a moment after the server starts: waited for.
+  let kitchen = null;
+  for (const t0 = Date.now(); !kitchen && Date.now() - t0 < 20000; await new Promise(r => setTimeout(r, 200))) {
+    const zones = (await (await fetch(base + "/api/zones", { headers: { Authorization: "Bearer " + token } })).json()).zones || [];
+    kitchen = zones.find(z => z.display_name === "Kitchen");
+  }
   assert.ok(kitchen, "the Kitchen room");
   const room = `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});`;
   const run = async (js, init) => {

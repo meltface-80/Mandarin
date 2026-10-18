@@ -186,7 +186,6 @@ async function fetchAlbumDetail(album) {
       { label: "More actions" });
     modalActs.appendChild(more);
   }
-  fitAlbumMenuRoom();
   if (!available.length) {
     // "No playback actions available" was true and useless — it described
     // our own empty array rather than anything the user could act on. When

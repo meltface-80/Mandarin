@@ -485,6 +485,26 @@
         </svg>
       </button>
 
+      <!-- Previous and next (v0.5.44): the album before and after this one in
+           the list it was opened from — a Home row, an artist's albums, a
+           label's, the Library wall, search. In the top bar beside Share (the
+           sleeve, bug list item 24: the cover is too small to carry them).
+           Hidden when there is no list. -->
+      <div class="modal-nav hidden" id="modal-nav">
+        <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+
       <div class="modal-body">
         <div class="modal-tabs hidden" id="modal-tabs">
           <button class="modal-tab is-active" type="button" data-tab="album">Now playing</button>
@@ -505,29 +525,11 @@
               <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>
             </svg>
           </button>
-          <!-- Previous and next (v0.5.44): the album before and after this one in
-               the list it was opened from — a Home row, an artist's albums, a
-               label's, the Library wall, search — at the art's edges, halfway up.
-               Hidden when there is no list. -->
-          <div class="modal-nav hidden" id="modal-nav">
-            <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          </div>
         </div>
-        <!-- About this album (v0.7.8): beside the cover, under it, from 720px up
-             (a tablet, a laptop), where the right-hand column holds the title,
-             the buttons and the tracks; after the tracks on a phone (style.css
-             puts it there with `order`). Not on Now playing. -->
+        <!-- About this album (v0.7.8): from 720px up (a tablet, a laptop) a
+             column of its own beside the buttons and the tracks, under the
+             sleeve's row; after the tracks on a phone (style.css places it
+             with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
           <div class="bio-section hidden" id="album-bio-section">
             <h3 class="section-label">About this album</h3>
@@ -570,8 +572,12 @@
           </div>
         </div>
         <div class="modal-info">
-          <h2 id="modal-title">—</h2>
-          <div id="modal-subtitle" class="modal-subtitle"></div>
+          <!-- The title and artist line, beside the sleeve on an album (bottom
+               aligned with it), centred above the transport on Now playing. -->
+          <div class="modal-head">
+            <h2 id="modal-title">—</h2>
+            <div id="modal-subtitle" class="modal-subtitle"></div>
+          </div>
 
           <div class="modal-tab-pane" id="tab-album">
 
