@@ -59,6 +59,7 @@ function openAlbum(album, opts) {
   modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading">Loading…</div>`;
   modalTracks.innerHTML  = "";
   { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
+  { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; }
 
   // Reset bio sections, and the sections under them (cleared before any
   // answer for this album can arrive)
