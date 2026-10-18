@@ -24,3 +24,16 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
+// Settings → Setup → Home Screen (v1.0.7): the greeting and Random Album, each on or off, on this device.
+(function initHomeTopSwitches() {
+  if (!window.__uiPrefs) return;
+  const sws = { greeting: "home-greeting-on", random: "home-random-on" };
+  const paint = () => { for (const [k, id] of Object.entries(sws)) { const el = document.getElementById(id); if (el) el.checked = window.__uiPrefs.get(k) !== "off"; } };
+  for (const [k, id] of Object.entries(sws)) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => window.__uiPrefs.set(k, el.checked ? "on" : "off"));
+  }
+  const navItem = document.querySelector('.settings-nav-item[data-pane="homescreen"]');
+  if (navItem) navItem.addEventListener("click", paint);
+  paint();
+})();

@@ -7,6 +7,9 @@
 /*    --ui-title  a grid screen's title in the top bar, a playlist name*/
 /*    --ui-tile   the Home carousels' tile width (150px × this)        */
 /*    --grid-cols every .album-grid's columns, when not the screen's   */
+/*  And Home's greeting and Random Album, each shown or not (v1.0.7):  */
+/*  classes on <html> (ui-no-greeting, ui-no-random), the rest of Home */
+/*  moving up into the room.                                            */
 /* ------------------------------------------------------------------ */
 (function uiSettings() {
   const OPTS = {
@@ -17,7 +20,9 @@
     // album and Now playing views, the player bar (v0.6.6).
     menu:   { key: "rra-ui-menu",  def: "1",    allowed: ["1", "1.1", "1.25", "1.5", "1.75", "2"] },
     layout: { key: "rra-ui-cols",  def: "auto", allowed: ["auto", "3", "2", "list"] },
-    tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] }
+    tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] },
+    greeting: { key: "rra-ui-greeting", def: "on", allowed: ["on", "off"] },
+    random:   { key: "rra-ui-random",   def: "on", allowed: ["on", "off"] }
   };
   const mem = {};
   // A desktop: a large screen with a mouse (the test Now playing's corner
@@ -68,6 +73,8 @@
     if (c === baseCols()) root.removeProperty("--grid-cols"); else root.setProperty("--grid-cols", String(c));
     const grid = document.getElementById("album-grid");
     if (grid) grid.classList.toggle("as-list", get("layout") === "list");
+    document.documentElement.classList.toggle("ui-no-greeting", get("greeting") === "off");
+    document.documentElement.classList.toggle("ui-no-random", get("random") === "off");
   }
   function set(k, v) {
     const o = OPTS[k];

@@ -5550,6 +5550,10 @@ button.cap-chip:active { transform: scale(.96); }
 /* Random Album and Album of the day, under the greeting with no heading
    (v0.6.1). Laid out by .home-carousel like every row, one row always. */
 .home-today { margin-bottom: 30px; }
+/* Switched off in Settings → Setup → Home Screen (v1.0.7, ui-settings.js): gone,
+   and what's under it moves up; the strip goes too when nothing is left in it. */
+.ui-no-greeting #home-greeting, .ui-no-random #home-unheard-tile { display: none; }
+.ui-no-random #home-today:not(:has(.album:not(#home-unheard-tile))) { display: none; }
 [data-palette="hifi"] .home-today { margin-bottom: 32px; }
 
 /* The album view's corner button (v0.6.1): a back chevron while it fills the

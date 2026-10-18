@@ -1809,6 +1809,25 @@
         </div>
         <p class="settings-pane-desc">Which rows show, and in what order</p>
 
+        <!-- The top of Home (v1.0.7): each can go, on this device, and what's under it moves up. -->
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label">Greeting</span>
+            <label class="switch">
+              <input type="checkbox" id="home-greeting-on" aria-label="Greeting" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Random Album</span>
+            <label class="switch">
+              <input type="checkbox" id="home-random-on" aria-label="Random Album" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note">The greeting at the top of Home, and the Random Album button beside the Album of the day. On this device only.</div>
+        </div>
+
         <div class="settings-block">
           <div class="settings-note">Hold the handle to drag a row into a new position. A row switched off is not fetched at all — it does no work in the background.</div>
           <ul class="home-rows-list" id="home-rows-list"></ul>
