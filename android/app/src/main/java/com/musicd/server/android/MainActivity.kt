@@ -12,7 +12,6 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
@@ -254,8 +253,7 @@ class MainActivity : Activity() {
     /** The page's WebView, set up (at the start, and whenever the page is put up afresh). */
     @SuppressLint("SetJavaScriptEnabled")
     private fun makeWeb(): WebView = WebView(this).apply {
-        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        setBackgroundColor(BACKGROUND)
+        PageFrame.frame(this, BACKGROUND)
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
