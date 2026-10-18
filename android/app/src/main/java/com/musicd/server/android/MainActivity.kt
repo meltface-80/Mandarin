@@ -46,7 +46,7 @@ import com.musicd.server.client.PageWatch
  * for the albums on the phone and the phone's player — until the server is
  * back, when the page reloads from it.
  */
-class MainActivity : Activity() {
+class MainActivity : androidx.activity.ComponentActivity() {
 
     companion object {
         private const val REQ_LOCAL_FOLDER = 7301
@@ -232,7 +232,7 @@ class MainActivity : Activity() {
         root.addView(web)
         root.addView(buildErrorPanel())
         Insets.pad(root)
-        setContentView(root)
+        setContentView(NativeShell.attach(this, root))
 
         registerBack()
         CrashLog.offer(this)

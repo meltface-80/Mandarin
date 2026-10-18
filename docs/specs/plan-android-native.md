@@ -1,6 +1,6 @@
 # Plan: the Android app as a full native app, not a WebView
 
-Status: plan, nothing built (bug list item 17). Written v1.0.7.
+Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`.
 
 ## Is it the key to better function and performance?
 
@@ -50,7 +50,7 @@ What's missing is the screens and a typed client for the library API.
 | N6 | **Search** native (the library's and Qobuz's/Tidal's). | Settings and the long tail |
 | N7 | Offline mode native, over `DownloadStore`/`LocalMusic` directly. `OfflineSite` (the page's copy in the APK) goes. | Settings and the long tail |
 
-Each stage ships on its own and can be tested by updating from `migration`, as now; the WebView screens keep working throughout. Rough size: N0–N1 a week; N2–N5 one to two weeks each; N6–N7 a week each.
+Each stage ships on its own and can be tested by updating from `dev`; the WebView screens keep working throughout. Rough size: N0–N1 a week; N2–N5 one to two weeks each; N6–N7 a week each.
 
 ## What to decide before N0
 
