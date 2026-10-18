@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `26-native-np-controls`: the Android app's native Now playing (preview) has shuffle and repeat, the format
+  badge, the volume menu (its scale, a step down and up, or "Volume control is fixed") and Play on (each room,
+  Group zones and Device power, which open the page's own sheets through `public/app/native-handoff.js`, and
+  pause and mute every room), in the page's own icons. The gaps list is down from 23 to 6.
 - `25-native-parity`: the screens contract (`docs/specs/screens.json`, `docs/specs/native-parity.md`): each
   screen the Android app draws natively, its controls and readouts by key and its labels. The page is held
   to it in a browser (`test/parity.test.js`), the app by `npm run parity` in the gates (every control and

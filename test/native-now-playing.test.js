@@ -63,6 +63,21 @@ const TAP = `(async () => { ${KIT}
   return out;
 })()`;
 
+/* What the app's native screens hand back to the page (public/app/native-handoff.js), each asked for by name. */
+const HANDOFF = (study) => `(async () => { ${KIT}
+  const sheet = () => [...document.querySelectorAll(".lib-sheet h3")].filter(h => shown(h.closest(".lib-sheet"))).map(h => h.textContent);
+  const out = { unknown: window.__musicdNative("lyrics"), badRoom: window.__musicdNative("zone", "no-such-room") };
+  out.group = window.__musicdNative("group"); await until(() => sheet().length, 5000); out.groupSheet = sheet();
+  document.querySelector(".lib-sheet .icon-btn[aria-label=Close]").click(); await until(() => !sheet().length, 5000);
+  out.power = window.__musicdNative("power"); await until(() => sheet().length, 5000); out.powerSheet = sheet();
+  document.querySelector(".lib-sheet .icon-btn[aria-label=Close]").click(); await until(() => !sheet().length, 5000);
+  out.zone = window.__musicdNative("zone", ${JSON.stringify(study)});
+  await until(() => /Study/.test(($("#mt-kicker") || {}).textContent || ""), 8000);
+  out.kicker = ($("#mt-kicker") || {}).textContent;
+  out.stored = localStorage.getItem("rra-zone");
+  return out;
+})()`;
+
 test("the app's native Now playing: its switch in Setup, and the mini player handing over to it", { skip, timeout: 240000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
@@ -72,9 +87,9 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
   t.after(() => b.close());
   const cookies = [{ name: "musicd_session", value: token, url: base }];
   // The household's rooms are found a moment after the server starts: waited for.
-  let kitchen = null;
+  let kitchen = null, zones = [];
   for (const t0 = Date.now(); !kitchen && Date.now() - t0 < 20000; await new Promise(r => setTimeout(r, 200))) {
-    const zones = (await (await fetch(base + "/api/zones", { headers: { Authorization: "Bearer " + token } })).json()).zones || [];
+    zones = (await (await fetch(base + "/api/zones", { headers: { Authorization: "Bearer " + token } })).json()).zones || [];
     kitchen = zones.find(z => z.display_name === "Kitchen");
   }
   assert.ok(kitchen, "the Kitchen room");
@@ -85,6 +100,18 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
     assert.deepEqual(page.errors, [], "nothing thrown");
     return r;
   };
+
+  await t.test("handed back to the page: Group zones and Device power its own sheets, a room chosen its room", async () => {
+    const study = zones.find(z => z.display_name === "Study");
+    assert.ok(study, "the Study room");
+    const r = await run(HANDOFF(study.zone_id), room + bridge(true));
+    assert.deepEqual([r.unknown, r.badRoom], [false, false], "nothing it doesn't know");
+    assert.deepEqual([r.group, r.groupSheet], [true, ["Group zones"]]);
+    assert.deepEqual([r.power, r.powerSheet], [true, ["Device power"]]);
+    assert.equal(r.zone, true);
+    assert.match(r.kicker, /Study/, "the page's room is the Study now");
+    assert.equal(r.stored, study.zone_id);
+  });
 
   await t.test("a browser: no such switch", async () => {
     assert.deepEqual(await run(SETTINGS), { shown: false });

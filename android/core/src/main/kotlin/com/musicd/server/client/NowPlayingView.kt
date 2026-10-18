@@ -20,8 +20,30 @@ data class NowPlayingView(
     val canNext: Boolean,
     val canPrevious: Boolean,
     /** When the answer came ([System.currentTimeMillis] then). */
-    val answeredAtMs: Long
+    val answeredAtMs: Long,
+    val shuffle: Boolean = false,
+    /** Repeat: disabled, loop (the queue), loop_one (the track). */
+    val loop: String = "disabled",
+    val format: Format? = null,
+    /** The room's volume, from its first speaker that has one; null: fixed. */
+    val volume: VolumeScale? = null,
+    val muted: Boolean = false
 ) {
+    /** Shuffle's state in the contract's labels: Shuffle, Shuffle on. */
+    val shuffleState: Int get() = if (shuffle) 1 else 0
+
+    /** Repeat's state in the contract's labels: off, the queue, the track. */
+    val loopState: Int get() = LOOPS.indexOf(loop).coerceAtLeast(0)
+
+    /** What a tap on repeat asks for: off → the queue → the track → off, as the page's does. */
+    val loopNext: String get() = LOOPS[(loopState + 1) % LOOPS.size]
+
+    /** The format as the page's badge reads it: an Opus stream is named. */
+    val formatText: String? get() = format?.let { if (it.kind == "opus") "Opus ${it.text}".trim() else it.text.ifEmpty { null } }
+
+    /** A volume a step up ([direction] 1) or down (-1) from where it is, within its scale. */
+    fun volumeStep(direction: Int): Double? = volume?.let { v -> v.value?.let { (it + direction * v.step).coerceIn(v.min, v.max) } }
+
     /** Where the track is at [nowMs]: moved on by the clock while it plays. */
     fun position(nowMs: Long): Double {
         val p = if (playing) seekSeconds + (nowMs - answeredAtMs).coerceAtLeast(0) / 1000.0 else seekSeconds
@@ -32,6 +54,8 @@ data class NowPlayingView(
     fun fraction(nowMs: Long): Float = lengthSeconds?.takeIf { it > 0 }?.let { (position(nowMs) / it).toFloat().coerceIn(0f, 1f) } ?: 0f
 
     companion object {
+        private val LOOPS = listOf("disabled", "loop", "loop_one")
+
         /** The room's answer as the screen shows it; null when nothing is playing there. */
         fun of(state: ZoneState, answeredAtMs: Long): NowPlayingView? {
             val z = state.zone ?: return null
@@ -39,7 +63,9 @@ data class NowPlayingView(
             return NowPlayingView(
                 zoneName = z.name, title = np.title, artist = np.artist, album = np.album, imageKey = np.imageKey,
                 playing = z.isPlaying, seekSeconds = (np.seekSeconds ?: 0).toDouble(), lengthSeconds = np.lengthSeconds?.toDouble(),
-                canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs
+                canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs,
+                shuffle = z.shuffle, loop = z.loop, format = np.format,
+                volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }
             )
         }
 

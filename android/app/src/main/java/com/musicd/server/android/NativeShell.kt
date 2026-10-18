@@ -41,6 +41,18 @@ internal object NativeShell {
     /** A native screen opened over the page. */
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
+    /** Runs a script on the page (set by [attach]). */
+    private var page: ((String) -> Unit)? = null
+
+    /**
+     * Something a native screen hands back to the page, by name
+     * (public/app/native-handoff.js): its own sheets, its room.
+     */
+    fun toPage(what: String, arg: String? = null) {
+        val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
+        page?.invoke("window.__musicdNative && window.__musicdNative(${org.json.JSONObject.quote(what)}, $a)")
+    }
+
     /** Back on a native screen: it closes, back to the page (true); on the page, the page's own Back (false). */
     fun back(): Boolean {
         val n = nav ?: return false
@@ -48,8 +60,9 @@ internal object NativeShell {
         return n.popBackStack()
     }
 
-    /** [root] (the page's frame) with the shell laid over it, for setContentView. */
-    fun attach(activity: ComponentActivity, root: FrameLayout): FrameLayout {
+    /** [root] (the page's frame) with the shell laid over it, for setContentView; [page] runs a script on the page. */
+    fun attach(activity: ComponentActivity, root: FrameLayout, page: (String) -> Unit): FrameLayout {
+        this.page = page
         val shell = ComposeView(activity).apply {
             visibility = View.GONE
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -79,7 +92,16 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
         // The page at a path: drawn by the WebView under the shell, so nothing here.
         composable(ShellRoute.WEB, arguments = listOf(navArgument(ShellRoute.PATH) { type = NavType.StringType; defaultValue = "/" })) { }
         composable(ShellRoute.NOW_PLAYING, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType })) { entry ->
-            NowPlayingScreen(entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() })
+            NowPlayingScreen(
+                entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() },
+                // Another room from Play on: its Now playing in this one's place, and the page's room too.
+                onRoom = { id ->
+                    nav.navigate(ShellRoute.nowPlaying(id)) { popUpTo(ShellRoute.NOW_PLAYING) { inclusive = true } }
+                    NativeShell.toPage("zone", id)
+                },
+                // One of the page's own sheets: back to the page, and it opens there.
+                onPage = { what -> nav.popBackStack(); NativeShell.toPage(what) }
+            )
         }
     }
 }

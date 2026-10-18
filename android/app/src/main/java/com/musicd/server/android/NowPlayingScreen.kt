@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,7 +61,7 @@ import kotlinx.coroutines.withContext
  * holds it up to 20 s); between answers the clock moves the track on.
  */
 @Composable
-internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String) -> Unit) {
     var view by remember { mutableStateOf<NowPlayingView?>(null) }
     var answered by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -125,6 +128,10 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(v.album, Modifier.parity("now-playing.album"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+            v.formatText?.let {
+                Text(it, Modifier.parity("now-playing.format").padding(top = 6.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Spacer(Modifier.height(16.dp))
             var dragging by remember { mutableStateOf<Float?>(null) }
             val length = v.lengthSeconds
@@ -148,14 +155,37 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
             }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                val on = MaterialTheme.colorScheme.secondary
+                val off = MaterialTheme.colorScheme.onSurfaceVariant
+                IconButton(onClick = { act { it.zoneSettings(zoneId, shuffle = !v.shuffle) } },
+                    modifier = Modifier.parity("now-playing.shuffle", Contract.label("now-playing.shuffle", v.shuffleState))) {
+                    Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, tint = if (v.shuffle) on else off)
+                }
                 IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious,
-                    modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous"))) { Text("⏮", fontSize = 28.sp) }
+                    modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous"))) {
+                    Icon(painterResource(R.drawable.np_previous), contentDescription = null, tint = on)
+                }
                 FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, shape = CircleShape,
                     modifier = Modifier.parity("now-playing.playpause", Contract.label("now-playing.playpause", if (v.playing) 1 else 0)).size(72.dp)) {
-                    Text(if (v.playing) "❚❚" else "▶", fontSize = 28.sp)
+                    Icon(painterResource(if (v.playing) R.drawable.np_pause else R.drawable.np_play), contentDescription = null, modifier = Modifier.size(32.dp))
                 }
                 IconButton(onClick = { act { it.control(zoneId, "next") } }, enabled = v.canNext,
-                    modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next"))) { Text("⏭", fontSize = 28.sp) }
+                    modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next"))) {
+                    Icon(painterResource(R.drawable.np_next), contentDescription = null, tint = on)
+                }
+                IconButton(onClick = { act { it.zoneSettings(zoneId, loop = v.loopNext) } },
+                    modifier = Modifier.parity("now-playing.repeat", Contract.label("now-playing.repeat", v.loopState))) {
+                    Box {
+                        Icon(painterResource(R.drawable.np_repeat), contentDescription = null, tint = if (v.loopState > 0) on else off)
+                        if (v.loop == "loop_one") Text("1", Modifier.align(Alignment.TopEnd), fontSize = 9.sp, color = on)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
+                Spacer(Modifier.weight(1f))
+                VolumeMenu(zoneId, v, ::act)
             }
             Spacer(Modifier.weight(1f))
         }

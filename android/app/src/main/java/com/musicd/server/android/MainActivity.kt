@@ -232,7 +232,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         root.addView(web)
         root.addView(buildErrorPanel())
         Insets.pad(root)
-        setContentView(NativeShell.attach(this, root))
+        setContentView(NativeShell.attach(this, root) { js -> if (::web.isInitialized) web.evaluateJavascript(js, null) })
 
         registerBack()
         CrashLog.offer(this)

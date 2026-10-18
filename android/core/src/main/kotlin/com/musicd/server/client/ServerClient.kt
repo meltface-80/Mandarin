@@ -31,6 +31,9 @@ class ServerClient(
 
     fun zones(): Zones = Zones.parse(getJson("/api/shortcut/zones"))
 
+    /** The rooms, as the page's Play on list has them. */
+    fun rooms(): List<Room> = Room.list(getJson("/api/zones"))
+
     /**
      * The zone's state. With [waitFor] the server holds the request until
      * something changes (or ~20 s pass), which is how the notification follows
@@ -54,6 +57,30 @@ class ServerClient(
     fun seek(zoneId: String, seconds: Double) {
         post("/api/seek", JSONObject().put("zone_or_output_id", zoneId).put("how", "absolute").put("seconds", seconds))
     }
+
+    /** Shuffle and repeat ([loop]: disabled, loop, loop_one), as the page's buttons set them; null leaves one as it is. */
+    fun zoneSettings(zoneId: String, shuffle: Boolean? = null, loop: String? = null) {
+        val b = JSONObject().put("zone_or_output_id", zoneId)
+        if (shuffle != null) b.put("shuffle", shuffle)
+        if (loop != null) b.put("loop", loop)
+        post("/api/zone-settings", b)
+    }
+
+    /** The room's volume to [value] on its own scale, as the page's slider sets it. */
+    fun zoneVolume(zoneId: String, value: Double) {
+        post("/api/volume", JSONObject().put("zone_or_output_id", zoneId).put("value", value))
+    }
+
+    /** A nudge up (1) or down (-1), for a speaker with no scale. */
+    fun zoneVolumeStep(zoneId: String, direction: Int) {
+        post("/api/volume", JSONObject().put("zone_or_output_id", zoneId).put("relative", if (direction > 0) 1 else -1))
+    }
+
+    /** Every room paused. */
+    fun pauseAll() { post("/api/pause-all", JSONObject()) }
+
+    /** Every room muted ([mute]) or unmuted. */
+    fun muteAll(mute: Boolean) { post("/api/mute-all", JSONObject().put("how", if (mute) "mute" else "unmute")) }
 
     fun volumeRelative(outputId: String, delta: Int) {
         post("/api/volume", JSONObject().put("output_id", outputId).put("how", "relative").put("value", delta))

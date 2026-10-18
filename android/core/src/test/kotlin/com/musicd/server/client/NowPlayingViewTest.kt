@@ -66,4 +66,45 @@ class NowPlayingViewTest {
             assertFalse("no \"+\", which Navigation would leave as it is", r.contains('+'))
         }
     }
+
+    // A room's answer with its modes, format, speakers and credits, as /api/zone-state gives them.
+    private fun full(loop: String, shuffle: Boolean, volume: String) = ZoneState.parse(JSONObject(
+        """{"revision": 3, "zone": {"zone_id": "z1", "display_name": "Kitchen", "state": "playing",
+            "settings": {"shuffle": $shuffle, "loop": "$loop"},
+            "now_playing": {"line1": "Song 1", "line2": "Artist A / Artist B", "line3": "Album One", "length": 200, "seek_position": 5,
+              "artists": [{"name": "Artist A", "linkable": true}, {"name": "Artist B", "linkable": false}],
+              "album_offset": 42, "format": {"kind": "opus", "text": "256kbps"}},
+            "outputs": [{"output_id": "o1", "display_name": "Kitchen", "is_muted": false, "volume": $volume},
+                        {"output_id": "o2", "display_name": "Sub", "is_muted": true, "volume": null}]}}"""
+    ))
+
+    @Test fun `shuffle, repeat and the format, as the page's buttons and badge have them`() {
+        val v = NowPlayingView.of(full("loop", true, "null"), 0)!!
+        assertEquals(1, v.shuffleState)
+        assertEquals("Repeat queue, then the track", listOf(1, "loop_one"), listOf(v.loopState, v.loopNext))
+        assertEquals("Opus 256kbps", v.formatText)
+        val off = NowPlayingView.of(full("disabled", false, "null"), 0)!!
+        assertEquals(listOf(0, 0, "loop"), listOf(off.shuffleState, off.loopState, off.loopNext))
+        assertEquals("off after the track", "disabled", NowPlayingView.of(full("loop_one", false, "null"), 0)!!.loopNext)
+        assertEquals("anything else is off", 0, NowPlayingView.of(full("radio", false, "null"), 0)!!.loopState)
+        val np = full("loop", true, "null").zone!!.nowPlaying!!
+        assertEquals(listOf(Credit("Artist A", true), Credit("Artist B", false)), np.artists)
+        assertEquals("42", np.albumId)
+    }
+
+    @Test fun `the room's volume, its scale and a step within it, or fixed`() {
+        val v = NowPlayingView.of(full("disabled", false, """{"type": "number", "min": 0, "max": 100, "step": 2, "value": 89, "soft_limit": 90}"""), 0)!!
+        assertEquals(VolumeScale(0.0, 90.0, 2.0, 89.0, "number"), v.volume)
+        assertEquals("held to the soft limit", 90.0, v.volumeStep(1)!!, 0.0)
+        assertEquals(87.0, v.volumeStep(-1)!!, 0.0)
+        assertTrue("a speaker muted: the room shows muted", v.muted)
+        assertNull("no speaker with a volume: fixed", NowPlayingView.of(full("disabled", false, "null"), 0)!!.volume)
+        assertTrue(NowPlayingView.of(full("disabled", false, """{"type": "incremental"}"""), 0)!!.volume!!.incremental)
+    }
+
+    @Test fun `the Play on list, each room, its speakers when it has more than one`() {
+        val rooms = Room.list(JSONObject("""{"zones": [{"zone_id": "z1", "display_name": "Kitchen", "outputs": [{"display_name": "Kitchen"}]},
+            {"zone_id": "z2", "display_name": "Lounge + Study", "outputs": [{"display_name": "Lounge"}, {"display_name": "Study"}]}, {"display_name": "no id"}]}"""))
+        assertEquals(listOf(Room("z1", "Kitchen", listOf("Kitchen")), Room("z2", "Lounge + Study", listOf("Lounge", "Study"))), rooms)
+    }
 }
