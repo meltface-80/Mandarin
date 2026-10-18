@@ -1795,6 +1795,18 @@
           </div>
         </div>
         <p class="settings-note">Saved on this device only. On a desktop the text sizes go to +75% and +100%.</p>
+        <!-- The Android app's native screens, each a preview to try (docs/specs/plan-android-native.md):
+             shown only inside the app, which keeps the choice itself (MusicdApp.nativeNowPlaying). -->
+        <div class="settings-block hidden" id="native-screens">
+          <div class="settings-row">
+            <span class="settings-label">Native Now playing (preview)</span>
+            <label class="switch">
+              <input type="checkbox" id="native-np-on" aria-label="Native Now playing (preview)">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note">Tap the mini player for the app's own Now playing screen, drawn by the phone rather than the page: the track, its cover, where it is, and play, pause, next and previous. A preview: the page's Now playing has more. On this phone only.</div>
+        </div>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is

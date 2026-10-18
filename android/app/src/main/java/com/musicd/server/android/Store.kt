@@ -209,6 +209,11 @@ object Store {
         if (prefs(context).getString("phone_zone", null) != zoneId) prefs(context).edit().putString("phone_zone", zoneId).apply()
     }
 
+    /** The native Now playing (N2, a preview), on this phone: off until switched on (Settings → Setup → UI Settings). */
+    fun nativeNowPlaying(context: Context): Boolean = prefs(context).getBoolean("native_now_playing", false)
+
+    fun setNativeNowPlaying(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_now_playing", on).apply() }
+
     /** A client for the server, signed in — null until both are known. */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null

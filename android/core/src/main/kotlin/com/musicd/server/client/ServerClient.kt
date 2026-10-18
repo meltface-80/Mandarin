@@ -50,6 +50,11 @@ class ServerClient(
         post("/api/control", JSONObject().put("zone_or_output_id", zoneId).put("command", command))
     }
 
+    /** The room's track moved to [seconds] from its start. */
+    fun seek(zoneId: String, seconds: Double) {
+        post("/api/seek", JSONObject().put("zone_or_output_id", zoneId).put("how", "absolute").put("seconds", seconds))
+    }
+
     fun volumeRelative(outputId: String, delta: Int) {
         post("/api/volume", JSONObject().put("output_id", outputId).put("how", "relative").put("value", delta))
     }
