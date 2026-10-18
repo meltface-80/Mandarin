@@ -176,8 +176,8 @@ internal static partial class Scans
         }
     }
 
-    /* The scan's state as it says it (the last result kept until there's a new one); only while it is the one under way. */
-    private static void Mirror(JsonNode? st, int g)
+    /* The scan's state as it says it (the last result kept until there's a new one); only while it is the one under way. [still]: under way yet, whatever it says. */
+    private static void Mirror(JsonNode? st, int g, bool still = false)
     {
         if (st is not JsonObject o) return;
         lock (Gate)
@@ -186,6 +186,7 @@ internal static partial class Scans
             var last = o["lastResult"] is JsonObject lr ? lr.DeepClone() : state["lastResult"]?.DeepClone();
             var next = (JsonObject)o.DeepClone();
             next["lastResult"] = last;
+            if (still) next["running"] = true;
             state = next;
         }
     }
@@ -232,10 +233,9 @@ internal static partial class Scans
                     await Say(new JsonObject { ["state"] = State, ["progress"] = true });
                     break;
                 case "result":
-                    Mirror(m["state"], g);
-                    // Still under way until the library has been read again (below): a page that
-                    // sees it ended and asks for the albums gets the ones this scan made.
-                    lock (Gate) if (g == gen) state["running"] = true;
+                    // Still under way until the library has been read again (below), never ended between: a
+                    // page that sees it ended and asks for the albums gets the ones this scan made.
+                    Mirror(m["state"], g, still: true);
                     result = m["result"] as JsonObject ?? [];
                     break;
                 case "error":
