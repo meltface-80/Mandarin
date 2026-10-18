@@ -71,8 +71,8 @@
     put("--ui-tile", get("tile"), "1");
     const c = cols();
     if (c === baseCols()) root.removeProperty("--grid-cols"); else root.setProperty("--grid-cols", String(c));
-    const grid = document.getElementById("album-grid");
-    if (grid) grid.classList.toggle("as-list", get("layout") === "list");
+    // Every album grid: the walls, and Qobuz's and Tidal's (v1.0.7: the wall alone, before).
+    for (const grid of document.querySelectorAll(".album-grid")) grid.classList.toggle("as-list", get("layout") === "list");
     document.documentElement.classList.toggle("ui-no-greeting", get("greeting") === "off");
     document.documentElement.classList.toggle("ui-no-random", get("random") === "off");
   }

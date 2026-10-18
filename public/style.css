@@ -2881,9 +2881,10 @@ input.vol-range::-moz-range-thumb {
   min-height: var(--ctl-h); margin: 0 -6px 10px; padding: 0 0 12px;
   border-bottom: 1px solid var(--border);
 }
+/* As a grid screen's title, the Grid screen title size with it (v1.0.7). */
 #qobuz-overlay .settings-head h2,
 #tidal-overlay .settings-head h2,
-#pitchfork-overlay .settings-head h2 { font-size: 24px; line-height: 1; }
+#pitchfork-overlay .settings-head h2 { font-size: calc(24px * var(--ui-title, 1)); line-height: 1; }
 #qobuz-overlay .settings-head .icon-btn,
 #tidal-overlay .settings-head .icon-btn,
 #pitchfork-overlay .settings-head .icon-btn { flex: 0 0 auto; width: 40px; height: 40px; }
@@ -3661,6 +3662,8 @@ input.vol-range::-moz-range-thumb {
   box-shadow: 0 1px 4px rgba(0,0,0,.35);
   color: rgba(255,255,255,.92); font-size: 17px; font-weight: 600; line-height: 26px; text-align: center;
 }
+/* A list's row: the + / ✓ smaller, in the corner of its small cover. */
+.album-grid.as-list .qobuz-tile-fav.qobuz-nr-fav { top: 2px; right: 2px; width: 22px; height: 22px; font-size: 13px; line-height: 22px; }
 .qobuz-tile-fav.qobuz-nr-fav.is-done { background: var(--accent); color: #1a1a1a; opacity: 1; font-size: 14px; }
 /* While an album's own page is open from the browser, the overlay sits beneath
    it (the page is z-index 50) and comes back on top when the page closes. */
@@ -6234,9 +6237,10 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   /* The screen's title is the page's heading (touchnav.js moves it into <main>). */
   .tnav-heading { margin: 0 0 14px; }
   .tnav-heading:has(#album-count.hidden), .tn-home .tnav-heading { display: none; }
+  /* Grid screen title, in Settings → UI Settings: its size (v1.0.7; fixed at 24px before). */
   #tnav-heading #album-count {
     display: block; max-width: none; white-space: normal; overflow: visible;
-    font-size: 24px; line-height: 1.2; color: var(--text);
+    font-size: calc(24px * var(--ui-title, 1)); line-height: 1.2; color: var(--text);
   }
   #tnav-heading #album-count.hidden, #tnav-heading #album-count.is-hidden-by-search { display: none; }
   /* The Library: its glass gives way to Search in the row; Focus and Sort go

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.12
+- `11-service-grids-follow-settings`: Qobuz's and Tidal's grids take List as every grid does, and
+  each grid screen's title takes the Grid screen title size on a touch screen too.
+
 ## v1.0.11
 - `10-share-card-no-label`: the share card carries no record label (a long one ran off the card).
 
