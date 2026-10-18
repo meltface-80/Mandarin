@@ -239,13 +239,9 @@ const ShareCard = (() => {
    */
   function measure(ctx, data) {
     const releaseStr = formatReleaseDate(data.releaseRaw);
-    // The label rides on the release line rather than earning a line of its
-    // own: it was already being fetched for the card and then dropped on the
-    // floor, and a second 30px row costs more than the fact is worth.
-    const metaParts = [];
-    if (releaseStr) metaParts.push('Released ' + releaseStr);
-    if (data.label) metaParts.push(String(data.label));
-    const metaText = metaParts.length ? metaParts.join('  \u00b7  ') : null;
+    // The release line, the date alone: a record label beside it ran off the
+    // card when its name was long, and was taken off (v1.0.7).
+    const metaText = releaseStr ? 'Released ' + releaseStr : null;
 
     // Title and artist are adaptive: up to 4 lines each, stepping the font size
     // down until the text fits (56→27px title, 37→21px artist); only when even

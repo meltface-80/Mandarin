@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.11
+- `10-share-card-no-label`: the share card carries no record label (a long one ran off the card).
+
 ## v1.0.10
 - `09-offline-toggle-silent`: the side menu's Offline switch moves and nothing else is seen to:
   the app holds a picture of the screen while the page loads again under it (`PageCurtain.kt`),
