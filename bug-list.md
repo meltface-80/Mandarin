@@ -2,6 +2,8 @@
 
 Each item is worked on its own branch, in this order. An item is marked **Fixed** only once the owner has tested it and said so.
 
+Until the list is done each one is merged to main, and each merge is a version of its own, the Android app's with it: items 1–6 are **v1.0.7** (they went into main before the version moved), item 7 v1.0.8, and so on up one each.
+
 Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Fixed**
 
 | # | Item | Branch | Status |

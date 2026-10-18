@@ -5,6 +5,28 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.7
+**Fixes from the bug list** (`bug-list.md`), one branch each, merged in order.
+
+- `v1.0.6-tests-csharp-5-suites`: CI red on every run since T1e. `TagsFrontTests` held the C# tag
+  reader to music-metadata's readings of files made on the spot by whichever ffmpeg the machine had;
+  the readings were kept from ffmpeg 6.1.1's files, and CI's static ffmpeg makes others. The 31 files
+  ffmpeg made are kept as made (`test/golden/tags-front.files.tar.gz`); the test needs no ffmpeg.
+- `02-android-unresponsive`: the page waited, script stopped, while the app read every downloaded
+  album's `album.json` again after each track a download finished; and every return to the app
+  redrew Home's downloaded and on-the-phone rows. The list is read on the app's own thread before
+  the page is told (`DownloadAlbums.kt`), and a row that hasn't changed stays as drawn.
+- `03-audio-device-detection`: renderers that announce themselves (`NOTIFY ssdp:alive`,
+  `Renderers/SsdpListen.cs`) and sound devices plugged in (`/dev/snd` watched) are found at once,
+  not at the next minute's search; the network searched every 20 s while Audio Devices is open;
+  Look again reads this computer's devices alongside the network's.
+- `04-grid-position-after-focus`: Focus closed with nothing changed (Show albums, nothing chosen;
+  Clear all, nothing to clear) leaves the Library wall where it was, not back at its first album.
+- `05-top-button-touch-area`: a tap just off a top button on a grid screen with no strip round it
+  (Focus and Sort 32px tall, ‹ 40px) is the button's, not the album's under it.
+- `06-no-overscroll-bounce`: no stretch when Home or a list is pulled past its end in the app:
+  Android drew its own round the WebView whatever the page said (`PageFrame.kt`).
+
 ## v1.0.6
 **The tests in C#** (`docs/specs/tests-csharp.md`): the Node suite moves to C# file by file, and Node
 and npm leave the project after it. Nothing the server or the page does changes.
