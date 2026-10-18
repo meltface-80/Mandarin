@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.16
+- `16-17-plans-ios-pwa-android-native`: plans, nothing built: playback on the iPhone's home-screen
+  app (`docs/specs/plan-ios-pwa-playback.md`) and a native Android app
+  (`docs/specs/plan-android-native.md`).
+
 ## v1.0.15
 - `15-spaces-in-search-fields`: a space typed in the Library's filter stays, so two words can be
   looked for.
