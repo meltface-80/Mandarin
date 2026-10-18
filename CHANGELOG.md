@@ -5,6 +5,10 @@ Versioning: each set of changes is a development build and takes the next third 
 `package.json`, the README title, the GitHub Pages badge and the Android app's
 `versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
 
+## v1.0.8
+- `07-home-position-after-genre`: Back from a genre, or a row's wall, comes to Home where it was
+  scrolled to; Home tapped on Home still goes to its top.
+
 ## v1.0.7
 **Fixes from the bug list** (`bug-list.md`), one branch each, merged in order.
 

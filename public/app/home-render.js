@@ -1,6 +1,15 @@
 /* The page's core (app.js until v1.0.5), 4 of 33: Home shown, its rows kept and drawn: tiles, Not played, Today and Random. */
+// Where Home was scrolled to when a screen was opened from it (v1.0.7): a
+// genre, a row's wall. Coming back puts Home there again, rather than at its
+// top. Null: nothing kept, Home from its top.
+let homeScrollKept = null;
+function keepHomeScroll() {
+  const m = document.querySelector("main");
+  if (m && homeView && !homeView.classList.contains("hidden")) homeScrollKept = m.scrollTop;
+}
 // Show the Home landing (hide the wall). The wall loads lazily when entered.
 function showHome() {
+  const back = !!homeView && homeView.classList.contains("hidden");
   hideLibraryControls();
   unplayedWallActive = false;
   libraryWallActive = false;
@@ -23,7 +32,9 @@ function showHome() {
   grid.classList.add("hidden");
   setTopbarNav(false, false, true);   // Home: search box, no Back/Refresh
   const m = document.querySelector("main");
-  if (m) m.scrollTop = 0;
+  // Back from a screen opened from Home: where it was. Home tapped on Home: its top.
+  if (m) m.scrollTop = back && homeScrollKept !== null ? homeScrollKept : 0;
+  homeScrollKept = null;
   // The unplayed + random rows keep their tiles for 5 minutes: every Back tap
   // lands here, and rebuilding ~60 fresh-random tiles each time re-fetched
   // ~60 cover images through the Roon Core — the single biggest repeated cost
@@ -70,6 +81,7 @@ function rowsTtlFresh() {
 // don't leave an empty grid behind, without racing actions that render their
 // own content, e.g. labels/search).
 function showWall(opts) {
+  keepHomeScroll();
   leavePlaylistScreens();   // this screen owns the grid now
   hideLibraryControls();
   unplayedWallActive = false;
