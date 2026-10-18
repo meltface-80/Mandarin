@@ -19,7 +19,7 @@
   const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
   // This device's screen settings: what a person sets, never caches.
-  const PAGE_KEYS = ["rra-ui-text", "rra-ui-title", "rra-ui-menu", "rra-ui-cols", "rra-ui-tile", "rra-zone", "rra-library-view",
+  const PAGE_KEYS = ["rra-ui-text", "rra-ui-title", "rra-ui-menu", "rra-ui-cols", "rra-ui-tile", "rra-ui-greeting", "rra-ui-random", "rra-zone", "rra-library-view",
     "rra-label-order", "rra-labels-reversed", "rra-label-min", "rra-album-view", "rra-filter", "rra-np-reduced"];
   const NAMES = {
     settings: "Settings", devices: "Players", collection: "Your collection", keys: "API keys",
