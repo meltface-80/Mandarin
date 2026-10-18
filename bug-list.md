@@ -2,7 +2,7 @@
 
 Each item is worked on its own branch, in this order. An item is marked **Fixed** only once the owner has tested it and said so.
 
-Until the list is done each one is merged to main, and each merge is a version of its own, the Android app's with it: items 1–6 are **v1.0.7** (they went into main before the version moved), item 7 v1.0.8, and so on up one each.
+Items 1–18 went to main one merge each, each a version of its own (v1.0.7 to v1.0.17). From item 19 on, each is merged into `dev` once green, with no version change; the owner updates from `dev`, and when the work is done and the owner says so, the version is bumped (the server, the Android app, the README and the Pages site with it) and `dev` goes to main in one merge.
 
 Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Answered** (a question, no change) · **Planned** (a plan written, nothing built) · **Fixed**
 
@@ -26,3 +26,4 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer). Planned: `docs/specs/plan-ios-pwa-playback.md` | `16-17-plans-ios-pwa-android-native` | Planned |
 | 17 | Plan: Android as a full native app instead of a WebView. Planned: `docs/specs/plan-android-native.md` | `16-17-plans-ios-pwa-android-native` | Planned |
 | 18 | Four races the test runs found (each failed once, passed run again on its own): `CaseTests` read the albums as a scan ended and was answered 503, because /api/status said the scan had ended for a moment before the library was read again (the server's, fixed in `Scans.cs`); `offline-indicator` looked at the offline sign before the page had read its own look at the server, waiting on the page's start's /api/status instead (the test's); `renderer-playback`'s transport test read the queue as 2 tracks of 3, its three-second Song 1 run out while it was held (the test's: an album of long tracks for it); `services-signin-csharp` counted a conversion left from an earlier step as its own ask of Qobuz, the folder looking still while that one was asking where its audio was (the test's: it waits for the server's own count of conversions, /api/health) | `18-test-races` | Ready to test |
+| 19 | The Android app 1.0.17 never reached dist/: its publish was made on the commit the app was built from, and the 1.0.16 app (the earlier merge's run, ending later) had changed dist/ on main since, so its pull request had merge conflicts, re-run after re-run. Published by hand for 1.0.17 (#291); now made on main as it is, and an older version's run leaves a newer app be | `19-apk-publish-on-latest-main` | Ready to test |

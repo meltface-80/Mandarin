@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- `19-apk-publish-on-latest-main`: the Android app is put in dist/ on main as it is now, not on
+  the commit it was built from (`.github/publish-apk.sh`): two merges close together left the
+  second's pull request in conflict (1.0.17's, published by hand), and an older version's run
+  ending last no longer puts its app over a newer one.
+
 ## v1.0.17
 - `18-test-races`: a scan isn't said to have ended (/api/status) until the library has been read
   again: for a moment it was, and albums asked for then were the ones from before it, or "still
