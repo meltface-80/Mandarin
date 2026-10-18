@@ -3987,6 +3987,8 @@ input.vol-range::-moz-range-thumb {
   animation: menuSlideIn .24s cubic-bezier(.2,.8,.2,1);
 }
 @keyframes menuSlideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+/* Open again on a page put up afresh under it (the Offline switch): there already, not sliding in (v1.0.7). */
+.menu-still .menu-drawer { animation: none; }
 .menu-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 10px; }
 .menu-brand { font-size: 17px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 10px; }
 .menu-brand-mark { width: 30px; height: 30px; flex: 0 0 auto; }
