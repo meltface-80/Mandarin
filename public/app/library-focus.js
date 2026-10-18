@@ -12,6 +12,15 @@ async function openLibFocusSheet(editTarget) {
   // inside it.
   let editOrder = (editTarget && editTarget.order) || SMART_ORDER_DEFAULT;
   if (editTarget) applyViewToLibView(editTarget.view);
+  // The Library's view as the sheet found it: Show albums or Clear all that
+  // leave it so (nothing chosen, or nothing to clear) close the sheet over
+  // the wall as it was, where it was scrolled to (v1.0.7). Applying it anyway
+  // loaded the wall afresh from its first album, the user's place lost.
+  const openedWith = JSON.stringify(currentLibViewSnapshot());
+  const showIfChanged = () => {
+    if (!editTarget && JSON.stringify(currentLibViewSnapshot()) === openedWith) return;
+    applyLibView();
+  };
   let committed = false;
   // Re-read every time the sheet opens. Caching these for the life of the
   // page meant a rescan changed the library and the Focus sheet went on
@@ -232,7 +241,7 @@ async function openLibFocusSheet(editTarget) {
       committed = true;
       Object.assign(libView, libEmptyFacets());
       libView.played = "any";
-      close(); applyLibView();
+      close(); showIfChanged();
     });
     const save = document.createElement("button");
     save.type = "button"; save.className = "action-btn";
@@ -252,7 +261,7 @@ async function openLibFocusSheet(editTarget) {
     const show = document.createElement("button");
     show.type = "button"; show.className = "action-btn primary";
     show.textContent = "Show albums";
-    show.addEventListener("click", () => { committed = true; close(); applyLibView(); });
+    show.addEventListener("click", () => { committed = true; close(); showIfChanged(); });
     foot.appendChild(clear); foot.appendChild(save); foot.appendChild(show);
   }, () => {
     // Abandoned (X or backdrop) while editing a saved playlist — put the
