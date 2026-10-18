@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `29-native-queue`: the Android app's native Now playing (preview) has its Queue tab: the queue (play on from a
+  track; a long press picks tracks to play now, next or remove; Clear all) and what played earlier (put one back
+  next, or several next or at the end), each asked first in a native copy of the page's yes-or-no sheet. The
+  screens contract holds the Queue and the sheet too (one element can carry two screens' keys), and none of the
+  three native screens lacks anything of the page's.
 - `27-native-np-links`: the Android app's native Now playing (preview) has Share card, the artists (each with
   a page of their own a tap away) and the album, handed back to the page's own (`share`, `artist`, `album` in
   `public/app/native-handoff.js`), and the track's waveform under the seek bar, folded as the page folds it

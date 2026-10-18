@@ -95,6 +95,33 @@ class ServerClient(
         return java.util.Base64.getDecoder().decode(peaks)
     }
 
+    /** The room's queue (see [QueueView]). */
+    fun queue(zoneId: String): QueueView = QueueView.parse(getJson("/api/queue?zone=" + enc(zoneId)))
+
+    /** The room plays on from the queue's track [queueItemId]. */
+    fun playFromHere(zoneId: String, queueItemId: Long) {
+        post("/api/play-from-here", JSONObject().put("zone_or_output_id", zoneId).put("queue_item_id", queueItemId))
+    }
+
+    /** The picked tracks, in the order picked: played now or next ([kind] play_now, play_next), or removed (remove). */
+    fun queueAct(zoneId: String, kind: String, queueItemIds: List<Long>) {
+        val ids = org.json.JSONArray().also { a -> queueItemIds.forEach { a.put(it) } }
+        post(if (kind == "remove") "/api/queue/remove" else "/api/queue/move", JSONObject().put("zone_or_output_id", zoneId).put("queue_item_ids", ids).put("kind", kind))
+    }
+
+    /** The room's queue emptied; it stops. */
+    fun queueClear(zoneId: String) { post("/api/queue/clear", JSONObject().put("zone_or_output_id", zoneId)) }
+
+    /** A played track put back, next ([kind] play_next) or at the end (queue); several in the order picked. The server's answer. */
+    fun queuePlayed(zoneId: String, kind: String, tracks: List<Played>): JSONObject {
+        if (tracks.size == 1 && kind == "play_next") {
+            val t = tracks[0]
+            return post("/api/queue/play-history-next", JSONObject().put("zone_or_output_id", zoneId).put("track", t.track).put("artist", t.artist).put("album", t.album))
+        }
+        val list = org.json.JSONArray().also { a -> tracks.forEach { t -> a.put(JSONObject().put("track", t.track).put("artist", t.artist).put("album", t.album)) } }
+        return post("/api/queue/history-multi", JSONObject().put("zone_or_output_id", zoneId).put("kind", kind).put("tracks", list))
+    }
+
     /** Every room paused. */
     fun pauseAll() { post("/api/pause-all", JSONObject()) }
 

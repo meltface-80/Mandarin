@@ -1,6 +1,6 @@
 # The screens contract: the Android app's native screens and the page, kept the same
 
-Status: built (bug list item 25). It holds Now playing (N2) now and each screen made native after it.
+Status: built (bug list item 25). It holds Now playing, its Queue tab and the yes-or-no sheet they ask with (items 26 to 29: none of them lacks anything of the page's now), and each screen made native after them.
 
 The page stays for browsers, the iPhone, and every screen the app hasn't made native. A screen the app does draw natively is drawn twice, so it can drift: a button added to the page and not the app, a control the app has and the page hasn't, or one called something else. Nothing here relies on remembering. Three machines hold each native screen to one file, and a change that lets the two sides differ doesn't merge.
 
@@ -27,6 +27,8 @@ So a change to a native screen goes through the contract, and from there into bo
 1. A control added to the page fails the page's test until it's in the contract.
 2. Once it's in the contract, the gate fails until the app has it too.
 3. One added to the app alone fails the gate.
+
+One element can be two screens': Now playing's corner buttons and tabs are the Queue's too, so they carry both keys, space-separated, on the page and in the app, and the file is listed under both screens. A composable of the screen's own (a queue row) is covered where every call of it in the file is keyed, the key passed in as its modifier.
 
 Any Compose file in the app is a contract screen's, or listed under `shell` with its reason (the navigation and theme frame), so a native screen can't be built outside the contract.
 

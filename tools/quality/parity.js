@@ -81,15 +81,24 @@ function compare({ contract, gaps, sources, composables, refs }) {
       for (const x of r.findings) findings.push(`${f}: ${x}`);
       for (const t of r.tags) {
         if (!t.key) continue;
-        const [ts, ...rest] = t.key.split("."), k = rest.join(".");
-        const it = ts === s ? screen.items[k] : null;
+        // One element can be two screens' (Now playing's corner buttons are the Queue's too): its keys space-separated, as on the page.
+        const keys = t.key.split(/\s+/).filter(Boolean);
         const where = `${f}:${t.line}`;
-        if (!it) { findings.push(`${where}: ${t.key}, which ${s}'s contract hasn't: on the page and in the contract first, or not in the app`); continue; }
-        if (it.only) { findings.push(`${where}: ${t.key} is the page's alone (${it.why})`); continue; }
-        if (t.kind === "action" && it.kind !== "action") { findings.push(`${where}: ${t.key} is a control here; on the page it only shows`); continue; }
-        if (t.kind === "action" && t.label !== t.key) findings.push(`${where}: ${t.key}'s label from the contract: parity("${t.key}", Contract.label("${t.key}"…))`);
-        if (!have.has(k)) have.set(k, new Set());
-        have.get(k).add(t.kind);
+        if (t.kind === "action" && !keys.includes(t.label || "")) findings.push(`${where}: ${keys[0]}'s label from the contract: parity("${t.key}", Contract.label("${keys[0]}"…))`);
+        for (const key of keys) {
+          const [ts, ...rest] = key.split("."), k = rest.join(".");
+          if (ts !== s) {
+            const other = contract.screens[ts];
+            if (!other || !(other.native || []).includes(f)) findings.push(`${where}: ${key}, of no screen drawn in ${path.basename(f)}`);
+            continue;
+          }
+          const it = screen.items[k];
+          if (!it) { findings.push(`${where}: ${key}, which ${s}'s contract hasn't: on the page and in the contract first, or not in the app`); continue; }
+          if (it.only) { findings.push(`${where}: ${key} is the page's alone (${it.why})`); continue; }
+          if (t.kind === "action" && it.kind !== "action") { findings.push(`${where}: ${key} is a control here; on the page it only shows`); continue; }
+          if (!have.has(k)) have.set(k, new Set());
+          have.get(k).add(t.kind);
+        }
       }
     }
     const lacks = Object.entries(screen.items).filter(([k, it]) => !it.only && !(have.get(k) || new Set()).has(it.kind)).map(([k]) => k);
@@ -111,7 +120,8 @@ function compare({ contract, gaps, sources, composables, refs }) {
     }
   }
   for (const s of Object.keys(gaps)) if (!contract.screens[s]) findings.push(`${GAPS}: ${s}, no screen of the contract's`);
-  return { findings, missing };
+  // A file two screens draw is read for each: what is wrong in it, said once.
+  return { findings: [...new Set(findings)], missing };
 }
 
 /** @param {string} root @param {string[]} a */
