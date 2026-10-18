@@ -761,6 +761,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
      * the override covers the versions before.
      */
     private fun back() {
+        if (NativeShell.back()) return   // a native screen open over the page: it closes
         if (!::web.isInitialized || web.visibility != View.VISIBLE) { moveTaskToBack(true); return }
         // The page first: one step back its own way (Settings, a pop-up, the
         // album, a wall → Home). "2": the page is on Home with nothing open —
@@ -789,8 +790,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
-    @Deprecated("Deprecated in Java")
-    @Suppress("DEPRECATION")
+    @Deprecated("Deprecated in Java") @Suppress("DEPRECATION")
     override fun onBackPressed() {
         back()
     }

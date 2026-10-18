@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.app.Activity
 import android.webkit.JavascriptInterface
+import com.musicd.server.client.ShellRoute
 
 /**
  * What the server's page can ask of the app about itself — only inside the
@@ -20,6 +21,11 @@ import android.webkit.JavascriptInterface
  * The screen held still while the page loads again under it ([PageCurtain], v1.0.7):
  *   MusicdApp.holdScreen()     before something that puts the page up afresh (the Offline switch)
  *   MusicdApp.screenShown()    the new page shows what the old one did: let it be seen
+ *
+ * The native screens ([NativeShell], docs/specs/plan-android-native.md), each a preview to switch on:
+ *   MusicdApp.nativeNowPlaying()          → whether this phone has the native Now playing on
+ *   MusicdApp.setNativeNowPlaying(on)     switched on or off (Settings → Setup → UI Settings)
+ *   MusicdApp.openNowPlaying(zoneId)      the native Now playing of that room, over the page
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -59,6 +65,15 @@ class AppBridge(private val activity: Activity) {
 
     @JavascriptInterface
     fun screenShown() { activity.runOnUiThread { PageCurtain.down() } }
+
+    @JavascriptInterface
+    fun nativeNowPlaying(): Boolean = Store.nativeNowPlaying(activity)
+
+    @JavascriptInterface
+    fun setNativeNowPlaying(on: Boolean) { Store.setNativeNowPlaying(activity, on) }
+
+    @JavascriptInterface
+    fun openNowPlaying(zoneId: String) { activity.runOnUiThread { NativeShell.open(ShellRoute.nowPlaying(zoneId)) } }
 
     @JavascriptInterface
     fun checkUpdate() {

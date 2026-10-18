@@ -37,3 +37,16 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
+// Settings → Setup → UI Settings: the Android app's native Now playing, a preview, on this phone (the app keeps it).
+(function initNativeScreens() {
+  const app = window.MusicdApp;
+  const block = document.getElementById("native-screens");
+  const sw = document.getElementById("native-np-on");
+  if (!app || typeof app.nativeNowPlaying !== "function" || !block || !sw) return;
+  block.classList.remove("hidden");
+  const paint = () => { sw.checked = !!app.nativeNowPlaying(); };
+  sw.addEventListener("change", () => app.setNativeNowPlaying(sw.checked));
+  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
+  if (navItem) navItem.addEventListener("click", paint);
+  paint();
+})();
