@@ -4,6 +4,8 @@ plugins {
     id("com.android.application") version "8.13.2" apply false
     id("org.jetbrains.kotlin.android") version "2.2.21" apply false
     id("org.jetbrains.kotlin.jvm") version "2.2.21" apply false
+    // Compose (the native screens, docs/specs/plan-android-native.md): its compiler is Kotlin's own.
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.21" apply false
 }
 
 tasks.register<Delete>("clean") {

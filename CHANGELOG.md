@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `21-android-native-n0`: the Android app's native shell (stage N0 of
+  `docs/specs/plan-android-native.md`): Compose, its navigation and Mandarin's graphite and brass
+  (held to the page's palette by a test), laid over the page's WebView. Nothing on screen changes;
+  the native screens go in it from N2.
 - `20-dev-branch`: `migration` is `dev` now: its pushes publish `ghcr.io/meltface-80/musicd-server:dev`
   and the Android app's `test-android` pre-release; work is merged there, the version moved when
   the owner says (CLAUDE.md section 4).
