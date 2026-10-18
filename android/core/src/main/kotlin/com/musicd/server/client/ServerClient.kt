@@ -22,6 +22,9 @@ class ServerClient(
     val token: String? = null
 ) {
 
+    /** The server is busy with something else; ask again in a moment. */
+    class Busy : IOException("busy")
+
     class ServerException(val status: Int, message: String) : IOException(message) {
         /** Signed out: the account was reset, or this phone was signed out in Settings. */
         val signedOut get() = status == 401
@@ -74,6 +77,22 @@ class ServerClient(
     /** A nudge up (1) or down (-1), for a speaker with no scale. */
     fun zoneVolumeStep(zoneId: String, direction: Int) {
         post("/api/volume", JSONObject().put("zone_or_output_id", zoneId).put("relative", if (direction > 0) 1 else -1))
+    }
+
+    /** Whether the server draws waveforms (Settings), as the page asks before it does. */
+    fun waveformOn(): Boolean = getJson("/api/settings/waveform").optBoolean("enabled", false)
+
+    /**
+     * The track's stored levels (see [Waveform]), found by its title, album,
+     * artist and length as the page finds it; null when there are none (a
+     * stream the server can't match, a file it can't read); [Busy] when the
+     * server is drawing another track's and wants asking again.
+     */
+    fun waveform(track: String, album: String, artist: String, lengthSeconds: Double?): ByteArray? {
+        val j = getJson("/api/waveform?track=" + enc(track) + "&album=" + enc(album) + "&artist=" + enc(artist) + "&length=" + (lengthSeconds ?: 0.0).toLong(), 30_000)
+        if (j.optString("reason", "") == "busy") throw Busy()
+        val peaks = j.optString("peaks", "").takeIf { it.isNotEmpty() && !j.isNull("peaks") } ?: return null
+        return java.util.Base64.getDecoder().decode(peaks)
     }
 
     /** Every room paused. */

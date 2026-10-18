@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +23,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Credit
 import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,7 @@ import kotlinx.coroutines.withContext
  * holds it up to 20 s); between answers the clock moves the track on.
  */
 @Composable
-internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String) -> Unit) {
+internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
     var view by remember { mutableStateOf<NowPlayingView?>(null) }
     var answered by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -108,6 +109,10 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                 IconButton(onClick = onBack, modifier = Modifier.parity("now-playing.back", Contract.label("now-playing.back"))) {
                     Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
+                Spacer(Modifier.weight(1f))
+                if (view != null) IconButton(onClick = { onPage("share", null) }, modifier = Modifier.parity("now-playing.share", Contract.label("now-playing.share"))) {
+                    Icon(painterResource(R.drawable.np_share), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                }
             }
             val v = view
             if (v == null) {
@@ -124,35 +129,24 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
             Spacer(Modifier.height(24.dp))
             Text(v.title, Modifier.parity("now-playing.track"), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            Text(v.artist, Modifier.parity("now-playing.artist"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(v.album, Modifier.parity("now-playing.album"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // The artists as the page links them: each with a page of their own a tap away, the rest plain.
+            Row(horizontalArrangement = Arrangement.Center) {
+                val credits = v.artists.ifEmpty { listOf(Credit(v.artist, false)) }
+                credits.forEachIndexed { i, c ->
+                    val name = if (i > 0) " · ${c.name}" else c.name
+                    if (c.linkable) Text(name, Modifier.parity("now-playing.artist", Contract.label("now-playing.artist", 0, c.name)).clickable { onPage("artist", c.name) },
+                        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary, maxLines = 1)
+                    else Text(name, Modifier.parity("now-playing.artist"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                }
+            }
+            Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).clickable { onPage("album", null) },
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             v.formatText?.let {
                 Text(it, Modifier.parity("now-playing.format").padding(top = 6.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
                     .padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(16.dp))
-            var dragging by remember { mutableStateOf<Float?>(null) }
-            val length = v.lengthSeconds
-            Slider(
-                value = dragging ?: v.fraction(now),
-                onValueChange = { dragging = it },
-                onValueChangeFinished = {
-                    val f = dragging
-                    dragging = null
-                    if (f != null && length != null) act { it.seek(zoneId, f * length) }
-                },
-                modifier = Modifier.parity("now-playing.seek", Contract.label("now-playing.seek")),
-                enabled = length != null
-            )
-            Row(Modifier.fillMaxWidth()) {
-                Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"),
-                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"),
-                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            SeekBar(v, now, client) { to -> act { it.seek(zoneId, to) } }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 val on = MaterialTheme.colorScheme.secondary

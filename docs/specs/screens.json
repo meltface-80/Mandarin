@@ -6,7 +6,7 @@
   "screens": {
     "now-playing": {
       "page": "Now playing: the album view in its Now playing mode (#album-modal.np-mode), on its Now playing tab, a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt"],
       "preview": true,
       "items": {
         "back": { "kind": "action", "label": "Back" },

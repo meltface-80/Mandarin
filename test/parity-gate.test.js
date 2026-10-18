@@ -37,12 +37,12 @@ const SCREEN = `
 const run = (src, over = {}, gaps = {}, refs = []) => compare({ contract: contract(over), gaps, sources: { [F]: src }, composables: [F], refs });
 
 test("the source read as code: comments and strings blanked, every offset kept", () => {
-  const src = 'Text("IconButton(") // Slider(\n/* Button( */ x';
+  const src = 'import androidx.compose.foundation.clickable\nText("IconButton(") // Slider(\n/* Button( */ x';
   const m = mask(src);
   assert.equal(m.length, src.length);
-  assert.equal(m.split("\n").length, 2);
-  assert.ok(!/IconButton|Slider|Button/.test(m), m);
-  assert.deepEqual(scan(src).findings.filter(f => /IconButton|Slider|Button/.test(f)), [], "nothing taken for a control");
+  assert.equal(m.split("\n").length, 3);
+  assert.ok(!/IconButton|Slider|Button|clickable/.test(m), m);
+  assert.deepEqual(scan(src).findings.filter(f => /IconButton|Slider|Button|clickable/.test(f)), [], "nothing taken for a control");
 });
 
 test("a screen read: its controls and readouts by key, and what has none", () => {

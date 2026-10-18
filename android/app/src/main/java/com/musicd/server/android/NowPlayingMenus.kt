@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
  * ([onPage]), and the all-room actions.
  */
 @Composable
-internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit, onPage: (String) -> Unit) {
+internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     var rooms by remember { mutableStateOf<List<Room>>(emptyList()) }
     LaunchedEffect(open) {
@@ -68,9 +68,9 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
                 )
             }
             HorizontalDivider()
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.group")) }, onClick = { open = false; onPage("group") },
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.group")) }, onClick = { open = false; onPage("group", null) },
                 modifier = Modifier.parity("now-playing.group", Contract.label("now-playing.group")))
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.power")) }, onClick = { open = false; onPage("power") },
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.power")) }, onClick = { open = false; onPage("power", null) },
                 modifier = Modifier.parity("now-playing.power", Contract.label("now-playing.power")))
             DropdownMenuItem(text = { Text(Contract.label("now-playing.pause-all")) }, onClick = { open = false; act { it.pauseAll() } },
                 modifier = Modifier.parity("now-playing.pause-all", Contract.label("now-playing.pause-all")))
