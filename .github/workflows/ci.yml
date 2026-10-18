@@ -16,7 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # The whole history: the screens contract's gaps list only shrinks, held
+      # against where the branch left dev (tools/quality/parity.js).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -26,10 +30,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: The development tools (tools/lint only, never the app's dependencies)
         run: npm run tools
-      - name: File length, @ts-check and tsc, ESLint against its suppressions
+      - name: File length, @ts-check and tsc, ESLint against its suppressions, the screens contract
         run: npm run gates
+        env:
+          PARITY_REQUIRE_BASE: "1"
       - name: The gates' own tests
-        run: node --test test/quality-gates.test.js
+        run: node --test test/quality-gates.test.js test/parity-gate.test.js
 
   # The suite, in parts that run at once (v0.8.49): the test files dealt out to
   # three jobs (node's --test-shard, each file in one of them), so the whole run

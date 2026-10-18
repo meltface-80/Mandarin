@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.musicd.server.client.Contract
 import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
@@ -96,27 +97,34 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
         scope.launch(Dispatchers.IO) { runCatching { block(c) } }
     }
 
+    // Each item is the screens contract's (docs/specs/screens.json), keyed as
+    // the page's is: tools/quality/parity.js holds this screen to the page's.
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface) }
-                Text(view?.zoneName.orEmpty(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = onBack, modifier = Modifier.parity("now-playing.back", Contract.label("now-playing.back"))) {
+                    Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
+                }
             }
             val v = view
             if (v == null) {
                 Spacer(Modifier.weight(1f))
-                Text(if (answered) "Nothing is playing here" else "", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (answered) "Nothing is playing here" else "", Modifier.parity("now-playing.track"),
+                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 return@Column
             }
             Spacer(Modifier.weight(1f))
-            Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+            Box(Modifier.parity("now-playing.cover").fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                 cover?.let { Image(it, contentDescription = v.album, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
             }
             Spacer(Modifier.height(24.dp))
-            Text(v.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            Text(v.artist, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(v.album, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(v.title, Modifier.parity("now-playing.track"), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            Text(v.artist, Modifier.parity("now-playing.artist"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(v.album, Modifier.parity("now-playing.album"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(16.dp))
             var dragging by remember { mutableStateOf<Float?>(null) }
             val length = v.lengthSeconds
@@ -128,20 +136,26 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     dragging = null
                     if (f != null && length != null) act { it.seek(zoneId, f * length) }
                 },
+                modifier = Modifier.parity("now-playing.seek", Contract.label("now-playing.seek")),
                 enabled = length != null
             )
             Row(Modifier.fillMaxWidth()) {
-                Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"),
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
-                Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"),
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious) { Text("⏮", fontSize = 28.sp) }
-                FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, modifier = Modifier.size(72.dp), shape = CircleShape) {
+                IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious,
+                    modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous"))) { Text("⏮", fontSize = 28.sp) }
+                FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, shape = CircleShape,
+                    modifier = Modifier.parity("now-playing.playpause", Contract.label("now-playing.playpause", if (v.playing) 1 else 0)).size(72.dp)) {
                     Text(if (v.playing) "❚❚" else "▶", fontSize = 28.sp)
                 }
-                IconButton(onClick = { act { it.control(zoneId, "next") } }, enabled = v.canNext) { Text("⏭", fontSize = 28.sp) }
+                IconButton(onClick = { act { it.control(zoneId, "next") } }, enabled = v.canNext,
+                    modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next"))) { Text("⏭", fontSize = 28.sp) }
             }
             Spacer(Modifier.weight(1f))
         }

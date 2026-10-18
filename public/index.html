@@ -448,7 +448,7 @@
       </button>
       <!-- Now-playing mode only (CSS-gated): top-left Back (v0.6.1; it was
            Home) — back to the screen before the mini player was tapped. -->
-      <button class="modal-home icon-btn" id="modal-home-btn" aria-label="Back" title="Back">
+      <button class="modal-home icon-btn" id="modal-home-btn" data-parity="now-playing.back" aria-label="Back" title="Back">
         <svg class="ico-back" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -463,7 +463,7 @@
       <!-- Now-playing mode, large screens only (CSS-gated): shrink the screen to
            the album view's card size and back. The card can then be dragged by
            its top strip. -->
-      <button class="modal-np-size icon-btn" id="modal-np-size-btn" type="button"
+      <button class="modal-np-size icon-btn" id="modal-np-size-btn" data-parity="now-playing.size" type="button"
               aria-label="Reduce size" title="Reduce size" aria-pressed="false">
         <svg class="ico-shrink" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -476,7 +476,7 @@
           <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
         </svg>
       </button>
-      <button class="modal-share icon-btn" id="modal-share-btn" aria-label="Share card">
+      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share" aria-label="Share card">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="16 6 12 2 8 6"/>
@@ -507,10 +507,10 @@
 
       <div class="modal-body">
         <div class="modal-tabs hidden" id="modal-tabs">
-          <button class="modal-tab is-active" type="button" data-tab="album">Now playing</button>
-          <button class="modal-tab"           type="button" data-tab="queue">Queue</button>
+          <button class="modal-tab is-active" type="button" data-tab="album" data-parity="now-playing.tab-now-playing">Now playing</button>
+          <button class="modal-tab"           type="button" data-tab="queue" data-parity="now-playing.tab-queue">Queue</button>
         </div>
-        <div class="modal-art">
+        <div class="modal-art" data-parity="now-playing.cover">
           <!-- decoding=async: the 800px cover is decoded off the main thread, so
                the panel's slide-in isn't held up by it. -->
           <img id="modal-img" alt="" decoding="async">
@@ -582,30 +582,30 @@
           <div class="modal-tab-pane" id="tab-album">
 
           <div id="np-screen" class="np-screen hidden">
-            <div class="np-track" id="np-track">—</div>
-            <div class="np-artist" id="np-artist">—</div>
-            <button class="np-album" id="np-album" type="button" aria-label="Open album detail"></button>
+            <div class="np-track" id="np-track" data-parity="now-playing.track">—</div>
+            <div class="np-artist" id="np-artist" data-parity="now-playing.artist">—</div>
+            <button class="np-album" id="np-album" data-parity="now-playing.album" type="button" aria-label="Open album detail"></button>
             <!-- What the zone is hearing: Lossless, a lossy file's codec, or
                  (the Android app playing the server's Opus) the Opus logo and
                  256kbps. Filled by paintNpFormat() in app.js. -->
-            <div class="np-format hidden" id="np-format"></div>
+            <div class="np-format hidden" id="np-format" data-parity="now-playing.format"></div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what
                    makes the bar draggable and accessible, and it keeps every
                    one of its behaviours. The canvas is decoration under it,
                    hidden whenever there is no waveform for the track. -->
-              <canvas id="np-wave" class="np-wave hidden" aria-hidden="true"></canvas>
-              <input type="range" id="np-seek" class="np-seek" min="0" max="100" step="1" value="0"
+              <canvas id="np-wave" data-parity="now-playing.wave" class="np-wave hidden" aria-hidden="true"></canvas>
+              <input type="range" id="np-seek" data-parity="now-playing.seek" class="np-seek" min="0" max="100" step="1" value="0"
                      aria-label="Seek" disabled>
               <div class="np-times">
-                <span id="np-cur" class="np-time">0:00</span>
-                <span id="np-tot" class="np-time">0:00</span>
+                <span id="np-cur" class="np-time" data-parity="now-playing.position">0:00</span>
+                <span id="np-tot" class="np-time" data-parity="now-playing.length">0:00</span>
               </div>
             </div>
 
             <div class="np-transport">
-              <button class="np-btn np-mode-btn" id="np-shuffle" aria-label="Shuffle" aria-pressed="false">
+              <button class="np-btn np-mode-btn" id="np-shuffle" data-parity="now-playing.shuffle" aria-label="Shuffle" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="16 3 21 3 21 8"/>
@@ -615,12 +615,12 @@
                   <line x1="4" y1="4" x2="9" y2="9"/>
                 </svg>
               </button>
-              <button class="np-btn" id="np-prev" aria-label="Previous track" disabled>
+              <button class="np-btn" id="np-prev" data-parity="now-playing.previous" aria-label="Previous track" disabled>
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M6 6h2v12H6zM9.5 12l10-6v12z"/>
                 </svg>
               </button>
-              <button class="np-btn np-playpause" id="np-playpause" aria-label="Play/pause">
+              <button class="np-btn np-playpause" id="np-playpause" data-parity="now-playing.playpause" aria-label="Play/pause">
                 <svg id="np-icon-play"  viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
@@ -628,7 +628,7 @@
                   <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
                 </svg>
               </button>
-              <button class="np-btn" id="np-next" aria-label="Next track" disabled>
+              <button class="np-btn" id="np-next" data-parity="now-playing.next" aria-label="Next track" disabled>
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/>
                 </svg>
@@ -636,7 +636,7 @@
               <!-- Repeat cycles off → whole queue → this track.
                    The "1" badge is DOM text, not an SVG glyph, so it themes and
                    scales with the rest of the interface. -->
-              <button class="np-btn np-mode-btn" id="np-loop" aria-label="Repeat off">
+              <button class="np-btn np-mode-btn" id="np-loop" data-parity="now-playing.repeat" aria-label="Repeat off">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="17 1 21 5 17 9"/>
@@ -650,7 +650,7 @@
 
             <div class="np-secondary">
               <!-- Device / zone picker -->
-              <button class="np-mini-btn" id="np-device" aria-label="Choose device" aria-expanded="false">
+              <button class="np-mini-btn" id="np-device" data-parity="now-playing.device" aria-label="Choose device" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
@@ -659,18 +659,18 @@
                 </svg>
               </button>
               <div class="np-popover np-device-popover hidden" id="np-device-popover">
-                <div class="np-popover-title">Play on</div>
-                <div class="np-device-list" id="np-device-list"></div>
-                <button class="np-popover-action" type="button" id="np-group-open">Group zones…</button>
-                <button class="np-popover-action" type="button" id="np-power-open">Device power…</button>
-                <button class="np-popover-action" type="button" id="np-pause-all">Pause all zones</button>
-                <button class="np-popover-action" type="button" id="np-mute-all">Mute all zones</button>
-                <button class="np-popover-action" type="button" id="np-unmute-all">Unmute all zones</button>
+                <div class="np-popover-title" data-parity="now-playing.device-title">Play on</div>
+                <div class="np-device-list" id="np-device-list" data-parity="now-playing.device-room"></div>
+                <button class="np-popover-action" type="button" id="np-group-open" data-parity="now-playing.group">Group zones…</button>
+                <button class="np-popover-action" type="button" id="np-power-open" data-parity="now-playing.power">Device power…</button>
+                <button class="np-popover-action" type="button" id="np-pause-all" data-parity="now-playing.pause-all">Pause all zones</button>
+                <button class="np-popover-action" type="button" id="np-mute-all" data-parity="now-playing.mute-all">Mute all zones</button>
+                <button class="np-popover-action" type="button" id="np-unmute-all" data-parity="now-playing.unmute-all">Unmute all zones</button>
               </div>
 
               <!-- Volume: tap the speaker to reveal the slider (hidden when fixed) -->
               <div class="np-vol">
-                <button class="np-mini-btn" id="np-volbtn" aria-label="Volume" aria-expanded="false">
+                <button class="np-mini-btn" id="np-volbtn" data-parity="now-playing.volume" aria-label="Volume" aria-expanded="false">
                   <svg id="np-icon-vol" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
                   </svg>
@@ -681,7 +681,7 @@
                 <!-- Same volume sheet as the mini bar's -->
                 <div class="np-popover np-vol-popover vol-sheet hidden" id="np-vol-popover">
                   <div class="vol-controls" id="np-vol-controls">
-                    <div class="vol-readout" aria-hidden="true">
+                    <div class="vol-readout" aria-hidden="true" data-parity="now-playing.volume-level">
                       <span class="vol-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
@@ -689,15 +689,15 @@
                       </span>
                       <span class="vol-value" id="np-vol-value">50</span>
                     </div>
-                    <div class="vol-slider-wrap" id="np-vol-sliderwrap">
+                    <div class="vol-slider-wrap" id="np-vol-sliderwrap" data-parity="now-playing.volume-slider">
                       <input type="range" id="np-vol-slider" class="vol-range" min="0" max="100" step="1" value="50"
                              aria-label="Volume">
                       <div class="vol-scale" aria-hidden="true"><span id="np-vol-min">0</span><span id="np-vol-max">100</span></div>
                     </div>
-                    <button class="vol-step" id="np-vol-minus" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                    <button class="vol-step" id="np-vol-plus" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <button class="vol-step" id="np-vol-minus" data-parity="now-playing.volume-down" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <button class="vol-step" id="np-vol-plus" data-parity="now-playing.volume-up" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
                   </div>
-                  <div class="np-vol-fixed hidden" id="np-vol-fixed">
+                  <div class="np-vol-fixed hidden" id="np-vol-fixed" data-parity="now-playing.volume-fixed">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
                     </svg>

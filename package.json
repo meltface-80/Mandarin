@@ -22,7 +22,8 @@
     "api": "node tools/api-map.js",
     "names": "node tools/quality/page-names.js",
     "typecheck": "node tools/quality/tscheck.js && tools/lint/node_modules/.bin/tsc -p tools/lint/tsconfig.json",
-    "gates": "npm run lines && npm run api && npm run typecheck && npm run lint && npm run names",
+    "parity": "node tools/quality/parity.js",
+    "gates": "npm run lines && npm run api && npm run typecheck && npm run lint && npm run names && npm run parity",
     "check": "npm run gates && npm test"
   },
   "devDependencies": {

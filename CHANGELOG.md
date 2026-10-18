@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `25-native-parity`: the screens contract (`docs/specs/screens.json`, `docs/specs/native-parity.md`): each
+  screen the Android app draws natively, its controls and readouts by key and its labels. The page is held
+  to it in a browser (`test/parity.test.js`), the app by `npm run parity` in the gates (every control and
+  readout of a native screen keyed, its labels from the contract's `Contract.kt`), so neither side can gain
+  or lose an item alone. Native Now playing, in preview, lacks 23 of the page's items, listed in
+  `tools/quality/parity-gaps.json`, which only shrinks; its room name, which the page doesn't show, is gone.
+- `23-android-native-nowplaying`: native Now playing in the Android app, a preview behind a switch in
+  Settings → Setup → UI Settings: the room's track, cover, seek and transport; the mini player hands over to it.
 - `24-album-page-sleeve`: the album page leads with a 160px sleeve, the title and the artist line
   beside it, and the buttons straight under them, on a phone, a tablet and a desktop alike; the
   cover's colours glow behind the top again; previous and next sit beside Share; the ⋯ menu opens
