@@ -78,6 +78,28 @@ const HANDOFF = (study) => `(async () => { ${KIT}
   return out;
 })()`;
 
+/* With a track playing: Share card, its album and its artist, handed back as the page's Now playing opens them. */
+const PLAYING_HANDOFF = `(async () => { ${KIT}
+  ($("#home-library .album") || $(".album")).click();
+  await until(() => shown($("#album-modal")), 8000);
+  const playBtn = () => [...document.querySelectorAll("#modal-actions .action-btn")].find(b => /^Play Now$/.test(b.textContent.trim()) && shown(b));
+  await until(() => playBtn() && /Kitchen/.test(($("#mt-kicker") || {}).textContent || ""), 10000);
+  playBtn().click();
+  $("#modal-close-btn").click();
+  await until(() => !shown($("#album-modal")), 5000);
+  const out = { playing: await until(() => window.__getCurrentNp && window.__getCurrentNp() && /Song/.test(window.__getCurrentNp().line1 || ""), 15000) };
+  out.share = window.__musicdNative("share");
+  out.shareShown = await until(() => shown($("#share-overlay")), 5000);
+  $(".share-backdrop").click(); await until(() => !shown($("#share-overlay")), 5000);
+  out.album = window.__musicdNative("album");
+  out.albumTitle = (await until(() => shown($("#album-modal")) && !$("#album-modal").classList.contains("np-mode") && /Album/.test($("#modal-title").textContent), 8000)) && $("#modal-title").textContent;
+  $("#modal-close-btn").click(); await until(() => !shown($("#album-modal")), 5000);
+  out.noArtist = window.__musicdNative("artist");
+  out.artist = window.__musicdNative("artist", "Artist A");
+  out.artistShown = await until(() => /album.* · Artist A$/.test(($("#album-count") || {}).textContent || ""), 8000);
+  return out;
+})()`;
+
 test("the app's native Now playing: its switch in Setup, and the mini player handing over to it", { skip, timeout: 240000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
@@ -111,6 +133,15 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
     assert.equal(r.zone, true);
     assert.match(r.kicker, /Study/, "the page's room is the Study now");
     assert.equal(r.stored, study.zone_id);
+  });
+
+  await t.test("handed back with a track playing: Share card, its album, its artist", async () => {
+    const r = await run(PLAYING_HANDOFF, room + bridge(true));
+    assert.equal(r.playing, true, "it plays");
+    assert.deepEqual([r.share, r.shareShown], [true, true], "Share card");
+    assert.equal(r.album, true);
+    assert.equal(r.albumTitle, "Album One", "the playing album, opened");
+    assert.deepEqual([r.noArtist, r.artist, r.artistShown], [false, true, true], "the artist's page");
   });
 
   await t.test("a browser: no such switch", async () => {
