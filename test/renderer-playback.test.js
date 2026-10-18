@@ -12,7 +12,7 @@ const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
-const { haveFfmpeg, makeLibrary, probe, writeDsf } = require("./fixtures");
+const { haveFfmpeg, makeLibrary, gen, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
@@ -36,6 +36,11 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const lib = makeLibrary();
   // A DSD64 album (v0.6.0-RC3), for the Poly, which says it takes DSD files.
   writeDsf(path.join(lib.music, "Artist D", "DSD Album", "01 Dsd.dsf"), 2);
+  // An album of long tracks, for the transport: held on a track, a busy machine's pause can come
+  // seconds late, and the fixture's three-second tracks ran out first.
+  for (let i = 1; i <= 3; i++) {
+    gen(path.join(lib.music, "Artist L", "Long Album", `0${i} Long ${i}.flac`), { seconds: 30, freq: 300 * i, tags: { title: `Long ${i}`, artist: "Artist L", album: "Long Album", track: i } });
+  }
   const house = new FakeHousehold();
   await house.start();
   const wiim = new FakeRenderer({ name: "WiiM Pro Plus", manufacturer: "Linkplay Technology Inc.", model: "WiiM Pro Plus", linkplay: { DeviceName: "Living Room WiiM" } });
@@ -63,7 +68,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn);
 
   try {
-    await until(async () => (await api("status")).index_count === 4);
+    await until(async () => (await api("status")).index_count === 5);
     // A renderer found on the network is off until switched on: two rooms only…
     await until(async () => { const z = await api("zones"); return z.zones.length === 2; }, 20000);
     await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === WIIM) && l.some(d => d.id === POLY); }, 20000);
@@ -85,6 +90,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     const albums = (await api("library/albums?sort=album")).albums;
     const hires = albums.find(a => a.title === "Hi Res");
     const cd = albums.find(a => a.title === "Album One");
+    const long = albums.find(a => a.title === "Long Album");
 
     await t.test("a CD album plays bit-perfect, and the next track follows without a new SetAVTransportURI", async () => {
       const r = await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
@@ -144,7 +150,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     });
 
     await t.test("transport, seek, volume and modes", async () => {
-      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      await api("play", { offset: long.offset, zone_or_output_id: WIIM, kind: "play_now" });
       await until(() => wiim.state === "PLAYING" && /orig/.test(wiim.uri));
       assert.equal((await api("control", { zone_or_output_id: WIIM, command: "pause" })).ok, true);
       await until(() => wiim.state === "PAUSED_PLAYBACK");
@@ -166,19 +172,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       const s = await until(async () => { const z = await state(WIIM); return z.settings.loop === "loop" && z; });
       assert.equal(s.settings.shuffle, false);
       await api("play-from-here", { zone_or_output_id: WIIM, queue_item_id: 3 });
-      await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Song 3"; });
+      await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Long 3"; });
       // With loop on, next from the last track goes round to the first.
       await api("control", { zone_or_output_id: WIIM, command: "next" });
-      await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Song 1"; });
-      // Held there: the fixture's tracks are three seconds long, and on a busy machine Song 1
-      // ran out (and Song 2 began) before the queue below was read.
+      await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Long 1"; });
+      // Held there, the queue below read with it.
       await api("control", { zone_or_output_id: WIIM, command: "pause" });
       await until(() => wiim.state === "PAUSED_PLAYBACK");
       await api("zone-settings", { zone_or_output_id: WIIM, loop: "disabled" });
-      await api("control", { zone_or_output_id: WIIM, command: "previous" });   // > 5 s? no: at the start → stays on Song 1 from 0
+      await api("control", { zone_or_output_id: WIIM, command: "previous" });   // > 5 s? no: at the start → stays on Long 1 from 0
       const q = await api("queue?zone=" + WIIM);
       assert.equal(q.items.length, 3);
-      assert.equal(q.items[0].title, "Song 1");
+      assert.equal(q.items[0].title, "Long 1");
     });
 
     await t.test("what is playing moves between a renderer and a Sonos room, rebuilt for each", async () => {

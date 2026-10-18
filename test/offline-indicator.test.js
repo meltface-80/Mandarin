@@ -24,16 +24,27 @@ const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 // Before the page's scripts: /api/status as the app answers it offline, and
 // (Offline mode) the app's bridge, with every setting it is given written down.
+// window.__noticeRead counts the answers to the page's own look at the server
+// (server-notice.js, the one asked with a signal), each once the page has read
+// it and shown what it says; the page's start asks /api/status too, sooner.
 const init = (offline, bridge) => `(() => {
   const extra = ${JSON.stringify(offline)};
   const real = window.fetch.bind(window);
+  window.__noticeRead = 0;
   window.fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
     if (url.pathname.startsWith("/api/") && window.__down) throw new TypeError("Failed to fetch");
-    const r = await real(input, init);
-    if (url.pathname !== "/api/status" || !extra) return r;
-    const j = Object.assign(await r.json(), extra);
-    return new Response(JSON.stringify(j), { status: 200, headers: { "Content-Type": "application/json" } });
+    let r = await real(input, init);
+    if (url.pathname !== "/api/status") return r;
+    if (extra) {
+      const j = Object.assign(await r.json(), extra);
+      r = new Response(JSON.stringify(j), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (init && init.signal) {
+      const json = r.json.bind(r);
+      r.json = () => json().then((j) => { setTimeout(() => { window.__noticeRead++; }, 0); return j; });
+    }
+    return r;
   };
   ${bridge ? `window.__set = [];
   window.MusicdDownloads = { settings: () => JSON.stringify({ offlineMode: true }), set: (k, v) => window.__set.push([k, v]) };` : ""}
@@ -45,8 +56,8 @@ const LOOK = `(async () => {
   const $ = id => document.getElementById(id);
   const shown = el => !!el && !el.classList.contains("hidden") && getComputedStyle(el).display !== "none";
   await until(() => document.querySelector("#home-view .album"));
-  // The status read (its answer in), then a frame for what it shows.
-  await until(() => performance.getEntriesByType("resource").some(e => e.name.includes("/api/status") && e.responseEnd > 0));
+  // The page's look at the server read and shown, then a frame for it.
+  await until(() => window.__noticeRead > 0);
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const notice = $("server-notice");
   // The touch layout (a phone, a tablet) shows the symbol in its row along the foot; a desktop in the top bar.

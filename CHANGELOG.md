@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.17
+- `18-test-races`: a scan isn't said to have ended (/api/status) until the library has been read
+  again: for a moment it was, and albums asked for then were the ones from before it, or "still
+  being scanned". The offline sign's test waits for the page's own look at the server, and the
+  renderer's transport test holds a long track, not a three-second one, and the services' stream
+  test waits until nothing is being converted, as the server counts it.
+
 ## v1.0.16
 - `16-17-plans-ios-pwa-android-native`: plans, nothing built: playback on the iPhone's home-screen
   app (`docs/specs/plan-ios-pwa-playback.md`) and a native Android app

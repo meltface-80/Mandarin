@@ -372,9 +372,12 @@ test("Qobuz and Tidal whole: signing in and out, the token, playing and the stre
 
   const made = path.join(lib.data, "transcode");
   // Nothing being made (what the room's playing made ready behind it, done), then the folder emptied.
+  // Nothing being made or waiting, as the server counts it (/api/health: a conversion still asking
+  // the service where its audio is has no .part yet), and the folder still, for a second.
   const settle = async () => {
     let quiet = 0;
-    await until(() => { quiet = fs.readdirSync(made).some(f => f.endsWith(".part")) ? 0 : quiet + 1; return quiet >= 10; }, 60000, "the folder quiet");
+    const idle = async () => { const c = (await get("health")).j.transcode_cache; return c.running === 0 && c.queued === 0; };
+    await until(async () => { quiet = (await idle()) && !fs.readdirSync(made).some(f => f.endsWith(".part")) ? quiet + 1 : 0; return quiet >= 10; }, 60000, "the folder quiet");
   };
   const clear = () => { for (const f of fs.readdirSync(made)) fs.rmSync(path.join(made, f), { force: true }); };
   const trackId = (p) => raw.prepare("SELECT id FROM tracks WHERE path = ?").get(p).id;
