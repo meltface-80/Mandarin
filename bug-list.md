@@ -4,7 +4,7 @@ Each item is worked on its own branch, in this order. An item is marked **Fixed*
 
 Until the list is done each one is merged to main, and each merge is a version of its own, the Android app's with it: items 1–6 are **v1.0.7** (they went into main before the version moved), item 7 v1.0.8, and so on up one each.
 
-Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Fixed**
+Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Answered** (a question, no change) · **Fixed**
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
@@ -19,8 +19,8 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving. The switch moves first; the app holds a picture of the screen while the page reloads under it; the menu is back open without sliding in | `09-offline-toggle-silent` | Ready to test |
 | 10 | Share card: remove the record label (long names run off the card). Taken off; the release line is the date alone | `10-share-card-no-label` | Ready to test |
 | 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size). Columns and album text already did; List reached the Library wall alone, and the Grid screen title size reached no grid screen on a touch screen. Both fixed | `11-service-grids-follow-settings` | Ready to test |
-| 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid) | — | Open |
-| 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both | — | Open |
+| 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid). Answered: no screen-to-screen transitions today (screens swap instantly); advice in the session summary, no change made | — | Answered |
+| 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both. The field was focused while its row was still hidden; now its row is shown and the field focused within the tap | `13-search-one-tap` | Ready to test |
 | 14 | Recently played carousel should open to a grid screen (feature) | — | Open |
 | 15 | Spaces can't be typed in album-grid search and in Focus text (Home Screen search is fine) | — | Open |
 | 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer) | — | Open |

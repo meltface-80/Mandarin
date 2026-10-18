@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.13
+- `13-search-one-tap`: Search from Home is one tap, the Android app's keyboard with it.
+
 ## v1.0.12
 - `11-service-grids-follow-settings`: Qobuz's and Tidal's grids take List as every grid does, and
   each grid screen's title takes the Grid screen title size on a touch screen too.

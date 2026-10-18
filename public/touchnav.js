@@ -116,6 +116,13 @@
     if (has(search, "hidden") && typeof w.__showHome === "function") w.__showHome();
     const glass = byId("search-open");
     if (glass) glass.click();
+    // Its row shown now, not when the watch above next runs (after this tap):
+    // the field was focused while still hidden, so it took no focus, and the
+    // Android app's keyboard waited for a second tap (v1.0.7). Focused here,
+    // inside the tap, the keyboard comes up with it.
+    sync();
+    const field = byId("search-input");
+    if (field && document.activeElement !== field) field.focus();
   });
   on("tnav-offline", (e) => { e.stopPropagation(); if (offline) offline.click(); });
 
