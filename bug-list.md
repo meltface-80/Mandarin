@@ -4,7 +4,7 @@ Each item is worked on its own branch, in this order. An item is marked **Fixed*
 
 Until the list is done each one is merged to main, and each merge is a version of its own, the Android app's with it: items 1–6 are **v1.0.7** (they went into main before the version moved), item 7 v1.0.8, and so on up one each.
 
-Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Answered** (a question, no change) · **Fixed**
+Status: **Open** · **In progress** · **Ready to test** (green, waiting on the owner) · **Answered** (a question, no change) · **Planned** (a plan written, nothing built) · **Fixed**
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
@@ -23,5 +23,5 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 13 | Android Home Screen search needs two taps (open, then keyboard): one tap must do both. The field was focused while its row was still hidden; now its row is shown and the field focused within the tap | `13-search-one-tap` | Ready to test |
 | 14 | Recently played carousel should open to a grid screen (feature). Its title opens a Recently played wall: up to 60 albums played in the last 30 days, the latest first | `14-recently-played-grid` | Ready to test |
 | 15 | Spaces can't be typed in album-grid search and in Focus text (Home Screen search is fine). The Library filter's field was redrawn from the trimmed words after each key, so a space typed between two went; now kept as typed | `15-spaces-in-search-fields` | Ready to test |
-| 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer) | — | Open |
-| 17 | Plan: Android as a full native app instead of a WebView | — | Open |
+| 16 | Plan: iOS PWA streaming-only playback (AAC 256 vs Opus 256, cache, chunked/segmented transfer). Planned: `docs/specs/plan-ios-pwa-playback.md` | `16-17-plans-ios-pwa-android-native` | Planned |
+| 17 | Plan: Android as a full native app instead of a WebView. Planned: `docs/specs/plan-android-native.md` | `16-17-plans-ios-pwa-android-native` | Planned |
