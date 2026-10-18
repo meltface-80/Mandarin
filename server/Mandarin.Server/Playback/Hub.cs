@@ -129,6 +129,7 @@ internal sealed partial class Hub
         Current = null;
         hub.Stopped = true;
         hub.StopSonos();
+        hub.Devices.Stop();
         hub.Upnp.Stop();
         hub.Phones.Stop();
         hub.Store?.Flush(id => hub.SnapshotOf(id));

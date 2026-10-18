@@ -2,8 +2,10 @@
 // (lib/renderers/devices.js, v0.8.49, stage 6 parts 3 and 5). Sonos rooms
 // come from the household the hub reads, phones from the app's hello (both
 // into the register by Hub.Register.cs), UPnP renderers from Discovery.cs
-// here, every minute. Each lands in the register (Playback/Register.cs) so it
-// has a durable identity, a network name, the name you gave it, and its
+// here, every minute, and at once when one says it has come (SsdpListen.cs)
+// or a sound device is plugged in (v1.0.7), and every 20 s while the Audio
+// Devices page is open. Each lands in the register (Playback/Register.cs) so
+// it has a durable identity, a network name, the name you gave it, and its
 // capabilities in layers (Profiles.cs). Here too: whether a device is on, on
 // the network, playing, and the device as its page shows it.
 using Mandarin.Server.Local;
@@ -20,6 +22,9 @@ internal sealed class Devices
     private readonly double offlineMs;
     private readonly object gate = new();
     private Task? scanning, scanningLocal;
+    private SsdpListen? announcements;
+    private FileSystemWatcher? plugged;
+    private readonly Soon roundSoon, localSoon;
     private readonly Func<Task<LocalList>> localList;
     public readonly RendererDiscovery Discovery;
     public double LastScan;
@@ -39,12 +44,61 @@ internal sealed class Devices
         // This computer's sound devices: lib/local/devices.js's list, or a test's stand-in from the hand-over.
         var given = hub.Config.LocalDevices;
         localList = given != null ? () => Task.FromResult(given) : () => LocalDevices.List(hub.Config.LocalAudio);
+        roundSoon = new Soon(Scan, hub.Log);
+        localSoon = new Soon(ScanLocal, hub.Log);
     }
 
     public void Start()
     {
         hub.Loop("scan", ScanMs, Scan, 2000);
         hub.Loop("local", LocalMs, ScanLocal, 500);
+        // A renderer that says it has come, and a sound device plugged in, are read now, not at the next round.
+        if (hub.Config.UpnpMulticast) announcements = SsdpListen.Start(hub.Config.ServerIp, Wanted, loc => { Discovery.Heard(loc); roundSoon.Ask(); }, hub.Log);
+        if (hub.Config.LocalDevices == null && Directory.Exists("/dev/snd"))
+        {
+            try
+            {
+                plugged = new FileSystemWatcher("/dev/snd");
+                FileSystemEventHandler changed = (_, _) => localSoon.Ask();
+                plugged.Created += changed;
+                plugged.Deleted += changed;
+                plugged.EnableRaisingEvents = true;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { plugged?.Dispose(); plugged = null; }
+        }
+    }
+
+    public void Stop()
+    {
+        announcements?.Dispose();
+        plugged?.Dispose();
+    }
+
+    /* A round in a moment, one however often it's asked for meanwhile (a device's burst of announcements, a DAC's several device files). */
+    private sealed class Soon(Func<Task> round, Action<string> log)
+    {
+        private const int AfterMs = 1500;
+        private int queued;
+
+        public void Ask()
+        {
+            if (Interlocked.Exchange(ref queued, 1) == 1) return;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(AfterMs);
+                Interlocked.Exchange(ref queued, 0);
+                try { await round(); }
+                catch (Exception e) when (e is not OperationCanceledException) { log($"[renderers] {e.Message}"); }
+            });
+        }
+    }
+
+    /* An announcement worth a round: from a place not read, or from a player the network hasn't seen lately. */
+    private bool Wanted(string location)
+    {
+        if (Discovery.Known(location) is not { } id) return true;
+        using var c = Db.Open();
+        return Register.Get(c, id) is not { } r || !Online(r);
     }
     public bool Scanning { get { lock (gate) return scanning != null; } }
 
@@ -63,8 +117,10 @@ internal sealed class Devices
     {
         try
         {
-            try { await ScanLocal(); } catch (Exception e) when (e is SqliteException or IOException) { hub.Log($"[local] {e.Message}"); }
+            // This computer's devices alongside the network's, not before them: Look again waits for both.
+            var local = ScanLocal();
             var found = await Discovery.Scan();
+            try { await local; } catch (Exception e) when (e is SqliteException or IOException) { hub.Log($"[local] {e.Message}"); }
             using (var c = Db.Open()) foreach (var rec in found) Register.Seen(c, rec);
             LastScan = Hub.Now();
             if (found.Count > 0) hub.Bump();

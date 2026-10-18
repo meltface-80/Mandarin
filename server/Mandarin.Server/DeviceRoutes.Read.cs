@@ -10,6 +10,7 @@ namespace Mandarin.Server;
 internal static partial class Library
 {
     private const string DevicesPath = "/api/audio-devices";
+    private const double LookedLatelyMs = 20000;
 
     /* The device reads and actions: true when answered here. */
     private static async Task<bool> DeviceReadRoute(HttpContext ctx)
@@ -27,6 +28,8 @@ internal static partial class Library
         if (HttpMethods.IsGet(ctx.Request.Method) && rest.Length == 0)
         {
             if (away) return await SendJs(ctx, Jso(("away", true), ("devices", devices.List(c).Where(d => Jv.Same(d["id"], mine)).Cast<object?>().ToList())));
+            // The page open asks every 10 s: the network searched again behind it, so a player switched on shows within moments.
+            if (Hub.Now() - devices.LastScan > LookedLatelyMs && !devices.Scanning) _ = devices.Scan();
             return await SendJs(ctx, Jso(("away", false), ("devices", devices.List(c).Cast<object?>().ToList()), ("scanning", devices.Scanning),
                 ("last_scan", devices.LastScan > 0 ? devices.LastScan : null), ("local", devices.Local)));
         }

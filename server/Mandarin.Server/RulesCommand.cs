@@ -24,8 +24,8 @@
 //   { fn: "register", data, steps: [{ seen } | { rename: [id, name] } | { caps: [id, user] } | { verified: [id, rate, bits] }
 //     | { forget } | { get } | { name } | { wait: ms }] }                  Playback/Register.cs, DeviceRoutes.cs
 //      → { results }: each step's, on the database in [data] (made by `mandarin-server db`), opened afresh each time
-//   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids }                   Renderers/Ssdp.cs, Discovery.cs
-//      → { sonos, seeds, ids }
+//   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids, heard: [text] }   Renderers/Ssdp.cs, Discovery.cs, SsdpListen.cs
+//      → { sonos, seeds, ids, alive }
 //   { fn: "engine", steps }                                               Local/EngineCommand.cs: the engine's driver from a script
 //   { fn: "local", linux: [root, dev], hw: [[location, root]], ids, amplitude: [[pct, muted]] }
 //      → { devices, hidden, hw, ids, amplitude }                         Local/LocalDevices.cs, EngineOutput.cs
@@ -80,7 +80,8 @@ internal static class RulesCommand
         {
             ["sonos"] = Each(job["sonos"], a => Renderers.Ssdp.IsSonos(new Renderers.SsdpAnswer("", S(O(a)["usn"]), "", S(O(a)["server"]), ""))),
             ["seeds"] = Each(job["seeds"], x => Renderers.RendererDiscovery.SeedLocation(TJs.IsNullish(x) ? null : S(x))),
-            ["ids"] = Each(job["ids"], x => Renderers.RendererDiscovery.IdFor(TJs.IsNullish(x) ? null : S(x)))
+            ["ids"] = Each(job["ids"], x => Renderers.RendererDiscovery.IdFor(TJs.IsNullish(x) ? null : S(x))),
+            ["alive"] = Each(job["heard"], x => Renderers.SsdpListen.Alive(Playback.Topology.ParseHeaders(System.Text.Encoding.UTF8.GetBytes(S(x)))))
         },
         "uris" => new JsObj { ["tracks"] = Each(job["uris"], u => Playback.Phones.TrackIdFromUri(TJs.IsNullish(u) ? null : TJs.Str(u)) is { } id ? (double)id : null) },
         _ => throw new JsError("unknown fn")
