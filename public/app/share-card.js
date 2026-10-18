@@ -50,12 +50,11 @@ document.addEventListener("keydown", (e) => {
 
 // What the card shows, from an /api/album/extras answer (or none).
 function cardFields(j) {
-  const f = { releaseRaw: "", labelText: "", reviewText: "", reviewSource: "", links: null, score: null, bestNew: false };
+  const f = { releaseRaw: "", reviewText: "", reviewSource: "", links: null, score: null, bestNew: false };
   if (j) {
     if (j.links) f.links = j.links;
     if (j.year) f.releaseRaw = j.year;
     if (j.album && j.album.year && !f.releaseRaw) f.releaseRaw = String(j.album.year);
-    if (j.album && j.album.label) f.labelText = String(j.album.label);
     // Pitchfork's number and their Best New Music flag — never their
     // prose, which the server nulls before it leaves fetchAlbumBios.
     if (j.album && j.album.score != null) f.score = j.album.score;
@@ -75,7 +74,7 @@ function cardFields(j) {
       if (j.album.description_source) f.reviewSource = String(j.album.description_source);
     }
   }
-  f.signature = [f.releaseRaw, f.labelText, f.reviewText, f.reviewSource, f.score, f.bestNew].join("|");
+  f.signature = [f.releaseRaw, f.reviewText, f.reviewSource, f.score, f.bestNew].join("|");
   return f;
 }
 // Draw the card and put it on screen (an object URL: no base64 copy of a
@@ -85,7 +84,7 @@ async function paintCard(f, coverUrl, title, artist, seq) {
   const blob = await ShareCard.render({
     // The duck tile in the card's bottom-right corner (v0.7.5).
     coverUrl, wordmarkUrl: null, logoUrl: LOGO_URL, title, artist,
-    releaseRaw: f.releaseRaw, label: f.labelText, review: f.reviewText,
+    releaseRaw: f.releaseRaw, review: f.reviewText,
     reviewSource: f.reviewSource, score: f.score, bestNewMusic: f.bestNew
   });
   if (seq !== shareSeq) return;
