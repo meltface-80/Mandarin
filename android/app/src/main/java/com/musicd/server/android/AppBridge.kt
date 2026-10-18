@@ -16,6 +16,10 @@ import android.webkit.JavascriptInterface
  *   MusicdApp.lookForAppUpdate(force)   look on GitHub; then window.__musicdAppUpdateChanged()
  *   MusicdApp.appUpdateStatus()         → {"current", "latest", "available", "installing"}
  *   MusicdApp.installAppUpdate()        download it and open Android's installer
+ *
+ * The screen held still while the page loads again under it ([PageCurtain], v1.0.7):
+ *   MusicdApp.holdScreen()     before something that puts the page up afresh (the Offline switch)
+ *   MusicdApp.screenShown()    the new page shows what the old one did: let it be seen
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -49,6 +53,12 @@ class AppBridge(private val activity: Activity) {
     fun installAppUpdate() {
         activity.runOnUiThread { AppUpdate.installNow(activity) }
     }
+
+    @JavascriptInterface
+    fun holdScreen() { PageCurtain.want() }
+
+    @JavascriptInterface
+    fun screenShown() { activity.runOnUiThread { PageCurtain.down() } }
 
     @JavascriptInterface
     fun checkUpdate() {

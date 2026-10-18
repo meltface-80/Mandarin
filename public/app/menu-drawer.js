@@ -141,17 +141,20 @@
   }
 
   // Offline mode (v0.5.58): only in the app, which keeps the setting.
+  // The switch's own movement (style.css: the thumb's transition, .18s), seen through before the page reloads.
+  const OFFLINE_SWITCH_MS = 220;
   function offlineModeOn() {
     try { return !!JSON.parse(window.MusicdDownloads.settings()).offlineMode; } catch (e) { return false; }
   }
-  function paintOfflineItem() {
+  // `to`: the switch drawn as it is about to be, before the app is told (v1.0.7).
+  function paintOfflineItem(to) {
     const item = document.getElementById("menu-item-offline");
     if (!item) return;
     let has = false;
     try { has = "offlineMode" in JSON.parse(window.MusicdDownloads.settings()); } catch (e) { /* an older app's settings: no offline switch */ }
     item.classList.toggle("hidden", !has);
     if (!has) return;
-    const on = offlineModeOn();
+    const on = typeof to === "boolean" ? to : offlineModeOn();
     // Shelf is the server's whole library, a page of its own: not offline.
     const shelfItem = overlay.querySelector('.menu-item[data-action="shelf"]');
     if (shelfItem) shelfItem.classList.toggle("hidden", on);
@@ -163,13 +166,21 @@
   paintOfflineItem();
 
   const openMenu  = () => { overlay.classList.remove("hidden"); refreshRescanSub(); paintOfflineItem(); };
-  const closeMenu = () => overlay.classList.add("hidden");
-  // The menu open again on the page the Offline switch reloads to (v0.6.20).
+  const closeMenu = () => { overlay.classList.add("hidden"); overlay.classList.remove("menu-still"); };
+  // The menu open again on the page the Offline switch reloads to (v0.6.20):
+  // already open, not sliding in (v1.0.7), and then the app, which has held
+  // a picture of the screen over the page while it loaded, lets it be seen.
   const REOPEN_KEY = "rra-menu-reopen";
   try {
     const at = Number(localStorage.getItem(REOPEN_KEY) || 0);
     localStorage.removeItem(REOPEN_KEY);
-    if (at && Date.now() - at < 30000) openMenu();
+    if (at && Date.now() - at < 30000) {
+      overlay.classList.add("menu-still");
+      openMenu();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try { if (window.MusicdApp && window.MusicdApp.screenShown) window.MusicdApp.screenShown(); } catch (e) { /* an older app: it shows the page as it loads */ }
+      }));
+    }
   } catch (e) { /* storage refused */ }
 
   toggle.addEventListener("click", openMenu);
@@ -194,8 +205,15 @@
         // The app reloads the page onto the phone's music, or back onto the
         // server — which would take the menu with it. It is reopened on the
         // page that follows (v0.6.20): the switch is the only thing that moved.
+        // The switch moves first, here; once it has, the app holds the screen
+        // as it is while the page loads again under it (v1.0.7).
+        const to = !offlineModeOn();
+        paintOfflineItem(to);
         try { localStorage.setItem(REOPEN_KEY, String(Date.now())); } catch (e) { /* storage is optional (private browsing, over quota) */ }
-        try { window.MusicdDownloads.set("offlineMode", String(!offlineModeOn())); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
+        setTimeout(() => {
+          try { if (window.MusicdApp && window.MusicdApp.holdScreen) window.MusicdApp.holdScreen(); } catch (e) { /* an older app: the page reloads as it always did */ }
+          try { window.MusicdDownloads.set("offlineMode", String(to)); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
+        }, OFFLINE_SWITCH_MS);
         return;
       }
       if (action === "home") {

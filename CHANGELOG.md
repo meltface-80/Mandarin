@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.10
+- `09-offline-toggle-silent`: the side menu's Offline switch moves and nothing else is seen to:
+  the app holds a picture of the screen while the page loads again under it (`PageCurtain.kt`),
+  and the menu is back open without sliding in.
+
 ## v1.0.9
 - `08-hide-greeting-random-button`: Settings → Setup → Home Screen switches the greeting and
   Random Album off, on this device; what was under them moves up.

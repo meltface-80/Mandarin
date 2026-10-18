@@ -16,7 +16,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | 6 | Home Screen: overscroll stretch/bounce at the top and bottom, on Android and in the browser: remove it. In the app it was Android's own WebView stretch, which the page's CSS can't switch off; now off. The page already stops dead in browsers, now held by a test | `06-no-overscroll-bounce` | Ready to test |
 | 7 | Home Screen loses its scroll position after entering a genre and coming back: needs position memory. Home now keeps its place when a genre or a row's wall is opened from it; Back returns there | `07-home-position-after-genre` | Ready to test |
 | 8 | Settings > Setup: options to turn off the greeting and the random album button; the rest of the UI moves up when either is off. Settings → Setup → Home Screen: Greeting and Random Album switches, on this device | `08-hide-greeting-random-button` | Ready to test |
-| 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving | — | Open |
+| 9 | Side menu offline toggle closes and reopens the menu (a visible glitch): must be a silent refresh, only the switch moving. The switch moves first; the app holds a picture of the screen while the page reloads under it; the menu is back open without sliding in | `09-offline-toggle-silent` | Ready to test |
 | 10 | Share card: remove the record label (long names run off the card) | — | Open |
 | 11 | Qobuz and Tidal grids must follow the same grid settings as every other grid (column count, text size) | — | Open |
 | 12 | Question, advice only: screen transition animations (navigation is fast but not always fluid) | — | Open |
