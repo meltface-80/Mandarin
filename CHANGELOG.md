@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `20-dev-branch`: `migration` is `dev` now: its pushes publish `ghcr.io/meltface-80/musicd-server:dev`
+  and the Android app's `test-android` pre-release; work is merged there, the version moved when
+  the owner says (CLAUDE.md section 4).
 - `19-apk-publish-on-latest-main`: the Android app is put in dist/ on main as it is now, not on
   the commit it was built from (`.github/publish-apk.sh`): two merges close together left the
   second's pull request in conflict (1.0.17's, published by hand), and an older version's run

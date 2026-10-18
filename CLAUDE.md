@@ -4,7 +4,7 @@ You are an expert AI software developer and repository maintainer. Your primary 
 
 Follow these strict operational rules when interacting with this repository, writing code, or generating instructions.
 
-step 4 is important and to be followed during migration from node to C#
+step 4 is important and to be followed for all work
 
 ---
 
@@ -38,22 +38,15 @@ When writing scripts, creating documentation, or guiding me through git commands
 
 ---
 
-## 4. For the current migration work stream from node to full C# follow this approach
+## 4. Work goes to `dev`; a version bump only when I say
 
-1. Complete each stage, test, and merge to a separate branch called "migration"
-2. Name each branch of each stage by its stage name e.g. stage 3a - description 
-3. Test each stage and when green merge to Migration branch
-4. I test the my installation by updating from the migration branch. You need to provide me with the correct docker compose instructions for initial install and subsequent updates from the migration branch
-5. When migration is complete and fully free of node, I will thoroughly test from the migration branch until I'm happy
-6. When step 5. is complete and I'm happy I'll manual merge to main. The final merge will be v0.9.0
+The migration to C# is done; its branch, `migration`, is now `dev`.
 
-Final note: no more tags/releases go to main until I'm happy migration work is complete and working. When on v0.9.0 any bugs will be set up to have a new branch named v0.9.x-rc1 - bug name. When green, you will provide docker compose update instructions for this bug hotfix. For example, v0.9.1-rc1 will update over v0.9.0. when I'm happy with v0.9.1-rc1 it will get merged to main as v0.9.1 and that will update over V0.9.1-rc1.
-
-New features will adopt the above process from step 1 down to 3 and adopt my process in step 4.
-
-At the time of writing this branch v0.8.43 and v0.8.44 are green and getting merge by order of build number. Next will be v0.8.45 and you will follow step 4 explicitly. Advise immediately if step 4 cannot happen.
-
-You will also remove all tags/releases on main in the v0.8.x range except v0.8.44. That will remain the :latest on main for now until migration work is fully completed. Acknowledge this on next session
+1. Each bug or feature is a branch of its own, named for its `bug-list.md` item (e.g. `19-apk-publish-on-latest-main`), cut from `dev`.
+2. Tested (`npm run check` and the C# suite green, each test shown failing once), it goes into `dev` by a pull request you open and merge yourself. No version change on these merges: what each changes goes in CHANGELOG.md under `## Unreleased`.
+3. I update my install from `dev` (`ghcr.io/meltface-80/musicd-server:dev`, and the Android app from the `test-android` pre-release). Give me the docker update instructions when there is something new on it.
+4. When all the work is done I'll tell you to bump the version. Then, on one branch into `dev`: the version everywhere it is shown (server, Android `versionName`/`versionCode`), `## Unreleased` renamed to the version, and the README and the Pages site (`docs/`) brought fully up to date with everything since the last version, so that a single merge of `dev` to main brings everything up to date. I merge `dev` to main; then you run the Release workflow for that version.
+5. Mark a `bug-list.md` item Fixed only when I say so.
 
 ---
 

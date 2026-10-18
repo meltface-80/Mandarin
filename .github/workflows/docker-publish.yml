@@ -2,12 +2,12 @@ name: Publish container image
 
 on:
   push:
-    # migration: the move to C#, stage by stage (CLAUDE.md section 4), as
-    # ghcr.io/<owner>/musicd-server:migration for the owner's own install;
-    # stage-*: a stage the owner tries at home before it is merged (stage 6's
-    # rule in docs/specs/csharp-migration.md), as :<branch>. Never a tag or a
-    # release: those are cut by hand.
-    branches: [main, migration, "claude/**", "stage-*"]
+    # dev: the work merged before it goes to main (CLAUDE.md section 4), as
+    # ghcr.io/<owner>/musicd-server:dev for the owner's own install (the
+    # migration branch, renamed); stage-*: a stage the owner tries at home
+    # before it is merged, as :<branch>. Never a tag or a release: those are
+    # cut by hand.
+    branches: [main, dev, "claude/**", "stage-*"]
     tags:
       - 'v*.*.*'
   workflow_dispatch:
