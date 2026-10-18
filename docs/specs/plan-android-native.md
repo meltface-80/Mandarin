@@ -1,6 +1,6 @@
 # Plan: the Android app as a full native app, not a WebView
 
-Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`.
+Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`. N2 in preview (item 23): `NowPlayingScreen.kt`. Each native screen is held to the page's by the screens contract (item 25, `docs/specs/native-parity.md`).
 
 ## Is it the key to better function and performance?
 
@@ -61,6 +61,10 @@ Each stage ships on its own and can be tested by updating from `dev`; the WebVie
 
 ## Risks
 
-- **Drift between web and native**: a feature added to the page and not the app (or the reverse). Mitigation: the typed client and `api.md` as the contract. A test per native screen against the C# server, as the page's screens have.
+- **Drift between web and native**: a feature added to the page and not the app (or the reverse). Handled by the screens contract (`docs/specs/screens.json`, `docs/specs/native-parity.md`):
+  - every native screen's controls and readouts are listed in it, by key;
+  - the page's test and the app's gate (`npm run parity`) fail when either side differs from it;
+  - a screen in preview may lack items only from a list that only shrinks.
+  The data is held by `test/golden/android-api.json`, the colours by `ShellTest`.
 - **Size of the APK**: Compose adds about 3–5 MB. The page's copy (`OfflineSite`) leaves at N7.
 - **Two update paths**: native screens change with an app update, not a server update. The server keeps answering older apps (the API is versioned by what it adds, never by what it removes).
