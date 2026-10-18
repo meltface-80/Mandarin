@@ -1,10 +1,5 @@
 # Changelog
 
-Versioning: each set of changes is a development build and takes the next third digit
-(0.3.0, 0.3.1, 0.3.2 …). The second digit moves only when the project owner says so.
-`package.json`, the README title, the GitHub Pages badge and the Android app's
-`versionName` (plus `versionCode`) move together — `npm test` fails if they don't.
-
 ## v1.0.9
 - `08-hide-greeting-random-button`: Settings → Setup → Home Screen switches the greeting and
   Random Album off, on this device; what was under them moves up.
