@@ -49,6 +49,30 @@ async function showFavouritesWall() {
 }
 let favouritesWallActive = false;
 
+// Recently played, whole (v1.0.7): the row's title opens it, as the other rows' do.
+async function showHistoryWall() {
+  enterFullWall("Recently played", true);
+  historyWallActive = true;
+  try {
+    const r = await fetch("/api/home/history?count=60", { cache: "no-store" });
+    if (!historyWallActive) return;
+    const j = await r.json();
+    if (!historyWallActive) return;
+    const albums = (j && j.albums) || [];
+    grid.innerHTML = "";
+    if (!albums.length) { setBanner("Nothing played in the last 30 days.", false); return; }
+    setBanner(null);
+    const frag = document.createDocumentFragment();
+    for (const a of albums) frag.appendChild(homeTile(a));
+    grid.appendChild(frag);
+  } catch (e) {
+    if (!historyWallActive) return;
+    grid.innerHTML = "";
+    setBanner("Couldn’t load: " + e.message, true);
+  }
+}
+let historyWallActive = false;
+
 async function showUnplayedWall() {
   enterFullWall("Not played in 6 months", true);
   unplayedWallActive = true;

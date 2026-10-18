@@ -301,6 +301,8 @@ let albumCount = computeAlbumCount();
 // them through hideLibraryControls(): a `let` read above its declaration is
 // a startup crash.
 let libFilterOpen = false;
+// The Library filter's text as typed, spaces and all (library-controls.js).
+let libFilterTyped = "";
 let libPrefixDropped = false;
 let labelsActive = false;        // viewing the record-label browser?
 let unplayedWallActive = false;  // viewing the full "Not played in 6 months" grid?

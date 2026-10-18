@@ -132,13 +132,19 @@ function buildLibFilterControl(open) {
   const input = document.createElement("input");
   input.type = "search";
   input.className = "lib-filter-input";
-  input.value = libView.prefix || "";
+  // As typed, while it still says what's looked for: the field is drawn
+  // afresh as the wall loads, and drawn from the trimmed words it lost the
+  // space just typed between two of them (v1.0.7).
+  input.value = libFilterTyped.trim() === (libView.prefix || "") ? libFilterTyped : (libView.prefix || "");
   input.placeholder = "Starts with…";
   input.setAttribute("aria-label", "Filter albums and artists by first letters");
   input.autocomplete = "off";
   input.spellcheck = false;
   input.addEventListener("click", (e) => e.stopPropagation());
   input.addEventListener("input", () => {
+    libFilterTyped = input.value;
+    // A space at the end looks for nothing new: the wall stays as it is.
+    if (input.value.trim() === (libView.prefix || "")) return;
     libView.prefix = input.value.trim();
     applyLibView();
   });
@@ -156,6 +162,7 @@ function buildLibFilterControl(open) {
     e.stopPropagation();
     if (!input.value.trim()) { closeLibFilter(); return; }
     input.value = "";
+    libFilterTyped = "";
     libView.prefix = "";
     applyLibView();
   });
@@ -172,6 +179,7 @@ function closeLibFilter() {
   libFilterOpen = false;
   const had = !!libView.prefix;
   libView.prefix = "";
+  libFilterTyped = "";
   if (had) applyLibView();
   else renderLibraryControls();
 }

@@ -359,6 +359,7 @@ function enterFullWall(title, albumWall) {
   libraryWallActive = false;
   favouritesWallActive = false;
   laterWallActive = false;
+  historyWallActive = false;
   // Cleared here as well as by the caller: every other wall's entry point must
   // orphan an in-flight playlist fetch, or its response paints into this one.
   leavePlaylistScreens();

@@ -334,7 +334,7 @@ window.__libraryChanged = (opts) => {
   if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
   if (window.__searchActive && window.__searchActive()) return;
   if (window.__artistViewActive && window.__artistViewActive()) return;
-  if (labelsActive || favouritesWallActive || laterWallActive) return;
+  if (labelsActive || favouritesWallActive || laterWallActive || historyWallActive) return;
   if (libraryWallActive) { showLibraryWall(); return; }
   if (unplayedWallActive) return;   // a fixed wall: the tile is gone, the rest stands
   if (!grid.classList.contains("hidden") && !gone) loadRandom();
