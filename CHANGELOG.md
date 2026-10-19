@@ -1,6 +1,24 @@
 # Changelog
 
 ## Unreleased
+- `54-native-exact-look`: every native screen held to the page's own numbers, read from the page itself in a browser
+  (each contract item's size, type and spacing at a phone's width) rather than from a reading of its stylesheet. The type:
+  Material put half a pixel between every two glyphs, so a tile's title stood a twentieth wider than the page's (none now,
+  as the page has none unless it says so); a line set tighter than the font's own height (a wall's heading at 1.2, a tile's
+  title at 1.25, the track on Now playing at 1.15, an album's title) stood taller than the page's line box, which put the
+  heading 5dp low and the tiles' rows apart (laid out as the browser lays them: Type.kt); the wall's figures tabular, as
+  the page's are. The buttons: the same button is the same size on every screen, as the page's are, and a ring or a disc
+  drawn by a plain button's background or border modifier (the wall's Back, the album's heart and ⋯, the volume's − and +,
+  shuffle and repeat, the random wall's reshuffle, the Offline sign) was drawn 48 wide, the button's touch target, not its
+  40 or 44: each is now a filled or outlined button, drawn at its own size. The tiles: the hifi palette's sleeve (corners of
+  12, the faint ring, no shadow), 11 under the cover, the title at 600; the heading and the first row where the page has
+  them; the mini player's pill the page's 96 with its meter where the page's is; the row's words at their own line; the
+  album page's action row 42 tall with the ⋯ menu at the page's sizes, its head's lines at the page's; Now playing's tabs,
+  track, artist, album and badge lines, Play on as the page's popover, the volume sheet 14 over the mini player; the Queue's
+  summary, tools and rows as the page's; the booklet's head; the yes-or-no sheet as the page's own, not Material's. And the
+  Share card (with Add to playlist, Edit album, Group zones, Device power and a Dynamic Playlist's name), asked for from
+  Now playing or an album's native page, opened over Home with the native screen gone: it opens over the screen now, as it
+  opens over the page's own screens, and the screen is there again when it closes.
 - `53-native-wall-look`: the native Library wall, the walls and an artist's page drawn as the page draws them where
   they strayed (the owner's screenshots): the heading in the page's serif (Young Serif, as the hifi palette sets its
   titles), the bar's Back a brass disc with the glyph in the charcoal, Focus and Sort as brass pills, and the room

@@ -5,17 +5,19 @@ import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -40,11 +42,14 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.NowPlayingView
+import com.musicd.server.client.Palette
 import com.musicd.server.client.Played
 import com.musicd.server.client.QueueView
 import com.musicd.server.client.ServerClient
@@ -96,17 +101,16 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
 
     LazyColumn(modifier.fillMaxWidth()) {
         item {
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (v?.empty == true) "" else summary, Modifier.parity("queue.summary").weight(1f),
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // The page's summary line (.queue-summary): 13px dim, 28 tall at least, 36 under the tabs' line and 10 over the list; its tools small pills.
+            Row(Modifier.fillMaxWidth().padding(top = 36.dp, bottom = 10.dp).defaultMinSize(minHeight = 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(if (v?.empty == true) "" else summary, Modifier.parity("queue.summary").weight(1f), fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val p = picks
                 if (p == null && v != null && v.items.isNotEmpty()) {
-                    TextButton(onClick = { ask = QueueView.ASK_CLEAR to { act("Queue cleared") { it.queueClear(zoneId) } } },
-                        modifier = Modifier.parity("queue.clear", Contract.label("queue.clear"))) { Text("Clear all") }
+                    Box(Modifier.parity("queue.clear", Contract.label("queue.clear")).pill().clickable { ask = QueueView.ASK_CLEAR to { act("Queue cleared") { it.queueClear(zoneId) } } }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { PillWord("Clear all") }
                 }
                 if (p != null && v != null) {
                     Box {
-                        TextButton(onClick = { menu = !menu }, modifier = Modifier.parity("queue.select-menu", Contract.label("queue.select-menu"))) { Text("⋯") }
+                        Box(Modifier.parity("queue.select-menu", Contract.label("queue.select-menu")).pill().clickable { menu = !menu }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { PillWord("⋯") }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             Text(if (p.isEmpty()) "Tap tracks to select them" else "${p.size} selected", Modifier.parity("queue.select-title").padding(horizontal = 16.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -126,7 +130,7 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
                                 modifier = Modifier.parity("queue.remove", Contract.label("queue.remove")), onClick = { runPicks("remove", "Removed $what") })
                         }
                     }
-                    TextButton(onClick = { picks = null }, modifier = Modifier.parity("queue.done", Contract.label("queue.done"))) { Text(Contract.label("queue.done")) }
+                    Box(Modifier.parity("queue.done", Contract.label("queue.done")).pill().clickable { picks = null }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { PillWord(Contract.label("queue.done")) }
                 }
             }
         }
@@ -139,15 +143,15 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
         if (v.history.isNotEmpty()) item {
             val hp = historyPicks
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // The fold-out's line (.q-history-head): 10 of padding, the toggle's words 12px dim in 4 and 2, Select a pill at the end.
+                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     val text = (if (historyOpen) "▾ " else "▸ ") + v.historyText
-                    TextButton(onClick = { historyOpen = !historyOpen; if (!historyOpen) historyPicks = null },
-                        modifier = Modifier.parity("queue.history-toggle", Contract.label("queue.history-toggle", 0, text.substringBefore(" played")))) { Text(text) }
+                    Text(text, Modifier.parity("queue.history-toggle", Contract.label("queue.history-toggle", 0, text.substringBefore(" played"))).clip(RoundedCornerShape(6.dp))
+                        .clickable { historyOpen = !historyOpen; if (!historyOpen) historyPicks = null }.padding(horizontal = 2.dp, vertical = 4.dp),
+                        fontSize = 12.sp, lineHeight = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.weight(1f))
-                    if (historyOpen) TextButton(onClick = { historyPicks = if (hp == null) emptyList() else null },
-                        modifier = Modifier.parity("queue.history-select", Contract.label("queue.history-select", if (hp == null) 0 else 1))) {
-                        Text(Contract.label("queue.history-select", if (hp == null) 0 else 1))
-                    }
+                    if (historyOpen) Box(Modifier.parity("queue.history-select", Contract.label("queue.history-select", if (hp == null) 0 else 1)).pill()
+                        .clickable { historyPicks = if (hp == null) emptyList() else null }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { PillWord(Contract.label("queue.history-select", if (hp == null) 0 else 1)) }
                 }
                 if (historyOpen && hp != null) Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(if (hp.isEmpty()) "Tap tracks in play order" else "${hp.size} selected", Modifier.parity("queue.history-count").weight(1f),
@@ -184,15 +188,16 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
                 }))
         }
         itemsIndexed(v.items) { i, it -> Column {
-            if (i == 0) Row(Modifier.parity("queue.divider").fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(Modifier.weight(1f))
-                Text("Now playing", Modifier.padding(horizontal = 10.dp), fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
-                HorizontalDivider(Modifier.weight(1f))
+            if (i == 0) Row(Modifier.parity("queue.divider").fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+                Text("Now playing", fontSize = 12.sp, lineHeight = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
             }
             val p = picks
             val at = p?.indexOf(it.id) ?: -1
+            // The track playing (the first) on the raised ground, as the page's .is-current row.
             QueueRow(client, it.imageKey, it.title, it.subtitle, it.lengthSeconds?.let { s -> NowPlayingView.clock(s.toDouble()) }.orEmpty(), if (at >= 0) at + 1 else null, false,
-                Modifier.parity("queue.track", Contract.label("queue.track", 0, it.title)).combinedClickable(
+                Modifier.parity("queue.track", Contract.label("queue.track", 0, it.title)).let { m -> if (i == 0) m.background(paletteColor(Palette.BG_ELEV_2)) else m }.combinedClickable(
                     onLongClick = { if (p == null) picks = listOf(it.id) },
                     onClick = {
                         when {
@@ -225,17 +230,25 @@ private fun QueueRow(client: () -> ServerClient?, imageKey: String?, title: Stri
         if (imageKey == null) return@LaunchedEffect
         cover = withContext(Dispatchers.IO) { runCatching { c.bytes(c.imageUrl(imageKey, 120)).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull() }
     }
-    Row(modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // The page's row (.queue-list li): 10 of padding round a 52 cover with corners of 3, 14 to the words, the title 15px at 600 over the rest at 12, the length 12 faint.
+    Row(modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         if (pick != null) Text("$pick", Modifier.size(22.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary),
-            color = MaterialTheme.colorScheme.onSecondary, fontSize = 12.sp, maxLines = 1)
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-            cover?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp)) }
+            color = MaterialTheme.colorScheme.onSecondary, fontSize = 12.sp, lineHeight = 22.sp, textAlign = TextAlign.Center, maxLines = 1)
+        Box(Modifier.size(52.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+            cover?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(52.dp)) }
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.W600, color = paletteColor(Palette.MODAL_TEXT), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(sub, fontSize = 12.sp, lineHeight = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(length, style = MaterialTheme.typography.labelMedium, color = if (skipped) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.width(4.dp))
+        Text(length, fontSize = 12.sp, lineHeight = 17.sp, color = if (skipped) MaterialTheme.colorScheme.outline else paletteColor(Palette.TEXT_FAINT))
     }
 }
+
+/** One of the queue's small tools (.q-tool): a dim ring 25 tall, its word 12px in 12 at each end. */
+@Composable
+private fun Modifier.pill(): Modifier = height(25.dp).clip(RoundedCornerShape(999.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+
+/** A tool's word. */
+@Composable
+private fun PillWord(text: String) = Text(text, fontSize = 12.sp, lineHeight = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)

@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,8 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,9 +30,9 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -184,15 +185,16 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp,
+                            // The page's head: the title 24px bold in 1.15 (Type.kt), the artists 15 and the lines under them 14, each at its own line.
+                            Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp).lineBox(24.sp, 27.6.sp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 27.6.sp,
                                 letterSpacing = (-0.02).em, color = white, maxLines = 3, overflow = TextOverflow.Ellipsis)
                             // A classical album: its composers and who performs it, in the artists' place (item 49).
                             if (a.composers.isNotEmpty()) ComposerLines(a, onPage)
                             else Row {
                                 (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
-                                    if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp)
+                                    if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp, lineHeight = 21.sp)
                                     Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", name) },
-                                        color = MaterialTheme.colorScheme.secondary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        color = MaterialTheme.colorScheme.secondary, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                             DateLine(extras, onPage)
@@ -202,18 +204,21 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 }
                 item {
-                    // The heart, Play Now and Queue in brass, and ⋯, each the page's 40px; 20px under the sleeve, 22px over the tracks.
+                    // The heart, Play Now and Queue in brass, and ⋯, each the page's 42 tall (.modal-actions: 11 of padding round a 13px word), the heart
+                    // and ⋯ 40 wide; 20 under the sleeve, 22 over the tracks. Outlined buttons for the rings: a plain button's border lay outside
+                    // its 48 touch target and drew the ring 48 wide (bug list item 54).
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        IconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } },
-                            modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-                            Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null,
-                                tint = if (favourite) paletteColor(Palette.HEART) else dim, modifier = Modifier.size(22.dp))
+                        val stadium = RoundedCornerShape(999.dp)
+                        OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = if (favourite) paletteColor(Palette.HEART) else dim),
+                            modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp, 42.dp)) {
+                            Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
                         val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
                         Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
-                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(40.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
-                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(40.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         // Download to this phone: as the page's bridge words it from the store's state; the app's own dialogs do the rest.
                         val dlState = download.optString("state", "none")
                         val dlLabel = if (a.album.source != null && a.album.source != "local") null
@@ -302,13 +307,13 @@ private fun DateLine(extras: AlbumExtras?, onPage: (String, String?) -> Unit) {
     if (date.isEmpty() && e.label == null && e.scoreText == null) return
     Row(Modifier.parity("album.date").padding(top = 3.dp)) {
         val dim = MaterialTheme.colorScheme.onSurfaceVariant
-        Text(date, color = dim, fontSize = 14.sp)
+        Text(date, color = dim, fontSize = 14.sp, lineHeight = 19.sp)
         e.label?.let { label ->
-            if (date.isNotEmpty()) Text(" · ", color = dim, fontSize = 14.sp)
+            if (date.isNotEmpty()) Text(" · ", color = dim, fontSize = 14.sp, lineHeight = 19.sp)
             Text(label, Modifier.parity("album.label", Contract.label("album.label", 0, label)).clickable { onPage("label", label) },
-                color = MaterialTheme.colorScheme.secondary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = MaterialTheme.colorScheme.secondary, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        e.scoreText?.let { Text(" · $it" + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp) }
+        e.scoreText?.let { Text(" · $it" + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp, lineHeight = 19.sp) }
     }
 }
 
@@ -320,9 +325,9 @@ private fun FactsLine(a: Album) {
         a.album.quality?.let {
             val c = if (a.album.hires) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
             val edge = if (a.album.hires) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-            Text(it, Modifier.border(1.dp, edge, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp)
+            Text(it, Modifier.border(1.dp, edge, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp, lineHeight = 16.sp)
         }
-        if (length.isNotEmpty()) Text((if (a.album.quality != null) " · " else "") + length, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        if (length.isNotEmpty()) Text((if (a.album.quality != null) " · " else "") + length, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 19.sp)
     }
 }
 
@@ -340,29 +345,33 @@ private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (Str
     val kinds = a.actions.map { it.kind }.toSet()
     val offset = a.album.offset.toString()
     Box {
-        IconButton(onClick = { open = !open }, modifier = Modifier.parity("album.more", Contract.label("album.more")).size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-            Icon(painterResource(R.drawable.np_more), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+        OutlinedIconButton(onClick = { open = !open }, shape = RoundedCornerShape(999.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = paletteColor(Palette.MODAL_TEXT)),
+            modifier = Modifier.parity("album.more", Contract.label("album.more")).size(40.dp, 42.dp)) {
+            Icon(painterResource(R.drawable.np_more), contentDescription = null, modifier = Modifier.size(22.dp))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            if ("play_next" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.play-next")) }, modifier = Modifier.parity("album.play-next", Contract.label("album.play-next")),
+        // The page's menu (.overflow-menu): 186 wide, each item 15px in 10 of padding, 41 tall.
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = RoundedCornerShape(10.dp), containerColor = paletteColor(Palette.BG_ELEV_2),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.width(186.dp)) {
+            if ("play_next" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.play-next"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.play-next", Contract.label("album.play-next")),
                 onClick = { open = false; onPlay("play_next", "Playing next") })
-            if ("shuffle" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.shuffle")) }, modifier = Modifier.parity("album.shuffle", Contract.label("album.shuffle")),
+            if ("shuffle" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.shuffle"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.shuffle", Contract.label("album.shuffle")),
                 onClick = { open = false; onPlay("shuffle", "Shuffling") })
-            if ("radio" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.radio")) }, modifier = Modifier.parity("album.radio", Contract.label("album.radio")),
+            if ("radio" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.radio"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.radio", Contract.label("album.radio")),
                 onClick = { open = false; onPlay("radio", "Radio") })
             val service = a.album.serviceName
             if (service != null && a.album.serviceId != null && serviceFavourite != null) {
                 val words = (if (serviceFavourite) "Remove from " else "Add to ") + service
-                DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words)) }, modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
+                DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words)), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
                     onClick = { open = false; onServiceFavourite(!serviceFavourite) })
             }
-            DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0)) }, modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
+            DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
                 onClick = { open = false; onLater() })
-            DropdownMenuItem(text = { Text(Contract.label("album.playlist")) }, modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
+            DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
                 onClick = { open = false; onPage("album-playlist", offset) })
-            if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit")) },
+            if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.edit", Contract.label("album.edit")), onClick = { open = false; onPage("album-edit", offset) })
-            if (download != null) DropdownMenuItem(text = { Text(download) }, modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
+            if (download != null) DropdownMenuItem(text = { Text(download, fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
                 onClick = { open = false; onDownload() })
         }
     }

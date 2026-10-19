@@ -22,6 +22,7 @@ The page stays for browsers, the iPhone, and every screen the app hasn't made na
 | The labels | `Contract.kt` in `core` is written from the contract by `npm run parity -- write`, and the gate fails if it differs; `ContractTest` (JVM) checks it against the JSON and fills its `{…}`. | Contract.kt is edited by hand or left behind |
 | The colours | `ShellTest`: each native colour is `style.css`'s dark palette token. | A palette token changes on one side |
 | The data | `test/golden/android-api.json`: the server's answers as the app's client reads them (AndroidApiTests, LibraryTest). | The server's answer or the client's reading changes alone |
+| The look | `node tools/quality/page-metrics.js` opens each screen (and its sheets and menus) in a browser at a phone's size and writes every keyed element's place, size, line boxes and computed style, with a screenshot each. A native screen is drawn to these numbers, not to a reading of the stylesheet; the type is laid out as the browser lays it (`Type.kt`: the page's line boxes, no letter-spacing unless the page has it) and a disc or ring is a filled or outlined button, drawn at its own size, never a plain button's background or border, which lie outside its 48 touch target. | By eye, against the page on the same phone: the app isn't drawn here (bug list item 54 is the first pass over every screen) |
 
 So a change to a native screen goes through the contract, and from there into both sides in one change:
 1. A control added to the page fails the page's test until it's in the contract.

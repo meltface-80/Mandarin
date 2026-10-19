@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,18 +21,19 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -57,8 +58,8 @@ import kotlin.math.min
 /** A run of albums under a heading of its own ([title]: none for the only run). */
 internal class GridBlock(val title: String?, val albums: List<AlbumSummary>)
 
-/** The page's room for the bar above and the mini player and the row below (main's padding). */
-internal val WALL_PADDING = PaddingValues(start = 14.dp, top = 70.dp, end = 14.dp, bottom = 176.dp)
+/** The page's room for the bar above (its 64 and main's 14) and for the mini player and the row below (main's padding-bottom). */
+internal val WALL_PADDING = PaddingValues(start = 14.dp, top = 78.dp, end = 14.dp, bottom = 164.dp)
 
 /** How many columns the screen has at [prefs], and how wide a cover to ask for (the page's tileImgSize: the tile in device pixels to the next 100, within 200 and 500). */
 @Composable
@@ -113,12 +114,20 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
     }
 }
 
-/** Back, as the bar's button in the hifi palette (style.css, `.topbar .icon-btn`: a brass disc, the glyph in the charcoal); at the bar's padding, top left. */
+/** The bar's buttons in the hifi palette (style.css, `.topbar .icon-btn`): a brass disc of 40, the glyph in the charcoal. */
+@Composable
+internal fun barDisc() = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+    disabledContainerColor = MaterialTheme.colorScheme.primary, disabledContentColor = MaterialTheme.colorScheme.onPrimary)
+
+/**
+ * Back, as the bar's button: the brass disc at the bar's padding, top left, its glyph 20 as the bar draws it. A filled
+ * button, not a plain one with a background: a plain button's 48 touch target lies inside the background modifier, which
+ * drew the disc 48 wide (bug list item 54); the filled button's disc is its own 40.
+ */
 @Composable
 internal fun BoxScope.WallBack(onBack: () -> Unit) {
-    IconButton(onClick = onBack, modifier = Modifier.parity("library.back wall.back artist.back", Contract.label("library.back")).align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp).size(40.dp)
-        .clip(CircleShape).background(MaterialTheme.colorScheme.primary)) {
-        Icon(painterResource(R.drawable.np_back), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
+    FilledIconButton(onClick = onBack, colors = barDisc(), modifier = Modifier.parity("library.back wall.back artist.back", Contract.label("library.back")).align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp).size(40.dp)) {
+        Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -136,8 +145,10 @@ private fun BlockTitle(title: String) {
 @Composable
 internal fun WallHead(title: String, prefs: WallPrefs, banner: Pair<String, Boolean>?) {
     Column(Modifier.fillMaxWidth().padding(bottom = if (prefs.list) 14.dp else 2.dp)) {
-        Text(title, Modifier.parity("library.title wall.title artist.title"), color = MaterialTheme.colorScheme.onSurface, fontFamily = youngSerif, fontWeight = FontWeight.W400,
-            fontSize = (24 * prefs.title).sp, lineHeight = (28.8 * prefs.title).sp, letterSpacing = 0.01.em)
+        // In the page's 1.2 line box (Type.kt), its figures tabular as the page's are (.album-count), so "1" is as wide as "3".
+        val size = (24 * prefs.title).sp; val line = (28.8 * prefs.title).sp
+        Text(title, Modifier.parity("library.title wall.title artist.title").lineBox(size, line, Face.YOUNG_SERIF), color = MaterialTheme.colorScheme.onSurface, fontFamily = youngSerif, fontWeight = FontWeight.W400,
+            fontSize = size, lineHeight = line, letterSpacing = 0.01.em, style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"))
         banner?.let { (said, error) -> Banner(said, error, Modifier.padding(top = 14.dp)) }
     }
 }
@@ -155,8 +166,8 @@ internal fun Banner(said: String, error: Boolean, modifier: Modifier = Modifier)
 @Composable
 private fun SkeletonTile() {
     Column(Modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(6.dp)).background(paletteColor(Palette.BG_ELEV_2)))
-        Spacer(Modifier.height(5.dp))
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(paletteColor(Palette.BG_ELEV_2)))
+        Spacer(Modifier.height(11.dp))
         Box(Modifier.fillMaxWidth(0.8f).height(12.dp).clip(RoundedCornerShape(3.dp)).background(paletteColor(Palette.BG_ELEV_2)))
         Spacer(Modifier.height(4.dp))
         Box(Modifier.fillMaxWidth(0.5f).height(10.dp).clip(RoundedCornerShape(3.dp)).background(paletteColor(Palette.BG_ELEV_2)))

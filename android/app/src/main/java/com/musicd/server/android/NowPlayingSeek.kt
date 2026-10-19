@@ -123,9 +123,9 @@ internal fun SeekBar(v: NowPlayingView, now: Long, client: () -> ServerClient?, 
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             val faint = paletteColor(Palette.TEXT_FAINT)
-            Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"), fontSize = 12.sp, color = faint)
+            Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"), fontSize = 12.sp, lineHeight = 17.sp, color = faint)
             Spacer(Modifier.weight(1f))
-            Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"), fontSize = 12.sp, color = faint)
+            Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"), fontSize = 12.sp, lineHeight = 17.sp, color = faint)
         }
     }
 }
