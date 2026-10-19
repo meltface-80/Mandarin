@@ -1,7 +1,8 @@
 {
   "about": "What each screen the Android app draws natively shows and does, held to the page's (docs/specs/native-parity.md). Keys are `<screen>.<item>`: the page carries them as data-parity, the app as Modifier.parity(). kind: action (it can be tapped or dragged) or shows (a readout). label: what it is called, aloud as well (one per state; {…} is the content). in: shown once that item is tapped. when: shown only then. each: one per row. only: page, with why: the page's alone, for that reason. native: the app's Compose files for it; preview: still behind its switch in Settings, and what it lacks yet is on tools/quality/parity-gaps.json, which only shrinks. shell: the app's Compose files that are no screen.",
   "shell": {
-    "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation and Mandarin's colours; it draws nothing of its own (the page's screens are the WebView's)",
+    "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation; it draws nothing of its own (the page's screens are the WebView's)",
+    "android/app/src/main/java/com/musicd/server/android/Theme.kt": "Mandarin's colours and type for the native screens, as Material's theme; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own"
   },

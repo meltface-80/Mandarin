@@ -3,22 +3,13 @@ package com.musicd.server.android
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,7 +17,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShellRoute
 import com.musicd.server.client.WallPrefs
@@ -340,63 +330,4 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 entry.arguments?.getString(ShellRoute.NAME).orEmpty(), entry.arguments?.getInt(ShellRoute.PAGES) ?: 0, client, onBack = { nav.popBackStack() })
         }
     }
-}
-
-/** One of the page's colours (Palette, ARGB) as Compose draws it. */
-internal fun paletteColor(argb: Long): Color = Color(argb.toInt())
-
-/**
- * The page's type: Manrope (public/fonts/manrope.woff2, the hifi palette's
- * `--font-sans`), as TrueType fonts in res/font, one a weight (Regular to
- * ExtraBold), each a static instance of the page's variable font written by
- * fontTools' instancer. Static, not the variable file itself: that file's
- * default instance is ExtraLight (200), and the app drew every weight with
- * it, the whole screen light (bug list item 40).
- */
-private val manrope = FontFamily(
-    Font(R.font.manrope_regular, FontWeight.W400), Font(R.font.manrope_medium, FontWeight.W500), Font(R.font.manrope_semibold, FontWeight.W600),
-    Font(R.font.manrope_bold, FontWeight.W700), Font(R.font.manrope_extrabold, FontWeight.W800)
-)
-
-/**
- * The page's display face (public/fonts/young-serif.woff2, the hifi palette's `--font-display`): a grid screen's
- * heading, Home's greeting and a settings pane's title are set in it, at weight 400 (style.css, "Titles in the
- * serif; the rest in Manrope"); the same font as TrueType in res/font, written by fontTools from the page's own file.
- */
-internal val youngSerif = FontFamily(Font(R.font.young_serif, FontWeight.W400))
-
-/**
- * Material's type scale in Manrope, with no letter-spacing: the page sets none unless it says so (its kickers and
- * tabs set their own, and so do the app's), where Material's body line puts half a pixel between every two glyphs,
- * which made a tile's title a twentieth wider than the page's (bug list item 54).
- */
-private fun typography(): Typography {
-    val t = Typography()
-    fun TextStyle.ours() = copy(fontFamily = manrope, letterSpacing = 0.sp)
-    return Typography(
-        displayLarge = t.displayLarge.ours(), displayMedium = t.displayMedium.ours(), displaySmall = t.displaySmall.ours(),
-        headlineLarge = t.headlineLarge.ours(), headlineMedium = t.headlineMedium.ours(), headlineSmall = t.headlineSmall.ours(),
-        titleLarge = t.titleLarge.ours(), titleMedium = t.titleMedium.ours(), titleSmall = t.titleSmall.ours(),
-        bodyLarge = t.bodyLarge.ours(), bodyMedium = t.bodyMedium.ours(), bodySmall = t.bodySmall.ours(),
-        labelLarge = t.labelLarge.ours(), labelMedium = t.labelMedium.ours(), labelSmall = t.labelSmall.ours()
-    )
-}
-
-/** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest), and its type. */
-@Composable
-private fun MandarinTheme(content: @Composable () -> Unit) {
-    val c = ::paletteColor
-    MaterialTheme(
-        typography = typography(),
-        colorScheme = darkColorScheme(
-            primary = c(Palette.ACCENT), onPrimary = c(Palette.ON_ACCENT),
-            secondary = c(Palette.ACCENT_TEXT), onSecondary = c(Palette.ON_ACCENT),
-            background = c(Palette.BG), onBackground = c(Palette.TEXT),
-            surface = c(Palette.BG), onSurface = c(Palette.TEXT),
-            surfaceVariant = c(Palette.BG_ELEV), onSurfaceVariant = c(Palette.TEXT_DIM),
-            outline = c(Palette.BORDER), outlineVariant = c(Palette.BORDER),
-            error = c(Palette.DANGER)
-        ),
-        content = content
-    )
 }
