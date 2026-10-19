@@ -128,7 +128,8 @@ const OPEN_NAV = `(async () => {
 const OPEN_LIBRARY = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no Home";
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
   const up = () => /Library · \\d/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album:not(.skeleton)").length >= 3;
   const banner = () => { const b = document.getElementById("status-banner"); return !!b && !b.classList.contains("hidden"); };
   // Asked for while the library is being read again (the suite's own files changing under the watch), the wall says so
@@ -146,7 +147,9 @@ const OPEN_LIBRARY = `(async () => {
 const OPEN_WALL = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no Home";
+  // Home as painted from its cache comes first; the startup's own showHome() follows once the rooms are loaded (the mini player names one), and would undo a wall opened before it.
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
   document.getElementById("home-random-title").click();
   if (!(await until(() => /Random albums/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album:not(.skeleton)").length >= 3))) return "no wall";
   await sleep(500);
@@ -157,7 +160,8 @@ const OPEN_WALL = `(async () => {
 const OPEN_ARTIST = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no Home";
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
   window.__showArtistAlbums("Artist A");
   if (!(await until(() => /albums? · Artist A/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album").length >= 1))) return "no artist";
   await sleep(800);
