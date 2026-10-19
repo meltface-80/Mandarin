@@ -140,4 +140,37 @@ public sealed class WorksTests
         Assert.Null(one["works"]);
         Assert.Null(one["album"]!["composers"]);
     }
+
+    /// <summary>
+    /// Bug list item 60: a rock album's COMPOSER tags name its songwriters, and they stood where the band's name goes,
+    /// the band under them as performers. The head is the composers' only on a classical album: one set out as works,
+    /// or whose genre says so; every other album's page names its artist alone.
+    /// </summary>
+    [Test]
+    public async Task Composers_head_a_classical_album_only_a_rock_album_with_composer_tags_keeps_its_artist()
+    {
+        Needs.Server(); Needs.Ffmpeg();
+        var lib = Fixtures.MakeLibrary();
+        Dictionary<string, object> Tags(string artist, string album, string genre, int i, string title) => new()
+        {
+            ["title"] = title, ["artist"] = artist, ["album"] = album, ["track"] = i, ["date"] = "2021", ["genre"] = genre, ["composer"] = "Joshua Michael Kiszka; Jacob Thomas Kiszka"
+        };
+        // Songwriters in the COMPOSER tag, no works, a rock genre: the artists' line stays the band's.
+        var rock = Path.Combine(lib.Music, "Greta Van Fleet", "The Battle at Garden's Gate");
+        Fixtures.Gen(Path.Combine(rock, "01.flac"), seconds: 1, freq: 300, tags: Tags("Greta Van Fleet", "The Battle at Garden's Gate", "Rock", 1, "Heat Above"));
+        Fixtures.Gen(Path.Combine(rock, "02.flac"), seconds: 1, freq: 350, tags: Tags("Greta Van Fleet", "The Battle at Garden's Gate", "Rock", 2, "My Way, Soon"));
+        // The same tags under a classical genre, still no works: the composers' head, as a recital of single pieces has it.
+        var recital = Path.Combine(lib.Music, "Some Pianist", "Nocturnes");
+        Fixtures.Gen(Path.Combine(recital, "01.flac"), seconds: 1, freq: 300, tags: Tags("Some Pianist", "Nocturnes", "Classical", 1, "Nocturne in E flat"));
+        Fixtures.Gen(Path.Combine(recital, "02.flac"), seconds: 1, freq: 350, tags: Tags("Some Pianist", "Nocturnes", "Classical", 2, "Nocturne in F"));
+        await using var s = await LibraryServer.Start(lib);
+        var albums = await s.Albums();
+        var band = await s.Album(albums.First(a => a.Str("title") == "The Battle at Garden's Gate").Num("offset")!);
+        Assert.Null(band["album"]!["composers"]);
+        Assert.Null(band["album"]!["performers"]);
+        Assert.Null(band["album"]!["conductor"]);
+        Assert.Equal("Greta Van Fleet", band["album"].Str("subtitle"));
+        var piano = await s.Album(albums.First(a => a.Str("title") == "Nocturnes").Num("offset")!);
+        Assert.Equal(["Joshua Michael Kiszka", "Jacob Thomas Kiszka"], piano["album"]!["composers"].Items().Select(c => (string?)c));
+    }
 }
