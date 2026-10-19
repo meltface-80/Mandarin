@@ -217,6 +217,13 @@ private val manrope = FontFamily(
     Font(R.font.manrope_bold, FontWeight.W700), Font(R.font.manrope_extrabold, FontWeight.W800)
 )
 
+/**
+ * The page's display face (public/fonts/young-serif.woff2, the hifi palette's `--font-display`): a grid screen's
+ * heading, Home's greeting and a settings pane's title are set in it, at weight 400 (style.css, "Titles in the
+ * serif; the rest in Manrope"); the same font as TrueType in res/font, written by fontTools from the page's own file.
+ */
+internal val youngSerif = FontFamily(Font(R.font.young_serif, FontWeight.W400))
+
 /** Material's type scale in Manrope. */
 private fun typography(): Typography {
     val t = Typography()

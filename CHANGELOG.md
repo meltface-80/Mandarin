@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `53-native-wall-look`: the native Library wall, the walls and an artist's page drawn as the page draws them where
+  they strayed (the owner's screenshots): the heading in the page's serif (Young Serif, as the hifi palette sets its
+  titles), the bar's Back a brass disc with the glyph in the charcoal, Focus and Sort as brass pills, and the room
+  between the heading and the first row the page's. The mini player stood 8dp taller than the page's on every native
+  screen: its three lines of text took Material's 24sp body line each, three of which stand taller than the cover;
+  each line is now at the font's own height, as the page's. The sheets', chips', pills' and rows' texts likewise.
 - `52-native-library-group`: the rest of the Library natively in the Android app (plan L2 to L5), in the same
   preview as the wall (Native Library in UI Settings): Focus (the listening and each facet as a section that opens to
   its chips, a chip tapped once included, again excluded, once more cleared; Clear all, Save as… through the page's

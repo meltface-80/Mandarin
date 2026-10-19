@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -72,10 +73,10 @@ private fun Sheet(title: String, onClose: () -> Unit, foot: (@Composable RowScop
         shape = RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp), containerColor = MaterialTheme.colorScheme.surfaceVariant, scrimColor = Color(0x8C000000)) {
         Column(Modifier.fillMaxWidth().heightIn(max = maxHeight).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp))) {
             Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, Modifier.parity("library.focus-title library.sort-title"), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.W700)
+                Text(title, Modifier.parity("library.focus-title library.sort-title"), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.W700)
                 Box(Modifier.parity("library.focus-close library.sort-close", Contract.label("library.focus-close")).size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                    Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
+                    Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, lineHeight = 22.sp)
                 }
             }
             HorizontalDivider(color = hairline)
@@ -133,10 +134,10 @@ internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryVi
                 HorizontalDivider(color = Color(0x12FFFFFF))
                 Row(Modifier.parity("library.focus-section", Contract.label("library.focus-section", 0, label)).fillMaxWidth().clickable { open[id] = !expanded }.padding(vertical = 13.dp, horizontal = 2.dp)
                     .defaultMinSize(minHeight = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(label.uppercase(), Modifier.weight(1f), color = if (expanded) MaterialTheme.colorScheme.onSurface else faint, fontSize = 10.5.sp, fontWeight = FontWeight.W700, letterSpacing = 0.14.em)
+                    Text(label.uppercase(), Modifier.weight(1f), color = if (expanded) MaterialTheme.colorScheme.onSurface else faint, fontSize = 10.5.sp, lineHeight = 14.sp, fontWeight = FontWeight.W700, letterSpacing = 0.14.em)
                     if (active > 0) Text("$active", Modifier.defaultMinSize(minWidth = 18.dp).height(18.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 5.dp),
                         color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.W700, lineHeight = 18.sp)
-                    Text(if (expanded) "⌃" else "⌄", color = faint, fontSize = 13.sp)
+                    Text(if (expanded) "⌃" else "⌄", color = faint, fontSize = 13.sp, lineHeight = 18.sp)
                 }
                 if (expanded) {
                     FlowRow(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) { chips() }
@@ -150,7 +151,7 @@ internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryVi
                 .background(if (on) paletteColor(Palette.ACCENT_SOFT) else if (not) Color(0x29E8836B) else paletteColor(Palette.BG_ELEV_2))
                 .border(1.dp, if (on) MaterialTheme.colorScheme.primary else if (not) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
                 .clickable(onClick = onTap).padding(horizontal = 12.dp, vertical = 7.dp)) {
-                Text(label, color = if (on || not) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.5.sp, fontWeight = FontWeight.W600,
+                Text(label, color = if (on || not) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600,
                     textDecoration = if (not) TextDecoration.LineThrough else null)
             }
         }
@@ -188,28 +189,35 @@ internal fun SortSheet(view: LibraryView, onChoose: (String) -> Unit, onClose: (
             Row(Modifier.parity("library.sort-row", Contract.label("library.sort-row", if (on && o.hasDir) 1 else 0, o.label, view.dirLabel)).fillMaxWidth().padding(top = 4.dp)
                 .clip(RoundedCornerShape(10.dp)).background(if (on) paletteColor(Palette.ACCENT_SOFT) else Color.Transparent).clickable { onChoose(o.id) }.padding(horizontal = 12.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(if (on && o.hasDir) (if (view.dir == "desc") "↓" else "↑") else "", Modifier.width(20.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 19.sp, lineHeight = 19.sp)
+                Text(if (on && o.hasDir) (if (view.dir == "desc") "↓" else "↑") else "", Modifier.width(20.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 19.sp, lineHeight = 19.sp, textAlign = TextAlign.Center)
                 Column {
-                    Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
-                    o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp) }
+                    Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
+                    o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.7.sp) }
                 }
             }
         }
     }
 }
 
-/** The Focus and Sort pills at the top right of the wall (the touch layout's), each a tap to its sheet; [focus] how many filters are on. */
+/**
+ * The Focus and Sort pills at the top right of the wall (the touch layout's; style.css `.library-controls.sub-bar
+ * .lib-ctl`): brass pills 32 high with the words in the charcoal, "Focus" with its count inverted when filters are on,
+ * "Sort ⌄"; each a tap to its sheet.
+ */
 @Composable
 internal fun BoxScope.LibraryPills(focus: Int, onFocus: () -> Unit, onSort: () -> Unit) {
+    val pill = Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary)
     Row(Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).height(40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.parity("library.focus", if (focus == 0) Contract.label("library.focus") else Contract.label("library.focus", if (focus == 1) 1 else 2, focus.toString())).clip(RoundedCornerShape(8.dp)).clickable(onClick = onFocus).padding(horizontal = 2.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Focus", color = if (focus > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.W600)
-            if (focus > 0) Text("$focus", Modifier.defaultMinSize(minWidth = 18.dp).height(18.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 5.dp),
-                color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.W700, lineHeight = 18.sp)
+        Row(Modifier.parity("library.focus", if (focus == 0) Contract.label("library.focus") else Contract.label("library.focus", if (focus == 1) 1 else 2, focus.toString())).then(pill)
+            .clickable(onClick = onFocus).padding(horizontal = 11.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("Focus", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
+            if (focus > 0) Text("$focus", Modifier.defaultMinSize(minWidth = 16.dp).height(16.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.onPrimary).padding(horizontal = 5.dp),
+                color = MaterialTheme.colorScheme.primary, fontSize = 10.5.sp, fontWeight = FontWeight.W700, lineHeight = 16.sp)
         }
-        Row(Modifier.parity("library.sort", Contract.label("library.sort", 0, "")).clip(RoundedCornerShape(8.dp)).clickable(onClick = onSort).padding(horizontal = 2.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Sort", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.W600)
-            Text("⌄", color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp)
+        Row(Modifier.parity("library.sort", Contract.label("library.sort", 0, "")).then(pill).clickable(onClick = onSort).padding(horizontal = 11.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("Sort", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
+            Text("⌄", color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp, lineHeight = 17.sp)
         }
     }
 }
