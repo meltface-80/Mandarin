@@ -21,7 +21,11 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +58,7 @@ import kotlinx.coroutines.launch
 internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerClient?, onOpen: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit, modifier: Modifier = Modifier) {
     val v = room.view
     val scope = rememberCoroutineScope()
+    var volumeOpen by remember { mutableStateOf(false) }
     fun act(block: (ServerClient) -> Unit) {
         val c = client() ?: return
         scope.launch(Dispatchers.IO) { runCatching { block(c) } }
@@ -62,6 +67,8 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
     val shape = RoundedCornerShape(22.dp)
     val brass = MaterialTheme.colorScheme.primary
     Box(modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp)) {
+        // The volume sheet just above the bar, as the page's is.
+        VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, room.volume, ::act, above = true, inset = 4.dp)
         Column(Modifier.fillMaxWidth().shadow(20.dp, shape).clip(shape).background(paletteColor(Palette.MT_BG)).border(1.dp, paletteColor(Palette.MT_EDGE), shape)) {
             Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, end = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, enabled = v != null, shape = CircleShape,
@@ -93,7 +100,7 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                     }
                 }
                 PlayOnMenu(zoneId, client, ::act, onRoom, onPage, size = 46.dp, iconSize = 28.dp)
-                VolumeMenu(zoneId, room.volume, room.muted, ::act, size = 46.dp, iconSize = 28.dp, fixedNote = false)
+                VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
             }
             // The track's progress as the page's level meter: brass segments over faint ones, along the bottom.
             val lit = brass
