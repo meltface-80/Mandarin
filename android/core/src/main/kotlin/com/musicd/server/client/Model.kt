@@ -58,6 +58,9 @@ data class NowPlaying(
 /** A speaker's volume as the server gives it: its range and step, where it is; `incremental` has no scale, only up and down. */
 data class VolumeScale(val min: Double, val max: Double, val step: Double, val value: Double?, val type: String?) {
     val incremental: Boolean get() = type == "incremental"
+
+    /** A step up ([direction] 1) or down (-1) from where it is, within the scale; null where it isn't known. */
+    fun stepped(direction: Int): Double? = value?.let { (it + direction * step).coerceIn(min, max) }
 }
 
 data class Output(val id: String, val name: String, val volume: Int?, val muted: Boolean, val scale: VolumeScale? = null)

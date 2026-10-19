@@ -1,6 +1,5 @@
 package com.musicd.server.android
 
-import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,9 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,8 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -48,55 +43,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Credit
-import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Now playing, native (stage N2 of docs/specs/plan-android-native.md, a
  * preview: Settings → Setup → UI Settings, on this phone). The room's track,
  * its cover, where it is, and its transport. The room is followed as the
- * notification follows it: each answer waits on the next change (the server
- * holds it up to 20 s); between answers the clock moves the track on.
+ * notification follows it ([followRoom]).
  */
 @Composable
 internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
-    var view by remember { mutableStateOf<NowPlayingView?>(null) }
-    var answered by remember { mutableStateOf(false) }
+    val room = followRoom(zoneId, client)
+    val view = room.view
+    val answered = room.answered
+    val now = room.now
     var queueTab by remember { mutableStateOf(false) }
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val scope = rememberCoroutineScope()
     BackHandler(onBack = onBack)
-
-    LaunchedEffect(zoneId) {
-        var revision: Long? = null
-        while (isActive) {
-            val c = client()
-            val st = if (c == null) null else withContext(Dispatchers.IO) { runCatching { c.zoneState(zoneId, revision) }.getOrNull() }
-            if (st == null) { delay(2000); continue }
-            revision = st.revision
-            view = NowPlayingView.of(st, System.currentTimeMillis())
-            answered = true
-        }
-    }
-    LaunchedEffect(view) {
-        now = System.currentTimeMillis()
-        while (view?.playing == true) { delay(500); now = System.currentTimeMillis() }
-    }
-
-    val key = view?.imageKey
-    var cover by remember(key) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(key) {
-        val c = client() ?: return@LaunchedEffect
-        if (key == null) return@LaunchedEffect
-        cover = withContext(Dispatchers.IO) {
-            runCatching { c.bytes(c.imageUrl(key, 1000)).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
-        }
-    }
+    val cover = rememberCover(view?.imageKey, 1000, client)
 
     // A command to the room; the answer it waits on shows what it did.
     fun act(block: (ServerClient) -> Unit) {
@@ -197,7 +163,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
                 Spacer(Modifier.weight(1f))
-                VolumeMenu(zoneId, v, ::act)
+                VolumeMenu(zoneId, v.volume, v.muted, ::act)
             }
             Spacer(Modifier.weight(1f))
         }

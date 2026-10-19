@@ -43,8 +43,13 @@ data class NowPlayingView(
     /** The format as the page's badge reads it: an Opus stream is named. */
     val formatText: String? get() = format?.let { if (it.kind == "opus") "Opus ${it.text}".trim() else it.text.ifEmpty { null } }
 
+    /** The format as the mini player's kicker reads it, after the room: "Lossless", "Opus 256" (no kbps there). */
+    val formatWord: String? get() = format?.let { f ->
+        (if (f.kind == "opus") "Opus " + f.text.replace(Regex("\\s*kbps$", RegexOption.IGNORE_CASE), "") else f.text).trim().ifEmpty { null }
+    }
+
     /** A volume a step up ([direction] 1) or down (-1) from where it is, within its scale. */
-    fun volumeStep(direction: Int): Double? = volume?.let { v -> v.value?.let { (it + direction * v.step).coerceIn(v.min, v.max) } }
+    fun volumeStep(direction: Int): Double? = volume?.stepped(direction)
 
     /** Where the track is at [nowMs]: moved on by the clock while it plays. */
     fun position(nowMs: Long): Double {

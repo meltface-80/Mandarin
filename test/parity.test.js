@@ -145,11 +145,30 @@ const OPEN_ALBUM = `(async () => {
   return "open";
 })()`;
 
+/* The mini player: an album played to the Kitchen, the bar showing its first track. */
+const OPEN_MINI_PLAYER = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const shown = e => !!e && e.getClientRects().length > 0;
+  const $ = s => document.querySelector(s);
+  await until(() => $("#home-library .album") && /Kitchen/.test(($("#mt-kicker") || {}).textContent || ""));
+  $("#home-library .album").click();
+  const playBtn = () => [...document.querySelectorAll("#modal-actions .action-btn")].find(b => /^Play Now$/.test(b.textContent.trim()) && shown(b));
+  if (!(await until(() => playBtn()))) return "no Play Now";
+  playBtn().click();
+  $("#modal-close-btn").click();
+  await until(() => !shown($("#album-modal")));
+  if (!(await until(() => /Song/.test(($("#mt-title") || {}).textContent || "") && $("#mt-playpause").getAttribute("aria-label") === "Pause"))) return "nothing playing";
+  await sleep(500);
+  return shown($("#mini-transport")) ? "open" : "no mini player";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it. */
 const SCREENS = {
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
   "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
   "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" },
+  "mini-player": { open: OPEN_MINI_PLAYER, root: "#mini-transport" },
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" }
 };
 

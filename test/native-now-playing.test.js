@@ -97,6 +97,9 @@ const PLAYING_HANDOFF = `(async () => { ${KIT}
   out.noArtist = window.__musicdNative("artist");
   out.artist = window.__musicdNative("artist", "Artist A");
   out.artistShown = await until(() => /album.* · Artist A$/.test(($("#album-count") || {}).textContent || ""), 8000);
+  // The native mini player's tap on what is playing: the page's bar's own tap, which asks the app (its Now playing on here).
+  out.nowPlaying = window.__musicdNative("now-playing");
+  out.nowPlayingAsked = await until(() => window.MusicdApp.opened.length > 0, 5000);
   return out;
 })()`;
 
@@ -135,9 +138,10 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
     assert.equal(r.stored, study.zone_id);
   });
 
-  await t.test("handed back with a track playing: Share card, its album, its artist", async () => {
+  await t.test("handed back with a track playing: Share card, its album, its artist, Now playing", async () => {
     const r = await run(PLAYING_HANDOFF, room + bridge(true));
     assert.equal(r.playing, true, "it plays");
+    assert.deepEqual([r.nowPlaying, r.nowPlayingAsked], [true, true], "the mini player's tap, as the page's bar makes it");
     assert.deepEqual([r.share, r.shareShown], [true, true], "Share card");
     assert.equal(r.album, true);
     assert.equal(r.albumTitle, "Album One", "the playing album, opened");
