@@ -60,6 +60,8 @@ async function fetchAlbumDetail(album) {
   if (Array.isArray(j.artists) && j.artists.length) {
     setModalArtist((j.album && j.album.subtitle) || album.subtitle || "", j.artists);
   }
+  // A classical album (item 49): its composers in the artists' place, and who performs it under them.
+  setClassicalHead(j);
   // Below the review: more by the album's lead artist (the name its first
   // artist link shows), what they appear on, and Last.fm's suggestions.
   fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
@@ -244,56 +246,7 @@ async function fetchAlbumDetail(album) {
     trackWrap.classList.add("hidden");
   } else {
     trackWrap.classList.remove("hidden");
-    trackList.forEach((t, idx) => {
-      const li = document.createElement("li");
-      li.className = "t-row"; li.dataset.trackId = t.track_id == null ? "" : String(t.track_id);   // nowdisc.js finds the playing track by it
-      li.dataset.parity = "album.track";
-      // Same two-line .t-text structure as the cached render above — the
-      // .t-actions row stays a SIBLING of .t-text so the is-open flex-wrap
-      // still drops it onto its own full-width line.
-      const tx = document.createElement("div"); tx.className = "t-text";
-      const ti = document.createElement("span"); ti.className = "t-title";
-      ti.textContent = t.title || "";
-      const su = document.createElement("span"); su.className = "t-sub";
-      const [subText, len] = splitTrackLength(t.subtitle);
-      su.textContent = subText;
-      tx.appendChild(ti); tx.appendChild(su);
-      li.appendChild(tx);
-      // The track's length on the right, level with the title.
-      if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
-
-      // The select target, on the right. Present from the start but hidden
-      // until select mode is armed, so arming it doesn't reflow every row.
-      // A real element rather than a ::after: .album-art-wrap's ♪ placeholder
-      // already taught us what happens when two states share one pseudo.
-      // It stays a sibling BEFORE .t-actions so is-open's flex-wrap still
-      // drops the action row onto its own full-width line beneath it.
-      const mark = document.createElement("button");
-      mark.type = "button";
-      mark.className = "t-mark"; mark.dataset.parity = "album.track-select";
-      mark.setAttribute("aria-label", "Select this track");
-      mark.setAttribute("aria-pressed", "false");
-      mark.addEventListener("click", (e) => {
-        // Selecting must never also expand or collapse the row's actions.
-        e.stopPropagation();
-        toggleTrackSelected(li, t, idx);
-      });
-      li.appendChild(mark);
-
-      li.addEventListener("click", (e) => {
-        if (e.target.closest(".t-actions")) return;   // taps on the buttons themselves
-        if (e.target.closest(".t-mark")) return;      // handled above
-        // Once the mode is armed the whole row selects. Making the user hunt
-        // for a small circle is the wrong ergonomics for a list you are
-        // deliberately working through.
-        if (trackSelectMode) { toggleTrackSelected(li, t, idx); return; }
-        toggleTrackActions(li, t, idx);
-      });
-
-      // A long press starts selecting, with this track the first pick —
-      // the same rule as the album grid (v0.6.24).
-      addLongPress(li, () => { if (trackSelectMode) return; enterTrackSelectMode(); toggleTrackSelected(li, t, idx); });
-      modalTracks.appendChild(li);
-    });
+    // The rows (album-works.js): the plain list, or the album's works and movements.
+    renderTrackList(j, trackList);
   }
 }

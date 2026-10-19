@@ -186,7 +186,9 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         Column(Modifier.weight(1f)) {
                             Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp,
                                 letterSpacing = (-0.02).em, color = white, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            Row {
+                            // A classical album: its composers and who performs it, in the artists' place (item 49).
+                            if (a.composers.isNotEmpty()) ComposerLines(a, onPage)
+                            else Row {
                                 (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
                                     if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp)
                                     Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", name) },
@@ -243,9 +245,19 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             })
                     }
                 }
-                albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true, picks = picks,
-                    onPick = { i -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i },
-                    onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
+                val playingId = room.view?.takeIf { it.album == a.album.title }?.trackId
+                val onPick = { i: Int -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
+                val onPlay = { i: Int, kind: String, said: String -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
+                // A classical album's works and movements (item 49), else the plain list; a work plays as a selection of its tracks would (Play next last to first).
+                if (a.classical) albumWorks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, onPlayWork = { w, kind, said ->
+                    play("$said: ${w.title}") { c ->
+                        val order = w.movements.map { it.track }.filter { it in a.tracks.indices }.let { if (kind == "play_next") it.reversed() else it }
+                        var last: JSONObject? = null
+                        order.forEachIndexed { n, i -> last = c.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, if (kind == "play_next" || n == 0) kind else "queue") }
+                        last
+                    }
+                })
+                else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay)
                 albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
             }
             // The corner discs, over the glow: Back, and Share.

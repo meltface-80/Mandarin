@@ -59,6 +59,32 @@ class LibraryTest {
         assertFalse(a.partial)
     }
 
+    @Test fun `a classical album's works and the names for its head`() {
+        val a = Album.parse(JSONObject("""{"album":{"offset":7,"title":"Violin Concertos","subtitle":"Anne-Sophie Mutter","composers":["Ludwig van Beethoven","Johannes Brahms"],
+            "conductor":"Herbert von Karajan","performers":["Anne-Sophie Mutter (violin)","Berliner Philharmoniker"]},
+            "tracks":[{"track_id":1,"title":"A","subtitle":"25:40","length":1540},{"track_id":2,"title":"B","subtitle":"11:04","length":664},{"track_id":3,"title":"C","subtitle":"8:17","length":497}],
+            "works":[{"title":"Violin Concerto in D major, Op. 61","composer":"Ludwig van Beethoven","conductor":"Herbert von Karajan","performers":["Anne-Sophie Mutter (violin)"],"disc":1,"length":2204,
+              "movements":[{"track":0,"title":"I. Allegro ma non troppo"},{"track":1,"title":"II. Larghetto"}]},
+              {"title":null,"composer":null,"conductor":null,"performers":[],"disc":2,"length":497,"movements":[{"track":2,"title":"C"}]}]}"""))
+        assertTrue(a.classical)
+        assertEquals(listOf("Ludwig van Beethoven", "Johannes Brahms"), a.composers)
+        assertEquals("Herbert von Karajan", a.conductor)
+        assertEquals(listOf("Anne-Sophie Mutter (violin)", "Berliner Philharmoniker"), a.performers)
+        assertEquals(2, a.works.size)
+        assertEquals("Violin Concerto in D major, Op. 61", a.works[0].title)
+        assertEquals(listOf(0 to "I. Allegro ma non troppo", 1 to "II. Larghetto"), a.works[0].movements.map { it.track to it.title })
+        assertEquals(1L, a.works[0].disc)
+        assertEquals(2204.0, a.works[0].length, 0.0)
+        // A plain track among the works: no title, the track's own name; the null the server writes stays a null, not "null".
+        assertEquals(null, a.works[1].title)
+        assertEquals(null, a.works[1].composer)
+        // An album with none: not classical, nothing named.
+        val plain = Album.parse(JSONObject("""{"album":{"offset":1,"title":"Album One","subtitle":"Artist A"},"tracks":[]}"""))
+        assertFalse(plain.classical)
+        assertEquals(emptyList<String>(), plain.composers)
+        assertEquals(null, plain.conductor)
+    }
+
     @Test fun `artists, and an artist's albums`() {
         val p = client.artists()
         assertEquals(listOf("Artist A", "Artist B"), p.artists.map { it.name })
