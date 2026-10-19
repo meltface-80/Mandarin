@@ -60,7 +60,7 @@ private fun typography(): Typography {
 
 /** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest), and its type. */
 @Composable
-private fun MandarinTheme(content: @Composable () -> Unit) {
+internal fun MandarinTheme(content: @Composable () -> Unit) {
     val c = ::paletteColor
     MaterialTheme(
         typography = typography(),
