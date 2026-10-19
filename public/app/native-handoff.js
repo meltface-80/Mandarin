@@ -7,12 +7,21 @@
 /*  artist open as the page's Now playing opens them, for the track     */
 /*  playing; a room chosen on Play on becomes the page's room too, so   */
 /*  its mini player follows; the native mini player opens the page's    */
-/*  Now playing when this phone's native one is off. An album's own (its Share card, Add to     */
+/*  Now playing when this phone's native one is off; the native row at   */
+/*  the foot of the screen taps the page's own Menu, Home, Library,      */
+/*  Search or Offline sign. An album's own (its Share card, Add to     */
 /*  playlist, Edit album) are asked by its offset; a label by its name. */
 /*  True when done.                                                     */
 /* ------------------------------------------------------------------ */
 window.__musicdNative = function (what, arg) {
   if (what === "group") { openGroupSheet(); return true; }
+  // The native row along the foot of the screen (Menu, Home, Library, Search, the Offline sign): the page's own button, tapped.
+  if (what === "nav") {
+    const b = arg && /^(menu|home|offline|library|search)$/.test(arg) ? document.getElementById("tnav-" + arg) : null;
+    if (!b) return false;
+    b.click();
+    return true;
+  }
   // The native mini player's tap on what is playing, this phone's native Now playing off: the page's own opens.
   if (what === "now-playing") {
     const info = document.querySelector("#mini-transport .mt-info");

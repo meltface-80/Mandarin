@@ -75,6 +75,10 @@ const HANDOFF = (study) => `(async () => { ${KIT}
   await until(() => /Study/.test(($("#mt-kicker") || {}).textContent || ""), 8000);
   out.kicker = ($("#mt-kicker") || {}).textContent;
   out.stored = localStorage.getItem("rra-zone");
+  // The native row along the foot of the screen: the page's own button, tapped; a name it hasn't is nothing.
+  out.navUnknown = window.__musicdNative("nav", "settings");
+  out.nav = window.__musicdNative("nav", "library");
+  out.navLibrary = await until(() => document.documentElement.classList.contains("tn-lib"), 8000);
   return out;
 })()`;
 
@@ -136,6 +140,7 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
     assert.equal(r.zone, true);
     assert.match(r.kicker, /Study/, "the page's room is the Study now");
     assert.equal(r.stored, study.zone_id);
+    assert.deepEqual([r.navUnknown, r.nav, r.navLibrary], [false, true, true], "the row's Library, as the page's own tap");
   });
 
   await t.test("handed back with a track playing: Share card, its album, its artist, Now playing", async () => {

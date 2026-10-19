@@ -4,7 +4,10 @@ function openAlbum(album, opts) {
   // The Android app's own album page (a preview, switched on in UI Settings): one of the library's, not this phone's.
   const app = window.MusicdApp;
   if (opts.source !== "now-playing" && album && typeof album.offset === "number" && app && typeof app.nativeAlbum === "function" && app.nativeAlbum()) {
-    app.openAlbum(album.offset, selectedZoneId || "");
+    // Which of the row's buttons is lit under it (touchnav.js's classes on <html>): Home, or the Library wall. An older app takes two arguments.
+    const html = document.documentElement.classList;
+    const lit = html.contains("tn-home") && !html.contains("tn-search") ? "home" : html.contains("tn-lib") ? "library" : "";
+    try { app.openAlbum(album.offset, selectedZoneId || "", lit); } catch (e) { app.openAlbum(album.offset, selectedZoneId || ""); }
     return;
   }
   if (opts.source === "now-playing") {

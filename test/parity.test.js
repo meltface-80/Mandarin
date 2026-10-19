@@ -163,12 +163,22 @@ const OPEN_MINI_PLAYER = `(async () => {
   return shown($("#mini-transport")) ? "open" : "no mini player";
 })()`;
 
+/* The touch layout's row: on Home, as the page opens on a phone. */
+const OPEN_NAV = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelector("#home-library .album")))) return "no Home";
+  await sleep(300);
+  return document.getElementById("touch-nav").getClientRects().length ? "open" : "no row";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it. */
 const SCREENS = {
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
   "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
   "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" },
   "mini-player": { open: OPEN_MINI_PLAYER, root: "#mini-transport" },
+  "nav": { open: OPEN_NAV, root: "#touch-nav" },
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" }
 };
 

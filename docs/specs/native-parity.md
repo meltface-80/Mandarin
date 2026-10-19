@@ -1,6 +1,6 @@
 # The screens contract: the Android app's native screens and the page, kept the same
 
-Status: built (bug list item 25). It holds Now playing, its Queue tab and the yes-or-no sheet they ask with (items 26 to 29: none of them lacks anything of the page's now), the album page (items 30 and 32, in preview), the mini player (item 35: the page's bar, drawn at the foot of the native album page; whole from the start, so never in preview), and each screen made native after them.
+Status: built (bug list item 25). It holds Now playing, its Queue tab and the yes-or-no sheet they ask with (items 26 to 29: none of them lacks anything of the page's now), the album page (items 30 and 32, in preview), the mini player (item 35: the page's bar, drawn at the foot of the native album page; whole from the start, so never in preview), the touch layout's row under it (item 38, `nav`, likewise), and each screen made native after them.
 
 The page stays for browsers, the iPhone, and every screen the app hasn't made native. A screen the app does draw natively is drawn twice, so it can drift: a button added to the page and not the app, a control the app has and the page hasn't, or one called something else. Nothing here relies on remembering. Three machines hold each native screen to one file, and a change that lets the two sides differ doesn't merge.
 
