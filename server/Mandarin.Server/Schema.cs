@@ -283,11 +283,10 @@ CREATE TABLE IF NOT EXISTS audio_devices (
         ("tracks", "rg_album_peak", "REAL"),
         // Which of a track's names came from its folder and file name (v0.6.0-RC10).
         ("tracks", "names_from", "TEXT"),
-        ("albums", "barcode", "TEXT"),
-        ("albums", "catno", "TEXT"),
-        ("albums", "country", "TEXT"),
-        ("albums", "mb_album", "TEXT"),
-        ("albums", "mb_group", "TEXT"),
+        ("albums", "barcode", "TEXT"), ("albums", "catno", "TEXT"), ("albums", "country", "TEXT"), ("albums", "mb_album", "TEXT"), ("albums", "mb_group", "TEXT"),
+        // A classical track's composer, conductor, work, movement and performers (bug list item 48, Tags/Classical.cs).
+        ("tracks", "composer", "TEXT"), ("tracks", "conductor", "TEXT"), ("tracks", "work", "TEXT"),
+        ("tracks", "movement", "TEXT"), ("tracks", "movement_no", "INTEGER"), ("tracks", "performers", "TEXT"),
     ];
 
     /* Smart Picks and the radio's memory (lib/server/features.js, the Features constructor). */
