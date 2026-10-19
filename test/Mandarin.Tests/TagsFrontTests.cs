@@ -16,6 +16,10 @@ public sealed class TagsFrontTests(TagsFrontTests.Book book) : IClassFixture<Tag
     /// <summary>test/golden/tags-front.json.</summary>
     public sealed class Book() : KeptBook("tags-front");
 
+    // The C# reader's own fields beyond music-metadata's (the classical ones, bug list item 48, Tags/Classical.cs): the
+    // recording is from before them, so a reading is compared without them.
+    private static readonly string[] Ours = ["composer", "conductor", "work", "movement", "movement_no", "performers"];
+
     [Test]
     public async Task The_CSharp_tag_reader_reads_every_file_as_music_metadata_does()
     {
@@ -34,6 +38,7 @@ public sealed class TagsFrontTests(TagsFrontTests.Book book) : IClassFixture<Tag
             var got = files.Select(f =>
             {
                 Assert.True(cs.TryGetValue(f, out var c), "read " + f);
+                if (c["tags"] is JsonObject tags) foreach (var k in Ours) tags.Remove(k);
                 return (JsonNode?)(c.Bool("ok") == true ? JsonValue.Create(JsJson.Stringify(c["tags"], markNegativeZero: false)) : null);
             }).ToList();
             book.Kept.Same("readings", [.. files.Select(f => (object?)Path.GetFileName(f))], [.. files.Select(f => (JsonNode?)Path.GetFileName(f))], got);
