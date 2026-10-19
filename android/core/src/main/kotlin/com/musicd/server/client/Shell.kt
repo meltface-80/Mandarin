@@ -71,6 +71,12 @@ object Palette {
     const val METER_OFF = 0x1FECEBE6L
     /** The mini player's edge: the brass at .24 (style.css, `.mini-transport` in the hifi palette). */
     const val MT_EDGE = 0x3DC9A45CL
+    /** A lit mode button's ground (`--accent-soft`, the brass at .15). */
+    const val ACCENT_SOFT = 0x26C9A45CL
+    /** The album view's and Now playing's text: white, not the cream (style.css, `.modal { --text: #ffffff }` in the hifi palette). */
+    const val MODAL_TEXT = 0xFFFFFFFFL
+    /** A cover's ring: white at .06 (style.css, the framed cover's box-shadow). */
+    const val COVER_RING = 0x0FFFFFFFL
 
     /** Each colour by the page's own token name, for the test that holds the two together. */
     val tokens: Map<String, Long> = mapOf(
@@ -79,5 +85,5 @@ object Palette {
     )
 
     /** The translucent ones, by token name: the page writes these as rgba(r,g,b,a). */
-    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF)
+    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF, "accent-soft" to ACCENT_SOFT)
 }

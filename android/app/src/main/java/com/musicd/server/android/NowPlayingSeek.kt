@@ -1,15 +1,17 @@
 package com.musicd.server.android
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,14 +19,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.NowPlayingView
+import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.Waveform
 import kotlinx.coroutines.Dispatchers
@@ -33,10 +36,14 @@ import kotlinx.coroutines.withContext
 
 /**
  * Now playing's seek bar, where the track is and how long it is, as the
- * page's (docs/specs/screens.json, now-playing): drawn over the track's
- * waveform when the server draws them (Settings), the played part in brass;
- * a plain bar while there is none. A drag shows its time at once and seeks
- * ([onSeek], in seconds) as it ends.
+ * page's (docs/specs/screens.json, now-playing; style.css, `.np-progress`):
+ * the level meter (brass segments over faint ones, 7 lit of each 10) with a
+ * white thumb riding along it, or, when the server draws waveforms
+ * (Settings), the track's waveform in the bar's place, the played part in
+ * brass. The thumb travels from half its width in to half its width short
+ * of the end, as the page's does, so a moment in the track is at one place
+ * on both. A drag shows its time at once and seeks ([onSeek], in seconds) as
+ * it ends; a tap seeks there.
  */
 @Composable
 internal fun SeekBar(v: NowPlayingView, now: Long, client: () -> ServerClient?, onSeek: (Double) -> Unit) {
@@ -54,43 +61,71 @@ internal fun SeekBar(v: NowPlayingView, now: Long, client: () -> ServerClient?, 
         }
     }
     val fraction = dragging ?: v.fraction(now)
-    val played = MaterialTheme.colorScheme.secondary
+    val played = MaterialTheme.colorScheme.primary
+    val rest = paletteColor(Palette.METER_OFF)
     val ahead = MaterialTheme.colorScheme.onSurfaceVariant
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        levels?.let { lv ->
-            // Inset by half the thumb, as the page's is, so a peak is under the thumb as it is heard.
-            Canvas(Modifier.parity("now-playing.wave").fillMaxWidth().padding(horizontal = 10.dp).height(34.dp)) {
-                val pitch = 3.dp.toPx() / 2
-                val bars = Waveform.bars(lv, maxOf(1, (size.width / pitch).toInt()))
-                val step = size.width / bars.size
-                val head = fraction * size.width
-                bars.forEachIndexed { i, h ->
-                    val x = i * step
-                    val barH = maxOf(1f, h * (size.height - 2))
-                    val done = x + step / 2 <= head
-                    drawRect(if (done) played else ahead.copy(alpha = 0.72f), Offset(x, (size.height - barH) / 2), Size(step * 2 / 3, barH))
+    val thumb = paletteColor(Palette.MODAL_TEXT)
+    val wave = levels
+    // The thumb's travel, as the page's: it can't hang off either end.
+    fun at(x: Float, width: Float, thumbW: Float): Float = if (width <= thumbW) 0f else ((x - thumbW / 2) / (width - thumbW)).coerceIn(0f, 1f)
+    Column(Modifier.fillMaxWidth().padding(top = 18.dp)) {
+        Box(Modifier.fillMaxWidth().height(if (wave != null) 64.dp else 14.dp)) {
+            if (wave != null) {
+                // The waveform under the bar, inset by half the thumb, so a peak is under the thumb as it is heard (the page's drawWave).
+                Canvas(Modifier.parity("now-playing.wave").fillMaxSize()) {
+                    val thumbW = 14.dp.toPx()
+                    val head = thumbW / 2 + fraction * (size.width - thumbW)
+                    val pitch = 3.dp.toPx() / 2
+                    val span = size.width - thumbW
+                    val bars = Waveform.bars(wave, maxOf(1, (span / pitch).toInt()))
+                    val step = span / bars.size
+                    bars.forEachIndexed { i, h ->
+                        val x = thumbW / 2 + i * step
+                        val barH = maxOf(1f, h * (size.height - 2))
+                        val done = x + step / 2 <= head
+                        drawRect(if (done) played else ahead.copy(alpha = 0.72f), Offset(x, (size.height - barH) / 2), Size(step * 2 / 3, barH))
+                    }
                 }
             }
+            // The bar itself: the meter (none over a waveform) and the thumb, dragged or tapped.
+            Canvas(Modifier.parity("now-playing.seek", Contract.label("now-playing.seek")).fillMaxSize()
+                .pointerInput(length) {
+                    if (length == null) return@pointerInput
+                    val thumbW = 14.dp.toPx()
+                    detectDragGestures(
+                        onDragStart = { dragging = at(it.x, size.width.toFloat(), thumbW) },
+                        onDrag = { change, _ -> dragging = at(change.position.x, size.width.toFloat(), thumbW) },
+                        onDragEnd = { val f = dragging; dragging = null; if (f != null) onSeek(f * length) },
+                        onDragCancel = { dragging = null }
+                    )
+                }
+                .pointerInput(length) {
+                    if (length == null) return@pointerInput
+                    val thumbW = 14.dp.toPx()
+                    detectTapGestures { onSeek(at(it.x, size.width.toFloat(), thumbW) * length) }
+                }) {
+                val thumbW = 14.dp.toPx()
+                val head = thumbW / 2 + fraction * (size.width - thumbW)
+                if (wave == null) {
+                    // The level meter: 7 of each 10 lit to the thumb, 4 tall, through the thumb's middle.
+                    val on = 7.dp.toPx(); val pitch = 10.dp.toPx(); val barH = 4.dp.toPx(); val top = (size.height - barH) / 2
+                    var x = 0f
+                    while (x < size.width) {
+                        val w = minOf(on, size.width - x)
+                        drawRect(rest, Offset(x, top), Size(w, barH))
+                        val lit = minOf(w, head - x)
+                        if (lit > 0f) drawRect(played, Offset(x, top), Size(lit, barH))
+                        x += pitch
+                    }
+                }
+                drawCircle(if (length == null) ahead else thumb, thumbW / 2, Offset(head, size.height / 2))
+            }
         }
-        Slider(
-            value = fraction,
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
-                val f = dragging
-                dragging = null
-                if (f != null && length != null) onSeek(f * length)
-            },
-            modifier = Modifier.parity("now-playing.seek", Contract.label("now-playing.seek")),
-            enabled = length != null,
-            // Over a waveform the bar's own track would draw a line through it: the waveform shows the split.
-            colors = if (levels != null) SliderDefaults.colors(activeTrackColor = Color.Transparent, inactiveTrackColor = Color.Transparent) else SliderDefaults.colors()
-        )
-    }
-    Row(Modifier.fillMaxWidth()) {
-        Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.weight(1f))
-        Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            val faint = paletteColor(Palette.TEXT_FAINT)
+            Text(NowPlayingView.clock(dragging?.let { it * (length ?: 0.0) } ?: v.position(now)), Modifier.parity("now-playing.position"), fontSize = 12.sp, color = faint)
+            Spacer(Modifier.weight(1f))
+            Text(length?.let { NowPlayingView.clock(it) }.orEmpty(), Modifier.parity("now-playing.length"), fontSize = 12.sp, color = faint)
+        }
     }
 }

@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `36-native-np-look`: the Android app's native Now playing (preview) is drawn as the page's, not in Material's
+  own look: the page's type (Manrope, the hifi palette's `--font-sans`, as `res/font/manrope.ttf`, for every
+  native screen), the brass corner discs and the tracked-out tabs with the brass line under the one on, the
+  cover whole in a rounded frame in the room the controls leave, the title and the artists in the page's white,
+  the format badge, the seek bar as the page's level meter with its white thumb (the waveform, when there is
+  one, at the page's 64px), the transport in brass with shuffle and repeat small and dim until on (the "1" inside
+  repeat's arrows), and Play on and the volume under it, each at the page's size and spacing.
 - `35-native-mini-player`: the Android app's native album page (preview) has the mini player at its foot, as
   the page's bar: what the room plays (its cover and track, the room and the format above them; a tap opens
   Now playing, the native one when this phone has it on, else the page's), play/pause, Play on and the volume
