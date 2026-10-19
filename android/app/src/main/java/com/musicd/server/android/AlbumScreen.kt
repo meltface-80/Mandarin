@@ -103,6 +103,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
     var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
     var booklets by remember(offset) { mutableStateOf<List<Booklet>>(emptyList()) }
+    var picks by remember(offset) { mutableStateOf<List<Int>?>(null) }   // selecting tracks: their places, in order of picking
     var failed by remember(offset) { mutableStateOf<String?>(null) }
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
@@ -205,7 +206,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage)
                     }
                 }
-                albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true,
+                albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true, picks = picks,
+                    onPick = { i -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i },
                     onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
                 albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
             }
@@ -214,7 +216,22 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
             }
             Row(Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
+                // Selecting tracks, their menu takes previous and next's place, as on the page.
+                val p = picks
+                val a = album
+                if (p != null && a != null) SelectMenu(p, onAct = { act ->
+                    when (act) {
+                        "clear" -> picks = null
+                        "later" -> { later = true; mark { it.listenLater(offset, true) }; toast("Added to Listen later"); picks = null }
+                        "playlist" -> onPage("album-playlist-tracks", picksJson(a, p))
+                        else -> {
+                            val c = client()
+                            if (c == null || zone.isEmpty()) toast("Pick a zone first")
+                            else scope.launch { toast(withContext(Dispatchers.IO) { playPicks(c, a, p, zone, act) }); picks = null }
+                        }
+                    }
+                })
+                else list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
                 FilledIconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null, colors = disc,
                     modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
