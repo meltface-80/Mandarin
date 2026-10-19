@@ -137,13 +137,15 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = rememberCover(album?.album?.imageKey, 640, client)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-    // To the room: what came of it said as the page says it.
+    // To the room: what came of it said as the page says it; nothing when [said] is empty (Play Now: the mini player shows what
+    // plays, and a toast over it said the same, bug list item 58), unless it failed.
     fun play(said: String, block: (ServerClient) -> JSONObject?) {
         val c = client() ?: return
         if (zone.isEmpty()) { toast("Pick a zone first"); return }
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { block(c) } }
-            toast(r.exceptionOrNull()?.message ?: said)
+            val err = r.exceptionOrNull()?.message
+            if (err != null) toast(err) else if (said.isNotEmpty()) toast(said)
         }
     }
     fun mark(block: (ServerClient) -> Unit) {
@@ -215,7 +217,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
                         val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
-                        Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                        Button(onClick = { play("") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }

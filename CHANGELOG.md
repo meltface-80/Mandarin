@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `58-no-playing-toast`: the native album page's Play Now put up a toast saying "Playing" over the mini player, which was
+  already showing what plays. Nothing is said now unless the play failed; Queue, Play next and a track's own actions still
+  say what they did, as the mini player doesn't show that.
 - `56-mini-bar-buttons`: the native mini player's Play on and volume buttons stood 10dp apart where the page's touch, the
   row's spacing between them; and the 10 came off the title, which was cut short ("Boat Graveya…") where the page's
   wasn't. Side by side now, as the page's, the title the page's 128 wide.
