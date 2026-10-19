@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `33-native-regex-crash`: the Android app no longer crashes opening native Now playing. Its labels were filled
+  by a regular expression the JVM takes and Android refuses (an unescaped `}`); escaped, and every regex in the
+  app's Kotlin is now checked against Android's rule (`test/android-regex.test.js`), which the JVM tests can't see.
 - `30-album-contract`: the album page in the screens contract, ahead of its native screen (stage N3): its items
   keyed on the page (`data-parity`) and held by `test/parity.test.js`; the gate holds every key of the contract
   written in the page's source, so one shown only for some albums (a booklet, a review, Last.fm's rows, the

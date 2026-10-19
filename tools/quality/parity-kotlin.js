@@ -182,7 +182,7 @@ ${rows.join("\n")}
     fun label(key: String, state: Int = 0, vararg fill: String): String {
         val all = labels[key] ?: throw IllegalArgumentException("$key: not a control of the contract")
         var i = 0
-        return Regex("\\\\{[^}]+}").replace(all[state.coerceIn(0, all.size - 1)]) { fill.getOrElse(i++) { "" } }
+        return Regex("\\\\{[^}]+\\\\}").replace(all[state.coerceIn(0, all.size - 1)]) { fill.getOrElse(i++) { "" } }
     }
 }
 `;
