@@ -5,11 +5,13 @@
  */
 /*
  * In the page: the screen [name] under [rootSel] checked against [items].
+ * What is under the root but another screen's ([shared]: the mini player and
+ * the row along the foot, on a wall) is held by that screen's own check.
  * Returns what is wrong, one line each: an empty list is a screen that keeps
  * the contract.
  */
-const CHECK = (name, items, rootSel) => `(async () => {
-  const S = ${JSON.stringify(name)}, items = ${JSON.stringify(items)};
+const CHECK = (name, items, rootSel, shared = []) => `(async () => {
+  const S = ${JSON.stringify(name)}, items = ${JSON.stringify(items)}, shared = ${JSON.stringify(shared)};
   const root = document.querySelector(${JSON.stringify(rootSel)});
   if (!root) return ["no " + ${JSON.stringify(rootSel)} + " on the page"];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -17,6 +19,7 @@ const CHECK = (name, items, rootSel) => `(async () => {
   const CONTROL = "button, input, select, textarea, a[href], [role=button], [role=tab], [role=slider], [tabindex]:not([tabindex='-1']), [contenteditable=true]";
   const keysOf = e => (e.getAttribute && e.getAttribute("data-parity") || "").split(/\\s+/).filter(k => k.startsWith(S + ".")).map(k => k.slice(S.length + 1));
   const keyOf = e => { for (let x = e; x && x !== root.parentElement; x = x.parentElement) { const k = keysOf(x); if (k.length) return k[0]; } return null; };
+  const sharedKeyed = e => { for (let x = e; x && x !== root.parentElement; x = x.parentElement) { const ks = (x.getAttribute && x.getAttribute("data-parity") || "").split(/\\s+/); if (ks.some(k => shared.some(s => k.startsWith(s + ".")))) return true; } return false; };
   const describe = e => e.tagName.toLowerCase() + (e.id ? "#" + e.id : "") + (typeof e.className === "string" && e.className.trim() ? "." + e.className.trim().split(/\\s+/).join(".") : "");
   const labelOf = e => (e.getAttribute("aria-label") || e.textContent || "").trim().replace(/\\s+/g, " ");
   const pattern = l => new RegExp("^" + l.replace(/[.*+?^$()|[\\]\\\\]/g, "\\\\$&").replace(/\\{[^}]+\\}/g, ".+") + "$");
@@ -25,7 +28,7 @@ const CHECK = (name, items, rootSel) => `(async () => {
   // What is on screen now: each control and each thing shown carries a key of the right kind.
   const sweep = (state) => {
     for (const e of root.querySelectorAll(CONTROL)) {
-      if (!shown(e)) continue;
+      if (!shown(e) || sharedKeyed(e)) continue;
       const k = keyOf(e);
       if (!k) out.add(state + ": a control the contract doesn't list: " + describe(e) + " (" + labelOf(e) + ")");
       else if (items[k] && items[k].kind !== "action") out.add(state + ": " + k + " is a control; the contract says it only shows");
@@ -33,10 +36,10 @@ const CHECK = (name, items, rootSel) => `(async () => {
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n; (n = w.nextNode());) {
       const p = n.parentElement;
-      if (n.textContent.trim() && shown(p) && !p.closest(CONTROL) && !keyOf(p)) out.add(state + ": text the contract doesn't list: " + describe(p) + " (" + n.textContent.trim().slice(0, 40) + ")");
+      if (n.textContent.trim() && shown(p) && !p.closest(CONTROL) && !keyOf(p) && !sharedKeyed(p)) out.add(state + ": text the contract doesn't list: " + describe(p) + " (" + n.textContent.trim().slice(0, 40) + ")");
     }
     for (const e of root.querySelectorAll("img, canvas, svg, video")) {
-      if (shown(e) && !e.closest(CONTROL) && !keyOf(e)) out.add(state + ": a picture the contract doesn't list: " + describe(e));
+      if (shown(e) && !e.closest(CONTROL) && !keyOf(e) && !sharedKeyed(e)) out.add(state + ": a picture the contract doesn't list: " + describe(e));
     }
     for (const e of root.querySelectorAll("[data-parity]")) for (const k of keysOf(e)) if (!items[k]) out.add("the page has " + S + "." + k + ", which the contract doesn't");
   };

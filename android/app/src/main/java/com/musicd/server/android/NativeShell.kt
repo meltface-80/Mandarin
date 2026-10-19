@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShellRoute
+import com.musicd.server.client.WallPrefs
 
 /**
  * The native app's frame (stage N0 of docs/specs/plan-android-native.md):
@@ -110,6 +111,23 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
             )
         }
+        // The Library wall (N4, item 51): opened by the page in its view of it; an album's page over it, Back returning here.
+        composable(ShellRoute.LIBRARY, arguments = listOf(
+            navArgument(ShellRoute.VIEW) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.PREFS) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" }
+        )) { entry ->
+            LibraryScreen(
+                entry.arguments?.getString(ShellRoute.VIEW).orEmpty(), WallPrefs.parse(entry.arguments?.getString(ShellRoute.PREFS)),
+                entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
+                onBack = { nav.popBackStack() },
+                onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "library", AlbumLists.put(list), list.index)) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
+            )
+        }
         composable(ShellRoute.ALBUM, arguments = listOf(
             navArgument(ShellRoute.OFFSET) { type = NavType.LongType },
             navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" },
@@ -125,8 +143,8 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 // Previous, next, or a disc of the box: that album's page in this one's place, in the same list.
                 onStepTo = { offset, zone, l -> nav.navigate(ShellRoute.album(offset, zone, lit, AlbumLists.put(l), l.index)) { popUpTo(ShellRoute.ALBUM) { inclusive = true } } },
                 onBack = { nav.popBackStack() },
-                // The row along the foot: the page's own button, tapped, once the page is back in front.
-                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                // The row along the foot: back to the native wall it came from (Library), else the page's own button, tapped, once the page is back in front.
+                onNav = { what -> if (!(what == "library" && nav.popBackStack(ShellRoute.LIBRARY, false))) { nav.popBackStack(); NativeShell.toPage("nav", what) } },
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
                 // A booklet: its pages over the album; Back returns here.
                 onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },

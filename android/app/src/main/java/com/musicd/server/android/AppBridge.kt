@@ -31,6 +31,9 @@ import com.musicd.server.client.ShellRoute
  *                                              lit: the row's button lit under it ("home", "library", ""); two arguments from an older page
  *   MusicdApp.openAlbumIn(offset, zoneId, lit, nav)   the same, in the list it was opened from (nav: {items: [{offset, title}], index},
  *                                                     JSON; "" for none), for its previous and next
+ *   MusicdApp.nativeLibrary() / setNativeLibrary(on)   the native Library wall (item 51), a preview: the switch in UI Settings
+ *   MusicdApp.openLibrary(view, prefs, zoneId)   the native wall in the page's view of it (its query string: the sort and the
+ *                                                focus), drawn to its UI Settings (JSON), its albums playing in that room
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -97,6 +100,17 @@ class AppBridge(private val activity: Activity) {
         val list = com.musicd.server.client.NavList.parse(nav.ifEmpty { null })
         val id = list?.let { AlbumLists.put(it) }.orEmpty()
         activity.runOnUiThread { NativeShell.open(ShellRoute.album(offset.toLong(), zoneId, lit, id, list?.index ?: -1)) }
+    }
+
+    @JavascriptInterface
+    fun nativeLibrary(): Boolean = Store.nativeLibrary(activity)
+
+    @JavascriptInterface
+    fun setNativeLibrary(on: Boolean) { Store.setNativeLibrary(activity, on) }
+
+    @JavascriptInterface
+    fun openLibrary(view: String, prefs: String, zoneId: String) {
+        activity.runOnUiThread { NativeShell.open(ShellRoute.library(view, prefs, zoneId)) }
     }
 
     @JavascriptInterface

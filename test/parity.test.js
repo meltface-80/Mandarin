@@ -124,7 +124,18 @@ const OPEN_NAV = `(async () => {
   return document.getElementById("touch-nav").getClientRects().length ? "open" : "no row";
 })()`;
 
-/* How the page is brought to each screen of the contract, and what holds it. */
+/* The Library wall: Home's Library heading tapped, the wall's tiles and its count up. */
+const OPEN_LIBRARY = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no Home";
+  document.getElementById("home-library-title").click();
+  if (!(await until(() => /Library · \\d/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album").length >= 3))) return "no wall";
+  await sleep(500);
+  return "open";
+})()`;
+
+/* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
   "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
@@ -132,7 +143,8 @@ const SCREENS = {
   "mini-player": { open: OPEN_MINI_PLAYER, root: "#mini-transport" },
   "nav": { open: OPEN_NAV, root: "#touch-nav" },
   "booklet": { open: OPEN_BOOKLET, root: "#booklet-viewer" },
-  "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" }
+  "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
+  "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {
@@ -156,7 +168,7 @@ test("the page keeps the screens contract: each native screen's controls and rea
         init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});`
       });
       assert.equal(await page.eval(how.open), "open", name + " opened");
-      const wrong = await page.eval(CHECK(name, contract.screens[name].items, how.root));
+      const wrong = await page.eval(CHECK(name, contract.screens[name].items, how.root, how.shared || []));
       assert.deepEqual(wrong, [], name + ": the page and the contract differ:\n  " + wrong.join("\n  "));
       assert.deepEqual(page.errors, [], "nothing thrown");
     });

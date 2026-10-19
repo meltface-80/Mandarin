@@ -152,6 +152,15 @@ async function openDevicePowerSheet() {
 window.__openDevicePowerSheet = openDevicePowerSheet;
 
 async function showLibraryWall() {
+  // The Android app's own wall (bug list item 51, a preview): opened in this view of the library (the sort and the
+  // focus, as this wall asks for them) and at this phone's UI Settings; the page stays where it is for its Back.
+  const app = window.MusicdApp;
+  if (app && typeof app.nativeLibrary === "function" && app.nativeLibrary() && typeof app.openLibrary === "function") {
+    const p = window.__uiPrefs;
+    const prefs = p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title") } : {};
+    app.openLibrary(libViewQuery(), JSON.stringify(prefs), selectedZoneId || "");
+    return;
+  }
   const m = enterFullWall("Library", true);
   libraryWallActive = true;
   renderLibraryControls();

@@ -311,7 +311,7 @@ async function fetchLibraryPage(mySeq, firstPage) {
     const albums = (j && j.albums) || [];
     if (firstPage) { grid.innerHTML = ""; setBanner(null); libWall.ext = null; }
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(homeTile(a));   // filter:null → offsets resolve
+    for (const a of albums) frag.appendChild(keyLibraryTile(homeTile(a)));   // filter:null → offsets resolve; keyed as the contract's
     grid.appendChild(frag);
     // The letters typed asked of Qobuz and Tidal too (v0.6.24): their
     // artists and albums under the library's rows, kept at the end as
