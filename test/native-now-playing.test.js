@@ -101,17 +101,23 @@ const PLAYING_HANDOFF = `(async () => { ${KIT}
 const OVER = `(async () => { ${KIT}
   const sheet = () => [...document.querySelectorAll(".lib-sheet h3")].filter(h => shown(h.closest(".lib-sheet"))).map(h => h.textContent);
   const cleared = () => document.documentElement.classList.contains("native-over");
-  window.MusicdApp.closed = 0; window.MusicdApp.overlayClosed = function () { this.closed++; };
+  // The app's side of the handshake: told the page is painted clear, it comes in front; told the sheet has closed, it puts
+  // the screen in front and then takes the class off (as NativeShell.overlayClosed does).
+  window.MusicdApp.shown = 0; window.MusicdApp.closed = 0;
+  window.MusicdApp.overlayShown = function () { this.shown++; };
+  window.MusicdApp.overlayClosed = function () { this.closed++; document.documentElement.classList.remove("native-over"); };
   const out = { over: window.__musicdNativeOver("group") };
   await until(() => sheet().length, 5000);
-  out.sheet = sheet(); out.cleared = cleared(); out.main = getComputedStyle($("main")).visibility; out.ground = getComputedStyle(document.body).backgroundColor;
+  await until(() => window.MusicdApp.shown > 0, 5000);
+  out.sheet = sheet(); out.shown = window.MusicdApp.shown; out.cleared = cleared(); out.main = getComputedStyle($("main")).visibility; out.ground = getComputedStyle(document.body).backgroundColor;
   out.back = window.__pageBack();
   await until(() => !sheet().length, 5000);
   await until(() => window.MusicdApp.closed > 0, 5000);
   out.closed = window.MusicdApp.closed; out.clearedAfter = cleared(); out.mainAfter = getComputedStyle($("main")).visibility;
-  window.MusicdApp.closed = 0;
+  window.MusicdApp.shown = 0; window.MusicdApp.closed = 0;
   out.none = window.__musicdNativeOver("share");
-  out.noneClosed = window.MusicdApp.closed; out.noneCleared = cleared();
+  await sleep(200);
+  out.noneShown = window.MusicdApp.shown; out.noneClosed = window.MusicdApp.closed; out.noneCleared = cleared();
   return out;
 })()`;
 
@@ -153,9 +159,9 @@ test("the app's native Now playing: the mini player handing over to it, and what
 
   await t.test("a sheet over a native screen: the page clear but for the sheet, Back closes it, the app told", async () => {
     const r = await run(OVER, room + bridge(true));
-    assert.deepEqual([r.over, r.sheet, r.cleared, r.main, r.ground], [true, ["Group zones"], true, "hidden", "rgba(0, 0, 0, 0)"], "the sheet over a clear page");
+    assert.deepEqual([r.over, r.sheet, r.shown, r.cleared, r.main, r.ground], [true, ["Group zones"], 1, true, "hidden", "rgba(0, 0, 0, 0)"], "the sheet over a clear page, the app told it is painted");
     assert.deepEqual([r.back, r.closed, r.clearedAfter, r.mainAfter], [true, 1, false, "visible"], "Back closed it, the app told once");
-    assert.deepEqual([r.none, r.noneClosed, r.noneCleared], [false, 1, false], "a sheet that can't open: given up on at once");
+    assert.deepEqual([r.none, r.noneShown, r.noneClosed, r.noneCleared], [false, 0, 1, false], "a sheet that can't open: given up on at once, never shown");
   });
 
   await t.test("handed back with a track playing: Share card, its album, its artist, Now playing", async () => {

@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `55-share-card-flash`: the Share card (and the other sheets) opened from a native screen flashed something on the way in
+  and out: the page was put in front before it had painted itself clear, so a frame of Home's covers showed, and on
+  closing the page painted Home again before the screen was back in front. Each way is a handshake now: the page comes
+  in front once it has painted clear (two frames on), and paints its own screens again only once the app has the screen
+  in front. With it, the last commit of item 54, which its merge left behind: the page's own Back closes a lib sheet
+  (Focus, Sort, Group zones, Device power, Add to playlist), the album editor and the name prompt, where on Home with one
+  open it answered "nothing to close" and the app left the screen; and the sheet is watched for, not polled, so one
+  opened and closed between two polls is not missed. A browser test holds all of it.
 - `54-native-exact-look`: every native screen held to the page's own numbers, read from the page itself in a browser
   (each contract item's size, type and spacing at a phone's width) rather than from a reading of its stylesheet. The type:
   Material put half a pixel between every two glyphs, so a tile's title stood a twentieth wider than the page's (none now,
@@ -18,9 +26,7 @@
   summary, tools and rows as the page's; the booklet's head; the yes-or-no sheet as the page's own, not Material's. And the
   Share card (with Add to playlist, Edit album, Group zones, Device power and a Dynamic Playlist's name), asked for from
   Now playing or an album's native page, opened over Home with the native screen gone: it opens over the screen now, as it
-  opens over the page's own screens, and the screen is there again when it closes. And the page's own Back now closes
-  a lib sheet (Focus, Sort, Group zones, Device power, Add to playlist), the album editor and the name prompt: on Home
-  with one of them open it answered "nothing to close", and the app left the screen.
+  opens over the page's own screens, and the screen is there again when it closes.
 - `53-native-wall-look`: the native Library wall, the walls and an artist's page drawn as the page draws them where
   they strayed (the owner's screenshots): the heading in the page's serif (Young Serif, as the hifi palette sets its
   titles), the bar's Back a brass disc with the glyph in the charcoal, Focus and Sort as brass pills, and the room
