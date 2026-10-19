@@ -54,6 +54,13 @@ class AlbumExtrasTest {
         assertNull(NavList.parse("not json")); assertNull(NavList.parse(null))
     }
 
+    @Test fun `an album's booklets, and the book's words`() {
+        val b = Booklet.list(JSONObject("""{"booklets": [{"id": "Booklet.pdf", "name": "Booklet", "pages": 12}, {"id": "", "name": "x", "pages": 1}, {"id": "Scans/Inlay.pdf", "name": "Inlay", "pages": 1}]}"""))
+        assertEquals(listOf("Booklet · 12 pages", "Inlay · 1 page"), b.map { it.text })
+        assertEquals(listOf("Booklet", "2 booklets"), listOf(Booklet.label(1), Booklet.label(2)))
+        assertEquals(emptyList<Booklet>(), Booklet.list(JSONObject("{}")))
+    }
+
     @Test fun `About this album, the write-up, whose words, and the link`() {
         val pf = AlbumExtras.parse(JSONObject("""{"album": {"description": "A record.", "description_source": "Wikipedia", "description_url": "https://w/x",
             "source": "Pitchfork", "url": "https://p/x", "score": 8}}""")).review!!

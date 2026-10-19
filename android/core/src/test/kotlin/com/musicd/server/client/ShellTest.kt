@@ -30,6 +30,8 @@ class ShellTest {
         assertEquals("album/42?zone=RINCON_X%20Y&lit=&nav=&at=-1", ShellRoute.album(42, "RINCON_X Y"))
         assertEquals("the page's button lit under it, and the list it came from", "album/42?zone=z&lit=home&nav=l1&at=2", ShellRoute.album(42, "z", "home", "l1", 2))
         assertEquals("album/{offset}?zone={zone}&lit={lit}&nav={nav}&at={at}", ShellRoute.ALBUM)
+        assertEquals("booklet/42/b%201?name=Inlay%20%28scan%29&pages=3", ShellRoute.booklet(42, "b 1", "Inlay (scan)", 3))
+        assertFalse(ShellRoute.isWeb(ShellRoute.booklet(1, "x", "y", 1)))
         assertFalse("the shell's, not the page's", ShellRoute.isWeb(ShellRoute.album(1, "")))
     }
 

@@ -110,6 +110,16 @@
         "volume-up": { "kind": "action", "label": "Volume up", "in": "volume" }
       }
     },
+    "booklet": {
+      "page": "an album's booklet (#booklet-viewer, public/app/page-state.js): its pages one under another, over everything; a phone held upright",
+      "native": ["android/app/src/main/java/com/musicd/server/android/BookletScreen.kt"],
+      "items": {
+        "close": { "kind": "action", "label": "Close booklet" },
+        "title": { "kind": "shows" },
+        "count": { "kind": "shows" },
+        "page": { "kind": "shows", "each": true }
+      }
+    },
     "nav": {
       "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library and Search under the mini player, and the Offline sign between Home and Library, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/TouchNav.kt"],
@@ -134,6 +144,7 @@
         "cover": { "kind": "shows" },
         "source": { "kind": "shows", "when": "a library with a streaming service in it" },
         "booklet": { "kind": "action", "label": ["Booklet", "{…} booklets"], "when": "the album has a booklet" },
+        "booklet-pick": { "kind": "action", "label": "{booklet}", "each": true, "in": "booklet", "when": "several booklets: the page's sheet, outside the album view" },
         "title": { "kind": "shows" },
         "artist": { "kind": "action", "label": "{artist}", "each": true },
         "date": { "kind": "shows", "when": "its release date, label or score is known" },

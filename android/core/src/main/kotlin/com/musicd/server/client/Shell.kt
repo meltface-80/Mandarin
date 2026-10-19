@@ -47,6 +47,15 @@ object ShellRoute {
     fun album(offset: Long, zoneId: String, lit: String = "", nav: String = "", at: Int = -1): String =
         "album/$offset?$ZONE=" + enc(zoneId) + "&$LIT=" + enc(lit) + "&$NAV=" + enc(nav) + "&$AT=$at"
 
+    const val BOOKLET_ID = "booklet"
+    const val NAME = "name"
+    const val PAGES = "pages"
+    /** An album's booklet, its pages one under another (the album page's book). */
+    const val BOOKLET = "booklet/{$OFFSET}/{$BOOKLET_ID}?$NAME={$NAME}&$PAGES={$PAGES}"
+
+    /** The route to booklet [id] of album [offset]: [name] its title, [pages] how many. */
+    fun booklet(offset: Long, id: String, name: String, pages: Int): String = "booklet/$offset/" + enc(id) + "?$NAME=" + enc(name) + "&$PAGES=$pages"
+
     /** The room a `nowplaying` route's own text names (Navigation hands its argument over decoded already). */
     fun zoneOf(arg: String?): String = URLDecoder.decode(arg.orEmpty(), "UTF-8")
 

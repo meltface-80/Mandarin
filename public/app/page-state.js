@@ -186,7 +186,7 @@ if (bookletBtn) bookletBtn.addEventListener("click", (e) => {
     for (const b of list) {
       const row = document.createElement("button");
       row.type = "button";
-      row.className = "action-btn sheet-row";
+      row.className = "action-btn sheet-row"; row.dataset.parity = "album.booklet-pick";   // the screens contract's (docs/specs/screens.json)
       row.textContent = `${b.name} · ${b.pages} page${b.pages === 1 ? "" : "s"}`;
       row.addEventListener("click", () => { close(); openBooklet(album, b); });
       body.appendChild(row);
@@ -199,12 +199,13 @@ function openBooklet(album, b) {
     bookletViewer.className = "booklet-viewer hidden";
     bookletViewer.id = "booklet-viewer";
     bookletViewer.setAttribute("role", "dialog");
+    // Each part keyed in the screens contract (docs/specs/screens.json, booklet): the Android app draws the viewer natively too.
     bookletViewer.innerHTML =
       '<div class="booklet-head">' +
-        '<button class="booklet-close icon-btn" type="button" aria-label="Close booklet" title="Close">' +
+        '<button class="booklet-close icon-btn" type="button" data-parity="booklet.close" aria-label="Close booklet" title="Close">' +
           '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-        '</button><div class="booklet-title"></div><div class="booklet-count"></div>' +
-      '</div><div class="booklet-pages"></div>';
+        '</button><div class="booklet-title" data-parity="booklet.title"></div><div class="booklet-count" data-parity="booklet.count"></div>' +
+      '</div><div class="booklet-pages" data-parity="booklet.page"></div>';
     bookletViewer.querySelector(".booklet-close").addEventListener("click", closeBooklet);
     // Over everything but the sheets and the toasts, the transport bar included:
     // a page is read whole (style.css .booklet-viewer).

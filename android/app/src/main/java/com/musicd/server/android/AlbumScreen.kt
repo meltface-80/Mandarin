@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumExtras
+import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.NavList
@@ -76,7 +77,8 @@ import org.json.JSONObject
  * palette): the brass corner discs (previous and next beside Share when it
  * was opened from a list, [list]: a tap opens that album in this one's
  * place, [onStepTo]), the cover's glow behind the top, the 160px cover (the
- * service's mark on it) with the title, the artists, the date and its label
+ * service's mark on it, and its book when it has a booklet: [onBooklet]
+ * opens one) with the title, the artists, the date and its label
  * and the rate and length beside it and the notes under them; the heart,
  * Play Now, Queue and ⋯; the tracks,
  * the one playing marked; About this album and the rows under it (another
@@ -92,7 +94,7 @@ import org.json.JSONObject
  */
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
-                         onBack: () -> Unit, onPage: (String, String?) -> Unit,
+                         onBack: () -> Unit, onPage: (String, String?) -> Unit, onBooklet: (Long, Booklet) -> Unit,
                          onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onAlbum: (Long, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,6 +102,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var album by remember(offset) { mutableStateOf<Album?>(null) }
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
     var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
+    var booklets by remember(offset) { mutableStateOf<List<Booklet>>(emptyList()) }
     var failed by remember(offset) { mutableStateOf<String?>(null) }
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
@@ -113,6 +116,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later }
             .onFailure { failed = it.message ?: "Couldn't load the album" }
         val a = album ?: return@LaunchedEffect
+        // Its booklets, as the page asks: an album of your own files only.
+        if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
         more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() }
     }
@@ -165,6 +170,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             .border(1.dp, paletteColor(Palette.COVER_RING), sleeve)) {
                             cover?.let { Image(it, contentDescription = a.album.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                             SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
+                            if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
                         }
                         Column(Modifier.weight(1f)) {
                             Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp,

@@ -69,14 +69,19 @@ internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState 
 
 /** The cover [key] at [size] pixels, once fetched; null until then, or with no key. */
 @Composable
-internal fun rememberCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? {
-    var cover by remember(key) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(key) {
+internal fun rememberCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? =
+    rememberImage(key?.let { k -> client()?.imageUrl(k, size) }, client)
+
+/** The picture at [url] on the server, once fetched; null until then, or with no address. */
+@Composable
+internal fun rememberImage(url: String?, client: () -> ServerClient?): ImageBitmap? {
+    var image by remember(url) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(url) {
         val c = client() ?: return@LaunchedEffect
-        if (key == null) return@LaunchedEffect
-        cover = withContext(Dispatchers.IO) {
-            runCatching { c.bytes(c.imageUrl(key, size)).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
+        if (url == null) return@LaunchedEffect
+        image = withContext(Dispatchers.IO) {
+            runCatching { c.bytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
         }
     }
-    return cover
+    return image
 }

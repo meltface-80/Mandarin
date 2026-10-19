@@ -128,6 +128,8 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
                 // The row along the foot: the page's own button, tapped, once the page is back in front.
                 onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
+                // A booklet: its pages over the album; Back returns here.
+                onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },
                 // The mini player's tap: the native Now playing over the album when this phone has it on, else back to the page, whose own opens.
                 onNowPlaying = { id -> if (nativeNowPlaying()) nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } else { nav.popBackStack(); NativeShell.toPage("now-playing", null) } },
                 // A room chosen on its Play on: the page's room too, so its own bar follows.

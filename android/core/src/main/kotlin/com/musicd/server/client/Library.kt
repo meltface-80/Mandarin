@@ -96,6 +96,19 @@ data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val
     }
 }
 
+/** One of an album's booklets (/api/album/booklets): the PDF beside its tracks, its [pages] drawn by the server one at a time. */
+data class Booklet(val id: String, val name: String, val pages: Int) {
+    /** The row's words in the choice of several: "Booklet · 12 pages". */
+    val text: String get() = "$name · $pages page" + (if (pages == 1) "" else "s")
+
+    companion object {
+        fun list(j: JSONObject): List<Booklet> = j.optJSONArray("booklets").items { Booklet(it.optString("id", ""), it.optString("name", ""), it.optInt("pages", 0)) }.filter { it.id.isNotEmpty() }
+
+        /** The book button's label, as the page's: "Booklet", or "{n} booklets". */
+        fun label(n: Int): String = if (n == 1) "Booklet" else "$n booklets"
+    }
+}
+
 /** An album in the list its page was opened from (a row, a wall), for previous and next. */
 data class NavItem(val offset: Long, val title: String)
 
