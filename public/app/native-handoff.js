@@ -110,26 +110,31 @@ window.__musicdNative = function (what, arg) {
 /*  app puts this page over it with its ground clear, and `native-over`*/
 /*  on <html> keeps everything but the sheet out of sight (style.css), */
 /*  so the sheet opens over the native screen as it opens over the     */
-/*  page's own. When the sheet has gone the class comes off and the    */
-/*  app is told (MusicdApp.overlayClosed), so the screen is in front   */
-/*  again. A sheet that never opens (the album gone) is waited for a    */
-/*  few seconds, then given up on the same way.                        */
+/*  page's own. The sheet is watched (a sheet that fetches first opens  */
+/*  a moment later); when it has gone the class comes off and the app  */
+/*  is told (MusicdApp.overlayClosed), so the screen is in front again. */
+/*  A sheet that never opens (the album gone) is waited for a few       */
+/*  seconds, then given up on the same way.                            */
 /* ------------------------------------------------------------------ */
 const OVER_SHEETS = "#share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #prompt-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
 window.__musicdNativeOver = function (what, arg) {
   const html = document.documentElement;
   const app = window.MusicdApp;
-  const done = () => { html.classList.remove("native-over"); if (app && typeof app.overlayClosed === "function") app.overlayClosed(); };
+  let watcher = null, giveUp = null;
+  const done = () => {
+    if (watcher) watcher.disconnect();
+    clearTimeout(giveUp);
+    html.classList.remove("native-over");
+    if (app && typeof app.overlayClosed === "function") app.overlayClosed();
+  };
   html.classList.add("native-over");
   if (!window.__musicdNative(what, arg)) { done(); return false; }
   const up = () => [...document.querySelectorAll(OVER_SHEETS)].some(e => e.getClientRects().length > 0);
-  const t0 = Date.now();
-  let seen = false;
-  const watch = () => {
-    if (up()) seen = true;
-    else if (seen || Date.now() - t0 > 6000) { done(); return; }
-    setTimeout(watch, 150);
-  };
-  setTimeout(watch, 150);
+  // Every change to the page looked at: the sheet seen once it is up, done once it has gone again. Watched, not polled:
+  // a sheet opened and closed between two polls was never seen, and the page stayed over the screen until the give-up.
+  let seen = up();
+  watcher = new MutationObserver(() => { if (up()) seen = true; else if (seen) done(); });
+  watcher.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden"] });
+  giveUp = setTimeout(() => { if (!seen) done(); }, 6000);
   return true;
 };
