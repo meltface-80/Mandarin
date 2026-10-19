@@ -386,7 +386,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
     private static void AddColumns(SqliteConnection c)
     {
         foreach (var (table, col, type) in Added)
-            if (!Columns(c, table).Contains(col)) Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}");
+            if (!Columns(c, table).Contains(col)) { Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}"); if (table == "tracks" && col == "composer") Exec(c, "UPDATE tracks SET tags_v = 1 WHERE tags_v > 1"); }   // the classical fields (item 48) just added: every track read once more for them at the next scan
     }
 
     /* What you did, copied column by column from the database moved aside, where its tables have them (db.js carryOver). */

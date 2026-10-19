@@ -117,8 +117,8 @@ internal sealed class ScanState
 
 internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnlyList<string> rootsGiven, double massRemoval, int slots, Action<string> log)
 {
-    // Which reading of the tags a track row holds: rows from before are read again once (3: the classical fields, item 48).
-    private const double TagsV = 3;
+    // Which reading of the tags a track row holds: rows from before are read again once.
+    private const double TagsV = 2;
     private static readonly HashSet<string> AudioExt = [".flac", ".fla", ".mp3", ".m4a", ".mp4", ".m4b", ".alac", ".aac", ".wav", ".wave",
         ".aif", ".aiff", ".aifc", ".ogg", ".oga", ".opus", ".dsf", ".dff", ".wv", ".ape", ".wma"];
     private static readonly string[] ArtNames = ["cover", "folder", "front", "album", "albumart", "albumartsmall", "thumb"];

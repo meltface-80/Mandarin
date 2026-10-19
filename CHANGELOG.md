@@ -3,8 +3,8 @@
 ## Unreleased
 - `48-classical-works-server`: the server sets a classical album out as works and movements (the page and
   the app draw them next, item 49). The scanner keeps what the tags say of a track's composer, conductor,
-  work, movement and its number, and performers (`Tags/Classical.cs`; every file is read once more for them
-  on the next scan), and the album's page answers with `works` (each a work with its movements, or a plain
+  work, movement and its number, and performers (`Tags/Classical.cs`; a library from before has every file read
+  once more for them at its next scan), and the album's page answers with `works` (each a work with its movements, or a plain
   track, in the album's order) and the album's `composers`, `conductor` and `performers`. Works come from
   the WORK and MOVEMENT tags where the files carry them, or from the titles ("Symphony No. 5: I. Allegro",
   consecutive and numbered, or by a composer) where they don't; a compilation's "Artist - Title" is left
