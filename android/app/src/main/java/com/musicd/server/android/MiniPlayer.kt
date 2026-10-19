@@ -46,12 +46,12 @@ import kotlinx.coroutines.launch
  * page's bar along the foot of an album's page: a brass play/pause disc, the
  * cover and the track (a tap: Now playing), the room and the format above
  * it, Play on and the volume (Now playing's own menus), and the track's
- * progress as a level meter along the bottom. It follows [zoneId], the
- * page's room; with none it says so, as the page's bar does.
+ * progress as a level meter along the bottom. It shows [room], the page's
+ * room [zoneId] as its screen follows it ([followRoom]); with no room it
+ * says so, as the page's bar does.
  */
 @Composable
-internal fun MiniPlayer(zoneId: String, client: () -> ServerClient?, onOpen: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit, modifier: Modifier = Modifier) {
-    val room = followRoom(zoneId, client)
+internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerClient?, onOpen: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit, modifier: Modifier = Modifier) {
     val v = room.view
     val scope = rememberCoroutineScope()
     fun act(block: (ServerClient) -> Unit) {

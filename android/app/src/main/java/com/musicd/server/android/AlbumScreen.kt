@@ -1,6 +1,5 @@
 package com.musicd.server.android
 
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,8 +24,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,19 +43,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
+import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.albumLength
 import kotlinx.coroutines.Dispatchers
@@ -65,16 +68,17 @@ import org.json.JSONObject
 
 /**
  * An album's page, natively (stage N3 of docs/specs/plan-android-native.md, a
- * preview: Settings → Setup → UI Settings), as the page's sleeve has it
- * (docs/specs/screens.json, album): the 160px cover with the title, the
- * artists, the date and its label and the rate and length beside it, the
- * cover's glow behind; the heart, Play Now, Queue and ⋯; the tracks. Its
- * buttons play in [zoneId], the room the page had chosen, or the one chosen
- * since on the mini player's Play on ([onRoom] tells the page). The mini
- * player sits at its foot as the page's does; its tap opens Now playing
- * ([onNowPlaying], with the room). What the page does with its own sheets
- * (Share card, Add to playlist, Edit album) and screens (an artist's, a
- * label's) it is asked for ([onPage]).
+ * preview: Settings → Setup → UI Settings), drawn as the page's sleeve
+ * (docs/specs/screens.json, album; style.css, the album view in the hifi
+ * palette): the brass corner discs, the cover's glow behind the top, the
+ * 160px cover with the title, the artists, the date and its label and the
+ * rate and length beside it; the heart, Play Now, Queue and ⋯; the tracks,
+ * the one playing marked; the mini player at the foot. Its buttons play in
+ * [zoneId], the room the page had chosen, or the one chosen since on the mini
+ * player's Play on ([onRoom] tells the page); a tap on the mini player opens
+ * Now playing ([onNowPlaying], with the room). What the page does with its
+ * own sheets (Share card, Add to playlist, Edit album) and screens (an
+ * artist's, a label's) it is asked for ([onPage]).
  */
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
@@ -87,6 +91,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
     var failed by remember(offset) { mutableStateOf<String?>(null) }
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
+    val room = followRoom(zone, client)
     BackHandler(onBack = onBack)
 
     LaunchedEffect(offset) {
@@ -98,13 +103,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
         val a = album ?: return@LaunchedEffect
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
     }
-    val key = album?.album?.imageKey
-    var cover by remember(key) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(key) {
-        val c = client() ?: return@LaunchedEffect
-        if (key == null) return@LaunchedEffect
-        cover = withContext(Dispatchers.IO) { runCatching { c.bytes(c.imageUrl(key, 640)).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull() }
-    }
+    val cover = rememberCover(album?.album?.imageKey, 640, client)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     // To the room: what came of it said as the page says it.
     fun play(said: String, block: (ServerClient) -> JSONObject?) {
@@ -120,44 +119,44 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
         scope.launch { withContext(Dispatchers.IO) { runCatching { block(c) } }.exceptionOrNull()?.let { toast(it.message ?: "Couldn't reach the server") } }
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val bg = MaterialTheme.colorScheme.background
+    val white = paletteColor(Palette.MODAL_TEXT)
+    val dim = MaterialTheme.colorScheme.onSurfaceVariant
+    val brass = MaterialTheme.colorScheme.primary
+    val disc = IconButtonDefaults.filledIconButtonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = brass, disabledContentColor = MaterialTheme.colorScheme.onPrimary)
+    Surface(Modifier.fillMaxSize(), color = bg) {
         Box(Modifier.fillMaxSize()) {
-            // The cover's colours washing the top of the page, as the page's glow does (a blur from Android 12).
+            // The cover's colours washing the top of the page, as the page's glow does: blurred (from Android 12), faint, fading out downwards.
             cover?.let {
-                Image(it, contentDescription = null, contentScale = ContentScale.Crop,
-                    modifier = Modifier.parity("album.glow").fillMaxWidth().height(420.dp).alpha(0.26f).let { m -> if (Build.VERSION.SDK_INT >= 31) m.blur(40.dp) else m })
-            }
-            // The foot keeps room for the mini player, as the page's does.
-            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(bottom = 118.dp)) {
-                item {
-                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack, modifier = Modifier.parity("album.back", Contract.label("album.back"))) {
-                            Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null,
-                            modifier = Modifier.parity("album.share", Contract.label("album.share"))) {
-                            Icon(painterResource(R.drawable.np_share), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
+                Box(Modifier.parity("album.glow").fillMaxWidth().height(420.dp)) {
+                    Image(it, contentDescription = null, contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().alpha(0.26f).let { m -> if (Build.VERSION.SDK_INT >= 31) m.blur(40.dp) else m })
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 0.6f to bg.copy(alpha = 0.4f), 1f to bg)))
                 }
+            }
+            // The foot keeps room for the mini player, as the page's does; the head starts below the corner discs.
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(top = 64.dp, bottom = 118.dp)) {
                 val a = album
                 if (a == null) {
-                    item { Text(failed ?: "Loading…", Modifier.parity("album.notice").padding(vertical = 24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text(failed ?: "Loading…", Modifier.parity("album.notice").padding(vertical = 24.dp), color = dim) }
                     return@LazyColumn
                 }
                 item {
                     // The sleeve, and its head beside it, a line each, at its foot.
-                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Box(Modifier.parity("album.cover").size(160.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        val sleeve = RoundedCornerShape(8.dp)
+                        Box(Modifier.parity("album.cover").size(160.dp).shadow(16.dp, sleeve).clip(sleeve).background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, paletteColor(Palette.COVER_RING), sleeve)) {
                             cover?.let { Image(it, contentDescription = a.album.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(a.album.title, Modifier.parity("album.title"), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 3, overflow = TextOverflow.Ellipsis)
+                            Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp,
+                                letterSpacing = (-0.02).em, color = white, maxLines = 3, overflow = TextOverflow.Ellipsis)
                             Row {
                                 (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
-                                    Text(if (i > 0) " · $name" else name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", name) },
+                                    if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp)
+                                    Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", name) },
                                         color = MaterialTheme.colorScheme.secondary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
@@ -167,23 +166,34 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
                     }
                 }
                 item {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // The heart, Play Now and Queue in brass, and ⋯, each the page's 40px; 20px under the sleeve, 22px over the tracks.
+                    Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         IconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } },
-                            modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-                            Text(if (favourite) "♥" else "♡", fontSize = 20.sp, color = if (favourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                            modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
+                            Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null,
+                                tint = if (favourite) paletteColor(Palette.HEART) else dim, modifier = Modifier.size(22.dp))
                         }
-                        val brass = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
-                        Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = brass,
-                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f)) { Text(Contract.label("album.play-now")) }
-                        Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = brass,
-                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f)) { Text(Contract.label("album.queue")) }
+                        val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
+                        Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(40.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(40.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
                             onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage)
                     }
                 }
-                albumTracks(a, onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
+                albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true,
+                    onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
             }
-            MiniPlayer(zone, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage, modifier = Modifier.align(Alignment.BottomCenter))
+            // The corner discs, over the glow: Back, and Share.
+            FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("album.back", Contract.label("album.back")).padding(start = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopStart)) {
+                Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
+            }
+            FilledIconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null, colors = disc,
+                modifier = Modifier.parity("album.share", Contract.label("album.share")).padding(end = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopEnd)) {
+                Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+            MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage, modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }
@@ -206,16 +216,17 @@ private fun DateLine(extras: AlbumExtras?, onPage: (String, String?) -> Unit) {
     }
 }
 
-/** The rate (hi-res in brass) and the album's length. */
+/** The rate as the page's chip (hi-res in brass, with a brass edge) and the album's length. */
 @Composable
 private fun FactsLine(a: Album) {
     val length = albumLength(a.tracks)
     Row(Modifier.parity("album.facts").padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         a.album.quality?.let {
             val c = if (a.album.hires) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-            Text(it, Modifier.border(1.dp, c, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp)
+            val edge = if (a.album.hires) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+            Text(it, Modifier.border(1.dp, edge, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp)
         }
-        if (length.isNotEmpty()) Text((if (a.album.quality != null) "  · " else "") + length, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        if (length.isNotEmpty()) Text((if (a.album.quality != null) " · " else "") + length, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
     }
 }
 
@@ -229,8 +240,8 @@ private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (Str
     val kinds = a.actions.map { it.kind }.toSet()
     val offset = a.album.offset.toString()
     Box {
-        IconButton(onClick = { open = !open }, modifier = Modifier.parity("album.more", Contract.label("album.more")).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-            Text("⋯", fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+        IconButton(onClick = { open = !open }, modifier = Modifier.parity("album.more", Contract.label("album.more")).size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
+            Icon(painterResource(R.drawable.np_more), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             if ("play_next" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.play-next")) }, modifier = Modifier.parity("album.play-next", Contract.label("album.play-next")),

@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `37-native-album-look`: the Android app's native album page (preview) is drawn as the page's sleeve: the
+  brass corner discs, the cover's glow fading out behind the top, the 160px sleeve with its ring and shadow,
+  the head in the page's type and white (the artists in brass), the heart as the page's (hollow, red once
+  tapped), Play Now and Queue as brass pills and ⋯ outlined, "TRACKS" tracked out over its hairlines, the rows
+  at the page's sizes with the brass disc turning on the track playing in the room (`album.track-playing`,
+  off the gaps list), the open row's wash and its pills. The date line no longer says "null" for an album
+  with no label: Android's org.json reads a JSON null as the word "null" where the JVM's (the tests') gives
+  the default, so each field of the extras that can be null is asked first (`AlbumExtras.kt`).
 - `36-native-np-look`: the Android app's native Now playing (preview) is drawn as the page's, not in Material's
   own look: the page's type (Manrope, the hifi palette's `--font-sans`, as `res/font/manrope.ttf`, for every
   native screen), the brass corner discs and the tracked-out tabs with the brass line under the one on, the
