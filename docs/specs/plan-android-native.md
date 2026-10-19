@@ -1,6 +1,6 @@
 # Plan: the Android app as a full native app, not a WebView
 
-Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`. N2 in preview (item 23): `NowPlayingScreen.kt`. Each native screen is held to the page's by the screens contract (item 25, `docs/specs/native-parity.md`).
+Status: plan (bug list item 17), written v1.0.7. N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`. N2 in preview (item 23): `NowPlayingScreen.kt`. Each native screen is held to the page's by the screens contract (item 25, `docs/specs/native-parity.md`); N2 lacks nothing of the page's since item 29, its Queue tab. N3's album page is in the contract (item 30), its native screen to come.
 
 ## Is it the key to better function and performance?
 

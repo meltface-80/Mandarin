@@ -13,7 +13,7 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const { scan, mask, contractKotlin } = require("../tools/quality/parity-kotlin");
-const { compare, validate, main } = require("../tools/quality/parity");
+const { compare, validate, onPage, main } = require("../tools/quality/parity");
 
 const F = "android/app/src/main/java/x/PlayScreen.kt";
 /** A contract of one screen, "play": a Back, a title, a Play that is Play or Pause. */
@@ -109,6 +109,7 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   put("docs/specs/screens.json", JSON.stringify(contract()));
   put(F, SCREEN.replace(/FilledIconButton[^\n]*\n/, "\n"));
   put("android/app/src/main/java/x/Shell.kt", "@Composable fun Shell() {}");
+  put("public/index.html", '<b data-parity="play.back"></b><b data-parity="play.title"></b><b data-parity="play.play"></b><b data-parity="play.desk"></b>');
   const gate = (...a) => { const log = console.log; const out = []; console.log = (s) => out.push(s); try { return [main(a, root), out]; } finally { console.log = log; } };
   assert.equal(gate("write")[0], 0);
   assert.deepEqual(gate("accept"), [0, ["parity: tools/quality/parity-gaps.json written", "parity: the app's native screens keep the contract (1 items still to build in preview, tools/quality/parity-gaps.json)"]]);
@@ -146,4 +147,10 @@ test("a screen's own composable: its readouts covered where every call of it is 
   assert.match(scan(SCREEN + helper + '\nRow2(t, Modifier.parity("play.title"))\nRow2(u, Modifier)').findings.join("\n"), /Text with no parity/, "a call of it with no key");
   assert.match(scan(SCREEN + helper).findings.join("\n"), /Text with no parity/, "never called");
   assert.deepEqual(scan(SCREEN + helper + '\nRow2(t, Modifier.parity("play.back", Contract.label("play.back")).clickable { })').tags.slice(-1).map(t => t.kind), ["action"], "a tap on it is a control");
+});
+
+test("every key of the contract written out in the page's source", () => {
+  const page = '<b data-parity="play.back"></b><b data-parity="play.title"></b> b.dataset.parity = "play.play"; <i data-parity="play.desk">';
+  assert.deepEqual(onPage(contract(), page), []);
+  assert.deepEqual(onPage(contract(), page.replace("play.title", "play.titel")), ["play.title: written nowhere in the page (public/): the page carries every key as data-parity"]);
 });

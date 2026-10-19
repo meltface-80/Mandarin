@@ -208,7 +208,7 @@ function serviceMenuItem(page) {
   if (!a || !a.source || a.source === "local" || !a.service_id || typeof a.service_favourite !== "boolean") return [];
   let on = a.service_favourite;
   const label = () => on ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
-  return [{ label: label(), onClick: async (b) => {
+  return [{ label: label(), key: "album.service-favourite", onClick: async (b) => {
     b.disabled = true;
     try {
       const r = await fetch("/api/" + a.source + "/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.service_id }) });
@@ -226,11 +226,12 @@ function serviceMenuItem(page) {
   } }];
 }
 
-function buildFavButton(album, fresh) {
+function buildFavButton(album, fresh, key) {
   const on0 = !!((fresh && fresh.favourite) || album.favourite);
   const b = document.createElement("button");
   b.type = "button";
   b.className = "overflow-btn fav-btn" + (on0 ? " is-on" : "");
+  if (key) b.dataset.parity = key;   // the screens contract's (docs/specs/screens.json)
   b.innerHTML = HEART_SVG;
   const paint = (on) => {
     b.classList.toggle("is-on", on);
@@ -291,6 +292,8 @@ function buildOverflowMenu(items, opts) {
   btn.type = "button";
   btn.className = "overflow-btn";
   btn.setAttribute("aria-label", opts.label || "More actions");
+  // [opts.key], each item's [key]: the screens contract's (docs/specs/screens.json), where the menu is a contract screen's.
+  if (opts.key) btn.dataset.parity = opts.key;
   btn.setAttribute("aria-haspopup", "menu");
   btn.setAttribute("aria-expanded", "false");
   btn.innerHTML = OVERFLOW_SVG;
@@ -311,6 +314,7 @@ function buildOverflowMenu(items, opts) {
     b.className = "sel-menu-item" + (it.danger ? " is-danger" : "");
     b.setAttribute("role", "menuitem");
     b.textContent = it.label;
+    if (it.key) b.dataset.parity = it.key;
     b.addEventListener("click", (e) => {
       e.stopPropagation();
       closeOverflowMenu();

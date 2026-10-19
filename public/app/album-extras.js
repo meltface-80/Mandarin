@@ -26,7 +26,7 @@ function renderExtras(extras, album) {
   if (extras.album && extras.album.label) {
     sepBefore();
     const labelBtn = document.createElement("button");
-    labelBtn.className = "modal-artist-link";
+    labelBtn.className = "modal-artist-link"; labelBtn.dataset.parity = "album.label";
     labelBtn.textContent = extras.album.label;
     labelBtn.addEventListener("click", () => {
       // Back from the label's albums returns to this page (v0.6.24).

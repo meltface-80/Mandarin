@@ -185,15 +185,15 @@ function renderQueue(view) {
     const menuCount = document.createElement("div"); menuCount.className = "sel-menu-title"; menuCount.dataset.parity = "queue.select-title";
     menu.appendChild(menuCount);
     // The keys are the screens contract's (docs/specs/screens.json): the Android app's Queue has each.
-    const mkItem = (label, act, danger) => {
+    const mkItem = (label, act, key, danger) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "sel-menu-item" + (danger ? " is-danger" : ""); b.setAttribute("role", "menuitem");
-      b.dataset.queueAct = act; b.textContent = label; b.dataset.parity = "queue." + act.replace("_", "-");
+      b.dataset.queueAct = act; b.textContent = label; b.dataset.parity = key;
       b.addEventListener("click", () => { closeMenu(); runQueueAction(act, items); });
       menu.appendChild(b);
       return b;
     };
-    mkItem("Play now", "play_now"); mkItem("Play next", "play_next"); mkItem("Remove", "remove", true);
+    mkItem("Play now", "play_now", "queue.play-now"); mkItem("Play next", "play_next", "queue.play-next"); mkItem("Remove", "remove", "queue.remove", true);
     menuWrap.append(menuBtn, menu);
     const done = document.createElement("button");
     done.type = "button"; done.className = "q-tool hidden"; done.textContent = "Done"; done.dataset.parity = "queue.done";

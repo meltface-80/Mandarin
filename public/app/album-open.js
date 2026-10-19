@@ -56,7 +56,7 @@ function openAlbum(album, opts) {
 
   modalTitle.textContent = album.title || "Untitled";
   setModalArtist(album.subtitle);
-  modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading">Loading…</div>`;
+  modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading" data-parity="album.notice">Loading…</div>`;
   modalTracks.innerHTML  = "";
   { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
   { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; }
@@ -98,7 +98,7 @@ function openAlbum(album, opts) {
         if (album === currentAlbum) { if (back) back.click(); else closeModal(); }
         return;
       }
-      modalActs.innerHTML = `<div class="modal-error">${escapeHtml(err.message)}</div>`;
+      modalActs.innerHTML = `<div class="modal-error" data-parity="album.notice">${escapeHtml(err.message)}</div>`;
     });
     fetchAlbumExtras(album).catch(() => { /* extras are non-critical — modal still opens */ });
   }
@@ -254,12 +254,12 @@ function renderQueueHistory(list, history) {
     b.type = "button";
     b.className = "q-hist-act" + (cls ? " " + cls : "");
     b.textContent = label;
-    b.dataset.parity = "queue." + key;
+    b.dataset.parity = key;
     return b;
   };
-  const actNext  = mkAct("Play next", "primary", "history-play-next");
-  const actQueue = mkAct("Add to queue", "", "history-add");
-  const actClear = mkAct("Clear", "", "history-clear");
+  const actNext  = mkAct("Play next", "primary", "queue.history-play-next");
+  const actQueue = mkAct("Add to queue", "", "queue.history-add");
+  const actClear = mkAct("Clear", "", "queue.history-clear");
   actions.append(count, actNext, actQueue, actClear);
   head.append(bar, actions);
 

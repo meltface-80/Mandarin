@@ -58,6 +58,21 @@ function validate(c) {
 }
 
 /**
+ * Every key of the contract written out in the page's source, as the page
+ * test can't bring about every state a screen has (a booklet, a review, the
+ * app's own Download): a key lost or misspelt fails here whether or not the
+ * page test saw its item.
+ * @param {Contract} c @param {string} page the page's source, joined @returns {string[]}
+ */
+function onPage(c, page) {
+  const out = [];
+  for (const [s, screen] of Object.entries(c.screens)) for (const k of Object.keys(screen.items)) {
+    if (!page.includes(`${s}.${k}`)) out.push(`${s}.${k}: written nowhere in the page (public/): the page carries every key as data-parity`);
+  }
+  return out;
+}
+
+/**
  * The native screens against the contract.
  * @param {{ contract: Contract, gaps: Gaps, sources: Record<string, string>, composables: string[], refs: { name: string, contract: Contract | null, gaps: Gaps }[] }} x
  *   sources: each native screen's file and its text; composables: the app's
@@ -157,7 +172,9 @@ function load(root) {
   for (const s of Object.values(contract.screens)) for (const f of s.native || []) if (fs.existsSync(path.join(root, f))) sources[f] = read(root, f);
   const tracked = (git(root, "ls-files", "--cached", "--others", "--exclude-standard", APP) || "").split("\n").filter(f => f.endsWith(".kt") && fs.existsSync(path.join(root, f)));
   const composables = tracked.filter(f => /@Composable\b/.test(read(root, f)));
-  return { contract, gaps, sources, composables };
+  const page = (git(root, "ls-files", "--cached", "--others", "--exclude-standard", "public/") || "").split("\n")
+    .filter(f => /\.(html|js)$/.test(f) && fs.existsSync(path.join(root, f))).map(f => read(root, f)).join("\n");
+  return { contract, gaps, sources, composables, page };
 }
 
 /** @param {string[]} argv @param {string} [root] @returns {number} the exit code */
@@ -169,6 +186,7 @@ function main(argv, root = process.env.PARITY_ROOT || path.resolve(__dirname, ".
   const r = refs(root);
   if (!r.length && process.env.PARITY_REQUIRE_BASE) { console.error("parity: no commit to hold the gaps list against (a shallow clone?)"); return 1; }
   const { findings, missing } = compare(Object.assign({ refs: r }, x));
+  findings.push(...onPage(x.contract, x.page));
   if (cmd === "accept") {
     /** @type {Gaps} */
     const next = {};
@@ -189,5 +207,5 @@ function main(argv, root = process.env.PARITY_ROOT || path.resolve(__dirname, ".
   return findings.length ? 1 : 0;
 }
 
-module.exports = { validate, compare, refs, load, main };
+module.exports = { validate, compare, onPage, refs, load, main };
 if (require.main === module) process.exit(main(process.argv.slice(2)));
