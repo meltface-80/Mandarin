@@ -48,17 +48,18 @@ function updateTrackSelection() {
 //
 // These go one at a time on purpose: /api/play-track has no batch form, and
 // firing them in parallel would interleave into an arbitrary queue order.
-async function invokeTrackMulti(kind) {
+// [given]: a set of tracks handed in (a work's movements, album-works.js) rather than the selection; the selection is left as it is.
+async function invokeTrackMulti(kind, given) {
   const zone = selectedZoneId;
   if (!currentAlbum) { showToast("No album open", "error"); return; }
-  const picks = trackSelected.slice().sort((a, b) => a.index - b.index);
+  const picks = (given || trackSelected).slice().sort((a, b) => a.index - b.index);
   if (!picks.length) return;
   // Play next, several at once (v0.6.22): each goes in straight after the
   // track playing, so they are sent last to first and end up in order.
   if (kind === "play_next") picks.reverse();
   if (isPhoneAlbum(currentAlbum)) {
     picks.forEach((p, i) => invokePhone(currentAlbum, p.index, kind === "play_next" ? kind : i === 0 ? kind : "queue"));
-    exitTrackSelectMode();
+    if (!given) exitTrackSelectMode();
     return;
   }
   if (!zone) { showToast("Pick a zone first", "error"); return; }
@@ -105,7 +106,7 @@ async function invokeTrackMulti(kind) {
   let msg = `${verb} ${queued} track${queued === 1 ? "" : "s"}`;
   if (failed) msg += ` (${failed} failed: ${firstError})`;
   showToast(msg, failed ? "error" : null, TOAST_REPORT_MS);
-  exitTrackSelectMode();
+  if (!given) exitTrackSelectMode();
 }
 
 // Expand/collapse the per-track action row. Only one row is open at a time.

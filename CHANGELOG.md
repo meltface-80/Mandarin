@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `49-classical-works-page-app`: a classical album's page, on the page and in the Android app alike, set out
+  as works and movements as Roon has them (from the server's works, item 48): the composers' line in the
+  artists' place, each a tap to their page, and under it who performs the album, the conductor named as such;
+  WORKS over the list; a work's row with a brass ring that plays it, its name, who it is by where the album
+  has several composers and who performs it, and its length; its movements under it as track rows, indented,
+  with their numbers; a one-track work its own row; a set's discs heading the list; a tap on a work's row
+  opening Play now, Play next and Queue for the whole work. The items are the screens contract's
+  (`composer`, `performers`, `disc-head`, `work`, `work-play`, `work-composer`, `work-performers`,
+  `work-length`, the work's three buttons), keyed on the page (`album-works.js`) and in the app
+  (`AlbumWorks.kt`, `ComposerLines`), so neither can drift; `classical-works.test.js` opens such an album
+  on the page and holds it to the contract. An album with no works is drawn as it always was.
 - `48-classical-works-server`: the server sets a classical album out as works and movements (the page and
   the app draw them next, item 49). The scanner keeps what the tags say of a track's composer, conductor,
   work, movement and its number, and performers (`Tags/Classical.cs`; a library from before has every file read

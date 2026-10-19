@@ -6202,3 +6202,31 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   }
   .scan-progress-fill { background: var(--accent); }
 }
+
+/* ------------------------------------------------------------------ */
+/* A classical album as works and movements (bug list item 49; the app's
+   AlbumWorks.kt draws the same): the composers' line in the artists'
+   place and who performs it under them; a work's row with a brass ring to
+   play it, its movements indented under it as track rows; a set's discs
+   heading the list. The rows keep .track-list's measures. */
+.modal-composers { font-size: 15px; font-weight: 600; color: var(--accent-text); }
+.modal-composers .modal-artist-link { font-weight: 600; }
+.modal-performers { margin: 2px 0 20px; font-size: 14px; color: var(--text-dim); }
+.modal-subtitle.hidden { display: none; }
+.track-list li.t-work, .track-list li.t-disc { counter-increment: none; }
+.track-list li.t-work::before, .track-list li.t-disc::before { content: none; }
+.track-list li.t-disc {
+  padding: 14px 4px 4px; border-bottom: 0; cursor: default;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); font-weight: 600;
+}
+.track-list li.t-work .t-title { font-weight: 600; white-space: normal; }
+.track-list li.t-movement { padding-left: 38px; }
+.t-work-play {
+  flex: 0 0 22px; width: 22px; height: 22px; margin-top: -1px; padding: 0;
+  border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.t-work-play svg { width: 10px; height: 10px; pointer-events: none; }
+.t-work-play:hover { background: var(--accent-soft); }
+.t-composer { color: var(--accent-text); }
+[data-palette="hifi"] .modal-composers, [data-palette="hifi"] .t-composer { color: var(--accent); }

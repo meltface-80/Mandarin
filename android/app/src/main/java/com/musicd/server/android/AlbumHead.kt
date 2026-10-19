@@ -32,7 +32,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
@@ -48,6 +50,25 @@ import com.musicd.server.client.Palette
  * discs), the service's mark on the cover, and previous and next beside
  * Share, the album before and after this one in the list it was opened from.
  */
+
+/**
+ * A classical album's head lines (bug list item 49), in the artists' place: the composers, each a tap to
+ * their page, and under them who performs it, the conductor named as such (the album's artist where no
+ * one is named), as the page's `.modal-composers` and `.modal-performers`.
+ */
+@Composable
+internal fun ComposerLines(a: Album, onPage: (String, String?) -> Unit) {
+    val dim = MaterialTheme.colorScheme.onSurfaceVariant
+    Row {
+        a.composers.forEachIndexed { i, name ->
+            if (i > 0) Text(" · ", Modifier.parity("album.composer"), color = dim, fontSize = 15.sp)
+            Text(name, Modifier.parity("album.composer", Contract.label("album.composer", 0, name)).clickable { onPage("artist", name) },
+                color = MaterialTheme.colorScheme.primary, fontSize = 15.sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+    val who = a.performers + listOfNotNull(a.conductor?.let { "$it, conductor" })
+    Text(who.ifEmpty { listOf(a.album.subtitle) }.joinToString(" · "), Modifier.parity("album.performers").padding(top = 2.dp), color = dim, fontSize = 14.sp)
+}
 
 /** The notes at the foot of the head, each only when it has something to say; a disc's tap opens it among the box's discs ([onDisc]). */
 @OptIn(ExperimentalLayoutApi::class)

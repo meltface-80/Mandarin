@@ -155,6 +155,21 @@ data class Track(val id: Long, val title: String, val subtitle: String, val leng
     }
 }
 
+/** A movement of a work: the track's place in the album's list, and its name as a movement ("I. Largo sostenuto"). */
+data class Movement(val track: Int, val title: String)
+
+/**
+ * A work of a classical album with its movements (/api/album `works`, bug list item 48), or a plain track
+ * ([title] null, one movement with the track's own name), in the album's order.
+ */
+data class Work(val title: String?, val composer: String?, val conductor: String?, val performers: List<String>, val disc: Long?, val length: Double, val movements: List<Movement>) {
+    companion object {
+        fun parse(j: JSONObject) = Work(j.str("title"), j.str("composer"), j.str("conductor"), j.optJSONArray("performers").strings(),
+            if (!j.has("disc") || j.isNull("disc")) null else j.optLong("disc"), j.optDouble("length", 0.0),
+            j.optJSONArray("movements").items { Movement(it.optInt("track", 0), it.optString("title", "")) })
+    }
+}
+
 /** What can be done with an album ("play_now", "queue", …), each with its own words. */
 data class AlbumAction(val kind: String, val title: String)
 
@@ -172,8 +187,15 @@ data class Album(
     /** Named from its folders, its files carrying no tags. */
     val namesFromFolders: Boolean = false,
     /** A streamed album, signed in: why it is here. */
-    val serviceWhy: ServiceWhy? = null
+    val serviceWhy: ServiceWhy? = null,
+    /** A classical album (item 48): its tracks as works, and the names for its head. */
+    val works: List<Work> = emptyList(),
+    val composers: List<String> = emptyList(),
+    val conductor: String? = null,
+    val performers: List<String> = emptyList()
 ) {
+    /** Set out as works: at least one of them named (an album with none is the plain list). */
+    val classical: Boolean get() = works.any { it.title != null }
     /** The box's discs in order, this one among them: the page's "Disc n · title" buttons (all but this one). */
     val boxDiscs: List<AlbumSummary> get() = if (album.box == null) emptyList() else (boxAlbums + album).sortedBy { it.box?.disc ?: 0 }
     companion object {
@@ -188,7 +210,11 @@ data class Album(
                 boxAlbums = j.optJSONArray("box_albums").items(AlbumSummary::parse),
                 partial = j.optBoolean("partial", false),
                 namesFromFolders = j.optBoolean("names_from_folders", false),
-                serviceWhy = a.optJSONObject("service_why")?.let(ServiceWhy::parse)
+                serviceWhy = a.optJSONObject("service_why")?.let(ServiceWhy::parse),
+                works = j.optJSONArray("works").items(Work::parse),
+                composers = a.optJSONArray("composers").strings(),
+                conductor = a.str("conductor"),
+                performers = a.optJSONArray("performers").strings()
             )
         }
     }
