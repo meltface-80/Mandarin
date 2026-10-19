@@ -35,6 +35,17 @@ class AlbumExtrasTest {
         assertEquals("", AlbumExtras.parse(JSONObject("{}")).date(Locale.UK))
     }
 
+    @Test fun `About this album, the write-up, whose words, and the link`() {
+        val pf = AlbumExtras.parse(JSONObject("""{"album": {"description": "A record.", "description_source": "Wikipedia", "description_url": "https://w/x",
+            "source": "Pitchfork", "url": "https://p/x", "score": 8}}""")).review!!
+        assertEquals(listOf("A record.", "Read the full review on Pitchfork", "From Wikipedia", "https://p/x"), listOf(pf.text, pf.linkText, pf.attribution, pf.url))
+        val q = AlbumExtras.parse(JSONObject("""{"album": {"description": "Notes.", "description_source": "Qobuz", "source": "Qobuz", "url": "https://q/x"}}""")).review!!
+        assertEquals("the same source: no attribution", listOf("View on Qobuz", null), listOf(q.linkText, q.attribution))
+        assertEquals("a link alone is a section", "View on Qobuz", AlbumExtras.parse(JSONObject("""{"album": {"source": "Qobuz", "url": "https://q/x"}}""")).review!!.linkText)
+        assertNull("nothing to show", AlbumExtras.parse(JSONObject("""{"album": {"label": "RCA", "description": null, "url": null}}""")).review)
+        assertNull(AlbumExtras.parse(JSONObject("{}")).review)
+    }
+
     @Test fun `the album's length, and its marks`() {
         val t = listOf(Track(1, "a", "", 183.4, null), Track(2, "b", "", 2638.0, null))
         assertEquals("47:01", albumLength(t))

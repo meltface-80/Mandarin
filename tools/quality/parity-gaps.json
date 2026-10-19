@@ -18,22 +18,6 @@
     "select-queue",
     "select-playlist",
     "select-later",
-    "select-clear",
-    "review",
-    "review-more",
-    "review-source",
-    "more-by",
-    "more-by-album",
-    "more-by-more",
-    "appears-on",
-    "appears-on-album",
-    "appears-on-more",
-    "similar-artists",
-    "similar-artist",
-    "similar-artists-more",
-    "similar-artists-site",
-    "similar-albums",
-    "similar-album",
-    "similar-albums-more"
+    "select-clear"
   ]
 }

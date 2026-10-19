@@ -10,9 +10,10 @@ import java.util.Locale
 /**
  * What an album's page shows under its artists once the extras come
  * (/api/album/extras, as the page asks: the day looked up when only the
- * year is known): its release date, its label, a Pitchfork score.
+ * year is known): its release date, its label, a Pitchfork score; and, under
+ * the tracks, About this album ([review]).
  */
-data class AlbumExtras(val releaseDate: String?, val year: String?, val label: String?, val score: Double?, val bestNewMusic: Boolean) {
+data class AlbumExtras(val releaseDate: String?, val year: String?, val label: String?, val score: Double?, val bestNewMusic: Boolean, val review: Review? = null) {
     /** The date line's date, as the page writes it: the day where it is known, else the month, else the year. */
     fun date(locale: Locale = Locale.getDefault()): String = ReleaseDate.format(releaseDate, locale).ifEmpty { year.orEmpty() }
 
@@ -33,9 +34,30 @@ data class AlbumExtras(val releaseDate: String?, val year: String?, val label: S
                 year = year,
                 label = a?.str("label"),
                 score = a?.takeIf { it.has("score") && !it.isNull("score") }?.optDouble("score")?.takeIf { !it.isNaN() },
-                bestNewMusic = a?.optBoolean("isBestNewMusic", false) ?: false
+                bestNewMusic = a?.optBoolean("isBestNewMusic", false) ?: false,
+                review = a?.let { Review.of(it.str("description"), it.str("description_source"), it.str("description_url"), it.str("source"), it.str("url")) }
             )
         }
+    }
+}
+
+/**
+ * About this album, as the page shows it (public/app/album-extras.js): the
+ * write-up ([text], whose words they are when that isn't where the link
+ * goes: [textSource]), and the link to its page ([url] at [source]).
+ * Pitchfork's own prose is never shown; the link is the way to read it.
+ */
+data class Review(val text: String?, val textSource: String?, val textSourceUrl: String?, val source: String?, val url: String?) {
+    /** The link's words: "Read the full review on Pitchfork", "View on Qobuz"; none without a page to go to. */
+    val linkText: String? get() = if (url == null || source == null) null else if (source == "Pitchfork") "Read the full review on Pitchfork" else "View on $source"
+
+    /** "From Wikipedia", under the text, when its words aren't the link's page's. */
+    val attribution: String? get() = if (text != null && textSource != null && textSource != source) "From $textSource" else null
+
+    companion object {
+        /** The section, or null when there is neither a write-up nor a page to link. */
+        fun of(text: String?, textSource: String?, textSourceUrl: String?, source: String?, url: String?): Review? =
+            if (text == null && (url == null || source == null)) null else Review(text, textSource, textSourceUrl, source, url)
     }
 }
 

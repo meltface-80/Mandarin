@@ -124,7 +124,9 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
                 // The mini player's tap: the native Now playing over the album when this phone has it on, else back to the page, whose own opens.
                 onNowPlaying = { id -> if (nativeNowPlaying()) nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } else { nav.popBackStack(); NativeShell.toPage("now-playing", null) } },
                 // A room chosen on its Play on: the page's room too, so its own bar follows.
-                onRoom = { id -> NativeShell.toPage("zone", id) }
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                // Another album of the library's, from the rows under the tracks: its own page over this one; Back returns here.
+                onAlbum = { id, zone -> nav.navigate(ShellRoute.album(id, zone, entry.arguments?.getString(ShellRoute.LIT).orEmpty())) }
             )
         }
     }
