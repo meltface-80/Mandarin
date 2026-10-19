@@ -96,7 +96,8 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
                     Text(Contract.label("album.review-more", if (open) 1 else 0), color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, fontWeight = FontWeight.W500)
                 }
                 val link = review.linkText
-                if (link != null && review.url != null) TextButton(onClick = { onUrl(review.url) }, contentPadding = PaddingValues(vertical = 4.dp),
+                val url = review.url   // a local: a property of core's can't be smart-cast across the module
+                if (link != null && url != null) TextButton(onClick = { onUrl(url) }, contentPadding = PaddingValues(vertical = 4.dp),
                     modifier = Modifier.parity("album.review-source", Contract.label("album.review-source", 0, link))) {
                     Text(link, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 }
