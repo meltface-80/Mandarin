@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `60-composers-only-classical`: an album whose files carry COMPOSER tags (a rock album names its songwriters there) had
+  its page headed as a classical album's: the writers where the band's name goes, the band under them as performers. The
+  composers' head is a classical album's only now (one set out as works, or whose genre says so); every other album's page
+  names its artist alone, on the page and in the app alike (the server decides, in one place).
 - `59-booklet-route`: an album with a booklet (a PDF in its folder) crashed the app when the book on its cover was tapped:
   the booklet's screen (item 42) was never declared in the app's navigation graph, so the route built for it found no
   destination. Declared now; and a JVM test holds every route of the shell's to a screen in the graph, so a route without

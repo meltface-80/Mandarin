@@ -294,6 +294,10 @@ internal static partial class Library
     [GeneratedRegex(@"(?:(?<=[A-Za-z0-9_])(?![A-Za-z0-9_])|(?<![A-Za-z0-9_])(?=[A-Za-z0-9_]))(artist|album)(?:(?<=[A-Za-z0-9_])(?![A-Za-z0-9_])|(?<![A-Za-z0-9_])(?=[A-Za-z0-9_]))")]
     private static partial Regex NamesFromFolders();
 
+    /* The genres that make an album classical for its head (item 60): the family's names, however the tags spell them. */
+    [GeneratedRegex(@"classical|opera|operetta|baroque|renaissance|medieval|romantic|chamber|orchestral|symphon|concerto|choral|oratorio|lieder|early music|contemporary classical|minimalis", RegexOptions.IgnoreCase)]
+    private static partial Regex ClassicalGenre();
+
     private static async Task<bool> AlbumPage(HttpContext ctx, Snapshot s, LibState st)
     {
         var al = s.Find(Num(Q(ctx, "offset")));
@@ -334,10 +338,13 @@ internal static partial class Library
         if (service != null) foreach (var k in service.Keys) album[k] = JsonNode.Parse(Tags.Js.Json(service[k])!);
         if (s.LabelOf(al) is { } label) album["label"] = label;
         // A classical album (bug list item 48): its composers, conductors and performers for the head, and its tracks as works.
+        // Only a classical album's (item 60): one set out as works, or whose genre says so. Any album may carry COMPOSER
+        // tags (a rock album names its songwriters there), and those put the writers where the band's name goes.
         var works = Works.Group(tracks.Select(t => t.ForWorks).ToList(), al.Artist);
-        if (works.Composers.Count > 0) album["composers"] = new JsonArray(works.Composers.Select(x => (JsonNode)x).ToArray());
-        if (works.Conductors.Count > 0) album["conductor"] = string.Join(", ", works.Conductors);
-        if (works.Performers.Count > 0) album["performers"] = new JsonArray(works.Performers.Select(x => (JsonNode)x).ToArray());
+        var classical = works.AnyWork || al.Genres.Any(g => ClassicalGenre().IsMatch(g));
+        if (classical && works.Composers.Count > 0) album["composers"] = new JsonArray(works.Composers.Select(x => (JsonNode)x).ToArray());
+        if (classical && works.Conductors.Count > 0) album["conductor"] = string.Join(", ", works.Conductors);
+        if (classical && works.Performers.Count > 0) album["performers"] = new JsonArray(works.Performers.Select(x => (JsonNode)x).ToArray());
         var boxAlbums = new JsonArray();
         if (al.Box != null)
             foreach (var id in al.Box.Ids)
