@@ -118,10 +118,16 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
         }
     }
     if (m.artists.isNotEmpty() || m.note != null) item {
-        MoreSection("Similar artists", m.artists.size, Modifier.parity("album.similar-artists"), moreKey = "album.similar-artists-more", site = m.artistsUrl?.takeIf { m.artists.isNotEmpty() }?.let { url ->
-            { TextButton(onClick = { onUrl(url) }, modifier = Modifier.parity("album.similar-artists-site", Contract.label("album.similar-artists-site"))) {
-                Text(Contract.label("album.similar-artists-site"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.W500) } }
-        }) { shown ->
+        // The "Last.fm ↗" link at the head's right end, to the page listing them.
+        val url = m.artistsUrl?.takeIf { m.artists.isNotEmpty() }
+        val site: (@Composable () -> Unit)? = if (url == null) null else {
+            {
+                TextButton(onClick = { onUrl(url) }, modifier = Modifier.parity("album.similar-artists-site", Contract.label("album.similar-artists-site"))) {
+                    Text(Contract.label("album.similar-artists-site"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                }
+            }
+        }
+        MoreSection("Similar artists", m.artists.size, Modifier.parity("album.similar-artists"), moreKey = "album.similar-artists-more", site = site) { shown ->
             m.note?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) }
             Grid(m.artists.take(shown)) { a -> ArtistTile(a, client,
                 Modifier.parity("album.similar-artist", Contract.label("album.similar-artist", 0, a.name)).clickable { if (a.inLibrary) onArtist(a.name) else a.url?.let(onUrl) }) }
