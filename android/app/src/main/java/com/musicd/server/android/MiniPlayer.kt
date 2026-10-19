@@ -101,8 +101,12 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                         Text(sub, Modifier.parity("mini-player.artist"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 19.1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                PlayOnMenu(zoneId, client, ::act, onRoom, onPage, size = 46.dp, iconSize = 28.dp)
-                VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
+                // Play on and the volume side by side with nothing between (the page's .mt-controls, gap 0): in the row's own 10
+                // they stood 10 apart, and took that 10 from the title (bug list item 56).
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PlayOnMenu(zoneId, client, ::act, onRoom, onPage, size = 46.dp, iconSize = 28.dp)
+                    VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
+                }
             }
             // The track's progress as the page's level meter: brass segments over faint ones, along the bottom.
             val lit = brass

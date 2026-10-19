@@ -1,14 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `56-mini-bar-buttons`: the native mini player's Play on and volume buttons stood 10dp apart where the page's touch, the
+  row's spacing between them; and the 10 came off the title, which was cut short ("Boat Graveya…") where the page's
+  wasn't. Side by side now, as the page's, the title the page's 128 wide.
 - `55-share-card-flash`: the Share card (and the other sheets) opened from a native screen flashed something on the way in
   and out: the page was put in front before it had painted itself clear, so a frame of Home's covers showed, and on
   closing the page painted Home again before the screen was back in front. Each way is a handshake now: the page comes
   in front once it has painted clear (two frames on), and paints its own screens again only once the app has the screen
-  in front. With it, the last commit of item 54, which its merge left behind: the page's own Back closes a lib sheet
-  (Focus, Sort, Group zones, Device power, Add to playlist), the album editor and the name prompt, where on Home with one
-  open it answered "nothing to close" and the app left the screen; and the sheet is watched for, not polled, so one
-  opened and closed between two polls is not missed. A browser test holds all of it.
+  in front. The browser test of the sheets over a native screen holds both.
 - `54-native-exact-look`: every native screen held to the page's own numbers, read from the page itself in a browser
   (each contract item's size, type and spacing at a phone's width) rather than from a reading of its stylesheet. The type:
   Material put half a pixel between every two glyphs, so a tile's title stood a twentieth wider than the page's (none now,
