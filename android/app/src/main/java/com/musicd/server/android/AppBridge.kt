@@ -22,9 +22,9 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.holdScreen()     before something that puts the page up afresh (the Offline switch)
  *   MusicdApp.screenShown()    the new page shows what the old one did: let it be seen
  *
- * The native screens ([NativeShell], docs/specs/plan-android-native.md), each a preview to switch on:
- *   MusicdApp.nativeNowPlaying()          → whether this phone has the native Now playing on
- *   MusicdApp.setNativeNowPlaying(on)     switched on or off (Settings → Setup → UI Settings)
+ * The native screens ([NativeShell], docs/specs/plan-android-native.md), always on since item 47:
+ *   MusicdApp.nativeNowPlaying()          → true: the app draws Now playing itself (a page from before item 47 asks)
+ *   MusicdApp.setNativeNowPlaying(on)     nothing: there is no switch any more (an older page's Settings has one)
  *   MusicdApp.openNowPlaying(zoneId)      the native Now playing of that room, over the page
  *   MusicdApp.nativeAlbum() / setNativeAlbum(on)   the native album page, likewise
  *   MusicdApp.openAlbum(offset, zoneId, lit)   the native page of that album, its buttons playing in that room;
@@ -72,19 +72,19 @@ class AppBridge(private val activity: Activity) {
     fun screenShown() { activity.runOnUiThread { PageCurtain.down() } }
 
     @JavascriptInterface
-    fun nativeNowPlaying(): Boolean = Store.nativeNowPlaying(activity)
+    fun nativeNowPlaying(): Boolean = true
 
     @JavascriptInterface
-    fun setNativeNowPlaying(on: Boolean) { Store.setNativeNowPlaying(activity, on) }
+    fun setNativeNowPlaying(on: Boolean) { }
 
     @JavascriptInterface
     fun openNowPlaying(zoneId: String) { activity.runOnUiThread { NativeShell.open(ShellRoute.nowPlaying(zoneId)) } }
 
     @JavascriptInterface
-    fun nativeAlbum(): Boolean = Store.nativeAlbum(activity)
+    fun nativeAlbum(): Boolean = true
 
     @JavascriptInterface
-    fun setNativeAlbum(on: Boolean) { Store.setNativeAlbum(activity, on) }
+    fun setNativeAlbum(on: Boolean) { }
 
     @JavascriptInterface
     fun openAlbum(offset: Int, zoneId: String) { openAlbum(offset, zoneId, "") }

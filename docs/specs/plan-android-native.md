@@ -1,6 +1,6 @@
 # Plan: the Android app as a full native app, not a WebView
 
-Status: plan (bug list item 17), written v1.0.7; what is left set out below (item 46, 19 October 2026). N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`. N2 in preview (item 23): `NowPlayingScreen.kt`. Each native screen is held to the page's by the screens contract (item 25, `docs/specs/native-parity.md`); N2 lacks nothing of the page's since item 29, its Queue tab. N3's album page is in the contract (item 30); its native screen (item 32: `AlbumScreen.kt`, `AlbumTracks.kt`, and from items 39 to 44 `AlbumAbout.kt`, `AlbumHead.kt`, `AlbumSelect.kt`, `BookletScreen.kt`) lacks nothing of the page's since item 44, so it is out of preview in the contract (its switch in Settings stays until the owner says); the mini player at its foot is native too (item 35: `MiniPlayer.kt`, whole from the start), and the touch layout's row under it (item 38: `TouchNav.kt`, each tap the page's own button's). Both screens and the bar are drawn as the page's own (items 36 and 37: its type, colours, sizes and spacing), not in Material's look.
+Status: plan (bug list item 17), written v1.0.7; what is left set out below (item 46, 19 October 2026). N0 built (bug list item 21): `NativeShell.kt`, `Shell.kt` in `core`. N1 built (item 22): `LibraryClient.kt`, `Library.kt` in `core`, held to the server by `test/golden/android-api.json`. N2 built (item 23): `NowPlayingScreen.kt`; whole, out of preview and always the app's since item 47. Each native screen is held to the page's by the screens contract (item 25, `docs/specs/native-parity.md`); N2 lacks nothing of the page's since item 29, its Queue tab. N3's album page is in the contract (item 30); its native screen (item 32: `AlbumScreen.kt`, `AlbumTracks.kt`, and from items 39 to 44 `AlbumAbout.kt`, `AlbumHead.kt`, `AlbumSelect.kt`, `BookletScreen.kt`) lacks nothing of the page's since item 44, so it is out of preview in the contract and, since item 47, always the app's (the switches in Settings went); the mini player at its foot is native too (item 35: `MiniPlayer.kt`, whole from the start), and the touch layout's row under it (item 38: `TouchNav.kt`, each tap the page's own button's). Both screens and the bar are drawn as the page's own (items 36 and 37: its type, colours, sizes and spacing), not in Material's look.
 
 ## Is it the key to better function and performance?
 
@@ -71,8 +71,8 @@ Each stage ships on its own and can be tested by updating from `dev`; the WebVie
 
 ## What is left (19 October 2026, after items 35 to 45)
 
-Built: N0, N1, N2 (Now playing, the Queue, the yes-or-no sheet; whole, still behind their switch), N3 (the
-album page, whole, out of preview in the contract; its switch stays until the frame below carries it), the
+Built: N0, N1, N2 (Now playing, the Queue, the yes-or-no sheet; whole), N3 (the album page, whole), both out of
+preview and always the app's since item 47 (the WebView's Now playing and album page are not reached in the app), the
 mini player, the touch layout's row and the booklet viewer. The gaps list is empty. Everything else the page
 draws is still the WebView's, and the owner's rule is that **all of it** is to be native and kept so: not the
 "long tail stays web" of the first plan. The page itself stays, for browsers, the iPhone and the server's own
@@ -149,7 +149,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 | Item | What | Page |
 |---|---|---|
 | T1 | The frame: the list, a pane and the way back, the version in the foot; then Account (devices, revoke, sign out, change the password through `Srp`) and API Keys (each with its check) | `settings`, `settings-views`, `settings-home`, `settings-account`, `settings-info` · ~700 |
-| T2 | Setup's small panes: Smart Picks, Record labels, UI Settings (text, title, tile, layout; the native switches go), Wall Display, Shelf, Share Card, Away from home (the server's Tailscale; the phone's test) | `settings-views`, `settings-ui`, `ui-settings`, `settings-services` (display, depth), `settings-away`, `features.js` · ~500 |
+| T2 | Setup's small panes: Smart Picks, Record labels, UI Settings (text, title, tile, layout), Wall Display, Shelf, Share Card, Away from home (the server's Tailscale; the phone's test) | `settings-views`, `settings-ui`, `ui-settings`, `settings-services` (display, depth), `settings-away`, `features.js` · ~500 |
 | T3 | Home Screen: the rows shown and hidden, dragged into order; the greeting and Random Album switches | `settings-home` · ~200 |
 | T4 | Services: Qobuz (sign in, quality, favourites and purchases, update now, sign out), Tidal (the device code, cancel, quality, favourites, update, sign out) | `settings-services` · ~300 |
 | T5 | Music Folders: the server's (added through the folder browser, removed, missing or unreadable) and the phone's own folder | `settings-folders`, `android-downloads` (the local folder block) · ~300 |

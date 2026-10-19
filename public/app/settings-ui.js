@@ -37,20 +37,3 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
-// Settings → Setup → UI Settings: the Android app's native screens, each a preview, on this phone (the app keeps
-// each choice): Now playing, and (an app that has it) the album page.
-(function initNativeScreens() {
-  const app = window.MusicdApp;
-  const block = document.getElementById("native-screens");
-  const sw = document.getElementById("native-np-on"), album = document.getElementById("native-album-on");
-  if (!app || typeof app.nativeNowPlaying !== "function" || !block || !sw) return;
-  block.classList.remove("hidden");
-  const hasAlbum = typeof app.nativeAlbum === "function" && !!album;
-  if (hasAlbum) for (const id of ["native-album-row", "native-album-note"]) document.getElementById(id).classList.remove("hidden");
-  const paint = () => { sw.checked = !!app.nativeNowPlaying(); if (hasAlbum) album.checked = !!app.nativeAlbum(); };
-  sw.addEventListener("change", () => app.setNativeNowPlaying(sw.checked));
-  if (hasAlbum) album.addEventListener("change", () => app.setNativeAlbum(album.checked));
-  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
-  if (navItem) navItem.addEventListener("click", paint);
-  paint();
-})();

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `47-native-screens-always`: the Android app's Now playing (with its Queue) and album page are the app's own
+  always: the two preview switches in Settings → Setup → UI Settings are gone, a tap on the mini player or an
+  album opens the native screen, and the page's Now playing and album page are not reached in the app. The
+  three screens leave preview in the contract. An older app still says it has no native screen, and the page
+  opens its own, as before.
 - `46-native-plan-remaining`: a plan, nothing built: what is left for the Android app to be wholly native,
   every screen and function of the page's, set out as about forty items in stages (the frame, the Library,
   Home, Search, playlists, rooms and the menu, labels, the services, the share card and the editor, Settings

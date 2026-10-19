@@ -1,7 +1,7 @@
 /* The page's core (app.js until v1.0.5), 21 of 33: an album opened, and the queue's history. */
 function openAlbum(album, opts) {
   opts = opts || {};
-  // The Android app's own album page (a preview, switched on in UI Settings): one of the library's, not this phone's.
+  // The Android app's own album page (always, since item 47; an older app says no): one of the library's, not this phone's.
   const app = window.MusicdApp;
   if (opts.source !== "now-playing" && album && typeof album.offset === "number" && app && typeof app.nativeAlbum === "function" && app.nativeAlbum()) {
     // Which of the row's buttons is lit under it (touchnav.js's classes on <html>): Home, or the Library wall. An older app takes two arguments.
