@@ -31,8 +31,9 @@ import com.musicd.server.client.ShellRoute
  * Compose view on top of it, shown only while a native screen is on. Its
  * first route is `web/{path}`, the page, so the shell starts out of sight.
  * The native screens are routes of their own, each drawn over the page while
- * it is open: Now playing (N2), opened by the page ([AppBridge.openNowPlaying])
- * when this phone has it switched on.
+ * it is open: Now playing (N2) and an album's page (N3), opened by the page
+ * ([AppBridge.openNowPlaying], [AppBridge.openAlbum]) when this phone has
+ * them switched on.
  */
 internal object NativeShell {
     /** The shell's navigation, while it is on screen (set by [Shell]). */
@@ -100,6 +101,16 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                     NativeShell.toPage("zone", id)
                 },
                 // The page's own sheets and screens (Share card, the album, an artist): back to the page, and it opens there.
+                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
+            )
+        }
+        composable(ShellRoute.ALBUM, arguments = listOf(
+            navArgument(ShellRoute.OFFSET) { type = NavType.LongType },
+            navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" }
+        )) { entry ->
+            AlbumScreen(
+                entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
+                onBack = { nav.popBackStack() },
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
             )
         }

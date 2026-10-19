@@ -26,6 +26,12 @@ class ShellTest {
         assertFalse(ShellRoute.isWeb("nowplaying"))
     }
 
+    @Test fun `an album's route carries its offset and its room`() {
+        assertEquals("album/42?zone=RINCON_X%20Y", ShellRoute.album(42, "RINCON_X Y"))
+        assertEquals("album/{offset}?zone={zone}", ShellRoute.ALBUM)
+        assertFalse("the shell's, not the page's", ShellRoute.isWeb(ShellRoute.album(1, "")))
+    }
+
     // The native screens are drawn in the page's own graphite and brass: each
     // colour as style.css's dark "hifi" palette has it.
     @Test fun `the palette is the page's`() {
