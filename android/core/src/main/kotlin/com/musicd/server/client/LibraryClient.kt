@@ -19,6 +19,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** An album's page, by its [offset] (the id every list gives it). */
     fun album(offset: Long): Album = Album.parse(get("/api/album?offset=$offset"))
 
+    /** What its page shows under its artists: date, label, score (the day looked up when only the year is known). */
+    fun albumExtras(title: String, artist: String): AlbumExtras = AlbumExtras.parse(get("/api/album/extras?title=" + enc(title) + "&artist=" + enc(artist) + "&day=1"))
+
     fun artists(): ArtistPage = ArtistPage.parse(get("/api/artists"))
 
     fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
