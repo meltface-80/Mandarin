@@ -23,8 +23,8 @@ internal static partial class Works
     public sealed record Track(string Title, string Artist, long? Disc, double Length, string? Composer, string? Conductor, string? Work, string? Movement, long? MovementNo, string? Performers);
     public sealed record Movement(int Track, string Title);
     /* A work (Title) with its movements, or a plain track (Title null, one movement with the track's own title). */
-    public sealed record Group(string? Title, string? Composer, string? Conductor, List<string> Performers, long? Disc, double Length, List<Movement> Movements);
-    public sealed record Result(List<Group> Groups, List<string> Composers, List<string> Conductors, List<string> Performers)
+    public sealed record Entry(string? Title, string? Composer, string? Conductor, List<string> Performers, long? Disc, double Length, List<Movement> Movements);
+    public sealed record Result(List<Entry> Groups, List<string> Composers, List<string> Conductors, List<string> Performers)
     {
         public bool AnyWork => Groups.Any(g => g.Title != null);
     }
@@ -32,7 +32,7 @@ internal static partial class Works
     public static Result Group(IReadOnlyList<Track> tracks, string albumArtist)
     {
         var tagged = tracks.Any(t => !string.IsNullOrEmpty(t.Work));
-        var groups = new List<Group>();
+        var groups = new List<Entry>();
         string? last = null; long? lastDisc = null;
         for (var i = 0; i < tracks.Count; i++)
         {
@@ -44,7 +44,7 @@ internal static partial class Works
                 g.Movements.Add(new Movement(i, movement));
                 groups[^1] = g with { Length = g.Length + t.Length, Performers = Union(g.Performers, PerformersOf(t, albumArtist)), Composer = g.Composer ?? Blank(t.Composer), Conductor = g.Conductor ?? Blank(t.Conductor) };
             }
-            else groups.Add(new Group(work, Blank(t.Composer), Blank(t.Conductor), PerformersOf(t, albumArtist), t.Disc, t.Length, [new Movement(i, work != null ? movement : t.Title)]));
+            else groups.Add(new Entry(work, Blank(t.Composer), Blank(t.Conductor), PerformersOf(t, albumArtist), t.Disc, t.Length, [new Movement(i, work != null ? movement : t.Title)]));
             last = work; lastDisc = t.Disc;
         }
         // The head's lines: every composer and conductor named, and who performs when the album is set out by composer.

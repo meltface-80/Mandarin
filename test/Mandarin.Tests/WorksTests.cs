@@ -16,8 +16,8 @@ public sealed class WorksTests
     private static async Task<JsonNode> Works(string artist, params object[] tracks) =>
         await Score.Run(new { fn = "works", artist, tracks });
 
-    private static List<string?> Titles(JsonNode? works) => works.Items().Select(w => w.Str("title")).ToList();
-    private static List<string?> Movements(JsonNode? work) => work?["movements"].Items().Select(m => m.Str("title")).ToList() ?? [];
+    private static IEnumerable<string?> Titles(JsonNode? works) => works.Items().Select(w => w.Str("title"));
+    private static IEnumerable<string?> Movements(JsonNode? work) => (work?["movements"]).Items().Select(m => m.Str("title"));
 
     [Test]
     public async Task From_the_tags_a_one_track_work_and_a_work_of_four_movements_numbered_where_the_name_lacks_it()
