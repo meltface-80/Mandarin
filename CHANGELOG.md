@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `56-mini-bar-buttons`: the native mini player's Play on and volume buttons stood 10dp apart where the page's touch, the
+  row's spacing between them; and the 10 came off the title, which was cut short ("Boat Graveya…") where the page's
+  wasn't. Side by side now, as the page's, the title the page's 128 wide.
 - `54-native-exact-look`: every native screen held to the page's own numbers, read from the page itself in a browser
   (each contract item's size, type and spacing at a phone's width) rather than from a reading of its stylesheet. The type:
   Material put half a pixel between every two glyphs, so a tile's title stood a twentieth wider than the page's (none now,
