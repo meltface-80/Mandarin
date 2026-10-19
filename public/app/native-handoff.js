@@ -114,7 +114,11 @@ window.__musicdNative = function (what, arg) {
 /*  a moment later); when it has gone the class comes off and the app  */
 /*  is told (MusicdApp.overlayClosed), so the screen is in front again. */
 /*  A sheet that never opens (the album gone) is waited for a few       */
-/*  seconds, then given up on the same way.                            */
+/*  seconds, then given up on the same way. Each way is a handshake,    */
+/*  so no frame of Home shows (bug list item 55): the page comes in     */
+/*  front only once it has painted itself clear (MusicdApp.overlayShown,*/
+/*  two frames on), and the class comes off only once the app says the */
+/*  screen is in front again (the app takes it off itself).            */
 /* ------------------------------------------------------------------ */
 const OVER_SHEETS = "#share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #prompt-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
 window.__musicdNativeOver = function (what, arg) {
@@ -124,11 +128,14 @@ window.__musicdNativeOver = function (what, arg) {
   const done = () => {
     if (watcher) watcher.disconnect();
     clearTimeout(giveUp);
-    html.classList.remove("native-over");
     if (app && typeof app.overlayClosed === "function") app.overlayClosed();
+    else html.classList.remove("native-over");
   };
   html.classList.add("native-over");
   if (!window.__musicdNative(what, arg)) { done(); return false; }
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (html.classList.contains("native-over") && app && typeof app.overlayShown === "function") app.overlayShown();
+  }));
   const up = () => [...document.querySelectorAll(OVER_SHEETS)].some(e => e.getClientRects().length > 0);
   // Every change to the page looked at: the sheet seen once it is up, done once it has gone again. Watched, not polled:
   // a sheet opened and closed between two polls was never seen, and the page stayed over the screen until the give-up.

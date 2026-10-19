@@ -87,16 +87,27 @@ internal object NativeShell {
      */
     fun overPage(what: String, arg: String? = null) {
         lifted = true
-        lift?.invoke(true)
         val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
         page?.invoke("window.__musicdNativeOver && window.__musicdNativeOver(${org.json.JSONObject.quote(what)}, $a)")
     }
 
-    /** The page's sheet closed: the native screen is in front again. */
+    /**
+     * The page has painted itself clear but for the sheet ([AppBridge.overlayShown]): now it comes in front. Not before:
+     * put in front as it was asked, it showed a frame of Home's covers first (bug list item 55).
+     */
+    fun overlayShown() {
+        if (lifted) lift?.invoke(true)
+    }
+
+    /**
+     * The page's sheet closed ([AppBridge.overlayClosed]): the native screen is in front again, and only then is the
+     * page let paint its own screens again (its `native-over` class taken off here), so none of them shows on the way.
+     */
     fun overlayClosed() {
         if (!lifted) return
         lifted = false
         lift?.invoke(false)
+        page?.invoke("document.documentElement.classList.remove(\"native-over\")")
     }
 
     /** Back on a native screen: it closes, back to the page (true); on the page, or one of its sheets over a native screen, the page's own Back (false). */
