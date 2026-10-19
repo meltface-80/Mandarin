@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `44-native-album-download-service`: the Android app's native album page's ⋯ has the last two of the page's
+  items: Download to this phone (Remove from this phone, or Downloading… n/m while it goes, following the app's
+  own downloads through the same dialogs the page's bridge uses), and a streamed album's favourite on its
+  service (Add to / Remove from Qobuz or Tidal favourites; removed, the page closes and the walls drop it,
+  `library-changed` in `public/app/native-handoff.js`). The gaps list is empty: the native album page lacks
+  nothing of the page's and is out of preview in the contract, so it can't fall behind the page again.
 - `43-native-album-select`: the Android app's native album page (preview) selects tracks as the page's does: a
   long press on a track starts it, each row's circle (or the row) picks or unpicks, a picked row washed in
   brass, and the ⋯ with the count, top right in place of previous and next, opens what to do with them: play

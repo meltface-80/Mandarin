@@ -159,6 +159,10 @@ class ServerClient(
         return j.optJSONObject("album")?.optString("title", "") ?: ""
     }
 
+    /** A streamed album added to ([on]) or taken off your favourites on its service ("qobuz", "tidal"), by its id there; the service's answer. */
+    fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
+        post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
+
     /** A page of an album's booklet, drawn [width] pixels wide (the server keeps a few widths). */
     fun bookletPageUrl(offset: Long, bookletId: String, page: Int, width: Int): String =
         address.baseUrl + "/api/booklet/page?offset=$offset&id=" + enc(bookletId) + "&page=$page&w=$width"

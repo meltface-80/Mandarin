@@ -37,8 +37,14 @@ data class AlbumSummary(
     /** Better than CD: its rate in brass. */
     val hires: Boolean = false,
     /** A disc of a box set filed as albums of their own: which box, which disc. */
-    val box: Box? = null
+    val box: Box? = null,
+    /** A streamed album's id on its service, and whether it is one of your favourites there (null: not signed in, or unknown). */
+    val serviceId: String? = null,
+    val serviceFavourite: Boolean? = null
 ) {
+    /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
+    val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
+
     companion object {
         fun parse(j: JSONObject) = AlbumSummary(
             offset = j.getLong("offset"),
@@ -52,7 +58,9 @@ data class AlbumSummary(
             favourite = j.optBoolean("favourite", false),
             later = j.optBoolean("later", false),
             hires = j.optBoolean("hires", false),
-            box = j.optJSONObject("box")?.let { Box(it.optString("name", ""), it.optInt("disc", 0), it.optInt("of", 0)) }
+            box = j.optJSONObject("box")?.let { Box(it.optString("name", ""), it.optInt("disc", 0), it.optInt("of", 0)) },
+            serviceId = j.str("service_id"),
+            serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null
         )
     }
 }
