@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `40-native-np-tabs-weights`: the Android app's native Now playing has its Queue tab back, and the brass line
+  under the tab on is as wide as its word (it filled the row, pushing Queue off the screen). Every native screen
+  is in the page's weights now: the variable Manrope's default instance is ExtraLight, and the app drew every
+  weight with it; `res/font` carries a static instance a weight (Regular to ExtraBold), so a title is bold as
+  the page's.
 - `39-native-album-about`: the Android app's native album page (preview) has what the page's has under the
   tracks: About this album (the write-up, Show more, whose words they are, the link to its page), then More by
   the artist and the albums they appear on (the library's own, `/api/artist-albums`), then Last.fm's similar

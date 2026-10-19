@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -177,10 +179,11 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     }
 }
 
-/** One of the two tabs, as the page's: small capitals tracked out, the brass line under the one on. */
+/** One of the two tabs, as the page's: small capitals tracked out, the brass line under the one on, as wide as its word. */
 @Composable
 private fun NpTab(text: String, on: Boolean, modifier: Modifier) {
-    Column(modifier.padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // As wide as the text, so the line under it is the word's width (filling the row's width pushed the Queue tab off the screen).
+    Column(modifier.padding(top = 12.dp).width(IntrinsicSize.Max), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.W600, letterSpacing = 0.14.em, maxLines = 1,
             color = if (on) paletteColor(Palette.MODAL_TEXT) else paletteColor(Palette.TEXT_FAINT))
         Spacer(Modifier.height(12.dp))
