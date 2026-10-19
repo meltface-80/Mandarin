@@ -83,6 +83,11 @@ class NowPlayingViewTest {
         assertEquals(1, v.shuffleState)
         assertEquals("Repeat queue, then the track", listOf(1, "loop_one"), listOf(v.loopState, v.loopNext))
         assertEquals("Opus 256kbps", v.formatText)
+        assertEquals("the mini player's kicker: no kbps", "Opus 256", v.formatWord)
+        assertEquals("Lossless", v.copy(format = Format("lossless", "Lossless")).formatWord)
+        assertEquals(null, v.copy(format = Format("lossless", "")).formatWord)
+        assertEquals("a step on the scale, held within it", listOf(55.0, 100.0), listOf(VolumeScale(0.0, 100.0, 5.0, 50.0, null).stepped(1), VolumeScale(0.0, 100.0, 5.0, 98.0, null).stepped(1)))
+        assertEquals(null, VolumeScale(0.0, 100.0, 5.0, null, null).stepped(-1))
         val off = NowPlayingView.of(full("disabled", false, "null"), 0)!!
         assertEquals(listOf(0, 0, "loop"), listOf(off.shuffleState, off.loopState, off.loopNext))
         assertEquals("off after the track", "disabled", NowPlayingView.of(full("loop_one", false, "null"), 0)!!.loopNext)

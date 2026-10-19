@@ -830,11 +830,11 @@
   </div>
 
   <div id="mini-transport" class="mini-transport hidden" aria-label="Now playing">
-    <div class="mt-progress" aria-hidden="true">
+    <div class="mt-progress" aria-hidden="true" data-parity="mini-player.progress">
       <div class="mt-progress-fill" id="mt-progress-fill"></div>
     </div>
 
-    <button class="mt-btn mt-playpause" id="mt-playpause" aria-label="Play/pause">
+    <button class="mt-btn mt-playpause" id="mt-playpause" data-parity="mini-player.playpause" aria-label="Play/pause">
       <svg id="mt-icon-play"  viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M8 5v14l11-7z"/>
       </svg>
@@ -843,20 +843,22 @@
       </svg>
     </button>
 
-    <div class="mt-info">
-      <!-- Inside .mt-info, which is the region that opens Now playing: tapping
-           the cover of the thing you are listening to should get you to it. -->
-      <img id="mt-art" class="mt-art" alt="" aria-hidden="true">
+    <!-- The cover and the text are one button, Now playing: tapping the thing
+         you are listening to should get you to it. Each part carries its key
+         in the screens contract (docs/specs/screens.json, mini-player), as the
+         Android app draws the bar natively too. -->
+    <div class="mt-info" role="button" aria-label="Now playing" data-parity="mini-player.open">
+      <img id="mt-art" class="mt-art" alt="" aria-hidden="true" data-parity="mini-player.cover">
       <div class="mt-text">
         <!-- The room and the format, above the track (Late-Night Hi-Fi only). -->
-        <div id="mt-kicker" class="mt-kicker"></div>
-        <div id="mt-title"  class="mt-title">—</div>
-        <div id="mt-artist" class="mt-artist">—</div>
+        <div id="mt-kicker" class="mt-kicker" data-parity="mini-player.kicker"></div>
+        <div id="mt-title"  class="mt-title" data-parity="mini-player.title">—</div>
+        <div id="mt-artist" class="mt-artist" data-parity="mini-player.artist">—</div>
       </div>
     </div>
 
     <div class="mt-controls">
-      <button class="mt-btn" id="mt-zone" aria-label="Choose zone" aria-expanded="false">
+      <button class="mt-btn" id="mt-zone" data-parity="mini-player.device" aria-label="Choose device" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
@@ -864,7 +866,7 @@
           <circle cx="12" cy="6.4" r="1.1"/>
         </svg>
       </button>
-      <button class="mt-btn mt-vol-btn" id="mt-vol-btn" aria-label="Volume" aria-expanded="false">
+      <button class="mt-btn mt-vol-btn" id="mt-vol-btn" data-parity="mini-player.volume" aria-label="Volume" aria-expanded="false">
         <svg id="mt-icon-vol" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/>
         </svg>
@@ -875,18 +877,18 @@
     </div>
 
     <div class="mt-zone-popover hidden" id="mt-zone-popover" role="dialog" aria-label="Play on">
-      <div class="np-popover-title">Play on</div>
-      <div class="np-device-list" id="mt-zone-list"></div>
-      <button class="np-popover-action" type="button" id="mt-group-open">Group zones…</button>
-      <button class="np-popover-action" type="button" id="mt-power-open">Device power…</button>
-      <button class="np-popover-action" type="button" id="mt-pause-all">Pause all zones</button>
-      <button class="np-popover-action" type="button" id="mt-mute-all">Mute all zones</button>
-      <button class="np-popover-action" type="button" id="mt-unmute-all">Unmute all zones</button>
+      <div class="np-popover-title" data-parity="mini-player.device-title">Play on</div>
+      <div class="np-device-list" id="mt-zone-list" data-parity="mini-player.device-room"></div>
+      <button class="np-popover-action" type="button" id="mt-group-open" data-parity="mini-player.group">Group zones…</button>
+      <button class="np-popover-action" type="button" id="mt-power-open" data-parity="mini-player.power">Device power…</button>
+      <button class="np-popover-action" type="button" id="mt-pause-all" data-parity="mini-player.pause-all">Pause all zones</button>
+      <button class="np-popover-action" type="button" id="mt-mute-all" data-parity="mini-player.mute-all">Mute all zones</button>
+      <button class="np-popover-action" type="button" id="mt-unmute-all" data-parity="mini-player.unmute-all">Unmute all zones</button>
     </div>
 
     <!-- Volume sheet: [icon + value] [slider with min/max scale] [− +] -->
     <div class="mt-vol-popover vol-sheet hidden" id="mt-vol-popover" role="dialog" aria-label="Volume">
-      <div class="vol-readout" aria-hidden="true">
+      <div class="vol-readout" aria-hidden="true" data-parity="mini-player.volume-level">
         <span class="vol-icon">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
@@ -894,12 +896,12 @@
         </span>
         <span class="vol-value" id="mt-vol-value">50</span>
       </div>
-      <div class="vol-slider-wrap" id="mt-vol-sliderwrap">
-        <input type="range" id="mt-vol-slider" class="vol-range" min="0" max="100" step="1" value="50" aria-label="Volume level">
+      <div class="vol-slider-wrap" id="mt-vol-sliderwrap" data-parity="mini-player.volume-slider">
+        <input type="range" id="mt-vol-slider" class="vol-range" min="0" max="100" step="1" value="50" aria-label="Volume">
         <div class="vol-scale" aria-hidden="true"><span id="mt-vol-min">0</span><span id="mt-vol-max">100</span></div>
       </div>
-      <button class="vol-step" id="mt-vol-minus" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <button class="vol-step" id="mt-vol-plus" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="vol-step" id="mt-vol-minus" data-parity="mini-player.volume-down" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="vol-step" id="mt-vol-plus" data-parity="mini-player.volume-up" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>
   </div>
 

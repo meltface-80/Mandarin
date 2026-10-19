@@ -44,5 +44,13 @@ class ShellTest {
             assertTrue("--$name in the palette", m != null)
             assertEquals("--$name", 0xFF000000L or m!!.groupValues[1].toLong(16), argb)
         }
+        // The translucent ones: rgba(r,g,b,a), the alpha to the nearest of 255.
+        for ((name, argb) in Palette.rgbaTokens) {
+            val m = Regex("--$name:\\s*rgba\\((\\d+),(\\d+),(\\d+),(\\.?\\d+)\\);").find(block)
+            assertTrue("--$name in the palette", m != null)
+            val (r, g, b, a) = m!!.destructured
+            val want = (Math.round(a.toDouble() * 255).toLong() shl 24) or (r.toLong() shl 16) or (g.toLong() shl 8) or b.toLong()
+            assertEquals("--$name", want, argb)
+        }
     }
 }

@@ -23,16 +23,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.size
 import com.musicd.server.client.Contract
-import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.Room
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.VolumeScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /*
  * Now playing's two menus under the transport, as the page's popovers have
- * them (docs/specs/screens.json, now-playing): Play on, and the volume.
+ * them (docs/specs/screens.json, now-playing): Play on, and the volume. The
+ * mini player's are the same menus (mini-player), so each item carries both
+ * screens' keys, and the buttons take each bar's size.
  */
 
 /**
@@ -41,7 +45,8 @@ import kotlinx.coroutines.withContext
  * ([onPage]), and the all-room actions.
  */
 @Composable
-internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
+internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit,
+                        size: Dp = 56.dp, iconSize: Dp = 32.dp) {
     var open by remember { mutableStateOf(false) }
     var rooms by remember { mutableStateOf<List<Room>>(emptyList()) }
     LaunchedEffect(open) {
@@ -49,11 +54,11 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
         if (open) rooms = withContext(Dispatchers.IO) { runCatching { c.rooms() }.getOrNull() } ?: rooms
     }
     Box {
-        IconButton(onClick = { open = !open }, modifier = Modifier.parity("now-playing.device", Contract.label("now-playing.device"))) {
-            Icon(painterResource(R.drawable.np_device), contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+        IconButton(onClick = { open = !open }, modifier = Modifier.parity("now-playing.device mini-player.device", Contract.label("now-playing.device")).size(size)) {
+            Icon(painterResource(R.drawable.np_device), contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(iconSize))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            Text("Play on", Modifier.parity("now-playing.device-title").padding(horizontal = 16.dp, vertical = 8.dp),
+            Text("Play on", Modifier.parity("now-playing.device-title mini-player.device-title").padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             for (r in rooms) {
                 DropdownMenuItem(
@@ -64,20 +69,20 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
                         }
                     },
                     onClick = { open = false; if (r.id != zoneId) onRoom(r.id) },
-                    modifier = Modifier.parity("now-playing.device-room", Contract.label("now-playing.device-room", 0, r.name))
+                    modifier = Modifier.parity("now-playing.device-room mini-player.device-room", Contract.label("now-playing.device-room", 0, r.name))
                 )
             }
             HorizontalDivider()
             DropdownMenuItem(text = { Text(Contract.label("now-playing.group")) }, onClick = { open = false; onPage("group", null) },
-                modifier = Modifier.parity("now-playing.group", Contract.label("now-playing.group")))
+                modifier = Modifier.parity("now-playing.group mini-player.group", Contract.label("now-playing.group")))
             DropdownMenuItem(text = { Text(Contract.label("now-playing.power")) }, onClick = { open = false; onPage("power", null) },
-                modifier = Modifier.parity("now-playing.power", Contract.label("now-playing.power")))
+                modifier = Modifier.parity("now-playing.power mini-player.power", Contract.label("now-playing.power")))
             DropdownMenuItem(text = { Text(Contract.label("now-playing.pause-all")) }, onClick = { open = false; act { it.pauseAll() } },
-                modifier = Modifier.parity("now-playing.pause-all", Contract.label("now-playing.pause-all")))
+                modifier = Modifier.parity("now-playing.pause-all mini-player.pause-all", Contract.label("now-playing.pause-all")))
             DropdownMenuItem(text = { Text(Contract.label("now-playing.mute-all")) }, onClick = { open = false; act { it.muteAll(true) } },
-                modifier = Modifier.parity("now-playing.mute-all", Contract.label("now-playing.mute-all")))
+                modifier = Modifier.parity("now-playing.mute-all mini-player.mute-all", Contract.label("now-playing.mute-all")))
             DropdownMenuItem(text = { Text(Contract.label("now-playing.unmute-all")) }, onClick = { open = false; act { it.muteAll(false) } },
-                modifier = Modifier.parity("now-playing.unmute-all", Contract.label("now-playing.unmute-all")))
+                modifier = Modifier.parity("now-playing.unmute-all mini-player.unmute-all", Contract.label("now-playing.unmute-all")))
         }
     }
 }
@@ -85,26 +90,30 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
 /**
  * The volume: where it is, a slider over the speaker's own scale, a step
  * down and up; a speaker with no scale has only the steps, and a room with
- * no volume says it is fixed. The value follows a drag at once and is sent
- * as it ends, as the page's slider does.
+ * no volume says it is fixed ([fixedNote]; the mini player's button is
+ * disabled instead, as the page's is). The value follows a drag at once and
+ * is sent as it ends, as the page's slider does.
  */
 @Composable
-internal fun VolumeMenu(zoneId: String, v: NowPlayingView, act: ((ServerClient) -> Unit) -> Unit) {
+internal fun VolumeMenu(zoneId: String, volume: VolumeScale?, muted: Boolean, act: ((ServerClient) -> Unit) -> Unit,
+                        size: Dp = 56.dp, iconSize: Dp = 32.dp, fixedNote: Boolean = true) {
     var open by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf<Float?>(null) }
     Box {
-        IconButton(onClick = { open = !open }, modifier = Modifier.parity("now-playing.volume", Contract.label("now-playing.volume"))) {
-            Icon(painterResource(if (v.muted) R.drawable.np_mute else R.drawable.np_volume), contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+        IconButton(onClick = { open = !open }, enabled = fixedNote || volume != null,
+            modifier = Modifier.parity("now-playing.volume mini-player.volume", Contract.label("now-playing.volume")).size(size)) {
+            Icon(painterResource(if (muted) R.drawable.np_mute else R.drawable.np_volume), contentDescription = null,
+                tint = if (fixedNote || volume != null) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(iconSize))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            val s = v.volume
+            val s = volume
             if (s == null) {
                 Text("Volume control is fixed", Modifier.parity("now-playing.volume-fixed").padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 return@DropdownMenu
             }
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).width(260.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text((dragging?.toDouble() ?: s.value)?.let { Math.round(it).toString() } ?: "—", Modifier.parity("now-playing.volume-level"),
+                Text((dragging?.toDouble() ?: s.value)?.let { Math.round(it).toString() } ?: "—", Modifier.parity("now-playing.volume-level mini-player.volume-level"),
                     style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 if (!s.incremental) {
                     Slider(
@@ -112,14 +121,14 @@ internal fun VolumeMenu(zoneId: String, v: NowPlayingView, act: ((ServerClient) 
                         onValueChange = { dragging = it },
                         onValueChangeFinished = { val d = dragging; dragging = null; if (d != null) act { it.zoneVolume(zoneId, d.toDouble()) } },
                         valueRange = s.min.toFloat()..s.max.toFloat(),
-                        modifier = Modifier.parity("now-playing.volume-slider", Contract.label("now-playing.volume-slider"))
+                        modifier = Modifier.parity("now-playing.volume-slider mini-player.volume-slider", Contract.label("now-playing.volume-slider"))
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { step(zoneId, v, -1, act) }, modifier = Modifier.parity("now-playing.volume-down", Contract.label("now-playing.volume-down"))) {
+                    IconButton(onClick = { step(zoneId, s, -1, act) }, modifier = Modifier.parity("now-playing.volume-down mini-player.volume-down", Contract.label("now-playing.volume-down"))) {
                         Icon(painterResource(R.drawable.np_minus), contentDescription = null)
                     }
-                    IconButton(onClick = { step(zoneId, v, 1, act) }, modifier = Modifier.parity("now-playing.volume-up", Contract.label("now-playing.volume-up"))) {
+                    IconButton(onClick = { step(zoneId, s, 1, act) }, modifier = Modifier.parity("now-playing.volume-up mini-player.volume-up", Contract.label("now-playing.volume-up"))) {
                         Icon(painterResource(R.drawable.np_plus), contentDescription = null)
                     }
                 }
@@ -129,8 +138,7 @@ internal fun VolumeMenu(zoneId: String, v: NowPlayingView, act: ((ServerClient) 
 }
 
 /** A step of the room's volume: on its scale, or a nudge where it has none. */
-private fun step(zoneId: String, v: NowPlayingView, direction: Int, act: ((ServerClient) -> Unit) -> Unit) {
-    val s = v.volume ?: return
+private fun step(zoneId: String, s: VolumeScale, direction: Int, act: ((ServerClient) -> Unit) -> Unit) {
     if (s.incremental) act { it.zoneVolumeStep(zoneId, direction) }
-    else v.volumeStep(direction)?.let { to -> act { it.zoneVolume(zoneId, to) } }
+    else s.stepped(direction)?.let { to -> act { it.zoneVolume(zoneId, to) } }
 }

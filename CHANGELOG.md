@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `35-native-mini-player`: the Android app's native album page (preview) has the mini player at its foot, as
+  the page's bar: what the room plays (its cover and track, the room and the format above them; a tap opens
+  Now playing, the native one when this phone has it on, else the page's), play/pause, Play on and the volume
+  (Now playing's own menus, so each of their items carries both screens' keys), and the track's progress as the
+  brass level meter along the bottom. A room chosen on its Play on is the page's room too. The mini player is
+  a screen of the contract (`docs/specs/screens.json`, `mini-player`): the page's bar carries its keys
+  (`test/parity.test.js` opens it), and the app has every item from the start, so it isn't in preview.
 - `34-background-stop-away` (first part): the Android app says, at its next start, why playback stopped in the
   background: why Android ended the app (when it was a fault, or came while it was playing), the Tailscale
   engine ending by itself (its exit code and last lines), or the player giving up away from home (and whether

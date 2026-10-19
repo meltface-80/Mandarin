@@ -33,7 +33,8 @@ import com.musicd.server.client.ShellRoute
  * The native screens are routes of their own, each drawn over the page while
  * it is open: Now playing (N2) and an album's page (N3), opened by the page
  * ([AppBridge.openNowPlaying], [AppBridge.openAlbum]) when this phone has
- * them switched on.
+ * them switched on. The album page's mini player opens the native Now
+ * playing over it when that is on, else the page's own.
  */
 internal object NativeShell {
     /** The shell's navigation, while it is on screen (set by [Shell]). */
@@ -69,7 +70,8 @@ internal object NativeShell {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) }, onRoute = { route -> visibility = if (ShellRoute.isWeb(route)) View.GONE else View.VISIBLE })
+                    Shell(client = { Store.client(activity) }, nativeNowPlaying = { Store.nativeNowPlaying(activity) },
+                        onRoute = { route -> visibility = if (ShellRoute.isWeb(route)) View.GONE else View.VISIBLE })
                 }
             }
         }
@@ -80,7 +82,7 @@ internal object NativeShell {
 
 /** The screens by route; [onRoute] told each one shown, so the page shows through on its own. */
 @Composable
-private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
+private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, onRoute: (String?) -> Unit) {
     val nav = rememberNavController()
     DisposableEffect(nav) {
         NativeShell.nav = nav
@@ -111,16 +113,23 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
             AlbumScreen(
                 entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
                 onBack = { nav.popBackStack() },
-                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
+                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
+                // The mini player's tap: the native Now playing over the album when this phone has it on, else back to the page, whose own opens.
+                onNowPlaying = { id -> if (nativeNowPlaying()) nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } else { nav.popBackStack(); NativeShell.toPage("now-playing", null) } },
+                // A room chosen on its Play on: the page's room too, so its own bar follows.
+                onRoom = { id -> NativeShell.toPage("zone", id) }
             )
         }
     }
 }
 
+/** One of the page's colours (Palette, ARGB) as Compose draws it. */
+internal fun paletteColor(argb: Long): Color = Color(argb.toInt())
+
 /** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest). */
 @Composable
 private fun MandarinTheme(content: @Composable () -> Unit) {
-    val c = { argb: Long -> Color(argb.toInt()) }
+    val c = ::paletteColor
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = c(Palette.ACCENT), onPrimary = c(Palette.ON_ACCENT),

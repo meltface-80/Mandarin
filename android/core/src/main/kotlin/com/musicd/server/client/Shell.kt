@@ -65,10 +65,19 @@ object Palette {
     const val ACCENT_TEXT = 0xFFD4B06AL
     const val ON_ACCENT = 0xFF17191CL
     const val DANGER = 0xFFE8836BL
+    /** The mini player's body (`--mt-bg`, rgba(31,34,38,.97)). */
+    const val MT_BG = 0xF71F2226L
+    /** The level meter's unlit segments (`--meter-off`, rgba(236,235,230,.12)). */
+    const val METER_OFF = 0x1FECEBE6L
+    /** The mini player's edge: the brass at .24 (style.css, `.mini-transport` in the hifi palette). */
+    const val MT_EDGE = 0x3DC9A45CL
 
     /** Each colour by the page's own token name, for the test that holds the two together. */
     val tokens: Map<String, Long> = mapOf(
         "bg" to BG, "bg-elev" to BG_ELEV, "border" to BORDER, "text" to TEXT, "text-dim" to TEXT_DIM,
         "text-faint" to TEXT_FAINT, "accent" to ACCENT, "accent-text" to ACCENT_TEXT, "on-accent" to ON_ACCENT, "danger" to DANGER
     )
+
+    /** The translucent ones, by token name: the page writes these as rgba(r,g,b,a). */
+    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF)
 }

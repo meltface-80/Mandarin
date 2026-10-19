@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,14 +69,19 @@ import org.json.JSONObject
  * (docs/specs/screens.json, album): the 160px cover with the title, the
  * artists, the date and its label and the rate and length beside it, the
  * cover's glow behind; the heart, Play Now, Queue and ⋯; the tracks. Its
- * buttons play in [zoneId], the room the page had chosen. What the page does
- * with its own sheets (Share card, Add to playlist, Edit album) and screens
- * (an artist's, a label's) it is asked for ([onPage]).
+ * buttons play in [zoneId], the room the page had chosen, or the one chosen
+ * since on the mini player's Play on ([onRoom] tells the page). The mini
+ * player sits at its foot as the page's does; its tap opens Now playing
+ * ([onNowPlaying], with the room). What the page does with its own sheets
+ * (Share card, Add to playlist, Edit album) and screens (an artist's, a
+ * label's) it is asked for ([onPage]).
  */
 @Composable
-internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit) {
+internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
+                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var zone by remember(offset) { mutableStateOf(zoneId) }
     var album by remember(offset) { mutableStateOf<Album?>(null) }
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
     var failed by remember(offset) { mutableStateOf<String?>(null) }
@@ -103,7 +109,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
     // To the room: what came of it said as the page says it.
     fun play(said: String, block: (ServerClient) -> JSONObject?) {
         val c = client() ?: return
-        if (zoneId.isEmpty()) { toast("Pick a zone first"); return }
+        if (zone.isEmpty()) { toast("Pick a zone first"); return }
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { block(c) } }
             toast(r.exceptionOrNull()?.message ?: said)
@@ -121,7 +127,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
                 Image(it, contentDescription = null, contentScale = ContentScale.Crop,
                     modifier = Modifier.parity("album.glow").fillMaxWidth().height(420.dp).alpha(0.26f).let { m -> if (Build.VERSION.SDK_INT >= 31) m.blur(40.dp) else m })
             }
-            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
+            // The foot keeps room for the mini player, as the page's does.
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(bottom = 118.dp)) {
                 item {
                     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onBack, modifier = Modifier.parity("album.back", Contract.label("album.back"))) {
@@ -166,16 +173,17 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
                             Text(if (favourite) "♥" else "♡", fontSize = 20.sp, color = if (favourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val brass = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
-                        Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zoneId, "play_now") } }, colors = brass,
+                        Button(onClick = { play("Playing") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = brass,
                             modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f)) { Text(Contract.label("album.play-now")) }
-                        Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zoneId, "queue") } }, colors = brass,
+                        Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = brass,
                             modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f)) { Text(Contract.label("album.queue")) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
-                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zoneId, kind) } }, onPage = onPage)
+                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage)
                     }
                 }
-                albumTracks(a, onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zoneId, kind) } })
+                albumTracks(a, onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
             }
+            MiniPlayer(zone, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage, modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }
