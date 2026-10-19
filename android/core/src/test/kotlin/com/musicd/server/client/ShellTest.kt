@@ -43,6 +43,21 @@ class ShellTest {
 
     // The native screens are drawn in the page's own graphite and brass: each
     // colour as style.css's dark "hifi" palette has it.
+    /**
+     * Every route of the shell's has a screen in the app's graph (NativeShell.kt): a route built and navigated to with
+     * no destination for it brings the app down (bug list item 59: the booklet's, never declared, crashed the app on
+     * every booklet tapped). Read from the source, as the app itself only compiles in CI.
+     */
+    @Test fun `every route of the shell's has a screen in the app's graph`() {
+        val src = listOf("../app/src/main/java/com/musicd/server/android/NativeShell.kt", "../../android/app/src/main/java/com/musicd/server/android/NativeShell.kt",
+            "android/app/src/main/java/com/musicd/server/android/NativeShell.kt").map { java.io.File(it) }.first { it.exists() }.readText()
+        val routes = ShellRoute::class.java.declaredFields.filter { it.type == String::class.java && java.lang.reflect.Modifier.isStatic(it.modifiers) }
+            .map { it.name to (it.also { f -> f.isAccessible = true }.get(null) as String) }
+            .filter { (_, v) -> v.contains("{") }   // a route pattern names its arguments; the rest are argument names
+        assertTrue(routes.map { it.first }.containsAll(listOf("WEB", "NOW_PLAYING", "ALBUM", "LIBRARY", "WALL", "ARTIST", "BOOKLET")))
+        for ((name, _) in routes) assertTrue("ShellRoute.$name has no composable(ShellRoute.$name …) in NativeShell.kt", Regex("composable\\(\\s*ShellRoute\\.$name\\b").containsMatchIn(src))
+    }
+
     @Test fun `the palette is the page's`() {
         val css = listOf("../../public/style.css", "../public/style.css", "public/style.css").map { File(it) }.first { it.exists() }.readText()
         val start = css.indexOf("[data-theme=\"dark\"][data-palette=\"hifi\"] {")
