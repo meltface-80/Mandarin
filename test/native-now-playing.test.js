@@ -1,13 +1,13 @@
 "use strict";
 /*
- * The Android app's native Now playing, a preview (stage N2 of
+ * The Android app's native Now playing (stage N2 of
  * docs/specs/plan-android-native.md), as the page hands over to it. The
- * switch in Settings → Setup → UI Settings is the app's alone: shown only
- * where the app's bridge (MusicdApp) says it has the screen, and kept by the
- * app. Switched on, a tap on the mini player asks the app for its own Now
- * playing of the room playing, instead of the page's; off, the page's opens,
- * as it always has. The app is stood in for by its bridge; a room by the
- * stand-in Sonos household. Skipped where no Chromium or Chrome is found.
+ * app's bridge (MusicdApp) says whether it draws the screen itself (always,
+ * since item 47; an app from before says no): then a tap on the mini player
+ * asks the app for its own Now playing of the room playing, instead of the
+ * page's; otherwise the page's opens, as it always has. The app is stood in
+ * for by its bridge; a room by the stand-in Sonos household. Skipped where no
+ * Chromium or Chrome is found.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -26,23 +26,9 @@ const KIT = `
   const $ = (s) => document.querySelector(s);
   await until(() => document.querySelector("#home-random .album, #home-today .album, #home-library .album"), 20000);`;
 
-// Before the page's scripts: the app's bridge, its switch [on], and what it is asked written down.
-const bridge = (on) => `window.MusicdApp = { on: ${on ? "true" : "false"}, set: [], opened: [],
-  nativeNowPlaying() { return this.on; }, setNativeNowPlaying(v) { this.on = !!v; this.set.push(!!v); }, openNowPlaying(z) { this.opened.push(z); } };`;
-
-/* Settings → Setup → UI Settings: the switch, and what a tap on it tells the app. */
-const SETTINGS = `(async () => { ${KIT}
-  $("#settings-toggle").click(); await sleep(300);
-  window.__settingsShowView("setup"); await sleep(200);
-  document.querySelector('.settings-view[data-pane="setup"] .settings-nav-item[data-pane="ui"]').click();
-  await until(() => shown(document.querySelector('.settings-view[data-pane="ui"]')), 5000);
-  const out = { shown: shown($("#native-screens")) };
-  if (!out.shown) return out;
-  out.checked = $("#native-np-on").checked;
-  $("#native-np-on").click(); await sleep(100);
-  out.set = window.MusicdApp.set;
-  return out;
-})()`;
+// Before the page's scripts: the app's bridge, whether it draws Now playing itself ([on]), and what it is asked written down.
+const bridge = (on) => `window.MusicdApp = { on: ${on ? "true" : "false"}, opened: [],
+  nativeNowPlaying() { return this.on; }, setNativeNowPlaying() {}, openNowPlaying(z) { this.opened.push(z); } };`;
 
 /* An album played to the room, then the mini player tapped: what opens, and what the app was asked. */
 const TAP = `(async () => { ${KIT}
@@ -107,7 +93,7 @@ const PLAYING_HANDOFF = `(async () => { ${KIT}
   return out;
 })()`;
 
-test("the app's native Now playing: its switch in Setup, and the mini player handing over to it", { skip, timeout: 240000 }, async (t) => {
+test("the app's native Now playing: the mini player handing over to it, and what it hands back", { skip, timeout: 240000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
@@ -153,23 +139,14 @@ test("the app's native Now playing: its switch in Setup, and the mini player han
     assert.deepEqual([r.noArtist, r.artist, r.artistShown], [false, true, true], "the artist's page");
   });
 
-  await t.test("a browser: no such switch", async () => {
-    assert.deepEqual(await run(SETTINGS), { shown: false });
-  });
-
-  await t.test("the app: the switch, off until switched on, and the app told", async () => {
-    assert.deepEqual(await run(SETTINGS, bridge(false)), { shown: true, checked: false, set: [true] });
-    assert.deepEqual(await run(SETTINGS, bridge(true)), { shown: true, checked: true, set: [false] });
-  });
-
-  await t.test("switched off: the mini player opens the page's Now playing, as ever", async () => {
+  await t.test("an app from before item 47 (no native Now playing): the mini player opens the page's, as ever", async () => {
     const r = await run(TAP, room + bridge(false));
     assert.equal(r.playing, true, "it plays");
     assert.equal(r.pageNp, true, "the page's Now playing");
     assert.deepEqual(r.opened, [], "the app not asked");
   });
 
-  await t.test("switched on: the mini player asks the app for its own, of the room playing", async () => {
+  await t.test("the app: the mini player asks it for its own Now playing, of the room playing", async () => {
     const r = await run(TAP, room + bridge(true));
     assert.equal(r.playing, true, "it plays");
     assert.deepEqual(r.opened, [kitchen.zone_id], "the app's Now playing, of the Kitchen");

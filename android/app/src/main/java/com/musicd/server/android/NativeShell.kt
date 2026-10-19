@@ -74,7 +74,7 @@ internal object NativeShell {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) }, nativeNowPlaying = { Store.nativeNowPlaying(activity) },
+                    Shell(client = { Store.client(activity) },
                         onRoute = { route -> visibility = if (ShellRoute.isWeb(route)) View.GONE else View.VISIBLE })
                 }
             }
@@ -86,7 +86,7 @@ internal object NativeShell {
 
 /** The screens by route; [onRoute] told each one shown, so the page shows through on its own. */
 @Composable
-private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, onRoute: (String?) -> Unit) {
+private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
     val nav = rememberNavController()
     DisposableEffect(nav) {
         NativeShell.nav = nav
@@ -130,8 +130,8 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
                 // A booklet: its pages over the album; Back returns here.
                 onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },
-                // The mini player's tap: the native Now playing over the album when this phone has it on, else back to the page, whose own opens.
-                onNowPlaying = { id -> if (nativeNowPlaying()) nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } else { nav.popBackStack(); NativeShell.toPage("now-playing", null) } },
+                // The mini player's tap: the native Now playing over the album.
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 // A room chosen on its Play on: the page's room too, so its own bar follows.
                 onRoom = { id -> NativeShell.toPage("zone", id) },
                 // Another album of the library's, from the rows under the tracks: its own page over this one; Back returns here.

@@ -1,10 +1,10 @@
 "use strict";
 /*
- * The Android app's native album page, a preview (stage N3 of
- * docs/specs/plan-android-native.md), as the page hands over to it. Its
- * switch in Settings → Setup → UI Settings is shown only where the app's
- * bridge (MusicdApp) has the screen. Switched on, an album tapped asks the app
- * for its own page of that album, in the room chosen; off, the page's opens,
+ * The Android app's native album page (stage N3 of
+ * docs/specs/plan-android-native.md), as the page hands over to it. The app's
+ * bridge (MusicdApp) says whether it draws the page itself (always, since
+ * item 47; an app from before says no): then an album tapped asks the app for
+ * its own page of that album, in the room chosen; otherwise the page's opens,
  * as it always has. What the native page hands back (its Share card, Add to
  * playlist, Edit album, a label) the page opens as its own album page does.
  * The app is stood in for by its bridge. Skipped where no Chromium or Chrome
@@ -26,24 +26,10 @@ const KIT = `
   await until(() => document.querySelectorAll("#home-library .album").length > 1, 20000);
   await sleep(500);`;
 
-// Before the page's scripts: the app's bridge, its album switch [on], and what it is asked written down.
-const bridge = (on) => `window.MusicdApp = { np: false, on: ${on ? "true" : "false"}, set: [], opened: [],
-  nativeNowPlaying() { return this.np; }, setNativeNowPlaying(v) { this.np = !!v; }, openNowPlaying() {},
-  nativeAlbum() { return this.on; }, setNativeAlbum(v) { this.on = !!v; this.set.push(!!v); }, openAlbum(offset, zone) { this.opened.push([offset, zone]); } };`;
-
-/* Settings → Setup → UI Settings: the album page's switch, and what a tap on it tells the app. */
-const SETTINGS = `(async () => { ${KIT}
-  $("#settings-toggle").click(); await sleep(300);
-  window.__settingsShowView("setup"); await sleep(200);
-  document.querySelector('.settings-view[data-pane="setup"] .settings-nav-item[data-pane="ui"]').click();
-  await until(() => shown(document.querySelector('.settings-view[data-pane="ui"]')), 5000);
-  const out = { shown: shown($("#native-album-row")) };
-  if (!out.shown) return out;
-  out.checked = $("#native-album-on").checked;
-  $("#native-album-on").click(); await sleep(100);
-  out.set = window.MusicdApp.set;
-  return out;
-})()`;
+// Before the page's scripts: the app's bridge, whether it draws the album page itself ([on]), and what it is asked written down.
+const bridge = (on) => `window.MusicdApp = { on: ${on ? "true" : "false"}, opened: [],
+  nativeNowPlaying() { return false; }, setNativeNowPlaying() {}, openNowPlaying() {},
+  nativeAlbum() { return this.on; }, setNativeAlbum() {}, openAlbum(offset, zone) { this.opened.push([offset, zone]); } };`;
 
 /* Album One tapped on Home: whose page opens, and what the app was asked. */
 const TAP = `(async () => { ${KIT}
@@ -68,7 +54,7 @@ const HANDOFF = (offset) => `(async () => { ${KIT}
   return out;
 })()`;
 
-test("the app's native album page: its switch in Setup, an album tap handed over, and what it hands back", { skip, timeout: 240000 }, async (t) => {
+test("the app's native album page: an album tap handed over, and what it hands back", { skip, timeout: 240000 }, async (t) => {
   const { base, token, album } = await started(t);
   const one = await album("Album One");
   const b = await Browser.launch({ width: 412, height: 915 });
@@ -81,17 +67,11 @@ test("the app's native album page: its switch in Setup, an album tap handed over
     return r;
   };
 
-  await t.test("a browser: no such switch, and the page's album page as ever", async () => {
-    assert.deepEqual(await run(SETTINGS), { shown: false });
+  await t.test("a browser: the page's album page as ever", async () => {
     assert.deepEqual(await run(TAP), { page: true, opened: null });
   });
 
-  await t.test("the app: the switch, off until switched on, and the app told", async () => {
-    assert.deepEqual(await run(SETTINGS, bridge(false)), { shown: true, checked: false, set: [true] });
-    assert.deepEqual(await run(SETTINGS, bridge(true)), { shown: true, checked: true, set: [false] });
-  });
-
-  await t.test("switched off: the page's album page; on: the app's, of that album, in the room chosen", async () => {
+  await t.test("an app from before item 47: the page's album page; the app: its own, of that album, in the room chosen", async () => {
     assert.deepEqual(await run(TAP, bridge(false)), { page: true, opened: [] });
     const r = await run(TAP, bridge(true));
     assert.equal(r.page, false, "not the page's");

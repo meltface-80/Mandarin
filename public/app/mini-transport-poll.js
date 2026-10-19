@@ -81,7 +81,7 @@ if (btnZone && zonePop) {
 const infoArea = bar.querySelector(".mt-info");
 infoArea.addEventListener("click", () => {
   if (!currentZone || !currentZone.now_playing) return;
-  // The Android app's own Now playing, when this phone has it switched on (Setup → UI Settings).
+  // The Android app's own Now playing (always, since item 47; an older app says no).
   const app = window.MusicdApp;
   if (app && typeof app.nativeNowPlaying === "function" && app.nativeNowPlaying()) { app.openNowPlaying(currentZone.zone_id); return; }
   if (typeof window.__openAlbum !== "function") return;
