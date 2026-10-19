@@ -82,6 +82,18 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the album gone: nothing to open */ });
     return true;
   }
+  // The app's native Library wall (item 52): its view changed there (the same query string this page's wall asks
+  // with), so this wall and Home's Library row follow; Save as… from its Focus, the page's own prompt over the view;
+  // albums picked there, for a playlist: the page's sheet.
+  if (what === "library-view") { applyLibViewQuery(arg || ""); return true; }
+  if (what === "smart-save") { applyLibViewQuery(arg || ""); saveSmartPlaylistPrompt(null); return true; }
+  if (what === "albums-playlist") {
+    let albums;
+    try { albums = JSON.parse(arg); } catch (e) { return false; }
+    if (!Array.isArray(albums) || !albums.length) return false;
+    openAddToPlaylistSheet(null, albums.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "", image_key: a.image_key || null })));
+    return true;
+  }
   if (what === "zone") {
     if (!zoneSel || !arg || ![...zoneSel.options].some(o => o.value === arg)) return false;
     if (zoneSel.value !== arg) { zoneSel.value = arg; zoneSel.dispatchEvent(new Event("change")); }

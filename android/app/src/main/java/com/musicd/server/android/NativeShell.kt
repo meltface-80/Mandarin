@@ -48,6 +48,12 @@ internal object NativeShell {
     /** A native screen opened over the page. */
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
+    /** Whether the app draws the Library wall, the walls and an artist's page itself (item 52; the switch in UI Settings), as last told by the page. */
+    @Volatile var nativeLibrary = false
+    /** The page's UI Settings as JSON, and its room, as last handed over with a wall ([AppBridge.openLibrary], openWall): the walls opened from native screens draw to them. */
+    @Volatile var prefs: String? = null
+    @Volatile var zone: String = ""
+
     /** Runs a script on the page (set by [attach]). */
     private var page: ((String) -> Unit)? = null
 
@@ -85,10 +91,21 @@ internal object NativeShell {
     }
 }
 
+/**
+ * What a native screen hands to the page, unless the app draws it itself: an artist's page is native when the
+ * Library wall is (item 52), opened over the screen that asked; everything else closes the screen and asks the page.
+ */
+private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
+    if (what == "artist" && !arg.isNullOrEmpty() && NativeShell.nativeLibrary) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
+    nav.popBackStack()
+    NativeShell.toPage(what, arg)
+}
+
 /** The screens by route; [onRoute] told each one shown, so the page shows through on its own. */
 @Composable
 private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
     val nav = rememberNavController()
+    val prefs = NativeShell.prefs
     DisposableEffect(nav) {
         NativeShell.nav = nav
         onDispose { if (NativeShell.nav === nav) NativeShell.nav = null }
@@ -122,10 +139,35 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "library", AlbumLists.put(list), list.index)) },
+                // The view changed here: the page's own wall and Home's Library row follow.
+                onView = { q -> NativeShell.toPage("library-view", q) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = { id -> NativeShell.toPage("zone", id) },
                 onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
-                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            )
+        }
+        // The walls Home links to (L5) and an artist's page (L4), item 52: each over the page, or over the screen that opened it.
+        composable(ShellRoute.WALL, arguments = listOf(navArgument(ShellRoute.KIND) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
+            WallScreen(entry.arguments?.getString(ShellRoute.KIND).orEmpty(), WallPrefs.parse(prefs), zone, client,
+                onBack = { nav.popBackStack() },
+                onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            )
+        }
+        composable(ShellRoute.ARTIST, arguments = listOf(navArgument("name") { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
+            ArtistScreen(entry.arguments?.getString("name").orEmpty(), WallPrefs.parse(prefs), zone, client,
+                onBack = { nav.popBackStack() },
+                onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
         }
         composable(ShellRoute.ALBUM, arguments = listOf(
@@ -145,7 +187,7 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 onBack = { nav.popBackStack() },
                 // The row along the foot: back to the native wall it came from (Library), else the page's own button, tapped, once the page is back in front.
                 onNav = { what -> if (!(what == "library" && nav.popBackStack(ShellRoute.LIBRARY, false))) { nav.popBackStack(); NativeShell.toPage("nav", what) } },
-                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) },
                 // A booklet: its pages over the album; Back returns here.
                 onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },
                 // The mini player's tap: the native Now playing over the album.

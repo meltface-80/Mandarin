@@ -58,6 +58,15 @@ object ShellRoute {
     /** The route to the Library wall in the view [view] (a query string), drawn to [prefs] (JSON), its albums playing in [zoneId]. */
     fun library(view: String, prefs: String, zoneId: String): String = "library?$VIEW=" + enc(view) + "&$PREFS=" + enc(prefs) + "&$ZONE=" + enc(zoneId)
 
+    const val KIND = "kind"
+    /** A wall Home links to (L5, item 52): [KIND] later, favourites, history, unplayed or random; [ZONE] the room its albums play in. */
+    const val WALL = "wall/{$KIND}?$ZONE={$ZONE}"
+    fun wall(kind: String, zoneId: String): String = "wall/" + enc(kind) + "?$ZONE=" + enc(zoneId)
+
+    /** An artist's page (L4, item 52): their albums and their biography. */
+    const val ARTIST = "artist?name={name}&$ZONE={$ZONE}"
+    fun artist(name: String, zoneId: String): String = "artist?name=" + enc(name) + "&$ZONE=" + enc(zoneId)
+
     const val BOOKLET_ID = "booklet"
     const val NAME = "name"
     const val PAGES = "pages"

@@ -15,6 +15,7 @@ app/home-render.js
 app/home-rows.js
 app/home-picks.js
 app/walls.js
+app/library-view-sync.js
 app/library-wall.js
 app/library-controls.js
 app/playlists.js

@@ -35,6 +35,7 @@ refreshBtn.addEventListener("click", loadRandom);
     if (window.__exitLabels) window.__exitLabels();
     markActive();
     close();
+    if (!f && nativeWallOpened("random")) return;   // the Android app's own random wall (item 52)
     if (window.__showWall) window.__showWall();   // reveal the album grid (leave Home)
     updateCountReadout(null);
     loadRandom();

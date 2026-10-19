@@ -140,6 +140,7 @@ function buildLibFilterControl(open) {
   input.value = libFilterTyped.trim() === (libView.prefix || "") ? libFilterTyped : (libView.prefix || "");
   input.placeholder = "Starts with…";
   input.setAttribute("aria-label", "Filter albums and artists by first letters");
+  input.dataset.parity = "library.filter-input";
   input.autocomplete = "off";
   input.spellcheck = false;
   input.addEventListener("click", (e) => e.stopPropagation());
@@ -157,6 +158,7 @@ function buildLibFilterControl(open) {
   x.type = "button";
   x.className = "search-clear lib-filter-clear";
   x.setAttribute("aria-label", "Clear the filter");
+  x.dataset.parity = "library.filter-clear";
   x.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
     'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M18 6 6 18M6 6l12 12"/></svg>';
@@ -286,6 +288,9 @@ function openLibSheet(title, buildBody, footer, onClose) {
   const h = document.createElement("h3"); h.textContent = title;
   const x = document.createElement("button");
   x.type = "button"; x.className = "icon-btn"; x.setAttribute("aria-label", "Close");
+  // The Library's two sheets are the screens contract's (docs/specs/screens.json, library): their title and ✕ keyed.
+  if (title === "Focus") { h.dataset.parity = "library.focus-title"; x.dataset.parity = "library.focus-close"; }
+  else if (title === "Sort by") { h.dataset.parity = "library.sort-title"; x.dataset.parity = "library.sort-close"; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");

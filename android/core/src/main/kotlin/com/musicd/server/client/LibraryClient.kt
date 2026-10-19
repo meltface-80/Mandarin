@@ -49,6 +49,20 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** Not played: the albums not played for months. */
     fun notPlayed(): AlbumRow = AlbumRow.parse(get("/api/home/unplayed"))
 
+    /** The Focus sheet's facets (item 52). */
+    fun facets(): Facets = Facets.parse(get("/api/library/facets"))
+
+    /** The walls Home links to (item 52): Favourites, Listen later, Recently played (the last 30 days, [count] at most), Not played in [months] ([count] at most). */
+    fun favourites(): AlbumRow = AlbumRow.parse(get("/api/favourites"))
+    fun listenLater(): AlbumRow = AlbumRow.parse(get("/api/listen-later"))
+    fun history(count: Int): AlbumRow = AlbumRow.parse(get("/api/home/history?count=$count"))
+    fun unplayed(months: Int, count: Int): Unplayed = Unplayed.parse(get("/api/home/unplayed?months=$months&count=$count"))
+    /** Random albums, [count] of them (the random wall; asked again to reshuffle). */
+    fun randomAlbums(count: Int): AlbumRow = AlbumRow.parse(get("/api/random-albums?count=$count"))
+
+    /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
+    fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
+
     fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day"))
 
     // A space as %20, as a browser's address has it ("+" means a space only in a form's body).
