@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `33-native-regex-crash`: the Android app no longer crashes opening native Now playing. Its labels were filled
+  by a regular expression the JVM takes and Android refuses (an unescaped `}`); escaped, and every regex in the
+  app's Kotlin is now checked against Android's rule (`test/android-regex.test.js`), which the JVM tests can't see.
 - `32-native-album`: the Android app's native album page (stage N3, a preview, switched on in Settings → Setup →
   UI Settings, "Native album page"). An album tapped opens the app's own page of it, in the room chosen: the
   sleeve and its glow, the head (title, artist, date, label and score, rate and length), the heart, Play Now,
