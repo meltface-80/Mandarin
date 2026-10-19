@@ -42,6 +42,7 @@ import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.Palette
 import com.musicd.server.client.Pick
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.WallPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -144,13 +145,13 @@ private fun PickCardFull(p: Pick, client: () -> ServerClient?, onOpen: (Long) ->
             } else {
                 Box(Modifier.parity("picks.add", Contract.label("picks.add", adding)).weight(1f).height(36.dp).alpha(if (adding == 1) 0.6f else 1f).clip(pill).background(MaterialTheme.colorScheme.primary)
                     .clickable(enabled = adding == 0) {
-                        val c = client()
-                        if (c == null || p.albumId == null || p.service == null) { onSaid("No streaming album to add"); return@clickable }
+                        val c = client(); val service = p.service; val albumId = p.albumId
+                        if (c == null || albumId == null || service == null) { onSaid("No streaming album to add"); return@clickable }
                         adding = 1
                         scope.launch {
-                            val r = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(p.service, p.albumId, true) } }
+                            val r = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(service, albumId, true) } }
                             val ok = r.getOrNull()?.optBoolean("ok", false) == true
-                            if (ok) { adding = 2; onSaid("Added to your " + (if (p.service == "tidal") "Tidal" else "Qobuz") + " favourites") }
+                            if (ok) { adding = 2; onSaid("Added to your " + (if (service == "tidal") "Tidal" else "Qobuz") + " favourites") }
                             else { adding = 0; onSaid(r.exceptionOrNull()?.message ?: r.getOrNull()?.optString("error")?.ifEmpty { null } ?: "Couldn't add that album") }
                         }
                     }, contentAlignment = Alignment.Center) {

@@ -113,6 +113,7 @@ private val COVERAGE_OF = mapOf("rate" to "format", "bits" to "format", "chan" t
 internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryView) -> Unit, onSave: () -> Unit, onShow: () -> Unit, onClose: () -> Unit) {
     // Which sections are open: a section with something on opens by itself, and stays open until its head is tapped.
     val open = remember { mutableStateMapOf<String, Boolean>() }
+    val faint = paletteColor(Palette.TEXT_FAINT)
     Sheet("Focus", onClose, foot = {
         val edge = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ButtonDefaults.shape)
         val pad = PaddingValues(horizontal = 8.dp)

@@ -66,7 +66,7 @@ internal fun AlbumTile(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: 
     val cover = rememberTileCover(a.imageKey, coverPx, client)
     Column(Modifier.parity("library.album wall.album artist.album home.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
         .fillMaxWidth().combinedClickable(onLongClick = onLongPress, onClick = onOpen)) {
-        TileArt(a, cover, selected, Modifier.fillMaxWidth().aspectRatio(1f), badge, dl)
+        TileArt(a, cover, selected, Modifier.fillMaxWidth().aspectRatio(1f), today = badge, dl = dl)
         // The page's phone sizes (style.css, max-width 767px, and the hifi palette's .album-meta and .album-title): 11 under the
         // cover, the title 12px at 600 in two lines of 1.25, a 1 gap, the artist 10.5px in one line of 1.3; each in its line box (Type.kt).
         val title = (12 * prefs.text).sp; val titleLine = (15 * prefs.text).sp
@@ -88,7 +88,7 @@ internal fun AlbumRow(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: (
         Row(Modifier.parity("library.album wall.album artist.album home.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
             .fillMaxWidth().combinedClickable(onLongClick = onLongPress, onClick = onOpen).padding(horizontal = 2.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TileArt(a, cover, selected, Modifier.size(52.dp), null, dl)
+            TileArt(a, cover, selected, Modifier.size(52.dp), today = null, dl = dl)
             Column(Modifier.weight(1f)) {
                 Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title"), color = MaterialTheme.colorScheme.onSurface,
                     fontSize = (12 * prefs.text).sp, lineHeight = (15 * prefs.text).sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -106,9 +106,9 @@ internal fun AlbumRow(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: (
     }
 }
 
-/** The cover square: [cover] once fetched, "♪" where the album has none; the badges on it; [selected], the page's ring and tick; [badge] ★ Today top left, [dl] a download's state bottom left over a dimmed cover. */
+/** The cover square: [cover] once fetched, "♪" where the album has none; the badges on it; [selected], the page's ring and tick; [today] ★ Today top left, [dl] a download's state bottom left over a dimmed cover. */
 @Composable
-private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, modifier: Modifier, badge: String?, dl: String?) {
+private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, modifier: Modifier, today: String?, dl: String?) {
     val badge = Color(0x9E0A0E14)   // the page's rgba(10, 14, 20, .62)
     val onBadge = Color.White.copy(alpha = 0.92f)
     // The hifi palette's sleeve: corners of 12 and a faint white ring just inside the edge, no shadow (style.css, [data-palette="hifi"] .album-art-wrap).
@@ -134,8 +134,8 @@ private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, mod
             Icon(painterResource(R.drawable.tile_discs), contentDescription = null, tint = onBadge, modifier = Modifier.size(15.dp))
         }
         // Today's album: ★ Today in a brass pill, top left (the page's .aotd-badge).
-        if (badge != null) Box(Modifier.parity("home.aotd-badge").align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 7.dp, vertical = 2.dp)) {
-            Text(badge, color = MaterialTheme.colorScheme.onPrimary, fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.W800, letterSpacing = 0.02.em, maxLines = 1)
+        if (today != null) Box(Modifier.parity("home.aotd-badge").align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 7.dp, vertical = 2.dp)) {
+            Text(today, color = MaterialTheme.colorScheme.onPrimary, fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.W800, letterSpacing = 0.02.em, maxLines = 1)
         }
         // A download on its way, or on a card that is out: its state in a dark pill, bottom left (android.css .dl-badge), the cover dimmed under it.
         if (dl != null) Box(Modifier.parity("home.dl-badge").align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xB8000000)).padding(horizontal = 8.dp, vertical = 2.dp)) {
