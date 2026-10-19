@@ -73,7 +73,9 @@ import org.json.JSONObject
  * palette): the brass corner discs, the cover's glow behind the top, the
  * 160px cover with the title, the artists, the date and its label and the
  * rate and length beside it; the heart, Play Now, Queue and ⋯; the tracks,
- * the one playing marked; the mini player at the foot. Its buttons play in
+ * the one playing marked; the mini player and the touch layout's row at the
+ * foot ([lit], the row's button lit under it; a tap is the page's, [onNav]).
+ * Its buttons play in
  * [zoneId], the room the page had chosen, or the one chosen since on the mini
  * player's Play on ([onRoom] tells the page); a tap on the mini player opens
  * Now playing ([onNowPlaying], with the room). What the page does with its
@@ -81,8 +83,8 @@ import org.json.JSONObject
  * artist's, a label's) it is asked for ([onPage]).
  */
 @Composable
-internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
-                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit) {
+internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
+                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var zone by remember(offset) { mutableStateOf(zoneId) }
@@ -135,8 +137,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 0.6f to bg.copy(alpha = 0.4f), 1f to bg)))
                 }
             }
-            // The foot keeps room for the mini player, as the page's does; the head starts below the corner discs.
-            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(top = 64.dp, bottom = 118.dp)) {
+            // The foot keeps room for the mini player and the row, as the page's does; the head starts below the corner discs.
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(top = 64.dp, bottom = 176.dp)) {
                 val a = album
                 if (a == null) {
                     item { Text(failed ?: "Loading…", Modifier.parity("album.notice").padding(vertical = 24.dp), color = dim) }
@@ -193,7 +195,10 @@ internal fun AlbumScreen(offset: Long, zoneId: String, client: () -> ServerClien
                 modifier = Modifier.parity("album.share", Contract.label("album.share")).padding(end = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopEnd)) {
                 Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
             }
-            MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage, modifier = Modifier.align(Alignment.BottomCenter))
+            Column(Modifier.align(Alignment.BottomCenter)) {
+                MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
+                TouchNav(lit, offline = Store.offlineMode(context), onTap = onNav)
+            }
         }
     }
 }

@@ -27,7 +27,8 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.setNativeNowPlaying(on)     switched on or off (Settings → Setup → UI Settings)
  *   MusicdApp.openNowPlaying(zoneId)      the native Now playing of that room, over the page
  *   MusicdApp.nativeAlbum() / setNativeAlbum(on)   the native album page, likewise
- *   MusicdApp.openAlbum(offset, zoneId)   the native page of that album, its buttons playing in that room
+ *   MusicdApp.openAlbum(offset, zoneId, lit)   the native page of that album, its buttons playing in that room;
+ *                                              lit: the row's button lit under it ("home", "library", ""); two arguments from an older page
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -84,7 +85,10 @@ class AppBridge(private val activity: Activity) {
     fun setNativeAlbum(on: Boolean) { Store.setNativeAlbum(activity, on) }
 
     @JavascriptInterface
-    fun openAlbum(offset: Int, zoneId: String) { activity.runOnUiThread { NativeShell.open(ShellRoute.album(offset.toLong(), zoneId)) } }
+    fun openAlbum(offset: Int, zoneId: String) { openAlbum(offset, zoneId, "") }
+
+    @JavascriptInterface
+    fun openAlbum(offset: Int, zoneId: String, lit: String) { activity.runOnUiThread { NativeShell.open(ShellRoute.album(offset.toLong(), zoneId, lit)) } }
 
     @JavascriptInterface
     fun checkUpdate() {

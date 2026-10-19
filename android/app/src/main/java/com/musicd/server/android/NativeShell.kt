@@ -112,11 +112,14 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
         }
         composable(ShellRoute.ALBUM, arguments = listOf(
             navArgument(ShellRoute.OFFSET) { type = NavType.LongType },
-            navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" }
+            navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.LIT) { type = NavType.StringType; defaultValue = "" }
         )) { entry ->
             AlbumScreen(
-                entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
+                entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), entry.arguments?.getString(ShellRoute.LIT).orEmpty(), client,
                 onBack = { nav.popBackStack() },
+                // The row along the foot: the page's own button, tapped, once the page is back in front.
+                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
                 onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) },
                 // The mini player's tap: the native Now playing over the album when this phone has it on, else back to the page, whose own opens.
                 onNowPlaying = { id -> if (nativeNowPlaying()) nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } else { nav.popBackStack(); NativeShell.toPage("now-playing", null) } },

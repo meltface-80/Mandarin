@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `38-native-touch-nav`: the Android app's native album page (preview) has the touch layout's row along the
+  foot of the screen, as the page's: Menu, Home, Library and Search under the mini player, the one the page is
+  on in brass (the page says which as it opens the album), and the Offline sign between Home and Library when
+  the app is offline. Each tap goes back to the page and taps its own button (`nav` in
+  `public/app/native-handoff.js`), so there is one way to do each thing. The row is a screen of the contract
+  (`docs/specs/screens.json`, `nav`): the page's row carries its keys, and the app has every item.
 - `37-native-album-look`: the Android app's native album page (preview) is drawn as the page's sleeve: the
   brass corner discs, the cover's glow fading out behind the top, the 160px sleeve with its ring and shadow,
   the head in the page's type and white (the artists in brass), the heart as the page's (hollow, red once

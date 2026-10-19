@@ -27,8 +27,9 @@ class ShellTest {
     }
 
     @Test fun `an album's route carries its offset and its room`() {
-        assertEquals("album/42?zone=RINCON_X%20Y", ShellRoute.album(42, "RINCON_X Y"))
-        assertEquals("album/{offset}?zone={zone}", ShellRoute.ALBUM)
+        assertEquals("album/42?zone=RINCON_X%20Y&lit=", ShellRoute.album(42, "RINCON_X Y"))
+        assertEquals("the page's button lit under it", "album/42?zone=z&lit=home", ShellRoute.album(42, "z", "home"))
+        assertEquals("album/{offset}?zone={zone}&lit={lit}", ShellRoute.ALBUM)
         assertFalse("the shell's, not the page's", ShellRoute.isWeb(ShellRoute.album(1, "")))
     }
 
