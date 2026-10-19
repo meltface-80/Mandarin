@@ -515,7 +515,6 @@
                the panel's slide-in isn't held up by it. -->
           <img id="modal-img" alt="" decoding="async">
           <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
-          <span id="modal-quality" class="album-quality hidden"></span>
           <!-- The album's booklet (v0.8.33): bottom right, opposite the bit/sample
                badge, only when the album has one (a PDF in its folder). -->
           <button class="modal-booklet icon-btn hidden" id="modal-booklet" type="button" aria-label="Booklet" title="Booklet">
@@ -572,11 +571,19 @@
           </div>
         </div>
         <div class="modal-info">
-          <!-- The title and artist line, beside the sleeve on an album (bottom
-               aligned with it), centred above the transport on Now playing. -->
+          <!-- The album's head, beside the sleeve and bottom aligned with it,
+               a line each (bug list item 28): the title, the artists, the
+               release date (its label and Pitchfork score after it), then
+               the bit and sample rate and the album's length. Hidden on Now
+               playing, which has its own. -->
           <div class="modal-head">
             <h2 id="modal-title">—</h2>
             <div id="modal-subtitle" class="modal-subtitle"></div>
+            <div id="modal-date" class="modal-date"></div>
+            <div class="modal-facts" id="modal-facts">
+              <span id="modal-quality" class="album-quality hidden"></span>
+              <span class="modal-total" id="modal-total"></span>
+            </div>
           </div>
 
           <div class="modal-tab-pane" id="tab-album">
@@ -713,9 +720,7 @@
           </div>
 
           <div class="track-list-wrap">
-            <!-- The album's total time on the same line, centred under the
-                 Play Now and Queue buttons (v0.7.10). -->
-            <h3 class="section-label tracks-head"><span>Tracks</span><span class="tracks-total" id="modal-total"></span></h3>
+            <h3 class="section-label tracks-head"><span>Tracks</span></h3>
             <ol id="modal-tracks" class="track-list"></ol>
           </div>
 

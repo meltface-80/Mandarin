@@ -205,9 +205,9 @@ test("an album's booklets: found, their pages drawn by the C# server, nothing el
     assert.equal(r.book_label, "2 booklets");
     assert.ok(Math.abs(r.book.r - (r.art.r - 8)) <= 2 && Math.abs(r.book.b - (r.art.b - 8)) <= 2, "bottom right of the cover: " + JSON.stringify(r));
     assert.ok(Math.abs(r.source.l - (r.art.l + 8)) <= 2, "the source badge bottom left: " + JSON.stringify(r));
-    assert.ok(Math.abs(r.quality.l - (r.art.l + 8)) <= 2 && Math.abs(r.quality.b - (r.art.b - 8)) <= 2, "the rate where it was: " + JSON.stringify(r));
-    assert.ok(r.source.b <= r.quality.t && r.quality.t - r.source.b <= 10, "just above the rate: " + JSON.stringify(r));
-    assert.ok(Math.abs(r.source_alone.b - (r.art.b - 8)) <= 2, "in the rate's place when there's none: " + JSON.stringify(r));
+    // The rate is a line of the album's head beside the cover now (item 28), so the source badge has the corner.
+    assert.ok(r.quality.l >= r.art.r, "the rate off the cover, beside it: " + JSON.stringify(r));
+    assert.ok(Math.abs(r.source.b - (r.art.b - 8)) <= 2 && Math.abs(r.source_alone.b - (r.art.b - 8)) <= 2, "the source badge in the bottom left corner, with a rate or without: " + JSON.stringify(r));
     assert.ok(r.source.r < r.book.l, "clear of the book: " + JSON.stringify(r));
     assert.deepEqual(r.rows, ["Booklet · 2 pages", "Inlay · 1 page"]);
     assert.deepEqual(r.viewer && { ...r.viewer, first_drawn: r.viewer.first_drawn > 0 },
