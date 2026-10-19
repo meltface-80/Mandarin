@@ -3,7 +3,6 @@ package com.musicd.server.android
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,9 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +22,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -35,11 +32,11 @@ import com.musicd.server.client.NavItem
 import com.musicd.server.client.NavList
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.WallPrefs
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DateFormat
-import java.util.Date
 
 /**
  * The walls Home links to, natively (plan L5, bug list item 52; the page's walls.js and loadRandom): Listen
@@ -87,9 +84,9 @@ internal fun WallScreen(kind: String, prefs: WallPrefs, zoneId: String, client: 
         WallBack(onBack)
         // Top right: the ⋯ while albums are picked; the random wall's reshuffle otherwise (the bar's button).
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
-        else if (kind == "random") IconButton(onClick = { wall.loaded = false; load() }, enabled = wall.loaded, modifier = Modifier.parity("wall.reshuffle", Contract.label("wall.reshuffle")).align(Alignment.TopEnd)
-            .padding(end = 14.dp, top = 12.dp).size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-            Icon(painterResource(R.drawable.tn_reshuffle), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        else if (kind == "random") FilledIconButton(onClick = { wall.loaded = false; load() }, enabled = wall.loaded, colors = barDisc(),
+            modifier = Modifier.parity("wall.reshuffle", Contract.label("wall.reshuffle")).align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).size(40.dp)) {
+            Icon(painterResource(R.drawable.tn_reshuffle), contentDescription = null, modifier = Modifier.size(20.dp))
         }
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)

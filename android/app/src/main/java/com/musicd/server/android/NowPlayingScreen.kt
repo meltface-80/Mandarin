@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -91,15 +92,15 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
         Column(Modifier.fillMaxSize().padding(top = 12.dp, bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             // The corner discs and, between them, the tabs; the discs and the tabs are the Queue's too (docs/specs/screens.json, queue).
             Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-                FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("now-playing.back queue.back", Contract.label("now-playing.back")).size(40.dp).align(Alignment.CenterStart)) {
+                FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("now-playing.back queue.back", Contract.label("now-playing.back")).size(40.dp).align(Alignment.TopStart)) {
                     Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
                 }
-                Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
+                Row(Modifier.align(Alignment.TopCenter), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
                     NpTab(Contract.label("now-playing.tab-now-playing"), !queueTab, Modifier.parity("now-playing.tab-now-playing queue.tab-now-playing", Contract.label("now-playing.tab-now-playing")).clickable(role = Role.Tab) { queueTab = false })
                     NpTab(Contract.label("now-playing.tab-queue"), queueTab, Modifier.parity("now-playing.tab-queue queue.tab-queue", Contract.label("now-playing.tab-queue")).clickable(role = Role.Tab) { queueTab = true })
                 }
                 FilledIconButton(onClick = { onPage("share", null) }, enabled = view != null, colors = disc,
-                    modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share")).size(40.dp).align(Alignment.CenterEnd)) {
+                    modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share")).size(40.dp).align(Alignment.TopEnd)) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
@@ -124,32 +125,34 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                 }
             }
             Column(Modifier.fillMaxWidth().widthIn(max = 460.dp).padding(horizontal = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(v.title, Modifier.parity("now-playing.track").padding(top = 6.dp), fontSize = 27.sp, fontWeight = FontWeight.Bold, lineHeight = 31.sp, letterSpacing = (-0.01).em,
+                // The page's lines: the track at 27px in 1.15, its artists at 18 and the album at 14 in their own, the badge's 12 in 1.2 (Type.kt).
+                Text(v.title, Modifier.parity("now-playing.track").padding(top = 6.dp).lineBox(27.sp, 31.05.sp), fontSize = 27.sp, fontWeight = FontWeight.Bold, lineHeight = 31.05.sp, letterSpacing = (-0.01).em,
                     color = white, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 // The artists as the page links them, in the page's quiet white: each with a page of their own a tap away, the rest plain.
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
                     val credits = v.artists.ifEmpty { listOf(Credit(v.artist, false)) }
                     credits.forEachIndexed { i, c ->
-                        if (i > 0) Text(" · ", Modifier.parity("now-playing.artist"), fontSize = 18.sp, color = dim, maxLines = 1)
+                        if (i > 0) Text(" · ", Modifier.parity("now-playing.artist"), fontSize = 18.sp, lineHeight = 24.sp, color = dim, maxLines = 1)
                         if (c.linkable) Text(c.name, Modifier.parity("now-playing.artist", Contract.label("now-playing.artist", 0, c.name)).clickable { onPage("artist", c.name) },
-                            fontSize = 18.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        else Text(c.name, Modifier.parity("now-playing.artist"), fontSize = 18.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            fontSize = 18.sp, lineHeight = 24.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        else Text(c.name, Modifier.parity("now-playing.artist"), fontSize = 18.sp, lineHeight = 24.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).padding(top = 3.dp).clickable { onPage("album", null) },
-                    fontSize = 14.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    fontSize = 14.sp, lineHeight = 19.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 v.formatText?.let {
                     Text(it, Modifier.parity("now-playing.format").padding(top = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 9.dp, vertical = 3.dp), fontSize = 12.sp, fontWeight = FontWeight.W600, letterSpacing = 0.02.em, color = dim)
+                        .padding(horizontal = 9.dp, vertical = 3.dp).lineBox(12.sp, 14.4.sp), fontSize = 12.sp, lineHeight = 14.4.sp, fontWeight = FontWeight.W600, letterSpacing = 0.02.em, color = dim)
                 }
                 SeekBar(v, now, client) { to -> act { it.seek(zoneId, to) } }
                 // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                     val lit = MaterialTheme.colorScheme.secondary
                     val soft = paletteColor(Palette.ACCENT_SOFT)
-                    IconButton(onClick = { act { it.zoneSettings(zoneId, shuffle = !v.shuffle) } },
-                        modifier = Modifier.parity("now-playing.shuffle", Contract.label("now-playing.shuffle", v.shuffleState)).size(40.dp).clip(CircleShape).background(if (v.shuffle) soft else MaterialTheme.colorScheme.background)) {
-                        Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, tint = if (v.shuffle) lit else dim, modifier = Modifier.size(20.dp))
+                    // Their wash when on is the button's own colour, not a background modifier: that lay outside the 48 touch target, and drew 48 wide.
+                    IconButton(onClick = { act { it.zoneSettings(zoneId, shuffle = !v.shuffle) } }, colors = IconButtonDefaults.iconButtonColors(containerColor = if (v.shuffle) soft else Color.Transparent, contentColor = if (v.shuffle) lit else dim),
+                        modifier = Modifier.parity("now-playing.shuffle", Contract.label("now-playing.shuffle", v.shuffleState)).size(40.dp)) {
+                        Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, modifier = Modifier.size(20.dp))
                     }
                     IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious,
                         modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous")).size(56.dp)) {
@@ -163,10 +166,10 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                         modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next")).size(56.dp)) {
                         Icon(painterResource(R.drawable.np_next), contentDescription = null, tint = if (v.canNext) brass else paletteColor(Palette.TEXT_FAINT), modifier = Modifier.size(30.dp))
                     }
-                    IconButton(onClick = { act { it.zoneSettings(zoneId, loop = v.loopNext) } },
-                        modifier = Modifier.parity("now-playing.repeat", Contract.label("now-playing.repeat", v.loopState)).size(40.dp).clip(CircleShape).background(if (v.loopState > 0) soft else MaterialTheme.colorScheme.background)) {
+                    IconButton(onClick = { act { it.zoneSettings(zoneId, loop = v.loopNext) } }, colors = IconButtonDefaults.iconButtonColors(containerColor = if (v.loopState > 0) soft else Color.Transparent, contentColor = if (v.loopState > 0) lit else dim),
+                        modifier = Modifier.parity("now-playing.repeat", Contract.label("now-playing.repeat", v.loopState)).size(40.dp)) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(painterResource(R.drawable.np_repeat), contentDescription = null, tint = if (v.loopState > 0) lit else dim, modifier = Modifier.size(20.dp))
+                            Icon(painterResource(R.drawable.np_repeat), contentDescription = null, modifier = Modifier.size(20.dp))
                             // The "1" inside the arrows, where the icon is hollow, as the page has it.
                             if (v.loop == "loop_one") Text("1", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = lit)
                         }
@@ -186,8 +189,9 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
 @Composable
 private fun NpTab(text: String, on: Boolean, modifier: Modifier) {
     // As wide as the text, so the line under it is the word's width (filling the row's width pushed the Queue tab off the screen).
-    Column(modifier.padding(top = 12.dp).width(IntrinsicSize.Max), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.W600, letterSpacing = 0.14.em, maxLines = 1,
+    // The page's tab: 12 over the word (2 below the discs' top, so 14 here), the word's own 18, 12 under it, the line of 2: 44.
+    Column(modifier.padding(top = 14.dp).width(IntrinsicSize.Max), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text.uppercase(), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.14.em, maxLines = 1,
             color = if (on) paletteColor(Palette.MODAL_TEXT) else paletteColor(Palette.TEXT_FAINT))
         Spacer(Modifier.height(12.dp))
         Box(Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(2.dp)).background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background))

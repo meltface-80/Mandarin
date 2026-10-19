@@ -65,9 +65,9 @@ internal fun BookletScreen(offset: Long, id: String, name: String, pages: Int, c
                     modifier = Modifier.parity("booklet.close", Contract.label("booklet.close")).size(40.dp)) {
                     Icon(painterResource(R.drawable.np_close), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
-                Text(name, Modifier.parity("booklet.title").weight(1f), color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(name, Modifier.parity("booklet.title").weight(1f), color = Color.White, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // The page counted is the one at the top of what is in view, as the page counts it.
-                Text("${list.firstVisibleItemIndex + 1} / $pages", Modifier.parity("booklet.count"), color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text("${list.firstVisibleItemIndex + 1} / $pages", Modifier.parity("booklet.count"), color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, lineHeight = 18.sp)
             }
             LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {

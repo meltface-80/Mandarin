@@ -12,10 +12,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -56,6 +58,17 @@ internal object NativeShell {
 
     /** Runs a script on the page (set by [attach]). */
     private var page: ((String) -> Unit)? = null
+    /** Puts the page over the shell (true) or the shell over the page (set by [attach]). */
+    private var lift: ((Boolean) -> Unit)? = null
+    /** Whether the page is over the shell, for one of its sheets ([overPage]). */
+    @Volatile var lifted = false
+        private set
+
+    /**
+     * The page's sheets that open over whatever screen is on (the Share card, Add to playlist, the album editor,
+     * Group zones, Device power, a Dynamic Playlist's name): a native screen asks for one with [overPage], not [toPage].
+     */
+    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save")
 
     /**
      * Something a native screen hands back to the page, by name
@@ -66,8 +79,29 @@ internal object NativeShell {
         page?.invoke("window.__musicdNative && window.__musicdNative(${org.json.JSONObject.quote(what)}, $a)")
     }
 
-    /** Back on a native screen: it closes, back to the page (true); on the page, the page's own Back (false). */
+    /**
+     * One of the page's sheets ([OVERLAYS]) over the native screen that asked for it, as the page draws it over its
+     * own screens (bug list item 54): the screen stays where it is, the page comes over it with nothing but the sheet
+     * showing (its `native-over` class, public/app/native-handoff.js), and goes under again when the sheet closes
+     * ([AppBridge.overlayClosed]).
+     */
+    fun overPage(what: String, arg: String? = null) {
+        lifted = true
+        lift?.invoke(true)
+        val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
+        page?.invoke("window.__musicdNativeOver && window.__musicdNativeOver(${org.json.JSONObject.quote(what)}, $a)")
+    }
+
+    /** The page's sheet closed: the native screen is in front again. */
+    fun overlayClosed() {
+        if (!lifted) return
+        lifted = false
+        lift?.invoke(false)
+    }
+
+    /** Back on a native screen: it closes, back to the page (true); on the page, or one of its sheets over a native screen, the page's own Back (false). */
     fun back(): Boolean {
+        if (lifted) return false
         val n = nav ?: return false
         if (ShellRoute.isWeb(n.currentDestination?.route)) return false
         return n.popBackStack()
@@ -87,16 +121,26 @@ internal object NativeShell {
             }
         }
         root.addView(shell, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // The page's view is the frame's first; over the shell for a sheet it shows through nothing but the sheet, so its ground goes clear.
+        val web = root.getChildAt(0)
+        val ground = (web.background as? android.graphics.drawable.ColorDrawable)?.color
+        lift = { up ->
+            if (up) { web.setBackgroundColor(android.graphics.Color.TRANSPARENT); root.bringChildToFront(web) }
+            else { ground?.let { web.setBackgroundColor(it) }; root.bringChildToFront(shell) }
+        }
         return root
     }
 }
 
 /**
  * What a native screen hands to the page, unless the app draws it itself: an artist's page is native when the
- * Library wall is (item 52), opened over the screen that asked; everything else closes the screen and asks the page.
+ * Library wall is (item 52), opened over the screen that asked; the page's sheets ([NativeShell.OVERLAYS]) open over
+ * the screen; everything else closes the screen and asks the page.
  */
 private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
     if (what == "artist" && !arg.isNullOrEmpty() && NativeShell.nativeLibrary) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
+    // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
+    if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
     nav.popBackStack()
     NativeShell.toPage(what, arg)
 }
@@ -124,8 +168,8 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                     nav.navigate(ShellRoute.nowPlaying(id)) { popUpTo(ShellRoute.NOW_PLAYING) { inclusive = true } }
                     NativeShell.toPage("zone", id)
                 },
-                // The page's own sheets and screens (Share card, the album, an artist): back to the page, and it opens there.
-                onPage = { what, arg -> nav.popBackStack(); NativeShell.toPage(what, arg) }
+                // The page's own sheets (Share card, Group zones, Device power) over this screen; its screens (the album, an artist) in its place.
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
         }
         // The Library wall (N4, item 51): opened by the page in its view of it; an album's page over it, Back returning here.
@@ -224,15 +268,20 @@ private val manrope = FontFamily(
  */
 internal val youngSerif = FontFamily(Font(R.font.young_serif, FontWeight.W400))
 
-/** Material's type scale in Manrope. */
+/**
+ * Material's type scale in Manrope, with no letter-spacing: the page sets none unless it says so (its kickers and
+ * tabs set their own, and so do the app's), where Material's body line puts half a pixel between every two glyphs,
+ * which made a tile's title a twentieth wider than the page's (bug list item 54).
+ */
 private fun typography(): Typography {
     val t = Typography()
+    fun TextStyle.ours() = copy(fontFamily = manrope, letterSpacing = 0.sp)
     return Typography(
-        displayLarge = t.displayLarge.copy(fontFamily = manrope), displayMedium = t.displayMedium.copy(fontFamily = manrope), displaySmall = t.displaySmall.copy(fontFamily = manrope),
-        headlineLarge = t.headlineLarge.copy(fontFamily = manrope), headlineMedium = t.headlineMedium.copy(fontFamily = manrope), headlineSmall = t.headlineSmall.copy(fontFamily = manrope),
-        titleLarge = t.titleLarge.copy(fontFamily = manrope), titleMedium = t.titleMedium.copy(fontFamily = manrope), titleSmall = t.titleSmall.copy(fontFamily = manrope),
-        bodyLarge = t.bodyLarge.copy(fontFamily = manrope), bodyMedium = t.bodyMedium.copy(fontFamily = manrope), bodySmall = t.bodySmall.copy(fontFamily = manrope),
-        labelLarge = t.labelLarge.copy(fontFamily = manrope), labelMedium = t.labelMedium.copy(fontFamily = manrope), labelSmall = t.labelSmall.copy(fontFamily = manrope)
+        displayLarge = t.displayLarge.ours(), displayMedium = t.displayMedium.ours(), displaySmall = t.displaySmall.ours(),
+        headlineLarge = t.headlineLarge.ours(), headlineMedium = t.headlineMedium.ours(), headlineSmall = t.headlineSmall.ours(),
+        titleLarge = t.titleLarge.ours(), titleMedium = t.titleMedium.ours(), titleSmall = t.titleSmall.ours(),
+        bodyLarge = t.bodyLarge.ours(), bodyMedium = t.bodyMedium.ours(), bodySmall = t.bodySmall.ours(),
+        labelLarge = t.labelLarge.ours(), labelMedium = t.labelMedium.ours(), labelSmall = t.labelSmall.ours()
     )
 }
 

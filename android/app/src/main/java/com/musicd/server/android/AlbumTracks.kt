@@ -5,9 +5,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +18,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -77,7 +77,7 @@ internal fun LazyListScope.tracksHead(text: String) {
     item {
         val faint = paletteColor(Palette.TEXT_FAINT)
         Text(text.uppercase(), Modifier.parity("album.tracks-head").fillMaxWidth().padding(bottom = 8.dp),
-            color = faint, fontSize = 11.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
+            color = faint, fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         HorizontalDivider(Modifier.padding(top = 10.dp), color = MaterialTheme.colorScheme.outline)
     }
@@ -120,8 +120,8 @@ internal fun TrackRow(i: Int, t: Track, title: String, movement: Boolean, noDisc
                 }
             }
             Column(Modifier.weight(1f)) {
-                Text(title, color = white, fontSize = 14.sp, lineHeight = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (sub.isNotEmpty()) Text(sub, Modifier.padding(top = 1.dp), color = dim, fontSize = 12.sp)
+                Text(title, color = white, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (sub.isNotEmpty()) Text(sub, Modifier.padding(top = 1.dp), color = dim, fontSize = 12.sp, lineHeight = 17.sp)
             }
             if (t.lengthText.isNotEmpty()) Text(t.lengthText, color = dim, fontSize = 13.sp, lineHeight = 20.sp)
             // The circle, selecting: hollow means it can be picked, a tick that it is (the page's .t-mark).
@@ -140,15 +140,15 @@ internal fun TrackRow(i: Int, t: Track, title: String, movement: Boolean, noDisc
             Row(Modifier.fillMaxWidth().padding(start = 42.dp, end = 8.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { open = false; onPlay(i, "play_now", "Playing") }, colors = primary, contentPadding = pad,
                     modifier = Modifier.parity("album.track-play-now", Contract.label("album.track-play-now")).defaultMinSize(minHeight = 38.dp)) {
-                    Text(Contract.label("album.track-play-now"), fontSize = 12.5.sp, fontWeight = FontWeight.W600)
+                    Text(Contract.label("album.track-play-now"), fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
                 }
                 Button(onClick = { open = false; onPlay(i, "play_next", "Playing next") }, colors = plain, contentPadding = pad,
                     modifier = Modifier.parity("album.track-play-next", Contract.label("album.track-play-next")).defaultMinSize(minHeight = 38.dp).then(edge)) {
-                    Text(Contract.label("album.track-play-next"), fontSize = 12.5.sp, fontWeight = FontWeight.W600)
+                    Text(Contract.label("album.track-play-next"), fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
                 }
                 Button(onClick = { open = false; onPlay(i, "queue", "Queued") }, colors = plain, contentPadding = pad,
                     modifier = Modifier.parity("album.track-queue", Contract.label("album.track-queue")).defaultMinSize(minHeight = 38.dp).then(edge)) {
-                    Text(Contract.label("album.track-queue"), fontSize = 12.5.sp, fontWeight = FontWeight.W600)
+                    Text(Contract.label("album.track-queue"), fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.musicd.server.android
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,15 +9,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +54,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
@@ -87,34 +92,52 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
         IconButton(onClick = { open = !open }, modifier = Modifier.parity("now-playing.device mini-player.device", Contract.label("now-playing.device")).size(size)) {
             Icon(painterResource(R.drawable.np_device), contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(iconSize))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            Text("Play on", Modifier.parity("now-playing.device-title mini-player.device-title").padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // The page's popover (.np-device-popover): 230 wide on the raised ground with its edge and corners of 12, 10 of padding;
+        // its title small capitals, each room 15px (the one here brass and bold), then the actions 14px brass over a hairline each.
+        val faint = paletteColor(Palette.TEXT_FAINT)
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = RoundedCornerShape(12.dp), containerColor = paletteColor(Palette.BG_ELEV_2),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.width(230.dp).padding(horizontal = 10.dp, vertical = 2.dp)) {
+            Text("PLAY ON", Modifier.parity("now-playing.device-title mini-player.device-title").padding(start = 8.dp, top = 2.dp, end = 8.dp, bottom = 8.dp),
+                fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = 0.08.em, color = faint)
             for (r in rooms) {
+                val here = r.id == zoneId
                 DropdownMenuItem(
                     text = {
                         Column {
-                            Text(r.name, color = if (r.id == zoneId) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface)
-                            if (r.outputs.size > 1) Text(r.outputs.joinToString(" + "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(r.name, fontSize = 15.sp, lineHeight = 18.75.sp, fontWeight = if (here) FontWeight.W600 else FontWeight.W400, color = if (here) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface)
+                            if (r.outputs.size > 1) Text(r.outputs.joinToString(" + "), fontSize = 12.sp, lineHeight = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     },
-                    onClick = { open = false; if (r.id != zoneId) onRoom(r.id) },
+                    onClick = { open = false; if (!here) onRoom(r.id) }, contentPadding = PaddingValues(10.dp),
                     modifier = Modifier.parity("now-playing.device-room mini-player.device-room", Contract.label("now-playing.device-room", 0, r.name))
                 )
             }
-            HorizontalDivider()
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.group")) }, onClick = { open = false; onPage("group", null) },
-                modifier = Modifier.parity("now-playing.group mini-player.group", Contract.label("now-playing.group")))
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.power")) }, onClick = { open = false; onPage("power", null) },
-                modifier = Modifier.parity("now-playing.power mini-player.power", Contract.label("now-playing.power")))
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.pause-all")) }, onClick = { open = false; act { it.pauseAll() } },
-                modifier = Modifier.parity("now-playing.pause-all mini-player.pause-all", Contract.label("now-playing.pause-all")))
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.mute-all")) }, onClick = { open = false; act { it.muteAll(true) } },
-                modifier = Modifier.parity("now-playing.mute-all mini-player.mute-all", Contract.label("now-playing.mute-all")))
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.unmute-all")) }, onClick = { open = false; act { it.muteAll(false) } },
-                modifier = Modifier.parity("now-playing.unmute-all mini-player.unmute-all", Contract.label("now-playing.unmute-all")))
+            // Each action 8 under the last, over a hairline (the page's .np-popover-action): 14px at 600 in the brass, 38 tall.
+            val actionPad = PaddingValues(horizontal = 10.dp, vertical = 9.dp)
+            ActionGap()
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.group"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; onPage("group", null) }, contentPadding = actionPad,
+                modifier = Modifier.parity("now-playing.group mini-player.group", Contract.label("now-playing.group")).height(38.dp))
+            ActionGap()
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.power"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; onPage("power", null) }, contentPadding = actionPad,
+                modifier = Modifier.parity("now-playing.power mini-player.power", Contract.label("now-playing.power")).height(38.dp))
+            ActionGap()
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.pause-all"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; act { it.pauseAll() } }, contentPadding = actionPad,
+                modifier = Modifier.parity("now-playing.pause-all mini-player.pause-all", Contract.label("now-playing.pause-all")).height(38.dp))
+            ActionGap()
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.mute-all"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; act { it.muteAll(true) } }, contentPadding = actionPad,
+                modifier = Modifier.parity("now-playing.mute-all mini-player.mute-all", Contract.label("now-playing.mute-all")).height(38.dp))
+            ActionGap()
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.unmute-all"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; act { it.muteAll(false) } }, contentPadding = actionPad,
+                modifier = Modifier.parity("now-playing.unmute-all mini-player.unmute-all", Contract.label("now-playing.unmute-all")).height(38.dp))
         }
     }
+}
+
+/** The room before each of Play on's actions: 8, then the hairline. */
+@Composable
+private fun ActionGap() {
+    Spacer(Modifier.height(8.dp))
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 /**
@@ -212,14 +235,15 @@ internal fun VolumeSheet(open: Boolean, onClose: () -> Unit, zoneId: String, vol
                     }
                 }
             }
-            // A step down and up: brass rings on the raised ground, the glyph drawn at the page's weight.
-            val ring = IconButtonDefaults.iconButtonColors(containerColor = paletteColor(Palette.BG_ELEV_2), contentColor = brass)
-            IconButton(onClick = { step(zoneId, s, -1, act) }, colors = ring,
-                modifier = Modifier.parity("now-playing.volume-down mini-player.volume-down", Contract.label("now-playing.volume-down")).size(44.dp).border(1.dp, brass, CircleShape)) {
+            // A step down and up: brass rings of 44 on the raised ground, the glyph drawn at the page's weight. Outlined buttons: a plain
+            // button's border modifier lay outside its 48 touch target and drew the ring 48 wide (bug list item 54).
+            val ring = IconButtonDefaults.outlinedIconButtonColors(containerColor = paletteColor(Palette.BG_ELEV_2), contentColor = brass)
+            OutlinedIconButton(onClick = { step(zoneId, s, -1, act) }, colors = ring, border = BorderStroke(1.dp, brass),
+                modifier = Modifier.parity("now-playing.volume-down mini-player.volume-down", Contract.label("now-playing.volume-down")).size(44.dp)) {
                 Icon(painterResource(R.drawable.np_minus), contentDescription = null, modifier = Modifier.size(22.dp))
             }
-            IconButton(onClick = { step(zoneId, s, 1, act) }, colors = ring,
-                modifier = Modifier.parity("now-playing.volume-up mini-player.volume-up", Contract.label("now-playing.volume-up")).size(44.dp).border(1.dp, brass, CircleShape)) {
+            OutlinedIconButton(onClick = { step(zoneId, s, 1, act) }, colors = ring, border = BorderStroke(1.dp, brass),
+                modifier = Modifier.parity("now-playing.volume-up mini-player.volume-up", Contract.label("now-playing.volume-up")).size(44.dp)) {
                 Icon(painterResource(R.drawable.np_plus), contentDescription = null, modifier = Modifier.size(22.dp))
             }
         }

@@ -128,6 +128,10 @@ class AppBridge(private val activity: Activity) {
         activity.runOnUiThread { NativeShell.open(ShellRoute.artist(name, zoneId)) }
     }
 
+    /** One of the page's sheets, opened over a native screen ([NativeShell.overPage]), has closed: the screen is in front again. */
+    @JavascriptInterface
+    fun overlayClosed() { activity.runOnUiThread { NativeShell.overlayClosed() } }
+
     @JavascriptInterface
     fun checkUpdate() {
         activity.runOnUiThread { AppUpdate.check(activity, asked = true) }

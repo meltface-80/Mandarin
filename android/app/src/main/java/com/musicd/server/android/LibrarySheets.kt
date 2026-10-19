@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,10 +28,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -191,8 +191,8 @@ internal fun SortSheet(view: LibraryView, onChoose: (String) -> Unit, onClose: (
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(if (on && o.hasDir) (if (view.dir == "desc") "↓" else "↑") else "", Modifier.width(20.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 19.sp, lineHeight = 19.sp, textAlign = TextAlign.Center)
                 Column {
-                    Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
-                    o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.7.sp) }
+                    Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
+                    o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.sp) }
                 }
             }
         }
@@ -217,7 +217,7 @@ internal fun BoxScope.LibraryPills(focus: Int, onFocus: () -> Unit, onSort: () -
         Row(Modifier.parity("library.sort", Contract.label("library.sort", 0, "")).then(pill).clickable(onClick = onSort).padding(horizontal = 11.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("Sort", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
-            Text("⌄", color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp, lineHeight = 17.sp)
+            Text("⌄", color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp, lineHeight = 13.sp, fontWeight = FontWeight.W600)
         }
     }
 }

@@ -68,9 +68,10 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
     val brass = MaterialTheme.colorScheme.primary
     Box(modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp)) {
         // The volume sheet just above the bar, as the page's is.
-        VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, room.volume, ::act, above = true, inset = 4.dp)
+        VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, room.volume, ::act, above = true, inset = (-14).dp)
         Column(Modifier.fillMaxWidth().shadow(20.dp, shape).clip(shape).background(paletteColor(Palette.MT_BG)).border(1.dp, paletteColor(Palette.MT_EDGE), shape)) {
-            Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, end = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // The page's padding of 12 and 14 lies inside its 1px edge; the edge here is drawn inside the box, so each is one more.
+            Row(Modifier.fillMaxWidth().padding(start = 15.dp, top = 13.dp, end = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, enabled = v != null, shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary,
                         disabledContainerColor = brass, disabledContentColor = MaterialTheme.colorScheme.onPrimary),
@@ -106,7 +107,7 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
             // The track's progress as the page's level meter: brass segments over faint ones, along the bottom.
             val lit = brass
             val unlit = paletteColor(Palette.METER_OFF)
-            Canvas(Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 16.dp, top = 7.dp, end = 16.dp, bottom = 7.dp).height(4.dp)) {
+            Canvas(Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 17.dp, top = 7.dp, end = 17.dp, bottom = 8.dp).height(4.dp)) {
                 val on = 7.dp.toPx(); val pitch = 10.dp.toPx()
                 val head = (v?.fraction(room.now) ?: 0f) * size.width
                 var x = 0f
