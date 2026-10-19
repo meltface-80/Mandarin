@@ -240,6 +240,17 @@ function loadArt(container, key, size, onGiveUp) {
   return img;
 }
 
+// The tile's keys for the screens contract (docs/specs/native-parity.md) on
+// the Library wall: the tile, and each part of it, each key written whole
+// (the gate reads them from the source).
+function keyLibraryTile(tile) {
+  tile.dataset.parity = "library.album";
+  const parts = { ".album-art-wrap": "library.album-art", ".album-quality": "library.album-quality", ".album-source": "library.album-source",
+                  ".album-discs": "library.album-discs", ".album-title": "library.album-title", ".album-artist": "library.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.
 function buildAlbumTile(a, onClick, opts) {

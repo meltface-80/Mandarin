@@ -95,7 +95,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| L1 | The wall: the grid (columns, list layout, tile size and text size from UI Settings), paged over `/api/library/albums`, the position kept on return, the quality, source, multi-disc and Listen later marks on the tiles | `walls`, `library-wall`, `album-grid`, `album-tiles` · ~1,000 |
+| L1 | The wall: the grid (columns, list layout, tile size and text size from UI Settings), paged over `/api/library/albums`, the position kept on return, the quality, source and multi-disc marks on the tiles. **Built (item 51), in preview**: `LibraryScreen.kt`, `AlbumTile.kt`, opened by the page in its view of the library with its UI Settings; Focus, Sort and the name filter are its gaps (L2) | `walls`, `library-wall`, `album-grid`, `album-tiles` · ~1,000 |
 | L2 | The controls row and its sheets: Focus (the facets: genre, source, decade, label, format, rate, bits, channels, letter, added; played: any, never, 6 or 12 months; Clear all, Save as a Dynamic Playlist, Show albums), Sort (name, artist, release, added, most and last played, random with its seed; a second tap flips it), the name filter; the Filter sheet (all, genre, tag, decade) | `library-controls`, `library-focus`, `playlist-share` (`openLibSortSheet`), `filter-sheet` · ~700 |
 | L3 | Selecting albums: a long press, the action bar, the ⋯ (play now, next, at the end; add to playlist; Listen later; clear), `/api/play-multi` | `album-grid` (select mode), `labels-albums` (`invokeAlbumMulti`) · ~250 |
 | L4 | The artist's page: their albums and the biography head, the title and count in the bar | `artist-view` · 303 |
@@ -182,7 +182,11 @@ not merge.
 
 ### Order and size
 
-F1 to F3 first; then N4, N5, N6 (the screens used every day), then P, R, B, T, and O last. About forty items,
+F1 to F3 first; then N4, N5, N6 (the screens used every day), then P, R, B, T, and O last. In practice (item 51)
+the wall came first: nothing of the frame's top bar can be seen until a native wall stands under it, and the row
+and the mini player are native already, so the frame's pieces are built with the first screen that shows each
+(the wall's heading and Back with L1, Focus and Sort with L2) and F1 becomes the routes' restructuring once Home,
+the Library and Search are all native. About forty items,
 most a day or two each at the cadence of items 35 to 45; Settings (T) is the largest at nine, the Share card
 (B4) and the Audio Devices page (T6) the largest single screens. The page's lines in the tables are the
 proxy: about 17,000 of its 19,700 remain to be drawn natively.

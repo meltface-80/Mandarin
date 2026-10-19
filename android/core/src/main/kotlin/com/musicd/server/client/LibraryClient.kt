@@ -12,9 +12,12 @@ import java.net.URLEncoder
 class LibraryClient(private val get: (String) -> JSONObject) {
     constructor(server: ServerClient) : this({ path -> server.getJson(path) })
 
-    /** A page of the library's albums, as the Library wall lists them: [count] from [offset]. */
-    fun albums(offset: Int = 0, count: Int = 60): AlbumPage =
-        AlbumPage.parse(get("/api/library/albums" + (if (offset > 0) "?offset=$offset&count=$count" else "?count=$count")))
+    /**
+     * A page of the library's albums, as the Library wall lists them: [count] from [offset], in the wall's [view]
+     * (the page's query string: the sort and its direction, the focus; "" for the library as it is).
+     */
+    fun albums(offset: Int = 0, count: Int = 60, view: String = ""): AlbumPage =
+        AlbumPage.parse(get("/api/library/albums" + (if (offset > 0) "?offset=$offset&count=$count" else "?count=$count") + (if (view.isEmpty()) "" else "&$view")))
 
     /** An album's page, by its [offset] (the id every list gives it). */
     fun album(offset: Long): Album = Album.parse(get("/api/album?offset=$offset"))

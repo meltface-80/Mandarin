@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- `51-native-library-wall`: the Android app's Library wall natively, a preview (Settings → Setup → UI Settings →
+  Native Library): a tap on Library opens the app's own wall in the page's view of the library (the sort and the
+  focus as the page's wall asks for them) and at this phone's UI Settings (the columns or the list, the tile and
+  text sizes); the heading with the count, the bar's Back over the albums, the tiles as the page's (the cover with
+  its corners, "♪" without one, the rate in brass when better than CD, a service's mark, two discs), paged sixty at a
+  time as the end comes near, the banner where the library can't be read yet or nothing matches; the mini player
+  and the row along the foot; a tile opens the native album page over it, with the wall as its list for previous
+  and next, and Back comes back to the wall where it was. The wall is the screens contract's (`library`), keyed on
+  the page (the bar's Back and title, the banner, Focus, Sort, the filter, each tile and its parts), with Focus, Sort
+  and the name filter its gaps for L2. The page's check takes the mini player and the row under a wall's root as
+  their own screens' (`shared`). Covers are kept once fetched (`Covers.kt`); the page's UI Settings are read by
+  `core` (`WallPrefs`, with its JVM test).
 - `50-native-track-disc-place`: the brass disc on the track playing, on the Android app's native album page, sat
   against the first letter of the track's name; it is now in the middle of the room between the track's number
   and its name, as the page's (nowdisc.js): the number's figures measured as drawn, the disc half the room past

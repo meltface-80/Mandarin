@@ -47,6 +47,17 @@ object ShellRoute {
     fun album(offset: Long, zoneId: String, lit: String = "", nav: String = "", at: Int = -1): String =
         "album/$offset?$ZONE=" + enc(zoneId) + "&$LIT=" + enc(lit) + "&$NAV=" + enc(nav) + "&$AT=$at"
 
+    const val VIEW = "view"
+    const val PREFS = "prefs"
+    /**
+     * The native Library wall (N4, L1): [VIEW] the page's view of it as its query string (the sort, its direction,
+     * the focus), [PREFS] the page's UI Settings as JSON (Wall.kt), [ZONE] the room its album pages play in.
+     */
+    const val LIBRARY = "library?$VIEW={$VIEW}&$PREFS={$PREFS}&$ZONE={$ZONE}"
+
+    /** The route to the Library wall in the view [view] (a query string), drawn to [prefs] (JSON), its albums playing in [zoneId]. */
+    fun library(view: String, prefs: String, zoneId: String): String = "library?$VIEW=" + enc(view) + "&$PREFS=" + enc(prefs) + "&$ZONE=" + enc(zoneId)
+
     const val BOOKLET_ID = "booklet"
     const val NAME = "name"
     const val PAGES = "pages"

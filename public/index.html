@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -128,7 +128,7 @@
           <span class="search-status" id="search-status" aria-live="polite"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -301,7 +301,7 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
@@ -1808,6 +1808,18 @@
           </div>
         </div>
         <p class="settings-note">Saved on this device only. On a desktop the text sizes go to +75% and +100%.</p>
+        <!-- The Android app's native Library wall, a preview to try (docs/specs/plan-android-native.md, L1; bug list item 51):
+             shown only inside the app, which keeps the choice itself (MusicdApp.nativeLibrary). -->
+        <div class="settings-block hidden" id="native-screens">
+          <div class="settings-row">
+            <span class="settings-label">Native Library (preview)</span>
+            <label class="switch">
+              <input type="checkbox" id="native-library-on" aria-label="Native Library (preview)">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note">Tap Library for the app's own wall of albums, drawn by the phone: the grid at these settings, an album's page over it. A preview: Focus, Sort and the name filter are still the page's. On this phone only.</div>
+        </div>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is

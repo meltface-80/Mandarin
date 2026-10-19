@@ -37,3 +37,16 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
+// Settings → Setup → UI Settings: the Android app's native Library wall, a preview, on this phone (the app keeps the
+// choice; bug list item 51).
+(function initNativeLibrary() {
+  const app = window.MusicdApp;
+  const block = document.getElementById("native-screens"), sw = document.getElementById("native-library-on");
+  if (!app || typeof app.nativeLibrary !== "function" || !block || !sw) return;
+  block.classList.remove("hidden");
+  const paint = () => { sw.checked = !!app.nativeLibrary(); };
+  sw.addEventListener("change", () => app.setNativeLibrary(sw.checked));
+  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
+  if (navItem) navItem.addEventListener("click", paint);
+  paint();
+})();
