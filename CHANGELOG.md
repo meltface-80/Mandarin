@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `34-background-stop-away` (first part): the Android app says, at its next start, why playback stopped in the
+  background: why Android ended the app (when it was a fault, or came while it was playing), the Tailscale
+  engine ending by itself (its exit code and last lines), or the player giving up away from home (and whether
+  the engine was still running), with Share details as for a crash.
 - `33-native-regex-crash`: the Android app no longer crashes opening native Now playing. Its labels were filled
   by a regular expression the JVM takes and Android refuses (an unescaped `}`); escaped, and every regex in the
   app's Kotlin is now checked against Android's rule (`test/android-regex.test.js`), which the JVM tests can't see.

@@ -20,6 +20,7 @@ class MusicDApp : Application() {
         super.onCreate()
         CrashLog.install(this)
         CrashLog.watchMainThread(this)
+        ExitNote.keep(this)
     }
 }
 
@@ -92,6 +93,26 @@ object CrashLog {
     }
     private const val PAGE = "Mandarin's page stopped"
 
+    /**
+     * Something the next start should say though nothing crashed: Android
+     * ending the app, playback giving up away from home, the Tailscale engine
+     * ending (bug list item 34). Added to what is already waiting, a crash or
+     * a freeze included, so the order they came in is kept.
+     */
+    @Synchronized
+    fun keepNote(c: Context, what: String) {
+        runCatching {
+            val f = file(c.applicationContext)
+            val before = if (f.exists()) f.readText().take(6000) else ""
+            f.writeText(
+                if (before.isNotBlank()) "$before\n\n$what"
+                else "$NOTE ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
+                    "${Build.MANUFACTURER} ${Build.MODEL}\n\n$what"
+            )
+        }
+    }
+    private const val NOTE = "Mandarin stopped in the background"
+
     /** After a crash (or a freeze): say so, once, and offer the details to share. */
     fun offer(activity: Activity) {
         val f = file(activity)
@@ -101,13 +122,13 @@ object CrashLog {
         if (text.isBlank()) return
         val page = text.startsWith(PAGE)
         AlertDialog.Builder(activity)
-            .setTitle(when { text.startsWith(FROZE) -> "Mandarin froze last time"; page -> "Mandarin's page stopped last time"; else -> "Mandarin stopped last time" })
+            .setTitle(when { text.startsWith(FROZE) -> "Mandarin froze last time"; page -> "Mandarin's page stopped last time"; text.startsWith(NOTE) -> "$NOTE last time"; else -> "Mandarin stopped last time" })
             .setMessage((if (page) "The app put it up again by itself. " else "") + "Sharing the details helps get it fixed.\n\n" + text.take(1200))
             .setPositiveButton("Share details") { _, _ ->
                 runCatching {
                     activity.startActivity(Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_SUBJECT, when { text.startsWith(FROZE) -> "Mandarin freeze"; page -> "Mandarin page stopped"; else -> "Mandarin crash" })
+                            .putExtra(Intent.EXTRA_SUBJECT, when { text.startsWith(FROZE) -> "Mandarin freeze"; page -> "Mandarin page stopped"; text.startsWith(NOTE) -> NOTE; else -> "Mandarin crash" })
                             .putExtra(Intent.EXTRA_TEXT, text),
                         "Share crash details"))
                 }
