@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `43-native-album-select`: the Android app's native album page (preview) selects tracks as the page's does: a
+  long press on a track starts it, each row's circle (or the row) picks or unpicks, a picked row washed in
+  brass, and the ⋯ with the count, top right in place of previous and next, opens what to do with them: play
+  now, play next or add to the end of the queue (in the album's order, one at a time as the page sends them,
+  Play next last to first), add to a playlist (the page's own sheet, `album-playlist-tracks` in
+  `public/app/native-handoff.js`), Listen later (the album), or clear. 9 items off the gaps list.
 - `42-native-album-booklet`: the Android app's native album page (preview) has the album's booklet: the book
   on the cover when its folder has a PDF (one opens at once, several are chosen from a list), and the booklet's
   pages one under another over everything, each drawn by the server as wide as the screen, with Close and the

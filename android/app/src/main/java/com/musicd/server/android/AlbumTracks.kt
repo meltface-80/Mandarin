@@ -7,7 +7,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,8 +58,12 @@ import com.musicd.server.client.Palette
  * the page's brass disc, turning while the room plays. A tap opens the
  * row's Play now, Play next and Queue, as the page's track menu has them.
  * [onPlay] is given the track's index, how it is played and what to say of it.
+ * A long press starts selecting ([onPick], with the track); selecting
+ * ([picks], the places picked), each row shows its circle, and a tap on the
+ * row or the circle picks or unpicks it.
  */
-internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Boolean, onPlay: (Int, String, String) -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Boolean, picks: List<Int>?, onPick: (Int) -> Unit, onPlay: (Int, String, String) -> Unit) {
     item {
         val faint = paletteColor(Palette.TEXT_FAINT)
         Text("Tracks".uppercase(), Modifier.parity("album.tracks-head").fillMaxWidth().padding(bottom = 8.dp),
@@ -68,8 +76,12 @@ internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Bool
         val white = paletteColor(Palette.MODAL_TEXT)
         val dim = MaterialTheme.colorScheme.onSurfaceVariant
         val rowShape = RoundedCornerShape(10.dp)
+        val selecting = picks != null
+        val picked = picks?.contains(i) == true
+        if (selecting && open) open = false   // an open row and a selection are two intents: the row closes as selecting starts
         Column(Modifier.parity("album.track", Contract.label("album.track", 0, t.title)).fillMaxWidth()
-            .let { m -> if (open) m.clip(rowShape).background(paletteColor(Palette.ROW_OPEN)) else m }.clickable { open = !open }) {
+            .let { m -> if (picked) m.clip(RoundedCornerShape(8.dp)).background(paletteColor(Palette.ACCENT_SOFT)) else if (open) m.clip(rowShape).background(paletteColor(Palette.ROW_OPEN)) else m }
+            .combinedClickable(onLongClick = { if (!selecting) onPick(i) }, onClick = { if (selecting) onPick(i) else open = !open })) {
             Row(Modifier.fillMaxWidth().padding(horizontal = if (open) 8.dp else 4.dp, vertical = 10.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.defaultMinSize(minWidth = 22.dp).height(20.dp)) {
                     Text("${i + 1}", color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 20.sp)
@@ -85,6 +97,12 @@ internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Bool
                     if (t.sub.isNotEmpty()) Text(t.sub, Modifier.padding(top = 1.dp), color = dim, fontSize = 12.sp)
                 }
                 if (t.lengthText.isNotEmpty()) Text(t.lengthText, color = dim, fontSize = 13.sp, lineHeight = 20.sp)
+                // The circle, selecting: hollow means it can be picked, a tick that it is (the page's .t-mark).
+                if (selecting) Box(Modifier.parity("album.track-select", Contract.label("album.track-select")).align(Alignment.CenterVertically).size(22.dp).clip(CircleShape)
+                    .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .border(2.dp, if (picked) MaterialTheme.colorScheme.primary else paletteColor(Palette.TEXT_FAINT), CircleShape).clickable { onPick(i) }, contentAlignment = Alignment.Center) {
+                    if (picked) Text("✓", color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, lineHeight = 13.sp)
+                }
             }
             if (open) {
                 // The row's buttons, as the page's (style.css, `.t-actions .action-btn`): 38 tall, Play now in brass, the other two on the raised ground.

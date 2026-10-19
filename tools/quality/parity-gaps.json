@@ -1,15 +1,6 @@
 {
   "album": [
     "service-favourite",
-    "download",
-    "track-select",
-    "select-menu",
-    "select-title",
-    "select-play-now",
-    "select-play-next",
-    "select-queue",
-    "select-playlist",
-    "select-later",
-    "select-clear"
+    "download"
   ]
 }

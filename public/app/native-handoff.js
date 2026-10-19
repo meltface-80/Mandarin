@@ -47,6 +47,22 @@ window.__musicdNative = function (what, arg) {
     window.__showLabelAlbums(arg, false, null);
     return true;
   }
+  // Tracks picked on the native album page, for a playlist: the page's sheet, with the same entries its own selection makes.
+  if (what === "album-playlist-tracks") {
+    let ask = null;
+    try { ask = JSON.parse(arg); } catch (e) { return false; }
+    if (!ask || !Number.isInteger(ask.offset) || !Array.isArray(ask.tracks) || !ask.tracks.length) return false;
+    fetch("/api/album?offset=" + ask.offset).then(r => r.json()).then(j => {
+      const a = j && j.album, tracks = (j && j.tracks) || [];
+      if (!a) return;
+      const entries = ask.tracks.filter(i => tracks[i]).map(i => ({
+        album_offset: a.offset, album_title: a.title || "", album_subtitle: a.subtitle || "",
+        track_index: i, title: tracks[i].title || "", subtitle: a.subtitle || "", image_key: a.image_key || null
+      }));
+      if (entries.length) openAddToPlaylistSheet(entries, null);
+    }).catch(() => { /* the album gone: nothing to open */ });
+    return true;
+  }
   if (what === "album-share" || what === "album-playlist" || what === "album-edit") {
     const offset = Number(arg);
     if (!Number.isInteger(offset) || offset < 0) return false;
