@@ -163,13 +163,13 @@ private fun BoxScope.FilterField(typed: String, onTyped: (String) -> Unit, onCle
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(painterResource(R.drawable.tn_search), contentDescription = null, tint = paletteColor(Palette.TEXT_FAINT), modifier = Modifier.size(18.dp))
         Box(Modifier.weight(1f)) {
-            if (typed.isEmpty()) Text("Starts with…", color = paletteColor(Palette.TEXT_FAINT), fontSize = 16.sp)
+            if (typed.isEmpty()) Text("Starts with…", color = paletteColor(Palette.TEXT_FAINT), fontSize = 16.sp, lineHeight = 19.sp)
             BasicTextField(typed, onTyped, Modifier.parity("library.filter-input", Contract.label("library.filter-input")).fillMaxWidth().focusRequester(focus), singleLine = true,
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp), cursorBrush = SolidColor(MaterialTheme.colorScheme.primary))
         }
         Box(Modifier.parity("library.filter-clear", Contract.label("library.filter-clear")).size(28.dp).clip(CircleShape).background(paletteColor(Palette.BG_ELEV_2))
             .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onClear), contentAlignment = Alignment.Center) {
-            Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
         }
     }
 }

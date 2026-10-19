@@ -113,26 +113,31 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
     }
 }
 
-/** Back, as the bar's button (.icon-btn): the raised ground, a hairline, the dim text; at the bar's padding, top left. */
+/** Back, as the bar's button in the hifi palette (style.css, `.topbar .icon-btn`: a brass disc, the glyph in the charcoal); at the bar's padding, top left. */
 @Composable
 internal fun BoxScope.WallBack(onBack: () -> Unit) {
     IconButton(onClick = onBack, modifier = Modifier.parity("library.back wall.back artist.back", Contract.label("library.back")).align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp).size(40.dp)
-        .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)) {
-        Icon(painterResource(R.drawable.np_back), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+        .clip(CircleShape).background(MaterialTheme.colorScheme.primary)) {
+        Icon(painterResource(R.drawable.np_back), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
     }
 }
 
 /** A block's small heading, as the artist page's (.artist-section-header): tracked out, faint. */
 @Composable
 private fun BlockTitle(title: String) {
-    Text(title.uppercase(), Modifier.parity("artist.section").padding(top = 12.dp, bottom = 4.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
+    Text(title.uppercase(), Modifier.parity("artist.section").padding(top = 12.dp, bottom = 4.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
 }
 
-/** The heading over a wall ([title], at UI Settings' title size), and the banner under it when there is one ([banner]: what it says, and whether as an error). */
+/**
+ * The heading over a wall ([title], in the page's serif at UI Settings' title size; style.css `#tnav-heading #album-count`
+ * and the hifi palette's `.album-count`), and the banner under it when there is one ([banner]: what it says, and whether
+ * as an error). Its 14 below is the page's margin; in the grid the rows' own 12 is part of it.
+ */
 @Composable
 internal fun WallHead(title: String, prefs: WallPrefs, banner: Pair<String, Boolean>?) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
-        Text(title, Modifier.parity("library.title wall.title artist.title"), color = MaterialTheme.colorScheme.onSurface, fontSize = (24 * prefs.title).sp, lineHeight = (28.8 * prefs.title).sp)
+    Column(Modifier.fillMaxWidth().padding(bottom = if (prefs.list) 14.dp else 2.dp)) {
+        Text(title, Modifier.parity("library.title wall.title artist.title"), color = MaterialTheme.colorScheme.onSurface, fontFamily = youngSerif, fontWeight = FontWeight.W400,
+            fontSize = (24 * prefs.title).sp, lineHeight = (28.8 * prefs.title).sp, letterSpacing = 0.01.em)
         banner?.let { (said, error) -> Banner(said, error, Modifier.padding(top = 14.dp)) }
     }
 }

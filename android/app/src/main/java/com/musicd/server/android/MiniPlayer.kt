@@ -85,8 +85,9 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                     }
                     Column(Modifier.weight(1f)) {
                         val kicker = listOfNotNull(room.zoneName?.ifEmpty { null }, v?.formatWord).joinToString(" · ")
+                        // Each line at the font's own height (the page's line-height: normal), not Material's 24sp body line: three of those stood taller than the cover (bug list item 53).
                         if (kicker.isNotEmpty()) Text(kicker.uppercase(), Modifier.parity("mini-player.kicker").padding(bottom = 1.dp), color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.16.em, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            fontSize = 11.5.sp, lineHeight = 15.7.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.16.em, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         // With no room, or nothing playing in it, the bar says so, as the page's does; a dash until the server answers.
                         val title = when { zoneId.isEmpty() -> "No Zone Selected"; !room.answered -> "—"; v == null -> "Nothing playing"; else -> v.title.ifEmpty { "—" } }
                         val sub = when {
@@ -95,8 +96,8 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                             v == null -> "Pick an album to play here"
                             else -> listOf(v.artist, v.album).filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "—" }
                         }
-                        Text(title, Modifier.parity("mini-player.title"), color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(sub, Modifier.parity("mini-player.artist"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, Modifier.parity("mini-player.title"), color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp, lineHeight = 23.2.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(sub, Modifier.parity("mini-player.artist"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 19.1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 PlayOnMenu(zoneId, client, ::act, onRoom, onPage, size = 46.dp, iconSize = 28.dp)

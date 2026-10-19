@@ -56,10 +56,10 @@ internal fun SelectBar(onCancel: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth()) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.align(Alignment.TopCenter))
         Row(Modifier.fillMaxWidth().background(paletteColor(Palette.BG_ELEV_2)).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Tap albums to select", Modifier.parity("library.select-hint wall.select-hint artist.select-hint").weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            Text("Tap albums to select", Modifier.parity("library.select-hint wall.select-hint artist.select-hint").weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
             Box(Modifier.parity("library.select-cancel wall.select-cancel artist.select-cancel", Contract.label("library.select-cancel")).size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onCancel), contentAlignment = Alignment.Center) {
-                Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
+                Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, lineHeight = 22.sp)
             }
         }
     }
@@ -80,7 +80,7 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             Text("$n album$plural selected", Modifier.parity("library.select-title wall.select-title artist.select-title").padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
-                color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, letterSpacing = 0.08.em)
+                color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = 0.08.em)
             DropdownMenuItem(text = { Text(Contract.label("library.select-play-now"), fontSize = 15.sp) }, onClick = { open = false; onAct("play_now") },
                 modifier = Modifier.parity("library.select-play-now wall.select-play-now artist.select-play-now", Contract.label("library.select-play-now")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-play-next"), fontSize = 15.sp) }, onClick = { open = false; onAct("play_next") },

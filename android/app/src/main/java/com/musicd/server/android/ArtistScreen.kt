@@ -109,7 +109,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             val n = all.size
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
             bio?.let { BioHead(it, client) }
-            if (a != null && n == 0 && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, textAlign = TextAlign.Center)
+            if (a != null && n == 0 && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
@@ -133,7 +133,7 @@ private fun BioHead(bio: ArtistBio, client: () -> ServerClient?) {
         Text(bio.text, Modifier.parity("artist.bio").fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.5.sp, lineHeight = 21.6.sp,
             maxLines = if (more) Int.MAX_VALUE else 5, onTextLayout = { if (!more) clipped = it.hasVisualOverflow })
         if (clipped || more) Text(Contract.label("artist.bio-more", if (more) 1 else 0), Modifier.parity("artist.bio-more", Contract.label("artist.bio-more", if (more) 1 else 0)).clickable { more = !more }.padding(top = 6.dp, bottom = 4.dp),
-            color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, fontWeight = FontWeight.W500)
-        bio.source?.let { Text("Bio: $it", Modifier.parity("artist.bio-source").padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp) }
+            color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W500)
+        bio.source?.let { Text("Bio: $it", Modifier.parity("artist.bio-source").padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 16.sp) }
     }
 }
