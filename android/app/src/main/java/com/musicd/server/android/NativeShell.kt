@@ -137,13 +137,15 @@ internal fun paletteColor(argb: Long): Color = Color(argb.toInt())
 
 /**
  * The page's type: Manrope (public/fonts/manrope.woff2, the hifi palette's
- * `--font-sans`), the same file as a TrueType font (res/font/manrope.ttf,
- * written from the woff2 by fontTools; a variable font, its weight axis 200
- * to 800), so a native screen's text is the page's.
+ * `--font-sans`), as TrueType fonts in res/font, one a weight (Regular to
+ * ExtraBold), each a static instance of the page's variable font written by
+ * fontTools' instancer. Static, not the variable file itself: that file's
+ * default instance is ExtraLight (200), and the app drew every weight with
+ * it, the whole screen light (bug list item 40).
  */
 private val manrope = FontFamily(
-    Font(R.font.manrope, FontWeight.W300), Font(R.font.manrope, FontWeight.W400), Font(R.font.manrope, FontWeight.W500),
-    Font(R.font.manrope, FontWeight.W600), Font(R.font.manrope, FontWeight.W700), Font(R.font.manrope, FontWeight.W800)
+    Font(R.font.manrope_regular, FontWeight.W400), Font(R.font.manrope_medium, FontWeight.W500), Font(R.font.manrope_semibold, FontWeight.W600),
+    Font(R.font.manrope_bold, FontWeight.W700), Font(R.font.manrope_extrabold, FontWeight.W800)
 )
 
 /** Material's type scale in Manrope. */
