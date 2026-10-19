@@ -6,7 +6,9 @@
 /*  power open the page's own sheets; Share card, the album and an      */
 /*  artist open as the page's Now playing opens them, for the track     */
 /*  playing; a room chosen on Play on becomes the page's room too, so   */
-/*  its mini player follows. True when done.                            */
+/*  its mini player follows. An album's own (its Share card, Add to     */
+/*  playlist, Edit album) are asked by its offset; a label by its name. */
+/*  True when done.                                                     */
 /* ------------------------------------------------------------------ */
 window.__musicdNative = function (what, arg) {
   if (what === "group") { openGroupSheet(); return true; }
@@ -21,6 +23,23 @@ window.__musicdNative = function (what, arg) {
   if (what === "artist") {
     if (!arg || !window.__showArtistAlbums) return false;
     window.__showArtistAlbums(arg, {});
+    return true;
+  }
+  if (what === "label") {
+    if (!arg || !window.__showLabelAlbums) return false;
+    window.__showLabelAlbums(arg, false, null);
+    return true;
+  }
+  if (what === "album-share" || what === "album-playlist" || what === "album-edit") {
+    const offset = Number(arg);
+    if (!Number.isInteger(offset) || offset < 0) return false;
+    fetch("/api/album?offset=" + offset).then(r => r.json()).then(j => {
+      const a = j && j.album;
+      if (!a) return;
+      if (what === "album-share") openShare({ title: a.title || "", artist: a.subtitle || "", image_key: a.image_key });
+      else if (what === "album-playlist") openAddToPlaylistSheet(null, [{ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "", image_key: a.image_key || null }]);
+      else openAlbumEditor(a);
+    }).catch(() => { /* the album gone: nothing to open */ });
     return true;
   }
   if (what === "zone") {

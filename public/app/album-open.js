@@ -1,6 +1,12 @@
 /* The page's core (app.js until v1.0.5), 21 of 33: an album opened, and the queue's history. */
 function openAlbum(album, opts) {
   opts = opts || {};
+  // The Android app's own album page (a preview, switched on in UI Settings): one of the library's, not this phone's.
+  const app = window.MusicdApp;
+  if (opts.source !== "now-playing" && album && typeof album.offset === "number" && app && typeof app.nativeAlbum === "function" && app.nativeAlbum()) {
+    app.openAlbum(album.offset, selectedZoneId || "");
+    return;
+  }
   if (opts.source === "now-playing") {
     const albumOpen = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode");
     // Re-opened while already on Now playing: keep what it is to go back to.

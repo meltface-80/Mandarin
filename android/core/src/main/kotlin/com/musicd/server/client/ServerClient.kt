@@ -122,6 +122,22 @@ class ServerClient(
         return post("/api/queue/history-multi", JSONObject().put("zone_or_output_id", zoneId).put("kind", kind).put("tracks", list))
     }
 
+    /** An album to the room ([kind]: play_now, queue, play_next, shuffle, radio), its title and artist with it so a stale offset is found again, as the page sends it. The server's answer. */
+    fun playAlbum(offset: Long, title: String, subtitle: String, zoneId: String, kind: String): JSONObject =
+        post("/api/play", JSONObject().put("offset", offset).put("title", title).put("subtitle", subtitle).put("zone_or_output_id", zoneId).put("kind", kind)
+            .put("filter_type", "").put("filter_value", "").put("filter_parent", ""))
+
+    /** One of an album's tracks (its place, from 0) to the room: play_now, play_next, queue. */
+    fun playTrack(offset: Long, index: Int, title: String, albumTitle: String, albumSubtitle: String, zoneId: String, kind: String): JSONObject =
+        post("/api/play-track", JSONObject().put("offset", offset).put("track", index).put("title", title).put("zone_or_output_id", zoneId).put("kind", kind)
+            .put("album_title", albumTitle).put("album_subtitle", albumSubtitle).put("filter_type", "").put("filter_value", "").put("filter_parent", ""))
+
+    /** The heart on an album, or off. */
+    fun favourite(offset: Long, on: Boolean) { post("/api/favourites", JSONObject().put("offset", offset).put("on", on)) }
+
+    /** An album onto Listen later, or off it. */
+    fun listenLater(offset: Long, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().put(offset)).put("on", on)) }
+
     /** Every room paused. */
     fun pauseAll() { post("/api/pause-all", JSONObject()) }
 

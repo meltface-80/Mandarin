@@ -29,7 +29,13 @@ data class AlbumSummary(
     val year: Int?,
     val discs: Int?,
     /** "qobuz" or "tidal" for a service's album, null for the library's own. */
-    val source: String?
+    val source: String?,
+    /** The heart: one of your favourites. */
+    val favourite: Boolean = false,
+    /** On your Listen later list. */
+    val later: Boolean = false,
+    /** Better than CD: its rate in brass. */
+    val hires: Boolean = false
 ) {
     companion object {
         fun parse(j: JSONObject) = AlbumSummary(
@@ -40,7 +46,10 @@ data class AlbumSummary(
             quality = j.str("quality"),
             year = j.int("year"),
             discs = j.int("discs"),
-            source = j.str("source")
+            source = j.str("source"),
+            favourite = j.optBoolean("favourite", false),
+            later = j.optBoolean("later", false),
+            hires = j.optBoolean("hires", false)
         )
     }
 }
@@ -54,6 +63,15 @@ data class AlbumPage(val albums: List<AlbumSummary>, val offset: Int, val total:
 
 /** One of an album's tracks: [length] in seconds, [subtitle] as the page shows it ("0:03"). */
 data class Track(val id: Long, val title: String, val subtitle: String, val length: Double, val quality: String?) {
+    /** Its subtitle as the page splits it: who else is on it ("Artist B · 4:05" → "Artist B"), and its length ("4:05"). */
+    val sub: String get() = split().first
+    val lengthText: String get() = split().second
+
+    private fun split(): Pair<String, String> {
+        val parts = subtitle.split(" · ")
+        return if (Regex("^\\d+:\\d{2}(:\\d{2})?$").matches(parts.last())) parts.dropLast(1).joinToString(" · ") to parts.last() else subtitle to ""
+    }
+
     companion object {
         fun parse(j: JSONObject) = Track(j.getLong("track_id"), j.getString("title"), j.optString("subtitle", ""), j.optDouble("length", 0.0), j.str("quality"))
     }

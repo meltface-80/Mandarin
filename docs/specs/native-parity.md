@@ -1,6 +1,6 @@
 # The screens contract: the Android app's native screens and the page, kept the same
 
-Status: built (bug list item 25). It holds Now playing, its Queue tab and the yes-or-no sheet they ask with (items 26 to 29: none of them lacks anything of the page's now), and each screen made native after them.
+Status: built (bug list item 25). It holds Now playing, its Queue tab and the yes-or-no sheet they ask with (items 26 to 29: none of them lacks anything of the page's now), the album page (items 30 and 32, in preview), and each screen made native after them.
 
 The page stays for browsers, the iPhone, and every screen the app hasn't made native. A screen the app does draw natively is drawn twice, so it can drift: a button added to the page and not the app, a control the app has and the page hasn't, or one called something else. Nothing here relies on remembering. Three machines hold each native screen to one file, and a change that lets the two sides differ doesn't merge.
 
@@ -48,7 +48,7 @@ So the app's native Now playing can be tried before it's whole, but it can't fal
 3. Run `npm run parity -- write` (labels), then `npm run parity -- accept` (the new screen's gaps, once).
 4. Build until the gaps list is empty, then take it out of preview.
 
-The album page (stage N3) is in the contract before its native screen, so the page is held to its list now and the native screen will be built to it: about sixty items, many shown only for some albums (a booklet, a review, Last.fm's suggestions, the app's own Download). What only shows sometimes the page test checks when it is on screen; every key, shown or not, the gate finds written in the page's source (`public/`), so one lost or misspelt fails either way.
+The album page (stage N3) went into the contract before its native screen (item 30), and its native screen (item 32, in preview) is built to it, what it lacks yet on the gaps list: about sixty items, many shown only for some albums (a booklet, a review, Last.fm's suggestions, the app's own Download). What only shows sometimes the page test checks when it is on screen; every key, shown or not, the gate finds written in the page's source (`public/`), so one lost or misspelt fails either way.
 
 From N3 the contract also takes a screen's measures where the design depends on them (the album page's 160px sleeve). The page's test reads them from the computed layout, and the screen from `Contract`.
 

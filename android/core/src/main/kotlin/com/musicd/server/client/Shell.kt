@@ -32,6 +32,13 @@ object ShellRoute {
     /** The route to Now playing in the room [zoneId]. */
     fun nowPlaying(zoneId: String): String = "nowplaying/" + enc(zoneId)
 
+    const val OFFSET = "offset"
+    /** The native album page (N3), of an album, played in a room. */
+    const val ALBUM = "album/{$OFFSET}?$ZONE={$ZONE}"
+
+    /** The route to the album [offset]'s page, its buttons playing in [zoneId]. */
+    fun album(offset: Long, zoneId: String): String = "album/$offset?$ZONE=" + enc(zoneId)
+
     /** The room a `nowplaying` route's own text names (Navigation hands its argument over decoded already). */
     fun zoneOf(arg: String?): String = URLDecoder.decode(arg.orEmpty(), "UTF-8")
 
