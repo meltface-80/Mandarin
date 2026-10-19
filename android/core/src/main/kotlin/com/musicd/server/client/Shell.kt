@@ -59,9 +59,21 @@ object ShellRoute {
     fun library(view: String, prefs: String, zoneId: String): String = "library?$VIEW=" + enc(view) + "&$PREFS=" + enc(prefs) + "&$ZONE=" + enc(zoneId)
 
     const val KIND = "kind"
-    /** A wall Home links to (L5, item 52): [KIND] later, favourites, history, unplayed or random; [ZONE] the room its albums play in. */
-    const val WALL = "wall/{$KIND}?$ZONE={$ZONE}"
-    fun wall(kind: String, zoneId: String): String = "wall/" + enc(kind) + "?$ZONE=" + enc(zoneId)
+    const val FILTER = "filter"
+    /**
+     * A wall Home links to (L5, item 52): [KIND] later, favourites, history, unplayed or random; a genre's wall (item 57:
+     * genre, with [FILTER] the filter as its query string, WallFilter); the app's own (downloads, phone); [ZONE] the room its albums play in.
+     */
+    const val WALL = "wall/{$KIND}?$ZONE={$ZONE}&$FILTER={$FILTER}"
+    fun wall(kind: String, zoneId: String, filter: String = ""): String = "wall/" + enc(kind) + "?$ZONE=" + enc(zoneId) + "&$FILTER=" + enc(filter)
+
+    /** Home (N5, item 57): drawn to the page's UI Settings ([PREFS], JSON) with its room ([ZONE]), as the page hands them over. */
+    const val HOME = "home?$PREFS={$PREFS}&$ZONE={$ZONE}"
+    fun home(prefs: String, zoneId: String): String = "home?$PREFS=" + enc(prefs) + "&$ZONE=" + enc(zoneId)
+
+    /** Smart Picks (item 57): every pick with its reason and what can be done with it. */
+    const val PICKS = "picks?$ZONE={$ZONE}"
+    fun picks(zoneId: String): String = "picks?$ZONE=" + enc(zoneId)
 
     /** An artist's page (L4, item 52): their albums and their biography. */
     const val ARTIST = "artist?name={name}&$ZONE={$ZONE}"

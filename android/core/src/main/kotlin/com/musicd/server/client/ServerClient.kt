@@ -175,6 +175,13 @@ class ServerClient(
     }
 
     /** A streamed album added to ([on]) or taken off your favourites on its service ("qobuz", "tidal"), by its id there; the service's answer. */
+    /** The phone's downloaded albums as the server has them now ([ids] the downloads' ids, the server's album ids): each with its album, or none when it has gone. */
+    fun downloadAlbums(ids: List<Int>): List<DownloadedAlbum> =
+        DownloadedAlbum.list(post("/api/download/albums", JSONObject().put("ids", org.json.JSONArray().also { a -> ids.forEach { a.put(it) } })))
+
+    /** Never this artist again in Smart Picks (the page's "Not for me"). */
+    fun blockSmartPick(artist: String) { post("/api/smart-picks/block", JSONObject().put("artist", artist)) }
+
     fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
         post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
 

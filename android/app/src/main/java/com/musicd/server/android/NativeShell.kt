@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -52,6 +53,14 @@ internal object NativeShell {
 
     /** Whether the app draws the Library wall, the walls and an artist's page itself (item 52; the switch in UI Settings), as last told by the page. */
     @Volatile var nativeLibrary = false
+    /** Whether the app draws Home itself (item 57; its switch in UI Settings). */
+    @Volatile var nativeHome = false
+    /** The Library's view as the page last opened its wall with ([AppBridge.openLibrary]) or the app chose: Home's Library row is the head of that list. */
+    @Volatile var libraryView = ""
+    /** Home's arguments as the page last gave them ([homeShown]): the UI Settings as JSON, and the room; the native Home follows them. */
+    val homeArgs = mutableStateOf("" to "")
+    /** The page in front of the native Home (its menu, its search, a wall of its own in Home's place): the shell out of sight while Home is the route. */
+    val pageFront = mutableStateOf(false)
     /** The page's UI Settings as JSON, and its room, as last handed over with a wall ([AppBridge.openLibrary], openWall): the walls opened from native screens draw to them. */
     @Volatile var prefs: String? = null
     @Volatile var zone: String = ""
@@ -110,11 +119,37 @@ internal object NativeShell {
         page?.invoke("document.documentElement.classList.remove(\"native-over\")")
     }
 
-    /** Back on a native screen: it closes, back to the page (true); on the page, or one of its sheets over a native screen, the page's own Back (false). */
+    /**
+     * The page is on Home with nothing of its own over it ([front]; public/app/native-home.js), or something of its own
+     * has come over it: the native Home comes in front (opened over the page, or shown again), or goes out of sight for
+     * the page's own screen, the route staying Home underneath (a native screen over Home is left as it is).
+     */
+    fun homeShown(front: Boolean, prefs: String, zone: String) {
+        this.prefs = prefs; this.zone = zone
+        homeArgs.value = prefs to zone
+        pageFront.value = !front
+        val n = nav ?: return
+        if (front && ShellRoute.isWeb(n.currentDestination?.route)) n.navigate(ShellRoute.home(prefs, zone)) { launchSingleTop = true }
+    }
+
+    /** The row's button on the native Home: Home itself goes to its top; the rest are the page's own buttons (the page comes in front as it opens what they open). */
+    fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else toPage("nav", what) }
+
+    /** Native Home switched off (its switch in UI Settings): back to the page, whatever is over Home going with it. */
+    fun leaveHome() {
+        val n = nav ?: return
+        if (!ShellRoute.isWeb(n.currentDestination?.route)) n.popBackStack(ShellRoute.WEB, false)
+    }
+
+    /**
+     * Back on a native screen: it closes (true); on the page, on Home (the page's to answer for: what it has over Home
+     * closes, else the app goes to the back), or one of the page's sheets over a native screen, the page's own Back (false).
+     */
     fun back(): Boolean {
         if (lifted) return false
         val n = nav ?: return false
-        if (ShellRoute.isWeb(n.currentDestination?.route)) return false
+        val route = n.currentDestination?.route
+        if (ShellRoute.isWeb(route) || route == ShellRoute.HOME) return false
         return n.popBackStack()
     }
 
@@ -126,8 +161,7 @@ internal object NativeShell {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) },
-                        onRoute = { route -> visibility = if (ShellRoute.isWeb(route)) View.GONE else View.VISIBLE })
+                    Shell(client = { Store.client(activity) }, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
                 }
             }
         }
@@ -156,9 +190,18 @@ private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
     NativeShell.toPage(what, arg)
 }
 
-/** The screens by route; [onRoute] told each one shown, so the page shows through on its own. */
+/**
+ * The row along the foot on a native screen over the page, or over the native Home: the screen closes; Home, when it is
+ * the native one underneath, goes to its top (as the page's does), else the page's own button is tapped, once the page is in front.
+ */
+private fun navTap(nav: NavHostController, what: String) {
+    nav.popBackStack()
+    if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) HomeKept.toTop = true else NativeShell.toPage("nav", what)
+}
+
+/** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
 @Composable
-private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
+private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
     val nav = rememberNavController()
     val prefs = NativeShell.prefs
     DisposableEffect(nav) {
@@ -167,10 +210,38 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
     }
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    LaunchedEffect(route) { onRoute(route) }
+    val front by NativeShell.pageFront
+    LaunchedEffect(route, front) { onShown(!ShellRoute.isWeb(route) && !(route == ShellRoute.HOME && front)) }
     NavHost(navController = nav, startDestination = ShellRoute.WEB) {
         // The page at a path: drawn by the WebView under the shell, so nothing here.
         composable(ShellRoute.WEB, arguments = listOf(navArgument(ShellRoute.PATH) { type = NavType.StringType; defaultValue = "/" })) { }
+        // Home (N5, item 57): over the page's own Home, which stays underneath for its Back and its own screens; its rows' walls,
+        // Smart Picks and an album's page open over it, and Back comes back to it as it was.
+        composable(ShellRoute.HOME, arguments = listOf(navArgument(ShellRoute.PREFS) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) {
+            val args by NativeShell.homeArgs
+            HomeScreen(WallPrefs.parse(args.first), args.second, client,
+                onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "home", AlbumLists.put(list), list.index)) },
+                onWall = { kind, filter -> nav.navigate(ShellRoute.wall(kind, args.second, filter)) },
+                onLibrary = { nav.navigate(ShellRoute.library(NativeShell.libraryView, args.first, args.second)) },
+                onPicks = { nav.navigate(ShellRoute.picks(args.second)) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onNav = NativeShell::homeNav,
+                // The page's sheets over this screen; its screens (a playlist, a label, the phone's own album) in front of it, Home staying.
+                onPage = { what, arg -> if (what in NativeShell.OVERLAYS) NativeShell.overPage(what, arg) else NativeShell.toPage(what, arg) }
+            )
+        }
+        composable(ShellRoute.PICKS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
+            PicksScreen(WallPrefs.parse(prefs), zone, client,
+                onBack = { nav.popBackStack() },
+                onAlbum = { offset, z -> nav.navigate(ShellRoute.album(offset, z, "")) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onNav = { what -> navTap(nav, what) },
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            )
+        }
         composable(ShellRoute.NOW_PLAYING, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType })) { entry ->
             NowPlayingScreen(
                 entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() },
@@ -198,19 +269,20 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 onView = { q -> NativeShell.toPage("library-view", q) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = { id -> NativeShell.toPage("zone", id) },
-                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
         }
         // The walls Home links to (L5) and an artist's page (L4), item 52: each over the page, or over the screen that opened it.
-        composable(ShellRoute.WALL, arguments = listOf(navArgument(ShellRoute.KIND) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+        composable(ShellRoute.WALL, arguments = listOf(navArgument(ShellRoute.KIND) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.FILTER) { type = NavType.StringType; defaultValue = "" })) { entry ->
             val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-            WallScreen(entry.arguments?.getString(ShellRoute.KIND).orEmpty(), WallPrefs.parse(prefs), zone, client,
+            WallScreen(entry.arguments?.getString(ShellRoute.KIND).orEmpty(), entry.arguments?.getString(ShellRoute.FILTER).orEmpty(), WallPrefs.parse(prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = { id -> NativeShell.toPage("zone", id) },
-                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
         }
@@ -221,7 +293,7 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = { id -> NativeShell.toPage("zone", id) },
-                onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
+                onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
         }
@@ -240,8 +312,11 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 // Previous, next, or a disc of the box: that album's page in this one's place, in the same list.
                 onStepTo = { offset, zone, l -> nav.navigate(ShellRoute.album(offset, zone, lit, AlbumLists.put(l), l.index)) { popUpTo(ShellRoute.ALBUM) { inclusive = true } } },
                 onBack = { nav.popBackStack() },
-                // The row along the foot: back to the native wall it came from (Library), else the page's own button, tapped, once the page is back in front.
-                onNav = { what -> if (!(what == "library" && nav.popBackStack(ShellRoute.LIBRARY, false))) { nav.popBackStack(); NativeShell.toPage("nav", what) } },
+                // The row along the foot: back to the native wall it came from (Library), or to the native Home (at its top, as the page's); else the page's own button, tapped, once the page is back in front.
+                onNav = { what ->
+                    if (what == "home" && nav.popBackStack(ShellRoute.HOME, false)) HomeKept.toTop = true
+                    else if (!(what == "library" && nav.popBackStack(ShellRoute.LIBRARY, false))) { nav.popBackStack(); NativeShell.toPage("nav", what) }
+                },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) },
                 // A booklet: its pages over the album; Back returns here.
                 onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },

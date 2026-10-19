@@ -8,7 +8,9 @@ import org.json.JSONObject
  * divided by it) and the text sizes, each a multiplier. The page hands them to the app as JSON when it
  * opens the native Library wall ([ShellRoute.library]); what it doesn't say is the default.
  */
-data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val text: Double = 1.0, val title: Double = 1.0) {
+data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val text: Double = 1.0, val title: Double = 1.0,
+                     /** Home's greeting and its Random Album tile, each shown or not (Settings → Home Screen; item 57). */
+                     val greeting: Boolean = true, val random: Boolean = true) {
     /** The albums as rows (UI Settings' List), not tiles. */
     val list: Boolean get() = layout == "list"
 
@@ -34,7 +36,8 @@ data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val te
             fun num(key: String, allowed: Set<Double>): Double = j.optString(key, "").toDoubleOrNull()?.takeIf { it in allowed } ?: 1.0
             return WallPrefs(
                 layout = j.optString("layout", "auto").takeIf { it in LAYOUTS } ?: "auto",
-                tile = num("tile", TILES), text = num("text", TEXTS), title = num("title", TEXTS)
+                tile = num("tile", TILES), text = num("text", TEXTS), title = num("title", TEXTS),
+                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off"
             )
         }
     }

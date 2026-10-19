@@ -89,6 +89,12 @@ object Store {
     /** The native Library wall (bug list item 51, a preview): Settings → Setup → UI Settings, on this phone. */
     fun nativeLibrary(context: Context): Boolean = prefs(context).getBoolean("native_library", false)
     fun setNativeLibrary(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_library", on).apply() }
+    /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */
+    fun nativeHome(context: Context): Boolean = prefs(context).getBoolean("native_home", false)
+    fun setNativeHome(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_home", on).apply() }
+    /** Music on device's view (its Sort and Focus, item 57), as JSON (LocalView), kept as the page keeps its own. */
+    fun localView(context: Context): String? = prefs(context).getString("local_view", null)
+    fun setLocalView(context: Context, json: String) { prefs(context).edit().putString("local_view", json).apply() }
 
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }

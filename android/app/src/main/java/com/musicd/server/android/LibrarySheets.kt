@@ -48,7 +48,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Facets
+import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.LibraryView
+import com.musicd.server.client.LocalView
 import com.musicd.server.client.Palette
 
 /*
@@ -60,7 +62,8 @@ import com.musicd.server.client.Palette
  * tapped once included, again excluded, once more cleared; Clear all, Save
  * as… (a Dynamic Playlist, the page's prompt) and Show albums. Sort: a row
  * each way, the one on in brass with its arrow, tapped again to reverse
- * (Random reshuffles).
+ * (Random reshuffles). Music on device's sheets (item 57) are the same, over
+ * the phone's own facets and sorts (LocalView).
  */
 
 /** The panel: [title] and the close at its head, [body] scrolling, [foot] along its bottom; a tap on the dimmed page closes it too (Material's sheet does the dimming and the drag). */
@@ -110,7 +113,6 @@ private val COVERAGE_OF = mapOf("rate" to "format", "bits" to "format", "chan" t
 internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryView) -> Unit, onSave: () -> Unit, onShow: () -> Unit, onClose: () -> Unit) {
     // Which sections are open: a section with something on opens by itself, and stays open until its head is tapped.
     val open = remember { mutableStateMapOf<String, Boolean>() }
-    val faint = paletteColor(Palette.TEXT_FAINT)
     Sheet("Focus", onClose, foot = {
         val edge = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ButtonDefaults.shape)
         val pad = PaddingValues(horizontal = 8.dp)
@@ -127,34 +129,8 @@ internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryVi
             Text(Contract.label("library.focus-show"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
         }
     }) {
-        @Composable fun Section(id: String, label: String, active: Int, chips: @Composable () -> Unit, notes: List<String>) {
-            if (open[id] == null && active > 0) open[id] = true
-            val expanded = open[id] == true
-            Column(Modifier.fillMaxWidth()) {
-                HorizontalDivider(color = Color(0x12FFFFFF))
-                Row(Modifier.parity("library.focus-section", Contract.label("library.focus-section", 0, label)).fillMaxWidth().clickable { open[id] = !expanded }.padding(vertical = 13.dp, horizontal = 2.dp)
-                    .defaultMinSize(minHeight = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(label.uppercase(), Modifier.weight(1f), color = if (expanded) MaterialTheme.colorScheme.onSurface else faint, fontSize = 10.5.sp, lineHeight = 14.sp, fontWeight = FontWeight.W700, letterSpacing = 0.14.em)
-                    if (active > 0) Text("$active", Modifier.defaultMinSize(minWidth = 18.dp).height(18.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 5.dp),
-                        color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.W700, lineHeight = 18.sp)
-                    Text(if (expanded) "⌃" else "⌄", color = faint, fontSize = 13.sp, lineHeight = 18.sp)
-                }
-                if (expanded) {
-                    FlowRow(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) { chips() }
-                    for (n in notes) Text(n, Modifier.parity("library.focus-note").padding(top = 8.dp, bottom = 4.dp), color = faint, fontSize = 11.5.sp, lineHeight = 17.sp)
-                }
-            }
-        }
-        @Composable fun Chip(label: String, state: String, onTap: () -> Unit) {
-            val on = state == "on"; val not = state == "not"
-            Box(Modifier.parity("library.focus-chip", Contract.label("library.focus-chip", if (not) 1 else 0, label)).clip(RoundedCornerShape(999.dp))
-                .background(if (on) paletteColor(Palette.ACCENT_SOFT) else if (not) Color(0x29E8836B) else paletteColor(Palette.BG_ELEV_2))
-                .border(1.dp, if (on) MaterialTheme.colorScheme.primary else if (not) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                .clickable(onClick = onTap).padding(horizontal = 12.dp, vertical = 7.dp)) {
-                Text(label, color = if (on || not) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600,
-                    textDecoration = if (not) TextDecoration.LineThrough else null)
-            }
-        }
+        @Composable fun Section(id: String, label: String, active: Int, chips: @Composable () -> Unit, notes: List<String>) = FocusSection(id, label, active, open, chips, notes)
+        @Composable fun Chip(label: String, state: String, onTap: () -> Unit) = FocusChip(label, state, onTap)
         // Listening first: the one facet always there, from this server's own play history.
         Section("played", "Listening", if (view.played != "any") 1 else 0, chips = {
             for (p in LibraryView.PLAYED) Chip(p.label, if (view.played == p.id) "on" else "off") { onChange(view.copy(played = p.id)) }
@@ -180,20 +156,95 @@ internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryVi
     }
 }
 
+/** A facet of the Focus sheet as a section: its head (the name, how many of it are on, the caret), open to its [chips] and [notes]; a section with something on opens by itself. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FocusSection(id: String, label: String, active: Int, open: androidx.compose.runtime.snapshots.SnapshotStateMap<String, Boolean>, chips: @Composable () -> Unit, notes: List<String>) {
+    val faint = paletteColor(Palette.TEXT_FAINT)
+    if (open[id] == null && active > 0) open[id] = true
+    val expanded = open[id] == true
+    Column(Modifier.fillMaxWidth()) {
+        HorizontalDivider(color = Color(0x12FFFFFF))
+        Row(Modifier.parity("library.focus-section", Contract.label("library.focus-section", 0, label)).fillMaxWidth().clickable { open[id] = !expanded }.padding(vertical = 13.dp, horizontal = 2.dp)
+            .defaultMinSize(minHeight = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(label.uppercase(), Modifier.weight(1f), color = if (expanded) MaterialTheme.colorScheme.onSurface else faint, fontSize = 10.5.sp, lineHeight = 14.sp, fontWeight = FontWeight.W700, letterSpacing = 0.14.em)
+            if (active > 0) Text("$active", Modifier.defaultMinSize(minWidth = 18.dp).height(18.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 5.dp),
+                color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.W700, lineHeight = 18.sp)
+            Text(if (expanded) "⌃" else "⌄", color = faint, fontSize = 13.sp, lineHeight = 18.sp)
+        }
+        if (expanded) {
+            FlowRow(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) { chips() }
+            for (n in notes) Text(n, Modifier.parity("library.focus-note").padding(top = 8.dp, bottom = 4.dp), color = faint, fontSize = 11.5.sp, lineHeight = 17.sp)
+        }
+    }
+}
+
+/** A value's chip: plain, on (in brass), or excluded (struck through, in red). */
+@Composable
+private fun FocusChip(label: String, state: String, onTap: () -> Unit) {
+    val on = state == "on"; val not = state == "not"
+    Box(Modifier.parity("library.focus-chip", Contract.label("library.focus-chip", if (not) 1 else 0, label)).clip(RoundedCornerShape(999.dp))
+        .background(if (on) paletteColor(Palette.ACCENT_SOFT) else if (not) Color(0x29E8836B) else paletteColor(Palette.BG_ELEV_2))
+        .border(1.dp, if (on) MaterialTheme.colorScheme.primary else if (not) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+        .clickable(onClick = onTap).padding(horizontal = 12.dp, vertical = 7.dp)) {
+        Text(label, color = if (on || not) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600,
+            textDecoration = if (not) TextDecoration.LineThrough else null)
+    }
+}
+
+/** Music on device's Focus (the page's openLocalFocusSheet): the phone's facets, each value with its count; Clear all and Show albums along the foot. */
+@Composable
+internal fun LocalFocusSheet(view: LocalView, albums: List<AlbumSummary>, onChange: (LocalView) -> Unit, onClose: () -> Unit) {
+    val open = remember { mutableStateMapOf<String, Boolean>() }
+    Sheet("Focus", onClose, foot = {
+        val edge = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ButtonDefaults.shape)
+        val pad = PaddingValues(horizontal = 8.dp)
+        Button(onClick = { onChange(view.cleared()); onClose() }, colors = footColors(false), contentPadding = pad,
+            modifier = Modifier.parity("library.focus-clear", Contract.label("library.focus-clear")).weight(1f).defaultMinSize(minHeight = 40.dp).then(edge)) {
+            Text(Contract.label("library.focus-clear"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
+        }
+        Button(onClick = onClose, colors = footColors(true), contentPadding = pad,
+            modifier = Modifier.parity("library.focus-show", Contract.label("library.focus-show")).weight(1f).defaultMinSize(minHeight = 40.dp)) {
+            Text(Contract.label("library.focus-show"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
+        }
+    }) {
+        for ((id, label) in LocalView.FACETS) {
+            val sel = view.facets[id] ?: emptyList()
+            val counts = LinkedHashMap<String, Int>()
+            for (a in albums) { val v = LocalView.facetOf(id, a); counts[v] = (counts[v] ?: 0) + 1 }
+            // The page's order: decades newest first, the rest by name.
+            val values = if (id == "decade") counts.keys.sortedDescending() else counts.keys.sortedWith(String.CASE_INSENSITIVE_ORDER)
+            FocusSection(id, label, sel.size, open, chips = {
+                for (v in values) FocusChip(v + " (" + counts[v] + ")", view.state(id, v)) { onChange(view.cycle(id, v)) }
+            }, notes = emptyList())
+        }
+    }
+}
+
 /** The Sort sheet: a row each way; the one on in brass with its arrow, tapped again to reverse (Random: to reshuffle). */
 @Composable
 internal fun SortSheet(view: LibraryView, onChoose: (String) -> Unit, onClose: () -> Unit) {
-    Sheet("Sort by", onClose, foot = null) {
-        for (o in LibraryView.SORTS) {
-            val on = view.sort == o.id
-            Row(Modifier.parity("library.sort-row", Contract.label("library.sort-row", if (on && o.hasDir) 1 else 0, o.label, view.dirLabel)).fillMaxWidth().padding(top = 4.dp)
-                .clip(RoundedCornerShape(10.dp)).background(if (on) paletteColor(Palette.ACCENT_SOFT) else Color.Transparent).clickable { onChoose(o.id) }.padding(horizontal = 12.dp, vertical = 13.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(if (on && o.hasDir) (if (view.dir == "desc") "↓" else "↑") else "", Modifier.width(20.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 19.sp, lineHeight = 19.sp, textAlign = TextAlign.Center)
-                Column {
-                    Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
-                    o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.sp) }
-                }
+    Sheet("Sort by", onClose, foot = null) { SortRows(LibraryView.SORTS, view.sort, view.dir, view.dirLabel, onChoose) }
+}
+
+/** Music on device's Sort (the page's openLocalSortSheet): the same rows over the phone's own ways. */
+@Composable
+internal fun LocalSortSheet(view: LocalView, onChoose: (String) -> Unit, onClose: () -> Unit) {
+    Sheet("Sort by", onClose, foot = null) { SortRows(LocalView.SORTS, view.sort, view.dir, view.dirLabel, onChoose) }
+}
+
+/** The Sort sheet's rows: [sorts], the one [sort] on in brass with its arrow for [dir]. */
+@Composable
+private fun SortRows(sorts: List<LibraryView.Sort>, sort: String, dir: String, dirLabel: String, onChoose: (String) -> Unit) {
+    for (o in sorts) {
+        val on = sort == o.id
+        Row(Modifier.parity("library.sort-row", Contract.label("library.sort-row", if (on && o.hasDir) 1 else 0, o.label, dirLabel)).fillMaxWidth().padding(top = 4.dp)
+            .clip(RoundedCornerShape(10.dp)).background(if (on) paletteColor(Palette.ACCENT_SOFT) else Color.Transparent).clickable { onChoose(o.id) }.padding(horizontal = 12.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(if (on && o.hasDir) (if (dir == "desc") "↓" else "↑") else "", Modifier.width(20.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 19.sp, lineHeight = 19.sp, textAlign = TextAlign.Center)
+            Column {
+                Text(o.label, color = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = if (on) FontWeight.W700 else FontWeight.W600)
+                o.note?.let { Text(it, Modifier.padding(top = 2.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.sp) }
             }
         }
     }

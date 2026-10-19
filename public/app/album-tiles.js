@@ -267,6 +267,20 @@ function keyArtistTile(tile) {
   return tile;
 }
 window.__keyArtistTile = keyArtistTile;
+// The same on Home's rows (home-render.js, homeTile), and for a playlist's tile there (its mosaic, its name, its count).
+function keyHomeTile(tile) {
+  tile.dataset.parity = "home.album";
+  const parts = { ".album-art-wrap": "home.album-art", ".album-quality": "home.album-quality", ".album-source": "home.album-source",
+                  ".album-discs": "home.album-discs", ".album-title": "home.album-title", ".album-artist": "home.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+function keyPlaylistTile(tile) {
+  tile.dataset.parity = "home.playlist";
+  const parts = { ".album-art-wrap": "home.playlist-art", ".album-title": "home.playlist-title", ".album-artist": "home.playlist-subtitle" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
 
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.

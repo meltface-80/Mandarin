@@ -156,7 +156,7 @@ window.__openDevicePowerSheet = openDevicePowerSheet;
 // room; the page stays where it is for their Back. True when the app took it.
 function nativePrefsJson() {
   const p = window.__uiPrefs;
-  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title") } : {});
+  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random") } : {});
 }
 function nativeWallOpened(kind) {
   const app = window.MusicdApp;
@@ -258,14 +258,14 @@ function renderHomeGenres(cards) {
   cards = cards || [];
   homeGenres.innerHTML = "";
   if (!cards.length) {
-    homeGenres.innerHTML = '<div class="home-carousel-empty">No genres found.</div>';
+    homeGenres.innerHTML = emptyRow("No genres found.");
     return;
   }
   const frag = document.createDocumentFragment();
   for (const c of cards) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "home-genre-card";
+    card.className = "home-genre-card"; card.dataset.parity = "home.genre";   // the screens contract's (docs/specs/screens.json)
     card.textContent = c.label;
     card.addEventListener("click", () => {
       if (!window.__applyFilter) return;
@@ -286,14 +286,14 @@ function renderHomeGenres(cards) {
 
 async function loadHomeGenres() {
   if (!homeGenres) return;
-  if (!rowHasContent(homeGenres)) homeGenres.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+  if (!rowHasContent(homeGenres)) homeGenres.innerHTML = emptyRow("Loading…");
   try {
     const [genresRes, groupsRes] = await Promise.all([
       fetch("/api/filters/genres").catch(() => null),
       fetch("/api/home/genre-groups").catch(() => null)
     ]);
     if ((genresRes && genresRes.status === 503) || (groupsRes && groupsRes.status === 503)) {
-      if (!rowHasContent(homeGenres)) homeGenres.innerHTML = '<div class="home-carousel-empty">Reading your music library…</div>';
+      if (!rowHasContent(homeGenres)) homeGenres.innerHTML = emptyRow("Reading your music library…");
       return;   // keep any cached cards while the index builds
     }
     const genresJ = genresRes ? await genresRes.json().catch(() => ({})) : {};
@@ -338,7 +338,7 @@ async function loadHomeGenres() {
       renderHomeGenres([]);
     }
   } catch (e) {
-    if (!rowHasContent(homeGenres)) homeGenres.innerHTML = '<div class="home-carousel-empty">Couldn’t load genres.</div>';
+    if (!rowHasContent(homeGenres)) homeGenres.innerHTML = emptyRow("Couldn’t load genres.");
   }
 }
 

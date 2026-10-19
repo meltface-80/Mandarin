@@ -33,6 +33,12 @@ class ShellTest {
         assertEquals("booklet/42/b%201?name=Inlay%20%28scan%29&pages=3", ShellRoute.booklet(42, "b 1", "Inlay (scan)", 3))
         assertFalse(ShellRoute.isWeb(ShellRoute.booklet(1, "x", "y", 1)))
         assertFalse("the shell's, not the page's", ShellRoute.isWeb(ShellRoute.album(1, "")))
+        // A wall's route carries its filter (a genre's wall, item 57), Home the page's settings and room, Smart Picks the room.
+        assertEquals("wall/genre?zone=z&filter=%26filter_type%3Dgenre%26filter_value%3DRock", ShellRoute.wall("genre", "z", "&filter_type=genre&filter_value=Rock"))
+        assertEquals("wall/random?zone=z&filter=", ShellRoute.wall("random", "z"))
+        assertEquals("home?prefs=%7B%7D&zone=z%201", ShellRoute.home("{}", "z 1"))
+        assertEquals("picks?zone=z", ShellRoute.picks("z"))
+        assertFalse(ShellRoute.isWeb(ShellRoute.home("", "")))
     }
 
     // The native screens are drawn in the page's own graphite and brass: each

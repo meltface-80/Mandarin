@@ -168,6 +168,41 @@ const OPEN_ARTIST = `(async () => {
   return "open";
 })()`;
 
+/* Home, as the page opens on a phone, its rows drawn (the strip's Random Album and today's album too). */
+const OPEN_HOME = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && document.querySelectorAll("#home-genres .home-genre-card").length > 0 &&
+    document.querySelector("#home-today .home-aotd") && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(500);
+  return "open";
+})()`;
+
+/* Smart Picks: the day's picks made (the server makes them after the scan), the row's heading tapped, the cards up. */
+const OPEN_PICKS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  let made = false;
+  for (let i = 0; i < 60 && !made; i++) { made = ((await (await fetch("/api/smart-picks")).json()).picks || []).length > 0; if (!made) await sleep(500); }
+  if (!made) return "no picks";
+  showSmartPicks();
+  if (!(await until(() => /Smart Picks/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .pick-card-full").length > 0))) return "no screen";
+  await sleep(500);
+  return "open";
+})()`;
+
+/* Random Album's choice: the tile in the strip tapped, the disc's turn waited out, the album offered. */
+const OPEN_RANDOM_PICK = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.getElementById("home-unheard-tile") && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  document.getElementById("home-unheard-tile").click();
+  if (!(await until(() => !document.getElementById("random-pick-overlay").classList.contains("hidden") && document.getElementById("random-pick-title").textContent, 15000))) return "no pick";
+  await sleep(300);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
@@ -179,7 +214,10 @@ const SCREENS = {
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
-  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] }
+  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
+  "home": { open: OPEN_HOME, root: "body", shared: ["mini-player", "nav"] },
+  "picks": { open: OPEN_PICKS, root: "body", shared: ["mini-player", "nav"] },
+  "random-pick": { open: OPEN_RANDOM_PICK, root: "#random-pick-overlay" }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

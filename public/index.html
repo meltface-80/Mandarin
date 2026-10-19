@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -128,7 +128,7 @@
           <span class="search-status" id="search-status" aria-live="polite"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -301,15 +301,15 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
       <!-- Good morning / afternoon / evening (Late-Night Hi-Fi only; app.js keeps it current). -->
       <div class="home-greeting" id="home-greeting" aria-live="off">
-        <div class="home-greeting-date" id="home-greeting-date"></div>
-        <h1 class="home-greeting-text" id="home-greeting-text"></h1>
+        <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date"></div>
+        <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting"></h1>
       </div>
       <div id="home-sections">
         <!-- Random Album and Album of the day, under the greeting with no heading
@@ -325,53 +325,53 @@
              Reordering MOVES these nodes; it never rebuilds them from markup
              (CLAUDE.md pre-flight step 4). -->
         <div class="home-section home-section-unplayed" data-row="unplayed">
-          <h2 class="home-section-title home-section-link" id="home-unplayed-title" role="button" tabindex="0">Not played in 6 months</h2>
+          <h2 class="home-section-title home-section-link" id="home-unplayed-title" role="button" tabindex="0" data-parity="home.unplayed-title">Not played in 6 months</h2>
           <div id="home-unplayed" class="home-carousel"></div>
         </div>
         <!-- Listen later: albums put aside to play, newest first. Hidden until
              there is one; off the list once played through, or by hand. -->
         <div class="home-section home-section-later hidden" data-row="later">
-          <h2 class="home-section-title home-section-link" id="home-later-title" role="button" tabindex="0">Listen later</h2>
+          <h2 class="home-section-title home-section-link" id="home-later-title" role="button" tabindex="0" data-parity="home.later-title">Listen later</h2>
           <div id="home-later" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-playlists hidden" data-row="playlists">
-          <h2 class="home-section-title home-section-link" id="home-playlists-title" role="button" tabindex="0">Playlists</h2>
+          <h2 class="home-section-title home-section-link" id="home-playlists-title" role="button" tabindex="0" data-parity="home.playlists-title">Playlists</h2>
           <div id="home-playlists" class="home-carousel home-carousel-1row"></div>
         </div>
         <!-- Favourites: the albums you hearted, newest heart first. Hidden
              until there is one; tapping the header opens the full wall. -->
         <div class="home-section home-section-favourites hidden" data-row="favourites">
-          <h2 class="home-section-title home-section-link" id="home-favourites-title" role="button" tabindex="0">Favourites</h2>
+          <h2 class="home-section-title home-section-link" id="home-favourites-title" role="button" tabindex="0" data-parity="home.favourites-title">Favourites</h2>
           <div id="home-favourites" class="home-carousel"></div>
         </div>
         <!-- Recently played, newest first, one tile per album over 30 days.
              Hidden until there is a play to show, so a fresh install does not
              open on an empty shelf. -->
         <div class="home-section home-section-history hidden" data-row="history">
-          <h2 class="home-section-title home-section-link" id="home-history-title" role="button" tabindex="0">Recently played</h2>
+          <h2 class="home-section-title home-section-link" id="home-history-title" role="button" tabindex="0" data-parity="home.history-title">Recently played</h2>
           <div id="home-history" class="home-carousel"></div>
         </div>
         <!-- Smart Picks: five albums a day by artists NOT in the library. Hidden
              until the first set builds, so a fresh install never shows an empty
              row. Tapping the header opens the full screen with the reasons. -->
         <div class="home-section home-section-picks hidden" data-row="picks">
-          <h2 class="home-section-title home-section-link" id="home-picks-title" role="button" tabindex="0">Smart Picks</h2>
+          <h2 class="home-section-title home-section-link" id="home-picks-title" role="button" tabindex="0" data-parity="home.picks-title">Smart Picks</h2>
           <div id="home-picks" class="home-carousel home-carousel-1row"></div>
         </div>
         <div class="home-section home-section-random" data-row="random">
-          <h2 class="home-section-title home-section-link" id="home-random-title" role="button" tabindex="0">Random albums</h2>
+          <h2 class="home-section-title home-section-link" id="home-random-title" role="button" tabindex="0" data-parity="home.random-title">Random albums</h2>
           <div id="home-random" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-library" data-row="library">
-          <h2 class="home-section-title home-section-link" id="home-library-title" role="button" tabindex="0">Library</h2>
+          <h2 class="home-section-title home-section-link" id="home-library-title" role="button" tabindex="0" data-parity="home.library-title">Library</h2>
           <div id="home-library" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-lotw hidden" data-row="lotw">
-          <h2 class="home-section-title home-section-link" id="home-lotw-title" role="button" tabindex="0">Label of the week</h2>
+          <h2 class="home-section-title home-section-link" id="home-lotw-title" role="button" tabindex="0" data-parity="home.lotw-title">Label of the week</h2>
           <div id="home-lotw" class="home-carousel home-carousel-1row"></div>
         </div>
         <div class="home-section home-section-genres" data-row="genres">
-          <h2 class="home-section-title">Browse by genre</h2>
+          <h2 class="home-section-title" data-parity="home.genres-title">Browse by genre</h2>
           <div id="home-genres" class="home-genre-grid"></div>
         </div>
       </div>
@@ -1819,6 +1819,14 @@
             </label>
           </div>
           <div class="settings-note">Tap Library for the app's own wall of albums, drawn by the phone: the grid at these settings with Focus, Sort and the name filter, the walls Home links to, an artist's page, and albums selected. A preview. On this phone only.</div>
+          <div class="settings-row">
+            <span class="settings-label">Native Home (preview)</span>
+            <label class="switch">
+              <input type="checkbox" id="native-home-on" aria-label="Native Home (preview)">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note">Home drawn by the phone: the greeting, Random Album and Album of the day, the rows in your order, Smart Picks, the label of the week and the genres, each heading opening its wall. A preview. On this phone only.</div>
         </div>
       </div>
 
@@ -2106,17 +2114,17 @@
   <div id="random-pick-overlay" class="confirm-overlay random-pick hidden" role="dialog" aria-modal="true" aria-labelledby="random-pick-title">
     <div class="confirm-backdrop"></div>
     <div class="confirm-box random-pick-box">
-      <button class="random-pick-close" id="random-pick-close" type="button" aria-label="Close">
+      <button class="random-pick-close" id="random-pick-close" type="button" aria-label="Close" data-parity="random-pick.close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <div class="random-pick-art" id="random-pick-art"></div>
-      <p class="random-pick-title" id="random-pick-title"></p>
-      <p class="random-pick-artist" id="random-pick-artist"></p>
+      <div class="random-pick-art" id="random-pick-art" data-parity="random-pick.art"></div>
+      <p class="random-pick-title" id="random-pick-title" data-parity="random-pick.title"></p>
+      <p class="random-pick-artist" id="random-pick-artist" data-parity="random-pick.artist"></p>
       <div class="random-pick-actions">
-        <button class="confirm-btn confirm-primary" type="button" data-kind="play_now">Play now</button>
-        <button class="confirm-btn" type="button" data-kind="play_next">Play next</button>
+        <button class="confirm-btn confirm-primary" type="button" data-kind="play_now" data-parity="random-pick.play-now">Play now</button>
+        <button class="confirm-btn" type="button" data-kind="play_next" data-parity="random-pick.play-next">Play next</button>
         <!-- The end of the queue: a list, and an arrow down to its last line. -->
-        <button class="confirm-btn" type="button" data-kind="queue" aria-label="Queue — add to the end">
+        <button class="confirm-btn" type="button" data-kind="queue" aria-label="Queue — add to the end" data-parity="random-pick.queue">
           <svg class="random-pick-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h11M3 10h11M3 15h7"/><path d="M18 5v12"/><path d="M14.5 13.5L18 17l3.5-3.5"/><path d="M3 20h18"/></svg>
           Queue
         </button>

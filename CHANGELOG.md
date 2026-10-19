@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- `57-native-home`: the Home group natively in the Android app (plan H1 to H5), in a new preview, Native Home in UI
+  Settings, beside Native Library: Home itself (the greeting with the date over it; the strip under it with Random
+  Album's turning disc and today's album wearing ★ Today; the rows in your order and visibility, each heading a tap to
+  its wall; the Playlists row's mosaics; the Smart Picks cards; the label of the week with its name large; Browse by
+  genre's cards two to a row, each opening a wall of that genre's albums with the reshuffle; and the app's own two rows,
+  Downloaded albums with each download's badge and Music on device, from the phone), Smart Picks as a screen of its own
+  (each pick's cover, reason, Open or ＋ Add, and Not for me) and the album Random Album chose, offered as the page offers
+  it (Play now, Play next, Queue); the walls of a genre, of the downloads and of the phone's music, the last with Focus
+  and Sort over the phone's own facets and sorts. Three screens of the contract (`home`, `picks`, `random-pick`), the
+  page keyed to match and measured in the browser; the page keeps its own Home underneath and tells the app when its
+  Home should be in front (held by a browser test), so the side menu, the search, Settings and the page's own screens
+  come up as ever. The page's Music on device Focus says "Clear all", as the Library's does. The native album page's
+  Play Now says nothing on success (item 58, merged first).
 - `56-mini-bar-buttons`: the native mini player's Play on and volume buttons stood 10dp apart where the page's touch, the
   row's spacing between them; and the 10 came off the title, which was cut short ("Boat Graveya…") where the page's
   wasn't. Side by side now, as the page's, the title the page's 128 wide.

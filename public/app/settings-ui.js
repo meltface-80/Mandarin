@@ -46,7 +46,12 @@
   block.classList.remove("hidden");
   const paint = () => { sw.checked = !!app.nativeLibrary(); };
   sw.addEventListener("change", () => app.setNativeLibrary(sw.checked));
+  // Native Home (item 57), the same way; an app from before it has no switch for it.
+  const home = document.getElementById("native-home-on");
+  const homeOn = () => typeof app.nativeHome === "function" && app.nativeHome();
+  if (home) { home.closest(".settings-row").classList.toggle("hidden", typeof app.nativeHome !== "function"); home.addEventListener("change", () => app.setNativeHome(home.checked)); }
+  const paintAll = () => { paint(); if (home) home.checked = !!homeOn(); };
   const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
-  if (navItem) navItem.addEventListener("click", paint);
-  paint();
+  if (navItem) navItem.addEventListener("click", paintAll);
+  paintAll();
 })();

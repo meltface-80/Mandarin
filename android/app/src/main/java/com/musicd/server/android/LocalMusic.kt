@@ -416,7 +416,7 @@ object LocalMusic {
         // The tile's badge, as the server shapes it: "24/96" (hi-res marked) or the lossy format.
         .put("quality", quality(a) ?: JSONObject.NULL).put("hires", hires(a))
 
-    private fun quality(a: Album): String? {
+    internal fun quality(a: Album): String? {
         val t = a.tracks.firstOrNull() ?: return null
         val lossless = t.ext in setOf("flac", "wav", "aif", "aiff", "alac", "wv", "ape")
         if (!lossless) return t.ext.uppercase()
@@ -424,7 +424,7 @@ object LocalMusic {
         val khz = if (t.rate % 1000 == 0) (t.rate / 1000).toString() else String.format("%.1f", t.rate / 1000.0)
         return "${t.bits}/$khz"
     }
-    private fun hires(a: Album): Boolean = a.tracks.firstOrNull()?.let { it.rate > 48000 || it.bits > 16 } ?: false
+    internal fun hires(a: Album): Boolean = a.tracks.firstOrNull()?.let { it.rate > 48000 || it.bits > 16 } ?: false
 
     /** The album's page, as the server shapes one (OfflineApi.albumPage). */
     fun albumPage(a: Album): JSONObject {

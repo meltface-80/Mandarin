@@ -173,7 +173,7 @@ if (DL && homeSections) {
   const sec = document.createElement("div");
   sec.className = "home-section home-section-downloads hidden";
   sec.dataset.row = "downloads";
-  sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">Downloaded albums</h2>' +
+  sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0" data-parity="home.downloads-title">Downloaded albums</h2>' +
     '<div class="home-carousel"></div>';
   // The header opens every downloaded album as a wall, like the other rows.
   sec.querySelector("h2").addEventListener("click", () => showDownloadsWall());
@@ -203,17 +203,17 @@ async function loadHomeDownloads() {
     if (shown === homeDownloadsShown && rowHasContent(homeDownloads)) return;
     if (!list.length) {
       homeDownloadsKey = key;
-      homeDownloads.innerHTML = '<div class="home-carousel-empty">Nothing downloaded yet — on an album, ⋯ → Download to this phone.</div>';
+      homeDownloads.innerHTML = emptyRow("Nothing downloaded yet — on an album, ⋯ → Download to this phone.");
       return;
     }
-    if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+    if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = emptyRow("Loading…");
     const frag = await downloadTiles(list);
     homeDownloads.innerHTML = "";
     homeDownloads.appendChild(frag);
     homeDownloadsKey = key;
     homeDownloadsShown = JSON.stringify(list) + "|" + downloadAlbums.size;
   } catch (e) {
-    if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
+    if (!rowHasContent(homeDownloads)) homeDownloads.innerHTML = emptyRow("Couldn’t load.");
   } finally {
     const again = loadingDownloads.again;
     loadingDownloads = null;
@@ -250,7 +250,7 @@ async function downloadTiles(list) {
     if (text && wrap) {
       tile.classList.add("is-downloading");
       const b = document.createElement("span");
-      b.className = "dl-badge";
+      b.className = "dl-badge"; b.dataset.parity = "home.dl-badge";
       b.textContent = text;
       wrap.appendChild(b);
     }
@@ -268,6 +268,7 @@ async function showDownloadsWall() {
   if (!unplayedWallActive) return;
   setBanner(null);
   grid.innerHTML = "";
+  for (const t of [...frag.children]) keyWallTile(t);   // a wall of the screens contract's (`wall`)
   grid.appendChild(frag);
 }
 
@@ -292,7 +293,7 @@ if (hasLocal && homeSections) {
   const sec = document.createElement("div");
   sec.className = "home-section home-section-local hidden";
   sec.dataset.row = "phone";
-  sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0">Music on device</h2>' +
+  sec.innerHTML = '<h2 class="home-section-title home-section-link" role="button" tabindex="0" data-parity="home.phone-title">Music on device</h2>' +
     '<div class="home-carousel"></div>';
   sec.querySelector("h2").addEventListener("click", () => showLocalWall());
   homeSections.prepend(sec);
@@ -313,9 +314,9 @@ function loadHomeLocal() {
   homeLocalShown = shown;
   if (!list.length) {
     const info = localInfo();
-    homeLocal.innerHTML = '<div class="home-carousel-empty">' + (info
+    homeLocal.innerHTML = emptyRow(info
       ? (info.scanning ? "Reading the folder…" : "Nothing in “" + escapeHtml(info.name) + "” yet.")
-      : "Choose a folder of music on this phone in Settings → Music Folders.") + "</div>";
+      : "Choose a folder of music on this phone in Settings → Music Folders.");
   } else {
     homeLocal.innerHTML = "";
     homeLocal.appendChild(localTiles(list));
@@ -340,5 +341,7 @@ function renderLocalWall() {
   grid.innerHTML = "";
   if (!list.length) { setBanner("Nothing matches this focus — try clearing a filter.", false); return; }
   setBanner(null);
-  grid.appendChild(localTiles(list));
+  const frag = localTiles(list);
+  for (const t of [...frag.children]) keyWallTile(t);   // a wall of the screens contract's (`wall`)
+  grid.appendChild(frag);
 }
