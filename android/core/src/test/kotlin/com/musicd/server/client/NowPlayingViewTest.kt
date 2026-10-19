@@ -73,7 +73,7 @@ class NowPlayingViewTest {
             "settings": {"shuffle": $shuffle, "loop": "$loop"},
             "now_playing": {"line1": "Song 1", "line2": "Artist A / Artist B", "line3": "Album One", "length": 200, "seek_position": 5,
               "artists": [{"name": "Artist A", "linkable": true}, {"name": "Artist B", "linkable": false}],
-              "album_offset": 42, "format": {"kind": "opus", "text": "256kbps"}},
+              "album_offset": 42, "track_id": 7, "format": {"kind": "opus", "text": "256kbps"}},
             "outputs": [{"output_id": "o1", "display_name": "Kitchen", "is_muted": false, "volume": $volume},
                         {"output_id": "o2", "display_name": "Sub", "is_muted": true, "volume": null}]}}"""
     ))
@@ -95,6 +95,7 @@ class NowPlayingViewTest {
         val np = full("loop", true, "null").zone!!.nowPlaying!!
         assertEquals(listOf(Credit("Artist A", true), Credit("Artist B", false)), np.artists)
         assertEquals("the screen's credits", np.artists, v.artists)
+        assertEquals("the track playing, for the album page's disc", 7L, v.trackId)
         assertEquals("42", np.albumId)
     }
 

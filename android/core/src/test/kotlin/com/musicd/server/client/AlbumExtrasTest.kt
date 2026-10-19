@@ -28,6 +28,10 @@ class AlbumExtrasTest {
         assertEquals("the year when that is all", "1997", bare.date(Locale.UK))
         assertNull(bare.label); assertNull(bare.scoreText); assertFalse(bare.bestNewMusic)
         assertEquals("7.4", AlbumExtras(null, null, null, 7.4, false).scoreText)
+        // A label the server has as null is no label (Android's org.json would read it as the word "null").
+        val unlabelled = AlbumExtras.parse(JSONObject("""{"release_date": null, "year": null, "album": {"label": null, "year": 2024, "score": null}}"""))
+        assertNull(unlabelled.label); assertNull(unlabelled.releaseDate); assertNull(unlabelled.scoreText)
+        assertEquals("2024", unlabelled.date(Locale.UK))
         assertEquals("", AlbumExtras.parse(JSONObject("{}")).date(Locale.UK))
     }
 

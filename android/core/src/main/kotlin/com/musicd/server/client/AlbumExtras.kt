@@ -20,13 +20,18 @@ data class AlbumExtras(val releaseDate: String?, val year: String?, val label: S
     val scoreText: String? get() = score?.let { if (it % 1.0 == 0.0) "%.1f".format(Locale.ROOT, it) else it.toString() }
 
     companion object {
+        // A field that can be null is asked whether it is, first: Android's org.json answers optString of a JSON
+        // null with the word "null" (the JVM's, which the tests run on, with the default), and the album page
+        // showed "6 June 2024 · null" for an album with no label (bug list item 37).
+        private fun JSONObject.str(k: String): String? = if (!has(k) || isNull(k)) null else optString(k, "").ifEmpty { null }
+
         fun parse(j: JSONObject): AlbumExtras {
             val a = j.optJSONObject("album")
-            val year = j.optString("year", "").ifEmpty { a?.optInt("year", 0)?.takeIf { it > 0 }?.toString().orEmpty() }
+            val year = j.str("year") ?: a?.str("year") ?: a?.optInt("year", 0)?.takeIf { it > 0 }?.toString()
             return AlbumExtras(
-                releaseDate = j.optString("release_date", "").takeIf { it.isNotEmpty() && !j.isNull("release_date") },
-                year = year.ifEmpty { null },
-                label = a?.optString("label", "")?.takeIf { it.isNotEmpty() },
+                releaseDate = j.str("release_date"),
+                year = year,
+                label = a?.str("label"),
                 score = a?.takeIf { it.has("score") && !it.isNull("score") }?.optDouble("score")?.takeIf { !it.isNaN() },
                 bestNewMusic = a?.optBoolean("isBestNewMusic", false) ?: false
             )

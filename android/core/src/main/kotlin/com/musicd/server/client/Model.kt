@@ -52,7 +52,9 @@ data class NowPlaying(
     val artists: List<Credit> = emptyList(),
     /** The library's album the track is from, when it is one. */
     val albumId: String? = null,
-    val format: Format? = null
+    val format: Format? = null,
+    /** The library's track it is, when it is one: the album page marks it. */
+    val trackId: Long? = null
 )
 
 /** A speaker's volume as the server gives it: its range and step, where it is; `incremental` has no scale, only up and down. */
@@ -145,7 +147,8 @@ data class ZoneState(val revision: Long, val zone: Zone?) {
                                 (0 until a.length()).mapNotNull { i -> a.optJSONObject(i) }.map { c -> Credit(c.optString("name", ""), c.optBoolean("linkable", false)) }
                             }.orEmpty(),
                             albumId = if (it.isNull("album_offset")) null else it.opt("album_offset")?.toString(),
-                            format = it.optJSONObject("format")?.let { f -> Format(f.optString("kind", ""), f.optString("text", "")) }
+                            format = it.optJSONObject("format")?.let { f -> Format(f.optString("kind", ""), f.optString("text", "")) },
+                            trackId = if (it.isNull("track_id")) null else it.optLong("track_id")
                         )
                     },
                     outputs = outs,

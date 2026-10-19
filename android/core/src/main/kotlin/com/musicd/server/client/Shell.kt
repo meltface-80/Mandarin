@@ -57,6 +57,7 @@ object ShellRoute {
 object Palette {
     const val BG = 0xFF17191CL
     const val BG_ELEV = 0xFF1F2226L
+    const val BG_ELEV_2 = 0xFF262A2FL
     const val BORDER = 0xFF30353BL
     const val TEXT = 0xFFECEBE6L
     const val TEXT_DIM = 0xFF9A9CA1L
@@ -77,10 +78,14 @@ object Palette {
     const val MODAL_TEXT = 0xFFFFFFFFL
     /** A cover's ring: white at .06 (style.css, the framed cover's box-shadow). */
     const val COVER_RING = 0x0FFFFFFFL
+    /** The heart on an album's page, once tapped (style.css, `.fav-btn.is-on`). */
+    const val HEART = 0xFFE0463FL
+    /** An open track row's wash: white at .05 (style.css, `.t-row.is-open`). */
+    const val ROW_OPEN = 0x0DFFFFFFL
 
     /** Each colour by the page's own token name, for the test that holds the two together. */
     val tokens: Map<String, Long> = mapOf(
-        "bg" to BG, "bg-elev" to BG_ELEV, "border" to BORDER, "text" to TEXT, "text-dim" to TEXT_DIM,
+        "bg" to BG, "bg-elev" to BG_ELEV, "bg-elev-2" to BG_ELEV_2, "border" to BORDER, "text" to TEXT, "text-dim" to TEXT_DIM,
         "text-faint" to TEXT_FAINT, "accent" to ACCENT, "accent-text" to ACCENT_TEXT, "on-accent" to ON_ACCENT, "danger" to DANGER
     )
 
