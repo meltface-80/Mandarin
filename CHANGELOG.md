@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `34-background-stop-away` (first part): the Android app says, at its next start, why playback stopped in the
+  background: why Android ended the app (when it was a fault, or came while it was playing), the Tailscale
+  engine ending by itself (its exit code and last lines), or the player giving up away from home (and whether
+  the engine was still running), with Share details as for a crash.
 - `32-native-album`: the Android app's native album page (stage N3, a preview, switched on in Settings → Setup →
   UI Settings, "Native album page"). An album tapped opens the app's own page of it, in the room chosen: the
   sleeve and its glow, the head (title, artist, date, label and score, rate and length), the heart, Play Now,

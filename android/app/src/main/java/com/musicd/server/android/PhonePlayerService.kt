@@ -960,8 +960,8 @@ class PhonePlayerService : MediaLibraryService() {
         // phone's list (v0.7.4) is tried again like any of the server's.
         if (player.mediaItemCount == 0 || (localMode && !serverUri(player.currentMediaItem?.localConfiguration?.uri))) return
         if (retries >= 4) {
-            // Given up for now: the server is away longer than that (an update
-            // is being applied, say). When it answers again, carry on from here.
+            // Given up for now (the server updating, say): carry on when it answers. Away, kept for the next start to say (item 34).
+            if (Store.isAway(this)) CrashLog.keepNote(this, com.musicd.server.client.ExitReport.playerText(error.errorCodeName, error.cause?.message, Store.viaEngine(this), TailscaleEngine.alive(), ExitNote.time(System.currentTimeMillis())))
             resumeWanted = resumeWanted || player.playWhenReady
             return
         }
