@@ -26,6 +26,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
 
+    /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
+    fun booklets(offset: Long): List<Booklet> = Booklet.list(get("/api/album/booklets?offset=$offset"))
+
     /** Last.fm's artists like [artist], for the row under an album's tracks (not enabled without a key). */
     fun similarArtists(artist: String): SimilarArtists = SimilarArtists.parse(get("/api/lastfm/similar-artists?artist=" + enc(artist)))
 

@@ -12,7 +12,10 @@
  */
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("fs");
+const path = require("path");
 const ports = require("./ports");
+const { pdf } = require("./fixtures");
 const { started, until } = require("./helpers");
 const { FakeHousehold } = require("./fake-sonos");
 const { Browser, findBrowser } = require("./browser-harness");
@@ -163,6 +166,21 @@ const OPEN_MINI_PLAYER = `(async () => {
   return shown($("#mini-transport")) ? "open" : "no mini player";
 })()`;
 
+/* An album's booklet: Album One's page (its folder given one before this runs), the book on its cover tapped. */
+const OPEN_BOOKLET = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const shown = e => !!e && e.getClientRects().length > 0;
+  const $ = s => document.querySelector(s);
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no albums";
+  [...document.querySelectorAll("#home-library .album")].find(t => /Album One/.test(t.textContent)).click();
+  if (!(await until(() => shown($("#modal-booklet")), 15000))) return "no booklet";
+  $("#modal-booklet").click();
+  if (!(await until(() => shown($("#booklet-viewer")) && $("#booklet-viewer .booklet-page"), 10000))) return "no viewer";
+  await sleep(300);
+  return "open";
+})()`;
+
 /* The touch layout's row: on Home, as the page opens on a phone. */
 const OPEN_NAV = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -179,6 +197,7 @@ const SCREENS = {
   "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" },
   "mini-player": { open: OPEN_MINI_PLAYER, root: "#mini-transport" },
   "nav": { open: OPEN_NAV, root: "#touch-nav" },
+  "booklet": { open: OPEN_BOOKLET, root: "#booklet-viewer" },
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" }
 };
 
@@ -190,7 +209,9 @@ test("the page keeps the screens contract: each native screen's controls and rea
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
-  const { base, token, api } = await started(t, { sonosHosts: [ports.host(0)] });
+  const { lib, base, token, api } = await started(t, { sonosHosts: [ports.host(0)] });
+  // Album One's booklet (one blue page), found in its folder when its page asks: the booklet screen's way in.
+  fs.writeFileSync(path.join(lib.music, "Artist A", "Album One", "Booklet.pdf"), pdf(["0 0 1"]));
   const kitchen = await until(async () => ((await api("zones")).json.zones || []).find(z => z.display_name === "Kitchen"), 20000, "the Kitchen room");
   const b = await Browser.launch({ width: 412, height: 915 });
   t.after(() => b.close());

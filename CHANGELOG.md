@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `42-native-album-booklet`: the Android app's native album page (preview) has the album's booklet: the book
+  on the cover when its folder has a PDF (one opens at once, several are chosen from a list), and the booklet's
+  pages one under another over everything, each drawn by the server as wide as the screen, with Close and the
+  page count as the page's viewer has them (`BookletScreen.kt`). The viewer is a screen of the contract
+  (`docs/specs/screens.json`, `booklet`): the page's viewer carries its keys, and `test/parity.test.js` gives
+  Album One a booklet and opens it.
 - `41-native-album-nav-notes`: the Android app's native album page (preview) has previous and next beside
   Share, the album before and after it in the row or wall it was opened from (the page hands the list over as
   it opens the album, `MusicdApp.openAlbumIn`; the app holds it and each page stepped to keeps its place), the

@@ -14,12 +14,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -30,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
+import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
 import com.musicd.server.client.NavList
 import com.musicd.server.client.Palette
@@ -66,6 +73,22 @@ internal fun HeadNotes(a: Album, onDisc: (NavList) -> Unit) {
                             .padding(horizontal = 11.dp, vertical = 5.dp))
                 }
             }
+        }
+    }
+}
+
+/** The book on the cover (bottom right), as the page's: a brass disc; one booklet opens at once ([onOpen]), several are chosen from a list. */
+@Composable
+internal fun BookletButton(booklets: List<Booklet>, colors: IconButtonColors, modifier: Modifier = Modifier, onOpen: (Booklet) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier.padding(8.dp)) {
+        FilledIconButton(onClick = { if (booklets.size == 1) onOpen(booklets[0]) else open = true }, colors = colors, shape = CircleShape,
+            modifier = Modifier.parity("album.booklet", Contract.label("album.booklet", if (booklets.size == 1) 0 else 1, booklets.size.toString())).size(38.dp)) {
+            Icon(painterResource(R.drawable.np_booklet), contentDescription = null, modifier = Modifier.size(20.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (b in booklets) DropdownMenuItem(text = { Text(b.text) }, onClick = { open = false; onOpen(b) },
+                modifier = Modifier.parity("album.booklet-pick", Contract.label("album.booklet-pick", 0, b.text)))
         }
     }
 }
