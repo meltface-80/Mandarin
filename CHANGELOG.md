@@ -18,7 +18,9 @@
   summary, tools and rows as the page's; the booklet's head; the yes-or-no sheet as the page's own, not Material's. And the
   Share card (with Add to playlist, Edit album, Group zones, Device power and a Dynamic Playlist's name), asked for from
   Now playing or an album's native page, opened over Home with the native screen gone: it opens over the screen now, as it
-  opens over the page's own screens, and the screen is there again when it closes.
+  opens over the page's own screens, and the screen is there again when it closes. And the page's own Back now closes
+  a lib sheet (Focus, Sort, Group zones, Device power, Add to playlist), the album editor and the name prompt: on Home
+  with one of them open it answered "nothing to close", and the app left the screen.
 - `53-native-wall-look`: the native Library wall, the walls and an artist's page drawn as the page draws them where
   they strayed (the owner's screenshots): the heading in the page's serif (Young Serif, as the hifi palette sets its
   titles), the bar's Back a brass disc with the glyph in the charcoal, Focus and Sort as brass pills, and the room
