@@ -69,6 +69,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     val answered = room.answered
     val now = room.now
     var queueTab by remember { mutableStateOf(false) }
+    var volumeOpen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     BackHandler(onBack = onBack)
     val cover = rememberCover(view?.imageKey, 1000, client)
@@ -102,6 +103,8 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
+            // The volume sheet, at the foot of the screen as the page's is (24px up), over whichever tab is on.
+            VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, view?.volume, ::act, above = false, inset = 24.dp)
             if (queueTab) {
                 QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f).padding(horizontal = 18.dp))
                 return@Column
@@ -172,7 +175,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                 Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
                     Spacer(Modifier.weight(1f))
-                    VolumeMenu(zoneId, v.volume, v.muted, ::act)
+                    VolumeMenu(v.volume, v.muted, volumeOpen, { volumeOpen = it })
                 }
             }
         }

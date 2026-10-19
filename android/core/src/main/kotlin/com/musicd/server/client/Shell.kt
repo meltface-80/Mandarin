@@ -99,6 +99,10 @@ object Palette {
     const val HEART = 0xFFE0463FL
     /** An open track row's wash: white at .05 (style.css, `.t-row.is-open`). */
     const val ROW_OPEN = 0x0DFFFFFFL
+    /** The volume sheet's glass (`--bg-veil`, the ground at .88). */
+    const val BG_VEIL = 0xE017191CL
+    /** The volume sheet's edge (`--glass-edge`, the brass at .22). */
+    const val GLASS_EDGE = 0x38C9A45CL
 
     /** Each colour by the page's own token name, for the test that holds the two together. */
     val tokens: Map<String, Long> = mapOf(
@@ -107,5 +111,5 @@ object Palette {
     )
 
     /** The translucent ones, by token name: the page writes these as rgba(r,g,b,a). */
-    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF, "accent-soft" to ACCENT_SOFT)
+    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF, "accent-soft" to ACCENT_SOFT, "bg-veil" to BG_VEIL, "glass-edge" to GLASS_EDGE)
 }

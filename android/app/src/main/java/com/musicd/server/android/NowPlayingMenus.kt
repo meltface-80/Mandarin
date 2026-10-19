@@ -1,17 +1,30 @@
 package com.musicd.server.android
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,11 +34,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Palette
 import com.musicd.server.client.Room
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.VolumeScale
@@ -34,8 +64,8 @@ import kotlinx.coroutines.withContext
 
 /*
  * Now playing's two menus under the transport, as the page's popovers have
- * them (docs/specs/screens.json, now-playing): Play on, and the volume. The
- * mini player's are the same menus (mini-player), so each item carries both
+ * them (docs/specs/screens.json, now-playing): Play on, and the volume sheet.
+ * The mini player's are the same (mini-player), so each item carries both
  * screens' keys, and the buttons take each bar's size.
  */
 
@@ -88,50 +118,109 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
 }
 
 /**
- * The volume: where it is, a slider over the speaker's own scale, a step
- * down and up; a speaker with no scale has only the steps, and a room with
- * no volume says it is fixed ([fixedNote]; the mini player's button is
- * disabled instead, as the page's is). The value follows a drag at once and
- * is sent as it ends, as the page's slider does.
+ * The volume button: the speaker (struck when the room is muted), which
+ * opens [VolumeSheet]. The sheet is the screen's to draw where the page
+ * draws it, so the button only says it is [open]; a room with no volume has
+ * the note in the sheet ([fixedNote]) or, the mini player's, a disabled
+ * button, as the page's is.
  */
 @Composable
-internal fun VolumeMenu(zoneId: String, volume: VolumeScale?, muted: Boolean, act: ((ServerClient) -> Unit) -> Unit,
+internal fun VolumeMenu(volume: VolumeScale?, muted: Boolean, open: Boolean, onOpen: (Boolean) -> Unit,
                         size: Dp = 56.dp, iconSize: Dp = 32.dp, fixedNote: Boolean = true) {
-    var open by remember { mutableStateOf(false) }
-    var dragging by remember { mutableStateOf<Float?>(null) }
-    Box {
-        IconButton(onClick = { open = !open }, enabled = fixedNote || volume != null,
-            modifier = Modifier.parity("now-playing.volume mini-player.volume", Contract.label("now-playing.volume")).size(size)) {
-            Icon(painterResource(if (muted) R.drawable.np_mute else R.drawable.np_volume), contentDescription = null,
-                tint = if (fixedNote || volume != null) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(iconSize))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+    val can = fixedNote || volume != null
+    IconButton(onClick = { onOpen(!open) }, enabled = can,
+        modifier = Modifier.parity("now-playing.volume mini-player.volume", Contract.label("now-playing.volume")).size(size)) {
+        Icon(painterResource(if (muted) R.drawable.np_mute else R.drawable.np_volume), contentDescription = null,
+            tint = if (can) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(iconSize))
+    }
+}
+
+/** Where the page puts the sheet: [above] the composable it is drawn in (the mini bar), or at its foot, [inset] up from the bottom (Now playing). */
+private class SheetAt(private val above: Boolean, private val inset: Int) : PopupPositionProvider {
+    override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset =
+        IntOffset(0, (if (above) anchorBounds.top else anchorBounds.bottom) - popupContentSize.height - inset)
+}
+
+/**
+ * The volume sheet, as the page's (`.vol-sheet`, one for Now playing and
+ * the mini player): a glass pill the width of the screen with the speaker
+ * and the level in brass, the slider over the speaker's own scale (its ends
+ * written under it; none for a speaker that only steps), and the − and + in
+ * brass rings. The level follows a drag at once and is sent as it ends, as
+ * the page's slider does; a tap outside closes it. A room with no volume
+ * says it is fixed. Drawn by the screen, in the composable the sheet is
+ * placed against ([above] it, or at its foot [inset] up).
+ */
+@Composable
+internal fun VolumeSheet(open: Boolean, onClose: () -> Unit, zoneId: String, volume: VolumeScale?, act: ((ServerClient) -> Unit) -> Unit,
+                         above: Boolean, inset: Dp = 0.dp) {
+    if (!open) return
+    val insetPx = with(LocalDensity.current) { inset.roundToPx() }
+    val at = remember(above, insetPx) { SheetAt(above, insetPx) }
+    Popup(popupPositionProvider = at, onDismissRequest = onClose, properties = PopupProperties(focusable = true)) {
+        val brass = MaterialTheme.colorScheme.primary
+        val dim = MaterialTheme.colorScheme.onSurfaceVariant
+        val shape = RoundedCornerShape(16.dp)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp).shadow(24.dp, shape).clip(shape).background(paletteColor(Palette.BG_VEIL))
+                .border(1.dp, paletteColor(Palette.GLASS_EDGE), shape).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 30.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             val s = volume
             if (s == null) {
-                Text("Volume control is fixed", Modifier.parity("now-playing.volume-fixed").padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                return@DropdownMenu
+                Row(Modifier.parity("now-playing.volume-fixed").padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(painterResource(R.drawable.np_volume), contentDescription = null, tint = dim, modifier = Modifier.size(16.dp))
+                    Text("Volume control is fixed", fontSize = 13.sp, color = dim, maxLines = 1)
+                }
+                return@Row
             }
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).width(260.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text((dragging?.toDouble() ?: s.value)?.let { Math.round(it).toString() } ?: "—", Modifier.parity("now-playing.volume-level mini-player.volume-level"),
-                    style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-                if (!s.incremental) {
-                    Slider(
-                        value = dragging ?: (s.value ?: s.min).toFloat(),
-                        onValueChange = { dragging = it },
-                        onValueChangeFinished = { val d = dragging; dragging = null; if (d != null) act { it.zoneVolume(zoneId, d.toDouble()) } },
-                        valueRange = s.min.toFloat()..s.max.toFloat(),
-                        modifier = Modifier.parity("now-playing.volume-slider mini-player.volume-slider", Contract.label("now-playing.volume-slider"))
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { step(zoneId, s, -1, act) }, modifier = Modifier.parity("now-playing.volume-down mini-player.volume-down", Contract.label("now-playing.volume-down"))) {
-                        Icon(painterResource(R.drawable.np_minus), contentDescription = null)
+            var dragging by remember { mutableStateOf<Double?>(null) }
+            // The speaker and the level, in the brass.
+            Row(Modifier.parity("now-playing.volume-level mini-player.volume-level"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painterResource(R.drawable.np_volume), contentDescription = null, tint = brass, modifier = Modifier.size(26.dp))
+                Text((dragging ?: s.value)?.let { Math.round(it).toString() } ?: "—", Modifier.widthIn(min = 42.dp), fontSize = 26.sp, fontWeight = FontWeight.W600, color = brass, maxLines = 1)
+            }
+            // The slider: a 6dp track, brass to the thumb, with the scale's ends written under it. The thumb can't hang off either end, as the page's can't.
+            if (!s.incremental) {
+                val span = (s.max - s.min).takeIf { it > 0 } ?: 1.0
+                fun at(x: Float, width: Float, thumbW: Float): Double = s.min + span * (if (width <= thumbW) 0f else ((x - thumbW / 2) / (width - thumbW)).coerceIn(0f, 1f))
+                Box(Modifier.parity("now-playing.volume-slider mini-player.volume-slider", Contract.label("now-playing.volume-slider")).weight(1f).height(30.dp)
+                        .pointerInput(s) {
+                            val thumbW = 22.dp.toPx()
+                            detectDragGestures(
+                                onDragStart = { dragging = at(it.x, size.width.toFloat(), thumbW) },
+                                onDrag = { change, _ -> dragging = at(change.position.x, size.width.toFloat(), thumbW) },
+                                onDragEnd = { val d = dragging; dragging = null; if (d != null) act { it.zoneVolume(zoneId, d) } },
+                                onDragCancel = { dragging = null }
+                            )
+                        }
+                        .pointerInput(s) {
+                            val thumbW = 22.dp.toPx()
+                            detectTapGestures { val d = at(it.x, size.width.toFloat(), thumbW); act { it.zoneVolume(zoneId, d) } }
+                        }) {
+                    val rest = paletteColor(Palette.BORDER)
+                    val level = ((dragging ?: s.value ?: s.min) - s.min) / span
+                    Canvas(Modifier.fillMaxSize()) {
+                        val thumbW = 22.dp.toPx(); val trackH = 6.dp.toPx(); val top = (size.height - trackH) / 2
+                        val head = thumbW / 2 + level.toFloat().coerceIn(0f, 1f) * (size.width - thumbW)
+                        drawRoundRect(rest, Offset(0f, top), Size(size.width, trackH), CornerRadius(trackH / 2))
+                        drawRoundRect(brass, Offset(0f, top), Size(head, trackH), CornerRadius(trackH / 2))
+                        drawCircle(Color.Black.copy(alpha = 0.45f), thumbW / 2, Offset(head, size.height / 2 + 1.dp.toPx()))
+                        drawCircle(brass, thumbW / 2, Offset(head, size.height / 2))
                     }
-                    IconButton(onClick = { step(zoneId, s, 1, act) }, modifier = Modifier.parity("now-playing.volume-up mini-player.volume-up", Contract.label("now-playing.volume-up"))) {
-                        Icon(painterResource(R.drawable.np_plus), contentDescription = null)
+                    Row(Modifier.fillMaxWidth().align(Alignment.TopStart).offset(y = 33.dp).padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(Math.round(s.min).toString(), fontSize = 14.sp, color = brass)
+                        Text(Math.round(s.max).toString(), fontSize = 14.sp, color = brass)
                     }
                 }
+            }
+            // A step down and up: brass rings on the raised ground, the glyph drawn at the page's weight.
+            val ring = IconButtonDefaults.iconButtonColors(containerColor = paletteColor(Palette.BG_ELEV_2), contentColor = brass)
+            IconButton(onClick = { step(zoneId, s, -1, act) }, colors = ring,
+                modifier = Modifier.parity("now-playing.volume-down mini-player.volume-down", Contract.label("now-playing.volume-down")).size(44.dp).border(1.dp, brass, CircleShape)) {
+                Icon(painterResource(R.drawable.np_minus), contentDescription = null, modifier = Modifier.size(22.dp))
+            }
+            IconButton(onClick = { step(zoneId, s, 1, act) }, colors = ring,
+                modifier = Modifier.parity("now-playing.volume-up mini-player.volume-up", Contract.label("now-playing.volume-up")).size(44.dp).border(1.dp, brass, CircleShape)) {
+                Icon(painterResource(R.drawable.np_plus), contentDescription = null, modifier = Modifier.size(22.dp))
             }
         }
     }

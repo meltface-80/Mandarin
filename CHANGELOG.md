@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `45-native-volume-sheet`: the Android app's native Now playing and mini player open the page's volume sheet,
+  not Material's menu: a glass pill the width of the screen (at the foot of Now playing; just above the mini
+  bar), the speaker and the level in brass, the slider over the speaker's own scale with its ends written
+  under it (brass to the thumb, the thumb brass), and − and + in brass rings. The level follows a drag at once
+  and is sent as it ends, as the page's does; a room with no volume says it is fixed. The sheet's glass and edge
+  join the palette held to `style.css` (`--bg-veil`, `--glass-edge`).
 - `44-native-album-download-service`: the Android app's native album page's ⋯ has the last two of the page's
   items: Download to this phone (Remove from this phone, or Downloading… n/m while it goes, following the app's
   own downloads through the same dialogs the page's bridge uses), and a streamed album's favourite on its
