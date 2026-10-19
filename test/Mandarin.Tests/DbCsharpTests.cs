@@ -46,7 +46,23 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
     // What was said, the folder named.
     private static JsonArray Said(IEnumerable<string> lines, string dir) => new([.. lines.Select(l => (JsonNode?)JsonValue.Create(Aside().Replace(l, "musicd.old-<ms>.db").Replace(dir, "<dir>", StringComparison.Ordinal)))]);
 
-    private static JsonNode Db(string dir) => SqliteDump.Dump(Path.Combine(dir, "musicd.db"));
+    // The C# server's own columns beyond the Node server's (the classical fields, bug list item 48): the recording
+    // is from before them, so they are taken out of the dump, from tracks' columns and from its CREATE text as
+    // ALTER TABLE ADD COLUMN wrote them on its end.
+    private static readonly (string Column, string Type)[] Ours = [("composer", "TEXT"), ("conductor", "TEXT"), ("work", "TEXT"), ("movement", "TEXT"), ("movement_no", "INTEGER"), ("performers", "TEXT")];
+
+    private static JsonNode Db(string dir)
+    {
+        var d = SqliteDump.Dump(Path.Combine(dir, "musicd.db"));
+        var added = string.Concat(Ours.Select(o => $", {o.Column} {o.Type}"));
+        foreach (var m in d["master"]!.AsArray()) if (m.Str("name") == "tracks" && m.Str("sql") is { } sql) m!["sql"] = sql.Replace(added, "", StringComparison.Ordinal);
+        if (d["columns"]!["tracks"] is JsonArray cols)
+        {
+            var ours = Ours.Select(o => o.Column).ToHashSet(StringComparer.Ordinal);
+            foreach (var c in cols.Where(c => ours.Contains(c.Str("name") ?? "")).ToList()) cols.Remove(c);
+        }
+        return d;
+    }
 
     // A database as the server made it before the columns added since its tables first shipped. Its
     // CREATE text is kept in the file as written, so it is written as the recording's was (each

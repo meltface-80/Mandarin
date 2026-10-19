@@ -283,11 +283,10 @@ CREATE TABLE IF NOT EXISTS audio_devices (
         ("tracks", "rg_album_peak", "REAL"),
         // Which of a track's names came from its folder and file name (v0.6.0-RC10).
         ("tracks", "names_from", "TEXT"),
-        ("albums", "barcode", "TEXT"),
-        ("albums", "catno", "TEXT"),
-        ("albums", "country", "TEXT"),
-        ("albums", "mb_album", "TEXT"),
-        ("albums", "mb_group", "TEXT"),
+        ("albums", "barcode", "TEXT"), ("albums", "catno", "TEXT"), ("albums", "country", "TEXT"), ("albums", "mb_album", "TEXT"), ("albums", "mb_group", "TEXT"),
+        // A classical track's composer, conductor, work, movement and performers (bug list item 48, Tags/Classical.cs).
+        ("tracks", "composer", "TEXT"), ("tracks", "conductor", "TEXT"), ("tracks", "work", "TEXT"),
+        ("tracks", "movement", "TEXT"), ("tracks", "movement_no", "INTEGER"), ("tracks", "performers", "TEXT"),
     ];
 
     /* Smart Picks and the radio's memory (lib/server/features.js, the Features constructor). */
@@ -387,7 +386,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
     private static void AddColumns(SqliteConnection c)
     {
         foreach (var (table, col, type) in Added)
-            if (!Columns(c, table).Contains(col)) Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}");
+            if (!Columns(c, table).Contains(col)) { Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}"); if (table == "tracks" && col == "composer") Exec(c, "UPDATE tracks SET tags_v = 1 WHERE tags_v > 1"); }   // the classical fields (item 48) just added: every track read once more for them at the next scan
     }
 
     /* What you did, copied column by column from the database moved aside, where its tables have them (db.js carryOver). */

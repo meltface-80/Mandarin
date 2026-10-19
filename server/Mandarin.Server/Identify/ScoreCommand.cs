@@ -15,6 +15,8 @@
 //   { "fn": "description" | "protocolinfo" | "gena" | "profiles", … } (v0.8.37): Renderers/RendererCommand.cs
 //   { "fn": "plans" | "gain" | "dsp" | "sign" | "radio" | "math", … } (v0.8.38): Playback/StreamCommand.cs
 //   { "fn": "mounts" | "versions" | "soapcall" | "labelnames" | "phoneplays" | "uris", … } (v0.8.50): RulesCommand.cs
+//   { "fn": "works", "artist", "tracks": [{ title, artist, disc, length, composer, conductor, work, movement, movement_no, performers }] }
+//      (bug list item 48): the tracks as works and movements (Works.cs) → { works, composers, conductors, performers }
 //   { "fn": "fromnames", "files": [[path, [root, …]], …] } (v0.8.50): what a file's folders and name say (Scan/ScanNames.cs)
 //      → { names: [{ artist, album, year, disc, track, title }] }
 //   { "fn": "dates", "dates": [tag], "releases": [common], "albums": [[[date, …], year]], "days": [[year, tagDate, mbDay]], "keys": [date] }
@@ -117,6 +119,9 @@ internal static class ScoreCommand
                     // Small rules of the server (v0.8.50, RulesCommand.cs).
                     case var f when RulesCommand.Fns.Contains(f):
                         o = RulesCommand.Run(f, job);
+                        break;
+                    case "works":
+                        o = Works.Command(job);
                         break;
                     case "fromnames":
                         o["names"] = L(job["files"]).Select(f0 =>

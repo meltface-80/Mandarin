@@ -252,7 +252,12 @@ internal static partial class Library
         return Send(ctx, new JsonObject { ["albums"] = AlbumList(s, albums), ["total"] = pool.Count, ["filtered"] = filtered });
     }
 
-    private sealed record TrackRow(long Id, string Title, string Artist, long? Disc, long? No, double Duration, bool Lossless, long? Bits, long? Rate, string NamesFrom, string? Path = null);
+    private sealed record TrackRow(long Id, string Title, string Artist, long? Disc, long? No, double Duration, bool Lossless, long? Bits, long? Rate, string NamesFrom, string? Path = null,
+        string? Composer = null, string? Conductor = null, string? Work = null, string? Movement = null, long? MovementNo = null, string? Performers = null)
+    {
+        /* The track as Works.Group reads it (bug list item 48). */
+        public Works.Track ForWorks => new(Title, Artist, Disc, Duration, Composer, Conductor, Work, Movement, MovementNo, Performers);
+    }
 
     /* library.tracks(id): in playing order, corrected titles laid over the tagged ones. */
     private static List<TrackRow> Tracks(SqliteConnection c, Snapshot s, Album al)
@@ -272,7 +277,8 @@ internal static partial class Library
             if (edits != null && edits.TryGetValue($"{disc ?? 1}-{(no != null ? no.Value.ToString(CultureInfo.InvariantCulture) : "p" + (i + 1))}", out var t) && t.Length > 0) title = t;
             list.Add(new TrackRow((long)F(r, "id")!, title, Text(F(r, "artist")) ?? "", disc, no,
                 F(r, "duration") is { } du ? Convert.ToDouble(du, CultureInfo.InvariantCulture) : 0, Truthy(F(r, "lossless")),
-                Long(F(r, "bits")), Long(F(r, "sample_rate")), Text(F(r, "names_from")) ?? "", F(r, "path") as string));
+                Long(F(r, "bits")), Long(F(r, "sample_rate")), Text(F(r, "names_from")) ?? "", F(r, "path") as string,
+                Text(F(r, "composer")), Text(F(r, "conductor")), Text(F(r, "work")), Text(F(r, "movement")), Long(F(r, "movement_no")), Text(F(r, "performers"))));
         }
         return list;
     }
@@ -327,12 +333,17 @@ internal static partial class Library
         // Object.assign(library.json(al), { year, genres }, the service's, label): in that order.
         if (service != null) foreach (var k in service.Keys) album[k] = JsonNode.Parse(Tags.Js.Json(service[k])!);
         if (s.LabelOf(al) is { } label) album["label"] = label;
+        // A classical album (bug list item 48): its composers, conductors and performers for the head, and its tracks as works.
+        var works = Works.Group(tracks.Select(t => t.ForWorks).ToList(), al.Artist);
+        if (works.Composers.Count > 0) album["composers"] = new JsonArray(works.Composers.Select(x => (JsonNode)x).ToArray());
+        if (works.Conductors.Count > 0) album["conductor"] = string.Join(", ", works.Conductors);
+        if (works.Performers.Count > 0) album["performers"] = new JsonArray(works.Performers.Select(x => (JsonNode)x).ToArray());
         var boxAlbums = new JsonArray();
         if (al.Box != null)
             foreach (var id in al.Box.Ids)
                 if (id != al.Id && s.ById.TryGetValue(id, out var x))
                     boxAlbums.Add(AlbumJson(s, x, new JsonObject { ["disc"] = x.Box?.Disc }));
-        return await Send(ctx, new JsonObject
+        var answer = new JsonObject
         {
             ["album"] = album,
             ["tracks"] = rows,
@@ -349,6 +360,8 @@ internal static partial class Library
             ["names_from_folders"] = !al.Edited && tracks.Any(t => NamesFromFolders().IsMatch(t.NamesFrom)),
             ["box_albums"] = boxAlbums,
             ["declared_tracks"] = tracks.Count
-        });
+        };
+        if (works.AnyWork) answer["works"] = Works.Json(works);
+        return await Send(ctx, answer);
     }
 }
