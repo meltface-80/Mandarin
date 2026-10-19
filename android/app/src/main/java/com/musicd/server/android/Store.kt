@@ -214,6 +214,11 @@ object Store {
 
     fun setNativeNowPlaying(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_now_playing", on).apply() }
 
+    /** The native album page (N3, a preview), on this phone: off until switched on (Settings → Setup → UI Settings). */
+    fun nativeAlbum(context: Context): Boolean = prefs(context).getBoolean("native_album", false)
+
+    fun setNativeAlbum(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_album", on).apply() }
+
     /** A client for the server, signed in — null until both are known. */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null

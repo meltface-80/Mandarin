@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `32-native-album`: the Android app's native album page (stage N3, a preview, switched on in Settings → Setup →
+  UI Settings, "Native album page"). An album tapped opens the app's own page of it, in the room chosen: the
+  sleeve and its glow, the head (title, artist, date, label and score, rate and length), the heart, Play Now,
+  Queue and ⋯ (Play Next, Shuffle, Radio, Listen later, Add to playlist, Edit album), and the tracks (a tap:
+  Play now, Play next, Queue). Share card, Add to playlist, Edit album, an artist or a label open on the page.
+  What it lacks yet of the page's (previous/next, booklet, review and the rows under it, selection, Download)
+  is on the gaps list, which only shrinks.
 - `30-album-contract`: the album page in the screens contract, ahead of its native screen (stage N3): its items
   keyed on the page (`data-parity`) and held by `test/parity.test.js`; the gate holds every key of the contract
   written in the page's source, so one shown only for some albums (a booklet, a review, Last.fm's rows, the
