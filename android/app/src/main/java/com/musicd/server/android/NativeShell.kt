@@ -253,6 +253,17 @@ private fun Shell(client: () -> ServerClient?, onRoute: (String?) -> Unit) {
                 onAlbum = { id, zone -> nav.navigate(ShellRoute.album(id, zone, lit)) }
             )
         }
+        // An album's booklet (item 42): its pages one under another over the album; Back returns there. Never declared here until
+        // item 59, so every booklet tapped brought the app down ("destination … cannot be found"); ShellTest holds every route to a screen now.
+        composable(ShellRoute.BOOKLET, arguments = listOf(
+            navArgument(ShellRoute.OFFSET) { type = NavType.LongType },
+            navArgument(ShellRoute.BOOKLET_ID) { type = NavType.StringType },
+            navArgument(ShellRoute.NAME) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.PAGES) { type = NavType.IntType; defaultValue = 0 }
+        )) { entry ->
+            BookletScreen(entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.BOOKLET_ID).orEmpty(),
+                entry.arguments?.getString(ShellRoute.NAME).orEmpty(), entry.arguments?.getInt(ShellRoute.PAGES) ?: 0, client, onBack = { nav.popBackStack() })
+        }
     }
 }
 
