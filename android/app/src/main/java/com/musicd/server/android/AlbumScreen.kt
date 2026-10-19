@@ -362,7 +362,7 @@ private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (Str
             val service = a.album.serviceName
             if (service != null && a.album.serviceId != null && serviceFavourite != null) {
                 val words = (if (serviceFavourite) "Remove from " else "Add to ") + service
-                DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words)), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
+                DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
                     onClick = { open = false; onServiceFavourite(!serviceFavourite) })
             }
             DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
