@@ -47,6 +47,13 @@ window.__musicdNative = function (what, arg) {
     window.__showLabelAlbums(arg, false, null);
     return true;
   }
+  // A streamed album's favourite changed on its native page: the walls take it in, or, removed, drop it (as the page's own ⋯ does).
+  if (what === "library-changed") {
+    if (typeof window.__libraryChanged !== "function") return false;
+    const gone = Number(arg);
+    window.__libraryChanged(Number.isInteger(gone) && gone >= 0 ? { gone } : {});
+    return true;
+  }
   // Tracks picked on the native album page, for a playlist: the page's sheet, with the same entries its own selection makes.
   if (what === "album-playlist-tracks") {
     let ask = null;

@@ -54,6 +54,14 @@ class AlbumExtrasTest {
         assertNull(NavList.parse("not json")); assertNull(NavList.parse(null))
     }
 
+    @Test fun `a streamed album's service, its id there and its favourite`() {
+        val q = AlbumSummary.parse(JSONObject("""{"offset": 3, "title": "x", "source": "qobuz", "service_id": "q123", "service_favourite": true}"""))
+        assertEquals(listOf("Qobuz", "q123", true), listOf(q.serviceName, q.serviceId, q.serviceFavourite))
+        val own = AlbumSummary.parse(JSONObject("""{"offset": 3, "title": "x", "source": null}"""))
+        assertNull(own.serviceName); assertNull(own.serviceId); assertNull("not signed in: unknown", own.serviceFavourite)
+        assertNull(AlbumSummary.parse(JSONObject("""{"offset": 3, "title": "x", "source": "tidal", "service_favourite": "yes"}""")).serviceFavourite)
+    }
+
     @Test fun `an album's booklets, and the book's words`() {
         val b = Booklet.list(JSONObject("""{"booklets": [{"id": "Booklet.pdf", "name": "Booklet", "pages": 12}, {"id": "", "name": "x", "pages": 1}, {"id": "Scans/Inlay.pdf", "name": "Inlay", "pages": 1}]}"""))
         assertEquals(listOf("Booklet · 12 pages", "Inlay · 1 page"), b.map { it.text })

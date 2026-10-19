@@ -1,5 +1,6 @@
 package com.musicd.server.android
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -34,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,9 +106,17 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
     var booklets by remember(offset) { mutableStateOf<List<Booklet>>(emptyList()) }
     var picks by remember(offset) { mutableStateOf<List<Int>?>(null) }   // selecting tracks: their places, in order of picking
+    // Whether the album is on this phone, following the downloads as they go (the page's ⋯ reads the same store through its bridge).
+    var download by remember(offset) { mutableStateOf(DownloadStore.status(context, offset.toInt())) }
+    DisposableEffect(offset) {
+        val l = { download = DownloadStore.status(context, offset.toInt()) }
+        DownloadStore.listen(l)
+        onDispose { DownloadStore.unlisten(l) }
+    }
     var failed by remember(offset) { mutableStateOf<String?>(null) }
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
+    var serviceFav by remember(offset) { mutableStateOf<Boolean?>(null) }   // a streamed album's favourite on its service, once known
     val room = followRoom(zone, client)
     BackHandler(onBack = onBack)
 
@@ -114,7 +124,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
         withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
-            .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later }
+            .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite }
             .onFailure { failed = it.message ?: "Couldn't load the album" }
         val a = album ?: return@LaunchedEffect
         // Its booklets, as the page asks: an album of your own files only.
@@ -202,8 +212,35 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(40.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         Button(onClick = { play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(40.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        // Download to this phone: as the page's bridge words it from the store's state; the app's own dialogs do the rest.
+                        val dlState = download.optString("state", "none")
+                        val dlLabel = if (a.album.source != null && a.album.source != "local") null
+                            else if (dlState == "done") Contract.label("album.download", 1)
+                            else if (dlState == "downloading" || dlState == "queued" || dlState == "waiting") Contract.label("album.download", 2, "${download.optInt("done", 0)}/${download.optInt("total", 0).takeIf { it > 0 } ?: "?"}")
+                            else Contract.label("album.download", 0)
+                        val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
-                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage)
+                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage,
+                            download = dlLabel?.takeIf { bridge != null },
+                            onDownload = {
+                                val b = bridge ?: return@MoreMenu
+                                when (dlState) { "done" -> b.remove(offset.toInt()); "downloading", "queued", "waiting" -> b.open(); else -> b.download(offset.toInt(), a.album.title, a.album.subtitle) }
+                            },
+                            serviceFavourite = serviceFav, onServiceFavourite = { on ->
+                                val c = client() ?: return@MoreMenu
+                                val name = a.album.serviceName ?: return@MoreMenu
+                                val source = a.album.source ?: return@MoreMenu
+                                val id = a.album.serviceId ?: return@MoreMenu
+                                scope.launch {
+                                    val r = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(source, id, on) } }
+                                    val err = r.exceptionOrNull()?.message ?: r.getOrNull()?.optString("error", "")?.ifEmpty { null }
+                                    if (err != null) { toast(err); return@launch }
+                                    serviceFav = on
+                                    toast(if (on) "Added to your $name favourites" else "Removed from your $name favourites")
+                                    // Removed, the album is no longer in the library: its page closes and the walls are redrawn without it; added, they take it in.
+                                    if (on) NativeShell.toPage("library-changed", null) else onPage("library-changed", offset.toString())
+                                }
+                            })
                     }
                 }
                 albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true, picks = picks,
@@ -279,10 +316,14 @@ private fun FactsLine(a: Album) {
 
 /**
  * ⋯: what the server offers beyond Play Now and Queue (Play Next, Shuffle,
- * Radio), Listen later, and the page's own Add to playlist and Edit album.
+ * Radio), a streamed album's favourite on its service ([serviceFavourite],
+ * once known), Listen later, the page's own Add to playlist and Edit album,
+ * and, for an album of your own files, Download to this phone ([download],
+ * the item's words as the store has them).
  */
 @Composable
-private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (String, String) -> Unit, onPage: (String, String?) -> Unit) {
+private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (String, String) -> Unit, onPage: (String, String?) -> Unit,
+                     download: String?, onDownload: () -> Unit, serviceFavourite: Boolean?, onServiceFavourite: (Boolean) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val kinds = a.actions.map { it.kind }.toSet()
     val offset = a.album.offset.toString()
@@ -297,12 +338,20 @@ private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (Str
                 onClick = { open = false; onPlay("shuffle", "Shuffling") })
             if ("radio" in kinds) DropdownMenuItem(text = { Text(Contract.label("album.radio")) }, modifier = Modifier.parity("album.radio", Contract.label("album.radio")),
                 onClick = { open = false; onPlay("radio", "Radio") })
+            val service = a.album.serviceName
+            if (service != null && a.album.serviceId != null && serviceFavourite != null) {
+                val words = (if (serviceFavourite) "Remove from " else "Add to ") + service
+                DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words)) }, modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
+                    onClick = { open = false; onServiceFavourite(!serviceFavourite) })
+            }
             DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0)) }, modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
                 onClick = { open = false; onLater() })
             DropdownMenuItem(text = { Text(Contract.label("album.playlist")) }, modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
                 onClick = { open = false; onPage("album-playlist", offset) })
             if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit")) },
                 modifier = Modifier.parity("album.edit", Contract.label("album.edit")), onClick = { open = false; onPage("album-edit", offset) })
+            if (download != null) DropdownMenuItem(text = { Text(download) }, modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
+                onClick = { open = false; onDownload() })
         }
     }
 }
