@@ -100,7 +100,7 @@ function handleAlbumTileSelect(btn, a) {
 function renderAlbumGrid(albums) {
   grid.innerHTML = "";
   const frag = document.createDocumentFragment();
-  for (const a of albums) frag.appendChild(buildAlbumTile(a));
+  for (const a of albums) frag.appendChild(keyWallTile(buildAlbumTile(a)));   // the random wall is the contract's `wall`
   grid.appendChild(frag);
 }
 

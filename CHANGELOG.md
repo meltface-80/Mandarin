@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- `52-native-library-group`: the rest of the Library natively in the Android app (plan L2 to L5), in the same
+  preview as the wall (Native Library in UI Settings): Focus (the listening and each facet as a section that opens to
+  its chips, a chip tapped once included, again excluded, once more cleared; Clear all, Save as… through the page's
+  Dynamic Playlist prompt, Show albums) and Sort (a row each way, the one on reversed by a second tap, Random
+  reshuffled) as sheets up from the foot of the screen; the name filter across the top, opened by the row's Search;
+  albums selected by a long press, the bar's hint, the ⋯ with the count and its Play now, Play next, Add to end of
+  queue, Add to playlist… (the page's sheet), Listen later and Clear; the walls Home links to (Listen later,
+  Favourites, Recently played, Not played in 6 months, Random albums with its reshuffle) and an artist's page (the
+  count and the name, the biography with Show more, their albums and those they appear on), each a native screen
+  with the mini player and the row. A change of view on the native wall goes back to the page, so its own wall and
+  Home's Library row follow. Three screens of the contract (`library` whole, `wall`, `artist`), keyed on the page and
+  in the app, each tile carrying all three; the page's check closes a sheet by its own close. `core` holds the view as
+  the page writes it (`LibraryView`, with its JVM test) and reads the facets, the walls and a biography.
 - `51-native-library-wall`: the Android app's Library wall natively, a preview (Settings → Setup → UI Settings →
   Native Library): a tap on Library opens the app's own wall in the page's view of the library (the sort and the
   focus as the page's wall asks for them) and at this phone's UI Settings (the columns or the list, the tile and

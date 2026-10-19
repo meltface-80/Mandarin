@@ -68,7 +68,7 @@ async function openLibFocusSheet(editTarget) {
 
       const head = document.createElement("button");
       head.type = "button";
-      head.className = "lib-sheet-section-head";
+      head.className = "lib-sheet-section-head"; head.dataset.parity = "library.focus-section";
       head.setAttribute("aria-expanded", expanded ? "true" : "false");
       const t = document.createElement("span");
       t.className = "lib-sheet-section-label";
@@ -102,6 +102,7 @@ async function openLibFocusSheet(editTarget) {
       const c = document.createElement("button");
       c.type = "button";
       c.className = "lib-chip" + (state === "on" ? " is-on" : state === "not" ? " is-not" : "");
+      c.dataset.parity = "library.focus-chip";
       c.textContent = label;
       if (state === "not") c.setAttribute("aria-label", "Excluding " + label);
       c.addEventListener("click", () => { onTap(); renderFocusBody(); });
@@ -109,7 +110,7 @@ async function openLibFocusSheet(editTarget) {
     };
     const note = (host, text) => {
       const n = document.createElement("div");
-      n.className = "lib-facet-note";
+      n.className = "lib-facet-note"; n.dataset.parity = "library.focus-note";
       n.textContent = text;
       host.appendChild(n);
     };
@@ -226,7 +227,7 @@ async function openLibFocusSheet(editTarget) {
       }
 
       const foot = document.createElement("div");
-      foot.className = "lib-sheet-note";
+      foot.className = "lib-sheet-note"; foot.dataset.parity = "library.focus-help";
       foot.textContent =
         "Tap a filter once to include it, again to exclude it, once more to clear it. " +
         "Everything here is read from your files' own tags.";
@@ -235,7 +236,7 @@ async function openLibFocusSheet(editTarget) {
     renderFocusBody();
   }, (foot, close) => {
     const clear = document.createElement("button");
-    clear.type = "button"; clear.className = "action-btn";
+    clear.type = "button"; clear.className = "action-btn"; clear.dataset.parity = "library.focus-clear";
     clear.textContent = "Clear all";
     clear.addEventListener("click", () => {
       committed = true;
@@ -244,7 +245,7 @@ async function openLibFocusSheet(editTarget) {
       close(); showIfChanged();
     });
     const save = document.createElement("button");
-    save.type = "button"; save.className = "action-btn";
+    save.type = "button"; save.className = "action-btn"; save.dataset.parity = "library.focus-save";
     save.textContent = "Save as…";
     save.addEventListener("click", () => {
       committed = true;
@@ -259,7 +260,7 @@ async function openLibFocusSheet(editTarget) {
         : null);
     });
     const show = document.createElement("button");
-    show.type = "button"; show.className = "action-btn primary";
+    show.type = "button"; show.className = "action-btn primary"; show.dataset.parity = "library.focus-show";
     show.textContent = "Show albums";
     show.addEventListener("click", () => { committed = true; close(); showIfChanged(); });
     foot.appendChild(clear); foot.appendChild(save); foot.appendChild(show);

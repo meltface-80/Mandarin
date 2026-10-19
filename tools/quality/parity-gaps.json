@@ -1,7 +1,3 @@
 {
-  "library": [
-    "focus",
-    "sort",
-    "filter"
-  ]
+  "library": []
 }

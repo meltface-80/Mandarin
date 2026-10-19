@@ -65,10 +65,13 @@ const CHECK = (name, items, rootSel, shared = []) => `(async () => {
   for (const opener of [...new Set(Object.values(items).map(it => it.in).filter(Boolean))]) {
     const b = el(opener);
     if (!b || !shown(b)) continue;
-    b.click(); await sleep(500);
+    b.click(); await sleep(800);
     sweep(opener + " tapped");
     present(opener);
-    b.click(); await sleep(300);
+    // Closed by its own close (a sheet's ✕, "<opener>-close") where it has one; else the opener toggles it.
+    const closer = el(opener + "-close");
+    if (closer && shown(closer)) closer.click(); else b.click();
+    await sleep(300);
   }
   return [...out];
 })()`;

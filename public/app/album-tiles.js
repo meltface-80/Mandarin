@@ -251,6 +251,23 @@ function keyLibraryTile(tile) {
   return tile;
 }
 
+// The same on a wall Home links to (walls.js, the random wall), and on an artist's page.
+function keyWallTile(tile) {
+  tile.dataset.parity = "wall.album";
+  const parts = { ".album-art-wrap": "wall.album-art", ".album-quality": "wall.album-quality", ".album-source": "wall.album-source",
+                  ".album-discs": "wall.album-discs", ".album-title": "wall.album-title", ".album-artist": "wall.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+function keyArtistTile(tile) {
+  tile.dataset.parity = "artist.album";
+  const parts = { ".album-art-wrap": "artist.album-art", ".album-quality": "artist.album-quality", ".album-source": "artist.album-source",
+                  ".album-discs": "artist.album-discs", ".album-title": "artist.album-title", ".album-artist": "artist.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+window.__keyArtistTile = keyArtistTile;
+
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.
 function buildAlbumTile(a, onClick, opts) {

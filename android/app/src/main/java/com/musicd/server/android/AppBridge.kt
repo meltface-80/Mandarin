@@ -34,6 +34,8 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.nativeLibrary() / setNativeLibrary(on)   the native Library wall (item 51), a preview: the switch in UI Settings
  *   MusicdApp.openLibrary(view, prefs, zoneId)   the native wall in the page's view of it (its query string: the sort and the
  *                                                focus), drawn to its UI Settings (JSON), its albums playing in that room
+ *   MusicdApp.openWall(kind, prefs, zoneId)   a wall Home links to (item 52): later, favourites, history, unplayed or random
+ *   MusicdApp.openArtist(name, prefs, zoneId)   an artist's page (item 52)
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -103,14 +105,27 @@ class AppBridge(private val activity: Activity) {
     }
 
     @JavascriptInterface
-    fun nativeLibrary(): Boolean = Store.nativeLibrary(activity)
+    fun nativeLibrary(): Boolean = Store.nativeLibrary(activity).also { NativeShell.nativeLibrary = it }
 
     @JavascriptInterface
-    fun setNativeLibrary(on: Boolean) { Store.setNativeLibrary(activity, on) }
+    fun setNativeLibrary(on: Boolean) { Store.setNativeLibrary(activity, on); NativeShell.nativeLibrary = on }
 
     @JavascriptInterface
     fun openLibrary(view: String, prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
         activity.runOnUiThread { NativeShell.open(ShellRoute.library(view, prefs, zoneId)) }
+    }
+
+    @JavascriptInterface
+    fun openWall(kind: String, prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
+        activity.runOnUiThread { NativeShell.open(ShellRoute.wall(kind, zoneId)) }
+    }
+
+    @JavascriptInterface
+    fun openArtist(name: String, prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
+        activity.runOnUiThread { NativeShell.open(ShellRoute.artist(name, zoneId)) }
     }
 
     @JavascriptInterface

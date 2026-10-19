@@ -136,7 +136,22 @@ class ServerClient(
     fun favourite(offset: Long, on: Boolean) { post("/api/favourites", JSONObject().put("offset", offset).put("on", on)) }
 
     /** An album onto Listen later, or off it. */
-    fun listenLater(offset: Long, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().put(offset)).put("on", on)) }
+    fun listenLater(offset: Long, on: Boolean) { listenLater(listOf(offset), on) }
+
+    /** Albums onto Listen later, or off it (item 52: a selection). */
+    fun listenLater(offsets: List<Long>, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }).put("on", on)) }
+
+    /**
+     * Albums selected on a wall to the room (item 52; the page's invokeAlbumMulti): [kind] play_now, play_next or
+     * queue; each album's title and artist with it, so a stale offset is found again. The server's answer: queued,
+     * failed, total.
+     */
+    fun playMulti(albums: List<AlbumSummary>, zoneId: String, kind: String): JSONObject {
+        val items = org.json.JSONArray().also { a -> albums.forEach { al -> a.put(JSONObject().put("offset", al.offset).put("title", al.title).put("subtitle", al.subtitle)) } }
+        val offsets = org.json.JSONArray().also { a -> albums.forEach { a.put(it.offset) } }
+        return post("/api/play-multi", JSONObject().put("offsets", offsets).put("items", items).put("zone_or_output_id", zoneId).put("kind", kind)
+            .put("filter_type", "").put("filter_value", "").put("filter_parent", ""))
+    }
 
     /** Every room paused. */
     fun pauseAll() { post("/api/pause-all", JSONObject()) }

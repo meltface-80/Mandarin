@@ -178,7 +178,7 @@ function openLibSortSheet() {
         const on = libView.sort === opt.id;
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "lib-sort-row" + (on ? " is-on" : "");
+        row.className = "lib-sort-row" + (on ? " is-on" : ""); row.dataset.parity = "library.sort-row";
 
         // The arrow occupies a fixed column on every row, filled only on the
         // selected one, so the labels stay on a single left edge.
