@@ -63,6 +63,7 @@
       if (!disc) {
         disc = document.createElement("span");
         disc.className = "now-disc";
+        disc.dataset.parity = "album.track-playing";   // the screens contract's (docs/specs/screens.json)
         disc.innerHTML = DISC;
         li.insertBefore(disc, li.firstChild);
       }

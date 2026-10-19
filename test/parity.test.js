@@ -63,8 +63,10 @@ const CHECK = (name, items, rootSel) => `(async () => {
     for (const [k, it] of Object.entries(items)) {
       if ((it.in || null) !== opener) continue;
       const e = el(k);
-      if (!e) { out.add(S + "." + k + " is not on the page"); continue; }
-      if (it.when || it.only) continue;
+      // Shown only sometimes (or only on a desktop): its key is held in the page's source by the gate
+      // (npm run parity); here it is checked when it is on screen, as anything on screen is.
+      if (it.when || it.only) { if (!e || !shown(e)) continue; }
+      else if (!e) { out.add(S + "." + k + " is not on the page"); continue; }
       if (!shown(e)) { out.add(S + "." + k + " is not shown" + (opener ? " once " + opener + " is tapped" : "")); continue; }
       if (it.kind !== "action" || !it.label) continue;
       // The control itself, or the first inside it; a row the page makes tappable itself (a queue's) is its own.
@@ -130,11 +132,25 @@ const OPEN_CONFIRM = `(async () => {
   return document.getElementById("confirm-overlay").classList.contains("hidden") ? "not open" : "open";
 })()`;
 
+/* An album's page, opened from the Library row on Home (so it has a previous and a next). */
+const OPEN_ALBUM = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const $ = s => document.querySelector(s);
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1))) return "no albums";
+  await sleep(500);
+  [...document.querySelectorAll("#home-library .album")].find(t => /Album One/.test(t.textContent)).click();
+  if (!(await until(() => $("#modal-total").textContent && document.querySelectorAll("#modal-tracks li").length === 3 && $("#modal-actions .overflow-btn")))) return "no album";
+  await sleep(800);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it. */
 const SCREENS = {
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
   "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
-  "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" }
+  "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" },
+  "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

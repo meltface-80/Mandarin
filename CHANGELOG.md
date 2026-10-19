@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `30-album-contract`: the album page in the screens contract, ahead of its native screen (stage N3): its items
+  keyed on the page (`data-parity`) and held by `test/parity.test.js`; the gate holds every key of the contract
+  written in the page's source, so one shown only for some albums (a booklet, a review, Last.fm's rows, the
+  app's Download) can't be lost unseen. Nothing changes on screen.
 - `29-native-queue`: the Android app's native Now playing (preview) has its Queue tab: the queue (play on from a
   track; a long press picks tracks to play now, next or remove; Clear all) and what played earlier (put one back
   next, or several next or at the end), each asked first in a native copy of the page's yes-or-no sheet. The

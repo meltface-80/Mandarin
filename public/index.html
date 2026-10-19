@@ -205,7 +205,7 @@
            use. `.sel-menu-wrap` is position:relative — the dropdown hangs off
            it rather than off the topbar, so it stays pinned to the button. -->
       <div id="select-menu-wrap" class="sel-menu-wrap hidden">
-        <button id="select-menu-btn" class="icon-btn" type="button"
+        <button id="select-menu-btn" class="icon-btn" type="button" data-parity="album.select-menu"
                 aria-haspopup="true" aria-expanded="false" aria-label="Actions for selected items">
           <span id="select-count" class="sel-count">0</span>
           <!-- The same three-dots-in-a-circle the playlist screens use (see
@@ -222,13 +222,13 @@
           </svg>
         </button>
         <div id="select-menu" class="sel-menu hidden" role="menu">
-          <div class="sel-menu-title" id="select-menu-title"></div>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_now">Play now</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_next">Play next</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="queue">Add to end of queue</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="add">Add to playlist…</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="later">Listen later</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="clear">Clear selection</button>
+          <div class="sel-menu-title" id="select-menu-title" data-parity="album.select-title"></div>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_now" data-parity="album.select-play-now">Play now</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_next" data-parity="album.select-play-next">Play next</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="queue" data-parity="album.select-queue">Add to end of queue</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="add" data-parity="album.select-playlist">Add to playlist…</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="later" data-parity="album.select-later">Listen later</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="clear" data-parity="album.select-clear">Clear selection</button>
         </div>
       </div>
       <!-- Reshuffle — shown on the random-album and genre grid screens. -->
@@ -430,13 +430,13 @@
       <!-- Ambient glow: the album cover, heavily blurred and faded, washes the
            top of the panel so each album tints its own detail view (decorative
            only — hidden from AT, never intercepts taps). -->
-      <img id="modal-ambient" class="modal-ambient hidden" alt="" aria-hidden="true" decoding="async">
+      <img id="modal-ambient" class="modal-ambient hidden" data-parity="album.glow" alt="" aria-hidden="true" decoding="async">
       <!-- Full screen (a phone held upright) this is a back chevron: the panel
            is somewhere you came FROM the grid. From 720px up the album view is
            a card hovering over the page, and a card closes with an × (v0.6.1).
            Same button, same data-close — only the glyph (CSS) and the label
            (app.js) follow the layout. -->
-      <button class="modal-close icon-btn" id="modal-close-btn" data-close aria-label="Back" title="Back">
+      <button class="modal-close icon-btn" id="modal-close-btn" data-parity="album.back" data-close aria-label="Back" title="Back">
         <svg class="ico-back" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -476,7 +476,7 @@
           <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
         </svg>
       </button>
-      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share queue.share" aria-label="Share card">
+      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share queue.share album.share" aria-label="Share card">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="16 6 12 2 8 6"/>
@@ -491,13 +491,13 @@
            sleeve, bug list item 24: the cover is too small to carry them).
            Hidden when there is no list. -->
       <div class="modal-nav hidden" id="modal-nav">
-        <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
+        <button class="modal-nav-btn icon-btn" id="modal-prev" data-parity="album.previous" aria-label="Previous album" title="Previous album">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
+        <button class="modal-nav-btn icon-btn" id="modal-next" data-parity="album.next" aria-label="Next album" title="Next album">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="9 18 15 12 9 6"/>
@@ -510,14 +510,14 @@
           <button class="modal-tab is-active" type="button" data-tab="album" data-parity="now-playing.tab-now-playing queue.tab-now-playing">Now playing</button>
           <button class="modal-tab"           type="button" data-tab="queue" data-parity="now-playing.tab-queue queue.tab-queue">Queue</button>
         </div>
-        <div class="modal-art" data-parity="now-playing.cover">
+        <div class="modal-art" data-parity="now-playing.cover album.cover">
           <!-- decoding=async: the 800px cover is decoded off the main thread, so
                the panel's slide-in isn't held up by it. -->
           <img id="modal-img" alt="" decoding="async">
-          <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
+          <span id="modal-source" class="album-source local hidden" data-parity="album.source" title="Local albums" aria-label="Local albums"></span>
           <!-- The album's booklet (v0.8.33): bottom right, opposite the bit/sample
                badge, only when the album has one (a PDF in its folder). -->
-          <button class="modal-booklet icon-btn hidden" id="modal-booklet" type="button" aria-label="Booklet" title="Booklet">
+          <button class="modal-booklet icon-btn hidden" id="modal-booklet" data-parity="album.booklet" type="button" aria-label="Booklet" title="Booklet">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/>
@@ -530,7 +530,7 @@
              sleeve's row; after the tracks on a phone (style.css places it
              with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
-          <div class="bio-section hidden" id="album-bio-section">
+          <div class="bio-section hidden" id="album-bio-section" data-parity="album.review">
             <h3 class="section-label">About this album</h3>
             <div class="bio-meta" id="album-meta"></div>
             <div class="bio-text" id="album-bio-text" data-clipped="true"></div>
@@ -539,8 +539,8 @@
                  text is Wikipedia's and the link is the review. -->
             <div class="bio-text-source hidden" id="album-bio-text-source"></div>
             <div class="bio-footer">
-              <button class="bio-toggle hidden" type="button" id="album-bio-toggle">Show more</button>
-              <a class="bio-source hidden" id="album-bio-source" target="_blank" rel="noopener noreferrer"></a>
+              <button class="bio-toggle hidden" type="button" id="album-bio-toggle" data-parity="album.review-more">Show more</button>
+              <a class="bio-source hidden" id="album-bio-source" data-parity="album.review-source" target="_blank" rel="noopener noreferrer"></a>
             </div>
           </div>
           <!-- Below the review: the library's other albums by this album's
@@ -548,26 +548,26 @@
                artists and similar albums (with a Last.fm key). Each is hidden
                until it has something to show; three at first, More shows the
                rest. -->
-          <div class="more-section hidden" id="album-more-by">
+          <div class="more-section hidden" id="album-more-by" data-parity="album.more-by" data-parity-item="album.more-by-album">
             <h3 class="section-label"><span class="more-title">More by this artist</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.more-by-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-more-appears">
+          <div class="more-section hidden" id="album-more-appears" data-parity="album.appears-on" data-parity-item="album.appears-on-album">
             <h3 class="section-label"><span class="more-title">Appears on</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.appears-on-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-artists">
+          <div class="more-section hidden" id="album-lastfm-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
             <h3 class="section-label"><span class="more-title">Similar artists</span>
-              <a class="more-site hidden" target="_blank" rel="noopener noreferrer">Last.fm ↗</a></h3>
+              <a class="more-site hidden" target="_blank" rel="noopener noreferrer" data-parity="album.similar-artists-site">Last.fm ↗</a></h3>
             <div class="more-grid more-grid-artists"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-artists-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-albums">
+          <div class="more-section hidden" id="album-lastfm-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
             <h3 class="section-label"><span class="more-title">Similar albums</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-albums-more">More</button>
           </div>
         </div>
         <div class="modal-info">
@@ -577,10 +577,10 @@
                the bit and sample rate and the album's length. Hidden on Now
                playing, which has its own. -->
           <div class="modal-head">
-            <h2 id="modal-title">—</h2>
-            <div id="modal-subtitle" class="modal-subtitle"></div>
-            <div id="modal-date" class="modal-date"></div>
-            <div class="modal-facts" id="modal-facts">
+            <h2 id="modal-title" data-parity="album.title">—</h2>
+            <div id="modal-subtitle" class="modal-subtitle" data-parity="album.artist"></div>
+            <div id="modal-date" class="modal-date" data-parity="album.date"></div>
+            <div class="modal-facts" id="modal-facts" data-parity="album.facts">
               <span id="modal-quality" class="album-quality hidden"></span>
               <span class="modal-total" id="modal-total"></span>
             </div>
@@ -720,7 +720,7 @@
           </div>
 
           <div class="track-list-wrap">
-            <h3 class="section-label tracks-head"><span>Tracks</span></h3>
+            <h3 class="section-label tracks-head" data-parity="album.tracks-head"><span>Tracks</span></h3>
             <ol id="modal-tracks" class="track-list"></ol>
           </div>
 
