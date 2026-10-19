@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `29-native-queue`: the Android app's native Now playing (preview) has its Queue tab: the queue (play on from a
+  track; a long press picks tracks to play now, next or remove; Clear all) and what played earlier (put one back
+  next, or several next or at the end), each asked first in a native copy of the page's yes-or-no sheet. The
+  screens contract holds the Queue and the sheet too (one element can carry two screens' keys), and none of the
+  three native screens lacks anything of the page's.
 - `28-album-head-lines`: the album page's head is a line each beside the sleeve: the title, the artist, the
   release date (its label and score after it), then the rate (16/44.1, hi-res in brass) and the album's
   length. The rate leaves the cover, the length the Tracks line; the date no longer wraps with the artist.

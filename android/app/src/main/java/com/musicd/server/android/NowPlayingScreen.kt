@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
@@ -24,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +67,7 @@ import kotlinx.coroutines.withContext
 internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
     var view by remember { mutableStateOf<NowPlayingView?>(null) }
     var answered by remember { mutableStateOf(false) }
+    var queueTab by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val scope = rememberCoroutineScope()
     BackHandler(onBack = onBack)
@@ -105,14 +108,29 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     // the page's is: tools/quality/parity.js holds this screen to the page's.
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // The corner buttons and the tabs are the Queue's too (docs/specs/screens.json, queue).
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.parity("now-playing.back", Contract.label("now-playing.back"))) {
+                IconButton(onClick = onBack, modifier = Modifier.parity("now-playing.back queue.back", Contract.label("now-playing.back"))) {
                     Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
                 Spacer(Modifier.weight(1f))
-                if (view != null) IconButton(onClick = { onPage("share", null) }, modifier = Modifier.parity("now-playing.share", Contract.label("now-playing.share"))) {
+                Tab(selected = !queueTab, onClick = { queueTab = false },
+                    modifier = Modifier.parity("now-playing.tab-now-playing queue.tab-now-playing", Contract.label("now-playing.tab-now-playing")).width(120.dp),
+                    text = { Text(Contract.label("now-playing.tab-now-playing").uppercase(), fontSize = 12.sp, maxLines = 1) },
+                    selectedContentColor = MaterialTheme.colorScheme.onSurface, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                Tab(selected = queueTab, onClick = { queueTab = true },
+                    modifier = Modifier.parity("now-playing.tab-queue queue.tab-queue", Contract.label("now-playing.tab-queue")).width(80.dp),
+                    text = { Text(Contract.label("now-playing.tab-queue").uppercase(), fontSize = 12.sp, maxLines = 1) },
+                    selectedContentColor = MaterialTheme.colorScheme.onSurface, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { onPage("share", null) }, enabled = view != null,
+                    modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share"))) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 }
+            }
+            if (queueTab) {
+                QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f))
+                return@Column
             }
             val v = view
             if (v == null) {

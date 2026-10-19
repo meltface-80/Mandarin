@@ -74,6 +74,7 @@ function calls(m) {
   /** @type {Call[]} */
   const out = [];
   for (const x of m.matchAll(/(?<![.\w])([A-Z]\w*)\s*\(/g)) {
+    if (/\bfun\s+(?:[\w.]+\.)?$/.test(m.slice(Math.max(0, (x.index || 0) - 40), x.index))) continue;   // its definition, not a call
     const open = (x.index || 0) + x[0].length - 1, shut = close(m, open);
     let j = shut + 1;
     while (j < m.length && /\s/.test(m[j]) && m[j] !== "\n") j++;
@@ -133,8 +134,16 @@ function scan(src) {
   for (const c of controls) if (!tagged(c.args)) findings.push(`line ${lineOf(src, c.at)}: ${c.name} with no parity(): every control is in the contract`);
   for (const g of gestures) if (!tagged(g.arg)) findings.push(`line ${lineOf(src, g.at)}: .${g.name} with no parity() beside it: every control is in the contract`);
   const containers = all.filter(c => c.body && tagged(c.args));
+  const coveredAt = (/** @type {number} */ i) => controls.some(c => inside(c.args, i) || inside(c.body, i)) || containers.some(c => inside(c.body, i));
+  // A composable of the screen's own, drawn by the screen: its readouts are covered where every call of it
+  // in the file has a key in its arguments (passed on as its modifier) or sits inside something keyed.
+  const helpers = [...m.matchAll(/\bfun\s+(?:[\w.]+\.)?([A-Z]\w*)\s*\(/g)].map(d => {
+    const open = (d.index || 0) + d[0].length - 1, shut = close(m, open), brace = m.indexOf("{", shut);
+    const uses = all.filter(c => c.name === d[1]);
+    return { body: /** @type {[number, number]} */ ([brace, close(m, brace)]), keyed: uses.length > 0 && uses.every(c => tagged(c.args) || coveredAt(c.at)) };
+  });
   for (const r of all.filter(c => READOUTS.includes(c.name))) {
-    const covered = tagged(r.args) || controls.some(c => inside(c.args, r.at) || inside(c.body, r.at)) || containers.some(c => inside(c.body, r.at));
+    const covered = tagged(r.args) || coveredAt(r.at) || helpers.some(h => h.keyed && inside(h.body, r.at));
     if (!covered) findings.push(`line ${lineOf(src, r.at)}: ${r.name} with no parity(), and in nothing that has one: everything shown is in the contract`);
   }
   for (const d of m.matchAll(/contentDescription\s*=\s*"/g)) {

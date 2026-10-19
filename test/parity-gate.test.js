@@ -124,3 +124,26 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "tools/quality/parity-gaps.json"), "utf8")), { play: ["play"] });
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test("one element two screens': keys space-separated, each held by its own screen, a file both screens draw", () => {
+  const c = contract();
+  c.screens.list = { page: "p", native: [F], preview: true, items: { back: { kind: "action", label: "Back" }, rows: { kind: "shows" } } };
+  const src = SCREEN.replace('Modifier.parity("play.back", Contract.label("play.back"))', 'Modifier.parity("play.back list.back", Contract.label("play.back"))') +
+    '\nText(rows, Modifier.parity("list.rows"))';
+  const r = compare({ contract: c, gaps: {}, sources: { [F]: src }, composables: [F], refs: [] });
+  assert.deepEqual(r.findings, []);
+  assert.deepEqual(r.missing, { play: [], list: [] }, "Back counted for both");
+  const other = compare({ contract: c, gaps: {}, sources: { [F]: src + '\nText(x, Modifier.parity("elsewhere.title"))' }, composables: [F], refs: [] }).findings;
+  assert.deepEqual(other.filter(f => /elsewhere/.test(f)).length, 1, "a key of no screen drawn here, said once: " + other.join("; "));
+  const label = compare({ contract: c, gaps: {}, sources: { [F]: src.replace('Contract.label("play.back")', 'Contract.label("play.title")') }, composables: [F], refs: [] }).findings;
+  assert.match(label.join("\n"), /play\.back's label from the contract/);
+});
+
+test("a screen's own composable: its readouts covered where every call of it is keyed", () => {
+  const helper = `
+@Composable private fun Row2(title: String, modifier: Modifier) { Row(modifier) { Text(title) } }`;
+  assert.deepEqual(scan(SCREEN + helper + '\nRow2(t, Modifier.parity("play.title"))').findings, [], "its one call keyed");
+  assert.match(scan(SCREEN + helper + '\nRow2(t, Modifier.parity("play.title"))\nRow2(u, Modifier)').findings.join("\n"), /Text with no parity/, "a call of it with no key");
+  assert.match(scan(SCREEN + helper).findings.join("\n"), /Text with no parity/, "never called");
+  assert.deepEqual(scan(SCREEN + helper + '\nRow2(t, Modifier.parity("play.back", Contract.label("play.back")).clickable { })').tags.slice(-1).map(t => t.kind), ["action"], "a tap on it is a control");
+});

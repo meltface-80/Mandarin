@@ -43,6 +43,45 @@
         "volume-up": { "kind": "action", "label": "Volume up", "in": "volume" },
         "volume-fixed": { "kind": "shows", "in": "volume", "when": "the room's volume is fixed" }
       }
+    },
+    "queue": {
+      "page": "the Queue: Now playing's Queue tab (#album-modal.np-mode.tab-queue), a phone held upright; its corner buttons and tabs are Now playing's",
+      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/QueueScreen.kt"],
+      "preview": true,
+      "items": {
+        "back": { "kind": "action", "label": "Back" },
+        "share": { "kind": "action", "label": "Share card" },
+        "tab-now-playing": { "kind": "action", "label": "Now playing" },
+        "tab-queue": { "kind": "action", "label": "Queue" },
+        "summary": { "kind": "shows" },
+        "clear": { "kind": "action", "label": "Clear the queue", "when": "something is queued" },
+        "select-menu": { "kind": "action", "label": "What to do with the selected tracks", "when": "selecting tracks: a long press on one" },
+        "select-title": { "kind": "shows", "when": "selecting tracks" },
+        "play-now": { "kind": "action", "label": "Play now", "when": "selecting tracks" },
+        "play-next": { "kind": "action", "label": "Play next", "when": "selecting tracks" },
+        "remove": { "kind": "action", "label": "Remove", "when": "selecting tracks" },
+        "done": { "kind": "action", "label": "Done", "when": "selecting tracks" },
+        "divider": { "kind": "shows" },
+        "track": { "kind": "action", "label": "{track}", "each": true },
+        "history-toggle": { "kind": "action", "label": "{…} played earlier", "when": "tracks have played" },
+        "history-select": { "kind": "action", "label": ["Select", "Done"], "in": "history-toggle" },
+        "history-track": { "kind": "action", "label": "{track}", "each": true, "in": "history-toggle" },
+        "history-count": { "kind": "shows", "when": "selecting played tracks" },
+        "history-play-next": { "kind": "action", "label": "Play next", "when": "selecting played tracks" },
+        "history-add": { "kind": "action", "label": "Add to queue", "when": "selecting played tracks" },
+        "history-clear": { "kind": "action", "label": "Clear", "when": "selecting played tracks" },
+        "empty": { "kind": "shows", "when": "nothing is queued or played" }
+      }
+    },
+    "confirm": {
+      "page": "the page's yes-or-no sheet (#confirm-overlay), as a queue's Play from here asks it",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ConfirmDialog.kt"],
+      "preview": true,
+      "items": {
+        "message": { "kind": "shows" },
+        "no": { "kind": "action", "label": "No" },
+        "yes": { "kind": "action", "label": "Yes" }
+      }
     }
   }
 }

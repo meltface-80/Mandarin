@@ -67,8 +67,8 @@ const CHECK = (name, items, rootSel) => `(async () => {
       if (it.when || it.only) continue;
       if (!shown(e)) { out.add(S + "." + k + " is not shown" + (opener ? " once " + opener + " is tapped" : "")); continue; }
       if (it.kind !== "action" || !it.label) continue;
-      const target = e.matches(CONTROL) ? e : [...e.querySelectorAll(CONTROL)].find(shown);
-      if (!target) { out.add(S + "." + k + " has nothing to tap"); continue; }
+      // The control itself, or the first inside it; a row the page makes tappable itself (a queue's) is its own.
+      const target = e.matches(CONTROL) ? e : ([...e.querySelectorAll(CONTROL)].find(shown) || e);
       const labels = [].concat(it.label), got = labelOf(target);
       if (!labels.some(l => pattern(l).test(got))) out.add(S + "." + k + " is called \\"" + got + "\\", the contract says " + labels.map(l => "\\"" + l + "\\"").join(" or "));
     }
@@ -107,9 +107,34 @@ const OPEN_NOW_PLAYING = `(async () => {
   return "open";
 })()`;
 
+/* Now playing's Queue tab, a track played (so there is a "played earlier") and two to come. */
+const OPEN_QUEUE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const $ = s => document.querySelector(s);
+  if (await ${OPEN_NOW_PLAYING} !== "open") return "no Now playing";
+  await until(() => !$("#np-next").disabled); $("#np-next").click();
+  if (!(await until(() => /Song 2/.test(($("#np-track") || {}).textContent || "")))) return "no next track";
+  document.querySelector('.modal-tab[data-tab="queue"]').click();
+  if (!(await until(() => $(".q-history-head") && document.querySelectorAll("#queue-list [data-parity='queue.track']").length === 2, 15000))) return "no queue";
+  await sleep(500);
+  return "open";
+})()`;
+
+/* The page's yes-or-no sheet, as a queue's Play from here asks it. */
+const OPEN_CONFIRM = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 400 && !window.__confirmDialog; i++) await sleep(50);
+  window.__confirmDialog('Play from "Song 3"?');
+  await sleep(300);
+  return document.getElementById("confirm-overlay").classList.contains("hidden") ? "not open" : "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it. */
 const SCREENS = {
-  "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" }
+  "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
+  "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
+  "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

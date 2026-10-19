@@ -237,33 +237,35 @@ function renderQueueHistory(list, history) {
   bar.className = "q-history-bar";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "q-history-toggle";
+  btn.className = "q-history-toggle"; btn.dataset.parity = "queue.history-toggle";
   const selBtn = document.createElement("button");
   selBtn.type = "button";
-  selBtn.className = "q-history-select";
+  selBtn.className = "q-history-select"; selBtn.dataset.parity = "queue.history-select";
   bar.appendChild(btn);
   bar.appendChild(selBtn);
 
   const actions = document.createElement("div");
   actions.className = "q-hist-actions hidden";
   const count = document.createElement("span");
-  count.className = "q-hist-count";
-  const mkAct = (label, cls) => {
+  count.className = "q-hist-count"; count.dataset.parity = "queue.history-count";
+  // [key]: the screens contract's (docs/specs/screens.json); the Android app's Queue has each.
+  const mkAct = (label, cls, key) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "q-hist-act" + (cls ? " " + cls : "");
     b.textContent = label;
+    b.dataset.parity = "queue." + key;
     return b;
   };
-  const actNext  = mkAct("Play next", "primary");
-  const actQueue = mkAct("Add to queue");
-  const actClear = mkAct("Clear");
+  const actNext  = mkAct("Play next", "primary", "history-play-next");
+  const actQueue = mkAct("Add to queue", "", "history-add");
+  const actClear = mkAct("Clear", "", "history-clear");
   actions.append(count, actNext, actQueue, actClear);
   head.append(bar, actions);
 
   const rowEls = rows.map((h) => {
     const li = document.createElement("li");
-    li.className = "q-hist-row is-tappable";
+    li.className = "q-hist-row is-tappable"; li.dataset.parity = "queue.history-track";
 
     // The pick number. Selection order is not display order, so without a
     // number on the row there is no way to see what order you chose — and
