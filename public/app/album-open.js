@@ -7,6 +7,13 @@ function openAlbum(album, opts) {
     // Which of the row's buttons is lit under it (touchnav.js's classes on <html>): Home, or the Library wall. An older app takes two arguments.
     const html = document.documentElement.classList;
     const lit = html.contains("tn-home") && !html.contains("tn-search") ? "home" : html.contains("tn-lib") ? "library" : "";
+    // The list it was opened from (the tile's row or wall), for the app's previous and next; taken, as the page's own view would take it.
+    const nav = albumNav.take();
+    if (typeof app.openAlbumIn === "function") {
+      const list = nav ? JSON.stringify({ items: nav.items.map(i => ({ offset: i.album.offset, title: i.album.title || "" })), index: nav.index }) : "";
+      app.openAlbumIn(album.offset, selectedZoneId || "", lit, list);
+      return;
+    }
     try { app.openAlbum(album.offset, selectedZoneId || "", lit); } catch (e) { app.openAlbum(album.offset, selectedZoneId || ""); }
     return;
   }

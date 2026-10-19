@@ -29,6 +29,8 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.nativeAlbum() / setNativeAlbum(on)   the native album page, likewise
  *   MusicdApp.openAlbum(offset, zoneId, lit)   the native page of that album, its buttons playing in that room;
  *                                              lit: the row's button lit under it ("home", "library", ""); two arguments from an older page
+ *   MusicdApp.openAlbumIn(offset, zoneId, lit, nav)   the same, in the list it was opened from (nav: {items: [{offset, title}], index},
+ *                                                     JSON; "" for none), for its previous and next
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -88,7 +90,14 @@ class AppBridge(private val activity: Activity) {
     fun openAlbum(offset: Int, zoneId: String) { openAlbum(offset, zoneId, "") }
 
     @JavascriptInterface
-    fun openAlbum(offset: Int, zoneId: String, lit: String) { activity.runOnUiThread { NativeShell.open(ShellRoute.album(offset.toLong(), zoneId, lit)) } }
+    fun openAlbum(offset: Int, zoneId: String, lit: String) { openAlbumIn(offset, zoneId, lit, "") }
+
+    @JavascriptInterface
+    fun openAlbumIn(offset: Int, zoneId: String, lit: String, nav: String) {
+        val list = com.musicd.server.client.NavList.parse(nav.ifEmpty { null })
+        val id = list?.let { AlbumLists.put(it) }.orEmpty()
+        activity.runOnUiThread { NativeShell.open(ShellRoute.album(offset.toLong(), zoneId, lit, id, list?.index ?: -1)) }
+    }
 
     @JavascriptInterface
     fun checkUpdate() {
