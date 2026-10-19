@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `39-native-album-about`: the Android app's native album page (preview) has what the page's has under the
+  tracks: About this album (the write-up, Show more, whose words they are, the link to its page), then More by
+  the artist and the albums they appear on (the library's own, `/api/artist-albums`), then Last.fm's similar
+  artists (with its Last.fm link, and the note when the key is wrong) and similar albums, three of each and More
+  for the rest. An album of the library's opens its own native page over this one, an artist of the library's
+  their page, and what only Last.fm knows its Last.fm page, marked "Last.fm ↗" as on the page. `core` reads the
+  review from the extras and Last.fm's two answers (`Lastfm.kt`), each tested. 16 items off the gaps list.
 - `38-native-touch-nav`: the Android app's native album page (preview) has the touch layout's row along the
   foot of the screen, as the page's: Menu, Home, Library and Search under the mini player, the one the page is
   on in brass (the page says which as it opens the album), and the Offline sign between Home and Library when

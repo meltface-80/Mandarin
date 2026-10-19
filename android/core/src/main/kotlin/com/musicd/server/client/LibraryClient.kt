@@ -26,6 +26,12 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
 
+    /** Last.fm's artists like [artist], for the row under an album's tracks (not enabled without a key). */
+    fun similarArtists(artist: String): SimilarArtists = SimilarArtists.parse(get("/api/lastfm/similar-artists?artist=" + enc(artist)))
+
+    /** Last.fm's albums like [artist]'s, likewise. */
+    fun similarAlbums(artist: String): SimilarAlbums = SimilarAlbums.parse(get("/api/lastfm/similar-albums?artist=" + enc(artist)))
+
     fun search(query: String): SearchResults = SearchResults.parse(get("/api/search?q=" + enc(query)))
 
     /** Home's rows in the owner's order, each on or off. */

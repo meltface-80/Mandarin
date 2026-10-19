@@ -1,5 +1,7 @@
 package com.musicd.server.android
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -73,8 +75,10 @@ import org.json.JSONObject
  * palette): the brass corner discs, the cover's glow behind the top, the
  * 160px cover with the title, the artists, the date and its label and the
  * rate and length beside it; the heart, Play Now, Queue and ⋯; the tracks,
- * the one playing marked; the mini player and the touch layout's row at the
- * foot ([lit], the row's button lit under it; a tap is the page's, [onNav]).
+ * the one playing marked; About this album and the rows under it (another
+ * album of the library's opens here, [onAlbum]); the mini player and the
+ * touch layout's row at the foot ([lit], the row's button lit under it; a
+ * tap is the page's, [onNav]).
  * Its buttons play in
  * [zoneId], the room the page had chosen, or the one chosen since on the mini
  * player's Play on ([onRoom] tells the page); a tap on the mini player opens
@@ -84,12 +88,13 @@ import org.json.JSONObject
  */
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
-                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit) {
+                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onAlbum: (Long, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var zone by remember(offset) { mutableStateOf(zoneId) }
     var album by remember(offset) { mutableStateOf<Album?>(null) }
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
+    var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
     var failed by remember(offset) { mutableStateOf<String?>(null) }
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
@@ -104,7 +109,10 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             .onFailure { failed = it.message ?: "Couldn't load the album" }
         val a = album ?: return@LaunchedEffect
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
+        more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() }
     }
+    // A page of Last.fm's, or a write-up's: the phone's browser.
+    fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = rememberCover(album?.album?.imageKey, 640, client)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     // To the room: what came of it said as the page says it.
@@ -186,6 +194,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 }
                 albumTracks(a, playingId = room.view?.takeIf { it.album == a.album.title }?.trackId, playing = room.view?.playing == true,
                     onPlay = { i, kind, said -> play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } })
+                albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
             }
             // The corner discs, over the glow: Back, and Share.
             FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("album.back", Contract.label("album.back")).padding(start = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopStart)) {
