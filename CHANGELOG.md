@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `50-native-track-disc-place`: the brass disc on the track playing, on the Android app's native album page, sat
+  against the first letter of the track's name; it is now in the middle of the room between the track's number
+  and its name, as the page's (nowdisc.js): the number's figures measured as drawn, the disc half the room past
+  them, so a one-figure number and a two-figure one place it alike.
 - `49-classical-works-page-app`: a classical album's page, on the page and in the Android app alike, set out
   as works and movements as Roon has them (from the server's works, item 48): the composers' line in the
   artists' place, each a tap to their page, and under it who performs the album, the conductor named as such;

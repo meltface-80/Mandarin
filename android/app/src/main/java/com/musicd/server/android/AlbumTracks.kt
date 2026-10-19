@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,13 +104,19 @@ internal fun TrackRow(i: Int, t: Track, title: String, movement: Boolean, noDisc
         .combinedClickable(onLongClick = { if (!selecting) onPick(i) }, onClick = { if (selecting) onPick(i) else open = !open })) {
         Row(Modifier.fillMaxWidth().padding(start = (if (open) 8.dp else 4.dp) + (if (movement) 34.dp else 0.dp), end = if (open) 8.dp else 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // The number's box is 22 wide at least (the page's min-width), its figures measured as drawn.
+            var numberWidth by remember { mutableIntStateOf(0) }
             Box(Modifier.defaultMinSize(minWidth = 22.dp).height(20.dp)) {
-                Text("${i + 1}", color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 20.sp)
-                // The disc on the track playing, in the middle of the room between the number and the name, on the name's line, as the page's (nowdisc.js).
+                Text("${i + 1}", color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 20.sp, onTextLayout = { numberWidth = it.size.width })
+                // The disc on the track playing, in the middle of the room between the number's last figure and the name (the box's
+                // end and the row's 12 gap after it), on the name's line, as the page's (nowdisc.js, item 50): from the box's end
+                // half the room past it, less half the box's spare width.
                 if (playingId != null && playingId == t.id) {
                     val turn by rememberInfiniteTransition(label = "disc").animateFloat(0f, 360f, infiniteRepeatable(tween(1800, easing = LinearEasing)), label = "turn")
+                    val figures = with(LocalDensity.current) { numberWidth.toDp() }
+                    val box = if (figures > 22.dp) figures else 22.dp
                     Icon(painterResource(R.drawable.np_disc), contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.parity("album.track-playing").align(Alignment.CenterEnd).offset(x = 13.dp).size(14.dp).let { m -> if (playing) m.rotate(turn) else m })
+                        modifier = Modifier.parity("album.track-playing").align(Alignment.CenterEnd).offset(x = 13.dp - (box - figures) / 2).size(14.dp).let { m -> if (playing) m.rotate(turn) else m })
                 }
             }
             Column(Modifier.weight(1f)) {
