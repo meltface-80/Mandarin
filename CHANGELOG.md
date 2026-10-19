@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `59-booklet-route`: an album with a booklet (a PDF in its folder) crashed the app when the book on its cover was tapped:
+  the booklet's screen (item 42) was never declared in the app's navigation graph, so the route built for it found no
+  destination. Declared now; and a JVM test holds every route of the shell's to a screen in the graph, so a route without
+  one fails the build rather than the phone.
 - `58-no-playing-toast`: the native album page's Play Now put up a toast saying "Playing" over the mini player, which was
   already showing what plays. Nothing is said now unless the play failed; Queue, Play next and a track's own actions still
   say what they did, as the mini player doesn't show that.
