@@ -58,6 +58,15 @@ const visibleEl = (sel) => { const el = document.querySelector(sel); return el &
 window.__pageBack = () => {
   const confirmOv = visibleEl("#confirm-overlay");
   if (confirmOv) { const no = document.getElementById("confirm-no"); if (no) no.click(); return true; }
+  // The sheets with a close of their own, topmost first: the name prompt, the album editor, a lib sheet (Focus, Sort,
+  // Group zones, Device power, Add to playlist). Without this, Back on Home with one open answered "nothing to close",
+  // and the Android app left the screen (bug list item 54, the sheets opened over a native screen).
+  const prompt = visibleEl("#prompt-overlay");
+  if (prompt) { const c = document.getElementById("prompt-cancel"); if (c) c.click(); else prompt.classList.add("hidden"); return true; }
+  const editor = visibleEl("#album-edit-overlay");
+  if (editor) { const c = editor.querySelector("[data-ae-close]"); if (c) c.click(); else editor.classList.add("hidden"); return true; }
+  const sheet = document.querySelector(".lib-sheet-backdrop");
+  if (sheet) { const c = sheet.querySelector(".lib-sheet-head .icon-btn"); if (c) c.click(); else sheet.remove(); return true; }
   const st = history.state;
   if (st && typeof st === "object" && Object.keys(st).length) { history.back(); return true; }
   for (const sel of ["#mt-zone-popover", "#mt-vol-popover"]) {
