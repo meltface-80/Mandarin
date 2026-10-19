@@ -30,7 +30,7 @@ What's missing is the screens and a typed client for the library API.
 
 ## Shape
 
-- **UI**: Jetpack Compose (Material 3, dynamic colour off; Mandarin's own palette from `style.css`'s tokens).
+- **UI**: Jetpack Compose (Material 3, dynamic colour off; Mandarin's own palette from `style.css`'s tokens, and its type: Manrope, `res/font/manrope.ttf`, the page's woff2 as TrueType).
 - **Layers**: `core` (pure Kotlin, already a module with JVM tests) gains the typed API client and models; the app gains a repository with a local cache (Room) so screens show at once and refresh behind, and the Compose screens.
 - **Images**: Coil, with a disk cache keyed by the server's `image_key`.
 - **Lists**: Paging 3 over the Library's `offset`/`count` API.

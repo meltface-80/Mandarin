@@ -4,6 +4,7 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -11,6 +12,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -126,11 +130,35 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
 /** One of the page's colours (Palette, ARGB) as Compose draws it. */
 internal fun paletteColor(argb: Long): Color = Color(argb.toInt())
 
-/** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest). */
+/**
+ * The page's type: Manrope (public/fonts/manrope.woff2, the hifi palette's
+ * `--font-sans`), the same file as a TrueType font (res/font/manrope.ttf,
+ * written from the woff2 by fontTools; a variable font, its weight axis 200
+ * to 800), so a native screen's text is the page's.
+ */
+private val manrope = FontFamily(
+    Font(R.font.manrope, FontWeight.W300), Font(R.font.manrope, FontWeight.W400), Font(R.font.manrope, FontWeight.W500),
+    Font(R.font.manrope, FontWeight.W600), Font(R.font.manrope, FontWeight.W700), Font(R.font.manrope, FontWeight.W800)
+)
+
+/** Material's type scale in Manrope. */
+private fun typography(): Typography {
+    val t = Typography()
+    return Typography(
+        displayLarge = t.displayLarge.copy(fontFamily = manrope), displayMedium = t.displayMedium.copy(fontFamily = manrope), displaySmall = t.displaySmall.copy(fontFamily = manrope),
+        headlineLarge = t.headlineLarge.copy(fontFamily = manrope), headlineMedium = t.headlineMedium.copy(fontFamily = manrope), headlineSmall = t.headlineSmall.copy(fontFamily = manrope),
+        titleLarge = t.titleLarge.copy(fontFamily = manrope), titleMedium = t.titleMedium.copy(fontFamily = manrope), titleSmall = t.titleSmall.copy(fontFamily = manrope),
+        bodyLarge = t.bodyLarge.copy(fontFamily = manrope), bodyMedium = t.bodyMedium.copy(fontFamily = manrope), bodySmall = t.bodySmall.copy(fontFamily = manrope),
+        labelLarge = t.labelLarge.copy(fontFamily = manrope), labelMedium = t.labelMedium.copy(fontFamily = manrope), labelSmall = t.labelSmall.copy(fontFamily = manrope)
+    )
+}
+
+/** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest), and its type. */
 @Composable
 private fun MandarinTheme(content: @Composable () -> Unit) {
     val c = ::paletteColor
     MaterialTheme(
+        typography = typography(),
         colorScheme = darkColorScheme(
             primary = c(Palette.ACCENT), onPrimary = c(Palette.ON_ACCENT),
             secondary = c(Palette.ACCENT_TEXT), onSecondary = c(Palette.ON_ACCENT),

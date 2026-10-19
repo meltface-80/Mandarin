@@ -16,15 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,21 +37,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Credit
+import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
  * Now playing, native (stage N2 of docs/specs/plan-android-native.md, a
- * preview: Settings → Setup → UI Settings, on this phone). The room's track,
- * its cover, where it is, and its transport. The room is followed as the
- * notification follows it ([followRoom]).
+ * preview: Settings → Setup → UI Settings, on this phone), drawn as the
+ * page's (style.css, `.np-screen` and the hifi palette): the brass corner
+ * discs and the tabs, the cover whole in the room the controls leave, the
+ * track, its artists and album, the format badge, the level meter, the
+ * transport (brass, play/pause a disc) and, under it, Play on and the volume.
+ * The room is followed as the notification follows it ([followRoom]).
  */
 @Composable
 internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit) {
@@ -70,102 +77,113 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
         scope.launch(Dispatchers.IO) { runCatching { block(c) } }
     }
 
+    val white = paletteColor(Palette.MODAL_TEXT)
+    val dim = MaterialTheme.colorScheme.onSurfaceVariant
+    val brass = MaterialTheme.colorScheme.primary
+    val disc = IconButtonDefaults.filledIconButtonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = brass, disabledContentColor = MaterialTheme.colorScheme.onPrimary)
     // Each item is the screens contract's (docs/specs/screens.json), keyed as
     // the page's is: tools/quality/parity.js holds this screen to the page's.
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            // The corner buttons and the tabs are the Queue's too (docs/specs/screens.json, queue).
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.parity("now-playing.back queue.back", Contract.label("now-playing.back"))) {
-                    Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
+        Column(Modifier.fillMaxSize().padding(top = 12.dp, bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // The corner discs and, between them, the tabs; the discs and the tabs are the Queue's too (docs/specs/screens.json, queue).
+            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("now-playing.back queue.back", Contract.label("now-playing.back")).size(40.dp).align(Alignment.CenterStart)) {
+                    Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
                 }
-                Spacer(Modifier.weight(1f))
-                Tab(selected = !queueTab, onClick = { queueTab = false },
-                    modifier = Modifier.parity("now-playing.tab-now-playing queue.tab-now-playing", Contract.label("now-playing.tab-now-playing")).width(120.dp),
-                    text = { Text(Contract.label("now-playing.tab-now-playing").uppercase(), fontSize = 12.sp, maxLines = 1) },
-                    selectedContentColor = MaterialTheme.colorScheme.onSurface, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                Tab(selected = queueTab, onClick = { queueTab = true },
-                    modifier = Modifier.parity("now-playing.tab-queue queue.tab-queue", Contract.label("now-playing.tab-queue")).width(80.dp),
-                    text = { Text(Contract.label("now-playing.tab-queue").uppercase(), fontSize = 12.sp, maxLines = 1) },
-                    selectedContentColor = MaterialTheme.colorScheme.onSurface, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = { onPage("share", null) }, enabled = view != null,
-                    modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share"))) {
-                    Icon(painterResource(R.drawable.np_share), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
+                    NpTab(Contract.label("now-playing.tab-now-playing"), !queueTab, Modifier.parity("now-playing.tab-now-playing queue.tab-now-playing", Contract.label("now-playing.tab-now-playing")).clickable(role = Role.Tab) { queueTab = false })
+                    NpTab(Contract.label("now-playing.tab-queue"), queueTab, Modifier.parity("now-playing.tab-queue queue.tab-queue", Contract.label("now-playing.tab-queue")).clickable(role = Role.Tab) { queueTab = true })
+                }
+                FilledIconButton(onClick = { onPage("share", null) }, enabled = view != null, colors = disc,
+                    modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share")).size(40.dp).align(Alignment.CenterEnd)) {
+                    Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
             if (queueTab) {
-                QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f))
+                QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f).padding(horizontal = 18.dp))
                 return@Column
             }
             val v = view
             if (v == null) {
                 Spacer(Modifier.weight(1f))
-                Text(if (answered) "Nothing is playing here" else "", Modifier.parity("now-playing.track"),
-                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (answered) "Nothing is playing here" else "", Modifier.parity("now-playing.track"), style = MaterialTheme.typography.bodyLarge, color = dim)
                 Spacer(Modifier.weight(1f))
                 return@Column
             }
-            Spacer(Modifier.weight(1f))
-            Box(Modifier.parity("now-playing.cover").fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                cover?.let { Image(it, contentDescription = v.album, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-            }
-            Spacer(Modifier.height(24.dp))
-            Text(v.title, Modifier.parity("now-playing.track"), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            // The artists as the page links them: each with a page of their own a tap away, the rest plain.
-            Row(horizontalArrangement = Arrangement.Center) {
-                val credits = v.artists.ifEmpty { listOf(Credit(v.artist, false)) }
-                credits.forEachIndexed { i, c ->
-                    val name = if (i > 0) " · ${c.name}" else c.name
-                    if (c.linkable) Text(name, Modifier.parity("now-playing.artist", Contract.label("now-playing.artist", 0, c.name)).clickable { onPage("artist", c.name) },
-                        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary, maxLines = 1)
-                    else Text(name, Modifier.parity("now-playing.artist"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            // The cover whole: a framed square at the size the room left for it, never bled to the edges.
+            Box(Modifier.weight(1f).fillMaxWidth().padding(start = 18.dp, top = 22.dp, end = 18.dp, bottom = 14.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.parity("now-playing.cover").aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, paletteColor(Palette.COVER_RING), RoundedCornerShape(12.dp))) {
+                    cover?.let { Image(it, contentDescription = v.album, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                 }
             }
-            Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).clickable { onPage("album", null) },
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            v.formatText?.let {
-                Text(it, Modifier.parity("now-playing.format").padding(top = 6.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.height(16.dp))
-            SeekBar(v, now, client) { to -> act { it.seek(zoneId, to) } }
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                val on = MaterialTheme.colorScheme.secondary
-                val off = MaterialTheme.colorScheme.onSurfaceVariant
-                IconButton(onClick = { act { it.zoneSettings(zoneId, shuffle = !v.shuffle) } },
-                    modifier = Modifier.parity("now-playing.shuffle", Contract.label("now-playing.shuffle", v.shuffleState))) {
-                    Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, tint = if (v.shuffle) on else off)
-                }
-                IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious,
-                    modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous"))) {
-                    Icon(painterResource(R.drawable.np_previous), contentDescription = null, tint = on)
-                }
-                FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, shape = CircleShape,
-                    modifier = Modifier.parity("now-playing.playpause", Contract.label("now-playing.playpause", if (v.playing) 1 else 0)).size(72.dp)) {
-                    Icon(painterResource(if (v.playing) R.drawable.np_pause else R.drawable.np_play), contentDescription = null, modifier = Modifier.size(32.dp))
-                }
-                IconButton(onClick = { act { it.control(zoneId, "next") } }, enabled = v.canNext,
-                    modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next"))) {
-                    Icon(painterResource(R.drawable.np_next), contentDescription = null, tint = on)
-                }
-                IconButton(onClick = { act { it.zoneSettings(zoneId, loop = v.loopNext) } },
-                    modifier = Modifier.parity("now-playing.repeat", Contract.label("now-playing.repeat", v.loopState))) {
-                    Box {
-                        Icon(painterResource(R.drawable.np_repeat), contentDescription = null, tint = if (v.loopState > 0) on else off)
-                        if (v.loop == "loop_one") Text("1", Modifier.align(Alignment.TopEnd), fontSize = 9.sp, color = on)
+            Column(Modifier.fillMaxWidth().widthIn(max = 460.dp).padding(horizontal = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(v.title, Modifier.parity("now-playing.track").padding(top = 6.dp), fontSize = 27.sp, fontWeight = FontWeight.Bold, lineHeight = 31.sp, letterSpacing = (-0.01).em,
+                    color = white, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                // The artists as the page links them, in the page's quiet white: each with a page of their own a tap away, the rest plain.
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
+                    val credits = v.artists.ifEmpty { listOf(Credit(v.artist, false)) }
+                    credits.forEachIndexed { i, c ->
+                        if (i > 0) Text(" · ", Modifier.parity("now-playing.artist"), fontSize = 18.sp, color = dim, maxLines = 1)
+                        if (c.linkable) Text(c.name, Modifier.parity("now-playing.artist", Contract.label("now-playing.artist", 0, c.name)).clickable { onPage("artist", c.name) },
+                            fontSize = 18.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        else Text(c.name, Modifier.parity("now-playing.artist"), fontSize = 18.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
+                Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).padding(top = 3.dp).clickable { onPage("album", null) },
+                    fontSize = 14.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                v.formatText?.let {
+                    Text(it, Modifier.parity("now-playing.format").padding(top = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 9.dp, vertical = 3.dp), fontSize = 12.sp, fontWeight = FontWeight.W600, letterSpacing = 0.02.em, color = dim)
+                }
+                SeekBar(v, now, client) { to -> act { it.seek(zoneId, to) } }
+                // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                    val lit = MaterialTheme.colorScheme.secondary
+                    val soft = paletteColor(Palette.ACCENT_SOFT)
+                    IconButton(onClick = { act { it.zoneSettings(zoneId, shuffle = !v.shuffle) } },
+                        modifier = Modifier.parity("now-playing.shuffle", Contract.label("now-playing.shuffle", v.shuffleState)).size(40.dp).clip(CircleShape).background(if (v.shuffle) soft else MaterialTheme.colorScheme.background)) {
+                        Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, tint = if (v.shuffle) lit else dim, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(onClick = { act { it.control(zoneId, "previous") } }, enabled = v.canPrevious,
+                        modifier = Modifier.parity("now-playing.previous", Contract.label("now-playing.previous")).size(56.dp)) {
+                        Icon(painterResource(R.drawable.np_previous), contentDescription = null, tint = if (v.canPrevious) brass else paletteColor(Palette.TEXT_FAINT), modifier = Modifier.size(30.dp))
+                    }
+                    FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, shape = CircleShape, colors = disc,
+                        modifier = Modifier.parity("now-playing.playpause", Contract.label("now-playing.playpause", if (v.playing) 1 else 0)).size(68.dp)) {
+                        Icon(painterResource(if (v.playing) R.drawable.np_pause else R.drawable.np_play), contentDescription = null, modifier = Modifier.size(30.dp))
+                    }
+                    IconButton(onClick = { act { it.control(zoneId, "next") } }, enabled = v.canNext,
+                        modifier = Modifier.parity("now-playing.next", Contract.label("now-playing.next")).size(56.dp)) {
+                        Icon(painterResource(R.drawable.np_next), contentDescription = null, tint = if (v.canNext) brass else paletteColor(Palette.TEXT_FAINT), modifier = Modifier.size(30.dp))
+                    }
+                    IconButton(onClick = { act { it.zoneSettings(zoneId, loop = v.loopNext) } },
+                        modifier = Modifier.parity("now-playing.repeat", Contract.label("now-playing.repeat", v.loopState)).size(40.dp).clip(CircleShape).background(if (v.loopState > 0) soft else MaterialTheme.colorScheme.background)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(painterResource(R.drawable.np_repeat), contentDescription = null, tint = if (v.loopState > 0) lit else dim, modifier = Modifier.size(20.dp))
+                            // The "1" inside the arrows, where the icon is hollow, as the page has it.
+                            if (v.loop == "loop_one") Text("1", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = lit)
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
+                    Spacer(Modifier.weight(1f))
+                    VolumeMenu(zoneId, v.volume, v.muted, ::act)
+                }
             }
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
-                Spacer(Modifier.weight(1f))
-                VolumeMenu(zoneId, v.volume, v.muted, ::act)
-            }
-            Spacer(Modifier.weight(1f))
         }
+    }
+}
+
+/** One of the two tabs, as the page's: small capitals tracked out, the brass line under the one on. */
+@Composable
+private fun NpTab(text: String, on: Boolean, modifier: Modifier) {
+    Column(modifier.padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.W600, letterSpacing = 0.14.em, maxLines = 1,
+            color = if (on) paletteColor(Palette.MODAL_TEXT) else paletteColor(Palette.TEXT_FAINT))
+        Spacer(Modifier.height(12.dp))
+        Box(Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(2.dp)).background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background))
     }
 }
