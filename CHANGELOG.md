@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `46-native-plan-remaining`: a plan, nothing built: what is left for the Android app to be wholly native,
+  every screen and function of the page's, set out as about forty items in stages (the frame, the Library,
+  Home, Search, playlists, rooms and the menu, labels, the services, the share card and the editor, Settings
+  pane by pane, offline natively, the WebView's end), in `docs/specs/plan-android-native.md`.
 - `45-native-volume-sheet`: the Android app's native Now playing and mini player open the page's volume sheet,
   not Material's menu: a glass pill the width of the screen (at the foot of Now playing; just above the mini
   bar), the speaker and the level in brass, the slider over the speaker's own scale with its ends written
