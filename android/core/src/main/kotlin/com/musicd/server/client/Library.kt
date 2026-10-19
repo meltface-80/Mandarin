@@ -35,7 +35,9 @@ data class AlbumSummary(
     /** On your Listen later list. */
     val later: Boolean = false,
     /** Better than CD: its rate in brass. */
-    val hires: Boolean = false
+    val hires: Boolean = false,
+    /** A disc of a box set filed as albums of their own: which box, which disc. */
+    val box: Box? = null
 ) {
     companion object {
         fun parse(j: JSONObject) = AlbumSummary(
@@ -49,8 +51,63 @@ data class AlbumSummary(
             source = j.str("source"),
             favourite = j.optBoolean("favourite", false),
             later = j.optBoolean("later", false),
-            hires = j.optBoolean("hires", false)
+            hires = j.optBoolean("hires", false),
+            box = j.optJSONObject("box")?.let { Box(it.optString("name", ""), it.optInt("disc", 0), it.optInt("of", 0)) }
         )
+    }
+}
+
+/** The box set a disc is from: "From {name} · disc {disc} of {of}", as the page says it. */
+data class Box(val name: String, val disc: Int, val of: Int) {
+    val text: String get() = "From $name · disc $disc of $of"
+}
+
+/**
+ * Why a streamed album is in the library, as its page says it under the
+ * head (public/app/album-detail.js): a favourite or a purchase on the
+ * service ([kept]: "purchase", or anything else a favourite) since [since]
+ * (ms), held by a playlist or a favourite track ([held]), or only played;
+ * and, for one not out yet, [releases], its day.
+ */
+data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val held: Boolean, val releases: String?) {
+    fun text(locale: java.util.Locale = java.util.Locale.getDefault()): String {
+        val whenSince = since?.let { " since " + java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", locale)) }.orEmpty()
+        var t = when {
+            kept == "purchase" -> "In your library as a $name purchase$whenSince"
+            kept != null -> "In your library as a $name favourite$whenSince"
+            held -> "Here for a $name playlist or favourite track — not in your favourites"
+            else -> "Played from $name — not in your favourites"
+        }
+        releases?.let { t += " · not out until " + ReleaseDate.format(it, locale).ifEmpty { it } }
+        return t
+    }
+
+    companion object {
+        fun parse(j: JSONObject): ServiceWhy {
+            val k = j.opt("kept")
+            return ServiceWhy(
+                name = j.optString("name", ""),
+                kept = when (k) { null, JSONObject.NULL, false -> null; true -> "favourite"; else -> k.toString().ifEmpty { null } },
+                since = if (j.isNull("since")) null else j.optLong("since").takeIf { it > 0 },
+                held = j.optBoolean("held", false),
+                releases = j.str("releases")
+            )
+        }
+    }
+}
+
+/** An album in the list its page was opened from (a row, a wall), for previous and next. */
+data class NavItem(val offset: Long, val title: String)
+
+/** The list the page hands the app as it opens an album ({items: [{offset, title}], index}): the items, and where this album is in them. */
+data class NavList(val items: List<NavItem>, val index: Int) {
+    companion object {
+        fun parse(json: String?): NavList? {
+            val j = runCatching { JSONObject(json ?: return null) }.getOrNull() ?: return null
+            val items = j.optJSONArray("items").items { NavItem(it.optLong("offset", -1), it.optString("title", "")) }.filter { it.offset >= 0 }
+            val at = j.optInt("index", -1)
+            return if (items.size > 1 && at in items.indices) NavList(items, at) else null
+        }
     }
 }
 
@@ -90,8 +147,14 @@ data class Album(
     /** The albums of the box set it is part of, if any. */
     val boxAlbums: List<AlbumSummary>,
     /** Some tracks missing: fewer here than the tags say. */
-    val partial: Boolean
+    val partial: Boolean,
+    /** Named from its folders, its files carrying no tags. */
+    val namesFromFolders: Boolean = false,
+    /** A streamed album, signed in: why it is here. */
+    val serviceWhy: ServiceWhy? = null
 ) {
+    /** The box's discs in order, this one among them: the page's "Disc n · title" buttons (all but this one). */
+    val boxDiscs: List<AlbumSummary> get() = if (album.box == null) emptyList() else (boxAlbums + album).sortedBy { it.box?.disc ?: 0 }
     companion object {
         fun parse(j: JSONObject): Album {
             val a = j.getJSONObject("album")
@@ -102,7 +165,9 @@ data class Album(
                 actions = j.optJSONArray("actions").items { AlbumAction(it.getString("kind"), it.optString("title", "")) },
                 artists = j.optJSONArray("artists").strings(),
                 boxAlbums = j.optJSONArray("box_albums").items(AlbumSummary::parse),
-                partial = j.optBoolean("partial", false)
+                partial = j.optBoolean("partial", false),
+                namesFromFolders = j.optBoolean("names_from_folders", false),
+                serviceWhy = a.optJSONObject("service_why")?.let(ServiceWhy::parse)
             )
         }
     }

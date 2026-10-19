@@ -34,11 +34,18 @@ object ShellRoute {
 
     const val OFFSET = "offset"
     const val LIT = "lit"
-    /** The native album page (N3), of an album, played in a room; [LIT] is the row's button lit under it ("home", "library", or none). */
-    const val ALBUM = "album/{$OFFSET}?$ZONE={$ZONE}&$LIT={$LIT}"
+    const val NAV = "nav"
+    const val AT = "at"
+    /**
+     * The native album page (N3), of an album, played in a room; [LIT] is the row's button lit under it ("home",
+     * "library", or none); [NAV] names the list it was opened from (for previous and next; the app holds the list)
+     * and [AT] where in it this album is.
+     */
+    const val ALBUM = "album/{$OFFSET}?$ZONE={$ZONE}&$LIT={$LIT}&$NAV={$NAV}&$AT={$AT}"
 
-    /** The route to the album [offset]'s page, its buttons playing in [zoneId], the page's [lit] button under it. */
-    fun album(offset: Long, zoneId: String, lit: String = ""): String = "album/$offset?$ZONE=" + enc(zoneId) + "&$LIT=" + enc(lit)
+    /** The route to the album [offset]'s page, its buttons playing in [zoneId], the page's [lit] button under it, in list [nav] at [at]. */
+    fun album(offset: Long, zoneId: String, lit: String = "", nav: String = "", at: Int = -1): String =
+        "album/$offset?$ZONE=" + enc(zoneId) + "&$LIT=" + enc(lit) + "&$NAV=" + enc(nav) + "&$AT=$at"
 
     /** The room a `nowplaying` route's own text names (Navigation hands its argument over decoded already). */
     fun zoneOf(arg: String?): String = URLDecoder.decode(arg.orEmpty(), "UTF-8")

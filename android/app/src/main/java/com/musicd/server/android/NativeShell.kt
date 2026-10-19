@@ -113,10 +113,17 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
         composable(ShellRoute.ALBUM, arguments = listOf(
             navArgument(ShellRoute.OFFSET) { type = NavType.LongType },
             navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" },
-            navArgument(ShellRoute.LIT) { type = NavType.StringType; defaultValue = "" }
+            navArgument(ShellRoute.LIT) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.NAV) { type = NavType.StringType; defaultValue = "" },
+            navArgument(ShellRoute.AT) { type = NavType.IntType; defaultValue = -1 }
         )) { entry ->
+            val lit = entry.arguments?.getString(ShellRoute.LIT).orEmpty()
+            val navId = entry.arguments?.getString(ShellRoute.NAV).orEmpty()
             AlbumScreen(
-                entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), entry.arguments?.getString(ShellRoute.LIT).orEmpty(), client,
+                entry.arguments?.getLong(ShellRoute.OFFSET) ?: 0L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), lit, client,
+                list = AlbumLists.get(navId.ifEmpty { null }, entry.arguments?.getInt(ShellRoute.AT) ?: -1),
+                // Previous, next, or a disc of the box: that album's page in this one's place, in the same list.
+                onStepTo = { offset, zone, l -> nav.navigate(ShellRoute.album(offset, zone, lit, AlbumLists.put(l), l.index)) { popUpTo(ShellRoute.ALBUM) { inclusive = true } } },
                 onBack = { nav.popBackStack() },
                 // The row along the foot: the page's own button, tapped, once the page is back in front.
                 onNav = { what -> nav.popBackStack(); NativeShell.toPage("nav", what) },
@@ -126,7 +133,7 @@ private fun Shell(client: () -> ServerClient?, nativeNowPlaying: () -> Boolean, 
                 // A room chosen on its Play on: the page's room too, so its own bar follows.
                 onRoom = { id -> NativeShell.toPage("zone", id) },
                 // Another album of the library's, from the rows under the tracks: its own page over this one; Back returns here.
-                onAlbum = { id, zone -> nav.navigate(ShellRoute.album(id, zone, entry.arguments?.getString(ShellRoute.LIT).orEmpty())) }
+                onAlbum = { id, zone -> nav.navigate(ShellRoute.album(id, zone, lit)) }
             )
         }
     }

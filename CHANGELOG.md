@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `41-native-album-nav-notes`: the Android app's native album page (preview) has previous and next beside
+  Share, the album before and after it in the row or wall it was opened from (the page hands the list over as
+  it opens the album, `MusicdApp.openAlbumIn`; the app holds it and each page stepped to keeps its place), the
+  notes under the head (named from its folders; why a streamed album is here, as the page words it; a disc of
+  a box set, with the other discs a tap away, stepping through the box), and the service's mark on a Qobuz or
+  Tidal album's cover. 7 items off the gaps list.
 - `40-native-np-tabs-weights`: the Android app's native Now playing has its Queue tab back, and the brass line
   under the tab on is as wide as its word (it filled the row, pushing Queue off the screen). Every native screen
   is in the page's weights now: the variable Manrope's default instance is ExtraLight, and the app drew every

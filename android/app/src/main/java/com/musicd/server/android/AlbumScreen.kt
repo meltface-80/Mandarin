@@ -60,6 +60,7 @@ import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
+import com.musicd.server.client.NavList
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.albumLength
@@ -72,9 +73,12 @@ import org.json.JSONObject
  * An album's page, natively (stage N3 of docs/specs/plan-android-native.md, a
  * preview: Settings → Setup → UI Settings), drawn as the page's sleeve
  * (docs/specs/screens.json, album; style.css, the album view in the hifi
- * palette): the brass corner discs, the cover's glow behind the top, the
- * 160px cover with the title, the artists, the date and its label and the
- * rate and length beside it; the heart, Play Now, Queue and ⋯; the tracks,
+ * palette): the brass corner discs (previous and next beside Share when it
+ * was opened from a list, [list]: a tap opens that album in this one's
+ * place, [onStepTo]), the cover's glow behind the top, the 160px cover (the
+ * service's mark on it) with the title, the artists, the date and its label
+ * and the rate and length beside it and the notes under them; the heart,
+ * Play Now, Queue and ⋯; the tracks,
  * the one playing marked; About this album and the rows under it (another
  * album of the library's opens here, [onAlbum]); the mini player and the
  * touch layout's row at the foot ([lit], the row's button lit under it; a
@@ -87,7 +91,8 @@ import org.json.JSONObject
  * artist's, a label's) it is asked for ([onPage]).
  */
 @Composable
-internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
+internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
+                         onBack: () -> Unit, onPage: (String, String?) -> Unit,
                          onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onAlbum: (Long, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -159,6 +164,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         Box(Modifier.parity("album.cover").size(160.dp).shadow(16.dp, sleeve).clip(sleeve).background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(1.dp, paletteColor(Palette.COVER_RING), sleeve)) {
                             cover?.let { Image(it, contentDescription = a.album.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+                            SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
                         }
                         Column(Modifier.weight(1f)) {
                             Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp,
@@ -172,6 +178,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             }
                             DateLine(extras, onPage)
                             FactsLine(a)
+                            HeadNotes(a) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) }
                         }
                     }
                 }
@@ -200,9 +207,12 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("album.back", Contract.label("album.back")).padding(start = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopStart)) {
                 Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
             }
-            FilledIconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null, colors = disc,
-                modifier = Modifier.parity("album.share", Contract.label("album.share")).padding(end = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopEnd)) {
-                Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
+            Row(Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
+                FilledIconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null, colors = disc,
+                    modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
+                    Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
+                }
             }
             Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
