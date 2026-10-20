@@ -743,7 +743,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     private fun showError(message: String) {
-        errorText.text = message
+        NativeShell.toWeb(); errorText.text = message   // the error screen lies under the shell: whatever native screen is up goes
         errorPanel.visibility = View.VISIBLE
         web.visibility = View.GONE
     }

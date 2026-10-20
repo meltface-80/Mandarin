@@ -86,16 +86,11 @@ object Store {
     fun offlineMode(context: Context): Boolean = prefs(context).getBoolean("offline_mode", false)
     fun setOfflineMode(context: Context, on: Boolean) { prefs(context).edit().putBoolean("offline_mode", on).apply() }
 
-    /** The native Library wall (bug list item 51, a preview): Settings → Setup → UI Settings, on this phone. */
-    fun nativeLibrary(context: Context): Boolean = prefs(context).getBoolean("native_library", false)
-    fun setNativeLibrary(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_library", on).apply() }
     /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */
-    fun nativeHome(context: Context): Boolean = prefs(context).getBoolean("native_home", false)
-    fun setNativeHome(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_home", on).apply() }
+    /** The UI Settings as the page last handed them with Home (JSON), for the native Home drawn before the page has said (item 64). */
+    fun homePrefs(context: Context): String? = prefs(context).getString("home_prefs", null)
+    fun setHomePrefs(context: Context, json: String) { prefs(context).edit().putString("home_prefs", json).apply() }
     /** Music on device's view (its Sort and Focus, item 57), as JSON (LocalView), kept as the page keeps its own. */
-    /** The native search (bug list item 61, a preview): Settings → Setup → UI Settings, on this phone. */
-    fun nativeSearch(context: Context): Boolean = prefs(context).getBoolean("native_search", false)
-    fun setNativeSearch(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_search", on).apply() }
 
     fun localView(context: Context): String? = prefs(context).getString("local_view", null)
     fun setLocalView(context: Context, json: String) { prefs(context).edit().putString("local_view", json).apply() }

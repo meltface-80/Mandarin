@@ -31,13 +31,13 @@ import com.musicd.server.client.ShellRoute
  *                                              lit: the row's button lit under it ("home", "library", ""); two arguments from an older page
  *   MusicdApp.openAlbumIn(offset, zoneId, lit, nav)   the same, in the list it was opened from (nav: {items: [{offset, title}], index},
  *                                                     JSON; "" for none), for its previous and next
- *   MusicdApp.nativeLibrary() / setNativeLibrary(on)   the native Library wall (item 51), a preview: the switch in UI Settings
+ *   MusicdApp.nativeLibrary() / setNativeLibrary(on)   → true / nothing: the native Library wall, always the app's since item 64
  *   MusicdApp.openLibrary(view, prefs, zoneId)   the native wall in the page's view of it (its query string: the sort and the
  *                                                focus), drawn to its UI Settings (JSON), its albums playing in that room
  *   MusicdApp.openWall(kind, prefs, zoneId)   a wall Home links to (item 52): later, favourites, history, unplayed or random
  *   MusicdApp.openArtist(name, prefs, zoneId)   an artist's page (item 52)
- *   MusicdApp.nativeHome() / setNativeHome(on)   the native Home (item 57), a preview: the switch in UI Settings
- *   MusicdApp.nativeSearch() / setNativeSearch(on)   the native search (item 61), a preview: the switch in UI Settings
+ *   MusicdApp.nativeHome() / setNativeHome(on)   → true / nothing: the native Home, likewise
+ *   MusicdApp.nativeSearch() / setNativeSearch(on)   → true / nothing: the native search, likewise (an older page's Settings has switches)
  *   MusicdApp.openSearch(q, prefs, zoneId)   the native search, with the words to start from ("" for none), the UI Settings and the room
  *   MusicdApp.homeShown(front, prefs, zoneId)   the page is on Home with nothing of its own over it (front), or something
  *                                               of its own has come over it (the menu, the search, a wall): the app's Home
@@ -111,31 +111,31 @@ class AppBridge(private val activity: Activity) {
     }
 
     @JavascriptInterface
-    fun nativeLibrary(): Boolean = Store.nativeLibrary(activity).also { NativeShell.nativeLibrary = it }
+    fun nativeLibrary(): Boolean = true
 
     @JavascriptInterface
-    fun setNativeLibrary(on: Boolean) { Store.setNativeLibrary(activity, on); NativeShell.nativeLibrary = on }
+    fun setNativeLibrary(on: Boolean) { }
 
     @JavascriptInterface
-    fun nativeHome(): Boolean = Store.nativeHome(activity).also { NativeShell.nativeHome = it }
+    fun nativeHome(): Boolean = true
 
     @JavascriptInterface
-    fun setNativeHome(on: Boolean) { Store.setNativeHome(activity, on); NativeShell.nativeHome = on; if (!on) activity.runOnUiThread { NativeShell.leaveHome() } }
+    fun setNativeHome(on: Boolean) { }
 
     @JavascriptInterface
-    fun nativeSearch(): Boolean = Store.nativeSearch(activity).also { NativeShell.nativeSearch = it }
+    fun nativeSearch(): Boolean = true
 
     @JavascriptInterface
-    fun setNativeSearch(on: Boolean) { Store.setNativeSearch(activity, on); NativeShell.nativeSearch = on }
+    fun setNativeSearch(on: Boolean) { }
 
     @JavascriptInterface
     fun openSearch(q: String, prefs: String, zoneId: String) {
-        NativeShell.prefs = prefs; NativeShell.zone = zoneId; NativeShell.nativeSearch = true
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
         activity.runOnUiThread { NativeShell.openSearch(q, zoneId) }
     }
 
     @JavascriptInterface
-    fun homeShown(front: Boolean, prefs: String, zoneId: String) { activity.runOnUiThread { NativeShell.homeShown(front, prefs, zoneId) } }
+    fun homeShown(front: Boolean, prefs: String, zoneId: String) { Store.setHomePrefs(activity, prefs); activity.runOnUiThread { NativeShell.homeShown(front, prefs, zoneId) } }
 
     @JavascriptInterface
     fun openLibrary(view: String, prefs: String, zoneId: String) {

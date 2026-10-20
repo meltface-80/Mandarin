@@ -37,25 +37,3 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
-// Settings → Setup → UI Settings: the Android app's native Library wall, a preview, on this phone (the app keeps the
-// choice; bug list item 51).
-(function initNativeLibrary() {
-  const app = window.MusicdApp;
-  const block = document.getElementById("native-screens"), sw = document.getElementById("native-library-on");
-  if (!app || typeof app.nativeLibrary !== "function" || !block || !sw) return;
-  block.classList.remove("hidden");
-  const paint = () => { sw.checked = !!app.nativeLibrary(); };
-  sw.addEventListener("change", () => app.setNativeLibrary(sw.checked));
-  // Native Home (item 57), the same way; an app from before it has no switch for it.
-  const home = document.getElementById("native-home-on");
-  const homeOn = () => typeof app.nativeHome === "function" && app.nativeHome();
-  if (home) { home.closest(".settings-row").classList.toggle("hidden", typeof app.nativeHome !== "function"); home.addEventListener("change", () => app.setNativeHome(home.checked)); }
-  // Native Search (item 61), the same way.
-  const search = document.getElementById("native-search-on");
-  const searchOn = () => typeof app.nativeSearch === "function" && app.nativeSearch();
-  if (search) { search.closest(".settings-row").classList.toggle("hidden", typeof app.nativeSearch !== "function"); search.addEventListener("change", () => app.setNativeSearch(search.checked)); }
-  const paintAll = () => { paint(); if (home) home.checked = !!homeOn(); if (search) search.checked = !!searchOn(); };
-  const navItem = document.querySelector('.settings-nav-item[data-pane="ui"]');
-  if (navItem) navItem.addEventListener("click", paintAll);
-  paintAll();
-})();

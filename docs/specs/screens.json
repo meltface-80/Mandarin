@@ -136,7 +136,7 @@
     "library": {
       "page": "the Library wall (Home's Library heading tapped: the heading with the count, the bar's Back over the albums, Focus and Sort, the tiles in #album-grid; the mini player and the row along the foot are their own screens), a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/LibraryScreen.kt", "android/app/src/main/java/com/musicd/server/android/LibrarySheets.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
@@ -180,7 +180,7 @@
     "wall": {
       "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/WallScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
@@ -208,7 +208,7 @@
     "artist": {
       "page": "an artist's page (their name tapped on an album or on Now playing): the count and the name as the heading, the bar's Back, their biography head over their albums and those they appear on; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
@@ -241,7 +241,7 @@
     "home": {
       "page": "Home (#home-view; the top bar is hidden in the touch layout, the row along the foot has its Menu and Search): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
         "greeting": { "kind": "shows", "when": "the greeting is on" },
@@ -283,7 +283,7 @@
     "picks": {
       "page": "Smart Picks (the row's heading tapped): the heading, the bar's Back, each pick as a card in #album-grid with its reason and what can be done with it; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/PicksScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
@@ -301,7 +301,7 @@
     "random-pick": {
       "page": "the album Random Album chose (#random-pick-overlay, over Home after the disc's turn): its cover, title and artist, and Play now, Play next or Queue",
       "native": ["android/app/src/main/java/com/musicd/server/android/RandomPickDialog.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "close": { "kind": "action", "label": "Close" },
         "art": { "kind": "shows" },
@@ -315,7 +315,7 @@
     "search": {
       "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕ and the count beside it; in Home's rows' place, the library's artists and labels as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/SearchScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": true,
+      "preview": false,
       "items": {
         "greeting-date": { "kind": "shows", "when": "Home's greeting is on (Settings → Home Screen): the search is Home's, under it" },
         "greeting": { "kind": "shows", "when": "Home's greeting is on" },
