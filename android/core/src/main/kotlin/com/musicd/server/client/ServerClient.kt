@@ -205,6 +205,8 @@ class ServerClient(
     }
     fun mergeLabels(items: List<MergedLabel>) { post("/api/labels/merge", JSONObject().put("items", org.json.JSONArray(items.map { JSONObject().put("key", it.key).put("display", it.display) }))) }
     fun unmergeLabel(key: String) { send("DELETE", "/api/labels/merge/" + enc(key)) }
+    /** One of the server's backups deleted (item 92). */
+    fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
     fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
     fun labelsScanLog(): String = String(bytes(address.baseUrl + "/api/labels-scan-log"), Charsets.UTF_8)
 
