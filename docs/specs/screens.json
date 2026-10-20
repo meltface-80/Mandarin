@@ -86,6 +86,17 @@
         "yes": { "kind": "action", "label": "Yes" }
       }
     },
+    "offline": {
+      "page": "the page's Offline dialog (#offline-overlay), opened from the row's Offline sign: why only the music on this phone shows, and, when Offline mode is on, the switch to turn it off; Close",
+      "native": ["android/app/src/main/java/com/musicd/server/android/OfflineDialog.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "text": { "kind": "shows" },
+        "switch": { "kind": "action", "label": "Switch offline mode off", "when": "Offline mode is on (the app's own switch)" },
+        "close": { "kind": "action", "label": "Close" }
+      }
+    },
     "mini-player": {
       "page": "the mini player (#mini-transport): the bar along the foot of every screen but Now playing, with what the room is playing, a phone held upright; its Play on and volume menus are Now playing's own",
       "native": ["android/app/src/main/java/com/musicd/server/android/MiniPlayer.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt"],

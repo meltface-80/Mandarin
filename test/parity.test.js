@@ -71,6 +71,28 @@ const OPEN_CONFIRM = `(async () => {
   return document.getElementById("confirm-overlay").classList.contains("hidden") ? "not open" : "open";
 })()`;
 
+/* The Offline dialog (item 105), as the app's Offline mode has it: the server's status answered as the app answers it
+   offline, a request of the page's that finds no server so the page looks at once, then the row's Offline sign tapped. */
+const OPEN_OFFLINE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const btn = () => document.getElementById("offline-btn");
+  for (let i = 0; i < 400 && !btn(); i++) await sleep(50);
+  window.MusicdDownloads = Object.assign(window.MusicdDownloads || {}, { set() {} });
+  const prev = window.fetch;
+  window.fetch = function (u, o) {
+    if (String((u && u.url) || u).includes("/api/status")) return Promise.resolve(new Response(JSON.stringify({ offline: true, offline_mode: true }), { headers: { "Content-Type": "application/json" } }));
+    return prev.apply(this, arguments);
+  };
+  // Nudged again every half second: a look already under way (the page's first, slow on a busy machine) is joined, not repeated.
+  for (let i = 0; i < 400 && btn().classList.contains("hidden"); i++) {
+    if (i % 10 === 0) prev("/api/zones", { method: "CONNECT" }).catch(() => {});
+    await sleep(50);
+  }
+  btn().click();
+  await sleep(300);
+  return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";
+})()`;
+
 /* An album's page, opened from the Library row on Home (so it has a previous and a next). */
 const OPEN_ALBUM = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -606,6 +628,7 @@ const SCREENS = {
   "smart-new": { open: OPEN_SMART_NEW, root: ".lib-sheet-backdrop" },
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
+  "offline": { open: OPEN_OFFLINE, root: "#offline-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },
