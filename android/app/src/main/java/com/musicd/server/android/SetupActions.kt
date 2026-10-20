@@ -19,7 +19,7 @@ import org.json.JSONObject
  * here too; and the help behind each page's ⓘ, as the page words it.
  */
 
-internal fun choiceWords(choices: List<Choice>, value: String): String = choices.firstOrNull { it.value == value }?.words ?: choices.first().words
+internal fun choiceWords(choices: List<Choice>, value: String): String = Choice.words(choices, value)
 
 internal fun setupToast(context: Context, text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
 

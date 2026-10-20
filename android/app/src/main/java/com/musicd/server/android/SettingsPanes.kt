@@ -80,7 +80,6 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var account by remember { mutableStateOf<AccountDevices?>(null) }
-    var who by remember { mutableStateOf("Signed in") }
     var busy by remember { mutableStateOf<String?>(null) }   // a device being signed out, or "password"
     var current by remember { mutableStateOf("") }
     var new by remember { mutableStateOf("") }
@@ -90,12 +89,11 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
         withContext(Dispatchers.IO) { runCatching { c.accountDevices() } }
-            .onSuccess { account = it; who = it.who }.onFailure { who = AccountDevices.FAILED }
+            .onSuccess { account = it }
     }
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-account.back", Contract.label("settings-account.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Account", Modifier.parity("settings-account.heading"))
-        SettingsDesc(who, Modifier.parity("settings-account.who"))
         BlockTitle("Signed-in devices", Modifier.parity("settings-account.title"))
         val devices = account?.devices.orEmpty()
         val now = System.currentTimeMillis()
@@ -182,7 +180,6 @@ internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-keys.back", Contract.label("settings-keys.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "API Keys", Modifier.parity("settings-keys.heading"))
-            SettingsDesc(ApiKeySpec.DESC, Modifier.parity("settings-keys.desc"))
             ApiKeySpec.ALL.forEachIndexed { i, spec ->
                 if (i > 0) SettingsDivider()
                 val k = keys.value[spec.route]

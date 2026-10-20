@@ -108,7 +108,6 @@ internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-homescreen.back", Contract.label("settings-homescreen.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Home Screen", Modifier.parity("settings-homescreen.heading"))
-        SettingsDesc("Which rows show, and in what order", Modifier.parity("settings-homescreen.desc"))
         Block {
             SetupRow("Greeting", Modifier.parity("settings-homescreen.name"), null) {
                 Toggle(prefs.greeting, Modifier.parity("settings-homescreen.greeting", Contract.label("settings-homescreen.greeting")).clickable {

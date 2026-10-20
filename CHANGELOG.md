@@ -7,6 +7,19 @@
   whenever there was none. The scanner's every text read from the server now takes an empty field as nothing, held by
   tests that read the JSON as Android does. Choosing the pack's folder no longer shows the toast "The pack’s folder is
   set", in the app or on the page.
+- `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
+  the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
+  rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
+  what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
+  keeps the floating bar.
+- `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
+  what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
+  "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the
+  heading keeps the room the line used to end with (18). The page's Change password keeps the name signed in itself
+  rather than reading it back from the line.
+- `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
+  else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
+  with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
 - `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
   good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
   cleared it only once the page came: the Library left or drawn again before then, the request was called off and the

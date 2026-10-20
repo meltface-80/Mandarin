@@ -108,7 +108,6 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-picks.back", Contract.label("settings-picks.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Smart Picks", Modifier.parity("settings-picks.heading"))
-        SettingsDesc("Daily discoveries & schedule", Modifier.parity("settings-picks.desc"))
         Block {
             SetupRow("Smart Picks", Modifier.parity("settings-picks.name"), Modifier.parity("settings-picks.info", Contract.label("settings-picks.info", 0, "Smart Picks")).clickable { info(PICKS_INFO) }) {
                 Toggle(on, Modifier.parity("settings-picks.enabled", Contract.label("settings-picks.enabled")).clickable { val was = on; on = !on; save(JSONObject().put("enabled", on), SetupSettings.picksSaid(on)) { on = was } })
@@ -160,7 +159,6 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-labels.back", Contract.label("settings-labels.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Record labels", Modifier.parity("settings-labels.heading"))
-        SettingsDesc("From your files' tags: on or off, ordering, folders", Modifier.parity("settings-labels.desc"))
         Block {
             SetupRow("Record labels", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Record labels")).clickable { info(LABELS_INFO[0]) }) {
                 Toggle(on, Modifier.parity("settings-labels.enabled", Contract.label("settings-labels.enabled")).clickable {
@@ -237,7 +235,6 @@ private fun UiPane(onBack: () -> Unit, info: (String) -> Unit) {
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-ui.back", Contract.label("settings-ui.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "UI Settings", Modifier.parity("settings-ui.heading"))
-        SettingsDesc("Text size, layout & tile size", Modifier.parity("settings-ui.desc"))
         for ((i, key) in listOf("text", "title", "menu", "layout", "tile").withIndex()) {
             val choices = when (key) { "layout" -> SetupSettings.LAYOUT; "tile" -> SetupSettings.TILE; else -> SetupSettings.TEXT }
             val value = SetupSettings.uiValue(prefs, key)
@@ -267,7 +264,6 @@ private fun DisplayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-display.back", Contract.label("settings-display.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Wall Display", Modifier.parity("settings-display.heading"))
-        SettingsDesc("Always-on screen & video", Modifier.parity("settings-display.desc"))
         Block {
             SetupRow("Wall display", Modifier.parity("settings-display.name"), Modifier.parity("settings-display.info", Contract.label("settings-display.info", 0, "Wall display")).clickable { info(DISPLAY_INFO) }) {
                 Toggle(on, Modifier.parity("settings-display.enabled", Contract.label("settings-display.enabled")).clickable { on = !on; save() })
@@ -296,7 +292,6 @@ private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-shelf.back", Contract.label("settings-shelf.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Shelf", Modifier.parity("settings-shelf.heading"))
-        SettingsDesc("Flicking through your collection", Modifier.parity("settings-shelf.desc"))
         Block {
             SetupRow("Shelf", Modifier.parity("settings-shelf.name"), Modifier.parity("settings-shelf.info", Contract.label("settings-shelf.info", 0, "Shelf")).clickable { info(SHELF_INFO) }) {
                 Toggle(on, Modifier.parity("settings-shelf.enabled", Contract.label("settings-shelf.enabled")).clickable {

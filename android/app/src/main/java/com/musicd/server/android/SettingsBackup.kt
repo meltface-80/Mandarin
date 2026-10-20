@@ -128,7 +128,6 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-backup.back", Contract.label("settings-backup.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Backup & restore", Modifier.parity("settings-backup.heading"))
-            SettingsDesc("Your settings, players, collection and database", Modifier.parity("settings-backup.desc"))
             Block {
                 BackupTitle("Back up", Modifier.parity("settings-backup.info", Contract.label("settings-backup.info", 0, "Back up")).clickable { tip = BackupSettings.BACKUP_INFO })
                 val parts = BackupSettings.backupParts(true)

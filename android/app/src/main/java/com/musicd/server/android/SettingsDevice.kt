@@ -103,7 +103,6 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         SettingsHead(Modifier.parity("settings-device.back", Contract.label("settings-device.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             d?.name ?: "Device", Modifier.parity("settings-device.heading"))
         if (d == null) { if (error.isNotEmpty()) DeviceNote(error, Modifier.parity("settings-device.note"), danger = true); return@SettingsFrame }
-        SettingsDesc(d.desc, Modifier.parity("settings-device.desc"))
         if (d.canToggle) {
             Block {
                 SetupRow(if (d.enabled) "On" else "Off", Modifier.parity("settings-device.name"), null) {
