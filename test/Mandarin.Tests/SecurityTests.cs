@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// The audit's security hardening (v0.9.0, docs/specs/audit-b4-main.md, module 3), each finding held here:
+/// The audit's security hardening (v0.9.0, old/audit-b4-main.md, module 3), each finding held here:
 ///  - S2: every page that acts may be framed only by its own origin (frame-ancestors 'self',
 ///    X-Frame-Options), its type taken as named (nosniff) and no referrer sent elsewhere; the wall
 ///    display, which only shows, may be framed.

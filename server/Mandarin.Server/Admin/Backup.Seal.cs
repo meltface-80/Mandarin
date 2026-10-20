@@ -1,5 +1,5 @@
 // Backup.Seal.cs — a backup sealed with a passphrase (v0.9.0, the audit's S1,
-// docs/specs/audit-b4-main.md).
+// old/audit-b4-main.md).
 //
 // What in a backup opens doors elsewhere travels sealed when a passphrase is
 // given: the API keys with the Qobuz and Tidal sign-ins (the keys part, or

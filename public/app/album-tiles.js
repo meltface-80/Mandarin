@@ -240,6 +240,65 @@ function loadArt(container, key, size, onGiveUp) {
   return img;
 }
 
+// The tile's keys for the screens contract (docs/specs/native-parity.md) on
+// the Library wall: the tile, and each part of it, each key written whole
+// (the gate reads them from the source).
+function keyLibraryTile(tile) {
+  tile.dataset.parity = "library.album";
+  const parts = { ".album-art-wrap": "library.album-art", ".album-quality": "library.album-quality", ".album-source": "library.album-source",
+                  ".album-discs": "library.album-discs", ".album-title": "library.album-title", ".album-artist": "library.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+
+// The same on a wall Home links to (walls.js, the random wall), and on an artist's page.
+function keyWallTile(tile) {
+  tile.dataset.parity = "wall.album";
+  const parts = { ".album-art-wrap": "wall.album-art", ".album-quality": "wall.album-quality", ".album-source": "wall.album-source",
+                  ".album-discs": "wall.album-discs", ".album-title": "wall.album-title", ".album-artist": "wall.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+function keyArtistTile(tile) {
+  tile.dataset.parity = "artist.album";
+  const parts = { ".album-art-wrap": "artist.album-art", ".album-quality": "artist.album-quality", ".album-source": "artist.album-source",
+                  ".album-discs": "artist.album-discs", ".album-title": "artist.album-title", ".album-artist": "artist.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+window.__keyArtistTile = keyArtistTile;
+// One of your playlists on the Playlists screen (walls.js), called by its name rather than "name by N tracks".
+function keyPlaylistsTile(tile) {
+  tile.dataset.parity = "playlists.playlist";
+  const parts = { ".album-art-wrap": "playlists.playlist-art", ".album-title": "playlists.playlist-title", ".album-artist": "playlists.playlist-subtitle" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  const name = tile.querySelector(".album-title");
+  if (name) tile.setAttribute("aria-label", name.textContent);
+  return tile;
+}
+// The same in the search's results (search.js).
+function keySearchTile(tile) {
+  tile.dataset.parity = "search.album";
+  const parts = { ".album-art-wrap": "search.album-art", ".album-quality": "search.album-quality", ".album-source": "search.album-source",
+                  ".album-discs": "search.album-discs", ".album-title": "search.album-title", ".album-artist": "search.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+// The same on Home's rows (home-render.js, homeTile), and for a playlist's tile there (its mosaic, its name, its count).
+function keyHomeTile(tile) {
+  tile.dataset.parity = "home.album";
+  const parts = { ".album-art-wrap": "home.album-art", ".album-quality": "home.album-quality", ".album-source": "home.album-source",
+                  ".album-discs": "home.album-discs", ".album-title": "home.album-title", ".album-artist": "home.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+function keyPlaylistTile(tile) {
+  tile.dataset.parity = "home.playlist";
+  const parts = { ".album-art-wrap": "home.playlist-art", ".album-title": "home.playlist-title", ".album-artist": "home.playlist-subtitle" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
+
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.
 function buildAlbumTile(a, onClick, opts) {

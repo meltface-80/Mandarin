@@ -5,13 +5,12 @@ namespace Mandarin.Tests;
 /// <summary>
 /// The page's script made from its parts (v1.0.5, docs/specs/page-modules.md): /app.js is the parts
 /// public/app/parts.txt names, in its order, each headed by its name and parted by a lone ";"
-/// (server/Mandarin.Server/Pages.Script.cs), and the Android app's own copy is joined the same way
-/// (android/app/build.gradle.kts). Held here:
+/// (server/Mandarin.Server/Pages.Script.cs). Held here:
 ///   - the server sends exactly that join, and says it has it still;
 ///   - every part named is there, once, a plain file of the page;
 ///   - every script in public/app/ is named: one left out would never run;
-///   - each part compiles alone, and so does the join (in Chromium, the browser they are written for);
-///   - the app's join is the server's (its separator, its heading, its list).
+///   - each part compiles alone, and so does the join (in Chromium, the browser they are written for).
+/// (The Android app kept a copy joined the same way until its web view went, bug list item 111.)
 /// (test/page-script.test.js, in C#.)
 /// </summary>
 public sealed class PageScriptTests
@@ -60,18 +59,6 @@ public sealed class PageScriptTests
         var list = Parts();
         foreach (var p in list) await Compiles(File.ReadAllText(Path.Combine(Pub, p)), p);
         await Compiles(Join(list), "app.js");
-    }
-
-    [Test]
-    public void The_Android_apps_copy_is_joined_as_the_server_joins_it()
-    {
-        var cs = Read("server/Mandarin.Server/Pages.Script.cs");
-        var gradle = Read("android/app/build.gradle.kts");
-        Assert.Matches(@"PartsJoin = ""\\n;\\n"";", cs);
-        Assert.Matches(@"PartsList = ""app/parts\.txt"";", cs);
-        Assert.True(Regex.IsMatch(cs, @"""// "" \+ p \+ ""\\n"" \+"), "each part headed by its name");
-        Assert.True(Regex.IsMatch(gradle, @"joinToString\(""\\n;\\n""\) \{ ""// \$it\\n"" \+ File\(pageDir, it\)\.readText\(\) \}"), "the same join in build.gradle.kts");
-        Assert.True(Regex.IsMatch(gradle, @"File\(pageDir, ""app/parts\.txt""\)"), "from the same list");
     }
 
     [Test]

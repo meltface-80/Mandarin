@@ -1,0 +1,395 @@
+{
+  "albums": {
+    "path": "/api/library/albums?count=60",
+    "answer": {
+      "albums": [
+        {
+          "offset": 3,
+          "title": "Album One",
+          "subtitle": "Artist A",
+          "image_key": "\u003Cimage_key\u003E",
+          "source": null,
+          "quality": "16/44.1",
+          "year": 1997
+        },
+        {
+          "offset": 1,
+          "title": "Best Of",
+          "subtitle": "Various Artists",
+          "image_key": "\u003Cimage_key\u003E",
+          "source": null,
+          "quality": "MP3",
+          "discs": 2
+        },
+        {
+          "offset": 2,
+          "title": "Hi Res",
+          "subtitle": "Artist B",
+          "image_key": "\u003Cimage_key\u003E",
+          "source": null,
+          "quality": "24/96",
+          "hires": true,
+          "year": 2020
+        }
+      ],
+      "offset": 0,
+      "total": 3
+    }
+  },
+  "album": {
+    "path": "/api/album?offset=3",
+    "answer": {
+      "album": {
+        "offset": 3,
+        "title": "Album One",
+        "subtitle": "Artist A",
+        "image_key": "\u003Cimage_key\u003E",
+        "source": null,
+        "quality": "16/44.1",
+        "year": 1997,
+        "genres": [
+          "Rock"
+        ]
+      },
+      "tracks": [
+        {
+          "title": "Song 1",
+          "subtitle": "0:03",
+          "length": 3,
+          "track_id": 5,
+          "quality": "16/44.1"
+        },
+        {
+          "title": "Song 2",
+          "subtitle": "0:03",
+          "length": 3,
+          "track_id": 6,
+          "quality": "16/44.1"
+        },
+        {
+          "title": "Song 3",
+          "subtitle": "0:03",
+          "length": 3,
+          "track_id": 7,
+          "quality": "16/44.1"
+        }
+      ],
+      "actions": [
+        {
+          "kind": "play_now",
+          "title": "Play Now"
+        },
+        {
+          "kind": "queue",
+          "title": "Queue"
+        },
+        {
+          "kind": "play_next",
+          "title": "Play Next"
+        },
+        {
+          "kind": "shuffle",
+          "title": "Shuffle"
+        },
+        {
+          "kind": "radio",
+          "title": "Start Radio"
+        }
+      ],
+      "offset": 3,
+      "artists": [
+        "Artist A"
+      ],
+      "library_moved": false,
+      "partial": false,
+      "names_from_folders": false,
+      "box_albums": [],
+      "declared_tracks": 3
+    }
+  },
+  "artists": {
+    "path": "/api/artists",
+    "answer": {
+      "artists": [
+        {
+          "name": "Artist A",
+          "albumCount": 1,
+          "image_key": "\u003Cimage_key\u003E"
+        },
+        {
+          "name": "Artist B",
+          "albumCount": 1,
+          "image_key": "\u003Cimage_key\u003E"
+        }
+      ],
+      "offset": 0,
+      "total": 2
+    }
+  },
+  "artist_albums": {
+    "path": "/api/artist-albums?artist=Artist%20A",
+    "answer": {
+      "artist": "Artist A",
+      "primary": [
+        {
+          "offset": 3,
+          "title": "Album One",
+          "subtitle": "Artist A",
+          "image_key": "\u003Cimage_key\u003E",
+          "source": null,
+          "quality": "16/44.1",
+          "year": 1997
+        }
+      ],
+      "featured": []
+    }
+  },
+  "search": {
+    "path": "/api/search?q=album",
+    "answer": {
+      "query": "album",
+      "count": 1,
+      "indexed": 3,
+      "results": [
+        {
+          "offset": 3,
+          "title": "Album One",
+          "subtitle": "Artist A",
+          "image_key": "\u003Cimage_key\u003E",
+          "source": null,
+          "quality": "16/44.1",
+          "year": 1997,
+          "score": 916
+        }
+      ],
+      "labels": [],
+      "artists": []
+    }
+  },
+  "home_rows": {
+    "path": "/api/settings/home-rows",
+    "answer": {
+      "rows": [
+        {
+          "id": "downloads",
+          "on": false,
+          "unavailable": null
+        },
+        {
+          "id": "phone",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "later",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "playlists",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "unplayed",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "favourites",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "history",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "picks",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "lotw",
+          "on": true,
+          "unavailable": "Record labels is off in Settings"
+        },
+        {
+          "id": "random",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "library",
+          "on": true,
+          "unavailable": null
+        },
+        {
+          "id": "genres",
+          "on": true,
+          "unavailable": null
+        }
+      ]
+    }
+  },
+  "home_history": {
+    "path": "/api/home/history",
+    "answer": {
+      "albums": [],
+      "days": 30
+    }
+  },
+  "home_unplayed": {
+    "path": "/api/home/unplayed",
+    "answer": {
+      "albums": [],
+      "total": 0,
+      "months": 6,
+      "no_history": true,
+      "ready_at": null
+    }
+  },
+  "home_album_of_the_day": {
+    "path": "/api/home/album-of-the-day",
+    "answer": {
+      "album": {
+        "offset": 3,
+        "title": "Album One",
+        "subtitle": "Artist A",
+        "image_key": "\u003Cimage_key\u003E",
+        "source": null,
+        "quality": "16/44.1",
+        "year": 1997
+      },
+      "played": false,
+      "day": "\u003Cday\u003E"
+    }
+  },
+  "smart_picks": {
+    "path": "/api/smart-picks",
+    "answer": {
+      "day": "\u003Cday\u003E",
+      "enabled": true,
+      "service_ready": true,
+      "auto_add": false,
+      "hour": 4,
+      "building": false,
+      "picks": [
+        {
+          "artist": "Artist A",
+          "album": "Album One",
+          "image": "\u003Cimage\u003E",
+          "reason": "Never played here",
+          "offset": 3,
+          "library_title": "Album One",
+          "library_subtitle": "Artist A",
+          "image_key": "\u003Cimage_key\u003E"
+        },
+        {
+          "artist": "Artist B",
+          "album": "Hi Res",
+          "image": "\u003Cimage\u003E",
+          "reason": "Never played here",
+          "offset": 2,
+          "library_title": "Hi Res",
+          "library_subtitle": "Artist B",
+          "image_key": "\u003Cimage_key\u003E"
+        }
+      ]
+    }
+  },
+  "genres": {
+    "path": "/api/filters/genres",
+    "answer": {
+      "genres": [
+        {
+          "title": "Jazz",
+          "subtitle": "1 album"
+        },
+        {
+          "title": "Rock",
+          "subtitle": "1 album"
+        }
+      ]
+    }
+  },
+  "genre_groups": {
+    "path": "/api/home/genre-groups",
+    "answer": {
+      "parent": null,
+      "pop": [],
+      "rockmetal": [
+        {
+          "title": "Rock",
+          "count": 1
+        }
+      ],
+      "flat": true
+    }
+  },
+  "label_of_the_week": {
+    "path": "/api/home/label-of-the-week",
+    "answer": {
+      "label": null,
+      "albums": []
+    }
+  },
+  "user_playlists": {
+    "path": "/api/user-playlists",
+    "answer": {
+      "playlists": []
+    }
+  },
+  "smart_playlists": {
+    "path": "/api/smart-playlists",
+    "answer": {
+      "playlists": [],
+      "limits": {
+        "default": 100,
+        "max": 400,
+        "options": [
+          25,
+          50,
+          100,
+          200,
+          400
+        ]
+      },
+      "modes": [
+        "albums",
+        "tracks"
+      ],
+      "orders": [
+        "album",
+        "random"
+      ]
+    }
+  },
+  "favourites": {
+    "path": "/api/favourites",
+    "answer": {
+      "albums": []
+    }
+  },
+  "listen_later": {
+    "path": "/api/listen-later",
+    "answer": {
+      "albums": []
+    }
+  },
+  "pick_unheard": {
+    "path": "/api/pick-unheard",
+    "answer": {
+      "album": {
+        "offset": 3,
+        "title": "Album One",
+        "subtitle": "Artist A",
+        "image_key": "\u003Cimage_key\u003E",
+        "source": null,
+        "quality": "16/44.1",
+        "year": 1997
+      }
+    }
+  }
+}

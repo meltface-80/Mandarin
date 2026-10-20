@@ -1,5 +1,5 @@
 // Config.cs — the server's configuration from the environment (v0.8.50, stage
-// 7 part 1 of docs/specs/csharp-migration.md): what index.js read from it, in
+// 7 part 1 of old/csharp-migration.md): what index.js read from it, in
 // the shape the Node server's hand-over carried it (index.js
 // /internal/front/runs, "config"), which Jobs.cs and everything under it take.
 // `mandarin-server config` prints it (Program.cs), as the tests read it.

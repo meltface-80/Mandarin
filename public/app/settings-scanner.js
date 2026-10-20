@@ -113,7 +113,7 @@ async function packFolder(dir) {
   scanBusy = true;
   // A pack already here is moved: it can take a minute between drives.
   if (pack && pack.installed) { pack = Object.assign({}, pack, { job: { phase: "moving" } }); render(); }
-  try { pack = await scanApi("/api/identify/pack/folder", { dir }); packBrowse = null; scanErr = ""; scanToast("The pack’s folder is set"); }
+  try { pack = await scanApi("/api/identify/pack/folder", { dir }); packBrowse = null; scanErr = ""; }
   catch (e) { scanErr = e.message; try { pack = await scanApi("/api/identify/pack"); } catch (x) { /* the pack's state stays as it was */ } }
   scanBusy = false;
   render();
@@ -121,26 +121,26 @@ async function packFolder(dir) {
 const folderSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 function packBrowser() {
   const b = packBrowse;
-  let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-pack-cancel>Cancel</button>' +
-    '<span class="mf-browse-path">' + scanEsc(b.path) + "</span></div>";
+  let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-parity="settings-scanner.browse-cancel" data-pack-cancel>Cancel</button>' +
+    '<span class="mf-browse-path" data-parity="settings-scanner.browse-path">' + scanEsc(b.path) + "</span></div>";
   if (packPlaces.length) {
-    html += '<div class="mf-places"><span class="mf-places-label">Mounted drives and shares</span>' +
-      packPlaces.map(m => '<button type="button" class="mf-place' + (m.path === b.path ? " is-on" : "") + '" data-pack-go="' + scanEsc(m.path) + '">' + scanEsc(m.path) + "</button>").join("") + "</div>";
+    html += '<div class="mf-places"><span class="mf-places-label" data-parity="settings-scanner.browse-places">Mounted drives and shares</span>' +
+      packPlaces.map(m => '<button type="button" data-parity="settings-scanner.place" class="mf-place' + (m.path === b.path ? " is-on" : "") + '" data-pack-go="' + scanEsc(m.path) + '">' + scanEsc(m.path) + "</button>").join("") + "</div>";
   }
   html += '<div class="mf-browse-list">';
-  if (b.parent) html += '<button type="button" class="mf-dir mf-up" data-pack-go="' + scanEsc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
-  for (const d of b.dirs) html += '<button type="button" class="mf-dir" data-pack-go="' + scanEsc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + scanEsc(d.name) + "</span></button>";
-  if (!b.dirs.length) html += '<div class="settings-note">No folders in here.</div>';
-  html += '</div><div class="mf-browse-foot"><button type="button" class="settings-update-btn mf-choose" data-pack-choose' + (scanBusy || b.path === "/" ? " disabled" : "") + ">Keep the pack in “" + scanEsc(b.path.split("/").pop() || b.path) + "”</button></div>";
+  if (b.parent) html += '<button type="button" data-parity="settings-scanner.dir" class="mf-dir mf-up" data-pack-go="' + scanEsc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
+  for (const d of b.dirs) html += '<button type="button" data-parity="settings-scanner.dir" class="mf-dir" data-pack-go="' + scanEsc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + scanEsc(d.name) + "</span></button>";
+  if (!b.dirs.length) html += '<div class="settings-note" data-parity="settings-scanner.note">No folders in here.</div>';
+  html += '</div><div class="mf-browse-foot"><button type="button" class="settings-update-btn mf-choose" data-parity="settings-scanner.browse-choose" data-pack-choose' + (scanBusy || b.path === "/" ? " disabled" : "") + ">Keep the pack in “" + scanEsc(b.path.split("/").pop() || b.path) + "”</button></div>";
   // Why it couldn't be kept there, by the button, not at the foot of the page.
-  if (scanErr) html += '<div class="settings-note away-error">' + scanEsc(scanErr) + "</div>";
+  if (scanErr) html += '<div class="settings-note away-error" data-parity="settings-scanner.note">' + scanEsc(scanErr) + "</div>";
   return html;
 }
 function packBlock() {
   if (!pack) return '<div class="settings-divider"></div><div class="settings-block">' +
     row("MusicBrainz pack" + info("Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."), "") +
-    '<div class="settings-note id-wait">…</div></div>';
-  if (packBrowse) return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title">Where to keep the MusicBrainz pack</div>' + packBrowser() + "</div>";
+    '<div class="settings-note id-wait" data-parity="settings-scanner.note">…</div></div>';
+  if (packBrowse) return '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title" data-parity="settings-scanner.title">Where to keep the MusicBrainz pack</div>' + packBrowser() + "</div>";
   const have = pack.installed, job = pack.job, latest = pack.latest;
   let state, buttons = "";
   if (job && !job.error && job.phase === "moving") {
@@ -150,25 +150,25 @@ function packBlock() {
     state = job.phase === "checking" ? "Asking GitHub…" : "Downloading… " + pc + " % (" + mbs(job.done) + " of " + mbs(job.total) + ")";
   } else if (have) {
     state = num(have.releases) + " releases · from " + day(have.built) + " · " + mbs(have.size) + (pack.newer ? " · a newer one is out" : "");
-    buttons = (pack.newer ? '<button type="button" class="id-btn is-primary" data-pack="download"' + (scanBusy ? " disabled" : "") + ">Update</button>" : "") +
-      '<button type="button" class="id-btn" data-pack="remove"' + (scanBusy ? " disabled" : "") + ">Remove</button>";
+    buttons = (pack.newer ? '<button type="button" data-parity="settings-scanner.pack" class="id-btn is-primary" data-pack="download"' + (scanBusy ? " disabled" : "") + ">Update</button>" : "") +
+      '<button type="button" data-parity="settings-scanner.pack" class="id-btn" data-pack="remove"' + (scanBusy ? " disabled" : "") + ">Remove</button>";
   } else {
     const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
     state = latest ? "Not downloaded. A " + mbs(latest.gz_size) + " download that unpacks to " + mbs(latest.size) + " in the folder below." +
       (tight ? ' <span class="away-error">Not enough room in this folder: choose another below.</span>' : "")
       : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : "Not downloaded." + (pack.check_error ? " (" + scanEsc(pack.check_error) + ")" : "");
-    buttons = '<button type="button" class="id-btn is-primary" data-pack="download"' + (scanBusy || !latest ? " disabled" : "") + ">Download</button>";
+    buttons = '<button type="button" data-parity="settings-scanner.pack" class="id-btn is-primary" data-pack="download"' + (scanBusy || !latest ? " disabled" : "") + ">Download</button>";
   }
   return '<div class="settings-divider"></div><div class="settings-block">' +
     row("MusicBrainz pack" + info("Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."),
       '<span class="id-actions">' + buttons + "</span>") +
-    '<div class="settings-note">' + state + (job && job.error ? ' <span class="away-error">' + scanEsc(job.error) + "</span>" : "") + "</div>" +
+    '<div class="settings-note" data-parity="settings-scanner.note">' + state + (job && job.error ? ' <span class="away-error">' + scanEsc(job.error) + "</span>" : "") + "</div>" +
     // Where it's kept (v0.6.4): any folder the server can write to, on any drive.
     row("Folder" + info("The pack can live on any drive the server can write to. In Docker, mount the drive into the container first (for example -v /mnt/ssd/mandarin:/packs). A pack already downloaded is moved there."),
-      pack.dir_fixed ? '<span class="away-value">Set by MBPACK_DIR</span>'
-        : '<span class="id-actions">' + (pack.dir !== pack.data_dir ? '<button type="button" class="id-btn" data-pack-folder-reset' + (scanBusy ? " disabled" : "") + ">Data folder</button>" : "") +
-          '<button type="button" class="id-btn" data-pack-folder' + (scanBusy ? " disabled" : "") + ">Change…</button></span>") +
-    '<div class="settings-note">' + scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") +
+      pack.dir_fixed ? '<span class="away-value" data-parity="settings-scanner.pack-fixed">Set by MBPACK_DIR</span>'
+        : '<span class="id-actions">' + (pack.dir !== pack.data_dir ? '<button type="button" data-parity="settings-scanner.pack-folder-reset" class="id-btn" data-pack-folder-reset' + (scanBusy ? " disabled" : "") + ">Data folder</button>" : "") +
+          '<button type="button" data-parity="settings-scanner.pack-folder" class="id-btn" data-pack-folder' + (scanBusy ? " disabled" : "") + ">Change…</button></span>") +
+    '<div class="settings-note" data-parity="settings-scanner.note">' + scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") +
       (pack.dir_problem && !(job && job.error === pack.dir_problem) ? ' <span class="away-error">' + scanEsc(pack.dir_problem) + "</span>" : "") + "</div></div>";
 }
 async function act(url, payload, done) {
@@ -185,13 +185,14 @@ async function act(url, payload, done) {
   render();
 }
 
-const sw = (attr, on, label) => '<label class="switch"><input type="checkbox" ' + attr + (on ? " checked" : "") + (scanBusy ? " disabled" : "") +
+const sw = (attr, on, label, key) => '<label class="switch" data-parity="' + key + '"><input type="checkbox" ' + attr + (on ? " checked" : "") + (scanBusy ? " disabled" : "") +
   ' aria-label="' + scanEsc(label) + '"><span class="switch-track"><span class="switch-thumb"></span></span></label>';
-const row = (label, right) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + right + "</div>";
+const row = (label, right) => '<div class="settings-row"><span class="settings-label" data-parity="settings-scanner.name">' + label + "</span>" + right + "</div>";
 // The help behind ⓘ, as on every other settings page.
-const info = t => ' <button class="settings-info-btn" type="button" data-info="' + scanEsc(t) + '" aria-label="Info">ⓘ</button>';
+const info = t => ' <button class="settings-info-btn" type="button" data-parity="settings-scanner.info" data-info="' + scanEsc(t) + '" aria-label="Info">ⓘ</button>';
 const names = a => (a.artist ? scanEsc(a.artist) + " — " : "") + scanEsc(a.title);
-const btn = (act, off, label, primary) => '<button type="button" class="id-btn' + (primary ? " is-primary" : "") + '" data-id-act="' + act + '" data-id-off="' + off + '"' + (scanBusy ? " disabled" : "") + ">" + label + "</button>";
+// [key]: its screens-contract key, written out where it is called (npm run parity reads them there).
+const btn = (act, off, label, primary, key) => '<button type="button" data-parity="' + key + '" class="id-btn' + (primary ? " is-primary" : "") + '" data-id-act="' + act + '" data-id-off="' + off + '"' + (scanBusy ? " disabled" : "") + ">" + label + "</button>";
 
 function scanStatus() {
   const s = st.settings;

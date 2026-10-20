@@ -1,5 +1,5 @@
 // Catalogue.cs — Qobuz's and Tidal's catalogue as the page browses it (v0.8.39,
-// stage 4.1 of docs/specs/csharp-migration.md), from lib/qobuz/index.js,
+// stage 4.1 of old/csharp-migration.md), from lib/qobuz/index.js,
 // lib/tidal/index.js and lib/services/streaming.js, rule for rule: new
 // releases, the featured lists, search, an artist's albums, an album and its
 // tracks, and whether an album is in the account's favourites. The account,

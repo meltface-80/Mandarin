@@ -230,7 +230,7 @@ function serviceBrowserViews(sb) {
         // Qobuz's editorial bio (same clamp/expand as the library artist view).
         if (j.biography && artistHeadEl) {
           const bio = document.createElement("div");
-          bio.className = "artist-bio-body qobuz-artist-bio";
+          bio.className = "artist-bio-body qobuz-artist-bio"; bio.dataset.parity = "service-artist.bio";
           const text = document.createElement("div");
           text.className = "bio-text";
           text.dataset.clipped = "true";
@@ -239,10 +239,10 @@ function serviceBrowserViews(sb) {
           foot.className = "artist-bio-foot";
           const toggle = document.createElement("button");
           toggle.type = "button";
-          toggle.className = "bio-toggle hidden";
+          toggle.className = "bio-toggle hidden"; toggle.dataset.parity = "service-artist.bio-more";
           toggle.textContent = "Show more";
           const src = document.createElement("span");
-          src.className = "artist-bio-src";
+          src.className = "artist-bio-src"; src.dataset.parity = "service-artist.bio-source";
           src.textContent = "Bio: Qobuz";
           foot.appendChild(toggle); foot.appendChild(src);
           bio.appendChild(text); bio.appendChild(foot);

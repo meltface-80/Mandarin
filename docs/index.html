@@ -337,7 +337,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.0.17</span>
+    <span class="badge">v1.1.0</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -349,6 +349,13 @@
 
 <section id="new">
   <div class="wrap">
+    <div class="note"><b>New in v1.1.0</b> (since v1.0.17). <b>The Android app is fully native</b>: every screen is
+      drawn by the app itself (Kotlin and Jetpack Compose), and it no longer shows the server's web page. Its
+      screens and their controls follow the page's, item by item, checked on every build. Shelf opens in the
+      phone's browser. <b>The app's mini player</b> runs the full width of the screen, on the row along its foot.
+      <b>Classical albums</b> are set out as works and movements, with the composers and performers in the
+      album's head, in the browser and the app. <b>The album page</b> leads with its cover, and beside it the
+      title, artist, date, format and length.</div>
     <div class="note"><b>New in v1.0.4</b> (since v1.0.0). <b>Mandarin runs on Linux, in Docker</b> (v1.0.3): Mac
       support is dropped &mdash; no Mac install line, no Mac build in the release, and Mandarin DAC Bridge is no longer
       offered. v1.0.2 is the last version for a Mac; a Mac install keeps working as it is, but its update from
@@ -526,7 +533,7 @@
         <p>A full-screen now playing page for a TV or tablet.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its switch (on by default) and options are in <b>Settings → Setup → Wall Display</b>; off, it is off entirely. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
       <div class="card"><h3><span class="em">📱</span>The Android app<button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
-        <p>The same interface, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.</p>
+        <p>The same interface, drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.</p>
         <div class="how" id="how-android" hidden><b>How to set it up and use it.</b> Download <a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">mandarin-android.apk</a> and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.</div></div>
       <div class="card"><h3><span class="em">🎧</span>This phone<button class="info" type="button" aria-expanded="false" aria-controls="how-phone" aria-label="How to set up and use This phone">i</button></h3>
         <p>The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and radio. At home, your other devices can play to it while the app runs.</p>

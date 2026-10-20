@@ -8,9 +8,8 @@
 // folder: an update lays the new files over the old (Admin/Updater.cs) and
 // removes nothing, so a part since renamed or merged may still be there.
 // Each part is headed by its name (a line comment) and parted from the next
-// by a lone ";", so no two parts can run on into one statement. The Android
-// app's own copy is joined the same way (android/app/build.gradle.kts,
-// bundleSite); test/Mandarin.Tests/PageScriptTests.cs holds the three together.
+// by a lone ";", so no two parts can run on into one statement;
+// test/Mandarin.Tests/PageScriptTests.cs holds the two together.
 // Without the list (a page from before v1.0.5), public/app.js is sent as it is.
 namespace Mandarin.Server;
 

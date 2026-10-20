@@ -21,7 +21,7 @@ function aeRenderMatches(list, verdict) {
   ae.mCands.innerHTML = "";
   list.forEach((c, i) => {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "ae-mcand";
+    b.type = "button"; b.className = "ae-mcand"; b.setAttribute("data-parity", "album-edit.release");
     const top = document.createElement("div"); top.className = "ae-mcand-top";
     const t1 = document.createElement("span"); t1.className = "ae-mcand-t"; t1.textContent = (c.artist ? c.artist + " — " : "") + (c.title || "—");
     const pc = document.createElement("span"); pc.className = "ae-mcand-pc" + (c.similarity >= 96 ? " is-sure" : ""); pc.textContent = c.similarity + " %";
@@ -252,14 +252,14 @@ if (aeEl) {
 function laterMenuItem(album, page) {
   if (!album || typeof album.offset !== "number") return [];
   const on = !!((page && page.album && page.album.later) || album.later);
-  return [{ label: on ? "Remove from Listen later" : "Listen later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
+  return [{ label: on ? "Remove from Listen later" : "Listen later", key: "album.later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
 }
 
 // Add to playlist (v0.8.34): the whole album, into one of your playlists or a
 // new one, through the same sheet as a selection of albums.
 function playlistMenuItem(album) {
   if (!album || typeof album.offset !== "number") return [];
-  return [{ label: "Add to playlist", onClick: () => openAddToPlaylistSheet(null, [{
+  return [{ label: "Add to playlist", key: "album.playlist", onClick: () => openAddToPlaylistSheet(null, [{
     offset: album.offset, title: album.title || "", subtitle: album.subtitle || "", image_key: album.image_key || null
   }]) }];
 }
@@ -273,10 +273,10 @@ function downloadMenuItem(album) {
   if (album.source && album.source !== "local") return [];
   let st = {};
   try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
-  if (st.state === "done") return [{ label: "Remove from this phone", onClick: () => dl.remove(album.offset) }];
+  if (st.state === "done") return [{ label: "Remove from this phone", key: "album.download", onClick: () => dl.remove(album.offset) }];
   if (st.state === "downloading" || st.state === "queued" || st.state === "waiting") {
-    return [{ label: `Downloading… ${st.done || 0}/${st.total || "?"}`, onClick: () => dl.open() }];
+    return [{ label: `Downloading… ${st.done || 0}/${st.total || "?"}`, key: "album.download", onClick: () => dl.open() }];
   }
   if (isPhoneAlbum(album)) return [];
-  return [{ label: "Download to this phone", onClick: () => dl.download(album.offset, album.title || "", album.subtitle || "") }];
+  return [{ label: "Download to this phone", key: "album.download", onClick: () => dl.download(album.offset, album.title || "", album.subtitle || "") }];
 }

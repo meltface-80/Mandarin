@@ -1,7 +1,7 @@
 "use strict";
 /*
  * server.js — the C# server alone, as the image will run it (v0.8.50, stage 7
- * of docs/specs/csharp-migration.md): started on a port of this file's own
+ * of old/csharp-migration.md): started on a port of this file's own
  * (test/ports.js) with a test's environment, waited for, stopped. No Node
  * server anywhere (none since v0.9.0). The environment the suite gives every
  * server (test/setup.js: nothing off this machine, no identification scan, no

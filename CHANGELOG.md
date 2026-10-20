@@ -1,5 +1,634 @@
 # Changelog
 
+## v1.1.0
+- `111-webview-gone`: the Android app has no web view (O2 in old/plan-android-native.md): it opens on its own
+  Home (`ShellRoute.HOME` the first route), and `MainActivity` holds the shell, the pickers and the volume keys, the
+  server's reachability moving to `ServerReach.kt` (the same looks and timings; the copy of the server's last answers
+  refreshed while it answers). What the screens handed to the page is the app's own (`ShellHand.kt`): the row's
+  buttons; the screen settings the page kept (core `ScreenPrefs`: the UI Settings, the Library's view, the share card's
+  service) and the room (`Store.zone`, written as it is chosen or grouped), with a backup's "page" part made from them
+  under the page's own `rra-*` names and restored to them; Now playing's album (core `NowAlbum`, the page's matcher:
+  the playing track's own album, else a search matched by credited name); the update offer (core `UpdateBanner`,
+  updater.js's words and steps; `UpdateNow.kt` looks for it while Home is up and installs the server's update, then
+  the app's; Settings → Updates hands its find to it; `AppUpdate`'s own dialog is gone); the server's gate shutting on
+  the phone (core `GateWatch`: a 401 saying "Sign in to Mandarin", not a wrong password) opens the sign-in screen; the
+  side menu's Shelf opens `/shelf` in the phone's browser; Android's stretch past a list's ends is off for every screen
+  (`MandarinTheme`), as it was for the WebView (v1.0.7). Deleted: `PageFrame`, `PageGuard`, `PageCurtain`,
+  `PageRelay`, core `PageWatch`, `AppBridge`, `BackupBridge`, `OfflineSite`'s page copy and the APK's `bundleSite`
+  step, the `androidx.webkit` library, `test/offline-bundle.test.js` and its C# twin. The page's Android glue stays on
+  the server until the next release, for older apps.
+- `112-server-notices-native`: the server's notice at the head of the app's Home is worked out by the app (O2-5 in
+  old/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
+  data not kept, no music folder, a first scan, no audio found, starting up, a music folder gone with Forget or Remove
+  the missing ones and its question, no Sonos rooms; none offline, nor a folder or the rooms away), asked again as the
+  page asks; `Notices.watch` keeps it while Home is up, and Forget asks its question and forgets the folder itself
+  (`/api/library/forget-folder`). `test/server-notices-words.test.js` holds every phrase to the page's. The page now tells
+  the app the update offer alone.
+- `113-mini-player-steady`: the docked mini player no longer dips when moving between screens. Each native screen
+  draws its own mini player, and one just opened followed its room from nothing (no track known, no cover fetched), so
+  the bar was first drawn without its cover and room line, shorter, then grew back. `followRoom` now keeps each room's
+  state while the app runs and a screen starts from it, and `rememberImage` keeps what it fetched (as the tiles' covers
+  are kept), so the bar's first frame on a new screen is the last screen's.
+- `110-downloads-retry-native`: the app's old Downloads screen (`DownloadsActivity`, a View screen) is deleted, with the
+  error panel's On this phone that opened it and the page-load error's automatic open of it (both dead since the page's
+  copy took over offline). Its two buttons move, as the owner asked: Try again on a download that failed, in Settings →
+  Downloads' albums (`settings-downloads-albums.retry`, the page's and the app's; `MusicdDownloads.retry`), and Try the
+  server again in the Offline dialog when the server can't be reached (`offline.retry`; `MusicdApp.lookForServer`, the
+  server looked for now rather than at its next look). An album's ⋯ → Downloading… (`MusicdDownloads.open`) opens
+  Settings → Downloads' albums (`ShellRoute.settings("downloads-albums")`).
+- `109-offline-native`: offline, the Android app stays native (O1's switch-over, old/plan-android-native.md).
+  With Offline mode on or the server out of reach, MainActivity no longer loads the page's copy kept in the APK: it
+  parks the page (stopped, blank) and the native screens stay in front (`OfflineNow`), asking the phone the same
+  questions they ask the server (`Store.screenClient`: core `PhoneAnswers` through a `LocalTransport`; the services keep
+  the server's client). The row along the foot is the app's own offline too (Home, the Library wall, the side menu, the
+  search, the Offline sign's dialog saying why); the page's sheets, which need the server, aren't offered. The menu's
+  Offline Mode switch no longer reloads the page under a picture of the screen. Home's rows are read afresh on each
+  switch (`HomeKept.reset`).
+- `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
+  page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
+  `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from
+  the server when it answers. Its other buttons are the page's for now; Download isn't offered, as on the page. `AlbumScreen.kt`
+  gives its head's lines and ⋯ menu to `AlbumHeadParts.kt`, and `NativeShell.kt` its hand-off helpers to `ShellRoutes.kt`.
+- `107-offline-phone-room`: step 3 of O1 (offline natively). The rest of the app's offline answers move into core:
+  `PhoneRoom` (this phone as the one room: its zone and output, what it plays, its queue, the plays and transport sent to
+  its player through a `Deck`), `PhoneFormat` (the format badge) and `PhoneAnswers` (the router: the server's own status,
+  the library, the room, a setting as the server last gave it, and "Not available offline" for anything else). The app's
+  `OfflineApi` becomes an adapter giving them the phone (its player as a `PhoneDeck`, its audio device in
+  `PhoneDevices.kt`, its covers). A selection of albums played offline was queued twice (the app sends a selection's
+  albums both as items and as offsets, and both were read); now once.
+- `106-offline-phone-shelf`: step 2 of O1 (offline natively). `ServerClient` asks through a `Transport`: over HTTP
+  (`HttpTransport`, the code it had) or answered in the app (`LocalTransport`), so the native screens can be answered
+  offline without a change of their own. The library on the phone moves into core as `PhoneShelf` (from the app's
+  `OfflineApi` and `LocalMusic`): the wall sorted and paged, random albums, search, an artist's albums, an album's page
+  (the one saved, or made for an old download), the phone's own music with its badge, downloads as the library has
+  them, and the rows the phone keeps nothing for, empty. Today's offline mode answers from it already. Random Album
+  offline now plays one of the phone's albums; it asked for `/api/pick-unheard`, which offline answered with nothing.
+- `105-offline-dialog-native`: the first step of O1 (offline natively, old/plan-android-native.md). The Offline
+  sign in the app's row along the foot opens the app's own Offline dialog, the page's (server-notice.js openOffline)
+  drawn natively: the heading, why only the music on this phone shows, and Switch offline mode off beside Close when
+  Offline mode is on. Its words live in core (`Offline.kt`), held to the page's by `test/offline-words.test.js`; the
+  dialog is a contract screen (`offline`) with the page's keys on `#offline-overlay`.
+- `104-one-prompt-one-share-sheet`: the Android app had grown three name boxes (`NamePrompt.kt`, one inside
+  `SmartSheets.kt`, `PromptDialog.kt`) and two playlist share sheets (`PlaylistShareSheet.kt`, `ShareTracksSheet.kt`),
+  each a copy of the page's one drawn a little differently. Now one of each: every name is asked in `NamePrompt.kt`, and
+  a Dynamic Playlist's Share opens the playlists' sheet, its file read into the same `ShareFile` with what reading found
+  as its `ShareCaveats`. The duplicate `share-tracks` screen leaves the screens contract (the page's sheet is keyed
+  `playlist-share` alone); `TrackShare` keeps only the reading of a Dynamic Playlist's tracks.
+- `103-scanner-pack-null`: Settings → Library Scanner's MusicBrainz pack read "null" after the folder's free space in
+  the Android app. Android's JSON reader gives the word "null" for a field the server sends empty (the JVM's gives
+  nothing, so the core tests never saw it); the pack's folder problem, the check's error and the job's error showed it
+  whenever there was none. The scanner's every text read from the server now takes an empty field as nothing, held by
+  tests that read the JSON as Android does. Choosing the pack's folder no longer shows the toast "The pack’s folder is
+  set", in the app or on the page.
+- `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
+  the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
+  rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
+  what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
+  keeps the floating bar.
+- `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
+  what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
+  "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the
+  heading keeps the room the line used to end with (18). The page's Change password keeps the name signed in itself
+  rather than reading it back from the line.
+- `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
+  else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
+  with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
+- `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
+  good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
+  cleared it only once the page came: the Library left or drawn again before then, the request was called off and the
+  flag stayed up, so every visit after asked for nothing. Seldom at home, where the first page comes at once. The flag
+  is now let go however the request ends; and a first page that failed ("Couldn't load") is asked for again when the
+  Library is opened again.
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
+- `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
+  outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
+  question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
+  each button's question to the app with the notice, the app asks it as the page's yes-or-no sheet, and the page does
+  its work once told it was answered Yes. The side menu's Restart and Shut down are now the app's own too: the
+  question (Shut down saying how the server is started again), then the screen over everything while the server is
+  away, as the page's (`power-cover` in the screens contract), until it answers again, the page under the app read
+  afresh with it. Shelf stays the page's, a page of its own; the Offline dialog and the signed-out state go with the
+  offline work (O1); a Music on device album's page is still the page's.
+- `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
+  Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
+  phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
+  match and those found on another album, each listed, and Save as a playlist, which asks its name in the app's own name
+  box (the page's, natively) and makes it, the Playlists screen and Home's row taking it at once. Share (a playlist's ⋯ →
+  Share): how many tracks and what was left out, what sharing means, the playlist as text; Copy, Download (the `.musicd`
+  file to the phone's Download/Mandarin folder, where Import's Choose a file… finds it) and Done. The page's sheets and
+  name box are keyed for the screens contract (`playlist-import`, `playlist-share`, `prompt`). On the page, Choose a
+  file…'s words sit in the middle of the button (they sat at its top), and the name box's field is in the page's face, not
+  the browser's.
+- `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
+  screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
+  Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);
+  the name box (Save as… from the Library too), the save made on the app's lane of changes to what Home shows, what it
+  plays of the albums that match said, the playlist or the list read again; Share (its tracks read album by album, the
+  server's file shown with how many tracks went in and every reason it holds less, Copy to the clipboard, Download to
+  Downloads/Mandarin). Show albums or Clear all from a playlist's Focus open the Library in that view, as the page's
+  do. The page's sheets are keyed for the screens contract (`smart-new`, `prompt`, `share-tracks`); its hand-offs stay
+  for an app not yet updated.
+- `89-native-settings-audio`: Settings → Audio Devices natively in the Android app (plan T6), as the page's: the zone the
+  controls play to; every player the server sees, a row each (its icon, name, what it is and whether it plays) with its
+  switch where it can be switched off; Hide / unhide (the rows ticked, OK, and what came of it said) and Look again;
+  Waveform. A row opens the device's own page: on or off, Random album radio, a phone's Other devices can play here, its
+  name (and Use the network name), About, its capabilities as chips (tapped on or off where they can be set), Output
+  (the mode, the depth, Fixed volume), Volume levelling with its level, the DSP (a headphone profile found on AutoEq by its
+  name or pasted, the bands' curve drawn from the same maths the server runs, each band's type, Hz, dB and Q, Add band,
+  the headroom Auto or set, Save), this phone's USB DAC (Allow, what it takes, USB direct, fixed volume, the limit, how
+  DSD goes, what it is being fed, Copy), and Forget this device. The page's are keyed for the screens contract
+  (`settings-audio`, `settings-device`).
+- `92-native-settings-backup-updates`: Settings → Backup & restore and Settings → Updates natively in the Android app
+  (plan T9), as the page's. Backup & restore: the parts to put in, each ticked or not with what it holds (the whole
+  database with its size), a passphrase, Back up to a file on this phone (Android's own "save as") or to the server, and
+  what came of it; Restore from a file on this phone (Android's own "open"), and every backup, the server's and this
+  phone's, newest first, each with where, when, what version, how big and what it holds, Restore… (its parts, a sealed
+  one's passphrase, Restore now, asked first), Download (one of the server's, saved to this phone and listed with its
+  files) and Delete (asked first). A restore is made on the app's lane of changes; this screen's own settings travel
+  with a backup and come back with a restore (handed to and from the page, where they live); once the server is back
+  from its restart the app starts again on what was restored. Updates: Check for updates looks for the server's update
+  and the app's at once, then offers to install what it found, in brass, with the server's release notes, or says how
+  things stand; installing is handed to the page's update banner on Home, where its progress shows. The pages are keyed
+  for the screens contract (`settings-backup`, `settings-system`).
+- `90-native-settings-scanner`: Settings → Library Scanner natively in the Android app (plan T7), as the page's: the
+  schedule (on or off, its start and end chosen on the phone's own clock, what runs now); Identify albums and Ask
+  iTunes too; the MusicBrainz pack (what is downloaded and from when, Download, Update or Remove, the download's progress
+  every second, its folder, and Change… among the server's drives and folders); identification's progress and Check the
+  proposed and unidentified again; Measure ReplayGain and how far it has got; Clean up, each kind with its Remove,
+  asked first; the processor; and the proposed, unidentified, applied and declined albums, each opened by its name, with
+  Accept and Reject, Undo or Check again, and Barcode… to match it by a barcode or a MusicBrainz link, the first 60 of
+  each until Show all. Each block is drawn from its own answer as it comes and asked for again every five seconds. The
+  page's is keyed for the screens contract (`settings-scanner`).
+- `97-label-logos-status-gap`: the server's label scan said, for a moment, that nothing was running between two passes:
+  between a logo pass and the one asked for while it ran (a second API key saved during the first pass), and between
+  the label lookups and the logo pass that follows them. Whoever waited for the scan to end (the page's and the app's
+  Record labels, and the label-logos test, which failed on dev for it) could read the logos before the next pass had
+  looked. The running pass now hands over to the next without letting go.
+- `93-native-add-to-playlist`: Add to playlist natively in the Android app, as the page's sheet, from an album's ⋯, from
+  tracks picked on an album's page, and from albums picked on a wall or an artist's page: how many are being added and
+  ✕, then ＋ New playlist… (named in the app's own name prompt, My playlist suggested) and each of your playlists with
+  how many tracks it holds. What came of it is said as the page says it (how many tracks, from how many albums, a
+  playlist now full, an album that couldn't be read, named). Made on the app's lane of changes to what Home shows, so
+  Home's Playlists row has it when Home is back. The page's sheet and name prompt are keyed for the screens contract
+  (`add-to-playlist`, `prompt`).
+- `91-native-settings-downloads`: Settings → Setup → Downloads natively in the Android app (plan T8), as the page's: the
+  Downloads row (how many albums, the space they take, how many are on the way) opening the albums; Offline mode;
+  Downloading (the quality, where to save, the download folder chosen, changed or forgotten, Allow for the all files
+  access it needs, Move all here for the albums saved elsewhere, the size limit, Wi-Fi only); Playing away from home;
+  Cached ahead (on Wi-Fi, on mobile data, the cache's size, how much is ahead, Clear cache); Automatic downloads. The
+  albums: each with its cover, title, artist and how far it has come, Play on this phone, Remove; Select (each ticked,
+  Select all or none, Done, Remove the ones ticked) and Clear all, each asked first; an album tapped opens its page.
+  Read again every two seconds while open, so a download is seen moving on; Home's Downloaded albums row follows a
+  removal. The page's pane is keyed for the screens contract (`settings-downloads`, `settings-downloads-albums`), its
+  switches and lists named for their rows; the page test and the page measurements stand the app's bridge in and ask
+  for the page as the app does (its user agent, so the server adds android.css), through new `init` and `app` options.
+- `88-native-settings-folders`: Settings → Music Folders natively in the Android app (plan T5), as the page's: the
+  server's folders as cards (icon, name, path, how many tracks, or that it isn't there or can't be read and what to do),
+  Remove where there is more than one (asked first); Add a folder, which browses the server's folders (Cancel, where it
+  is, the mounted drives and shares, Up, the folders in it, those in the library marked, Add it or that it is in the
+  library already); what is said of them (what a container must mount); then Music on this phone with its ⓘ: Choose a
+  folder, or the folder with its albums, tracks and when it was read, Read again, Change folder and Forget (asked
+  first). The page's is keyed for the screens contract (`settings-folders`). On the page, Add a folder opens the
+  folder browser at once, its folders filling in when the server answers, where it waited for the server first.
+  The contract's labels in core are written in parts of 300 at most (`ContractLabels1.kt` …, joined by `Contract.kt`):
+  one file had reached the length watch, and each screen made native adds to it.
+- `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
+  Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
+  tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed
+  in, the stream quality, the favourites in the library on or off, Update library now, Sign out, and what the library
+  holds of the service, asked again while it is being brought in. The page's is keyed for the screens contract
+  (`settings-services`). On the page, the box of a Tidal sign-in under way (its note and Cancel, with no link or code)
+  no longer stands under Sign in on tidal.com when no sign-in is under way: its `display: flex` outranked the hidden
+  attribute. A test of item 83's that took the first of two saves to be still under way when the second was asked for,
+  which it need not be, now holds the first until the second is asked.
+- `85-home-rows-after-marks`: in the Android app, an album put on Listen later (from its page, or picked on a wall)
+  showed in Home's Listen later row only once the app was started again, sometimes; a favourite likewise. The change was
+  made beside Home's read of its rows, which could be answered first, and from the screen that asked, which dropped it
+  if that screen closed first. The app's changes to what Home shows (Listen later, favourites, the rows' order) are now
+  made one at a time, in the order asked, to the end whatever becomes of the screen, and Home reads its rows once those
+  under way are made.
+- `84-listen-later-removed-crash`: the Android app crashed a moment after an album was taken out of Listen later (or out
+  of any of Home's rows, emptied or shortened under it). Each of Home's rows of tiles was told how many tiles it had when
+  Home was drawn, and looked each up in the row as it is now: an album taken out between two frames left it asking for a
+  tile the row no longer had. A row now draws its tiles from a copy of the row as it was when drawn.
+- `83-home-order-after-settings`: in the Android app, Home's rows put in a new order in Settings → Home Screen showed in
+  that order only once the app was started again. Home reads its layout from the server the moment it is back on
+  screen, and that read could be answered before the new order was saved; the save's own answer was dropped when the
+  page closed. Home's layout is now read and saved one call at a time, in the order asked, so Home's read waits for a
+  save under way, and a save finishes and lays Home out from the server's answer whether the page is still open or not.
+- `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Music
+  Folders, Services, Audio Devices and the rest; Home Screen too, before item 81) left the app unresponsive until it was swiped away. The
+  page was put in front of the app's Settings to show it, but the rule that keeps the rest of the page out of sight
+  while one of its sheets is over an app screen hid the Settings sheet too: an empty, clear page took every tap. The
+  Settings sheet is now shown when it is the one asked for, and the page comes in front only once its sheet is seen,
+  so a sheet that stays out of sight can never cover the app's screen again.
+- `81-native-settings-home`: Setup's Home Screen page natively in the Android app (plan T3), as the page's: the
+  greeting and Random Album, each on or off on this phone; Home's rows in their order, each with its handle, its name
+  (and why it can't be switched: a setting behind it off, or Downloaded albums while albums are on the phone) and its
+  switch. Held by its handle a row follows the finger and the rows it passes step past it; let go, the order is saved,
+  as a switch is at once, and the native Home is laid out from it straight away. On the page, Downloaded albums' reason
+  now reads on its own line under the name, as a row whose setting is off already did, instead of run into the name and
+  cut off. The page's is keyed for the screens contract (`settings-homescreen`). With it, every page of Setup is the
+  app's own.
+- `80-native-settings-share-away`: the last two of Setup's pages natively in the Android app (plan T2), as the page's:
+  Share Card (the review on the card on or off, the services and the review sites to link to, each on or off, and the
+  default service chosen from those on, the same default the card's held chip sets) and Away from home (the server's
+  built-in Tailscale on or off, its status, name and address, Sign in, which opens Tailscale's page, or Sign out, what
+  Tailscale warns or what went wrong, read again every three seconds; This phone, the app's own Tailscale). The page's
+  are keyed for the screens contract (`settings-sharecard`, `settings-away`). Every page of Setup is now the app's own.
+- `78-native-settings-setup`: five of Setup's pages natively in the Android app (plan T2), as the page's: Smart Picks
+  (on or off, the hour the day's picks are built, Rebuild today's picks now), Record labels (on or off with how many
+  labels, logos and tagged albums the server has, a label's albums in order or shuffled, the fewest albums a label
+  needs, Force rescan and what came of it, the label from a folder's depth), UI Settings (album and artist text, grid
+  screen title, menu and Home text, grid layout, tile size), Wall Display (on or off, how often it turns over) and
+  Shelf (on or off), each setting's ⓘ with its help. A list opens as the phone's own list of choices, as the page's
+  did in the app. What the server keeps is saved there at once; what the page keeps on this device (UI Settings, a
+  label's order and minimum) is handed to the page (`page-pref`) and kept by the app, whose screens follow it. Share
+  Card and Away from home follow.
+- `79-settings-freeze`: opening Settings from the Android app's side menu froze the app. The native Settings' icons
+  were the page's SVG paths as written, an arc's flags run into the number after them, a form none of the app's other
+  icons uses; every arc's numbers are now each set apart, and `test/android-vectors.test.js` holds every drawable to it.
+- `77-album-editor-heading-serif`: the native album editor's heading, Edit album, is in Young Serif as the page's is (it
+  was in Manrope); a test holds every title the page sets in the serif to be drawn in the serif by the app.
+- `76-native-settings-account`: Settings natively in the Android app (plan T1), from the side menu, as the page's: the
+  list over the whole screen (✕ and Settings in the serif, a row a section with its brass icon, the server's version and
+  View on GitHub at the foot); Setup's list (the app's Downloads in it); Account (who is signed in, the devices signed in
+  with when each was last seen, Sign out on each but this one, Sign out of this device, which takes the app to its
+  sign-in, and Change password, proved with the current one as the page does it); API Keys (Discogs, FanArt.tv and
+  Last.fm, each with its ⓘ, the box saying what the server has, its ✓ or ✕ once checked, Save). The pages not yet
+  native open on the page alone over the app's Settings, each as its row opens it, and their Back comes back to the
+  app's list. The page's Settings is keyed for the screens contract (`settings`, `settings-setup`, `settings-account`,
+  `settings-keys`).
+- `75-native-share-card`: the Share card natively in the Android app (plan B4), from an album's native page and from
+  Now playing, as the page's: a panel over the screen (centred above the mini player and the row where they show), ✕
+  in its corner, the card drawn by the app itself with the page's measurements (core's `CardLayout`, sharecard.js's
+  arithmetic) and its look (Manrope; the cover softened behind a glass pane; the cover, the release, the title and the
+  artist stepped down in size to fit four lines; the review under a hairline with whose words they are; Pitchfork's
+  score and Best New Music on the cover; the duck tile in the corner), from the server's cache first and drawn again if
+  the full answer says more; Share… (the phone's share sheet) and Download (to Pictures/Mandarin, also by holding the
+  card); the places to hear or read about the record, as equal chips, a service held as the default (ticked, and the
+  page's default too), Qobuz's chip given the album's own address where it is the default; If you like this, each act
+  queued from the library in the room or found on the default service; the hint. Before, the page's card opened over
+  the native screen. The page's card is keyed for the screens contract (`share-card`; Copy image is the page's alone).
+- `74-native-album-editor`: the album editor and the matcher natively in the Android app (plan B5), from an album's ⋯,
+  Edit album, as a sheet from the foot over the album's native page, as the page's: its grip, Edit album and ✕; the cover
+  with what is said of it, Find cover (an album with no cover of its own is searched for at once, and a sure match
+  chosen), the covers found to choose from (the sure one marked Match) or an image's address pasted and shown before it
+  is used, Remove found cover and Keep current cover; the names from MusicBrainz with the album's folder (and its box
+  set), Find match, the releases offered with how alike each is (Match or Likely on the first), applied with a tap, or a
+  barcode or a release's link; the title, the artist and the year, each with what the files say and Put back; Save,
+  Cancel and Undo all edits, and the note. Once it changes the album, its page is read again and the page's walls are
+  told. Before, the page's own editor opened over the native page. The page's editor is keyed for the screens contract
+  (`album-edit`), its page test opens it on Album One with its title changed.
+- `73-native-service-browsers`: the Qobuz and Tidal browsers natively in the Android app (plan B2), from the side menu,
+  the search's service artists and Pitchfork's Find on Qobuz. As the page's: over the whole screen, the title and ✕, the
+  search field (450 ms after the last key, or Enter) and the tabs (New Releases, then Qobuz's lists, or the ones Tidal
+  says) pinned at the head; the line saying what is shown; the albums as tiles with the service's favourite (+ or ✓) on
+  each cover, a tap on it adding or taking away the favourite; a search's artists as a strip of round pictures; an
+  artist's ‹ Back, picture, name and biography with Show more, and their albums with Load more. A tile opens the album's
+  native page (the server makes its library rows first), and its favourite is read again when the browser comes back.
+  Two contract screens (`service-browser`, `service-artist`), the page keyed and measured against a stand-in Qobuz.
+- `72-snappy-screen-changes`: one native screen now gives way to the next at once in the Android app. Navigation's own
+  cross-fade (0.7 s) ran between every two screens, so the screen being left showed as a ghost over the one coming (Home
+  over Now playing, tapping the mini player); there is no fade now, in either direction, as on the page.
+- `71-native-labels`: the record labels natively in the Android app (plan B1), from the side menu, Home's Label of the
+  week, an album's label and the search's label chips. The list as the page's: the heading and Back, the order (# to Z,
+  Z to #) at the top right, the row's Search finding a label, every label as a tile (its logo, or its name in words) with
+  its name, how many albums and how many merged into it; while the scan runs its bar and what it says (read again every
+  few seconds); with none, Rescan now and the scan log (shared or copied). A long press picks labels to merge into the
+  first, with the merge bar along the foot; "N merged" opens the labels merged into one, each with its ✕. A label's albums
+  are a native wall (its order and fewest albums from Settings → Record labels), with its logo button opening Discogs's
+  logos or an address pasted, Save and ✕. Three contract screens (`labels`, `label-logo`, `label-unmerge`) and the wall's
+  logo, the page keyed and measured.
+- `70-native-pitchfork`: Pitchfork natively in the Android app (plan B3), from the side menu and the search's reviews:
+  the magazine over the whole screen with its title, ✕ and the tabs Latest Reviews and Best New Music pinned at its head,
+  the reviews as the page's woven mosaic three across (every third large, left then right) with their scores (gold for
+  Best New Music), BNM and the album and artist over each cover; a review's page with ‹ Back, the cover, album, artist
+  and score, the note that the review is read on pitchfork.com, Read on Pitchfork (the phone's browser), Open in your
+  library (the album's native page, when the library has it) and Find on Qobuz (the page's Qobuz browser, its search
+  seeded). Two contract screens (`pitchfork`, `pitchfork-review`), the page keyed and measured against a stand-in
+  Pitchfork.
+- `69-native-notices`: the page's notices at the head of the native Home in the Android app (plan R3, in part). Since the
+  native Home came in front from launch (item 64) the page's notices were hidden behind it: the update offer (the
+  server's and the app's, with its notes, Update or Later, its progress and a failure) and the server's notice (an empty
+  library, no rooms, a music folder gone with its Forget, the data not kept). The page now tells the app of them as they
+  change, and the native Home draws them as the page does, at the UI Settings' menu size; their buttons are the page's
+  own, tapped. The home contract screen gains them, the page keyed.
+- `68-native-room-sheets`: Play on's Group zones and Device power natively in the Android app (plan R1), from Now playing
+  and the mini player: the sheets up from the foot as the page's, Group zones with a row for each speaker the room's first
+  may play with (ticked in brass, the first kept and said to keep playing, another room's said, the ones Sonos won't sync
+  left out and said), Cancel and Apply (split, then group, the first speaker's queue kept; the app and the page then follow
+  the new room Roon makes); Device power with each device's controls, Power and Select input, or what it says with none.
+  And the question when a room is chosen while the one left is playing, "Move what's playing in Kitchen to Study?", asked
+  by the app over its own screen: the page asked it unseen behind the native screen, and no longer does for a room the app
+  chose. Two contract screens (`group`, `device-power`), the page's sheets keyed and measured.
+- `67-native-menu`: the side menu natively in the Android app (plan R2), opened by the row's Menu on every native screen:
+  the drawer from the left over the screen dimmed, sliding in as the page's, Mandarin's mark and name with the red power
+  button (Restart, and Shut down where the server can, else how to in Docker), the Offline switch with its line, then
+  Pitchfork, Labels, Qobuz, Tidal and Shelf as the server says, Listen later, Dynamic Playlists, Playlists, Rescan library
+  with how old the library is (the rescan's toasts, a scan still going waited for and its end said) and Settings, at the
+  UI Settings' menu size. Playlists, Dynamic Playlists and Listen later open natively over Home; the rest are the page's
+  own items, tapped. The Offline switch holds the screen while the page loads again, the page's menu open on it as before.
+  A tap beside the drawer closes it, Back too. A contract screen (`menu`), the page keyed and measured.
+- `66-native-dynamic-playlists`: the Dynamic Playlists natively in the Android app (plan P3), opened wherever the page
+  opened its own (the side menu, Home's tiles, a playlist saved from its Focus). The screen: the heading with the bar's
+  Back, New Dynamic Playlist as the first tile (the dashed brass sleeve with ＋), then each saved one with its covers'
+  mosaic, its name and its view in a line. A Dynamic Playlist's page: the bar's Back to Home, ← Dynamic Playlists, its name
+  over what it is made of, its order and its view, Play now and Queue (its albums, as many as one go takes, with how many
+  of how many said), ⋯ with Share (every album read first, then the page's sheet with the file), Edit (the page's Focus
+  with the playlist as what it saves) and Delete (asked first); then its albums as tiles, or its tracks numbered with
+  their covers read a few albums at a time with Load more, and the line saying how many. Two contract screens
+  (`smart-playlists`, `smart-playlist`), the page keyed and measured; a playlist's tile on the page is called by its name.
+- `65-native-playlists`: your playlists natively in the Android app (plan P1, and P2's page), opened wherever the page
+  opened its own (the side menu's Playlists, Home's Playlists heading and its tiles). The Playlists screen: the heading with
+  the bar's Back, Import in the top-right corner, each playlist as a tile of the wall with its covers' mosaic, its name and
+  how many tracks, the last changed first, and the banner while there are none. A playlist's page: the bar's Back to Home,
+  ← Playlists, its name over its hairline and how many tracks, Play now and Queue (each track in turn, the first as asked),
+  ⋯ with Share (the page's sheet with the file) and Delete (asked first), then its tracks numbered, each with its album's
+  cover, a tap playing it. Import is the page's sheet over the screen, and the list is read again when it closes. Two
+  contract screens (`playlists`, `playlist`), the page keyed and measured; a playlist's tile on the page is called by its
+  name. Offline the page's own stay. Dynamic Playlists follow (P3).
+- `64-native-always-on`: the Android app's native Library (its walls and an artist's page with it), Home (with Smart Picks and
+  Random Album's pick) and search are permanently on, as Now playing and the album page have been since item 47: the three
+  preview switches in UI Settings are gone and the page's own versions are no longer reached in the app. The native Home is
+  in front from the app's first frame, drawn to the UI Settings and in the room it was last given, so the page's Home never
+  shows first; it steps aside for the app's own error screen, and for a page that never says where Home stands (a sign-in
+  page). Offline, the page's Home and search stay, as their rows come from the phone, until the native offline mode (plan O1).
+- `61-native-search`: the search natively in the Android app (plan S1 and S2), in a new preview, Native Search in UI
+  Settings, beside Native Library and Native Home. The row's Search, the glass, and a search started elsewhere open it in
+  place of the page's field: the field across the top bar in brass with its ✕ and the count beside it ("3 artists, 3
+  albums", or how far the index is built); under Home's greeting, the library's artists and labels as chips and its albums
+  as tiles, each under its small heading, asked a moment after the last letter; then Qobuz's and Tidal's artists (a strip
+  of portraits) and albums (each with its + or ✓, a tap opening the album's page) and Pitchfork's reviews with their
+  scores, each part landing as it answers, the last words' kept dim until the new ones replace them; the banner where
+  nothing matches anywhere; the mini player and the row out of the keyboard's way while the field has it. An album's page
+  opens over the results and Back comes back to them. A service's artist and a review open the page's own browser and
+  magazine, as they are not native yet. A contract screen (`search`), the page keyed and measured to match, its services'
+  and reviews' sections held in a browser against fakes. Offline the page's own search stays.
+- `63-native-home-review`: the native Home (item 57, a preview) read against the page's, and set right where it differed.
+  A downloaded album the library still has opens its page as any album does (it was played from the phone with "Not in the
+  library right now"), and a download's badge is worn in Downloaded albums and its wall alone, not on the same album in
+  every row. Random albums is new on every visit to Home and Not played kept five minutes only once it has answered, so a
+  failure is asked again next time, as the page's. The Library row asks in the Library's order alone (its Focus and name
+  filter narrow the wall, never the row), the view coming with Home from the page or from the native Library's Sort. The
+  room reaches Home whenever it changes, not only when Home comes in front (it could start with none), and a room chosen on
+  a screen over Home is Home's too. The row's Home goes back to Home from any depth (an artist from an album from a wall),
+  and through one of the page's own screens in front of it. The page's own questions over Home (moving the music to another
+  room, a name asked for) bring the page in front; offline, the page's Home stays in front, its rows the phone's. Home's
+  rows are asked again when one of the page's screens over it closes (Settings → Home Screen, say).
+- `62-home-opener-aotd`: the page test of the screens contract failed on dev on the 20th: its Home check waited for today's
+  album, which leaves Home once it has been played that day, and on the 20th the album the day chose was the one an earlier
+  screen's check plays. The check takes Home without it on such a day; and Home, Smart Picks and the random pick are checked
+  first, before any check plays an album, so today's album and its badge are checked as well.
+- `57-native-home`: the Home group natively in the Android app (plan H1 to H5), in a new preview, Native Home in UI
+  Settings, beside Native Library: Home itself (the greeting with the date over it; the strip under it with Random
+  Album's turning disc and today's album wearing ★ Today; the rows in your order and visibility, each heading a tap to
+  its wall; the Playlists row's mosaics; the Smart Picks cards; the label of the week with its name large; Browse by
+  genre's cards two to a row, each opening a wall of that genre's albums with the reshuffle; and the app's own two rows,
+  Downloaded albums with each download's badge and Music on device, from the phone), Smart Picks as a screen of its own
+  (each pick's cover, reason, Open or ＋ Add, and Not for me) and the album Random Album chose, offered as the page offers
+  it (Play now, Play next, Queue); the walls of a genre, of the downloads and of the phone's music, the last with Focus
+  and Sort over the phone's own facets and sorts. Three screens of the contract (`home`, `picks`, `random-pick`), the
+  page keyed to match and measured in the browser; the page keeps its own Home underneath and tells the app when its
+  Home should be in front (held by a browser test), so the side menu, the search, Settings and the page's own screens
+  come up as ever. The page's Music on device Focus says "Clear all", as the Library's does. The native album page's
+  Play Now says nothing on success (item 58, merged first).
+- `60-composers-only-classical`: an album whose files carry COMPOSER tags (a rock album names its songwriters there) had
+  its page headed as a classical album's: the writers where the band's name goes, the band under them as performers. The
+  composers' head is a classical album's only now (one set out as works, or whose genre says so); every other album's page
+  names its artist alone, on the page and in the app alike (the server decides, in one place).
+- `59-booklet-route`: an album with a booklet (a PDF in its folder) crashed the app when the book on its cover was tapped:
+  the booklet's screen (item 42) was never declared in the app's navigation graph, so the route built for it found no
+  destination. Declared now; and a JVM test holds every route of the shell's to a screen in the graph, so a route without
+  one fails the build rather than the phone.
+- `58-no-playing-toast`: the native album page's Play Now put up a toast saying "Playing" over the mini player, which was
+  already showing what plays. Nothing is said now unless the play failed; Queue, Play next and a track's own actions still
+  say what they did, as the mini player doesn't show that.
+- `56-mini-bar-buttons`: the native mini player's Play on and volume buttons stood 10dp apart where the page's touch, the
+  row's spacing between them; and the 10 came off the title, which was cut short ("Boat Graveya…") where the page's
+  wasn't. Side by side now, as the page's, the title the page's 128 wide.
+- `55-share-card-flash`: the Share card (and the other sheets) opened from a native screen flashed something on the way in
+  and out: the page was put in front before it had painted itself clear, so a frame of Home's covers showed, and on
+  closing the page painted Home again before the screen was back in front. Each way is a handshake now: the page comes
+  in front once it has painted clear (two frames on), and paints its own screens again only once the app has the screen
+  in front. The browser test of the sheets over a native screen holds both.
+- `54-native-exact-look`: every native screen held to the page's own numbers, read from the page itself in a browser
+  (each contract item's size, type and spacing at a phone's width) rather than from a reading of its stylesheet. The type:
+  Material put half a pixel between every two glyphs, so a tile's title stood a twentieth wider than the page's (none now,
+  as the page has none unless it says so); a line set tighter than the font's own height (a wall's heading at 1.2, a tile's
+  title at 1.25, the track on Now playing at 1.15, an album's title) stood taller than the page's line box, which put the
+  heading 5dp low and the tiles' rows apart (laid out as the browser lays them: Type.kt); the wall's figures tabular, as
+  the page's are. The buttons: the same button is the same size on every screen, as the page's are, and a ring or a disc
+  drawn by a plain button's background or border modifier (the wall's Back, the album's heart and ⋯, the volume's − and +,
+  shuffle and repeat, the random wall's reshuffle, the Offline sign) was drawn 48 wide, the button's touch target, not its
+  40 or 44: each is now a filled or outlined button, drawn at its own size. The tiles: the hifi palette's sleeve (corners of
+  12, the faint ring, no shadow), 11 under the cover, the title at 600; the heading and the first row where the page has
+  them; the mini player's pill the page's 96 with its meter where the page's is; the row's words at their own line; the
+  album page's action row 42 tall with the ⋯ menu at the page's sizes, its head's lines at the page's; Now playing's tabs,
+  track, artist, album and badge lines, Play on as the page's popover, the volume sheet 14 over the mini player; the Queue's
+  summary, tools and rows as the page's; the booklet's head; the yes-or-no sheet as the page's own, not Material's. And the
+  Share card (with Add to playlist, Edit album, Group zones, Device power and a Dynamic Playlist's name), asked for from
+  Now playing or an album's native page, opened over Home with the native screen gone: it opens over the screen now, as it
+  opens over the page's own screens, and the screen is there again when it closes. And the page's own Back now closes
+  a lib sheet (Focus, Sort, Group zones, Device power, Add to playlist), the album editor and the name prompt: on Home
+  with one of them open it answered "nothing to close", and the app left the screen.
+- `53-native-wall-look`: the native Library wall, the walls and an artist's page drawn as the page draws them where
+  they strayed (the owner's screenshots): the heading in the page's serif (Young Serif, as the hifi palette sets its
+  titles), the bar's Back a brass disc with the glyph in the charcoal, Focus and Sort as brass pills, and the room
+  between the heading and the first row the page's. The mini player stood 8dp taller than the page's on every native
+  screen: its three lines of text took Material's 24sp body line each, three of which stand taller than the cover;
+  each line is now at the font's own height, as the page's. The sheets', chips', pills' and rows' texts likewise.
+- `52-native-library-group`: the rest of the Library natively in the Android app (plan L2 to L5), in the same
+  preview as the wall (Native Library in UI Settings): Focus (the listening and each facet as a section that opens to
+  its chips, a chip tapped once included, again excluded, once more cleared; Clear all, Save as… through the page's
+  Dynamic Playlist prompt, Show albums) and Sort (a row each way, the one on reversed by a second tap, Random
+  reshuffled) as sheets up from the foot of the screen; the name filter across the top, opened by the row's Search;
+  albums selected by a long press, the bar's hint, the ⋯ with the count and its Play now, Play next, Add to end of
+  queue, Add to playlist… (the page's sheet), Listen later and Clear; the walls Home links to (Listen later,
+  Favourites, Recently played, Not played in 6 months, Random albums with its reshuffle) and an artist's page (the
+  count and the name, the biography with Show more, their albums and those they appear on), each a native screen
+  with the mini player and the row. A change of view on the native wall goes back to the page, so its own wall and
+  Home's Library row follow. Three screens of the contract (`library` whole, `wall`, `artist`), keyed on the page and
+  in the app, each tile carrying all three; the page's check closes a sheet by its own close. `core` holds the view as
+  the page writes it (`LibraryView`, with its JVM test) and reads the facets, the walls and a biography.
+- `51-native-library-wall`: the Android app's Library wall natively, a preview (Settings → Setup → UI Settings →
+  Native Library): a tap on Library opens the app's own wall in the page's view of the library (the sort and the
+  focus as the page's wall asks for them) and at this phone's UI Settings (the columns or the list, the tile and
+  text sizes); the heading with the count, the bar's Back over the albums, the tiles as the page's (the cover with
+  its corners, "♪" without one, the rate in brass when better than CD, a service's mark, two discs), paged sixty at a
+  time as the end comes near, the banner where the library can't be read yet or nothing matches; the mini player
+  and the row along the foot; a tile opens the native album page over it, with the wall as its list for previous
+  and next, and Back comes back to the wall where it was. The wall is the screens contract's (`library`), keyed on
+  the page (the bar's Back and title, the banner, Focus, Sort, the filter, each tile and its parts), with Focus, Sort
+  and the name filter its gaps for L2. The page's check takes the mini player and the row under a wall's root as
+  their own screens' (`shared`). Covers are kept once fetched (`Covers.kt`); the page's UI Settings are read by
+  `core` (`WallPrefs`, with its JVM test).
+- `50-native-track-disc-place`: the brass disc on the track playing, on the Android app's native album page, sat
+  against the first letter of the track's name; it is now in the middle of the room between the track's number
+  and its name, as the page's (nowdisc.js): the number's figures measured as drawn, the disc half the room past
+  them, so a one-figure number and a two-figure one place it alike.
+- `49-classical-works-page-app`: a classical album's page, on the page and in the Android app alike, set out
+  as works and movements as Roon has them (from the server's works, item 48): the composers' line in the
+  artists' place, each a tap to their page, and under it who performs the album, the conductor named as such;
+  WORKS over the list; a work's row with a brass ring that plays it, its name, who it is by where the album
+  has several composers and who performs it, and its length; its movements under it as track rows, indented,
+  with their numbers; a one-track work its own row; a set's discs heading the list; a tap on a work's row
+  opening Play now, Play next and Queue for the whole work. The items are the screens contract's
+  (`composer`, `performers`, `disc-head`, `work`, `work-play`, `work-composer`, `work-performers`,
+  `work-length`, the work's three buttons), keyed on the page (`album-works.js`) and in the app
+  (`AlbumWorks.kt`, `ComposerLines`), so neither can drift; `classical-works.test.js` opens such an album
+  on the page and holds it to the contract. An album with no works is drawn as it always was.
+- `48-classical-works-server`: the server sets a classical album out as works and movements (the page and
+  the app draw them next, item 49). The scanner keeps what the tags say of a track's composer, conductor,
+  work, movement and its number, and performers (`Tags/Classical.cs`; a library from before has every file read
+  once more for them at its next scan), and the album's page answers with `works` (each a work with its movements, or a plain
+  track, in the album's order) and the album's `composers`, `conductor` and `performers`. Works come from
+  the WORK and MOVEMENT tags where the files carry them, or from the titles ("Symphony No. 5: I. Allegro",
+  consecutive and numbered, or by a composer) where they don't; a compilation's "Artist - Title" is left
+  alone (`Works.cs`, held by `WorksTests`).
+- `47-native-screens-always`: the Android app's Now playing (with its Queue) and album page are the app's own
+  always: the two preview switches in Settings → Setup → UI Settings are gone, a tap on the mini player or an
+  album opens the native screen, and the page's Now playing and album page are not reached in the app. The
+  three screens leave preview in the contract. An older app still says it has no native screen, and the page
+  opens its own, as before.
+- `46-native-plan-remaining`: a plan, nothing built: what is left for the Android app to be wholly native,
+  every screen and function of the page's, set out as about forty items in stages (the frame, the Library,
+  Home, Search, playlists, rooms and the menu, labels, the services, the share card and the editor, Settings
+  pane by pane, offline natively, the WebView's end), in `old/plan-android-native.md`.
+- `45-native-volume-sheet`: the Android app's native Now playing and mini player open the page's volume sheet,
+  not Material's menu: a glass pill the width of the screen (at the foot of Now playing; just above the mini
+  bar), the speaker and the level in brass, the slider over the speaker's own scale with its ends written
+  under it (brass to the thumb, the thumb brass), and − and + in brass rings. The level follows a drag at once
+  and is sent as it ends, as the page's does; a room with no volume says it is fixed. The sheet's glass and edge
+  join the palette held to `style.css` (`--bg-veil`, `--glass-edge`).
+- `44-native-album-download-service`: the Android app's native album page's ⋯ has the last two of the page's
+  items: Download to this phone (Remove from this phone, or Downloading… n/m while it goes, following the app's
+  own downloads through the same dialogs the page's bridge uses), and a streamed album's favourite on its
+  service (Add to / Remove from Qobuz or Tidal favourites; removed, the page closes and the walls drop it,
+  `library-changed` in `public/app/native-handoff.js`). The gaps list is empty: the native album page lacks
+  nothing of the page's and is out of preview in the contract, so it can't fall behind the page again.
+- `43-native-album-select`: the Android app's native album page (preview) selects tracks as the page's does: a
+  long press on a track starts it, each row's circle (or the row) picks or unpicks, a picked row washed in
+  brass, and the ⋯ with the count, top right in place of previous and next, opens what to do with them: play
+  now, play next or add to the end of the queue (in the album's order, one at a time as the page sends them,
+  Play next last to first), add to a playlist (the page's own sheet, `album-playlist-tracks` in
+  `public/app/native-handoff.js`), Listen later (the album), or clear. 9 items off the gaps list.
+- `42-native-album-booklet`: the Android app's native album page (preview) has the album's booklet: the book
+  on the cover when its folder has a PDF (one opens at once, several are chosen from a list), and the booklet's
+  pages one under another over everything, each drawn by the server as wide as the screen, with Close and the
+  page count as the page's viewer has them (`BookletScreen.kt`). The viewer is a screen of the contract
+  (`docs/specs/screens.json`, `booklet`): the page's viewer carries its keys, and `test/parity.test.js` gives
+  Album One a booklet and opens it.
+- `41-native-album-nav-notes`: the Android app's native album page (preview) has previous and next beside
+  Share, the album before and after it in the row or wall it was opened from (the page hands the list over as
+  it opens the album, `MusicdApp.openAlbumIn`; the app holds it and each page stepped to keeps its place), the
+  notes under the head (named from its folders; why a streamed album is here, as the page words it; a disc of
+  a box set, with the other discs a tap away, stepping through the box), and the service's mark on a Qobuz or
+  Tidal album's cover. 7 items off the gaps list.
+- `40-native-np-tabs-weights`: the Android app's native Now playing has its Queue tab back, and the brass line
+  under the tab on is as wide as its word (it filled the row, pushing Queue off the screen). Every native screen
+  is in the page's weights now: the variable Manrope's default instance is ExtraLight, and the app drew every
+  weight with it; `res/font` carries a static instance a weight (Regular to ExtraBold), so a title is bold as
+  the page's.
+- `39-native-album-about`: the Android app's native album page (preview) has what the page's has under the
+  tracks: About this album (the write-up, Show more, whose words they are, the link to its page), then More by
+  the artist and the albums they appear on (the library's own, `/api/artist-albums`), then Last.fm's similar
+  artists (with its Last.fm link, and the note when the key is wrong) and similar albums, three of each and More
+  for the rest. An album of the library's opens its own native page over this one, an artist of the library's
+  their page, and what only Last.fm knows its Last.fm page, marked "Last.fm ↗" as on the page. `core` reads the
+  review from the extras and Last.fm's two answers (`Lastfm.kt`), each tested. 16 items off the gaps list.
+- `38-native-touch-nav`: the Android app's native album page (preview) has the touch layout's row along the
+  foot of the screen, as the page's: Menu, Home, Library and Search under the mini player, the one the page is
+  on in brass (the page says which as it opens the album), and the Offline sign between Home and Library when
+  the app is offline. Each tap goes back to the page and taps its own button (`nav` in
+  `public/app/native-handoff.js`), so there is one way to do each thing. The row is a screen of the contract
+  (`docs/specs/screens.json`, `nav`): the page's row carries its keys, and the app has every item.
+- `37-native-album-look`: the Android app's native album page (preview) is drawn as the page's sleeve: the
+  brass corner discs, the cover's glow fading out behind the top, the 160px sleeve with its ring and shadow,
+  the head in the page's type and white (the artists in brass), the heart as the page's (hollow, red once
+  tapped), Play Now and Queue as brass pills and ⋯ outlined, "TRACKS" tracked out over its hairlines, the rows
+  at the page's sizes with the brass disc turning on the track playing in the room (`album.track-playing`,
+  off the gaps list), the open row's wash and its pills. The date line no longer says "null" for an album
+  with no label: Android's org.json reads a JSON null as the word "null" where the JVM's (the tests') gives
+  the default, so each field of the extras that can be null is asked first (`AlbumExtras.kt`).
+- `36-native-np-look`: the Android app's native Now playing (preview) is drawn as the page's, not in Material's
+  own look: the page's type (Manrope, the hifi palette's `--font-sans`, as `res/font/manrope.ttf`, for every
+  native screen), the brass corner discs and the tracked-out tabs with the brass line under the one on, the
+  cover whole in a rounded frame in the room the controls leave, the title and the artists in the page's white,
+  the format badge, the seek bar as the page's level meter with its white thumb (the waveform, when there is
+  one, at the page's 64px), the transport in brass with shuffle and repeat small and dim until on (the "1" inside
+  repeat's arrows), and Play on and the volume under it, each at the page's size and spacing.
+- `35-native-mini-player`: the Android app's native album page (preview) has the mini player at its foot, as
+  the page's bar: what the room plays (its cover and track, the room and the format above them; a tap opens
+  Now playing, the native one when this phone has it on, else the page's), play/pause, Play on and the volume
+  (Now playing's own menus, so each of their items carries both screens' keys), and the track's progress as the
+  brass level meter along the bottom. A room chosen on its Play on is the page's room too. The mini player is
+  a screen of the contract (`docs/specs/screens.json`, `mini-player`): the page's bar carries its keys
+  (`test/parity.test.js` opens it), and the app has every item from the start, so it isn't in preview.
+- `34-background-stop-away` (first part): the Android app says, at its next start, why playback stopped in the
+  background: why Android ended the app (when it was a fault, or came while it was playing), the Tailscale
+  engine ending by itself (its exit code and last lines), or the player giving up away from home (and whether
+  the engine was still running), with Share details as for a crash.
+- `33-native-regex-crash`: the Android app no longer crashes opening native Now playing. Its labels were filled
+  by a regular expression the JVM takes and Android refuses (an unescaped `}`); escaped, and every regex in the
+  app's Kotlin is now checked against Android's rule (`test/android-regex.test.js`), which the JVM tests can't see.
+- `32-native-album`: the Android app's native album page (stage N3, a preview, switched on in Settings → Setup →
+  UI Settings, "Native album page"). An album tapped opens the app's own page of it, in the room chosen: the
+  sleeve and its glow, the head (title, artist, date, label and score, rate and length), the heart, Play Now,
+  Queue and ⋯ (Play Next, Shuffle, Radio, Listen later, Add to playlist, Edit album), and the tracks (a tap:
+  Play now, Play next, Queue). Share card, Add to playlist, Edit album, an artist or a label open on the page.
+  What it lacks yet of the page's (previous/next, booklet, review and the rows under it, selection, Download)
+  is on the gaps list, which only shrinks.
+- `30-album-contract`: the album page in the screens contract, ahead of its native screen (stage N3): its items
+  keyed on the page (`data-parity`) and held by `test/parity.test.js`; the gate holds every key of the contract
+  written in the page's source, so one shown only for some albums (a booklet, a review, Last.fm's rows, the
+  app's Download) can't be lost unseen. Nothing changes on screen.
+- `29-native-queue`: the Android app's native Now playing (preview) has its Queue tab: the queue (play on from a
+  track; a long press picks tracks to play now, next or remove; Clear all) and what played earlier (put one back
+  next, or several next or at the end), each asked first in a native copy of the page's yes-or-no sheet. The
+  screens contract holds the Queue and the sheet too (one element can carry two screens' keys), and none of the
+  three native screens lacks anything of the page's.
+- `28-album-head-lines`: the album page's head is a line each beside the sleeve: the title, the artist, the
+  release date (its label and score after it), then the rate (16/44.1, hi-res in brass) and the album's
+  length. The rate leaves the cover, the length the Tracks line; the date no longer wraps with the artist.
+- `27-native-np-links`: the Android app's native Now playing (preview) has Share card, the artists (each with
+  a page of their own a tap away) and the album, handed back to the page's own (`share`, `artist`, `album` in
+  `public/app/native-handoff.js`), and the track's waveform under the seek bar, folded as the page folds it
+  (`Waveform.kt`). The gaps list is down to 2: the Now playing and Queue tabs.
+- `26-native-np-controls`: the Android app's native Now playing (preview) has shuffle and repeat, the format
+  badge, the volume menu (its scale, a step down and up, or "Volume control is fixed") and Play on (each room,
+  Group zones and Device power, which open the page's own sheets through `public/app/native-handoff.js`, and
+  pause and mute every room), in the page's own icons. The gaps list is down from 23 to 6.
+- `25-native-parity`: the screens contract (`docs/specs/screens.json`, `docs/specs/native-parity.md`): each
+  screen the Android app draws natively, its controls and readouts by key and its labels. The page is held
+  to it in a browser (`test/parity.test.js`), the app by `npm run parity` in the gates (every control and
+  readout of a native screen keyed, its labels from the contract's `Contract.kt`), so neither side can gain
+  or lose an item alone. Native Now playing, in preview, lacks 23 of the page's items, listed in
+  `tools/quality/parity-gaps.json`, which only shrinks; its room name, which the page doesn't show, is gone.
+- `23-android-native-nowplaying`: native Now playing in the Android app, a preview behind a switch in
+  Settings → Setup → UI Settings: the room's track, cover, seek and transport; the mini player hands over to it.
+- `24-album-page-sleeve`: the album page leads with a 160px sleeve, the title and the artist line
+  beside it, and the buttons straight under them, on a phone, a tablet and a desktop alike; the
+  cover's colours glow behind the top again; previous and next sit beside Share; the ⋯ menu opens
+  downwards over the tracks; from 720px up About this album is a column beside the tracks.
+- `22-android-native-n1`: the Android app's typed client for the library (`LibraryClient`, `Library.kt`):
+  albums, an album's page, artists, search and Home's rows. The server's answers on the test library
+  are kept in `test/golden/android-api.json` (AndroidApiTests), and the app's tests read its client's
+  from there (LibraryTest): a change to either side fails until the other is told.
+- `21-android-native-n0`: the Android app's native shell (stage N0 of
+  `old/plan-android-native.md`): Compose, its navigation and Mandarin's graphite and brass
+  (held to the page's palette by a test), laid over the page's WebView. Nothing on screen changes;
+  the native screens go in it from N2.
+- `20-dev-branch`: `migration` is `dev` now: its pushes publish `ghcr.io/meltface-80/musicd-server:dev`
+  and the Android app's `test-android` pre-release; work is merged there, the version moved when
+  the owner says (CLAUDE.md section 4).
+- `19-apk-publish-on-latest-main`: the Android app is put in dist/ on main as it is now, not on
+  the commit it was built from (`.github/publish-apk.sh`): two merges close together left the
+  second's pull request in conflict (1.0.17's, published by hand), and an older version's run
+  ending last no longer puts its app over a newer one.
+
 ## v1.0.17
 - `18-test-races`: a scan isn't said to have ended (/api/status) until the library has been read
   again: for a moment it was, and albums asked for then were the ones from before it, or "still
@@ -10,7 +639,7 @@
 ## v1.0.16
 - `16-17-plans-ios-pwa-android-native`: plans, nothing built: playback on the iPhone's home-screen
   app (`docs/specs/plan-ios-pwa-playback.md`) and a native Android app
-  (`docs/specs/plan-android-native.md`).
+  (`old/plan-android-native.md`).
 
 ## v1.0.15
 - `15-spaces-in-search-fields`: a space typed in the Library's filter stays, so two words can be
@@ -377,7 +1006,7 @@ Mac** (`v0.9.7-apk-name`).
   which failed on this about one run in seven (and on `migration` at v0.9.4), passes every time.
 
 ## v0.9.4
-**The audit's documentation** (`docs/specs/audit-b4-main.md` module 5). Nothing changes in use.
+**The audit's documentation** (`old/audit-b4-main.md` module 5). Nothing changes in use.
 
 - **Every route listed** (D2, `docs/specs/api.md`): 202 routes, each with its method, address, who
   may ask (open, signed in, a signed address, the server's own key) and the file that answers it.
@@ -392,7 +1021,7 @@ Mac** (`v0.9.7-apk-name`).
   suppressions, so a new empty one fails the lint. `public/app.js` stays at 19,582 lines.
 
 ## v0.9.3
-**The audit's performance** (`docs/specs/audit-b4-main.md` module 4). The same answers, made
+**The audit's performance** (`old/audit-b4-main.md` module 4). The same answers, made
 less often.
 
 - **The library's lists are kept once made** (P1, `LibraryRoutes.Kept.cs`):
@@ -409,7 +1038,7 @@ less often.
 - `test/library-kept.test.js` (new).
 
 ## v0.9.2
-**The audit's code quality** (`docs/specs/audit-b4-main.md` module 1). Nearly nothing changes in
+**The audit's code quality** (`old/audit-b4-main.md` module 1). Nearly nothing changes in
 use: the server reads and answers requests one way everywhere, and its code is split, renamed
 and checked by its build.
 
@@ -437,7 +1066,7 @@ and checked by its build.
   writer's answer.
 
 ## v0.9.1
-**The audit's tests** (`docs/specs/audit-b4-main.md` module 2), the first of the audit's stages
+**The audit's tests** (`old/audit-b4-main.md` module 2), the first of the audit's stages
 to take a version of its own: one patch version a stage from here (the owner's choice). Nothing
 changes in use; the tests reach what they didn't, and wait for what they read.
 
@@ -452,7 +1081,7 @@ changes in use; the tests reach what they didn't, and wait for what they read.
 - The two tests that asserted one thing on Linux and another on a Mac are a test each.
 
 ## v0.9.0
-**No Node.js.** Stage 7 part 6 of the move to C# (`docs/specs/csharp-migration.md`): the Node
+**No Node.js.** Stage 7 part 6 of the move to C# (`old/csharp-migration.md`): the Node
 server's code leaves the repository and Node.js the image. Mandarin's server is one program
 (`server/`, C#), as it has been behind the scenes since v0.8.50; this release takes away what
 stood behind it. Everything the page, the apps and the speakers see is as in v0.8.50.
@@ -518,7 +1147,7 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
 - **The loudness order test** read the order files were measured in from the order their ffmpeg
   stand-ins wrote a line, so files started together could be noted out of order on a busy
   machine; it reads the processes' order now.
-- **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
+- **Security, before main** (the audit, `old/audit-b4-main.md` module 3; tested in
   `test/security.test.js`, `test/backup-sealed.test.js` and `test/backup-page.test.js`):
   - **A backup sealed with a passphrase** (Settings → Backup & restore, 8 characters or more).
     The API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity go into one
@@ -544,7 +1173,7 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
   - `sharp` (used by `tools/icons` only, not in the image) is 0.35.5, out of libvips' advisories.
 
 ## v0.8.50
-Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
+Stage 7 of the move to C# (`old/csharp-migration.md`): **Node removed** — the C# server
 stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the
 tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
 owner's merge to `main` is v0.9.0. The parts as they are built:
@@ -681,7 +1310,7 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   `identify-probe.js` and `artist-report.js`, which ran `lib/` with the image's Node.
 
 ## v0.8.49
-Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
+Stage 6 of the move to C# (`old/csharp-migration.md`): **playback moves to the C# server,
 whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sonos, UPnP renderers
 and sound devices on this computer — each part held to the Node server's own answers and command
 order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
@@ -847,7 +1476,7 @@ readings of this machine's own interfaces.
   .9995 s is the next second from either server.
 
 ## v0.8.48
-Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
+Stage 5 of the move to C# (`old/csharp-migration.md`): **everything the Node server still did
 but play moves to the C# server**, part by part, each held to the Node server's own answers and
 writes. After it the Node server is playback and nothing else (stage 6 moves that; stage 7 removes
 Node). The parts as they are built:
@@ -966,11 +1595,11 @@ Node). The parts as they are built:
   from a speaker's address and from a stranger's, each answered as the Node server answers it. The
   pictures in another colour space than sRGB (CMYK, or carrying a profile of their own) still go to
   the Node server to draw, as before: drawing them the same needs the colour maths libvips does, and
-  how to have that in the C# server is put to the owner (`docs/specs/csharp-migration.md`, part 5).
+  how to have that in the C# server is put to the owner (`old/csharp-migration.md`, part 5).
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47
-Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
+Stage 4.4 and 4.5 of the move to C# (`old/csharp-migration.md`): **Qobuz and Tidal are the
 C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
 album from their browser and their streams join the catalogue, the rows and the import moved before.
 With the C# server in front and the services handed over, the Node server doesn't ask Qobuz or Tidal
@@ -1076,7 +1705,7 @@ screen right.
   main's, so it's offered to nobody who didn't fetch it.
 
 ## v0.8.45
-Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
+Stage 4.3 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's import, the
 favourites' watch and the service playlists are the C# server's**, handed over as the job "import".
 Each writes what the Node server wrote, row for row and mark for mark, and answers in its words; the
 Node server is told and reads its library again, as before.
@@ -1148,7 +1777,7 @@ Node server is told and reads its library again, as before.
 - The Android app for this version is 0.8.45 (version code 245). Nothing in it changed.
 
 ## v0.8.44
-Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
+Stage 4.2 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's albums as
 rows in the library are the C# server's**: opening one, adding it to your favourites and taking it
 away, its page, Clean up and the month's prune. Each writes what the Node server wrote, column for
 column, and answers in its words; the Node server is told and reads its library again, as before.
@@ -1313,7 +1942,7 @@ After this only Qobuz's and Tidal's tracks are converted by the Node server.
 - The Android app for this version is 0.8.40 (version code 240). Nothing in it changed.
 
 ## v0.8.39
-Stage 4.1 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's catalogue
+Stage 4.1 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's catalogue
 is the C# server's**. Built by Claude B, in parallel with stage 2 (v0.8.37 and v0.8.38), as the owner
 arranged. Nothing in the Android app changed (it is 0.8.39 so the version moves together).
 
@@ -1468,7 +2097,7 @@ time.
 - The Android app for this version is 0.8.35 (version code 235). Nothing in it changed.
 
 ## v0.8.34
-Stages 1e and 1f of the move to C# (`docs/specs/csharp-migration.md`): **the library scans are the
+Stages 1e and 1f of the move to C# (`old/csharp-migration.md`): **the library scans are the
 C# server's**, and so are the covers the Node server still drew with `sharp`, but for a few. Also a
 fix for Queue writing over a queue that wasn't playing, a calmer Shelf, and Add to playlist on the
 album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first.
@@ -1556,7 +2185,7 @@ C# server. From the `claude-b-booklets` branch, built on v0.8.31; `v0.8.32` is a
 - The Android app for this version is 0.8.33 (version code 233). Nothing in it changed.
 
 ## v0.8.31
-Stage 1d of the move to C# (`docs/specs/csharp-migration.md`): Restart and Shut down are the C#
+Stage 1d of the move to C# (`old/csharp-migration.md`): Restart and Shut down are the C#
 server's, and **Restart now starts both servers again**.
 
 - **Restart** (the side menu's power button) stops the Node server cleanly, then the C# server
@@ -1622,7 +2251,7 @@ processor core again after an update; and a label's albums no longer come back o
 ## v0.8.29
 A test build, from the `mac-csharp` branch, built on v0.8.28 (`shelf-cs`), so that one goes in first.
 Mandarin's C# server now runs on Macs too, updates bring both servers together, and from here on
-new server work is done in C# only (`docs/specs/csharp-migration.md`, 2.1, 2.2 and 2.4).
+new server work is done in C# only (`old/csharp-migration.md`, 2.1, 2.2 and 2.4).
 
 - **The C# server on a Mac.** As in the Docker image, it's what starts when you log in, and it
   starts the Node server behind it.
@@ -1696,7 +2325,7 @@ and its page moves to the C# server, so Shelf now asks the Node server for nothi
   C# server's.
 - **Playback stays the Node server's** for now: the rooms, the queue, play/pause, previous and
   next, volume and Play now. It moves with the rest of playback in stage 6 of the move to C#
-  (`docs/specs/csharp-migration.md`).
+  (`old/csharp-migration.md`).
 - **Shelf's list also gives Mandarin's version.** The help popup uses it to know when it's due
   again after an update, instead of asking the updater. It shows once the library has arrived.
 - **Tests:**
@@ -1766,7 +2395,7 @@ decades and previous/next buttons, which are Mandarin's own.
 
 ## v0.8.26
 A test build, from the `stage1-small-parts` branch: stage 1 (parts a to c) of the move to C#
-(`docs/specs/csharp-migration.md`). Three more parts of the server are now answered by the C#
+(`old/csharp-migration.md`). Three more parts of the server are now answered by the C#
 server. Nothing looks or works differently.
 
 - **Last.fm moves to the C# server.** The key in Settings → Setup → API Keys (or `LASTFM_KEY`),
@@ -1796,7 +2425,7 @@ server. Nothing looks or works differently.
 
 ## v0.8.25
 A test build, from the `stage0-csharp-updates` branch: stage 0 of the plan for the rest of the move
-to C# (`docs/specs/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring
+to C# (`old/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring
 Mandarin's C# server too.
 
 - **Updating from Settings now updates the C# server as well.** Until now an update from the app
@@ -3657,7 +4286,7 @@ A review of the whole Android app, and everything it found put right.
   is hearted, newest first; tapping its title opens the full wall. It is in Home Screen's list
   of rows like the others.
 - A written plan for finding an album's right names from its tracks —
-  `docs/specs/album-identification.md` — for review before anything is built.
+  `old/album-identification.md` — for review before anything is built.
 
 ## v0.5.6
 - **Renderers send their changes (UPnP events).** Mandarin subscribes to each renderer's
@@ -3755,7 +4384,7 @@ A review of the whole Android app, and everything it found put right.
   per the spec. Nothing about Sonos playback changed.
 
 ## v0.4.3
-- **A written plan for UPnP/DLNA renderers** — `docs/specs/audio-devices-upnp.md`: discovery
+- **A written plan for UPnP/DLNA renderers** — `old/audio-devices-upnp.md`: discovery
   of WiiM, Chord Poly and other renderers, a device register with editable names, the
   capability layers (advertised, known model, you set, verified), the Audio Devices page,
   Original / ×2 / ×4 / Max upsampling in 64-bit float out to 24 or 32 bits, gapless via

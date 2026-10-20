@@ -1,5 +1,5 @@
 // ServiceHttp.cs — what Qobuz's and Tidal's clients share here (v0.8.39, stage
-// 4.1 of docs/specs/csharp-migration.md): a request as lib/qobuz/api.js and
+// 4.1 of old/csharp-migration.md): a request as lib/qobuz/api.js and
 // lib/tidal/api.js make it with fetch, with the words the Node server's routes
 // answer a failure with; their answers kept in memory as theirs are (a Map,
 // 2,000 at most, the oldest let go first); and the few JavaScript rules the

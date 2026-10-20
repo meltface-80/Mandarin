@@ -4,7 +4,7 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// The server's configuration from the environment (v0.8.50, stage 7 part 1 of
-/// docs/specs/csharp-migration.md): `mandarin-server config` says what the server would be set up
+/// old/csharp-migration.md): `mandarin-server config` says what the server would be set up
 /// with, in the shape the hand-over carried, read from the names index.js read with the defaults
 /// index.js had. Nothing else is started (test/config-csharp.test.js, in C#).
 /// </summary>

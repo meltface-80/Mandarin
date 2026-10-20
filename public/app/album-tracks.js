@@ -48,17 +48,18 @@ function updateTrackSelection() {
 //
 // These go one at a time on purpose: /api/play-track has no batch form, and
 // firing them in parallel would interleave into an arbitrary queue order.
-async function invokeTrackMulti(kind) {
+// [given]: a set of tracks handed in (a work's movements, album-works.js) rather than the selection; the selection is left as it is.
+async function invokeTrackMulti(kind, given) {
   const zone = selectedZoneId;
   if (!currentAlbum) { showToast("No album open", "error"); return; }
-  const picks = trackSelected.slice().sort((a, b) => a.index - b.index);
+  const picks = (given || trackSelected).slice().sort((a, b) => a.index - b.index);
   if (!picks.length) return;
   // Play next, several at once (v0.6.22): each goes in straight after the
   // track playing, so they are sent last to first and end up in order.
   if (kind === "play_next") picks.reverse();
   if (isPhoneAlbum(currentAlbum)) {
     picks.forEach((p, i) => invokePhone(currentAlbum, p.index, kind === "play_next" ? kind : i === 0 ? kind : "queue"));
-    exitTrackSelectMode();
+    if (!given) exitTrackSelectMode();
     return;
   }
   if (!zone) { showToast("Pick a zone first", "error"); return; }
@@ -105,7 +106,7 @@ async function invokeTrackMulti(kind) {
   let msg = `${verb} ${queued} track${queued === 1 ? "" : "s"}`;
   if (failed) msg += ` (${failed} failed: ${firstError})`;
   showToast(msg, failed ? "error" : null, TOAST_REPORT_MS);
-  exitTrackSelectMode();
+  if (!given) exitTrackSelectMode();
 }
 
 // Expand/collapse the per-track action row. Only one row is open at a time.
@@ -123,18 +124,19 @@ function toggleTrackActions(li, track, index) {
   li.classList.add("is-open");
   const row = document.createElement("div");
   row.className = "t-actions";
-  const mk = (label, kind, primary) => {
+  const mk = (label, kind, primary, key) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "action-btn t-act" + (primary ? " primary" : "");
     b.textContent = label;
+    b.dataset.parity = key;
     b.addEventListener("click", () => invokeTrack(kind, b, track, index, li));
     return b;
   };
-  row.appendChild(mk("Play now", "play_now", true));
+  row.appendChild(mk("Play now", "play_now", true, "album.track-play-now"));
   // Play next (v0.6.22): after the track playing, the rest of the queue moved down.
-  row.appendChild(mk("Play next", "play_next", false));
-  row.appendChild(mk("Queue", "queue", false));
+  row.appendChild(mk("Play next", "play_next", false, "album.track-play-next"));
+  row.appendChild(mk("Queue", "queue", false, "album.track-queue"));
   li.appendChild(row);
 }
 
@@ -231,6 +233,7 @@ function fillMoreSection(id, items, build, title) {
   if (!Array.isArray(items) || !items.length) { sec.classList.add("hidden"); return; }
   items.forEach((it, i) => {
     const el = build(it);
+    if (sec.dataset.parityItem) el.dataset.parity = sec.dataset.parityItem;   // its key in the screens contract
     if (i >= SHOWN) el.classList.add("more-extra", "hidden");
     grid.appendChild(el);
   });

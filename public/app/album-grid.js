@@ -100,7 +100,7 @@ function handleAlbumTileSelect(btn, a) {
 function renderAlbumGrid(albums) {
   grid.innerHTML = "";
   const frag = document.createDocumentFragment();
-  for (const a of albums) frag.appendChild(buildAlbumTile(a));
+  for (const a of albums) frag.appendChild(keyWallTile(buildAlbumTile(a)));   // the random wall is the contract's `wall`
   grid.appendChild(frag);
 }
 
@@ -335,6 +335,8 @@ zoneSel.addEventListener("change", async () => {
   }
 
   if (!prevZoneId || !newZoneId || prevZoneId === newZoneId) return;
+  // A room the Android app's native screens chose (native-handoff.js "zone"): the app asks this itself, over its own screen.
+  if (window.__zoneFromApp) return;
 
   let playing = false;
   try {

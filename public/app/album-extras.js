@@ -1,27 +1,32 @@
 /* The page's core (app.js until v1.0.5), 27 of 33: an album's extras drawn, and what plays where. */
 function renderExtras(extras, album) {
-  // Asked again after an edit: the previous answer's year/score go first,
-  // so the line never reads "Artist · 1997 · 1999". The artist links are
-  // modalSub's first child and stay.
-  while (modalSub.childNodes.length > 1) modalSub.removeChild(modalSub.lastChild);
-  // 1. Append the release date + label to subtitle line (artist button
-  // already present). The date is the one the Release date sort orders this
-  // album by, to the day wherever one is known; the year is the fallback.
+  // 1. The release date on a line of its own under the artists (bug list
+  // item 28: beside the sleeve a phone has no room for both on one), the
+  // label and the score after it. Asked again after an edit, the previous
+  // answer's go first, so it never reads "1997 · 1999". The date is the one
+  // the Release date sort orders this album by, to the day wherever one is
+  // known; the year is the fallback.
+  const dateLine = document.getElementById("modal-date");
+  dateLine.innerHTML = "";
+  const sepBefore = () => {
+    if (!dateLine.childNodes.length) return;
+    const sep = document.createElement("span");
+    sep.className = "modal-subtitle-year";
+    sep.textContent = " · ";
+    dateLine.appendChild(sep);
+  };
   const yearToShow = formatReleaseDate(extras.release_date) || extras.year ||
     (extras.album && extras.album.year ? String(extras.album.year) : "");
   if (yearToShow) {
     const yearSpan = document.createElement("span");
     yearSpan.className = "modal-subtitle-year";
-    yearSpan.textContent = " · " + yearToShow;
-    modalSub.appendChild(yearSpan);
+    yearSpan.textContent = yearToShow;
+    dateLine.appendChild(yearSpan);
   }
   if (extras.album && extras.album.label) {
-    const sep = document.createElement("span");
-    sep.className = "modal-subtitle-year";
-    sep.textContent = " · ";
-    modalSub.appendChild(sep);
+    sepBefore();
     const labelBtn = document.createElement("button");
-    labelBtn.className = "modal-artist-link";
+    labelBtn.className = "modal-artist-link"; labelBtn.dataset.parity = "album.label";
     labelBtn.textContent = extras.album.label;
     labelBtn.addEventListener("click", () => {
       // Back from the label's albums returns to this page (v0.6.24).
@@ -29,24 +34,21 @@ function renderExtras(extras, album) {
       closeModal();
       if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label, false, back);
     });
-    modalSub.appendChild(labelBtn);
+    dateLine.appendChild(labelBtn);
   }
   if (extras.album && typeof extras.album.score === "number" && !isNaN(extras.album.score)) {
-    const sep = document.createElement("span");
-    sep.className = "modal-subtitle-year";
-    sep.textContent = " · ";
-    modalSub.appendChild(sep);
+    sepBefore();
     const chip = document.createElement("span");
     chip.className = "pitchfork-score";
     chip.textContent = extras.album.score % 1 === 0
       ? extras.album.score + ".0"
       : String(extras.album.score);
-    modalSub.appendChild(chip);
+    dateLine.appendChild(chip);
     if (extras.album.isBestNewMusic) {
       const bnm = document.createElement("span");
       bnm.className = "bnm-badge";
       bnm.textContent = "BNM";
-      modalSub.appendChild(bnm);
+      dateLine.appendChild(bnm);
     }
   }
 

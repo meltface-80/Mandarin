@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -108,7 +108,7 @@
           </svg>
         </button>
         <div class="search-row" id="search-row">
-          <div class="search-box">
+          <div class="search-box" data-parity="search.field">
             <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  aria-hidden="true">
@@ -118,17 +118,17 @@
             <input id="search-input" type="search" inputmode="search" autocomplete="off"
                    autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"
                    placeholder="Search…" aria-label="Search your whole library">
-            <button id="search-clear" class="search-clear" type="button" aria-label="Clear search">
+            <button id="search-clear" class="search-clear" type="button" aria-label="Clear search" data-parity="search.clear">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
-          <span class="search-status" id="search-status" aria-live="polite"></span>
+          <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -205,7 +205,7 @@
            use. `.sel-menu-wrap` is position:relative — the dropdown hangs off
            it rather than off the topbar, so it stays pinned to the button. -->
       <div id="select-menu-wrap" class="sel-menu-wrap hidden">
-        <button id="select-menu-btn" class="icon-btn" type="button"
+        <button id="select-menu-btn" class="icon-btn" type="button" data-parity="album.select-menu library.select-menu wall.select-menu artist.select-menu"
                 aria-haspopup="true" aria-expanded="false" aria-label="Actions for selected items">
           <span id="select-count" class="sel-count">0</span>
           <!-- The same three-dots-in-a-circle the playlist screens use (see
@@ -222,17 +222,17 @@
           </svg>
         </button>
         <div id="select-menu" class="sel-menu hidden" role="menu">
-          <div class="sel-menu-title" id="select-menu-title"></div>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_now">Play now</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_next">Play next</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="queue">Add to end of queue</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="add">Add to playlist…</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="later">Listen later</button>
-          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="clear">Clear selection</button>
+          <div class="sel-menu-title" id="select-menu-title" data-parity="album.select-title library.select-title wall.select-title artist.select-title"></div>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_now" data-parity="album.select-play-now library.select-play-now wall.select-play-now artist.select-play-now">Play now</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="play_next" data-parity="album.select-play-next library.select-play-next wall.select-play-next artist.select-play-next">Play next</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="queue" data-parity="album.select-queue library.select-queue wall.select-queue artist.select-queue">Add to end of queue</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="add" data-parity="album.select-playlist library.select-playlist wall.select-playlist artist.select-playlist">Add to playlist…</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="later" data-parity="album.select-later library.select-later wall.select-later artist.select-later">Listen later</button>
+          <button class="sel-menu-item" type="button" role="menuitem" data-sel-act="clear" data-parity="album.select-clear library.select-clear wall.select-clear artist.select-clear">Clear selection</button>
         </div>
       </div>
       <!-- Reshuffle — shown on the random-album and genre grid screens. -->
-      <button id="topbar-refresh" class="icon-btn hidden" aria-label="Shuffle new albums" title="Shuffle">
+      <button id="topbar-refresh" class="icon-btn hidden" aria-label="Shuffle new albums" title="Shuffle" data-parity="wall.reshuffle">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/>
@@ -243,7 +243,7 @@
       </button>
     </div>
 
-    <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true">
+    <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true" data-parity="labels.progress">
       <div id="scan-progress-fill" class="scan-progress-fill"></div>
     </div>
   </header>
@@ -251,7 +251,7 @@
   <!-- Side menu (hamburger). Items with data-target trigger the hidden top-bar
        button of that id; data-action items switch the main view. -->
   <main>
-  <div id="update-toast" class="update-toast" role="status" aria-live="polite">
+  <div id="update-toast" class="update-toast" role="status" aria-live="polite" data-parity="home.update">
     <div class="update-toast-top">
       <svg class="update-ico" width="18" height="18" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -261,11 +261,11 @@
       </svg>
       <span class="update-text" id="update-text"></span>
       <div class="update-actions" id="update-actions">
-        <button id="update-now" class="primary-btn" type="button"><span>Update</span></button>
-        <button id="update-later" class="icon-btn update-later" type="button" aria-label="Dismiss">Later</button>
+        <button id="update-now" class="primary-btn" type="button" data-parity="home.update-now"><span>Update</span></button>
+        <button id="update-later" class="icon-btn update-later" type="button" aria-label="Dismiss" data-parity="home.update-later">Later</button>
       </div>
     </div>
-    <div id="update-notes" class="update-notes hidden"></div>
+    <div id="update-notes" class="update-notes hidden" data-parity="home.update-notes"></div>
   </div>
     <div id="labels-bar" class="labels-bar hidden">
       <button id="labels-back" class="labels-back" type="button" aria-label="Back to all labels">
@@ -276,7 +276,7 @@
         <span>All labels</span>
       </button>
       <span id="labels-title" class="labels-title"></span>
-      <button id="labels-logo-btn" class="icon-btn" type="button" aria-label="Set label logo" title="Set logo">
+      <button id="labels-logo-btn" class="icon-btn" type="button" aria-label="Set label logo" title="Set logo" data-parity="wall.logo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -287,12 +287,12 @@
     </div>
     <div id="logo-url-sheet" class="logo-url-sheet hidden">
       <div id="logo-candidates" class="logo-candidates">
-        <span class="logo-candidates-hint">Searching Discogs…</span>
+        <span class="logo-candidates-hint" data-parity="label-logo.hint">Searching Discogs…</span>
       </div>
       <div class="logo-manual-row">
-        <input id="logo-url-input" type="url" class="logo-url-input" placeholder="Or paste any image URL…" autocomplete="off">
-        <button id="logo-url-save" class="action-btn primary" type="button">Save</button>
-        <button id="logo-url-cancel" class="icon-btn" type="button" aria-label="Cancel">
+        <input id="logo-url-input" type="url" class="logo-url-input" placeholder="Or paste any image URL…" autocomplete="off" aria-label="Or paste any image URL…" data-parity="label-logo.url">
+        <button id="logo-url-save" class="action-btn primary" type="button" data-parity="label-logo.save">Save</button>
+        <button id="logo-url-cancel" class="icon-btn" type="button" aria-label="Cancel" data-parity="label-logo.cancel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 6 6 18M6 6l12 12"/>
@@ -301,15 +301,15 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
       <!-- Good morning / afternoon / evening (Late-Night Hi-Fi only; app.js keeps it current). -->
       <div class="home-greeting" id="home-greeting" aria-live="off">
-        <div class="home-greeting-date" id="home-greeting-date"></div>
-        <h1 class="home-greeting-text" id="home-greeting-text"></h1>
+        <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
+        <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
       </div>
       <div id="home-sections">
         <!-- Random Album and Album of the day, under the greeting with no heading
@@ -325,53 +325,53 @@
              Reordering MOVES these nodes; it never rebuilds them from markup
              (CLAUDE.md pre-flight step 4). -->
         <div class="home-section home-section-unplayed" data-row="unplayed">
-          <h2 class="home-section-title home-section-link" id="home-unplayed-title" role="button" tabindex="0">Not played in 6 months</h2>
+          <h2 class="home-section-title home-section-link" id="home-unplayed-title" role="button" tabindex="0" data-parity="home.unplayed-title">Not played in 6 months</h2>
           <div id="home-unplayed" class="home-carousel"></div>
         </div>
         <!-- Listen later: albums put aside to play, newest first. Hidden until
              there is one; off the list once played through, or by hand. -->
         <div class="home-section home-section-later hidden" data-row="later">
-          <h2 class="home-section-title home-section-link" id="home-later-title" role="button" tabindex="0">Listen later</h2>
+          <h2 class="home-section-title home-section-link" id="home-later-title" role="button" tabindex="0" data-parity="home.later-title">Listen later</h2>
           <div id="home-later" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-playlists hidden" data-row="playlists">
-          <h2 class="home-section-title home-section-link" id="home-playlists-title" role="button" tabindex="0">Playlists</h2>
+          <h2 class="home-section-title home-section-link" id="home-playlists-title" role="button" tabindex="0" data-parity="home.playlists-title">Playlists</h2>
           <div id="home-playlists" class="home-carousel home-carousel-1row"></div>
         </div>
         <!-- Favourites: the albums you hearted, newest heart first. Hidden
              until there is one; tapping the header opens the full wall. -->
         <div class="home-section home-section-favourites hidden" data-row="favourites">
-          <h2 class="home-section-title home-section-link" id="home-favourites-title" role="button" tabindex="0">Favourites</h2>
+          <h2 class="home-section-title home-section-link" id="home-favourites-title" role="button" tabindex="0" data-parity="home.favourites-title">Favourites</h2>
           <div id="home-favourites" class="home-carousel"></div>
         </div>
         <!-- Recently played, newest first, one tile per album over 30 days.
              Hidden until there is a play to show, so a fresh install does not
              open on an empty shelf. -->
         <div class="home-section home-section-history hidden" data-row="history">
-          <h2 class="home-section-title home-section-link" id="home-history-title" role="button" tabindex="0">Recently played</h2>
+          <h2 class="home-section-title home-section-link" id="home-history-title" role="button" tabindex="0" data-parity="home.history-title">Recently played</h2>
           <div id="home-history" class="home-carousel"></div>
         </div>
         <!-- Smart Picks: five albums a day by artists NOT in the library. Hidden
              until the first set builds, so a fresh install never shows an empty
              row. Tapping the header opens the full screen with the reasons. -->
         <div class="home-section home-section-picks hidden" data-row="picks">
-          <h2 class="home-section-title home-section-link" id="home-picks-title" role="button" tabindex="0">Smart Picks</h2>
+          <h2 class="home-section-title home-section-link" id="home-picks-title" role="button" tabindex="0" data-parity="home.picks-title">Smart Picks</h2>
           <div id="home-picks" class="home-carousel home-carousel-1row"></div>
         </div>
         <div class="home-section home-section-random" data-row="random">
-          <h2 class="home-section-title home-section-link" id="home-random-title" role="button" tabindex="0">Random albums</h2>
+          <h2 class="home-section-title home-section-link" id="home-random-title" role="button" tabindex="0" data-parity="home.random-title">Random albums</h2>
           <div id="home-random" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-library" data-row="library">
-          <h2 class="home-section-title home-section-link" id="home-library-title" role="button" tabindex="0">Library</h2>
+          <h2 class="home-section-title home-section-link" id="home-library-title" role="button" tabindex="0" data-parity="home.library-title">Library</h2>
           <div id="home-library" class="home-carousel"></div>
         </div>
         <div class="home-section home-section-lotw hidden" data-row="lotw">
-          <h2 class="home-section-title home-section-link" id="home-lotw-title" role="button" tabindex="0">Label of the week</h2>
+          <h2 class="home-section-title home-section-link" id="home-lotw-title" role="button" tabindex="0" data-parity="home.lotw-title">Label of the week</h2>
           <div id="home-lotw" class="home-carousel home-carousel-1row"></div>
         </div>
         <div class="home-section home-section-genres" data-row="genres">
-          <h2 class="home-section-title">Browse by genre</h2>
+          <h2 class="home-section-title" data-parity="home.genres-title">Browse by genre</h2>
           <div id="home-genres" class="home-genre-grid"></div>
         </div>
       </div>
@@ -384,10 +384,10 @@
 
   <!-- Label merge action bar: appears in select mode -->
   <div id="label-merge-bar" class="label-merge-bar hidden" role="toolbar" aria-label="Label merge">
-    <span id="label-merge-info" class="label-merge-info"></span>
+    <span id="label-merge-info" class="label-merge-info" data-parity="labels.merge-info"></span>
     <div class="label-merge-actions">
-      <button id="label-merge-btn" class="action-btn primary" type="button" disabled>Merge</button>
-      <button id="label-merge-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection">
+      <button id="label-merge-btn" class="action-btn primary" type="button" disabled data-parity="labels.merge">Merge</button>
+      <button id="label-merge-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection" data-parity="labels.merge-cancel">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
@@ -398,9 +398,9 @@
 
   <!-- Album multi-select action bar: Play Now / Queue selected albums -->
   <div id="album-action-bar" class="label-merge-bar hidden" role="toolbar" aria-label="Album actions">
-    <span id="album-action-info" class="label-merge-info"></span>
+    <span id="album-action-info" class="label-merge-info" data-parity="library.select-hint wall.select-hint artist.select-hint"></span>
     <div class="label-merge-actions">
-      <button id="album-action-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection">
+      <button id="album-action-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection" data-parity="library.select-cancel wall.select-cancel artist.select-cancel">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
@@ -412,8 +412,8 @@
   <!-- Label unmerge sheet: slide up to manage merged labels one by one -->
   <div id="label-unmerge-sheet" class="label-unmerge-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="label-unmerge-heading">
     <div class="label-unmerge-header">
-      <span id="label-unmerge-heading">Merged into <strong id="label-unmerge-name"></strong></span>
-      <button id="label-unmerge-close" class="icon-btn" type="button" aria-label="Close">
+      <span id="label-unmerge-heading" data-parity="label-unmerge.title">Merged into <strong id="label-unmerge-name"></strong></span>
+      <button id="label-unmerge-close" class="icon-btn" type="button" aria-label="Close" data-parity="label-unmerge.close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
@@ -430,13 +430,13 @@
       <!-- Ambient glow: the album cover, heavily blurred and faded, washes the
            top of the panel so each album tints its own detail view (decorative
            only — hidden from AT, never intercepts taps). -->
-      <img id="modal-ambient" class="modal-ambient hidden" alt="" aria-hidden="true" decoding="async">
+      <img id="modal-ambient" class="modal-ambient hidden" data-parity="album.glow" alt="" aria-hidden="true" decoding="async">
       <!-- Full screen (a phone held upright) this is a back chevron: the panel
            is somewhere you came FROM the grid. From 720px up the album view is
            a card hovering over the page, and a card closes with an × (v0.6.1).
            Same button, same data-close — only the glyph (CSS) and the label
            (app.js) follow the layout. -->
-      <button class="modal-close icon-btn" id="modal-close-btn" data-close aria-label="Back" title="Back">
+      <button class="modal-close icon-btn" id="modal-close-btn" data-parity="album.back" data-close aria-label="Back" title="Back">
         <svg class="ico-back" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -448,7 +448,7 @@
       </button>
       <!-- Now-playing mode only (CSS-gated): top-left Back (v0.6.1; it was
            Home) — back to the screen before the mini player was tapped. -->
-      <button class="modal-home icon-btn" id="modal-home-btn" aria-label="Back" title="Back">
+      <button class="modal-home icon-btn" id="modal-home-btn" data-parity="now-playing.back queue.back" aria-label="Back" title="Back">
         <svg class="ico-back" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -463,7 +463,7 @@
       <!-- Now-playing mode, large screens only (CSS-gated): shrink the screen to
            the album view's card size and back. The card can then be dragged by
            its top strip. -->
-      <button class="modal-np-size icon-btn" id="modal-np-size-btn" type="button"
+      <button class="modal-np-size icon-btn" id="modal-np-size-btn" data-parity="now-playing.size" type="button"
               aria-label="Reduce size" title="Reduce size" aria-pressed="false">
         <svg class="ico-shrink" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -476,7 +476,7 @@
           <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
         </svg>
       </button>
-      <button class="modal-share icon-btn" id="modal-share-btn" aria-label="Share card">
+      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share queue.share album.share" aria-label="Share card">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="16 6 12 2 8 6"/>
@@ -485,51 +485,52 @@
         </svg>
       </button>
 
+      <!-- Previous and next (v0.5.44): the album before and after this one in
+           the list it was opened from — a Home row, an artist's albums, a
+           label's, the Library wall, search. In the top bar beside Share (the
+           sleeve, bug list item 24: the cover is too small to carry them).
+           Hidden when there is no list. -->
+      <div class="modal-nav hidden" id="modal-nav">
+        <button class="modal-nav-btn icon-btn" id="modal-prev" data-parity="album.previous" aria-label="Previous album" title="Previous album">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button class="modal-nav-btn icon-btn" id="modal-next" data-parity="album.next" aria-label="Next album" title="Next album">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+
       <div class="modal-body">
         <div class="modal-tabs hidden" id="modal-tabs">
-          <button class="modal-tab is-active" type="button" data-tab="album">Now playing</button>
-          <button class="modal-tab"           type="button" data-tab="queue">Queue</button>
+          <button class="modal-tab is-active" type="button" data-tab="album" data-parity="now-playing.tab-now-playing queue.tab-now-playing">Now playing</button>
+          <button class="modal-tab"           type="button" data-tab="queue" data-parity="now-playing.tab-queue queue.tab-queue">Queue</button>
         </div>
-        <div class="modal-art">
+        <div class="modal-art" data-parity="now-playing.cover album.cover">
           <!-- decoding=async: the 800px cover is decoded off the main thread, so
                the panel's slide-in isn't held up by it. -->
           <img id="modal-img" alt="" decoding="async">
-          <span id="modal-source" class="album-source local hidden" title="Local albums" aria-label="Local albums"></span>
-          <span id="modal-quality" class="album-quality hidden"></span>
+          <span id="modal-source" class="album-source local hidden" data-parity="album.source" title="Local albums" aria-label="Local albums"></span>
           <!-- The album's booklet (v0.8.33): bottom right, opposite the bit/sample
                badge, only when the album has one (a PDF in its folder). -->
-          <button class="modal-booklet icon-btn hidden" id="modal-booklet" type="button" aria-label="Booklet" title="Booklet">
+          <button class="modal-booklet icon-btn hidden" id="modal-booklet" data-parity="album.booklet" type="button" aria-label="Booklet" title="Booklet">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/>
               <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>
             </svg>
           </button>
-          <!-- Previous and next (v0.5.44): the album before and after this one in
-               the list it was opened from — a Home row, an artist's albums, a
-               label's, the Library wall, search — at the art's edges, halfway up.
-               Hidden when there is no list. -->
-          <div class="modal-nav hidden" id="modal-nav">
-            <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          </div>
         </div>
-        <!-- About this album (v0.7.8): beside the cover, under it, from 720px up
-             (a tablet, a laptop), where the right-hand column holds the title,
-             the buttons and the tracks; after the tracks on a phone (style.css
-             puts it there with `order`). Not on Now playing. -->
+        <!-- About this album (v0.7.8): from 720px up (a tablet, a laptop) a
+             column of its own beside the buttons and the tracks, under the
+             sleeve's row; after the tracks on a phone (style.css places it
+             with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
-          <div class="bio-section hidden" id="album-bio-section">
+          <div class="bio-section hidden" id="album-bio-section" data-parity="album.review">
             <h3 class="section-label">About this album</h3>
             <div class="bio-meta" id="album-meta"></div>
             <div class="bio-text" id="album-bio-text" data-clipped="true"></div>
@@ -538,8 +539,8 @@
                  text is Wikipedia's and the link is the review. -->
             <div class="bio-text-source hidden" id="album-bio-text-source"></div>
             <div class="bio-footer">
-              <button class="bio-toggle hidden" type="button" id="album-bio-toggle">Show more</button>
-              <a class="bio-source hidden" id="album-bio-source" target="_blank" rel="noopener noreferrer"></a>
+              <button class="bio-toggle hidden" type="button" id="album-bio-toggle" data-parity="album.review-more">Show more</button>
+              <a class="bio-source hidden" id="album-bio-source" data-parity="album.review-source" target="_blank" rel="noopener noreferrer"></a>
             </div>
           </div>
           <!-- Below the review: the library's other albums by this album's
@@ -547,59 +548,71 @@
                artists and similar albums (with a Last.fm key). Each is hidden
                until it has something to show; three at first, More shows the
                rest. -->
-          <div class="more-section hidden" id="album-more-by">
+          <div class="more-section hidden" id="album-more-by" data-parity="album.more-by" data-parity-item="album.more-by-album">
             <h3 class="section-label"><span class="more-title">More by this artist</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.more-by-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-more-appears">
+          <div class="more-section hidden" id="album-more-appears" data-parity="album.appears-on" data-parity-item="album.appears-on-album">
             <h3 class="section-label"><span class="more-title">Appears on</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.appears-on-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-artists">
+          <div class="more-section hidden" id="album-lastfm-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
             <h3 class="section-label"><span class="more-title">Similar artists</span>
-              <a class="more-site hidden" target="_blank" rel="noopener noreferrer">Last.fm ↗</a></h3>
+              <a class="more-site hidden" target="_blank" rel="noopener noreferrer" data-parity="album.similar-artists-site">Last.fm ↗</a></h3>
             <div class="more-grid more-grid-artists"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-artists-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-albums">
+          <div class="more-section hidden" id="album-lastfm-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
             <h3 class="section-label"><span class="more-title">Similar albums</span></h3>
             <div class="more-grid"></div>
-            <button class="more-toggle hidden" type="button" aria-expanded="false">More</button>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-albums-more">More</button>
           </div>
         </div>
         <div class="modal-info">
-          <h2 id="modal-title">—</h2>
-          <div id="modal-subtitle" class="modal-subtitle"></div>
+          <!-- The album's head, beside the sleeve and bottom aligned with it,
+               a line each (bug list item 28): the title, the artists, the
+               release date (its label and Pitchfork score after it), then
+               the bit and sample rate and the album's length. Hidden on Now
+               playing, which has its own. -->
+          <div class="modal-head">
+            <h2 id="modal-title" data-parity="album.title">—</h2>
+            <div id="modal-subtitle" class="modal-subtitle" data-parity="album.artist"></div>
+            <div id="modal-date" class="modal-date" data-parity="album.date"></div>
+            <div class="modal-facts" id="modal-facts" data-parity="album.facts">
+              <span id="modal-quality" class="album-quality hidden"></span>
+              <span class="modal-total" id="modal-total"></span>
+            </div>
+          </div>
 
           <div class="modal-tab-pane" id="tab-album">
 
           <div id="np-screen" class="np-screen hidden">
-            <div class="np-track" id="np-track">—</div>
-            <div class="np-artist" id="np-artist">—</div>
-            <button class="np-album" id="np-album" type="button" aria-label="Open album detail"></button>
+            <div class="np-track" id="np-track" data-parity="now-playing.track">—</div>
+            <div class="np-artist" id="np-artist" data-parity="now-playing.artist">—</div>
+            <button class="np-album" id="np-album" data-parity="now-playing.album" type="button" aria-label="Open album detail"></button>
             <!-- What the zone is hearing: Lossless, a lossy file's codec, or
                  (the Android app playing the server's Opus) the Opus logo and
                  256kbps. Filled by paintNpFormat() in app.js. -->
-            <div class="np-format hidden" id="np-format"></div>
+            <div class="np-format hidden" id="np-format" data-parity="now-playing.format"></div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what
                    makes the bar draggable and accessible, and it keeps every
                    one of its behaviours. The canvas is decoration under it,
                    hidden whenever there is no waveform for the track. -->
-              <canvas id="np-wave" class="np-wave hidden" aria-hidden="true"></canvas>
-              <input type="range" id="np-seek" class="np-seek" min="0" max="100" step="1" value="0"
+              <canvas id="np-wave" data-parity="now-playing.wave" class="np-wave hidden" aria-hidden="true"></canvas>
+              <input type="range" id="np-seek" data-parity="now-playing.seek" class="np-seek" min="0" max="100" step="1" value="0"
                      aria-label="Seek" disabled>
               <div class="np-times">
-                <span id="np-cur" class="np-time">0:00</span>
-                <span id="np-tot" class="np-time">0:00</span>
+                <span id="np-cur" class="np-time" data-parity="now-playing.position">0:00</span>
+                <span id="np-tot" class="np-time" data-parity="now-playing.length">0:00</span>
               </div>
             </div>
 
             <div class="np-transport">
-              <button class="np-btn np-mode-btn" id="np-shuffle" aria-label="Shuffle" aria-pressed="false">
+              <button class="np-btn np-mode-btn" id="np-shuffle" data-parity="now-playing.shuffle" aria-label="Shuffle" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="16 3 21 3 21 8"/>
@@ -609,12 +622,12 @@
                   <line x1="4" y1="4" x2="9" y2="9"/>
                 </svg>
               </button>
-              <button class="np-btn" id="np-prev" aria-label="Previous track" disabled>
+              <button class="np-btn" id="np-prev" data-parity="now-playing.previous" aria-label="Previous track" disabled>
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M6 6h2v12H6zM9.5 12l10-6v12z"/>
                 </svg>
               </button>
-              <button class="np-btn np-playpause" id="np-playpause" aria-label="Play/pause">
+              <button class="np-btn np-playpause" id="np-playpause" data-parity="now-playing.playpause" aria-label="Play/pause">
                 <svg id="np-icon-play"  viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
@@ -622,7 +635,7 @@
                   <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
                 </svg>
               </button>
-              <button class="np-btn" id="np-next" aria-label="Next track" disabled>
+              <button class="np-btn" id="np-next" data-parity="now-playing.next" aria-label="Next track" disabled>
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/>
                 </svg>
@@ -630,7 +643,7 @@
               <!-- Repeat cycles off → whole queue → this track.
                    The "1" badge is DOM text, not an SVG glyph, so it themes and
                    scales with the rest of the interface. -->
-              <button class="np-btn np-mode-btn" id="np-loop" aria-label="Repeat off">
+              <button class="np-btn np-mode-btn" id="np-loop" data-parity="now-playing.repeat" aria-label="Repeat off">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="17 1 21 5 17 9"/>
@@ -644,7 +657,7 @@
 
             <div class="np-secondary">
               <!-- Device / zone picker -->
-              <button class="np-mini-btn" id="np-device" aria-label="Choose device" aria-expanded="false">
+              <button class="np-mini-btn" id="np-device" data-parity="now-playing.device" aria-label="Choose device" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
@@ -653,18 +666,18 @@
                 </svg>
               </button>
               <div class="np-popover np-device-popover hidden" id="np-device-popover">
-                <div class="np-popover-title">Play on</div>
-                <div class="np-device-list" id="np-device-list"></div>
-                <button class="np-popover-action" type="button" id="np-group-open">Group zones…</button>
-                <button class="np-popover-action" type="button" id="np-power-open">Device power…</button>
-                <button class="np-popover-action" type="button" id="np-pause-all">Pause all zones</button>
-                <button class="np-popover-action" type="button" id="np-mute-all">Mute all zones</button>
-                <button class="np-popover-action" type="button" id="np-unmute-all">Unmute all zones</button>
+                <div class="np-popover-title" data-parity="now-playing.device-title">Play on</div>
+                <div class="np-device-list" id="np-device-list" data-parity="now-playing.device-room"></div>
+                <button class="np-popover-action" type="button" id="np-group-open" data-parity="now-playing.group">Group zones…</button>
+                <button class="np-popover-action" type="button" id="np-power-open" data-parity="now-playing.power">Device power…</button>
+                <button class="np-popover-action" type="button" id="np-pause-all" data-parity="now-playing.pause-all">Pause all zones</button>
+                <button class="np-popover-action" type="button" id="np-mute-all" data-parity="now-playing.mute-all">Mute all zones</button>
+                <button class="np-popover-action" type="button" id="np-unmute-all" data-parity="now-playing.unmute-all">Unmute all zones</button>
               </div>
 
               <!-- Volume: tap the speaker to reveal the slider (hidden when fixed) -->
               <div class="np-vol">
-                <button class="np-mini-btn" id="np-volbtn" aria-label="Volume" aria-expanded="false">
+                <button class="np-mini-btn" id="np-volbtn" data-parity="now-playing.volume" aria-label="Volume" aria-expanded="false">
                   <svg id="np-icon-vol" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
                   </svg>
@@ -675,7 +688,7 @@
                 <!-- Same volume sheet as the mini bar's -->
                 <div class="np-popover np-vol-popover vol-sheet hidden" id="np-vol-popover">
                   <div class="vol-controls" id="np-vol-controls">
-                    <div class="vol-readout" aria-hidden="true">
+                    <div class="vol-readout" aria-hidden="true" data-parity="now-playing.volume-level">
                       <span class="vol-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
@@ -683,15 +696,15 @@
                       </span>
                       <span class="vol-value" id="np-vol-value">50</span>
                     </div>
-                    <div class="vol-slider-wrap" id="np-vol-sliderwrap">
+                    <div class="vol-slider-wrap" id="np-vol-sliderwrap" data-parity="now-playing.volume-slider">
                       <input type="range" id="np-vol-slider" class="vol-range" min="0" max="100" step="1" value="50"
                              aria-label="Volume">
                       <div class="vol-scale" aria-hidden="true"><span id="np-vol-min">0</span><span id="np-vol-max">100</span></div>
                     </div>
-                    <button class="vol-step" id="np-vol-minus" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                    <button class="vol-step" id="np-vol-plus" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <button class="vol-step" id="np-vol-minus" data-parity="now-playing.volume-down" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <button class="vol-step" id="np-vol-plus" data-parity="now-playing.volume-up" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
                   </div>
-                  <div class="np-vol-fixed hidden" id="np-vol-fixed">
+                  <div class="np-vol-fixed hidden" id="np-vol-fixed" data-parity="now-playing.volume-fixed">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
                     </svg>
@@ -707,18 +720,16 @@
           </div>
 
           <div class="track-list-wrap">
-            <!-- The album's total time on the same line, centred under the
-                 Play Now and Queue buttons (v0.7.10). -->
-            <h3 class="section-label tracks-head"><span>Tracks</span><span class="tracks-total" id="modal-total"></span></h3>
+            <h3 class="section-label tracks-head" data-parity="album.tracks-head"><span>Tracks</span></h3>
             <ol id="modal-tracks" class="track-list"></ol>
           </div>
 
           </div><!-- /#tab-album -->
 
           <div class="modal-tab-pane hidden" id="tab-queue">
-            <div id="queue-summary" class="queue-summary"></div>
+            <div id="queue-summary" class="queue-summary" data-parity="queue.summary"></div>
             <ol id="queue-list" class="queue-list"></ol>
-            <div id="queue-empty" class="queue-empty hidden">Queue is empty.</div>
+            <div id="queue-empty" class="queue-empty hidden" data-parity="queue.empty">Queue is empty.</div>
           </div>
 
         </div>
@@ -733,71 +744,69 @@
   <!-- The side menu: outside .app (which is a layer of its own at 0), so it
        sits above the mini transport bar (70) as it should. -->
   <div id="menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true" aria-label="Menu">
-    <div class="menu-backdrop" data-menu-close></div>
+    <div class="menu-backdrop" data-menu-close role="button" aria-label="Close the menu" data-parity="menu.close"></div>
     <nav class="menu-drawer">
       <div class="menu-head">
-        <span class="menu-brand"><img class="menu-brand-mark" src="/icons/icon-192.png?v=brassduck" alt="" width="30" height="30">Mandarin</span>
+        <span class="menu-brand" data-parity="menu.brand"><img class="menu-brand-mark" src="/icons/icon-192.png?v=brassduck" alt="" width="30" height="30">Mandarin</span>
         <!-- Power (v0.6.12): Restart or Shut down the server, from a drop-down. In
              place of the ×: a tap outside the menu closes it. -->
         <div class="power-menu" id="power-menu">
-          <button id="power-open" class="icon-btn power-open" type="button"
+          <button id="power-open" class="icon-btn power-open" type="button" data-parity="menu.power"
                   aria-label="Restart or shut down Mandarin" aria-haspopup="menu" aria-expanded="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
           </button>
           <div class="power-pop hidden" id="power-pop" role="menu" aria-label="Mandarin server">
-            <button class="power-item" id="power-restart" type="button" role="menuitem">Restart</button>
-            <button class="power-item" id="power-shutdown" type="button" role="menuitem">Shut down</button>
-            <p class="power-pop-note" id="power-shutdown-note"></p>
+            <button class="power-item" id="power-restart" type="button" role="menuitem" data-parity="menu.power-restart">Restart</button>
+            <button class="power-item" id="power-shutdown" type="button" role="menuitem" data-parity="menu.power-shutdown">Shut down</button>
+            <p class="power-pop-note" id="power-shutdown-note" data-parity="menu.power-note"></p>
           </div>
         </div>
       </div>
       <div class="menu-list">
         <!-- Offline mode (v0.5.58): only in the Android app, which shows it. -->
-        <button class="menu-item menu-toggle hidden" type="button" data-action="offline-mode" id="menu-item-offline" role="switch" aria-checked="false">
+        <button class="menu-item menu-toggle hidden" type="button" data-action="offline-mode" id="menu-item-offline" role="switch" aria-checked="false" aria-label="Offline mode" data-parity="menu.offline">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/><path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
-          <span class="menu-item-lines">
-            <span>Offline mode</span>
-            <span class="menu-sub" id="offline-sub"></span>
-          </span>
+          <!-- One line: "Offline Mode - On" or "- Off" (bug list item 98). -->
+          <span class="menu-offline-line" id="offline-sub" data-parity="menu.offline-sub">Offline Mode - Off</span>
           <span class="switch menu-switch" aria-hidden="true"><span class="switch-track"><span class="switch-thumb"></span></span></span>
         </button>
         <div class="menu-sep menu-toggle-sep"></div>
-        <button class="menu-item" type="button" data-target="pitchfork-toggle">
+        <button class="menu-item" type="button" data-target="pitchfork-toggle" data-parity="menu.pitchfork">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
           <span>Pitchfork</span>
         </button>
-        <button class="menu-item" type="button" data-target="labels-toggle" id="menu-item-labels">
+        <button class="menu-item" type="button" data-target="labels-toggle" id="menu-item-labels" data-parity="menu.labels">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           <span>Labels</span>
         </button>
-        <button class="menu-item hidden" type="button" data-target="qobuz-toggle" id="menu-item-qobuz">
+        <button class="menu-item hidden" type="button" data-target="qobuz-toggle" id="menu-item-qobuz" data-parity="menu.qobuz">
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M39.203 39.203A21.43 21.43 0 0 0 45.5 24c0-11.874-9.626-21.5-21.5-21.5S2.5 12.126 2.5 24S12.126 45.5 24 45.5c4.89 0 9.4-1.633 13.012-4.383"/><circle cx="24" cy="24" r="4.873"/><path d="M32.944 32.944L45.5 45.5"/></svg>
           <span>Qobuz</span>
         </button>
-        <button class="menu-item hidden" type="button" data-target="tidal-toggle" id="menu-item-tidal">
+        <button class="menu-item hidden" type="button" data-target="tidal-toggle" id="menu-item-tidal" data-parity="menu.tidal">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
           <span>Tidal</span>
         </button>
         <!-- Shelf: flicking through the collection, a page of its own (/shelf). -->
-        <button class="menu-item" type="button" data-action="shelf">
+        <button class="menu-item" type="button" data-action="shelf" data-parity="menu.shelf">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/></svg>
           <span>Shelf</span>
         </button>
-        <button class="menu-item" type="button" data-action="later">
+        <button class="menu-item" type="button" data-action="later" data-parity="menu.later">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           <span>Listen later</span>
         </button>
-        <button class="menu-item" type="button" data-action="smart-playlists">
+        <button class="menu-item" type="button" data-action="smart-playlists" data-parity="menu.smart-playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.1 4.6 5 .6-3.7 3.4 1 4.9L12 14.1 7.6 16.5l1-4.9L4.9 8.2l5-.6z"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
           <span>Dynamic Playlists</span>
         </button>
-        <button class="menu-item" type="button" data-action="playlists">
+        <button class="menu-item" type="button" data-action="playlists" data-parity="menu.playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M20 16.5V8l-3 1"/></svg>
           <span>Playlists</span>
         </button>
         <div class="menu-sep"></div>
-        <button class="menu-item" type="button" data-action="rescan-library">
+        <button class="menu-item" type="button" data-action="rescan-library" aria-label="Rescan library" data-parity="menu.rescan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
           <!-- Two lines: the action, and what the snapshot currently is. The
                automatic rescan is invisible by design — it runs in the
@@ -806,11 +815,11 @@
                quietly stopped refreshing. -->
           <span class="menu-item-lines">
             <span>Rescan library</span>
-            <span class="menu-sub" id="rescan-sub"></span>
+            <span class="menu-sub" id="rescan-sub" data-parity="menu.rescan-sub"></span>
           </span>
         </button>
         <div class="menu-sep"></div>
-        <button class="menu-item" type="button" data-target="settings-toggle">
+        <button class="menu-item" type="button" data-target="settings-toggle" data-parity="menu.settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Settings</span>
         </button>
@@ -819,11 +828,11 @@
   </div>
 
   <div id="mini-transport" class="mini-transport hidden" aria-label="Now playing">
-    <div class="mt-progress" aria-hidden="true">
+    <div class="mt-progress" aria-hidden="true" data-parity="mini-player.progress">
       <div class="mt-progress-fill" id="mt-progress-fill"></div>
     </div>
 
-    <button class="mt-btn mt-playpause" id="mt-playpause" aria-label="Play/pause">
+    <button class="mt-btn mt-playpause" id="mt-playpause" data-parity="mini-player.playpause" aria-label="Play/pause">
       <svg id="mt-icon-play"  viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M8 5v14l11-7z"/>
       </svg>
@@ -832,20 +841,22 @@
       </svg>
     </button>
 
-    <div class="mt-info">
-      <!-- Inside .mt-info, which is the region that opens Now playing: tapping
-           the cover of the thing you are listening to should get you to it. -->
-      <img id="mt-art" class="mt-art" alt="" aria-hidden="true">
+    <!-- The cover and the text are one button, Now playing: tapping the thing
+         you are listening to should get you to it. Each part carries its key
+         in the screens contract (docs/specs/screens.json, mini-player), as the
+         Android app draws the bar natively too. -->
+    <div class="mt-info" role="button" aria-label="Now playing" data-parity="mini-player.open">
+      <img id="mt-art" class="mt-art" alt="" aria-hidden="true" data-parity="mini-player.cover">
       <div class="mt-text">
         <!-- The room and the format, above the track (Late-Night Hi-Fi only). -->
-        <div id="mt-kicker" class="mt-kicker"></div>
-        <div id="mt-title"  class="mt-title">—</div>
-        <div id="mt-artist" class="mt-artist">—</div>
+        <div id="mt-kicker" class="mt-kicker" data-parity="mini-player.kicker"></div>
+        <div id="mt-title"  class="mt-title" data-parity="mini-player.title">—</div>
+        <div id="mt-artist" class="mt-artist" data-parity="mini-player.artist">—</div>
       </div>
     </div>
 
     <div class="mt-controls">
-      <button class="mt-btn" id="mt-zone" aria-label="Choose zone" aria-expanded="false">
+      <button class="mt-btn" id="mt-zone" data-parity="mini-player.device" aria-label="Choose device" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
@@ -853,7 +864,7 @@
           <circle cx="12" cy="6.4" r="1.1"/>
         </svg>
       </button>
-      <button class="mt-btn mt-vol-btn" id="mt-vol-btn" aria-label="Volume" aria-expanded="false">
+      <button class="mt-btn mt-vol-btn" id="mt-vol-btn" data-parity="mini-player.volume" aria-label="Volume" aria-expanded="false">
         <svg id="mt-icon-vol" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/>
         </svg>
@@ -864,18 +875,18 @@
     </div>
 
     <div class="mt-zone-popover hidden" id="mt-zone-popover" role="dialog" aria-label="Play on">
-      <div class="np-popover-title">Play on</div>
-      <div class="np-device-list" id="mt-zone-list"></div>
-      <button class="np-popover-action" type="button" id="mt-group-open">Group zones…</button>
-      <button class="np-popover-action" type="button" id="mt-power-open">Device power…</button>
-      <button class="np-popover-action" type="button" id="mt-pause-all">Pause all zones</button>
-      <button class="np-popover-action" type="button" id="mt-mute-all">Mute all zones</button>
-      <button class="np-popover-action" type="button" id="mt-unmute-all">Unmute all zones</button>
+      <div class="np-popover-title" data-parity="mini-player.device-title">Play on</div>
+      <div class="np-device-list" id="mt-zone-list" data-parity="mini-player.device-room"></div>
+      <button class="np-popover-action" type="button" id="mt-group-open" data-parity="mini-player.group">Group zones…</button>
+      <button class="np-popover-action" type="button" id="mt-power-open" data-parity="mini-player.power">Device power…</button>
+      <button class="np-popover-action" type="button" id="mt-pause-all" data-parity="mini-player.pause-all">Pause all zones</button>
+      <button class="np-popover-action" type="button" id="mt-mute-all" data-parity="mini-player.mute-all">Mute all zones</button>
+      <button class="np-popover-action" type="button" id="mt-unmute-all" data-parity="mini-player.unmute-all">Unmute all zones</button>
     </div>
 
     <!-- Volume sheet: [icon + value] [slider with min/max scale] [− +] -->
     <div class="mt-vol-popover vol-sheet hidden" id="mt-vol-popover" role="dialog" aria-label="Volume">
-      <div class="vol-readout" aria-hidden="true">
+      <div class="vol-readout" aria-hidden="true" data-parity="mini-player.volume-level">
         <span class="vol-icon">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>
@@ -883,12 +894,12 @@
         </span>
         <span class="vol-value" id="mt-vol-value">50</span>
       </div>
-      <div class="vol-slider-wrap" id="mt-vol-sliderwrap">
-        <input type="range" id="mt-vol-slider" class="vol-range" min="0" max="100" step="1" value="50" aria-label="Volume level">
+      <div class="vol-slider-wrap" id="mt-vol-sliderwrap" data-parity="mini-player.volume-slider">
+        <input type="range" id="mt-vol-slider" class="vol-range" min="0" max="100" step="1" value="50" aria-label="Volume">
         <div class="vol-scale" aria-hidden="true"><span id="mt-vol-min">0</span><span id="mt-vol-max">100</span></div>
       </div>
-      <button class="vol-step" id="mt-vol-minus" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <button class="vol-step" id="mt-vol-plus" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="vol-step" id="mt-vol-minus" data-parity="mini-player.volume-down" aria-label="Volume down"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="vol-step" id="mt-vol-plus" data-parity="mini-player.volume-up" aria-label="Volume up"><svg class="vol-step-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>
   </div>
 
@@ -896,13 +907,13 @@
   <div id="share-overlay" class="share-overlay hidden" role="dialog" aria-modal="true" aria-label="Share card">
     <div class="share-backdrop" data-share-close></div>
     <div class="share-panel">
-      <button class="share-close icon-btn" data-share-close aria-label="Close">
+      <button class="share-close icon-btn" data-share-close aria-label="Close" data-parity="share-card.close">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
         </svg>
       </button>
-      <div class="share-frame" id="share-frame">
+      <div class="share-frame" id="share-frame" data-parity="share-card.card">
         <div class="share-placeholder">
           <div class="share-spinner"></div>
           <div>Generating card…</div>
@@ -917,11 +928,11 @@
            on screen, because it costs up to five Deezer calls and the card
            must not wait on it. -->
       <section class="share-similar hidden" id="share-similar" aria-label="If you like this">
-        <h3 class="share-similar-title">If you like this</h3>
+        <h3 class="share-similar-title" data-parity="share-card.similar-title">If you like this</h3>
         <div class="share-similar-list" id="share-similar-list"></div>
       </section>
-      <p class="share-hint" id="share-hint"></p>
-      <p class="share-err"  id="share-err"></p>
+      <p class="share-hint" id="share-hint" data-parity="share-card.hint"></p>
+      <p class="share-err"  id="share-err" data-parity="share-card.err"></p>
     </div>
   </div>
 
@@ -933,8 +944,8 @@
       <div class="qobuz-pin">
         <div class="settings-grip"></div>
         <div class="settings-head">
-          <h2>Qobuz</h2>
-          <button id="qobuz-overlay-close" class="icon-btn" type="button" aria-label="Close" data-qobuz-close>
+          <h2 data-parity="service-browser.title">Qobuz</h2>
+          <button id="qobuz-overlay-close" class="icon-btn" type="button" aria-label="Close" data-qobuz-close data-parity="service-browser.close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -942,23 +953,23 @@
           </button>
         </div>
         <div class="qobuz-search-row">
-          <input id="qobuz-search-input" type="search" placeholder="Search the Qobuz catalogue…"
+          <input id="qobuz-search-input" type="search" placeholder="Search the Qobuz catalogue…" aria-label="Search the Qobuz catalogue…" data-parity="service-browser.search"
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="qobuz-search-clear" class="hidden" type="button" aria-label="Clear search">×</button>
+          <button id="qobuz-search-clear" class="hidden" type="button" aria-label="Clear search" data-parity="service-browser.search-clear">×</button>
         </div>
         <div id="qobuz-tabs" role="tablist" aria-label="Qobuz sections">
-          <button class="qobuz-tab is-active" type="button" role="tab" data-qtab="new-releases">New Releases</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="best-sellers">Best Sellers</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="most-streamed">Most Streamed</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="press-awards">Press Awards</button>
-          <button class="qobuz-tab" type="button" role="tab" data-qtab="editor-picks">Editor's Picks</button>
+          <button class="qobuz-tab is-active" type="button" role="tab" data-parity="service-browser.tab" data-qtab="new-releases">New Releases</button>
+          <button class="qobuz-tab" type="button" role="tab" data-parity="service-browser.tab" data-qtab="best-sellers">Best Sellers</button>
+          <button class="qobuz-tab" type="button" role="tab" data-parity="service-browser.tab" data-qtab="most-streamed">Most Streamed</button>
+          <button class="qobuz-tab" type="button" role="tab" data-parity="service-browser.tab" data-qtab="press-awards">Press Awards</button>
+          <button class="qobuz-tab" type="button" role="tab" data-parity="service-browser.tab" data-qtab="editor-picks">Editor's Picks</button>
         </div>
       </div>
-      <div id="qobuz-nr-status" class="settings-token-status"></div>
+      <div id="qobuz-nr-status" class="settings-token-status" data-parity="service-browser.status"></div>
       <div id="qobuz-artist-head" class="hidden"></div>
       <div id="qobuz-artists" class="hidden"></div>
       <div id="qobuz-nr-list" class="qobuz-nr-list album-grid"></div>
-      <button id="qobuz-load-more" class="hidden" type="button">Load more</button>
+      <button id="qobuz-load-more" class="hidden" type="button" data-parity="service-browser.load-more">Load more</button>
       <div id="qobuz-nr-detail" class="qobuz-nr-detail hidden"></div>
     </div>
   </div>
@@ -970,26 +981,26 @@
       <div class="qobuz-pin">
         <div class="settings-grip" aria-hidden="true"></div>
         <div class="settings-head">
-          <h2>Tidal</h2>
-          <button id="tidal-overlay-close" class="icon-btn" type="button" aria-label="Close" data-tidal-close>
+          <h2 data-parity="service-browser.title">Tidal</h2>
+          <button id="tidal-overlay-close" class="icon-btn" type="button" aria-label="Close" data-tidal-close data-parity="service-browser.close">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div class="qobuz-search-row">
-          <input id="tidal-search-input" type="search" placeholder="Search the Tidal catalogue…"
+          <input id="tidal-search-input" type="search" placeholder="Search the Tidal catalogue…" aria-label="Search the Tidal catalogue…" data-parity="service-browser.search"
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-          <button id="tidal-search-clear" class="hidden" type="button" aria-label="Clear search">×</button>
+          <button id="tidal-search-clear" class="hidden" type="button" aria-label="Clear search" data-parity="service-browser.search-clear">×</button>
         </div>
         <div id="tidal-tabs" role="tablist" aria-label="Tidal sections">
-          <button class="qobuz-tab is-active" type="button" role="tab" data-qtab="new-releases">New Releases</button>
+          <button class="qobuz-tab is-active" type="button" role="tab" data-parity="service-browser.tab" data-qtab="new-releases">New Releases</button>
           <!-- the lists Tidal features follow, from /api/tidal/lists (app.js) -->
         </div>
       </div>
-      <div id="tidal-nr-status" class="settings-token-status"></div>
+      <div id="tidal-nr-status" class="settings-token-status" data-parity="service-browser.status"></div>
       <div id="tidal-artist-head" class="hidden"></div>
       <div id="tidal-artists" class="hidden"></div>
       <div id="tidal-nr-list" class="qobuz-nr-list album-grid"></div>
-      <button id="tidal-load-more" class="hidden" type="button">Load more</button>
+      <button id="tidal-load-more" class="hidden" type="button" data-parity="service-browser.load-more">Load more</button>
       <div id="tidal-nr-detail" class="qobuz-nr-detail hidden"></div>
     </div>
   </div>
@@ -1004,8 +1015,8 @@
       <div class="qobuz-pin">
         <div class="settings-grip"></div>
         <div class="settings-head">
-          <h2>Pitchfork</h2>
-          <button id="pitchfork-overlay-close" class="icon-btn" type="button" aria-label="Close" data-pitchfork-close>
+          <h2 data-parity="pitchfork.title">Pitchfork</h2>
+          <button id="pitchfork-overlay-close" class="icon-btn" type="button" aria-label="Close" data-pitchfork-close data-parity="pitchfork.close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1013,11 +1024,11 @@
           </button>
         </div>
         <div id="pitchfork-tabs" role="tablist" aria-label="Pitchfork sections">
-          <button class="qobuz-tab is-active" type="button" role="tab" data-pftab="latest">Latest Reviews</button>
-          <button class="qobuz-tab" type="button" role="tab" data-pftab="best">Best New Music</button>
+          <button class="qobuz-tab is-active" type="button" role="tab" data-pftab="latest" data-parity="pitchfork.latest">Latest Reviews</button>
+          <button class="qobuz-tab" type="button" role="tab" data-pftab="best" data-parity="pitchfork.best">Best New Music</button>
         </div>
       </div>
-      <div id="pitchfork-status" class="settings-token-status"></div>
+      <div id="pitchfork-status" class="settings-token-status" data-parity="pitchfork.status"></div>
       <div id="pitchfork-list" class="pf-grid"></div>
       <div id="pitchfork-detail" class="pf-detail hidden"></div>
     </div>
@@ -1030,8 +1041,8 @@
     <div class="settings-sheet album-edit-sheet">
       <div class="settings-grip"></div>
       <div class="settings-head ae-head">
-        <h2 id="ae-heading">Edit album</h2>
-        <button class="icon-btn" type="button" aria-label="Close" data-ae-close>
+        <h2 id="ae-heading" data-parity="album-edit.heading">Edit album</h2>
+        <button class="icon-btn" type="button" aria-label="Close" data-ae-close data-parity="album-edit.close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1040,75 +1051,75 @@
       </div>
 
       <div class="ae-cover-row">
-        <div class="ae-cover"><img id="ae-cover-img" alt=""></div>
+        <div class="ae-cover" data-parity="album-edit.cover"><img id="ae-cover-img" alt=""></div>
         <div class="ae-cover-side">
-          <div id="ae-cover-status" class="ae-cover-status"></div>
+          <div id="ae-cover-status" class="ae-cover-status" data-parity="album-edit.cover-status"></div>
           <div class="ae-cover-btns">
-            <button id="ae-find" class="action-btn" type="button">Find cover</button>
-            <button id="ae-art-remove" class="ae-link hidden" type="button">Remove found cover</button>
-            <button id="ae-art-undo" class="ae-link hidden" type="button">Keep current cover</button>
+            <button id="ae-find" class="action-btn" type="button" data-parity="album-edit.find">Find cover</button>
+            <button id="ae-art-remove" class="ae-link hidden" type="button" data-parity="album-edit.remove">Remove found cover</button>
+            <button id="ae-art-undo" class="ae-link hidden" type="button" data-parity="album-edit.undo">Keep current cover</button>
           </div>
         </div>
       </div>
 
       <div id="ae-search" class="ae-search hidden">
-        <div id="ae-search-status" class="ae-search-status" aria-live="polite"></div>
+        <div id="ae-search-status" class="ae-search-status" aria-live="polite" data-parity="album-edit.search-status"></div>
         <div id="ae-candidates" class="ae-candidates"></div>
-        <label class="ae-label" for="ae-url">Or paste an image address</label>
+        <label class="ae-label" for="ae-url" data-parity="album-edit.url">Or paste an image address</label>
         <div class="ae-url-row">
-          <input id="ae-url" class="ae-input" type="url" inputmode="url" placeholder="https://…/cover.jpg"
+          <input id="ae-url" class="ae-input" type="url" aria-label="Or paste an image address" data-parity="album-edit.url" inputmode="url" placeholder="https://…/cover.jpg"
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="ae-url-use" class="action-btn" type="button">Use</button>
+          <button id="ae-url-use" class="action-btn" type="button" data-parity="album-edit.url-use">Use</button>
         </div>
-        <div id="ae-url-err" class="ae-err"></div>
+        <div id="ae-url-err" class="ae-err" data-parity="album-edit.url-err"></div>
       </div>
 
       <!-- Names from MusicBrainz: the scan's suggestions to choose from, or an
            exact match by the sleeve's barcode. Applied at once, like the scan does. -->
       <div class="ae-cover-row ae-match-row">
         <div class="ae-cover-side">
-          <div id="ae-match-status" class="ae-cover-status">Names from MusicBrainz — artist, title, year and every track.</div>
+          <div id="ae-match-status" class="ae-cover-status" data-parity="album-edit.match-status">Names from MusicBrainz — artist, title, year and every track.</div>
           <!-- Where the files are (v0.6.3): the folder's name often says what
                the tags don't — a remix, a box set, a pressing. -->
-          <div id="ae-folder" class="ae-folder hidden"></div>
+          <div id="ae-folder" class="ae-folder hidden" data-parity="album-edit.folder"></div>
           <div class="ae-cover-btns">
-            <button id="ae-match-find" class="action-btn" type="button">Find match</button>
+            <button id="ae-match-find" class="action-btn" type="button" data-parity="album-edit.match-find">Find match</button>
           </div>
         </div>
       </div>
       <div id="ae-match" class="ae-search hidden">
-        <div id="ae-match-search-status" class="ae-search-status" aria-live="polite"></div>
+        <div id="ae-match-search-status" class="ae-search-status" aria-live="polite" data-parity="album-edit.match-search-status"></div>
         <div id="ae-match-cands" class="ae-mcands"></div>
-        <label class="ae-label" for="ae-barcode">Or the barcode, or a MusicBrainz link</label>
+        <label class="ae-label" for="ae-barcode" data-parity="album-edit.barcode">Or the barcode, or a MusicBrainz link</label>
         <div class="ae-url-row">
-          <input id="ae-barcode" class="ae-input" type="text" inputmode="numeric" placeholder="Digits under the bars, or musicbrainz.org/release/…"
+          <input id="ae-barcode" class="ae-input" type="text" aria-label="Or the barcode, or a MusicBrainz link" data-parity="album-edit.barcode" inputmode="numeric" placeholder="Digits under the bars, or musicbrainz.org/release/…"
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="ae-barcode-use" class="action-btn" type="button">Match</button>
+          <button id="ae-barcode-use" class="action-btn" type="button" data-parity="album-edit.barcode-use">Match</button>
         </div>
-        <div id="ae-barcode-err" class="ae-err"></div>
+        <div id="ae-barcode-err" class="ae-err" data-parity="album-edit.barcode-err"></div>
       </div>
 
       <div class="ae-fields">
-        <label class="ae-label" for="ae-title">Title</label>
-        <input id="ae-title" class="ae-input" type="text" autocomplete="off" spellcheck="false">
-        <div class="ae-was" data-ae-was="title"></div>
+        <label class="ae-label" for="ae-title" data-parity="album-edit.title">Title</label>
+        <input id="ae-title" class="ae-input" type="text" aria-label="Title" data-parity="album-edit.title" autocomplete="off" spellcheck="false">
+        <div class="ae-was" data-ae-was="title" data-parity="album-edit.was"></div>
 
-        <label class="ae-label" for="ae-artist">Artist</label>
-        <input id="ae-artist" class="ae-input" type="text" autocomplete="off" spellcheck="false">
-        <div class="ae-was" data-ae-was="artist"></div>
+        <label class="ae-label" for="ae-artist" data-parity="album-edit.artist">Artist</label>
+        <input id="ae-artist" class="ae-input" type="text" aria-label="Artist" data-parity="album-edit.artist" autocomplete="off" spellcheck="false">
+        <div class="ae-was" data-ae-was="artist" data-parity="album-edit.was"></div>
 
-        <label class="ae-label" for="ae-year">Release year</label>
-        <input id="ae-year" class="ae-input ae-year" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off">
-        <div class="ae-was" data-ae-was="year"></div>
+        <label class="ae-label" for="ae-year" data-parity="album-edit.year">Release year</label>
+        <input id="ae-year" class="ae-input ae-year" type="text" aria-label="Release year" data-parity="album-edit.year" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off">
+        <div class="ae-was" data-ae-was="year" data-parity="album-edit.was"></div>
       </div>
 
-      <div id="ae-err" class="ae-err"></div>
+      <div id="ae-err" class="ae-err" data-parity="album-edit.err"></div>
       <div class="ae-foot">
-        <button id="ae-save" class="action-btn primary" type="button">Save</button>
-        <button class="action-btn" type="button" data-ae-close>Cancel</button>
+        <button id="ae-save" class="action-btn primary" type="button" data-parity="album-edit.save">Save</button>
+        <button class="action-btn" type="button" data-ae-close data-parity="album-edit.cancel">Cancel</button>
       </div>
-      <button id="ae-reset" class="ae-link ae-reset hidden" type="button">Undo all edits to this album</button>
-      <p class="settings-note">Your music folders aren't changed — edits are kept in Mandarin's database and survive rescans.</p>
+      <button id="ae-reset" class="ae-link ae-reset hidden" type="button" data-parity="album-edit.reset">Undo all edits to this album</button>
+      <p class="settings-note" data-parity="album-edit.note">Your music folders aren't changed — edits are kept in Mandarin's database and survive rescans.</p>
     </div>
   </div>
 
@@ -1120,11 +1131,11 @@
       <!-- Settings home: category list. Each row opens a pane below. -->
       <div class="settings-view" data-view="home">
         <div class="settings-head">
-          <h2>Settings</h2>
+          <h2 data-parity="settings.heading">Settings</h2>
         </div>
 
         <nav class="settings-nav settings-nav-list" aria-label="Settings categories">
-          <button class="settings-nav-item" type="button" data-pane="account">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="account">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
             </span>
@@ -1132,7 +1143,7 @@
               <span class="settings-nav-title">Account</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="folders">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="folders">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             </span>
@@ -1140,7 +1151,7 @@
               <span class="settings-nav-title">Music Folders</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="streaming">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="streaming">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </span>
@@ -1148,7 +1159,7 @@
               <span class="settings-nav-title">Services</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="playback">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="playback">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/></svg>
             </span>
@@ -1156,7 +1167,7 @@
               <span class="settings-nav-title">Audio Devices</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="identify">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="identify">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg>
             </span>
@@ -1164,7 +1175,7 @@
               <span class="settings-nav-title">Library Scanner</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="setup">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="setup">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
             </span>
@@ -1172,7 +1183,7 @@
               <span class="settings-nav-title">Setup</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="backup">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="backup">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </span>
@@ -1180,7 +1191,7 @@
               <span class="settings-nav-title">Backup &amp; restore</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="system">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="system">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
             </span>
@@ -1189,7 +1200,7 @@
             </span>
           </button>
           
-          <button class="settings-nav-item hidden" type="button" data-pane="labels">
+          <button data-parity="settings.item" class="settings-nav-item hidden" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </span>
@@ -1200,8 +1211,8 @@
         </nav>
 
         <div class="settings-foot">
-          <span class="settings-version" id="settings-version">Mandarin</span>
-          <a class="settings-repo" id="settings-repo"
+          <span class="settings-version" id="settings-version" data-parity="settings.version">Mandarin</span>
+          <a class="settings-repo" id="settings-repo" data-parity="settings.repo"
              href="https://github.com/meltface-80/Mandarin"
              target="_blank" rel="noopener noreferrer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1216,14 +1227,13 @@
       <!-- Setup (v0.6.21): the pages that set Mandarin up, on a list of their own. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-setup.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Setup</h2>
+          <h2 data-parity="settings-setup.heading">Setup</h2>
         </div>
-        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
-          <button class="settings-nav-item" type="button" data-pane="smartpicks">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
             </span>
@@ -1231,7 +1241,7 @@
               <span class="settings-nav-title">Smart Picks</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="labels">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </span>
@@ -1239,7 +1249,7 @@
               <span class="settings-nav-title">Record labels</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="homescreen">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="homescreen">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="12" width="18" height="5" rx="1"/><path d="M3 20h11"/></svg>
             </span>
@@ -1247,7 +1257,7 @@
               <span class="settings-nav-title">Home Screen</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="ui">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="ui">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h5"/></svg>
             </span>
@@ -1255,7 +1265,7 @@
               <span class="settings-nav-title">UI Settings</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="display">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="display">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </span>
@@ -1263,7 +1273,7 @@
               <span class="settings-nav-title">Wall Display</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="shelfset">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="shelfset">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/></svg>
             </span>
@@ -1271,7 +1281,7 @@
               <span class="settings-nav-title">Shelf</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="sharecard">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="sharecard">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
             </span>
@@ -1279,7 +1289,7 @@
               <span class="settings-nav-title">Share Card</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="away">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="away">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg>
             </span>
@@ -1287,7 +1297,7 @@
               <span class="settings-nav-title">Away from home</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="metadata">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="metadata">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/></svg>
             </span>
@@ -1300,19 +1310,18 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-audio.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Audio Devices</h2>
+          <h2 data-parity="settings-audio.heading">Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc">Output zone &amp; your devices</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Zone / output <button class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Zone / output <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="zone-select" class="settings-select" aria-label="Output zone"></select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <select id="zone-select" data-parity="settings-audio.zone" class="settings-select" aria-label="Output zone"></select>
+              <svg data-parity="settings-audio.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1326,13 +1335,13 @@
              in app.js from /api/audio-devices; a row opens the "device" pane. -->
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Devices <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
             <span class="dev-tools">
-              <button type="button" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
-              <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+              <button type="button" data-parity="settings-audio.hide" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
+              <button type="button" data-parity="settings-audio.rescan" class="settings-update-btn" id="devices-rescan">Look again</button>
             </span>
           </div>
-          <div id="devices-hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
+          <div id="devices-hide-note" data-parity="settings-audio.hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
           <div id="devices-list" class="dev-list"></div>
         </div>
 
@@ -1340,13 +1349,13 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Waveform <button class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-audio.name">Waveform <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
+            <label class="switch" data-parity="settings-audio.waveform">
               <input type="checkbox" id="waveform-enabled" aria-label="Waveform">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
+          <div class="settings-note" data-parity="settings-audio.note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
 
           <!-- Qobuz waveforms. Off until the user signs in, and the sign-in
                happens on qobuz.com — no password or key is typed in here. -->
@@ -1363,33 +1372,32 @@
       <!-- Labels -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="labels" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-labels.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Record labels</h2>
+          <h2 data-parity="settings-labels.heading">Record labels</h2>
         </div>
-        <p class="settings-pane-desc">From your files' tags: on or off, ordering, folders</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Record labels <button class="settings-info-btn" data-info="Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-labels.name">Record labels <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins." aria-label="Info">ⓘ</button></span>
+            <label class="switch" data-parity="settings-labels.enabled">
               <input type="checkbox" id="labels-enabled" aria-label="Record labels">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="labels-enabled-note">Off by default. Everything below applies only while this is on.</div>
+          <div class="settings-note" id="labels-enabled-note" data-parity="settings-labels.note">Off by default. Everything below applies only while this is on.</div>
         </div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Label album order <button class="settings-info-btn" data-info="When you open a record label, list its albums alphabetically or shuffle them." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-labels.name">Label album order <button data-parity="settings-labels.info" class="settings-info-btn" data-info="When you open a record label, list its albums alphabetically or shuffle them." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="label-order-select" class="settings-select" aria-label="Label album order">
+              <select id="label-order-select" data-parity="settings-labels.order" class="settings-select" aria-label="Label album order">
                 <option value="alpha">Alphabetical</option>
                 <option value="random">Random</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-labels.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1399,15 +1407,15 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Minimum albums per label <button class="settings-info-btn" data-info="Hide labels that have fewer albums than this threshold. Useful if the scanner picks up one-off compilations from unexpected labels." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-labels.name">Minimum albums per label <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Hide labels that have fewer albums than this threshold. Useful if the scanner picks up one-off compilations from unexpected labels." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="label-min-select" class="settings-select" aria-label="Minimum albums per label">
+              <select id="label-min-select" data-parity="settings-labels.min" class="settings-select" aria-label="Minimum albums per label">
                 <option value="1">Show all</option>
                 <option value="2">2 or more</option>
                 <option value="5">5 or more</option>
                 <option value="10">10 or more</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-labels.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1419,23 +1427,23 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Label data <button class="settings-info-btn" data-info="Ask again about every album whose files carry no label tag, and look again for the logos not found before. The tags themselves are read by the library scan (Settings → Music folders)." aria-label="Info">ⓘ</button></span>
-            <button id="force-rescan-btn" class="settings-update-btn" type="button">Force rescan</button>
+            <span class="settings-label" data-parity="settings-labels.name">Label data <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Ask again about every album whose files carry no label tag, and look again for the logos not found before. The tags themselves are read by the library scan (Settings → Music folders)." aria-label="Info">ⓘ</button></span>
+            <button id="force-rescan-btn" data-parity="settings-labels.rescan" class="settings-update-btn" type="button">Force rescan</button>
           </div>
-          <div id="force-rescan-status" class="settings-release-notes hidden"></div>
+          <div id="force-rescan-status" data-parity="settings-labels.rescan-status" class="settings-release-notes hidden"></div>
         </div>
 
         <div class="settings-divider"></div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Label from folder depth <button class="settings-info-btn" data-info="For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving applies it at once." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-labels.name">Label from folder depth <button data-parity="settings-labels.info" class="settings-info-btn" data-info="For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving applies it at once." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
-            <input id="label-folder-depth-input" type="number" min="0" max="6" class="settings-token-input" placeholder="0 = off (use file tag)">
-            <button id="label-folder-depth-save" class="settings-update-btn" type="button">Save</button>
+            <input id="label-folder-depth-input" data-parity="settings-labels.depth" aria-label="Label from folder depth" type="number" min="0" max="6" class="settings-token-input" placeholder="0 = off (use file tag)">
+            <button id="label-folder-depth-save" data-parity="settings-labels.depth-save" class="settings-update-btn" type="button">Save</button>
           </div>
-          <div id="label-folder-depth-status" class="settings-token-status"></div>
+          <div id="label-folder-depth-status" data-parity="settings-labels.depth-status" class="settings-token-status"></div>
         </div>
       </div>
 
@@ -1443,145 +1451,142 @@
       <!-- Account: who is signed in, on which devices, and the password -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="account">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-account.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Account</h2>
+          <h2 data-parity="settings-account.heading">Account</h2>
         </div>
-        <p class="settings-pane-desc" id="acct-who">Signed in</p>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Signed-in devices</h3>
+          <h3 class="settings-block-title" data-parity="settings-account.title">Signed-in devices</h3>
           <div id="acct-devices" class="acct-devices"></div>
-          <p class="settings-note">Sign out a device you've lost or don't use. It will need the password to come back.</p>
-          <button id="acct-signout" class="settings-update-btn" type="button">Sign out of this device</button>
+          <p class="settings-note" data-parity="settings-account.note">Sign out a device you've lost or don't use. It will need the password to come back.</p>
+          <button id="acct-signout" class="settings-update-btn" type="button" data-parity="settings-account.signout">Sign out of this device</button>
         </div>
 
         <div class="settings-divider"></div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Change password</h3>
-          <input id="acct-cur" type="password" class="settings-token-input acct-input" placeholder="Current password" autocomplete="current-password">
-          <input id="acct-new" type="password" class="settings-token-input acct-input" placeholder="New password (8 or more characters)" autocomplete="new-password">
-          <input id="acct-new2" type="password" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
-          <button id="acct-pw" class="settings-update-btn" type="button">Change password</button>
-          <div id="acct-pw-status" class="settings-token-status"></div>
-          <p class="settings-note">Devices already signed in stay signed in. Forgot it? On the server run
+          <h3 class="settings-block-title" data-parity="settings-account.title">Change password</h3>
+          <input id="acct-cur" type="password" aria-label="Current password" data-parity="settings-account.current" class="settings-token-input acct-input" placeholder="Current password" autocomplete="current-password">
+          <input id="acct-new" type="password" aria-label="New password (8 or more characters)" data-parity="settings-account.new" class="settings-token-input acct-input" placeholder="New password (8 or more characters)" autocomplete="new-password">
+          <input id="acct-new2" type="password" aria-label="New password again" data-parity="settings-account.again" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
+          <button id="acct-pw" class="settings-update-btn" type="button" data-parity="settings-account.change">Change password</button>
+          <div id="acct-pw-status" class="settings-token-status" data-parity="settings-account.status"></div>
+          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? On the server run
             <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code> and create the account again.</p>
         </div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="metadata" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-keys.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>API Keys</h2>
+          <h2 data-parity="settings-keys.heading">API Keys</h2>
         </div>
-        <p class="settings-pane-desc">Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional.</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Discogs token <button class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-keys.name">Discogs token <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
-            <span class="token-field"><input id="discogs-token-input" type="text" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false"><span id="discogs-token-check" class="token-check hidden" role="img"></span></span>
-            <button id="discogs-token-save" class="settings-update-btn" type="button">Save</button>
+            <span class="token-field"><input id="discogs-token-input" type="text" aria-label="Discogs token" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false"><span id="discogs-token-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="discogs-token-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
-          <div id="discogs-token-status" class="settings-token-status"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">FanArt.tv key <button class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="fanart-key-input" type="text" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false"><span id="fanart-key-check" class="token-check hidden" role="img"></span></span>
-            <button id="fanart-key-save" class="settings-update-btn" type="button">Save</button>
-          </div>
-          <div id="fanart-key-status" class="settings-token-status"></div>
+          <div id="discogs-token-status" class="settings-token-status" data-parity="settings-keys.status"></div>
         </div>
 
         <div class="settings-divider"></div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Last.fm key <button class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist&#39;s similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist&#39;s name, and nothing is scrobbled." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-keys.name">FanArt.tv key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
-            <span class="token-field"><input id="lastfm-key-input" type="text" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img"></span></span>
-            <button id="lastfm-key-save" class="settings-update-btn" type="button">Save</button>
+            <span class="token-field"><input id="fanart-key-input" type="text" aria-label="FanArt.tv key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false"><span id="fanart-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="fanart-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
-          <div id="lastfm-key-status" class="settings-token-status"></div>
+          <div id="fanart-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist&#39;s similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist&#39;s name, and nothing is scrobbled." aria-label="Info">ⓘ</button></span>
+          </div>
+          <div class="settings-token-row">
+            <span class="token-field"><input id="lastfm-key-input" type="text" aria-label="Last.fm key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="lastfm-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
+          </div>
+          <div id="lastfm-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
         </div>
       </div>
 
       <!-- Streaming accounts -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="streaming">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-services.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Services</h2>
+          <h2 data-parity="settings-services.heading">Services</h2>
         </div>
-        <p class="settings-pane-desc">Qobuz and Tidal</p>
 
         <div class="settings-block">
-          <div class="settings-block-title">Qobuz <button class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-services.title">Qobuz <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="qobuz-signin-form">
-            <input id="qobuz-username" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
-            <input id="qobuz-password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
+            <input id="qobuz-username" data-parity="settings-services.email" aria-label="Qobuz email" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input id="qobuz-password" data-parity="settings-services.password" aria-label="Qobuz password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
             <div class="settings-token-row">
-              <button id="qobuz-signin" class="settings-update-btn" type="button">Sign in</button>
+              <button id="qobuz-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in</button>
             </div>
           </div>
-          <div id="qobuz-status" class="settings-token-status"></div>
+          <div id="qobuz-status" data-parity="settings-services.status" class="settings-token-status"></div>
           <div id="qobuz-signed" hidden>
-            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="qobuz-quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="qobuz-quality" data-parity="settings-services.quality" aria-label="Qobuz stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires96">Hi-Res up to 24/96</option>
                 <option value="hires192">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label">Favourites and purchases in the library <button class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them, nor your Qobuz playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites and purchases in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them, nor your Qobuz playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="qobuz-import-now" class="settings-update-btn" type="button">Update library now</button>
-              <button id="qobuz-disconnect" class="settings-update-btn" type="button">Sign out</button>
+              <button id="qobuz-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="qobuz-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="qobuz-import-status" class="settings-token-status"></div>
+            <div id="qobuz-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
 
         <div class="settings-block">
-          <div class="settings-block-title">Tidal <button class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-services.title">Tidal <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="tidal-signin-form">
             <div class="settings-token-row">
-              <button id="tidal-signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
+              <button id="tidal-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
             </div>
             <div id="tidal-pending" class="tidal-auth-pending" hidden>
-              <div class="settings-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
-              <a id="tidal-auth-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
-              <div id="tidal-auth-code" class="tidal-auth-code"></div>
-              <button id="tidal-signin-cancel" class="settings-update-btn" type="button">Cancel</button>
+              <div class="settings-note" data-parity="settings-services.tidal-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
+              <a id="tidal-auth-link" data-parity="settings-services.tidal-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="tidal-auth-code" data-parity="settings-services.tidal-code" class="tidal-auth-code"></div>
+              <button id="tidal-signin-cancel" data-parity="settings-services.tidal-cancel" class="settings-update-btn" type="button">Cancel</button>
             </div>
           </div>
-          <div id="tidal-status" class="settings-token-status"></div>
+          <div id="tidal-status" data-parity="settings-services.status" class="settings-token-status"></div>
           <div id="tidal-signed" hidden>
-            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="tidal-quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="tidal-quality" data-parity="settings-services.quality" aria-label="Tidal stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label">Favourites in the library <button class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them, nor your Tidal playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them, nor your Tidal playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="tidal-import-now" class="settings-update-btn" type="button">Update library now</button>
-              <button id="tidal-disconnect" class="settings-update-btn" type="button">Sign out</button>
+              <button id="tidal-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="tidal-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="tidal-import-status" class="settings-token-status"></div>
+            <div id="tidal-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
       </div>
@@ -1589,42 +1594,41 @@
       <!-- Share Card — the links under the card, grouped in one place -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="sharecard" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-sharecard.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Share Card</h2>
+          <h2 data-parity="settings-sharecard.heading">Share Card</h2>
         </div>
-        <p class="settings-pane-desc">What the card shows, and the links under it</p>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">On the card</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">On the card</h3>
           <div class="settings-row">
-            <span class="settings-label">Review</span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-sharecard.name">Review</span>
+            <label class="switch" data-parity="settings-sharecard.review">
               <input type="checkbox" id="share-card-review" aria-label="Show the review on the share card" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="share-card-review-note">On. The card carries the write-up about the album under the cover.</div>
+          <div class="settings-note" id="share-card-review-note" data-parity="settings-sharecard.note">On. The card carries the write-up about the album under the cover.</div>
         </div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Services</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Services</h3>
           <!-- Filled from /api/settings/share-links: the list of what CAN be
                linked to lives in lib/share-links.js, so this screen and the
                chips can never disagree about which services exist. -->
           <div id="share-services-list" class="share-toggle-list"></div>
           <div class="settings-row settings-row-top">
-            <span class="settings-label">Default <button class="settings-info-btn" data-info="Where a suggestion goes when the record is not in your library. You can also set it by holding a service button under the share card. This is per device, so a phone and a tablet can differ." aria-label="Info">&#9432;</button></span>
+            <span class="settings-label" data-parity="settings-sharecard.name">Default <button data-parity="settings-sharecard.info" class="settings-info-btn" data-info="Where a suggestion goes when the record is not in your library. You can also set it by holding a service button under the share card. This is per device, so a phone and a tablet can differ." aria-label="Info">&#9432;</button></span>
             <div class="settings-select-wrap">
-              <select id="share-default-service" class="settings-select" aria-label="Default service"></select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <select id="share-default-service" data-parity="settings-sharecard.default" class="settings-select" aria-label="Default service"></select>
+              <svg data-parity="settings-sharecard.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </div>
           </div>
-          <p class="settings-note" id="share-services-note">
+          <p class="settings-note" id="share-services-note" data-parity="settings-sharecard.note">
             Each one opens a search for the album on that service. Nothing is
             looked up until you tap a link. A suggestion that IS in your library
             queues it instead.
@@ -1632,9 +1636,9 @@
         </div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Reviews</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Reviews</h3>
           <div id="share-reviews-list" class="share-toggle-list"></div>
-          <p class="settings-note">
+          <p class="settings-note" data-parity="settings-sharecard.note">
             Pitchfork and Wikipedia link to the actual page when it has already
             been found for the card, and to a search when it has not.
           </p>
@@ -1644,24 +1648,23 @@
       <!-- Wall display: one of Setup's pages (v1.0.2). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="display" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-display.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Wall Display</h2>
+          <h2 data-parity="settings-display.heading">Wall Display</h2>
         </div>
-        <p class="settings-pane-desc">Always-on screen &amp; video</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Wall display <button class="settings-info-btn" data-info="An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. On by default. When off it is off entirely: /display says only that it is turned off, with nothing running on it, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-display.name">Wall display <button data-parity="settings-display.info" class="settings-info-btn" data-info="An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. On by default. When off it is off entirely: /display says only that it is turned off, with nothing running on it, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
+            <label class="switch" data-parity="settings-display.enabled">
               <input type="checkbox" id="display-toggle" aria-label="Wall display">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
           <div class="settings-row">
-            <span class="settings-label">Rotate every <span id="display-seconds-value">10s</span></span>
-            <input type="range" id="display-seconds" class="settings-range" min="5" max="60" step="1" value="10"
+            <span class="settings-label" data-parity="settings-display.name">Rotate every <span id="display-seconds-value">10s</span></span>
+            <input type="range" id="display-seconds" data-parity="settings-display.seconds" class="settings-range" min="5" max="60" step="1" value="10"
                    aria-label="Display rotation interval in seconds">
           </div>
         </div>
@@ -1670,17 +1673,16 @@
       <!-- Shelf: one of Setup's pages (v1.0.2, features.js). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="shelfset" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-shelf.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Shelf</h2>
+          <h2 data-parity="settings-shelf.heading">Shelf</h2>
         </div>
-        <p class="settings-pane-desc">Flicking through your collection</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Shelf <button class="settings-info-btn" data-info="Your collection as a record shop's shelf, at this server's address followed by /shelf, and in the side menu. Off on a new install; an install from before v1.0.2 keeps it on. When off it is off entirely: the side menu and the wall display don't offer it, /shelf says only that it is turned off, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-shelf.name">Shelf <button data-parity="settings-shelf.info" class="settings-info-btn" data-info="Your collection as a record shop's shelf, at this server's address followed by /shelf, and in the side menu. Off on a new install; an install from before v1.0.2 keeps it on. When off it is off entirely: the side menu and the wall display don't offer it, /shelf says only that it is turned off, and the server makes nothing for it." aria-label="Info">ⓘ</button></span>
+            <label class="switch" data-parity="settings-shelf.enabled">
               <input type="checkbox" id="shelf-toggle" aria-label="Shelf">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
@@ -1693,18 +1695,17 @@
            screen want different things); app.js builds the rows from UI_PREFS. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ui" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-ui.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>UI Settings</h2>
+          <h2 data-parity="settings-ui.heading">UI Settings</h2>
         </div>
-        <p class="settings-pane-desc">Text size, layout &amp; tile size</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Album &amp; artist text <button class="settings-info-btn" data-info="The size of the album name and artist name under every tile — on the Home carousels and on every grid screen." aria-label="About Album &amp; artist text">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-ui.name">Album &amp; artist text <button data-parity="settings-ui.info" class="settings-info-btn" data-info="The size of the album name and artist name under every tile — on the Home carousels and on every grid screen." aria-label="About Album &amp; artist text">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="ui-text-select" class="settings-select" aria-label="Album &amp; artist text">
+              <select id="ui-text-select" data-parity="settings-ui.text" class="settings-select" aria-label="Album &amp; artist text">
                 <option value="1">Normal</option>
                 <option value="1.1">+10%</option>
                 <option value="1.25">+25%</option>
@@ -1712,7 +1713,7 @@
                 <option value="1.75" data-desktop>+75%</option>
                 <option value="2" data-desktop>+100%</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-ui.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1721,9 +1722,9 @@
         </div>
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Grid screen title <button class="settings-info-btn" data-info="The size of the title at the top of a grid screen, such as the one a Home carousel opens to, and of a playlist&#39;s name." aria-label="About Grid screen title">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-ui.name">Grid screen title <button data-parity="settings-ui.info" class="settings-info-btn" data-info="The size of the title at the top of a grid screen, such as the one a Home carousel opens to, and of a playlist&#39;s name." aria-label="About Grid screen title">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="ui-title-select" class="settings-select" aria-label="Grid screen title">
+              <select id="ui-title-select" data-parity="settings-ui.title" class="settings-select" aria-label="Grid screen title">
                 <option value="1">Normal</option>
                 <option value="1.1">+10%</option>
                 <option value="1.25">+25%</option>
@@ -1731,7 +1732,7 @@
                 <option value="1.75" data-desktop>+75%</option>
                 <option value="2" data-desktop>+100%</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-ui.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1740,9 +1741,9 @@
         </div>
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Menu &amp; Home Screen text <button class="settings-info-btn" data-info="The size of all the other text: the side menu, Home&#39;s greeting and row headings, Settings, the album and Now playing views, the queue and the player bar. The names under tiles and the grid screen title have their own settings." aria-label="About Menu &amp; Home Screen text">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-ui.name">Menu &amp; Home Screen text <button data-parity="settings-ui.info" class="settings-info-btn" data-info="The size of all the other text: the side menu, Home&#39;s greeting and row headings, Settings, the album and Now playing views, the queue and the player bar. The names under tiles and the grid screen title have their own settings." aria-label="About Menu &amp; Home Screen text">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="ui-menu-select" class="settings-select" aria-label="Menu &amp; Home Screen text">
+              <select id="ui-menu-select" data-parity="settings-ui.menu" class="settings-select" aria-label="Menu &amp; Home Screen text">
                 <option value="1">Normal</option>
                 <option value="1.1">+10%</option>
                 <option value="1.25">+25%</option>
@@ -1750,7 +1751,7 @@
                 <option value="1.75" data-desktop>+75%</option>
                 <option value="2" data-desktop>+100%</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-ui.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1759,15 +1760,15 @@
         </div>
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Grid layout <button class="settings-info-btn" data-info="How album, playlist and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album." aria-label="About Grid layout">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-ui.name">Grid layout <button data-parity="settings-ui.info" class="settings-info-btn" data-info="How album, playlist and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album." aria-label="About Grid layout">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="ui-layout-select" class="settings-select" aria-label="Grid layout">
+              <select id="ui-layout-select" data-parity="settings-ui.layout" class="settings-select" aria-label="Grid layout">
                 <option value="auto">Auto</option>
                 <option value="3">3 columns</option>
                 <option value="2">2 columns</option>
                 <option value="list">List</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-ui.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1776,9 +1777,9 @@
         </div>
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Tile size <button class="settings-info-btn" data-info="The size of album and label tiles on every screen. On the Home carousels it sets the tile width; on a grid screen in Auto layout it sets how many columns fit — bigger tiles, fewer columns. On a small screen a 10% step may not change the column count, only the carousels." aria-label="About Tile size">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-ui.name">Tile size <button data-parity="settings-ui.info" class="settings-info-btn" data-info="The size of album and label tiles on every screen. On the Home carousels it sets the tile width; on a grid screen in Auto layout it sets how many columns fit — bigger tiles, fewer columns. On a small screen a 10% step may not change the column count, only the carousels." aria-label="About Tile size">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="ui-tile-select" class="settings-select" aria-label="Tile size">
+              <select id="ui-tile-select" data-parity="settings-ui.tile" class="settings-select" aria-label="Tile size">
                 <option value="0.5">−50%</option>
                 <option value="0.75">−25%</option>
                 <option value="0.9">−10%</option>
@@ -1787,14 +1788,14 @@
                 <option value="1.25">+25%</option>
                 <option value="1.5">+50%</option>
               </select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <svg data-parity="settings-ui.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </div>
           </div>
         </div>
-        <p class="settings-note">Saved on this device only. On a desktop the text sizes go to +75% and +100%.</p>
+        <p class="settings-note" data-parity="settings-ui.note">Saved on this device only. On a desktop the text sizes go to +75% and +100%.</p>
       </div>
 
       <!-- Home Screen: which carousels appear, and in what order. The list is
@@ -1802,34 +1803,33 @@
            reorder here and the rows that actually render cannot drift apart. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="homescreen" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-homescreen.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Home Screen</h2>
+          <h2 data-parity="settings-homescreen.heading">Home Screen</h2>
         </div>
-        <p class="settings-pane-desc">Which rows show, and in what order</p>
 
         <!-- The top of Home (v1.0.7): each can go, on this device, and what's under it moves up. -->
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Greeting</span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-homescreen.name">Greeting</span>
+            <label class="switch" data-parity="settings-homescreen.greeting">
               <input type="checkbox" id="home-greeting-on" aria-label="Greeting" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
           <div class="settings-row">
-            <span class="settings-label">Random Album</span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-homescreen.name">Random Album</span>
+            <label class="switch" data-parity="settings-homescreen.random">
               <input type="checkbox" id="home-random-on" aria-label="Random Album" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note">The greeting at the top of Home, and the Random Album button beside the Album of the day. On this device only.</div>
+          <div class="settings-note" data-parity="settings-homescreen.note">The greeting at the top of Home, and the Random Album button beside the Album of the day. On this device only.</div>
         </div>
 
         <div class="settings-block">
-          <div class="settings-note">Hold the handle to drag a row into a new position. A row switched off is not fetched at all — it does no work in the background.</div>
+          <div class="settings-note" data-parity="settings-homescreen.note">Hold the handle to drag a row into a new position. A row switched off is not fetched at all — it does no work in the background.</div>
           <ul class="home-rows-list" id="home-rows-list"></ul>
         </div>
       </div>
@@ -1837,49 +1837,48 @@
       <!-- Smart Picks -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="smartpicks" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-picks.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Smart Picks</h2>
+          <h2 data-parity="settings-picks.heading">Smart Picks</h2>
         </div>
-        <p class="settings-pane-desc">Daily discoveries &amp; schedule</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Smart Picks <button class="settings-info-btn" data-info="Five records from your own library each day, by acts next to the ones you have been playing (Deezer's related-artists lists), or from the least-played corners of the library when there is no history yet. Steady until tomorrow. Not for me keeps an artist out for good." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-picks.name">Smart Picks <button data-parity="settings-picks.info" class="settings-info-btn" data-info="Five records from your own library each day, by acts next to the ones you have been playing (Deezer's related-artists lists), or from the least-played corners of the library when there is no history yet. Steady until tomorrow. Not for me keeps an artist out for good." aria-label="Info">ⓘ</button></span>
+            <label class="switch" data-parity="settings-picks.enabled">
               <input type="checkbox" id="picks-enabled" aria-label="Smart Picks">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note">On by default. Everything below applies only while this is on.</div>
+          <div class="settings-note" data-parity="settings-picks.note">On by default. Everything below applies only while this is on.</div>
         </div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Build the day's picks at <button class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (set TZ on the container). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
-            <select id="picks-hour" class="settings-select" aria-label="Smart Picks build hour"></select>
+            <span class="settings-label" data-parity="settings-picks.name">Build the day's picks at <button data-parity="settings-picks.info" class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (set TZ on the container). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
+            <select id="picks-hour" data-parity="settings-picks.hour" class="settings-select" aria-label="Smart Picks build hour"></select>
           </div>
-          <div class="settings-note">Reads your library and play history on this server; only the related-artist lookups leave your network.</div>
+          <div class="settings-note" data-parity="settings-picks.note">Reads your library and play history on this server; only the related-artist lookups leave your network.</div>
         </div>
 
         <div class="settings-block hidden">
           <div class="settings-row">
-            <span class="settings-label">Add picks automatically <button class="settings-info-btn" data-info="Favourites the day&#39;s picks in your Qobuz library as soon as they are chosen. Turn this off and each pick becomes Add / Not for me instead." aria-label="Info">ⓘ</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-picks.name">Add picks automatically <button data-parity="settings-picks.info" class="settings-info-btn" data-info="Favourites the day&#39;s picks in your Qobuz library as soon as they are chosen. Turn this off and each pick becomes Add / Not for me instead." aria-label="Info">ⓘ</button></span>
+            <label class="switch" data-parity="settings-picks.enabled">
               <input type="checkbox" id="picks-autoadd" aria-label="Add picks automatically">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="picks-service-note"></div>
+          <div class="settings-note" id="picks-service-note" data-parity="settings-picks.note"></div>
         </div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Rebuild today's picks now</span>
-            <button id="picks-rebuild" class="settings-update-btn" type="button">Rebuild</button>
+            <span class="settings-label" data-parity="settings-picks.name">Rebuild today's picks now</span>
+            <button id="picks-rebuild" data-parity="settings-picks.rebuild" class="settings-update-btn" type="button">Rebuild</button>
           </div>
-          <div class="settings-note">Discards today's set and chooses five again. Takes a minute or two.</div>
+          <div class="settings-note" data-parity="settings-picks.note">Discards today's set and chooses five again. Takes a minute or two.</div>
         </div>
       </div>
 
@@ -1888,12 +1887,11 @@
            open their panes as the main list's do; Back from one comes here. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="folders">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-folders.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Music Folders</h2>
+          <h2 data-parity="settings-folders.heading">Music Folders</h2>
         </div>
-        <p class="settings-pane-desc">Where your library is read from</p>
         <!-- Filled by initFoldersPane() in app.js from /api/library/folders. -->
         <div class="settings-block" id="folders-pane-body"></div>
       </div>
@@ -1902,79 +1900,74 @@
            returns there (data-parent), not to the Settings home. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="device" data-parent="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices" data-parity="settings-device.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2 id="device-pane-title">Device</h2>
+          <h2 id="device-pane-title" data-parity="settings-device.heading">Device</h2>
         </div>
-        <p class="settings-pane-desc" id="device-pane-desc"></p>
         <div id="device-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="away" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-away.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Away from home</h2>
+          <h2 data-parity="settings-away.heading">Away from home</h2>
         </div>
-        <p class="settings-pane-desc">Tailscale, built into the server</p>
         <!-- Filled by initAwayPane() in app.js from /api/tailscale. -->
         <div class="settings-block" id="away-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="identify">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-scanner.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Library Scanner</h2>
+          <h2 data-parity="settings-scanner.heading">Library Scanner</h2>
         </div>
-        <p class="settings-pane-desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
         <!-- Filled by initIdentifyPane() in app.js from /api/identify. -->
         <div id="identify-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="system">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-system.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Updates</h2>
+          <h2 data-parity="settings-system.heading">Updates</h2>
         </div>
-        <p class="settings-pane-desc">Updates &amp; version</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Updates</span>
-            <button id="check-update-btn" class="settings-update-btn" type="button">Check for updates</button>
+            <span class="settings-label" data-parity="settings-system.name">Updates</span>
+            <button id="check-update-btn" data-parity="settings-system.check" class="settings-update-btn" type="button">Check for updates</button>
           </div>
-          <div id="settings-release-notes" class="settings-release-notes hidden"></div>
+          <div id="settings-release-notes" data-parity="settings-system.notes" class="settings-release-notes hidden"></div>
         </div>
       </div>
       <!-- Backup & restore (v0.6.14). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="backup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-backup.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Backup &amp; restore</h2>
+          <h2 data-parity="settings-backup.heading">Backup &amp; restore</h2>
         </div>
-        <p class="settings-pane-desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-backup.title">Back up <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
-          <label class="backup-pass"><span><b>Passphrase</b><small>Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
-            <input type="password" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
+          <label class="backup-pass"><span><b data-parity="settings-backup.pass-name">Passphrase</b><small data-parity="settings-backup.pass-hint">Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
+            <input type="password" data-parity="settings-backup.pass" aria-label="Passphrase" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
           <div class="backup-actions">
-            <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
-            <button class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
+            <button data-parity="settings-backup.to-file" class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
+            <button data-parity="settings-backup.to-server" class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
           </div>
-          <div class="settings-note" id="backup-note"></div>
+          <div class="settings-note" data-parity="settings-backup.note" id="backup-note"></div>
         </div>
         <div class="settings-block">
-          <div class="settings-block-title">Restore <button class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
-          <button class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
+          <div class="settings-block-title" data-parity="settings-backup.title">Restore <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
+          <button data-parity="settings-backup.from-file" class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
           <div class="backup-list" id="backup-list"></div>
         </div>
       </div>
@@ -2039,10 +2032,10 @@
   <div id="confirm-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
     <div class="confirm-backdrop"></div>
     <div class="confirm-box">
-      <p class="confirm-msg" id="confirm-msg"></p>
+      <p class="confirm-msg" id="confirm-msg" data-parity="confirm.message"></p>
       <div class="confirm-actions">
-        <button class="confirm-btn" id="confirm-no" type="button">No</button>
-        <button class="confirm-btn confirm-primary" id="confirm-yes" type="button">Yes</button>
+        <button class="confirm-btn" id="confirm-no" type="button" data-parity="confirm.no">No</button>
+        <button class="confirm-btn confirm-primary" id="confirm-yes" type="button" data-parity="confirm.yes">Yes</button>
       </div>
     </div>
   </div>
@@ -2053,11 +2046,11 @@
   <div id="prompt-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-msg">
     <div class="confirm-backdrop"></div>
     <form class="confirm-box" id="prompt-form">
-      <p class="confirm-msg" id="prompt-msg"></p>
-      <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
+      <p class="confirm-msg" id="prompt-msg" data-parity="prompt.message"></p>
+      <input class="prompt-input" id="prompt-input" data-parity="prompt.field" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
       <div class="confirm-actions">
-        <button class="confirm-btn" id="prompt-cancel" type="button">Cancel</button>
-        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit">Save</button>
+        <button class="confirm-btn" id="prompt-cancel" data-parity="prompt.cancel" type="button">Cancel</button>
+        <button class="confirm-btn confirm-primary" id="prompt-ok" data-parity="prompt.save" type="submit">Save</button>
       </div>
     </form>
   </div>
@@ -2066,11 +2059,12 @@
   <div id="offline-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="offline-title">
     <div class="confirm-backdrop"></div>
     <div class="confirm-box offline-box">
-      <h2 class="offline-title" id="offline-title"></h2>
-      <div class="offline-text" id="offline-text"></div>
+      <h2 class="offline-title" id="offline-title" data-parity="offline.title"></h2>
+      <div class="offline-text" id="offline-text" data-parity="offline.text"></div>
       <div class="confirm-actions">
-        <button class="confirm-btn hidden" id="offline-switch" type="button">Switch offline mode off</button>
-        <button class="confirm-btn confirm-primary" id="offline-close" type="button">Close</button>
+        <button class="confirm-btn hidden" id="offline-switch" type="button" data-parity="offline.switch">Switch offline mode off</button>
+        <button class="confirm-btn hidden" id="offline-retry" type="button" data-parity="offline.retry">Try the server again</button>
+        <button class="confirm-btn confirm-primary" id="offline-close" type="button" data-parity="offline.close">Close</button>
       </div>
     </div>
   </div>
@@ -2081,17 +2075,17 @@
   <div id="random-pick-overlay" class="confirm-overlay random-pick hidden" role="dialog" aria-modal="true" aria-labelledby="random-pick-title">
     <div class="confirm-backdrop"></div>
     <div class="confirm-box random-pick-box">
-      <button class="random-pick-close" id="random-pick-close" type="button" aria-label="Close">
+      <button class="random-pick-close" id="random-pick-close" type="button" aria-label="Close" data-parity="random-pick.close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <div class="random-pick-art" id="random-pick-art"></div>
-      <p class="random-pick-title" id="random-pick-title"></p>
-      <p class="random-pick-artist" id="random-pick-artist"></p>
+      <div class="random-pick-art" id="random-pick-art" data-parity="random-pick.art"></div>
+      <p class="random-pick-title" id="random-pick-title" data-parity="random-pick.title"></p>
+      <p class="random-pick-artist" id="random-pick-artist" data-parity="random-pick.artist"></p>
       <div class="random-pick-actions">
-        <button class="confirm-btn confirm-primary" type="button" data-kind="play_now">Play now</button>
-        <button class="confirm-btn" type="button" data-kind="play_next">Play next</button>
+        <button class="confirm-btn confirm-primary" type="button" data-kind="play_now" data-parity="random-pick.play-now">Play now</button>
+        <button class="confirm-btn" type="button" data-kind="play_next" data-parity="random-pick.play-next">Play next</button>
         <!-- The end of the queue: a list, and an arrow down to its last line. -->
-        <button class="confirm-btn" type="button" data-kind="queue" aria-label="Queue — add to the end">
+        <button class="confirm-btn" type="button" data-kind="queue" aria-label="Queue — add to the end" data-parity="random-pick.queue">
           <svg class="random-pick-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h11M3 10h11M3 15h7"/><path d="M18 5v12"/><path d="M14.5 13.5L18 17l3.5-3.5"/><path d="M3 20h18"/></svg>
           Queue
         </button>
@@ -2105,19 +2099,19 @@
        Each button works the page's own control; the small Offline sign
        between Home and Library is the top bar's, shown here. -->
   <nav id="touch-nav" class="touch-nav" aria-label="Main">
-    <button id="tnav-menu" class="tnav-btn" type="button" aria-label="Menu">
+    <button id="tnav-menu" class="tnav-btn" type="button" data-parity="nav.menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
       </svg>
       <span>Menu</span>
     </button>
-    <button id="tnav-home" class="tnav-btn" type="button" aria-label="Home">
+    <button id="tnav-home" class="tnav-btn" type="button" data-parity="nav.home" aria-label="Home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/>
       </svg>
       <span>Home</span>
     </button>
-    <button id="tnav-offline" class="tnav-offline" type="button" aria-label="Offline — tap for more" title="Offline" aria-haspopup="dialog">
+    <button id="tnav-offline" class="tnav-offline" type="button" data-parity="nav.offline" aria-label="Offline — tap for more" title="Offline" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
         <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
@@ -2125,13 +2119,13 @@
         <line x1="3" y1="3" x2="21" y2="21"/>
       </svg>
     </button>
-    <button id="tnav-library" class="tnav-btn" type="button" aria-label="Library">
+    <button id="tnav-library" class="tnav-btn" type="button" data-parity="nav.library" aria-label="Library">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="5" y1="4" x2="5" y2="20"/><line x1="10" y1="4" x2="10" y2="20"/><path d="m14.5 4.6 4.6 14.8"/>
       </svg>
       <span>Library</span>
     </button>
-    <button id="tnav-search" class="tnav-btn" type="button" aria-label="Search">
+    <button id="tnav-search" class="tnav-btn" type="button" data-parity="nav.search" aria-label="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>

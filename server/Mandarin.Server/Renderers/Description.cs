@@ -1,5 +1,5 @@
 // Description.cs — what a UPnP device says about itself (v0.8.37, stage 2a of
-// docs/specs/csharp-migration.md): lib/renderers/description.js's
+// old/csharp-migration.md): lib/renderers/description.js's
 // parseDescription and shortType, rule for rule. Not used by anything that
 // runs yet: playback (stage 6) will be.
 //

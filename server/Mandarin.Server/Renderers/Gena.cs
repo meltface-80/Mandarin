@@ -1,5 +1,5 @@
 // Gena.cs — UPnP eventing (GENA), the pure parts (v0.8.37, stage 2a of
-// docs/specs/csharp-migration.md): lib/renderers/gena.js's parseNotify, the
+// old/csharp-migration.md): lib/renderers/gena.js's parseNotify, the
 // lifetime read from a SUBSCRIBE answer's TIMEOUT header, and the lifetime
 // asked for, rule for rule. The subscriptions themselves (SUBSCRIBE, renew,
 // UNSUBSCRIBE) are network code and move with playback (stage 6).

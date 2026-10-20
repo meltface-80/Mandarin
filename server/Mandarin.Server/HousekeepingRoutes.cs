@@ -1,5 +1,5 @@
 // HousekeepingRoutes.cs — the library's housekeeping (v0.8.48, stage 5 part 2
-// of docs/specs/csharp-migration.md), from lib/server/api-library.js, in the
+// of old/csharp-migration.md), from lib/server/api-library.js, in the
 // same shapes and words, once the scans are made here (Scans.cs):
 //
 //   GET  /api/status            the library's part from here (the scan's state, the

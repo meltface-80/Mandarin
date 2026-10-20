@@ -302,8 +302,8 @@ internal static partial class TagReader
         r["mb_recording"] = Clean(c["musicbrainz_recordingid"]);
         r["rg_track_gain"] = Db(c["replaygain_track_gain"]) ?? R128("R128_TRACK_GAIN");
         r["rg_track_peak"] = PeakOf(c["replaygain_track_peak"]);
-        r["rg_album_gain"] = Db(c["replaygain_album_gain"]) ?? R128("R128_ALBUM_GAIN");
-        r["rg_album_peak"] = PeakOf(c["replaygain_album_peak"]);
+        r["rg_album_gain"] = Db(c["replaygain_album_gain"]) ?? R128("R128_ALBUM_GAIN"); r["rg_album_peak"] = PeakOf(c["replaygain_album_peak"]);
+        Classical.Fill(r, c, tags);   // the composer, conductor, work, movement and performers (bug list item 48)
         r["tags"] = tags;
         return r;
     }

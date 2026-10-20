@@ -1,5 +1,5 @@
 // Profiles.cs — what a model can take that it does not say for itself
-// (v0.8.37, stage 2a of docs/specs/csharp-migration.md): lib/renderers/
+// (v0.8.37, stage 2a of old/csharp-migration.md): lib/renderers/
 // profiles.js rule for rule — its tables, profileFor and effective. Not used
 // by anything that runs yet: Audio Devices (stage 5) and playback (stage 6)
 // will be.

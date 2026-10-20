@@ -9,7 +9,7 @@
   if (!main) return;
   const el = document.createElement("div");
   el.className = "status-banner server-notice hidden";
-  el.id = "server-notice";
+  el.id = "server-notice"; el.dataset.parity = "home.notice";
   el.setAttribute("role", "status");
   main.insertBefore(el, main.firstChild);
 
@@ -47,13 +47,18 @@
       if (!button) continue;
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "settings-update-btn server-notice-btn";
+      b.className = "settings-update-btn server-notice-btn"; b.dataset.parity = "home.notice-button";
       b.textContent = button;
+      const q = d.reason === "vanished"
+        ? "Remove the tracks in " + name + " whose files are gone? Only those leave the library; anything still there stays."
+        : "Forget " + name + "? Its " + n(d) + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
+      // The question goes with the button, so the Android app can ask it itself over its own Home (bug list item 96):
+      // asked by the page there, it was asked unseen, and the folder never forgotten. Answered there, it isn't asked twice.
+      b.dataset.ask = q;
       b.addEventListener("click", async () => {
-        const q = d.reason === "vanished"
-          ? "Remove the tracks in " + name + " whose files are gone? Only those leave the library; anything still there stays."
-          : "Forget " + name + "? Its " + n(d) + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
-        if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
+        const answered = b.dataset.confirmed === "1";
+        delete b.dataset.confirmed;
+        if (!answered && !(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
         b.disabled = true;
         try {
           const r = await fetch("/api/library/forget-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: d.dir }) });
@@ -106,6 +111,10 @@
     let canSwitch = false;
     try { canSwitch = offState.kind === "mode" && !!window.MusicdDownloads && typeof window.MusicdDownloads.set === "function"; } catch (e) { /* no app */ }
     sw.classList.toggle("hidden", !canSwitch);
+    // The app unable to reach the server: it looks for it now, rather than at its next look (item 110).
+    let canRetry = false;
+    try { canRetry = offState.kind === "app" && !!window.MusicdApp && typeof window.MusicdApp.lookForServer === "function"; } catch (e) { /* no app */ }
+    document.getElementById("offline-retry").classList.toggle("hidden", !canRetry);
     offOv.classList.remove("hidden");
     try { document.getElementById("offline-close").focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ }
   }
@@ -114,6 +123,10 @@
   if (offOv) {
     document.getElementById("offline-close").addEventListener("click", closeOffline);
     offOv.querySelector(".confirm-backdrop").addEventListener("click", closeOffline);
+    document.getElementById("offline-retry").addEventListener("click", () => {
+      try { window.MusicdApp.lookForServer(); } catch (e) { /* no app */ }
+      closeOffline();
+    });
     // The app reloads the page onto the server's library when it changes.
     document.getElementById("offline-switch").addEventListener("click", () => {
       try { window.MusicdDownloads.set("offlineMode", "false"); } catch (e) { /* no app */ }

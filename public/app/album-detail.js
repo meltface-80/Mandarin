@@ -60,20 +60,25 @@ async function fetchAlbumDetail(album) {
   if (Array.isArray(j.artists) && j.artists.length) {
     setModalArtist((j.album && j.album.subtitle) || album.subtitle || "", j.artists);
   }
+  // A classical album (item 49): its composers in the artists' place, and who performs it under them.
+  setClassicalHead(j);
   // Below the review: more by the album's lead artist (the name its first
   // artist link shows), what they appear on, and Last.fm's suggestions.
   fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
     .catch(() => { /* extras: the album page stands without them */ });
+  // The notes below go at the foot of the album's head, after its date and
+  // its rate and length (bug list item 28), not between its lines.
+  const headEnd = document.getElementById("modal-facts") || modalSub;
   // Named from its folders, its files carrying no tags (v0.6.0-RC10): said
   // under the names, so they read as the best guess they are.
   {
     let note = document.getElementById("modal-names-note");
     if (j.names_from_folders) {
-      if (!note && modalSub && modalSub.parentNode) {
+      if (!note && headEnd && headEnd.parentNode) {
         note = document.createElement("div");
         note.id = "modal-names-note";
-        note.className = "modal-names-note";
-        modalSub.parentNode.insertBefore(note, modalSub.nextSibling);
+        note.className = "modal-names-note"; note.dataset.parity = "album.names-note";
+        headEnd.parentNode.insertBefore(note, headEnd.nextSibling);
       }
       if (note) note.textContent = "Names from its folders — the files carry no tags";
     } else if (note) note.remove();
@@ -86,13 +91,13 @@ async function fetchAlbumDetail(album) {
   {
     let why = document.getElementById("modal-why-note");
     const w = j.album && j.album.service_why;
-    if (w && modalSub && modalSub.parentNode) {
+    if (w && headEnd && headEnd.parentNode) {
       if (!why) {
         why = document.createElement("div");
         why.id = "modal-why-note";
-        why.className = "modal-names-note";
+        why.className = "modal-names-note"; why.dataset.parity = "album.why-note";
       }
-      const anchor = document.getElementById("modal-names-note") || modalSub;
+      const anchor = document.getElementById("modal-names-note") || headEnd;
       anchor.parentNode.insertBefore(why, anchor.nextSibling);
       const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
       let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
@@ -110,13 +115,13 @@ async function fetchAlbumDetail(album) {
   {
     let box = document.getElementById("modal-box-note");
     const b = j.album && j.album.box;
-    if (b && modalSub && modalSub.parentNode) {
+    if (b && headEnd && headEnd.parentNode) {
       if (!box) {
         box = document.createElement("div");
         box.id = "modal-box-note";
-        box.className = "modal-box-note";
+        box.className = "modal-box-note"; box.dataset.parity = "album.box-note";
       }
-      const anchor = document.getElementById("modal-names-note") || modalSub;
+      const anchor = document.getElementById("modal-names-note") || headEnd;
       anchor.parentNode.insertBefore(box, anchor.nextSibling);
       box.innerHTML = "";
       const line = document.createElement("div");
@@ -129,7 +134,7 @@ async function fetchAlbumDetail(album) {
         if (x.offset === album.offset) return;
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "modal-box-disc";
+        btn.className = "modal-box-disc"; btn.dataset.parity = "album.box-disc";
         btn.textContent = "Disc " + x.disc + " · " + x.title;
         btn.addEventListener("click", () => {
           albumNav.pending = { items: all.map(a => ({ album: a, open: () => openAlbum(a, { source: "home", filter: null }) })), index: i };
@@ -143,6 +148,8 @@ async function fetchAlbumDetail(album) {
 
   // Build action buttons in preferred order
   const order  = ["play_now", "queue", "play_next", "shuffle", "radio"];
+  // Each one's key in the screens contract (docs/specs/screens.json).
+  const keys = { play_now: "album.play-now", queue: "album.queue", play_next: "album.play-next", shuffle: "album.shuffle", radio: "album.radio" };
   const labels = {
     play_now:  "Play Now",
     queue:     "Queue",
@@ -162,7 +169,7 @@ async function fetchAlbumDetail(album) {
   const ROW_ACTIONS = 2;
   modalActs.innerHTML = "";
   // The heart, first: the same size as the ⋯ button at the other end.
-  modalActs.appendChild(buildFavButton(album, j.album));
+  modalActs.appendChild(buildFavButton(album, j.album, "album.favourite"));
   const available = order.filter(k => map.has(k));
   let first = true;
   for (const k of available.slice(0, ROW_ACTIONS)) {
@@ -170,6 +177,7 @@ async function fetchAlbumDetail(album) {
     btn.className = "action-btn" + (first ? " primary" : "");
     btn.type = "button";
     btn.textContent = labels[k];
+    btn.dataset.parity = keys[k];
     btn.addEventListener("click", () => invoke(k, btn));
     modalActs.appendChild(btn);
     first = false;
@@ -177,16 +185,15 @@ async function fetchAlbumDetail(album) {
   const overflow = available.slice(ROW_ACTIONS);
   if (overflow.length) {
     const more = buildOverflowMenu(
-      overflow.map(k => ({ label: labels[k], onClick: (b) => invoke(k, b) }))
+      overflow.map(k => ({ label: labels[k], key: keys[k], onClick: (b) => invoke(k, b) }))
         .concat(serviceMenuItem(j))
         .concat(laterMenuItem(album, j))
         .concat(playlistMenuItem(album))
-        .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", onClick: () => openAlbumEditor(album) }])
+        .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }])
         .concat(downloadMenuItem(album)),
-      { label: "More actions" });
+      { label: "More actions", key: "album.more" });
     modalActs.appendChild(more);
   }
-  fitAlbumMenuRoom();
   if (!available.length) {
     // "No playback actions available" was true and useless — it described
     // our own empty array rather than anything the user could act on. When
@@ -194,7 +201,7 @@ async function fetchAlbumDetail(album) {
     // and that a re-check is already running.
     modalActs.innerHTML = "";
     const err = document.createElement("div");
-    err.className = "modal-error";
+    err.className = "modal-error"; err.dataset.parity = "album.notice";
     // BOTH branches explain themselves now. The second one — the plain
     // sentence with no explanation at all — is the red line users actually
     // reported, and it was composed here in the client, so the server-side
@@ -221,7 +228,7 @@ async function fetchAlbumDetail(album) {
   // mid-reindex looked identical to one with nothing on it.
   if (j.partial) {
     const note = document.createElement("div");
-    note.className = "modal-error";
+    note.className = "modal-error"; note.dataset.parity = "album.notice";
     note.textContent = (j.declared_tracks
       ? "Only " + trackList.length + " of " + j.declared_tracks + " tracks were readable."
       : "Some tracks couldn't be read.") +
@@ -231,7 +238,7 @@ async function fetchAlbumDetail(album) {
   if (trackList.length === 0) {
     if (!j.partial && j.library_moved) {
       const note = document.createElement("div");
-      note.className = "modal-error";
+      note.className = "modal-error"; note.dataset.parity = "album.notice";
       note.textContent = "No playable tracks were found for this album." +
                          libraryChangingAdvice(!!j.library_moved);
       modalActs.appendChild(note);
@@ -239,55 +246,7 @@ async function fetchAlbumDetail(album) {
     trackWrap.classList.add("hidden");
   } else {
     trackWrap.classList.remove("hidden");
-    trackList.forEach((t, idx) => {
-      const li = document.createElement("li");
-      li.className = "t-row"; li.dataset.trackId = t.track_id == null ? "" : String(t.track_id);   // nowdisc.js finds the playing track by it
-      // Same two-line .t-text structure as the cached render above — the
-      // .t-actions row stays a SIBLING of .t-text so the is-open flex-wrap
-      // still drops it onto its own full-width line.
-      const tx = document.createElement("div"); tx.className = "t-text";
-      const ti = document.createElement("span"); ti.className = "t-title";
-      ti.textContent = t.title || "";
-      const su = document.createElement("span"); su.className = "t-sub";
-      const [subText, len] = splitTrackLength(t.subtitle);
-      su.textContent = subText;
-      tx.appendChild(ti); tx.appendChild(su);
-      li.appendChild(tx);
-      // The track's length on the right, level with the title.
-      if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }
-
-      // The select target, on the right. Present from the start but hidden
-      // until select mode is armed, so arming it doesn't reflow every row.
-      // A real element rather than a ::after: .album-art-wrap's ♪ placeholder
-      // already taught us what happens when two states share one pseudo.
-      // It stays a sibling BEFORE .t-actions so is-open's flex-wrap still
-      // drops the action row onto its own full-width line beneath it.
-      const mark = document.createElement("button");
-      mark.type = "button";
-      mark.className = "t-mark";
-      mark.setAttribute("aria-label", "Select this track");
-      mark.setAttribute("aria-pressed", "false");
-      mark.addEventListener("click", (e) => {
-        // Selecting must never also expand or collapse the row's actions.
-        e.stopPropagation();
-        toggleTrackSelected(li, t, idx);
-      });
-      li.appendChild(mark);
-
-      li.addEventListener("click", (e) => {
-        if (e.target.closest(".t-actions")) return;   // taps on the buttons themselves
-        if (e.target.closest(".t-mark")) return;      // handled above
-        // Once the mode is armed the whole row selects. Making the user hunt
-        // for a small circle is the wrong ergonomics for a list you are
-        // deliberately working through.
-        if (trackSelectMode) { toggleTrackSelected(li, t, idx); return; }
-        toggleTrackActions(li, t, idx);
-      });
-
-      // A long press starts selecting, with this track the first pick —
-      // the same rule as the album grid (v0.6.24).
-      addLongPress(li, () => { if (trackSelectMode) return; enterTrackSelectMode(); toggleTrackSelected(li, t, idx); });
-      modalTracks.appendChild(li);
-    });
+    // The rows (album-works.js): the plain list, or the album's works and movements.
+    renderTrackList(j, trackList);
   }
 }

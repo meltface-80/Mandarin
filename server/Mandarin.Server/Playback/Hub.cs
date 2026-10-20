@@ -1,5 +1,5 @@
 // Hub.cs — every kind of player as one list of zones (lib/sonos/zones.js's
-// ZoneManager, v0.8.49, stage 6 of docs/specs/csharp-migration.md): one state
+// ZoneManager, v0.8.49, stage 6 of old/csharp-migration.md): one state
 // per zone, one revision the long polls wait on, the hooks history and the
 // radio hang off (a track started, one played long enough to count, the queue
 // near its end), and the queues the server keeps itself put back after a

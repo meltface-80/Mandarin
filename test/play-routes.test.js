@@ -1,7 +1,7 @@
 "use strict";
 /*
  * play-routes.test.js — the playback routes no test called before (v0.9.1,
- * the audit's T1, docs/specs/audit-b4-main.md), each against a fake Sonos
+ * the audit's T1, old/audit-b4-main.md), each against a fake Sonos
  * household, the speaker's own queue read for what was put on it:
  *   POST /api/play-multi               several albums at once, in order
  *   POST /api/queue/play-history-next  a track played before, found by its names, next

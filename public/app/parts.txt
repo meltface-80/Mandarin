@@ -15,6 +15,7 @@ app/home-render.js
 app/home-rows.js
 app/home-picks.js
 app/walls.js
+app/library-view-sync.js
 app/library-wall.js
 app/library-controls.js
 app/playlists.js
@@ -34,6 +35,7 @@ app/album-editor.js
 app/album-editor-match.js
 app/album-detail.js
 app/album-tracks.js
+app/album-works.js
 app/album-extras.js
 app/search.js
 app/search-external.js
@@ -54,6 +56,10 @@ app/share-card-links.js
 app/share-card-suggestions.js
 app/mini-player-move.js
 app/app-update-bridge.js
+app/native-handoff.js
+app/native-home.js
+app/native-search.js
+app/native-playlists.js
 app/updater.js
 app/settings.js
 app/settings-services.js
@@ -69,6 +75,7 @@ app/play-unheard.js
 app/artist-view.js
 app/menu-drawer.js
 app/server-notice.js
+app/native-notices.js
 app/settings-account.js
 app/android-downloads.js
 app/android-app-update.js

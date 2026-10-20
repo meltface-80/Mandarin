@@ -82,7 +82,7 @@ function renderHomeLotw(label, albums) {
     // Late-Night Hi-Fi theme sets large on its own line under the heading.
     titleEl.textContent = "Label of the week";
     const name = document.createElement("span");
-    name.className = "home-lotw-name";
+    name.className = "home-lotw-name"; name.dataset.parity = "home.lotw-name";
     const sep = document.createElement("span");
     sep.className = "home-lotw-sep";
     sep.textContent = ": ";
@@ -101,7 +101,7 @@ function renderHomeLotw(label, albums) {
 
 async function loadHomeLabelOfWeek() {
   if (!homeLotw) return;
-  if (!rowHasContent(homeLotw)) homeLotw.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+  if (!rowHasContent(homeLotw)) homeLotw.innerHTML = emptyRow("Loading…");
   try {
     const r = await fetch("/api/home/label-of-the-week");
     const j = await r.json();
@@ -208,7 +208,7 @@ function serviceMenuItem(page) {
   if (!a || !a.source || a.source === "local" || !a.service_id || typeof a.service_favourite !== "boolean") return [];
   let on = a.service_favourite;
   const label = () => on ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
-  return [{ label: label(), onClick: async (b) => {
+  return [{ label: label(), key: "album.service-favourite", onClick: async (b) => {
     b.disabled = true;
     try {
       const r = await fetch("/api/" + a.source + "/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.service_id }) });
@@ -226,11 +226,12 @@ function serviceMenuItem(page) {
   } }];
 }
 
-function buildFavButton(album, fresh) {
+function buildFavButton(album, fresh, key) {
   const on0 = !!((fresh && fresh.favourite) || album.favourite);
   const b = document.createElement("button");
   b.type = "button";
   b.className = "overflow-btn fav-btn" + (on0 ? " is-on" : "");
+  if (key) b.dataset.parity = key;   // the screens contract's (docs/specs/screens.json)
   b.innerHTML = HEART_SVG;
   const paint = (on) => {
     b.classList.toggle("is-on", on);
@@ -258,11 +259,10 @@ function buildFavButton(album, fresh) {
 
 /*
  * A menu that would be cut off, opened the other way (v0.7.8). Each menu
- * opens the way its screen has room for as a rule — downwards under the
- * button, or upwards over the cover on an album's page — but the box that
- * clips it (the nearest scrolling ancestor, within the window) is not always
- * where the rule expects: an album page scrolled so its button row is near
- * the top, a playlist's menu at the foot of the screen. A menu cut off at the
+ * opens downwards under its button as a rule, but the box that clips it
+ * (the nearest scrolling ancestor, within the window) is not always where
+ * the rule expects: a playlist's menu at the foot of the screen, an album's
+ * on a phone held sideways. A menu cut off at the
  * top cannot even be scrolled to. So it is measured as it opens, and turned
  * round when the other side has more room.
  */
@@ -292,6 +292,8 @@ function buildOverflowMenu(items, opts) {
   btn.type = "button";
   btn.className = "overflow-btn";
   btn.setAttribute("aria-label", opts.label || "More actions");
+  // [opts.key], each item's [key]: the screens contract's (docs/specs/screens.json), where the menu is a contract screen's.
+  if (opts.key) btn.dataset.parity = opts.key;
   btn.setAttribute("aria-haspopup", "menu");
   btn.setAttribute("aria-expanded", "false");
   btn.innerHTML = OVERFLOW_SVG;
@@ -312,6 +314,7 @@ function buildOverflowMenu(items, opts) {
     b.className = "sel-menu-item" + (it.danger ? " is-danger" : "");
     b.setAttribute("role", "menuitem");
     b.textContent = it.label;
+    if (it.key) b.dataset.parity = it.key;
     b.addEventListener("click", (e) => {
       e.stopPropagation();
       closeOverflowMenu();

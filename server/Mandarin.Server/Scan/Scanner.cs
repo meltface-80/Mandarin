@@ -843,8 +843,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                         var path = Js.Str(r["path"]);
                         var prev = known.Get(path);
                         if (prev != null) touched.Add(Js.ToNumber(prev.AlbumId));
-                        object? Or(object? v) => Js.Truthy(v) ? v : null;
-                        object? Nul(object? v) => Js.IsNullish(v) ? null : v;
+                        object? Or(object? v) => Js.Truthy(v) ? v : null; object? Nul(object? v) => Js.IsNullish(v) ? null : v;
                         Exec(UpsertTrack,
                             ("$album_id", albumId), ("$path", r["path"]), ("$mtime", r["mtime"]), ("$size", r["size"]), ("$title", r["title"]), ("$artist", r["artist"]),
                             ("$album_artist", r["album_artist"]), ("$album", r["album"]), ("$track_no", r["track_no"]), ("$disc_no", r["disc_no"]), ("$duration", r["duration"]),
@@ -855,7 +854,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                             ("$mb_album", Or(r["mb_album"])), ("$mb_group", Or(r["mb_group"])), ("$mb_recording", Or(r["mb_recording"])),
                             ("$rg_track_gain", Nul(r["rg_track_gain"])), ("$rg_track_peak", Nul(r["rg_track_peak"])),
                             ("$rg_album_gain", Nul(r["rg_album_gain"])), ("$rg_album_peak", Nul(r["rg_album_peak"])),
-                            ("$names_from", Or(r["names_from"])));
+                            ("$names_from", Or(r["names_from"])), ("$composer", Or(r["composer"])), ("$conductor", Or(r["conductor"])), ("$work", Or(r["work"])), ("$movement", Or(r["movement"])), ("$movement_no", Nul(r["movement_no"])), ("$performers", Or(r["performers"])));
                         var tid = Get("SELECT id FROM tracks WHERE path = $p", ("$p", path));
                         if (tid != null) Exec("INSERT INTO track_tags(track_id, tags) VALUES($id, $t) ON CONFLICT(track_id) DO UPDATE SET tags = excluded.tags",
                             ("$id", tid["id"]), ("$t", Js.Json(Js.Truthy(r["tags"]) ? r["tags"] : new JsObj())));
@@ -1026,11 +1025,11 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
     private const string UpsertTrack = @"INSERT INTO tracks(album_id, path, mtime, size, title, artist, album_artist, album, track_no, disc_no, duration,
           codec, container, sample_rate, bits, channels, lossless, year, date, label, genres,
           tags_v, isrc, barcode, catno, country, mb_album, mb_group, mb_recording,
-          rg_track_gain, rg_track_peak, rg_album_gain, rg_album_peak, names_from)
+          rg_track_gain, rg_track_peak, rg_album_gain, rg_album_peak, names_from, composer, conductor, work, movement, movement_no, performers)
         VALUES($album_id, $path, $mtime, $size, $title, $artist, $album_artist, $album, $track_no, $disc_no, $duration,
           $codec, $container, $sample_rate, $bits, $channels, $lossless, $year, $date, $label, $genres,
           $tags_v, $isrc, $barcode, $catno, $country, $mb_album, $mb_group, $mb_recording,
-          $rg_track_gain, $rg_track_peak, $rg_album_gain, $rg_album_peak, $names_from)
+          $rg_track_gain, $rg_track_peak, $rg_album_gain, $rg_album_peak, $names_from, $composer, $conductor, $work, $movement, $movement_no, $performers)
         ON CONFLICT(path) DO UPDATE SET album_id=excluded.album_id, mtime=excluded.mtime, size=excluded.size,
           title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist, album=excluded.album,
           track_no=excluded.track_no, disc_no=excluded.disc_no, duration=excluded.duration, codec=excluded.codec,
@@ -1039,5 +1038,6 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
           tags_v=excluded.tags_v, isrc=excluded.isrc, barcode=excluded.barcode, catno=excluded.catno, country=excluded.country,
           mb_album=excluded.mb_album, mb_group=excluded.mb_group, mb_recording=excluded.mb_recording,
           rg_track_gain=excluded.rg_track_gain, rg_track_peak=excluded.rg_track_peak,
-          rg_album_gain=excluded.rg_album_gain, rg_album_peak=excluded.rg_album_peak, names_from=excluded.names_from";
+          rg_album_gain=excluded.rg_album_gain, rg_album_peak=excluded.rg_album_peak, names_from=excluded.names_from, composer=excluded.composer,
+          conductor=excluded.conductor, work=excluded.work, movement=excluded.movement, movement_no=excluded.movement_no, performers=excluded.performers";
 }

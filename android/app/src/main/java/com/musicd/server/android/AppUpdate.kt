@@ -28,17 +28,14 @@ import java.util.concurrent.Executors
  * it offers to fetch it and install it over the top — the same signing key
  * every time, so nothing is uninstalled and downloads stay on the phone.
  *
- * One Update button does both: the page asks the app ([lookup], [statusJson])
- * alongside the server's own updater, shows one offer for whichever is newer,
- * and its Update starts the server's update and this one ([installNow]) together.
- * A page too old to know that leaves the app to offer itself, as before
- * ([check], when the app opens, at most once an hour).
+ * One Update button does both: the update banner (UpdateNow, bug list item 111)
+ * asks here ([lookup], [statusJson]) alongside the server's own update, shows
+ * one offer for whichever is newer, and its Update installs this one
+ * ([installNow]) once the server's is done.
  */
 object AppUpdate {
     private const val TAG = "AppUpdate"
-    private const val PREFS = "app_update"
     private const val CHECK_EVERY_MS = 60L * 60 * 1000
-    private const val SNOOZE_MS = 24L * 60 * 60 * 1000
 
     private val work = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -49,7 +46,7 @@ object AppUpdate {
     @Volatile private var lookedAt = 0L
     @Volatile private var looking = false
 
-    /** For the page: {"current", "latest", "available", "installing"}. */
+    /** For the banner and Settings → Updates: {"current", "latest", "available", "installing"}. */
     fun statusJson(): String {
         val r = known
         return JSONObject().put("current", BuildConfig.VERSION_NAME)
@@ -72,47 +69,16 @@ object AppUpdate {
         }
     }
 
-    /** The page's Update: fetch the newer app and hand it to Android's installer, no second question. */
+    /** Update: fetch the newer app and hand it to Android's installer, no second question; looked for first if need be. */
     fun installNow(activity: Activity) {
         val r = known
-        if (r != null && r.newerThan(BuildConfig.VERSION_NAME)) download(activity, r) else check(activity, asked = true)
-    }
-
-    /** Look, and offer an update if there is one. [asked]: from the button — always look, always answer. */
-    fun check(activity: Activity, asked: Boolean = false) {
-        val p = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val now = System.currentTimeMillis()
-        if (busy) return
-        if (!asked && now - p.getLong("checked_at", 0) < CHECK_EVERY_MS) return
-        busy = true
-        work.execute {
-            val r = runCatching { latest() }.onFailure { Log.i(TAG, "couldn't look for an update: ${it.message}") }.getOrNull()
-            p.edit().putLong("checked_at", now).apply()
-            main.post {
-                busy = false
-                if (activity.isFinishing) return@post
-                when {
-                    r == null -> if (asked) toast(activity, "Couldn't reach GitHub to look for an update")
-                    !r.newerThan(BuildConfig.VERSION_NAME) ->
-                        if (asked) toast(activity, "Mandarin is up to date (v${BuildConfig.VERSION_NAME})")
-                    !asked && p.getString("snoozed", null) == r.version && now - p.getLong("snoozed_at", 0) < SNOOZE_MS -> {}
-                    else -> offer(activity, r)
-                }
-            }
+        if (r != null && r.newerThan(BuildConfig.VERSION_NAME)) { download(activity, r); return }
+        lookup(true) {
+            if (activity.isFinishing) return@lookup
+            val n = known
+            if (n != null && n.newerThan(BuildConfig.VERSION_NAME)) download(activity, n)
+            else toast(activity, if (n == null) "Couldn't reach GitHub to look for an update" else "Mandarin is up to date (v${BuildConfig.VERSION_NAME})")
         }
-    }
-
-    private fun offer(activity: Activity, r: Release) {
-        AlertDialog.Builder(activity)
-            .setTitle("Update Mandarin")
-            .setMessage("Version ${r.version} of the app is available (this is ${BuildConfig.VERSION_NAME}). " +
-                "It installs over this one — your sign-in and downloads stay.")
-            .setPositiveButton("Update") { _, _ -> download(activity, r) }
-            .setNegativeButton("Later") { _, _ ->
-                activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                    .putString("snoozed", r.version).putLong("snoozed_at", System.currentTimeMillis()).apply()
-            }
-            .show()
     }
 
     private fun apkFile(c: Context, r: Release) = File(File(c.cacheDir, "updates").apply { mkdirs() }, "musicd-${r.version}.apk")
@@ -173,8 +139,6 @@ object AppUpdate {
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
-            // Asked again when the app is back in front.
-            activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong("checked_at", 0).remove("snoozed").apply()
             return
         }
         val uri = FileProvider.getUriForFile(activity, activity.packageName + ".shares", apk)

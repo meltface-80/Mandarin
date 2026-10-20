@@ -1,6 +1,6 @@
 // PlaybackRoutes.cs — rooms, transport, volume, the queue, and putting albums
 // and tracks on a player (lib/server/api-playback.js, v0.8.49, stage 6 of
-// docs/specs/csharp-migration.md): every playback route, answered here once
+// old/csharp-migration.md): every playback route, answered here once
 // this server holds the job "playback" (Playback/Hub.cs). Shapes follow
 // MusicD Remote's /api, written against Roon's zone model. This file: the
 // gate before the routes (another device's phone, away from home), the names

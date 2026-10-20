@@ -86,6 +86,15 @@ object Store {
     fun offlineMode(context: Context): Boolean = prefs(context).getBoolean("offline_mode", false)
     fun setOfflineMode(context: Context, on: Boolean) { prefs(context).edit().putBoolean("offline_mode", on).apply() }
 
+    /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */
+    /** The UI Settings as the page last handed them with Home (JSON), for the native Home drawn before the page has said (item 64). */
+    fun homePrefs(context: Context): String? = prefs(context).getString("home_prefs", null)
+    fun setHomePrefs(context: Context, json: String) { prefs(context).edit().putString("home_prefs", json).apply() }
+    /** Music on device's view (its Sort and Focus, item 57), as JSON (LocalView), kept as the page keeps its own. */
+
+    fun localView(context: Context): String? = prefs(context).getString("local_view", null)
+    fun setLocalView(context: Context, json: String) { prefs(context).edit().putString("local_view", json).apply() }
+
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }
     /** The DAC's USB volume as the slider set it since direct went on (0–100), or -1 (forgotten): the driver then starts low. */
@@ -209,10 +218,23 @@ object Store {
         if (prefs(context).getString("phone_zone", null) != zoneId) prefs(context).edit().putString("phone_zone", zoneId).apply()
     }
 
-    /** A client for the server, signed in — null until both are known. */
+    /**
+     * The native screens' client (item 109): the server's ([client]) online; offline, the phone's own answers to the same
+     * requests (OfflineApi's, through a LocalTransport), so every screen asks the same way whether the server is there or not.
+     * The services keep [client]: what they ask is the server's alone.
+     */
+    fun screenClient(context: Context): ServerClient? {
+        if (!OfflineNow.on) return client(context)
+        val c = context.applicationContext
+        return ServerClient(server(c) ?: ServerAddress("phone", 0), token = token(c),
+            transport = com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) })
+    }
+
+    /** A client for the server, signed in — null until both are known. The server's gate shutting on this phone signs it in again (item 111). */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null
         val token = token(context) ?: return null
-        return ServerClient(address, token = token)
+        return ServerClient(address, token = token,
+            transport = com.musicd.server.client.GateWatch(com.musicd.server.client.HttpTransport(address.baseUrl, token)) { MainActivity.gateShut() })
     }
 }

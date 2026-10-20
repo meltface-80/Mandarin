@@ -94,6 +94,7 @@
     const fromAlbum = (how && how.fromAlbum) || null;
     if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
     if (!artistName) return;
+    if (typeof nativeArtistOpened === "function" && nativeArtistOpened(artistName)) return;   // the Android app's own page (item 52)
     // Drop any active/pending search (incl. the delayed external-sources fetch)
     // — reachable from the album-modal artist link with a search still live,
     // which would otherwise append external rows under this view's grid. The
@@ -194,14 +195,14 @@
 
       if (!total) {
         if (failed) throw failed;
-        grid.innerHTML = `<div class="artist-view-empty">No albums found for "${artistName}"</div>`;
+        grid.innerHTML = `<div class="artist-view-empty" data-parity="artist.empty">No albums found for "${artistName}"</div>`;
         return;
       }
 
       const frag = document.createDocumentFragment();
       const header = (text) => {
         const hdr = document.createElement("div");
-        hdr.className = "artist-section-header";
+        hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section";
         hdr.textContent = text;
         frag.appendChild(hdr);
       };
@@ -209,22 +210,22 @@
       if (j.primary.length) {
         if (j.featured.length || mine.length) header("Albums");
         for (const a of j.primary) {
-          frag.appendChild(window.__buildAlbumTile(a));
+          frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
         }
       }
 
       if (mine.length) {
         if (j.primary.length || j.featured.length) header("On this phone");
-        for (const a of mine) frag.appendChild(window.__buildAlbumTile(a));
+        for (const a of mine) frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
       }
 
       if (j.featured.length) {
         const hdr = document.createElement("div");
-        hdr.className = "artist-section-header";
+        hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section";
         hdr.textContent = "Also appears on";
         frag.appendChild(hdr);
         for (const a of j.featured) {
-          frag.appendChild(window.__buildAlbumTile(a));
+          frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
         }
       }
 
@@ -241,7 +242,7 @@
       if (countBar) {
         countBar.classList.remove("hidden");
         countBar.innerHTML = `
-            <span class="count-text" style="color:var(--danger)">Error: ${e.message}</span>`;
+            <span class="count-text" style="color:var(--danger)" data-parity="artist.error">Error: ${e.message}</span>`;
         }
     }
   }
@@ -268,7 +269,7 @@
       head.className = "artist-bio-head";
       if (b.image) {
         const img = document.createElement("img");
-        img.className = "artist-bio-avatar";
+        img.className = "artist-bio-avatar"; img.dataset.parity = "artist.avatar";
         img.alt = "";
         img.onerror = () => img.remove();   // dead portrait URL — no broken-image circle
         img.src = b.image;
@@ -277,17 +278,17 @@
       const body = document.createElement("div");
       body.className = "artist-bio-body";
       const text = document.createElement("div");
-      text.className = "bio-text";
+      text.className = "bio-text"; text.dataset.parity = "artist.bio";
       text.dataset.clipped = "true";
       text.textContent = b.text;
       const foot = document.createElement("div");
       foot.className = "artist-bio-foot";
       const toggle = document.createElement("button");
       toggle.type = "button";
-      toggle.className = "bio-toggle hidden";
+      toggle.className = "bio-toggle hidden"; toggle.dataset.parity = "artist.bio-more";
       toggle.textContent = "Show more";
       const src = document.createElement("span");
-      src.className = "artist-bio-src";
+      src.className = "artist-bio-src"; src.dataset.parity = "artist.bio-source";
       src.textContent = b.source ? "Bio: " + b.source : "";
       foot.appendChild(toggle); foot.appendChild(src);
       body.appendChild(text); body.appendChild(foot);

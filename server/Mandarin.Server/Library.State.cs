@@ -1,5 +1,5 @@
 // Library.State.cs — the library's state, this server's own (v0.8.50, stage 7
-// part 1 of docs/specs/csharp-migration.md): what GET /internal/library said
+// part 1 of old/csharp-migration.md): what GET /internal/library said
 // when a Node server stood behind this one, counted and read here. The
 // version and the marks move with each change (Told, LibraryChanges.cs): the
 // copy here is read again on the next request.

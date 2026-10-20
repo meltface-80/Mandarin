@@ -1,5 +1,5 @@
 // Accounts.cs — signing in to Qobuz and Tidal, and out again (v0.8.47, stage
-// 4.4 of docs/specs/csharp-migration.md), from lib/qobuz/index.js,
+// 4.4 of old/csharp-migration.md), from lib/qobuz/index.js,
 // lib/tidal/index.js and lib/services/streaming.js, rule for rule:
 //
 //   - Qobuz: a username and a password, asked of Qobuz once (user/login, as

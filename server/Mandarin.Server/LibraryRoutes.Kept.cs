@@ -1,5 +1,5 @@
 // LibraryRoutes.Kept.cs — the library's lists kept once made (v0.9.3, the
-// audit's P1, docs/specs/audit-b4-main.md). A list made from the library's
+// audit's P1, old/audit-b4-main.md). A list made from the library's
 // copy alone (the wall and its facets, the Shelf, the artists and an
 // artist's albums, genres and decades, hearts and Listen later) was made,
 // written out and hashed for its ETag every time it was asked for, even when

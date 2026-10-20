@@ -108,6 +108,7 @@ function buildLibFilterControl(open) {
     btn.className = "lib-filter-btn lib-ctl icon-btn" + (libView.prefix ? " is-active" : "");
     btn.setAttribute("aria-label", "Filter by name");
     btn.setAttribute("aria-expanded", "false");
+    btn.dataset.parity = "library.filter";   // the screens contract's (docs/specs/screens.json)
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
       'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
       'aria-hidden="true"><circle cx="11" cy="11" r="7"/>' +
@@ -126,6 +127,7 @@ function buildLibFilterControl(open) {
   // there is none (v0.6.5).
   const box = document.createElement("div");
   box.className = "search-box lib-filter-box";
+  box.dataset.parity = "library.filter";
   box.innerHTML = '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
     'aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
@@ -138,6 +140,7 @@ function buildLibFilterControl(open) {
   input.value = libFilterTyped.trim() === (libView.prefix || "") ? libFilterTyped : (libView.prefix || "");
   input.placeholder = "Starts with…";
   input.setAttribute("aria-label", "Filter albums and artists by first letters");
+  input.dataset.parity = "library.filter-input";
   input.autocomplete = "off";
   input.spellcheck = false;
   input.addEventListener("click", (e) => e.stopPropagation());
@@ -155,6 +158,7 @@ function buildLibFilterControl(open) {
   x.type = "button";
   x.className = "search-clear lib-filter-clear";
   x.setAttribute("aria-label", "Clear the filter");
+  x.dataset.parity = "library.filter-clear";
   x.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
     'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M18 6 6 18M6 6l12 12"/></svg>';
@@ -200,6 +204,7 @@ function buildFocusCtl(n, onClick) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "lib-ctl lib-ctl-focus" + (n ? " is-active" : "");
+  b.dataset.parity = "library.focus";
 
   const chev = document.createElement("span");
   chev.className = "lib-ctl-chevron";
@@ -242,6 +247,7 @@ function buildSortCtl(label, arrowText, aria, onClick) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "lib-ctl lib-ctl-sort";
+  b.dataset.parity = "library.sort";
 
   const text = document.createElement("span");
   text.className = "lib-ctl-text";
@@ -272,7 +278,8 @@ function buildSortCtl(label, arrowText, aria, onClick) {
 // A name for something: the page's own dialog (the WebView has no prompt box).
 const askName = (message, initial) =>
   window.__promptDialog ? window.__promptDialog(message, initial) : Promise.resolve(window.prompt(message, initial));
-function openLibSheet(title, buildBody, footer, onClose) {
+// [keys]: the title's and the ✕'s screens-contract keys ({ title, close }), where its caller names them (item 95).
+function openLibSheet(title, buildBody, footer, onClose, keys) {
   const back = document.createElement("div");
   back.className = "lib-sheet-backdrop";
   const sheet = document.createElement("div");
@@ -282,6 +289,18 @@ function openLibSheet(title, buildBody, footer, onClose) {
   const h = document.createElement("h3"); h.textContent = title;
   const x = document.createElement("button");
   x.type = "button"; x.className = "icon-btn"; x.setAttribute("aria-label", "Close");
+  // The Library's two sheets are the screens contract's (docs/specs/screens.json, library): their title and ✕ keyed.
+  if (title === "Focus") { h.dataset.parity = "library.focus-title"; x.dataset.parity = "library.focus-close"; }
+  else if (title === "Sort by") { h.dataset.parity = "library.sort-title"; x.dataset.parity = "library.sort-close"; }
+  // Group zones and Device power too (group, device-power; item 68).
+  else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
+  else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
+  // Add to playlist (add-to-playlist; item 93).
+  else if (/^Add \d+ (track|album)s? to…$/.test(title)) { h.dataset.parity = "add-to-playlist.title"; x.dataset.parity = "add-to-playlist.close"; }
+  // A playlist imported and shared (playlist-import, playlist-share; item 94).
+  else if (title === "Import a playlist") { h.dataset.parity = "playlist-import.title"; x.dataset.parity = "playlist-import.close"; }
+  else if (title.startsWith("Share ")) { h.dataset.parity = "playlist-share.title"; x.dataset.parity = "playlist-share.close"; }
+  else if (keys) { h.dataset.parity = keys.title; x.dataset.parity = keys.close; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");

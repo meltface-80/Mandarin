@@ -173,29 +173,30 @@ function renderQueue(view) {
     tools.className = "queue-summary-tools";
     const clearAll = document.createElement("button");
     clearAll.type = "button"; clearAll.className = "q-tool"; clearAll.textContent = "Clear all";
-    clearAll.setAttribute("aria-label", "Clear the queue");
+    clearAll.setAttribute("aria-label", "Clear the queue"); clearAll.dataset.parity = "queue.clear";
     const menuWrap = document.createElement("div");
     menuWrap.className = "sel-menu-wrap q-sel-menu-wrap hidden";
     const menuBtn = document.createElement("button");
     menuBtn.type = "button"; menuBtn.className = "q-tool q-tool-menu"; menuBtn.textContent = "⋯";
     menuBtn.setAttribute("aria-label", "What to do with the selected tracks");
-    menuBtn.setAttribute("aria-haspopup", "menu"); menuBtn.setAttribute("aria-expanded", "false");
+    menuBtn.setAttribute("aria-haspopup", "menu"); menuBtn.setAttribute("aria-expanded", "false"); menuBtn.dataset.parity = "queue.select-menu";
     const menu = document.createElement("div");
     menu.className = "sel-menu hidden"; menu.setAttribute("role", "menu");
-    const menuCount = document.createElement("div"); menuCount.className = "sel-menu-title";
+    const menuCount = document.createElement("div"); menuCount.className = "sel-menu-title"; menuCount.dataset.parity = "queue.select-title";
     menu.appendChild(menuCount);
-    const mkItem = (label, act, danger) => {
+    // The keys are the screens contract's (docs/specs/screens.json): the Android app's Queue has each.
+    const mkItem = (label, act, key, danger) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "sel-menu-item" + (danger ? " is-danger" : ""); b.setAttribute("role", "menuitem");
-      b.dataset.queueAct = act; b.textContent = label;
+      b.dataset.queueAct = act; b.textContent = label; b.dataset.parity = key;
       b.addEventListener("click", () => { closeMenu(); runQueueAction(act, items); });
       menu.appendChild(b);
       return b;
     };
-    mkItem("Play now", "play_now"); mkItem("Play next", "play_next"); mkItem("Remove", "remove", true);
+    mkItem("Play now", "play_now", "queue.play-now"); mkItem("Play next", "play_next", "queue.play-next"); mkItem("Remove", "remove", "queue.remove", true);
     menuWrap.append(menuBtn, menu);
     const done = document.createElement("button");
-    done.type = "button"; done.className = "q-tool hidden"; done.textContent = "Done";
+    done.type = "button"; done.className = "q-tool hidden"; done.textContent = "Done"; done.dataset.parity = "queue.done";
     tools.append(clearAll, menuWrap, done);
     summary.append(sumText, tools);
     const closeMenu = () => { menu.classList.add("hidden"); menuBtn.setAttribute("aria-expanded", "false"); };
@@ -235,7 +236,7 @@ function renderQueue(view) {
       if (i === 0) {
         // Roon-style "Now playing" divider above the current track
         const div = document.createElement("li");
-        div.className = "q-divider";
+        div.className = "q-divider"; div.dataset.parity = "queue.divider";
         div.setAttribute("aria-hidden", "true");
         div.innerHTML =
           '<span class="q-divider-line"></span>' +
@@ -244,6 +245,7 @@ function renderQueue(view) {
         list.appendChild(div);
       }
       const li = document.createElement("li");
+      li.dataset.parity = "queue.track";
       if (i === 0) li.classList.add("is-now");
       else li.classList.add("is-tappable");
 

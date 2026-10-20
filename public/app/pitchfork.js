@@ -177,7 +177,7 @@
     } catch (e) {
       if (mySeq !== reqSeq) return;
       setStatus("");
-      listEl.innerHTML = '<div class="pf-empty">Couldn’t load Pitchfork right now. Try again in a little while.</div>';
+      listEl.innerHTML = '<div class="pf-empty" data-parity="pitchfork.empty">Couldn’t load Pitchfork right now. Try again in a little while.</div>';
       return;
     }
     if (mySeq !== reqSeq) return;
@@ -193,7 +193,7 @@
     setStatus("");
     listEl.innerHTML = "";
     if (!items.length) {
-      listEl.innerHTML = '<div class="pf-empty">No reviews to show right now.</div>';
+      listEl.innerHTML = '<div class="pf-empty" data-parity="pitchfork.empty">No reviews to show right now.</div>';
       return;
     }
     const frag = document.createDocumentFragment();
@@ -204,7 +204,7 @@
   function buildCard(it) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "pf-card";
+    card.className = "pf-card"; card.dataset.parity = "pitchfork.review";
 
     const art = document.createElement("div");
     art.className = "pf-card-art";
@@ -218,13 +218,13 @@
     }
     if (it.score != null) {
       const s = document.createElement("span");
-      s.className = "pf-score" + (it.isBestNewMusic ? " pf-score-bnm" : "");
+      s.className = "pf-score" + (it.isBestNewMusic ? " pf-score-bnm" : ""); s.dataset.parity = "pitchfork.score";
       s.textContent = fmtScore(it.score);
       art.appendChild(s);
     }
     if (it.isBestNewMusic) {
       const b = document.createElement("span");
-      b.className = "pf-bnm";
+      b.className = "pf-bnm"; b.dataset.parity = "pitchfork.bnm";
       b.textContent = "BNM";
       art.appendChild(b);
     }
@@ -253,16 +253,16 @@
     detailEl.classList.remove("hidden");
     detailEl.scrollTop = 0;
     detailEl.innerHTML =
-      '<button class="pf-back" type="button">‹ Back</button>' +
+      '<button class="pf-back" type="button" data-parity="pitchfork-review.back">‹ Back</button>' +
       '<div class="pf-detail-head">' +
-        (it.cover ? '<img class="pf-detail-art" src="' + esc(it.cover) + '" alt="">'
-                  : '<div class="pf-detail-art pf-art-fallback"></div>') +
+        (it.cover ? '<img class="pf-detail-art" data-parity="pitchfork-review.art" src="' + esc(it.cover) + '" alt="">'
+                  : '<div class="pf-detail-art pf-art-fallback" data-parity="pitchfork-review.art"></div>') +
         '<div class="pf-detail-headmeta">' +
-          '<div class="pf-detail-album">' + esc(it.album) + '</div>' +
-          '<div class="pf-detail-artist">' + esc(it.artist) + '</div>' +
+          '<div class="pf-detail-album" data-parity="pitchfork-review.album">' + esc(it.album) + '</div>' +
+          '<div class="pf-detail-artist" data-parity="pitchfork-review.artist">' + esc(it.artist) + '</div>' +
           '<div class="pf-detail-scorerow">' +
-            (it.score != null ? '<span class="pf-score' + (it.isBestNewMusic ? ' pf-score-bnm' : '') + '">' + fmtScore(it.score) + '</span>' : '') +
-            (it.isBestNewMusic ? '<span class="pf-bnm">Best New Music</span>' : '') +
+            (it.score != null ? '<span data-parity="pitchfork-review.score" class="pf-score' + (it.isBestNewMusic ? ' pf-score-bnm' : '') + '">' + fmtScore(it.score) + '</span>' : '') +
+            (it.isBestNewMusic ? '<span class="pf-bnm" data-parity="pitchfork-review.bnm">Best New Music</span>' : '') +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -287,7 +287,7 @@
     // match, fetched after, which just upgrades the actions with an
     // "Open in your library" button when it lands.
     bodyEl.innerHTML =
-      '<p class="pf-detail-note">The written review can’t be shown here — ' +
+      '<p class="pf-detail-note" data-parity="pitchfork-review.note">The written review can’t be shown here — ' +
       'tap <strong>Read on Pitchfork</strong> to read it on pitchfork.com.</p>';
     buildActions(actEl, it, null);
 
@@ -307,7 +307,7 @@
 
     // Reading happens on pitchfork.com now — make that the first action.
     const link = document.createElement("a");
-    link.className = "pf-action pf-action-link";
+    link.className = "pf-action pf-action-link"; link.dataset.parity = "pitchfork-review.read";
     link.href = it.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
@@ -318,7 +318,7 @@
     if (match) {
       const play = document.createElement("button");
       play.type = "button";
-      play.className = "pf-action pf-action-primary";
+      play.className = "pf-action pf-action-primary"; play.dataset.parity = "pitchfork-review.open";
       play.textContent = "▶ Open in your library";
       play.addEventListener("click", () => {
         closeAndThen(() => {
@@ -337,7 +337,7 @@
   function makeFindBtn(label, toggleBtn, searchInputId, query) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "pf-action";
+    b.className = "pf-action"; b.dataset.parity = "pitchfork-review.qobuz";
     b.textContent = label;
     b.addEventListener("click", () => {
       closeAndThen(() => {

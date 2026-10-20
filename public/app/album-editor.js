@@ -58,6 +58,15 @@ const visibleEl = (sel) => { const el = document.querySelector(sel); return el &
 window.__pageBack = () => {
   const confirmOv = visibleEl("#confirm-overlay");
   if (confirmOv) { const no = document.getElementById("confirm-no"); if (no) no.click(); return true; }
+  // The sheets with a close of their own, topmost first: the name prompt, the album editor, a lib sheet (Focus, Sort,
+  // Group zones, Device power, Add to playlist). Without this, Back on Home with one open answered "nothing to close",
+  // and the Android app left the screen (bug list item 54, the sheets opened over a native screen).
+  const prompt = visibleEl("#prompt-overlay");
+  if (prompt) { const c = document.getElementById("prompt-cancel"); if (c) c.click(); else prompt.classList.add("hidden"); return true; }
+  const editor = visibleEl("#album-edit-overlay");
+  if (editor) { const c = editor.querySelector("[data-ae-close]"); if (c) c.click(); else editor.classList.add("hidden"); return true; }
+  const sheet = document.querySelector(".lib-sheet-backdrop");
+  if (sheet) { const c = sheet.querySelector(".lib-sheet-head .icon-btn"); if (c) c.click(); else sheet.remove(); return true; }
   const st = history.state;
   if (st && typeof st === "object" && Object.keys(st).length) { history.back(); return true; }
   for (const sel of ["#mt-zone-popover", "#mt-vol-popover"]) {
@@ -281,7 +290,7 @@ function aeWas(field) {
   if (now === scanned) return;
   box.appendChild(document.createTextNode(`From the files: ${scanned || "(none)"} · `));
   const b = document.createElement("button");
-  b.type = "button"; b.textContent = "Put back";
+  b.type = "button"; b.textContent = "Put back"; b.setAttribute("data-parity", "album-edit.put-back");
   b.addEventListener("click", () => { ae[field].value = scanned; aeWas(field); });
   box.appendChild(b);
 }
@@ -305,7 +314,7 @@ function aeRenderCandidates(list, sure) {
   for (const c of list) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "ae-cand";
-    b.title = `${c.title} — ${c.artist} (${c.source})`;
+    b.title = `${c.title} — ${c.artist} (${c.source})`; b.setAttribute("aria-label", b.title); b.setAttribute("data-parity", "album-edit.candidate");
     const box = document.createElement("div"); box.className = "ae-cand-img";
     const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = c.thumb || c.url;
     // A dead image (the archive sometimes has none after all) drops out.

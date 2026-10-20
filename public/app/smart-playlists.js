@@ -108,7 +108,7 @@ function buildNewSmartTile() {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "album home-unheard-tile";
-  btn.id = "new-smart-tile";
+  btn.id = "new-smart-tile"; btn.dataset.parity = "smart-playlists.new";
   btn.setAttribute("aria-label", "Create a Dynamic Playlist");
 
   const art = document.createElement("div");
@@ -143,7 +143,7 @@ function buildNewSmartTile() {
 function createSmartPlaylist() {
   openLibSheet("New Dynamic Playlist", (body, close) => {
     const intro = document.createElement("div");
-    intro.className = "lib-facet-note";
+    intro.className = "lib-facet-note"; intro.dataset.parity = "smart-new.intro";
     intro.textContent = "What should this playlist be made of?";
     body.appendChild(intro);
 
@@ -151,7 +151,7 @@ function createSmartPlaylist() {
       const row = document.createElement("button");
       row.type = "button";
       row.className = "lib-sort-row";
-      row.dataset.mode = m.id;
+      row.dataset.mode = m.id; row.dataset.parity = "smart-new.mode"; row.setAttribute("aria-label", m.label);
 
       const text = document.createElement("span");
       text.className = "lib-sort-text";
@@ -177,13 +177,13 @@ function createSmartPlaylist() {
     }
 
     const note = document.createElement("div");
-    note.className = "lib-sheet-note";
+    note.className = "lib-sheet-note"; note.dataset.parity = "smart-new.note";
     note.textContent =
       "Either way the playlist follows the same focus, and re-runs it every time " +
       "you open it — it isn't a fixed list. The focus works at album level, " +
       "so Tracks means the tracks OF the albums that match.";
     body.appendChild(note);
-  });
+  }, null, null, { title: "smart-new.title", close: "smart-new.close" });
 }
 
 async function showSmartPlaylists() {
@@ -225,6 +225,9 @@ async function showSmartPlaylists() {
       // snapshot at no cost.
       art_keys: p.art_keys || []
     }, () => openSmartPlaylist(p), { selectable: false });
+    // The screens contract's keys, each written whole; the tile called by its name.
+    tile.dataset.parity = "smart-playlists.playlist"; tile.setAttribute("aria-label", p.name);
+    for (const [sel, key] of [[".album-art-wrap", "smart-playlists.playlist-art"], [".album-title", "smart-playlists.playlist-title"], [".album-artist", "smart-playlists.playlist-subtitle"]]) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
     frag.appendChild(tile);
   }
   grid.appendChild(frag);

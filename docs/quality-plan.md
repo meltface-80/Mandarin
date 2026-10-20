@@ -7,7 +7,7 @@ repositories work the same way: a model writes code that works, not code that st
 and the cure is boring structural rules a tool enforces, not rules in a prompt that get skipped.
 
 `npm run check` is the bar: the gates (`npm run gates`: file length, `@ts-check` and `tsc`,
-ESLint, the page's names) and then the whole suite. The pre-commit hook runs the gates (about fifteen seconds);
+ESLint, the page's names, the screens contract) and then the whole suite. The pre-commit hook runs the gates (about fifteen seconds);
 CI runs them as its own job on every push and the image waits for the whole run, so a red gate
 or a red test stops the `:migration` image. A test that doesn't block a merge is a suggestion.
 
@@ -18,6 +18,7 @@ or a red test stops the `:migration` image. A test that doesn't block a merge is
 | Types | `npm run typecheck` | A wrong property, a misspelled or renamed name, before it runs | `// @ts-check` on the 48 of 105 server modules that pass; the 57 that don't yet are in `tools/quality/ts-baseline.json`, shrink-only | Every module checked, strict on, then the pages |
 | ESLint | `npm run lint` | Undeclared names, unused code, empty blocks, useless assignments and escapes, a thrown error that drops its cause | Today's 121 findings in 37 files, in `tools/lint/eslint-suppressions.json`; only new ones fail | Suppressions empty; more rules |
 | Page names | `npm run names` | The page's script is parts joined into one: a name two parts declare, one a browser has already, one read nowhere, one read that no part declares (each fails only on the screen that uses it) | Since v1.0.5 (`docs/specs/page-modules.md`), clean | — |
+| Screens contract | `npm run parity` | The Android app's native screens drifting from the page's: an item one side has and the other hasn't, a control called something else, a native screen outside the contract (`docs/specs/native-parity.md`; `test/parity.test.js` holds the page) | Since item 25: Now playing in preview, its missing items (none since item 29; the Queue and the yes-or-no sheet too) in `tools/quality/parity-gaps.json`, shrink-only against the branch's base | The gaps list empty, every native screen out of preview |
 | C# | `./server/build.sh`, `./engine/build.sh` | Warnings; in the server, the analyzer rules in `server/Mandarin.Server/.editorconfig` too: dead code, a number parsed or written in the machine's locale, an ignored result, a bare `Exception`, a compare by lower-casing, SHA-1 or MD5 outside `Fingerprint.cs` | Warnings are errors, nullable on; the server's analyzer rules since v0.9.2 (the audit's Q3, Q5, Q6, S7) | More rules as the code keeps them |
 
 `npm run tools` installs the development tools once per clone (the Claude Code session hook does

@@ -3,6 +3,7 @@
 // header. Fills the main grid with a larger unplayed list (tiles open
 // unfiltered, like the Home row) and shows a Back button to Home.
 async function showLaterWall() {
+  if (nativeWallOpened("later")) return;   // the Android app's own wall (item 52)
   enterFullWall("Listen later", true);
   laterWallActive = true;
   try {
@@ -15,7 +16,7 @@ async function showLaterWall() {
     if (!albums.length) { setBanner("Nothing put aside — on an album, ⋯ → Listen later. An album comes off here once you’ve played it through.", false); return; }
     setBanner(null);
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(homeTile(a));
+    for (const a of albums) frag.appendChild(keyWallTile(homeTile(a)));
     grid.appendChild(frag);
   } catch (e) {
     if (!laterWallActive) return;
@@ -27,6 +28,7 @@ let laterWallActive = false;
 window.__showListenLater = showLaterWall;
 
 async function showFavouritesWall() {
+  if (nativeWallOpened("favourites")) return;
   enterFullWall("Favourites", true);
   favouritesWallActive = true;
   try {
@@ -39,7 +41,7 @@ async function showFavouritesWall() {
     if (!albums.length) { setBanner("No favourites yet — tap the heart on an album.", false); return; }
     setBanner(null);
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(homeTile(a));
+    for (const a of albums) frag.appendChild(keyWallTile(homeTile(a)));
     grid.appendChild(frag);
   } catch (e) {
     if (!favouritesWallActive) return;
@@ -51,6 +53,7 @@ let favouritesWallActive = false;
 
 // Recently played, whole (v1.0.7): the row's title opens it, as the other rows' do.
 async function showHistoryWall() {
+  if (nativeWallOpened("history")) return;
   enterFullWall("Recently played", true);
   historyWallActive = true;
   try {
@@ -63,7 +66,7 @@ async function showHistoryWall() {
     if (!albums.length) { setBanner("Nothing played in the last 30 days.", false); return; }
     setBanner(null);
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(homeTile(a));
+    for (const a of albums) frag.appendChild(keyWallTile(homeTile(a)));
     grid.appendChild(frag);
   } catch (e) {
     if (!historyWallActive) return;
@@ -74,6 +77,7 @@ async function showHistoryWall() {
 let historyWallActive = false;
 
 async function showUnplayedWall() {
+  if (nativeWallOpened("unplayed")) return;
   enterFullWall("Not played in 6 months", true);
   unplayedWallActive = true;
   try {
@@ -102,7 +106,7 @@ async function showUnplayedWall() {
     }
     setBanner(null);
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(homeTile(a));   // filter:null → offsets resolve
+    for (const a of albums) frag.appendChild(keyWallTile(homeTile(a)));   // filter:null → offsets resolve
     grid.appendChild(frag);
   } catch (e) {
     if (!unplayedWallActive) return;
@@ -118,9 +122,6 @@ const LIB_PAGE = 60;
 // sort/dir/focus persist so the wall reopens exactly as the user left it.
 // Roon's own Sort/Focus run on a private API — these are built from the
 // extension's own snapshot, so changing them costs no Roon calls at all.
-// ---- Library wall: sort + focus options ---------------------------------
-// Roon's Sort/Focus live on a private API, so these are built from this
-// extension's own snapshot.
 //
 // Declared HERE, above libView, because the persisted-state migration below
 // calls libSortDefaultDir(). A `const` referenced before its declaration is a
@@ -334,7 +335,7 @@ async function showPlaylists() {
     if (pc) {
       pc.innerHTML = "";
       const b = document.createElement("button");
-      b.type = "button"; b.className = "playlists-import"; b.textContent = "Import";
+      b.type = "button"; b.className = "playlists-import"; b.textContent = "Import"; b.dataset.parity = "playlists.import";
       b.setAttribute("aria-label", "Import a playlist");
       b.addEventListener("click", () => { if (window.__openImportSheet) window.__openImportSheet(); });
       pc.appendChild(b);
@@ -375,13 +376,13 @@ async function showPlaylists() {
   const frag = document.createDocumentFragment();
   for (const p of myList) {
     const n = p.track_total;
-    frag.appendChild(buildAlbumTile({
+    frag.appendChild(keyPlaylistsTile(buildAlbumTile({
       title: p.name,
       subtitle: `${n} track${n === 1 ? "" : "s"}`,
       image_key: null,
       // Stored tracks carry their album's art, so the mosaic costs nothing.
       art_keys: p.art_keys || []
-    }, () => openUserPlaylist(p), { selectable: false }));
+    }, () => openUserPlaylist(p), { selectable: false })));
   }
 
   const tiles = new Map();

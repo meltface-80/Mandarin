@@ -1,5 +1,5 @@
 // WebUrl.cs — `new URL(input, base).toString()` and `new URL(s).hostname` as
-// Node gives them (v0.8.37, stage 2a of docs/specs/csharp-migration.md): for
+// Node gives them (v0.8.37, stage 2a of old/csharp-migration.md): for
 // lib/renderers/description.js, which resolves every address a device
 // describes against its URLBase or the description's own, and for a Sonos
 // player's address, the host of its Location (Topology.cs).

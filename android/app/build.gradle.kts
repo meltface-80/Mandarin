@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -15,8 +16,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 325
-        versionName = "1.0.17"
+        versionCode = 326
+        versionName = "1.1.0"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -34,6 +35,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     /*
@@ -108,36 +110,6 @@ android {
     }
 }
 
-/*
- * MusicD's interface, built into the app: this version's public/ files, for
- * the offline page until the app has saved a copy from the server (see
- * OfflineSite). So offline is always the same MusicD interface.
- */
-val pageDir = rootProject.file("../public")
-val bundleSite = tasks.register<Copy>("bundleSite") {
-    from(pageDir) {
-        include("index.html", "style.css", "android.css", "sharecard.js", "srp.js", "biquad.js", "touchnav.js", "nowdisc.js", "features.js", "manifest.json",
-            "icons/icon-192.png", "icons/apple-touch-icon.png", "icons/favicon.ico", "icons/duck-tile.png",
-            "fonts/manrope.woff2", "fonts/young-serif.woff2")
-    }
-    into(layout.buildDirectory.dir("generated/site/site"))
-    // The page's script, made from its parts as the server makes it (v1.0.5,
-    // server/Mandarin.Server/Pages.Script.cs): the parts public/app/parts.txt
-    // names, in its order, each headed by its name and parted by a lone ";".
-    inputs.dir(File(pageDir, "app"))
-    inputs.files(fileTree(pageDir) { include("app.js") })
-    doLast {
-        val parts = File(pageDir, "app/parts.txt").readLines().map { it.trim() }.filter { p ->
-            p.isNotEmpty() && !p.startsWith("#") && p.endsWith(".js") && !p.startsWith("/") && !p.contains("\\") &&
-                p.split("/").none { it.isEmpty() || it == "." || it == ".." }
-        }
-        val joined = parts.joinToString("\n;\n") { "// $it\n" + File(pageDir, it).readText() }
-        destinationDir.resolve("app.js").writeText(joined)
-    }
-}
-android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/site"))
-tasks.named("preBuild") { dependsOn(bundleSite) }
-
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
@@ -162,7 +134,11 @@ dependencies {
     implementation("androidx.media3:media3-database:1.8.0")
     // Downloads: queued, retried and resumed, waiting for Wi-Fi if asked to.
     implementation("androidx.work:work-runtime:2.10.3")
-    // The page stays on one address at home and away (PageRelay): the WebView's
-    // traffic for the server goes through the app's relay.
-    implementation("androidx.webkit:webkit:1.12.1")
+    // The native screens (old/plan-android-native.md, from N0): Compose
+    // in Material 3, a ComponentActivity to hold it, and its navigation.
+    implementation(platform("androidx.compose:compose-bom:2025.06.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
 }

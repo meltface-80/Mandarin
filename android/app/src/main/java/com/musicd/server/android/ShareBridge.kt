@@ -8,138 +8,21 @@ import android.content.Intent
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
-import android.webkit.WebView
 import androidx.core.content.FileProvider
 import java.io.File
 
 /**
- * The web APIs the share card needs and Android's WebView does not have.
- *
- * The card is drawn into a canvas by the bundled front-end, which then offers
- * Copy, Share and Download using `navigator.clipboard.write`, `navigator.share`
- * and an `<a download>`. A WebView has none of the three, so all three buttons
- * were dead — and Copy and Share did not even render, because the page
- * feature-detects before drawing them.
- *
- * Share and (since v0.6.0-RC4) Download are provided; Copy is not:
- *
- *  - **Share** works, and on Android it is the button that already leads
- *    everywhere else — save to Files, send to another app, put it in a message.
- *  - **Copy** cannot be made to work honestly. An image reaches the Android
- *    clipboard as a content:// URI, and the app doing the pasting holds no
- *    grant against our FileProvider, so the copy reports success and pastes
- *    nothing.
- *  - **Download** as a link does nothing in a WebView. Since v0.6.0-RC4 the
- *    page offers its own Download in the app, which calls [saveImage] (a
- *    MediaStore insert into Pictures/Mandarin); a download link from an older
- *    page is still dropped from the DOM below.
- *
- * The fix belongs here rather than in the page. The bundled assets are kept
- * byte-identical to MusicD-Remote's so a newer upstream UI stays a file copy,
- * and "this platform is missing a web API" is the shell's problem to solve.
+ * Where a share card, a playlist's file or a copied link goes from the app's own share sheets (ShareSheet,
+ * PlaylistShareSheet): Android's share sheet, the clipboard, or Pictures/Mandarin. Once the page's way to them too,
+ * from its WebView (window.MusicDShare), until that went (bug list item 111).
  */
 class ShareBridge(private val activity: Activity) {
 
     companion object {
         private const val TAG = "ShareBridge"
-        const val NAME = "MusicDShare"
 
         /** Cleared on every share so the cache cannot grow without bound. */
         private const val SHARE_DIR = "shared"
-
-        /**
-         * Implements Web Share on top of the bridge and removes the two
-         * controls that cannot work. Injected after every page load.
-         *
-         * The share goes through a base64 round-trip because a `blob:` URL is
-         * meaningless outside the renderer — the app cannot open one, so the
-         * bytes have to be read in JavaScript and handed over.
-         */
-        val JS_SHIM = """
-        (function () {
-          if (window.__musicdShareInstalled) return;
-          window.__musicdShareInstalled = true;
-          var bridge = window.$NAME;
-          if (!bridge) return;
-
-          function toBase64(blob) {
-            return new Promise(function (resolve, reject) {
-              var r = new FileReader();
-              r.onload = function () {
-                var s = String(r.result || "");
-                var comma = s.indexOf(",");
-                resolve(comma >= 0 ? s.slice(comma + 1) : s);
-              };
-              r.onerror = function () { reject(r.error || new Error("read failed")); };
-              r.readAsDataURL(blob);
-            });
-          }
-
-          // Deliberately NOT shimmed: window.ClipboardItem and
-          // navigator.clipboard.write. Handing an image to the Android
-          // clipboard means handing over a content:// URI, and the app pasting
-          // it has no grant to read our FileProvider — so the copy appeared to
-          // succeed and pasted nothing. The page feature-detects both before
-          // it draws the Copy button, so leaving them absent removes the
-          // button rather than leaving one that lies.
-          //
-          // Text copying is fine and does not go through a URI.
-          var clip = navigator.clipboard || {};
-          if (typeof clip.writeText !== "function") {
-            clip.writeText = function (text) {
-              return new Promise(function (resolve, reject) {
-                bridge.copyText(String(text)) ? resolve() : reject(new Error("Copy failed"));
-              });
-            };
-            try {
-              navigator.clipboard = clip;
-            } catch (e) {
-              Object.defineProperty(navigator, "clipboard", { value: clip, configurable: true });
-            }
-          }
-
-          function shareFiles(data) {
-            var file = data && data.files && data.files[0];
-            if (!file) return Promise.reject(new Error("Nothing to share"));
-            return toBase64(file).then(function (b64) {
-              bridge.shareImage(b64, file.name || "card.png", file.type || "image/png");
-            });
-          }
-          if (typeof navigator.share !== "function") {
-            navigator.share = shareFiles;
-            navigator.canShare = function (data) {
-              return !!(data && data.files && data.files.length);
-            };
-          }
-
-          // The Download button is removed rather than wired up. Writing to
-          // the public Downloads directory is blocked by scoped storage from
-          // Android 10, and the honest alternative — a MediaStore insert — is
-          // the same two taps as Share, which already works. A button that
-          // needs a fallback to another button is one button too many.
-          function dropDownloadLinks(root) {
-            var links = (root || document).querySelectorAll("a[download]");
-            for (var i = 0; i < links.length; i++) links[i].remove();
-          }
-          dropDownloadLinks(document);
-          new MutationObserver(function (records) {
-            for (var i = 0; i < records.length; i++) {
-              var added = records[i].addedNodes;
-              for (var j = 0; j < added.length; j++) {
-                var n = added[j];
-                if (n.nodeType !== 1) continue;
-                if (n.matches && n.matches("a[download]")) n.remove();
-                else dropDownloadLinks(n);
-              }
-            }
-          }).observe(document.documentElement, { childList: true, subtree: true });
-        })();
-        """.trimIndent()
-
-        /** Runs the shim in [web]. Safe to call on every page load. */
-        fun install(web: WebView) {
-            web.evaluateJavascript(JS_SHIM, null)
-        }
     }
 
     private fun decode(base64: String): ByteArray? = try {
@@ -166,8 +49,10 @@ class ShareBridge(private val activity: Activity) {
      * that, the storage permission the app already asks for.
      */
     @JavascriptInterface
-    fun saveImage(base64: String, fileName: String, mime: String): Boolean {
-        val bytes = decode(base64) ?: return false
+    fun saveImage(base64: String, fileName: String, mime: String): Boolean = decode(base64)?.let { save(it, fileName, mime) } ?: false
+
+    /** [bytes] saved to the phone's Pictures/Mandarin as [fileName] (the page's Download, and the native card's: item 75). */
+    fun save(bytes: ByteArray, fileName: String, mime: String): Boolean {
         val name = safeName(fileName)
         val type = mime.ifEmpty { "image/png" }
         return try {
@@ -197,9 +82,43 @@ class ShareBridge(private val activity: Activity) {
         }
     }
 
+    /**
+     * [bytes] saved to the phone's Download/Mandarin as [fileName] (a playlist shared, the native sheet's Download; item 94):
+     * where the phone's Files app and every other app's file picker find it, Import's Choose a file… among them.
+     */
+    fun saveDownload(bytes: ByteArray, fileName: String, mime: String): Boolean {
+        val name = safeName(fileName)
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/Mandarin")
+                    put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val r = activity.contentResolver
+                val uri = r.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+                try {
+                    r.openOutputStream(uri)?.use { it.write(bytes) } ?: throw java.io.IOException("no stream")
+                    r.update(uri, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+                } catch (e: Exception) { r.delete(uri, null, null); throw e }
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "Mandarin").apply { mkdirs() }
+                File(dir, name).writeBytes(bytes)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "save to downloads failed", e)
+            false
+        }
+    }
+
     @JavascriptInterface
-    fun shareImage(base64: String, fileName: String, mime: String) {
-        val bytes = decode(base64) ?: return
+    fun shareImage(base64: String, fileName: String, mime: String) { decode(base64)?.let { share(it, fileName, mime) } }
+
+    /** [bytes] offered to the phone's share sheet as [fileName] (the page's Share, and the native card's: item 75). */
+    fun share(bytes: ByteArray, fileName: String, mime: String) {
         activity.runOnUiThread {
             try {
                 val uri = FileProvider.getUriForFile(

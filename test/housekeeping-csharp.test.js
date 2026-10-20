@@ -1,7 +1,7 @@
 "use strict";
 /*
  * Library housekeeping answered by the C# server (v0.8.48, stage 5 part 2 of
- * docs/specs/csharp-migration.md; HousekeepingRoutes.cs, Scans.cs):
+ * old/csharp-migration.md; HousekeepingRoutes.cs, Scans.cs):
  *
  *   - /api/status: the library's part and the rooms', the scan as it went;
  *   - Clean up (Settings → Library Scanner): what could go counted, and the

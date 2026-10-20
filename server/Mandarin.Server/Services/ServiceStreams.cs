@@ -1,5 +1,5 @@
 // ServiceStreams.cs — a Qobuz or Tidal track fetched for a device (v0.8.47,
-// stage 4.5 of docs/specs/csharp-migration.md), from lib/qobuz/index.js,
+// stage 4.5 of old/csharp-migration.md), from lib/qobuz/index.js,
 // lib/tidal/index.js and index.js's transcoder.resolve, rule for rule:
 //
 //   - where a track's audio is, asked of the service when a device comes for

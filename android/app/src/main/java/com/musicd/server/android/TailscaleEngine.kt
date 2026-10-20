@@ -3,6 +3,7 @@ package com.musicd.server.android
 import android.content.Context
 import android.util.Log
 import org.json.JSONObject
+import com.musicd.server.client.ExitReport
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.Inet4Address
@@ -28,7 +29,7 @@ import java.security.SecureRandom
 object TailscaleEngine {
     private const val TAG = "TailscaleEngine"
 
-    private var process: Process? = null
+    @Volatile private var process: Process? = null
     private var port = 0
     private var secret = ""
     /** For the default route, which [sendInterfaces] asks Android for. */
@@ -62,6 +63,8 @@ object TailscaleEngine {
         port = line.removePrefix("CONTROL ").trim().toInt()
         process = p
         // Keep its error output flowing (a full pipe would stall it), and the tail of it.
+        // Its end without [stop] asking (killed, say) is kept for the next start to say (bug list item 34).
+        val app = c.applicationContext
         Thread({
             runCatching {
                 p.errorStream.bufferedReader().forEachLine {
@@ -69,6 +72,8 @@ object TailscaleEngine {
                     while (stderrTail.size > 50) stderrTail.pollFirst()
                 }
             }
+            val code = runCatching { p.waitFor() }.getOrDefault(-1)
+            if (process === p) CrashLog.keepNote(app, ExitReport.engineText(code, stderrTail.toList(), ExitNote.time(System.currentTimeMillis())))
         }, "musicdnet-stderr").apply { isDaemon = true; start() }
         Log.i(TAG, "engine running, control port $port")
         sendInterfaces()
@@ -167,9 +172,10 @@ object TailscaleEngine {
 
     @Synchronized
     fun stop() {
-        process?.let { runCatching { it.outputStream.close() }; it.destroy() }
-        process = null
+        val p = process
+        process = null   // first: its watcher then knows the end was asked for
         readyFor = null
+        p?.let { runCatching { it.outputStream.close() }; it.destroy() }
     }
 
     /**

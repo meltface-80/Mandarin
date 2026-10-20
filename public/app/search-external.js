@@ -70,14 +70,17 @@ async function runExternal(q, mySeq) {
 function extHeader(frag, label) {
   const hdr = document.createElement("div");
   hdr.className = "search-section-header";
+  hdr.dataset.parity = "search.section";
   hdr.textContent = label;
   frag.appendChild(hdr);
 }
 
-function extRow(cover, title, sub, onClick) {
+// [keys]: the screens contract's keys for the row and its parts (a review's), each written whole.
+function extRow(cover, title, sub, onClick, keys) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "ext-search-row";
+  btn.setAttribute("aria-label", title + (sub ? " by " + sub : ""));
   const img = document.createElement("img");
   img.className = "ext-search-art"; img.loading = "lazy"; img.alt = "";
   if (cover) {
@@ -92,6 +95,7 @@ function extRow(cover, title, sub, onClick) {
   const s  = document.createElement("div"); s.className = "ext-search-sub";   s.textContent = sub || "";
   tx.appendChild(t); tx.appendChild(s);
   btn.appendChild(img); btn.appendChild(tx);
+  if (keys) { btn.dataset.parity = keys.row; img.dataset.parity = keys.art; t.dataset.parity = keys.title; s.dataset.parity = keys.artist; }
   btn.addEventListener("click", onClick);
   return btn;
 }
@@ -111,7 +115,7 @@ function extServiceSection(frag, service, label, albums, artists, toggleId, inpu
     strip.className = "ext-search-artists";
     for (const ar of artists) {
       const chip = document.createElement("button");
-      chip.type = "button"; chip.className = "qobuz-artist-chip";
+      chip.type = "button"; chip.className = "qobuz-artist-chip"; chip.dataset.parity = "search.service-artist";
       const img = document.createElement(ar.image ? "img" : "div");
       img.className = "qobuz-artist-thumb";
       if (ar.image) { img.loading = "lazy"; img.alt = ""; img.src = ar.image; }
@@ -123,7 +127,7 @@ function extServiceSection(frag, service, label, albums, artists, toggleId, inpu
     frag.appendChild(strip);
   }
   if (!nA) return nR;
-  if (sb) { for (const a of albums) frag.appendChild(sb.tile(a)); return nA + nR; }
+  if (sb) { for (const a of albums) frag.appendChild(keyServiceTile(sb.tile(a))); return nA + nR; }
   for (const a of albums) {
     frag.appendChild(extRow(a.image, a.title, a.artist, () => {
       stopSearch();
@@ -133,9 +137,17 @@ function extServiceSection(frag, service, label, albums, artists, toggleId, inpu
       const si = document.getElementById(inputId);
       const seedQ = ((a.artist || "") + " " + (a.title || "")).trim();
       if (si && seedQ) { si.value = seedQ; si.dispatchEvent(new Event("input", { bubbles: true })); }
-    }));
+    }, { row: "search.service-album", art: "search.service-album-art", title: "search.service-album-title", artist: "search.service-album-artist" }));
   }
   return nA;
+}
+
+// A service's album tile (the browser's own, service-browser-rows.js) keyed for the screens contract's `search`.
+function keyServiceTile(tile) {
+  tile.dataset.parity = "search.service-album";
+  const parts = { ".album-art-wrap": "search.service-album-art", ".album-title": "search.service-album-title", ".album-artist": "search.service-album-artist", ".qobuz-tile-fav": "search.service-fav" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
 }
 
 // Pitchfork section: tapping a review deep-links to its detail view.
@@ -146,10 +158,11 @@ function extPitchforkSection(frag, items) {
     const row = extRow(it.cover, it.album, it.artist, () => {
       stopSearch();
       if (window.__openPitchforkReview) window.__openPitchforkReview(it);
-    });
+    }, { row: "search.review", art: "search.review-art", title: "search.review-title", artist: "search.review-artist" });
     if (it.score != null) {
       const sc = document.createElement("span");
       sc.className = "ext-search-score" + (it.isBestNewMusic ? " is-bnm" : "");
+      sc.dataset.parity = "search.review-score";
       sc.textContent = Number(it.score).toFixed(1);
       row.appendChild(sc);
     }

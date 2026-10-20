@@ -1,7 +1,7 @@
 // Topology.cs — who is grouped with whom in a Sonos household: the pure parts
 // of lib/sonos/topology.js (v0.8.37), rule for rule, held to it by
 // test/sonos-csharp.test.js. Finding the players (SSDP) and asking one of them
-// are left for stage 6 of docs/specs/csharp-migration.md, when playback moves;
+// are left for stage 6 of old/csharp-migration.md, when playback moves;
 // nothing here runs yet.
 //
 // One reachable player describes the whole household (GetZoneGroupState), so

@@ -25,13 +25,13 @@ function renderShareToggles(listEl, group, onSave) {
     row.className = "settings-row";
 
     const label = document.createElement("span");
-    label.className = "settings-label";
+    label.className = "settings-label"; label.setAttribute("data-parity", "settings-sharecard.name");
     // The chip label where there is one, so this screen reads the same as
     // the row it controls — "AllMusic artist", not "AllMusic" twice.
     label.textContent = item.chip || item.name;
 
     const sw = document.createElement("label");
-    sw.className = "switch";
+    sw.className = "switch"; sw.setAttribute("data-parity", listEl === shareReviewsList ? "settings-sharecard.site" : "settings-sharecard.service");
     const input = document.createElement("input");
     input.type = "checkbox";
     input.checked = on.has(item.id);
@@ -192,8 +192,11 @@ const atHome = () => {
 };
 // One level up: a pane that names its parent (data-parent) goes there —
 // Setup's pages back to Setup (v0.6.21) — anything else to the Settings list.
+// The page the Android app's own Settings asked for (item 76): its Back closes Settings, back to the app's list.
+let settingsAppPane = null;
 const stepBack = () => {
   const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
+  if (open && settingsAppPane && open.getAttribute("data-pane") === settingsAppPane) { settingsAppPane = null; settingsOverlay.classList.add("hidden"); return; }
   const parent = open && open.getAttribute("data-parent");
   showView(parent || "home");
 };

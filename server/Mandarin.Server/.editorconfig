@@ -1,5 +1,5 @@
 # The analyzer rules the server's build holds to (v0.9.2, the audit's Q3, Q5,
-# Q6 and S7, docs/specs/audit-b4-main.md). Warnings are errors in this
+# Q6 and S7, old/audit-b4-main.md). Warnings are errors in this
 # project, so each of these fails the build. A rule is listed once the code
 # keeps it; a site that breaks one on purpose says why beside it
 # ([SuppressMessage] with its Justification).

@@ -1,5 +1,5 @@
 // Fingerprint.cs — SHA-1 and MD5 where nothing is secret (v0.9.2, the audit's
-// S7, docs/specs/audit-b4-main.md): an answer's ETag (Http.cs, Pages.cs), a
+// S7, old/audit-b4-main.md): an answer's ETag (Http.cs, Pages.cs), a
 // cover's fingerprint (Scan/Scanner.cs, AlbumEditRoutes.cs), a kept cover's
 // file name (Services/Rows.cs), a sound device's id (Local/LocalDevices.cs),
 // which keys found the label logos (Extras/LabelLogos.cs), a drawn cover's

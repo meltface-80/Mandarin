@@ -882,70 +882,64 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 }
 .modal-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* ── The album-art hero (v1.7.84) ─────────────────────────────────────
-   The album view used to lead with a 280px square floating in the middle of a
-   padded column. It now leads with the cover itself, edge to edge, fading into
-   the page ground with the title sitting in the tail of that fade.
+/* ── The sleeve (bug list item 24) ───────────────────────────────────
+   The album view leads with a 160px cover, the title and the artist line
+   beside it, bottom aligned with it, and the buttons straight under the pair:
+   on a phone they are on the first screen instead of a cover's height down.
+   It was a cover edge to edge with the title in the tail of its fade (v1.7.84).
 
-   FULL-BLEED FROM INSIDE A PADDED COLUMN. .modal-body pads 18px either side and
-   the art is one of its flex children, so the art cancels that padding with a
-   negative margin and takes the width back. The arithmetic has to stay exact:
-   .modal-body declares overflow-y: auto, and a box with one axis scrollable and
-   the other `visible` computes the visible one to `auto` — so a bleed one pixel
-   WIDER than the padding it cancels does not spill, it gives the whole album
-   view a horizontal scrollport. test/dom/album-hero.test.js measures
-   scrollWidth against clientWidth for exactly that.
+   A grid, the same at every size: the sleeve and the head are the first row,
+   the album's pane (the buttons and the tracks) the second, About this album
+   and what follows it the third on a phone and a column of its own beside
+   the pane from 720px up (below). .modal-info stays one element in the page,
+   since Now playing lays it out as a column; here it is `display: contents`,
+   so its head and its panes are the grid's own cells.
 
-   Scoped to :not(.np-mode) — the Now playing tab shares this element and sizes
-   it from leftover height instead (see the np-mode block). */
+   THE HEAD STRETCHES TO THE ROW AND PUTS ITS TEXT AT THE FOOT. The body
+   scrolls, so its height is fixed and a grid row cannot be told to align
+   its text to the bottom of a neighbour; a box the row's height can.
+
+   Scoped to :not(.np-mode) — Now playing shares these elements and sizes the
+   art from leftover height instead (see the np-mode block). */
 .modal:not(.np-mode) .modal-body {
-  padding-top: 0;
-  gap: 0;
+  --sleeve: 160px;
+  display: grid;
+  grid-template-columns: var(--sleeve) minmax(0, 1fr);
+  grid-template-areas: "art head" "pane pane" "aside aside";
+  align-items: start; align-content: start;
+  column-gap: 18px; row-gap: 0;
 }
+.modal:not(.np-mode) .modal-info { display: contents; }
+/* min-height: a box that clips (the art does) has no automatic minimum in a
+   grid, so with a long review and the body held to the screen's height the
+   grid took the room from the sleeve's row, the title and the buttons over
+   the cover. Its row is never less than the sleeve. */
 .modal:not(.np-mode) .modal-art {
-  width: calc(100% + 36px);
-  max-width: none;
-  margin: 0 -18px;
-  aspect-ratio: 1 / 1;
-  border-radius: 0;
+  grid-area: art;
+  width: var(--sleeve); min-height: var(--sleeve); max-width: none; margin: 0;
+  border-radius: 8px;
+  box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06);
 }
-/* The fade. A mask rather than an overlaid gradient, because the ground behind
-   it is a theme token: masking to transparent lets whatever --bg-elev is for
-   the current palette come through, so this works unchanged in all four
-   (an overlay would have to hard-code a colour to fade TO). */
-.modal:not(.np-mode) .modal-art img {
-  -webkit-mask-image: linear-gradient(to bottom,
-    #000 0 58%, rgba(0,0,0,.72) 78%, transparent 100%);
-          mask-image: linear-gradient(to bottom,
-    #000 0 58%, rgba(0,0,0,.72) 78%, transparent 100%);
+.modal:not(.np-mode) .modal-head {
+  grid-area: head; align-self: stretch; min-width: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
 }
-/* THE TEXT STAYS OFF THE ARTWORK. The reference this is modelled on can put a
-   title over the bottom of a cover because its ground is always dark and the
-   art fades into that dark; two of this app's four palettes have a near-white
-   ground and near-black text, so the same overlap puts dark text on whatever
-   the sleeve happens to be — invisible on the first cover tried. The mask
-   below finishes the art at the element's own bottom edge, and the title
-   starts under it: the same dissolve, with no unknown image behind any text.
-   The track list keeps its own alignment — centring .modal-info would centre
-   every track row too. */
-.modal:not(.np-mode) .modal-info { margin-top: 0; }
-.modal:not(.np-mode) #modal-title,
-.modal:not(.np-mode) .modal-subtitle { text-align: center; }
+.modal:not(.np-mode) #modal-title { margin: 0 0 6px; font-size: 24px; }
+.modal:not(.np-mode) .modal-subtitle { margin: 0; }
+/* A line each under the artists (bug list item 28): the date (its label and
+   score after it), then the rate and the album's length. A line with nothing
+   to say takes no room. */
+.modal-date { margin-top: 3px; font-size: 14px; color: var(--text-dim); }
+.modal-date:empty { display: none; }
+.modal-facts {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; margin-top: 6px;
+  font-size: 14px; color: var(--text-dim); font-variant-numeric: tabular-nums;
+}
+#modal-quality:not(.hidden) + .modal-total:not(:empty)::before { content: "· "; }
+.modal-facts:has(#modal-quality.hidden):has(.modal-total:empty) { display: none; }
+.modal:not(.np-mode) .modal-tab-pane { grid-area: pane; min-width: 0; margin-top: 20px; }
+.modal:not(.np-mode) .modal-aside { grid-area: aside; }
 .modal:not(.np-mode) .modal-actions { justify-content: center; }
-
-/* Back and Share now sit ON the artwork, which can be any colour at all. A
-   scrim under each one is what makes them legible on a white sleeve as well as
-   a black one — and it is dark in every palette on purpose: white-on-dark is
-   the pair that survives an unknown image, whereas a theme-coloured button
-   would vanish into half the covers in a library. No backdrop-filter: the art
-   scrolls underneath these, which is the same per-frame re-blur the transport
-   pill has to avoid (v1.6.15). */
-.modal:not(.np-mode) .modal-close,
-.modal:not(.np-mode) .modal-share {
-  background: rgba(0,0,0,.42);
-  border-color: rgba(255,255,255,.24);
-  color: #fff;
-}
 
 .modal-info { display: flex; flex-direction: column; min-width: 0; }
 .modal-info h2 {
@@ -961,26 +955,11 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 }
 
 /* ── Two columns, from 720px up ───────────────────────────────────────
-   The art is a 320px column on the left and the title, buttons and track list
-   are a column on the right.
-
-   EVERY CANCELLATION BELOW IS WRITTEN AT THE HERO BLOCK'S OWN SPECIFICITY, and
-   that is the whole point of this comment. The hero rules above are
-   `.modal:not(.np-mode) .modal-art` — three classes — while this block was
-   written as plain `.modal-art`, one class. A MEDIA QUERY ADDS NO SPECIFICITY,
-   so being later in the file bought nothing: `margin: 0 -18px` beat `margin: 0`
-   at every width, and the art hung 18px into the column beside it. With the
-   hero's `gap: 0` also winning over this block's 28px there was nothing to
-   absorb it, so the cover sat ON the track list — over the numbers of every row
-   inside its own height, and over the start of the TRACKS heading. Reported
-   from a desktop browser in v1.8.37 and reproduced in the harness: art right
-   edge 551, track column left 533.
-
-   The full-bleed hero is a rule about a SINGLE-COLUMN layout: the cover is
-   edge to edge and the title sits in the tail of its fade. Neither is true
-   here — the art is an inset column and the title is beside it, not under it —
-   so the bleed, the squared corners and the fade are all cancelled rather than
-   inherited. */
+   Now playing's, now: the album view is the sleeve's grid (above, and from
+   720px up further down), whose rules are written at three classes and so
+   win over these one-class ones, which a media query does not make any
+   stronger (v1.8.37: the old hero's bleed beat this block's `margin: 0`, and
+   the cover sat on the track list). */
 @media (min-width: 720px) {
   .modal-body {
     flex-direction: row; align-items: flex-start;
@@ -1005,23 +984,6 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   }
   .modal-art {
     flex: 0 0 320px; max-width: 320px; margin: 0;
-  }
-  .modal:not(.np-mode) .modal-body {
-    /* Both restored from the hero block: the gap IS the separation between the
-       two columns, and without the top padding the art and the title start at
-       the panel's own edge with the pinned buttons straddling the artwork. */
-    padding-top: 28px;
-    gap: 28px;
-  }
-  .modal:not(.np-mode) .modal-art {
-    width: 320px; max-width: 320px; margin: 0;
-    border-radius: 3px;          /* square and flat, as everywhere else */
-  }
-  /* No fade: there is nothing below the art for it to dissolve into here, and
-     a cover that stops halfway down its own box reads as a broken image. */
-  .modal:not(.np-mode) .modal-art img {
-    -webkit-mask-image: none;
-            mask-image: none;
   }
   .modal-info { flex: 1 1 auto; min-width: 0; }
   .modal-info h2 { font-size: 26px; }
@@ -1309,20 +1271,20 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .modal-share {
   position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; z-index: 2;
 }
-/* Previous and next (v0.5.44): a disc at each edge of the art, halfway up,
-   scrolling with it. Not on Now playing, which has no list. */
+/* Previous and next (v0.5.44): in the top bar, to the left of Share (the
+   sleeve, bug list item 24: the cover is too small to carry them). Not on
+   Now playing, which has no list. While tracks are selected their menu takes
+   that place (.sel-menu-wrap.in-modal), and the album stays put. */
 .modal-art { position: relative; }
-.modal-nav { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.modal-nav-btn {
-  pointer-events: auto; position: absolute; top: 50%; margin-top: -22px;
+.modal-nav {
+  position: absolute; z-index: 2;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + var(--ctl-h) + 8px);
+  display: flex; gap: 8px;
 }
-#modal-prev { left: 10px; }
-#modal-next { right: 10px; }
-.modal.np-mode .modal-nav { display: none; }
+.modal.np-mode .modal-nav,
+.modal-panel:has(> .sel-menu-wrap.in-modal:not(.hidden)) .modal-nav { display: none; }
 .modal-nav-btn:disabled { opacity: .35; cursor: default; }
-.modal:not(.np-mode) .modal-nav-btn {
-  background: rgba(0,0,0,.42); border-color: rgba(255,255,255,.24); color: #fff;
-}
 /* ------------------------------------------------------------------ */
 /*  Mini transport (sticky now-playing bar)                            */
 /* ------------------------------------------------------------------ */
@@ -2016,6 +1978,8 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
    the live now-playing block below replaces them. */
 .modal.np-mode #modal-title,
 .modal.np-mode .modal-subtitle,
+.modal.np-mode .modal-date,
+.modal.np-mode .modal-facts,
 .modal.np-mode .modal-actions,
 .modal.np-mode .track-list-wrap,
 .modal.np-mode #album-bio-section { display: none; }
@@ -2075,7 +2039,7 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
   aspect-ratio: auto; border-radius: 0; overflow: visible;
 }
 .modal.np-mode.tab-album .modal-art {
-  /* Full-bleed, like the album view's hero: cancel .modal-body's 18px. */
+  /* Full-bleed: cancel .modal-body's 18px. */
   width: calc(100% + 36px);
   margin: 0 -18px;
 }
@@ -3058,13 +3022,9 @@ input.vol-range::-moz-range-thumb {
 
 /* The description the tile used to carry, now under the title of the panel it
    belongs to. Indented past the back button so it starts under the <h2>. */
-.settings-pane-desc {
-  margin: 0 0 18px 38px;
-  font-size: 13.5px; line-height: 1.35; color: var(--text-faint);
-}
 
 /* Pane header: back chevron + title, mirroring a pushed page. */
-.settings-pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.settings-pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }   /* no line under it (item 101) */
 
 /* Settings fills the screen (as the Android app has always drawn it; the
    same everywhere since v0.5.19). The panes behind the list scroll as before. */
@@ -3251,7 +3211,7 @@ input.vol-range::-moz-range-thumb {
 .confirm-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .prompt-input {
   display: block; width: 100%; box-sizing: border-box; margin: 0 0 16px;
-  height: 46px; padding: 0 14px; border-radius: 12px; font-size: 16px;
+  height: 46px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-family: inherit;   /* the page's face, not the input's own (item 94) */
   background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border);
 }
 .prompt-input:focus { outline: none; border-color: var(--accent); }
@@ -3914,6 +3874,9 @@ input.vol-range::-moz-range-thumb {
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--bg-elev-2);
 }
+/* Shown only while a sign-in is under way: `display: flex` above would otherwise outrank the hidden attribute, and the
+   empty box (its note and Cancel, no link or code) stood under Sign in on tidal.com for good (bug list item 87). */
+.tidal-auth-pending[hidden] { display: none; }
 .tidal-auth-link {
   color: var(--accent-text); font-size: 14px; font-weight: 600;
   text-decoration: underline; word-break: break-all; text-align: center;
@@ -4030,6 +3993,8 @@ input.vol-range::-moz-range-thumb {
 .menu-item-lines > span { flex: 0 0 auto; }
 .menu-sub { font-size: 12px; color: var(--text-dim); line-height: 1.3; }
 .menu-sub:empty { display: none; }   /* no snapshot yet — no blank second line */
+/* Offline mode's row on one line (bug list item 98): "Offline Mode - On" or "- Off", as the other items' names. */
+.menu-offline-line { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .home-view.hidden { display: none; }
 /* Mirrors main's own padding at each breakpoint (style.css: main { padding:
@@ -4313,15 +4278,22 @@ input.vol-range::-moz-range-thumb {
 /* Better than CD. Roon marks hi-res; there is no room to say so in words, so
    the badge takes the accent instead. */
 .album-quality.is-hires { color: var(--accent-text); }
-/* The album view's artwork is far bigger than a tile, so the badge scales with
-   it rather than sitting lost in a corner. */
-#modal-quality { left: 8px; bottom: 8px; padding: 3px 7px; font-size: 12px; border-radius: 6px; }
+/* On the album's own page the rate is a line of its head, not a badge on the
+   cover (bug list item 28): a chip in the text's run, the album's length
+   after it. */
+#modal-quality {
+  position: static; display: inline-block;
+  padding: 1px 7px; font-size: 12px; border-radius: 6px;
+  background: transparent; border: 1px solid var(--border);
+  backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none;
+  color: var(--text-dim);
+}
+#modal-quality.is-hires { color: var(--accent-text); border-color: var(--accent); }
 
 /* Larger on the album detail artwork, which is far bigger than a tile. */
-/* Bottom left of the cover, above the bit/sample badge (v0.8.33: the bottom
-   right is the booklet's), or in its place when the album has no rate shown. */
-#modal-source { width: 28px; height: 28px; top: auto; bottom: 36px; left: 8px; right: auto; border-radius: 8px; }
-#modal-source:has(+ #modal-quality.hidden) { bottom: 8px; }
+/* Bottom left of the cover (v0.8.33: the bottom right is the booklet's; the
+   rate under the title since bug list item 28). */
+#modal-source { width: 28px; height: 28px; top: auto; bottom: 8px; left: 8px; right: auto; border-radius: 8px; }
 #modal-source::before { -webkit-mask-size: 16px 16px; mask-size: 16px 16px; }
 /* The album's booklet (v0.8.33): a disc in the cover's bottom right, as the
    page's other buttons are; never on Now playing. */
@@ -4401,12 +4373,11 @@ input.vol-range::-moz-range-thumb {
   pointer-events: none;
   z-index: 0;
 }
-/* Off on every screen now: Roon's album and queue screens are flat black, and
-   a blurred cover wash behind flat rows is the last piece of the card-era look.
-   The element, its JS (setModalAmbient / window.__setModalAmbient) and the
-   transport poll that keeps it pointed at the playing track are all left in
-   place, so restoring it is a one-line change rather than a rebuild. */
+/* On an album's page only (the sleeve, bug list item 24): the cover's colours
+   wash the top of the page around the small sleeve. Off on Now playing and the
+   queue, whose screens are flat. */
 .modal-ambient { display: none; }
+.modal:not(.np-mode) .modal-ambient { display: block; }
 
 /* 2 — Home-style tinted panels. The panel shell, watermark placement, theme
    flip, and the Tracks panel's vinyl motif are all SHARED with the Home
@@ -4712,9 +4683,9 @@ input.vol-range::-moz-range-thumb {
 /* The menu is anchored to the button, and on a narrow screen the button is at
    the right-hand end of its row — so it opens leftwards to stay on screen. */
 .overflow-menu { top: calc(100% + 6px); right: 0; }
-/* On an album's page the row sits just above the track list, so the menu
-   opens UPWARDS over the cover: every item on screen without scrolling. */
-.modal-actions .overflow-menu { top: auto; bottom: calc(100% + 6px); }
+/* On an album's page too: the row is under the sleeve, near the top, with
+   the tracks below for the menu to open over (it opened upwards over the
+   cover until the sleeve, bug list item 24). */
 /* Turned round when its own way has no room (v0.7.8, app.js): the album
    view scrolled so the button row is near the top, or a playlist's menu at
    the foot of the screen. Three classes: they beat both rules above. */
@@ -4746,7 +4717,8 @@ input.vol-range::-moz-range-thumb {
 /* Import report + the add-to-playlist picker rows. */
 /* A <label> wrapping a hidden <input type=file> — the only way to style a file
    picker consistently, and it keeps the whole control tappable. */
-.import-file { display: block; width: 100%; margin-top: 10px; text-align: center; cursor: pointer; }
+/* flex, not block: .action-btn's centring is a flex one, and block left the words at the top of the pill (item 94). */
+.import-file { display: flex; width: 100%; margin-top: 10px; text-align: center; cursor: pointer; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px;
   margin: -1px; padding: 0; border: 0;
@@ -4905,9 +4877,11 @@ input.vol-range::-moz-range-thumb {
   cursor: grab; touch-action: none;   /* the drag owns the gesture, not the scroller */
 }
 .home-row-item.is-dragging .home-row-grip { cursor: grabbing; }
-/* Two lines once a row carries a reason, so the ellipsis has to go — a
-   truncated explanation is no explanation. */
-.home-row-item.is-unavailable .home-row-name {
+/* Two lines once a row carries a reason (a setting off, or Downloaded albums
+   held on), so the ellipsis has to go — a truncated explanation is no
+   explanation. */
+.home-row-item.is-unavailable .home-row-name,
+.home-row-item.is-held .home-row-name {
   display: flex; flex-direction: column; gap: 2px;
   overflow: visible; white-space: normal; text-overflow: clip;
 }
@@ -5366,10 +5340,6 @@ button.cap-chip:active { transform: scale(.96); }
 [data-palette="hifi"] .modal .modal-booklet:hover,
 [data-palette="hifi"] .booklet-viewer .booklet-close:hover,
 [data-palette="hifi"] .modal .modal-nav-btn:not(:disabled):hover { background: var(--plum); color: var(--plum-pale); filter: brightness(1.08); }
-/* The previous and next discs on the art: translucent brass, so the cover shows
-   through them while the brass rim and dark chevron keep them easy to find. */
-[data-palette="hifi"] .modal .modal-nav-btn { background: rgba(201,164,92,.42); border-color: rgba(201,164,92,.6); }
-[data-palette="hifi"] .modal .modal-nav-btn:not(:disabled):hover { background: rgba(201,164,92,.62); filter: none; }
 /* The search box, open: a brass pill, the glass in brass. */
 [data-palette="hifi"] .search-box:focus-within { border-color: var(--plum); box-shadow: 0 0 0 3px rgba(139,111,176,.22); }
 [data-palette="hifi"] .search-box:focus-within .search-ico,
@@ -5567,12 +5537,10 @@ button.cap-chip:active { transform: scale(.96); }
 @media (min-width: 720px) {
   .modal:not(.np-mode) .modal-close .ico-back  { display: none; }
   .modal:not(.np-mode) .modal-close .ico-close { display: block; }
-  /* THE ARTWORK STARTS BELOW THE CORNER BUTTONS. They sit 12px in and are
-     --ctl-h (40px) tall, so 64px of top padding keeps 12px clear under them;
-     at 28px the × sat on the cover's corner. The prev/next discs are
-     positioned inside .modal-art at 50%, so they move down with it and stay
-     on the cover's centre line. Same specificity as the two-column block it
-     overrides (three classes), and later in the file. */
+  /* THE SLEEVE STARTS BELOW THE CORNER BUTTONS. They sit 12px in and are
+     --ctl-h (40px) tall, so 64px of top padding keeps 12px clear under them,
+     as the phone's own padding does; the two-column block's 28px put the ×
+     on the cover's corner. */
   .modal:not(.np-mode) .modal-body {
     padding-top: calc(24px + var(--ctl-h) + env(safe-area-inset-top));
   }
@@ -5586,39 +5554,20 @@ button.cap-chip:active { transform: scale(.96); }
 .modal-aside { order: 1; min-width: 0; }
 .modal.np-mode .modal-aside { display: none; }
 
-/* From 720px up — a tablet either way round, a laptop — two columns: the
-   cover and its review on the left, the title, the buttons and the tracks on
-   the right. A grid rather than the flex row the screen had, because the
-   review has to go UNDER the cover in its column while the right-hand column
-   runs the full height beside both: the art and the review are rows one and
-   two of the first column, the info spans both rows of the second, and the
-   second row is 1fr so a long track list never pushes the review down.
-   Three classes, later in the file, so it wins over the two-column block and
-   the hero block above (see their notes on specificity).
-
-   THE RIGHT-HAND COLUMN STARTS LOW ENOUGH FOR THE ⋯ MENU. The menu opens
-   upwards from the button row so all of it is on screen without scrolling;
-   with the title and the artist line the only things above that row, a menu
-   of four to six items rose past the panel's top edge, where the panel clips
-   it: on an iPad the first two items could be neither seen nor tapped.
-   app.js (fitAlbumMenuRoom) measures the menu and the row and sets
-   --album-menu-room to exactly the room missing — for however many items this
-   album's menu has and however many lines its title takes. */
+/* From 720px up — a tablet either way round, a laptop — the sleeve's row
+   runs the width, and under it the buttons and the tracks have a column and
+   About this album and what follows it another, beside them. Three classes,
+   later in the file, so it wins over the two-column block above (a media
+   query adds no specificity). */
 @media (min-width: 720px) {
   .modal:not(.np-mode) .modal-body {
-    display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    column-gap: 28px; row-gap: 0;
-    align-items: start; align-content: start;
+    grid-template-columns: var(--sleeve) minmax(0, 1fr) minmax(240px, 320px);
+    grid-template-areas: "art head head" "pane pane aside";
+    column-gap: 28px;
   }
-  .modal:not(.np-mode) .modal-art   { grid-column: 1; grid-row: 1; }
-  .modal:not(.np-mode) .modal-aside { grid-column: 1; grid-row: 2; order: 0; }
-  .modal:not(.np-mode) .modal-info  {
-    grid-column: 2; grid-row: 1 / span 2;
-    padding-top: var(--album-menu-room, 0px);
-  }
-  .modal:not(.np-mode) .modal-aside .bio-section { margin-top: 22px; }
+  .modal:not(.np-mode) .modal-aside { margin-top: 6px; }
+  .modal:not(.np-mode) .modal-head { padding-bottom: 4px; }
+  .modal:not(.np-mode) #modal-title { font-size: 28px; }
 }
 
 /* Now playing's corner button (v0.6.1): ‹ on phones and tablets (going back),
@@ -5972,15 +5921,8 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The album view (v0.7.10)                                           */
 /* ------------------------------------------------------------------ */
-/* The album's total time on the Tracks line, centred under the Play Now and
-   Queue buttons: the heading spans the same column as the button row, whose
-   heart and ⋯ are the same size at either end, so the line's centre is the
-   centre between the two buttons. */
-.tracks-head { position: relative; }
-.tracks-total {
-  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-  color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
+/* The album's total time was on the Tracks line, centred under Play Now and
+   Queue (v0.7.10); it is the head's last line now, after the rate (item 28). */
 
 /* A TABLET'S ALBUM VIEW IS THE WHOLE SCREEN, as it is on a phone, not a card
    floating over the page: from 720px up on a touch screen the panel fills
@@ -5999,15 +5941,6 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .modal:not(.np-mode) .modal-close { top: calc(12px + env(safe-area-inset-top)); }
 }
 
-/* THE REVIEW UNDER THE COVER GROWS DOWNWARDS. The cover box clips its image
-   (overflow: hidden), and a box that clips has no automatic minimum height in
-   a grid — so when Show more lengthened the review and the page was held to
-   the screen's height, the grid took the room from the cover's row: the
-   review rose over the bottom of the cover, its badge on the text. The
-   cover's row is now never less than the cover. */
-@media (min-width: 720px) {
-  .modal:not(.np-mode) .modal-art { min-height: 320px; }
-}
 
 /* ================================================================== */
 /*  Below the review in the album view (from Rouen v1.9.3)             */
@@ -6273,3 +6206,39 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   }
   .scan-progress-fill { background: var(--accent); }
 }
+
+/* ------------------------------------------------------------------ */
+/* A classical album as works and movements (bug list item 49; the app's
+   AlbumWorks.kt draws the same): the composers' line in the artists'
+   place and who performs it under them; a work's row with a brass ring to
+   play it, its movements indented under it as track rows; a set's discs
+   heading the list. The rows keep .track-list's measures. */
+.modal-composers { font-size: 15px; font-weight: 600; color: var(--accent-text); }
+.modal-composers .modal-artist-link { font-weight: 600; }
+.modal-performers { margin: 2px 0 20px; font-size: 14px; color: var(--text-dim); }
+.modal-subtitle.hidden { display: none; }
+.track-list li.t-work, .track-list li.t-disc { counter-increment: none; }
+.track-list li.t-work::before, .track-list li.t-disc::before { content: none; }
+.track-list li.t-disc {
+  padding: 14px 4px 4px; border-bottom: 0; cursor: default;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); font-weight: 600;
+}
+.track-list li.t-work .t-title { font-weight: 600; white-space: normal; }
+.track-list li.t-movement { padding-left: 38px; }
+.t-work-play {
+  flex: 0 0 22px; width: 22px; height: 22px; margin-top: -1px; padding: 0;
+  border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.t-work-play svg { width: 10px; height: 10px; pointer-events: none; }
+.t-work-play:hover { background: var(--accent-soft); }
+.t-composer { color: var(--accent-text); }
+[data-palette="hifi"] .modal-composers, [data-palette="hifi"] .t-composer { color: var(--accent); }
+
+/* The Android app, one of this page's sheets open over a native screen
+   (public/app/native-handoff.js, __musicdNativeOver): the page is put over the
+   screen with its ground clear, and shows nothing but the sheet. */
+html.native-over, html.native-over body { background: transparent !important; }
+html.native-over :is(.topbar, main, #touch-nav, #mini-transport, #album-modal, #settings-overlay, #menu-overlay) { visibility: hidden !important; }
+/* A page of Settings the app hands over (item 76) is the Settings sheet itself: seen (bug list item 82). */
+html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibility: visible !important; }

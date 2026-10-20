@@ -1,5 +1,5 @@
 // Auth.Reset.cs — `mandarin-server reset-password` (v0.8.50, stage 7 part 2 of
-// docs/specs/csharp-migration.md), from reset-password.js: forgot the
+// old/csharp-migration.md), from reset-password.js: forgot the
 // password? Run on the server:
 //
 //     docker exec musicd-server /app/server/bin/mandarin-server reset-password

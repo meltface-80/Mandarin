@@ -1,14 +1,10 @@
 package com.musicd.server.android
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.util.Base64
-import android.util.Log
-import android.webkit.JavascriptInterface
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -18,7 +14,6 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.Executors
 
 /**
  * Backup & restore in the app (v0.6.14).
@@ -181,6 +176,22 @@ object AppBackup {
         } finally { conn.disconnect() }
     }
 
+    /**
+     * One of the server's backups ([id]) saved into [uri] on this phone (the app's Settings → Backup & restore, item 92), and
+     * listed with this phone's files ([meta]: what it holds, as the server's list says it).
+     */
+    fun download(c: Context, id: String, uri: Uri, meta: JSONObject): JSONObject {
+        val conn = connect(c, "/api/backup/download/" + URLEncoder.encode(id, "UTF-8"))
+        try {
+            if (conn.responseCode != 200) return JSONObject().put("ok", false).put("error", errorOf(conn))
+            var bytes = 0L
+            val out = c.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Couldn't write the file")
+            out.use { o -> conn.inputStream.use { i -> bytes = i.copyTo(o, 64 * 1024) } }
+            remember(c, uri, JSONObject(meta.toString()).put("bytes", bytes))
+            return JSONObject().put("ok", true).put("bytes", bytes)
+        } finally { conn.disconnect() }
+    }
+
     /** The backup at [uri] sent to the server (with its [passphrase] when sealed); the app's part applied here. */
     fun restoreFrom(c: Context, uri: Uri, parts: String, passphrase: String? = null): JSONObject {
         val conn = connect(c, "/api/backup/restore?parts=" + URLEncoder.encode(parts, "UTF-8"))
@@ -198,81 +209,5 @@ object AppBackup {
             res.optJSONObject("app")?.let { res.put("app_result", import(c, it)); res.remove("app") }
             return res
         } finally { conn.disconnect() }
-    }
-}
-
-/** The page's way in: window.MusicDBackup. */
-class BackupBridge(private val activity: Activity) {
-    companion object { const val NAME = "MusicDBackup" }
-    private val work = Executors.newSingleThreadExecutor()
-
-    @JavascriptInterface
-    fun available(): Boolean = true
-
-    /** This app's settings, for a backup kept on the server. */
-    @JavascriptInterface
-    fun appSettings(): String = AppBackup.export(activity).toString()
-
-    /** The backup files this install has saved, for the page's list (v0.6.18). */
-    @JavascriptInterface
-    fun files(): String = AppBackup.files(activity).toString()
-
-    /** Restore from one of those files. Answers window.__backupRestoreDone. */
-    @JavascriptInterface
-    fun restoreFileAt(uri: String, parts: String) = restoreFileAt(uri, parts, "")
-
-    /** The same, a sealed one opened with its passphrase (v0.9.0). */
-    @JavascriptInterface
-    fun restoreFileAt(uri: String, parts: String, passphrase: String) {
-        work.execute {
-            val r = runCatching { AppBackup.restoreFrom(activity, Uri.parse(uri), parts, passphrase) }
-                .getOrElse { Log.w("AppBackup", "restore: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") }
-            tell("__backupRestoreDone", r)
-        }
-    }
-
-    /** One of those files deleted, and off the list. */
-    @JavascriptInterface
-    fun deleteFile(uri: String): Boolean = AppBackup.deleteFile(activity, Uri.parse(uri))
-
-    /** The app's part of a backup restored from the server's list. */
-    @JavascriptInterface
-    fun applyApp(json: String): String =
-        runCatching { AppBackup.import(activity, JSONObject(json)).toString() }.getOrElse { JSONObject().put("ok", false).put("error", it.message).toString() }
-
-    /** Back up to a file: Android's "save as", then the server's backup into it. Answers window.__backupFileDone. */
-    @JavascriptInterface
-    fun toFile(requestJson: String) {
-        (activity as? MainActivity)?.chooseBackupFile(AppBackup.fileName()) { uri ->
-            if (uri == null) { tell("__backupFileDone", JSONObject().put("ok", false).put("cancelled", true)); return@chooseBackupFile }
-            // Chosen: the page says it is backing up now, not still choosing.
-            tell("__backupFileChosen", JSONObject().put("ok", true))
-            work.execute {
-                val r = runCatching { AppBackup.saveTo(activity, uri, JSONObject(requestJson)) }
-                    .getOrElse { Log.w("AppBackup", "backup: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Backup failed") }
-                tell("__backupFileDone", r)
-            }
-        }
-    }
-
-    /** Restore from a file: Android's "open", then sent to the server. Answers window.__backupRestoreDone. */
-    @JavascriptInterface
-    fun fromFile(parts: String) = fromFile(parts, "")
-
-    /** The same, a sealed one opened with its passphrase (v0.9.0). */
-    @JavascriptInterface
-    fun fromFile(parts: String, passphrase: String) {
-        (activity as? MainActivity)?.openBackupFile { uri ->
-            if (uri == null) { tell("__backupRestoreDone", JSONObject().put("ok", false).put("cancelled", true)); return@openBackupFile }
-            work.execute {
-                val r = runCatching { AppBackup.restoreFrom(activity, uri, parts, passphrase) }
-                    .getOrElse { Log.w("AppBackup", "restore: ${it.message}"); JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") }
-                tell("__backupRestoreDone", r)
-            }
-        }
-    }
-
-    private fun tell(fn: String, json: JSONObject) {
-        (activity as? MainActivity)?.tellPage("window.$fn && window.$fn(${JSONObject.quote(json.toString())})")
     }
 }

@@ -1,7 +1,7 @@
 /* The page's core (app.js until v1.0.5), 5 of 33: Home's Library, History, Favourites, Listen later and Playlists rows, and the Smart Picks cards. */
 async function loadHomeLibrary() {
   if (!homeLibrary) return;
-  if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+  if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = emptyRow("Loading…");
   // Captured BEFORE the request: the answer describes the order that was
   // current when it was asked for, and the user can change Sort while it is
   // in the air.
@@ -13,7 +13,7 @@ async function loadHomeLibrary() {
     // returns zero albums, so blanking the row to "No albums." would only
     // ever be showing an error as an empty state.
     if (!r.ok) {
-      if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = '<div class="home-carousel-empty">Reading your music library…</div>';
+      if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = emptyRow("Reading your music library…");
       return;   // retried on the next Home visit (homeLibraryKey stays unset)
     }
     const j = await r.json();
@@ -30,7 +30,7 @@ async function loadHomeLibrary() {
       renderHomeLibrary([]);   // genuinely empty and nothing cached — show the empty state
     }
   } catch (e) {
-    if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
+    if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = emptyRow("Couldn’t load.");
   }
 }
 
@@ -109,13 +109,13 @@ function renderHomePlaylists(mine, smart) {
   const frag = document.createDocumentFragment();
   for (const p of mine) {
     const n = p.track_total;
-    frag.appendChild(buildAlbumTile({ title: p.name, subtitle: `${n} track${n === 1 ? "" : "s"}`, image_key: null, art_keys: p.art_keys || [] },
-      () => openUserPlaylist(p), { selectable: false }));
+    frag.appendChild(keyPlaylistTile(buildAlbumTile({ title: p.name, subtitle: `${n} track${n === 1 ? "" : "s"}`, image_key: null, art_keys: p.art_keys || [] },
+      () => openUserPlaylist(p), { selectable: false })));
   }
   for (const p of smart) {
     const n = Number.isFinite(p.count) ? p.count : p.album_total;
-    frag.appendChild(buildAlbumTile({ title: p.name, subtitle: "Dynamic · " + (Number.isFinite(n) ? `${n} album${n === 1 ? "" : "s"}` : describeLibView(p.view)), image_key: null, art_keys: p.art_keys || [] },
-      () => openSmartPlaylist(p), { selectable: false }));
+    frag.appendChild(keyPlaylistTile(buildAlbumTile({ title: p.name, subtitle: "Dynamic · " + (Number.isFinite(n) ? `${n} album${n === 1 ? "" : "s"}` : describeLibView(p.view)), image_key: null, art_keys: p.art_keys || [] },
+      () => openSmartPlaylist(p), { selectable: false })));
   }
   homePlaylists.appendChild(frag);
   const sec = homePlaylists.closest(".home-section");
@@ -241,10 +241,13 @@ async function blockSmartPick(pick, card) {
 // One pick. `full` adds the reason line and the action buttons — the Home
 // carousel stays a plain tile so it reads like the rows around it.
 function smartPickCard(pick, full) {
+  // The screens contract's keys (docs/specs/screens.json): the card on the Smart Picks screen (`picks`) and on Home (`home`), each written whole.
+  const K = full ? { art: "picks.pick-art", artist: "picks.pick-artist", album: "picks.pick-album", reason: "picks.pick-reason", open: "picks.open", added: "picks.added", add: "picks.add", block: "picks.block" }
+                 : { card: "home.pick", art: "home.pick-art", artist: "home.pick-artist", album: "home.pick-album" };
   const card = document.createElement("div");
   card.className = "pick-card" + (full ? " pick-card-full" : "");
   const art = document.createElement("div");
-  art.className = "pick-art";
+  art.className = "pick-art"; art.dataset.parity = K.art;
   if (pick.image) {
     const img = document.createElement("img");
     img.loading = "lazy";
@@ -257,18 +260,18 @@ function smartPickCard(pick, full) {
   const meta = document.createElement("div");
   meta.className = "pick-meta";
   const artist = document.createElement("div");
-  artist.className = "pick-artist";
+  artist.className = "pick-artist"; artist.dataset.parity = K.artist;
   artist.textContent = pick.artist;
   meta.appendChild(artist);
   const album = document.createElement("div");
-  album.className = "pick-album";
+  album.className = "pick-album"; album.dataset.parity = K.album;
   album.textContent = pick.album || "";
   meta.appendChild(album);
   // The reason is on the Smart Picks page only; the Home tile stays a
   // plain tile like the rows around it.
   if (pick.reason && full) {
     const why = document.createElement("div");
-    why.className = "pick-reason";
+    why.className = "pick-reason"; why.dataset.parity = K.reason;
     why.textContent = pick.reason;
     meta.appendChild(why);
   }
@@ -292,7 +295,7 @@ function smartPickCard(pick, full) {
     if (pick.offset !== null && pick.offset !== undefined) {
       const play = document.createElement("button");
       play.type = "button";
-      play.className = "pick-add pick-play";
+      play.className = "pick-add pick-play"; play.dataset.parity = K.open;
       play.textContent = "Open";
       play.addEventListener("click", () => openAlbum({
         offset:    pick.offset,
@@ -307,14 +310,14 @@ function smartPickCard(pick, full) {
     } else if (pick.added) {
       const wait = document.createElement("button");
       wait.type = "button";
-      wait.className = "pick-add is-done";
+      wait.className = "pick-add is-done"; wait.dataset.parity = K.added;
       wait.disabled = true;
       wait.textContent = "✓ Added";
       actions.appendChild(wait);
     } else {
       const add = document.createElement("button");
       add.type = "button";
-      add.className = "pick-add";
+      add.className = "pick-add"; add.dataset.parity = K.add;
       add.textContent = smartPickAddLabel(false);
       add.addEventListener("click", () => addSmartPick(pick, add));
       actions.appendChild(add);
@@ -322,7 +325,7 @@ function smartPickCard(pick, full) {
 
     const nope = document.createElement("button");
     nope.type = "button";
-    nope.className = "pick-block";
+    nope.className = "pick-block"; nope.dataset.parity = K.block;
     nope.textContent = "Not for me";
     nope.addEventListener("click", () => blockSmartPick(pick, card));
     actions.appendChild(nope);
@@ -332,6 +335,8 @@ function smartPickCard(pick, full) {
     // actions live. A tile that did nothing on tap would read as broken.
     card.setAttribute("role", "button");
     card.tabIndex = 0;
+    card.dataset.parity = K.card;
+    card.setAttribute("aria-label", pick.artist + " — " + (pick.album || ""));
     // A pick Roon already has behaves like any other album tile; one it does
     // not opens the Smart Picks screen, where Add and the reason live.
     const open = () => {

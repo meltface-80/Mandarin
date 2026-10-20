@@ -1,5 +1,5 @@
 // Updater.cs — the in-app update (v0.8.48, stage 5 part 4 of
-// docs/specs/csharp-migration.md): lib/updater.js, and the part of
+// old/csharp-migration.md): lib/updater.js, and the part of
 // lib/server/csharp-update.js an update calls first (prepare), rule for rule.
 //
 // GitHub is asked for the latest release (or, with none published, the highest

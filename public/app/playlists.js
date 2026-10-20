@@ -52,10 +52,11 @@ async function openAddToPlaylistSheet(entries, albums) {
     : `${n} album${n === 1 ? "" : "s"}`;
   openLibSheet(`Add ${what} to…`,
     (body, close) => {
-      const row = (label, fn) => {
+      const row = (label, fn, key) => {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "action-btn sheet-row";
+        b.dataset.parity = key;
         // textContent, never a template: a playlist name is user text and
         // this sheet has no business interpreting it as markup.
         b.textContent = label;
@@ -70,13 +71,13 @@ async function openAddToPlaylistSheet(entries, albums) {
         addToUserPlaylist({ name: trimmed }, entries, albums).then(ok => {
           if (ok) clearAfterAdd();
         });
-      });
+      }, "add-to-playlist.new");
       for (const p of list) {
         row(`${p.name} · ${p.track_total} track${p.track_total === 1 ? "" : "s"}`, () => {
           addToUserPlaylist({ id: p.id }, entries, albums).then(ok => {
             if (ok) clearAfterAdd();
           });
-        });
+        }, "add-to-playlist.playlist");
       }
     });
 }
@@ -110,17 +111,18 @@ async function openUserPlaylist(p) {
   const back = document.createElement("button");
   back.type = "button"; back.className = "action-btn playlist-back";
   back.textContent = "← Playlists";
+  back.setAttribute("aria-label", "Back to Playlists"); back.dataset.parity = "playlist.back";
   back.addEventListener("click", () => { userPlDetailActive = false; showPlaylists(); });
   wrap.appendChild(back);
 
   const head = document.createElement("div");
   head.className = "playlist-head";
   const h = document.createElement("h2");
-  h.className = "playlist-title";
+  h.className = "playlist-title"; h.dataset.parity = "playlist.title";
   h.textContent = j.name || "Playlist";
   head.appendChild(h);
   const sub = document.createElement("div");
-  sub.className = "playlist-sub";
+  sub.className = "playlist-sub"; sub.dataset.parity = "playlist.subtitle";
   sub.textContent = `${j.track_total} track${j.track_total === 1 ? "" : "s"}`;
   head.appendChild(sub);
   wrap.appendChild(head);
@@ -135,8 +137,8 @@ async function openUserPlaylist(p) {
     actions.appendChild(b);
     return b;
   };
-  mkBtn("Play now", "action-btn primary", (b) => playUserPlaylist(tracks, "play_now", b));
-  mkBtn("Queue",    "action-btn",         (b) => playUserPlaylist(tracks, "queue", b));
+  mkBtn("Play now", "action-btn primary", (b) => playUserPlaylist(tracks, "play_now", b)).dataset.parity = "playlist.play-now";
+  mkBtn("Queue",    "action-btn",         (b) => playUserPlaylist(tracks, "queue", b)).dataset.parity = "playlist.queue";
   const shareThisPlaylist = (b) => shareTracks(j.name || "Playlist",
     tracks.map(t => ({
       title: t.title, artist: t.subtitle,
@@ -158,10 +160,14 @@ async function openUserPlaylist(p) {
       showPlaylists();
     } catch (e) { showToast("Couldn't reach the extension", "error"); }
   };
-  actions.appendChild(buildOverflowMenu([
+  const more = buildOverflowMenu([
     { label: "Share",  onClick: (b) => shareThisPlaylist(b) },
     { label: "Delete", onClick: () => deleteThisPlaylist(), danger: true },
-  ], { title: j.name || "Playlist" }));
+  ], { title: j.name || "Playlist" });
+  // The screens contract's keys: the ⋯, its menu's title and its two items.
+  const keys = [[".overflow-btn", "playlist.more"], [".sel-menu-title", "playlist.more-title"], [".sel-menu-item:nth-of-type(1)", "playlist.share"], [".sel-menu-item.is-danger", "playlist.delete"]];
+  for (const [sel, key] of keys) { const el = more.querySelector(sel); if (el) el.dataset.parity = key; }
+  actions.appendChild(more);
   wrap.appendChild(actions);
 
   const ol = document.createElement("ol");
@@ -171,7 +177,7 @@ async function openUserPlaylist(p) {
 
   if (!tracks.length) {
     const empty = document.createElement("div");
-    empty.className = "playlist-empty";
+    empty.className = "playlist-empty"; empty.dataset.parity = "playlist.empty";
     empty.textContent = "Nothing in this playlist yet.";
     wrap.appendChild(empty);
   }
@@ -184,9 +190,10 @@ function userTrackRow(t) {
   const li = document.createElement("li");
   li.className = "track-row track-row-art";
   li.dataset.albumOffset = String(t.album_offset);
+  li.dataset.parity = "playlist.track";
 
   const art = document.createElement("span");
-  art.className = "track-art";
+  art.className = "track-art"; art.dataset.parity = "playlist.track-art";
   if (t.image_key) {
     art.dataset.artKey = t.image_key;
     const img = document.createElement("img");
@@ -202,11 +209,11 @@ function userTrackRow(t) {
   const text = document.createElement("div");
   text.className = "track-text";
   const tt = document.createElement("div");
-  tt.className = "track-title";
+  tt.className = "track-title"; tt.dataset.parity = "playlist.track-title";
   tt.textContent = t.title || "";
   text.appendChild(tt);
   const ta = document.createElement("div");
-  ta.className = "track-artist";
+  ta.className = "track-artist"; ta.dataset.parity = "playlist.track-artist";
   ta.textContent = [t.subtitle, t.album_title].filter(Boolean).join(" · ");
   text.appendChild(ta);
   li.appendChild(text);

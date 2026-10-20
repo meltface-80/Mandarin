@@ -97,7 +97,7 @@ function openLocalSortSheet() {
         const on = localView.sort === opt.id, hasDir = opt.id !== "random";
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "lib-sort-row" + (on ? " is-on" : "");
+        row.className = "lib-sort-row" + (on ? " is-on" : ""); row.dataset.parity = "library.sort-row";   // the Library wall's sheet, keyed as its own
         const arrow = document.createElement("span");
         arrow.className = "lib-sort-arrow";
         arrow.setAttribute("aria-hidden", "true");
@@ -146,7 +146,7 @@ function openLocalFocusSheet() {
         s.className = "lib-sheet-section" + (expanded ? " is-open" : "");
         const head = document.createElement("button");
         head.type = "button";
-        head.className = "lib-sheet-section-head";
+        head.className = "lib-sheet-section-head"; head.dataset.parity = "library.focus-section";
         head.setAttribute("aria-expanded", expanded ? "true" : "false");
         const t = document.createElement("span"); t.className = "lib-sheet-section-label"; t.textContent = label; head.appendChild(t);
         if (sel.length) { const n = document.createElement("span"); n.className = "lib-sheet-section-count"; n.textContent = String(sel.length); head.appendChild(n); }
@@ -165,7 +165,7 @@ function openLocalFocusSheet() {
           const state = facetState(sel, v);
           const c = document.createElement("button");
           c.type = "button";
-          c.className = "lib-chip" + (state === "on" ? " is-on" : state === "not" ? " is-not" : "");
+          c.className = "lib-chip" + (state === "on" ? " is-on" : state === "not" ? " is-not" : ""); c.dataset.parity = "library.focus-chip";
           c.textContent = v + " (" + counts.get(v) + ")";
           if (state === "not") c.setAttribute("aria-label", "Excluding " + v);
           c.addEventListener("click", () => { facetCycle(sel, v); saveLocalView(); render(); renderLocalWall(); });
@@ -176,10 +176,10 @@ function openLocalFocusSheet() {
     render();
   }, (foot, close) => {
     const clear = document.createElement("button");
-    clear.type = "button"; clear.className = "action-btn"; clear.textContent = "Clear";
+    clear.type = "button"; clear.className = "action-btn"; clear.textContent = "Clear all"; clear.dataset.parity = "library.focus-clear";   // as the Library wall's (item 57: the app's sheet is the same one)
     clear.addEventListener("click", () => { for (const [id] of LOCAL_FACETS) localView[id] = []; saveLocalView(); renderLocalWall(); close(); });
     const show = document.createElement("button");
-    show.type = "button"; show.className = "action-btn primary"; show.textContent = "Show albums";
+    show.type = "button"; show.className = "action-btn primary"; show.textContent = "Show albums"; show.dataset.parity = "library.focus-show";
     show.addEventListener("click", close);
     foot.appendChild(clear); foot.appendChild(show);
   });

@@ -165,7 +165,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     },
     {
      "path": "qobuz://track/5002",
@@ -235,7 +247,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -367,7 +391,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -499,7 +535,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -631,7 +679,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     },
     {
      "path": "qobuz://track/5102",
@@ -701,7 +761,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -833,7 +905,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -965,7 +1049,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     },
     {
      "path": "tidal://track/8002",
@@ -1035,7 +1131,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -1167,7 +1275,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -1349,7 +1469,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     },
     {
      "path": "qobuz://track/5102",
@@ -1419,7 +1551,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "kept": [
@@ -1562,7 +1706,19 @@
      "rg_album_peak": null,
      "rg_album_peak:type": "null",
      "names_from": null,
-     "names_from:type": "null"
+     "names_from:type": "null",
+     "composer": null,
+     "composer:type": "null",
+     "conductor": null,
+     "conductor:type": "null",
+     "work": null,
+     "work:type": "null",
+     "movement": null,
+     "movement:type": "null",
+     "movement_no": null,
+     "movement_no:type": "null",
+     "performers": null,
+     "performers:type": "null"
     }
    ],
    "kept": [

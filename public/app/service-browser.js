@@ -345,7 +345,7 @@ function initServiceBrowser(cfg) {
       tabsEl.querySelectorAll(".qobuz-tab").forEach((t, i) => { if (i) t.remove(); });
       for (const l of lists) {
         const b = document.createElement("button");
-        b.type = "button"; b.className = "qobuz-tab"; b.setAttribute("role", "tab"); b.dataset.qtab = l.id; b.textContent = l.label;
+        b.type = "button"; b.className = "qobuz-tab"; b.setAttribute("role", "tab"); b.dataset.qtab = l.id; b.textContent = l.label; b.dataset.parity = "service-browser.tab";
         bindTab(b);
         tabsEl.appendChild(b);
       }

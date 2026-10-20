@@ -92,7 +92,7 @@ async function paintCard(f, coverUrl, title, artist, seq) {
   cardUrl = URL.createObjectURL(blob);
   frame.innerHTML = "";
   const img = document.createElement("img");
-  img.src = cardUrl; img.alt = "Share card";
+  img.src = cardUrl; img.alt = "Share card"; img.setAttribute("aria-label", "Share card"); img.setAttribute("data-parity", "share-card.image");
   frame.appendChild(img);
   buildActions(blob, title, artist);
 }

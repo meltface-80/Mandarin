@@ -1,6 +1,22 @@
 /* The page's core (app.js until v1.0.5), 21 of 33: an album opened, and the queue's history. */
 function openAlbum(album, opts) {
   opts = opts || {};
+  // The Android app's own album page (always, since item 47; an older app says no): one of the library's, not this phone's.
+  const app = window.MusicdApp;
+  if (opts.source !== "now-playing" && album && typeof album.offset === "number" && app && typeof app.nativeAlbum === "function" && app.nativeAlbum()) {
+    // Which of the row's buttons is lit under it (touchnav.js's classes on <html>): Home, or the Library wall. An older app takes two arguments.
+    const html = document.documentElement.classList;
+    const lit = html.contains("tn-home") && !html.contains("tn-search") ? "home" : html.contains("tn-lib") ? "library" : "";
+    // The list it was opened from (the tile's row or wall), for the app's previous and next; taken, as the page's own view would take it.
+    const nav = albumNav.take();
+    if (typeof app.openAlbumIn === "function") {
+      const list = nav ? JSON.stringify({ items: nav.items.map(i => ({ offset: i.album.offset, title: i.album.title || "" })), index: nav.index }) : "";
+      app.openAlbumIn(album.offset, selectedZoneId || "", lit, list);
+      return;
+    }
+    try { app.openAlbum(album.offset, selectedZoneId || "", lit); } catch (e) { app.openAlbum(album.offset, selectedZoneId || ""); }
+    return;
+  }
   if (opts.source === "now-playing") {
     const albumOpen = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode");
     // Re-opened while already on Now playing: keep what it is to go back to.
@@ -56,9 +72,10 @@ function openAlbum(album, opts) {
 
   modalTitle.textContent = album.title || "Untitled";
   setModalArtist(album.subtitle);
-  modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading">Loading…</div>`;
+  modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading" data-parity="album.notice">Loading…</div>`;
   modalTracks.innerHTML  = "";
   { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
+  { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; }
 
   // Reset bio sections, and the sections under them (cleared before any
   // answer for this album can arrive)
@@ -97,7 +114,7 @@ function openAlbum(album, opts) {
         if (album === currentAlbum) { if (back) back.click(); else closeModal(); }
         return;
       }
-      modalActs.innerHTML = `<div class="modal-error">${escapeHtml(err.message)}</div>`;
+      modalActs.innerHTML = `<div class="modal-error" data-parity="album.notice">${escapeHtml(err.message)}</div>`;
     });
     fetchAlbumExtras(album).catch(() => { /* extras are non-critical — modal still opens */ });
   }
@@ -236,33 +253,35 @@ function renderQueueHistory(list, history) {
   bar.className = "q-history-bar";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "q-history-toggle";
+  btn.className = "q-history-toggle"; btn.dataset.parity = "queue.history-toggle";
   const selBtn = document.createElement("button");
   selBtn.type = "button";
-  selBtn.className = "q-history-select";
+  selBtn.className = "q-history-select"; selBtn.dataset.parity = "queue.history-select";
   bar.appendChild(btn);
   bar.appendChild(selBtn);
 
   const actions = document.createElement("div");
   actions.className = "q-hist-actions hidden";
   const count = document.createElement("span");
-  count.className = "q-hist-count";
-  const mkAct = (label, cls) => {
+  count.className = "q-hist-count"; count.dataset.parity = "queue.history-count";
+  // [key]: the screens contract's (docs/specs/screens.json); the Android app's Queue has each.
+  const mkAct = (label, cls, key) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "q-hist-act" + (cls ? " " + cls : "");
     b.textContent = label;
+    b.dataset.parity = key;
     return b;
   };
-  const actNext  = mkAct("Play next", "primary");
-  const actQueue = mkAct("Add to queue");
-  const actClear = mkAct("Clear");
+  const actNext  = mkAct("Play next", "primary", "queue.history-play-next");
+  const actQueue = mkAct("Add to queue", "", "queue.history-add");
+  const actClear = mkAct("Clear", "", "queue.history-clear");
   actions.append(count, actNext, actQueue, actClear);
   head.append(bar, actions);
 
   const rowEls = rows.map((h) => {
     const li = document.createElement("li");
-    li.className = "q-hist-row is-tappable";
+    li.className = "q-hist-row is-tappable"; li.dataset.parity = "queue.history-track";
 
     // The pick number. Selection order is not display order, so without a
     // number on the row there is no way to see what order you chose — and

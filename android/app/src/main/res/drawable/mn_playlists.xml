@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The side menu's Playlists icon (public/index.html, #menu-overlay), for the native menu. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M4,6L14,6M4,12L14,12M4,18L10,18M15.0,16.5a2.5,2.5 0 1,0 5.0,0a2.5,2.5 0 1,0 -5.0,0M20,16.5V8l-3,1"
+        android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+</vector>

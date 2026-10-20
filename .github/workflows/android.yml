@@ -149,12 +149,12 @@ jobs:
       # A test branch's app (v0.8.0 on): a direct download for the phone, from
       # the rolling "test-android" pre-release, at one fixed address. Never
       # "latest", and the app's own update check reads main's dist/, so
-      # nothing offers it to anyone who didn't fetch it. From v0.8.46 the
-      # migration branch's app too (CLAUDE.md section 4), the one the owner
-      # installs beside :migration: the same pre-release's file replaced, no
-      # tag or release made.
+      # nothing offers it to anyone who didn't fetch it. The dev branch's app
+      # too (CLAUDE.md section 4; the migration branch's from v0.8.46, renamed),
+      # the one the owner installs beside :dev: the same pre-release's file
+      # replaced, no tag or release made.
       - name: Publish a test branch's APK
-        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/claude/v0.8') || github.ref == 'refs/heads/migration')
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/claude/v0.8') || github.ref == 'refs/heads/dev')
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
@@ -173,7 +173,7 @@ jobs:
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can
       # link straight at it. From main only. main takes changes only through a
-      # pull request (the "Protect main and migration" ruleset), so the two files
+      # pull request (the "Protect main and migration" ruleset, migration now dev), so the two files
       # go to a branch of their own, publish-apk/<version>, and a pull request
       # into main that this job merges (no approval is required). That needs
       # Settings → Actions → General → "Allow GitHub Actions to create and
@@ -202,28 +202,5 @@ jobs:
           APK: ${{ steps.name.outputs.apk }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          # One fixed name, so the README and the site link straight at the file.
-          version=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
-          OUT=mandarin-android.apk
-          if [ -f "dist/$OUT" ] && grep -q "\"version\": \"$version\"" dist/latest.json && grep -q "\"file\": \"$APK\"" dist/latest.json; then
-            echo "$version already published"; exit 0
-          fi
-          git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' 'dist/Mandarin-Android-*.apk' "dist/$OUT"
-          mkdir -p dist
-          cp "android/$APK" "dist/$OUT"
-          sha=$(sha256sum "dist/$OUT" | cut -d' ' -f1)
-          printf '{\n  "version": "%s",\n  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s"\n}\n' \
-            "$version" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$APK" > dist/latest.json
-          git add "dist/$OUT" dist/latest.json
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Publish $OUT ($APK)" -m "Built from ${GITHUB_SHA}."
-          branch="publish-apk/$version"
-          git push --force origin "HEAD:refs/heads/$branch"
-          # Run again (a re-run, or the next commit), the pull request already open is used.
-          pr=$(gh pr list --head "$branch" --base "$GITHUB_REF_NAME" --state open --json url -q '.[0].url')
-          [ -n "$pr" ] || pr=$(gh pr create --base "$GITHUB_REF_NAME" --head "$branch" --title "Publish $OUT ($APK)" \
-            --body "The Android app $version for dist/, built from ${GITHUB_SHA} once CI passed on it. Opened and merged by the Android workflow.")
-          gh pr merge "$pr" --squash --delete-branch
+        # On main as it is now, not on the commit built: .github/publish-apk.sh.
+        run: .github/publish-apk.sh "android/$APK"

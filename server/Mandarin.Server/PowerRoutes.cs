@@ -1,6 +1,6 @@
 // PowerRoutes.cs — Restart and Shut down, from the power button in the side
 // menu, and how the processor is shared out (v0.8.31; stage 1d of
-// docs/specs/csharp-migration.md), from lib/server/api-power.js and
+// old/csharp-migration.md), from lib/server/api-power.js and
 // lib/server/api-cpu.js, in the same shapes:
 //
 //   GET  /api/system/power     what this install can do: { restart, shutdown, docker, start_again }
