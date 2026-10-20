@@ -9,8 +9,17 @@
   asked first; the processor; and the proposed, unidentified, applied and declined albums, each opened by its name, with
   Accept and Reject, Undo or Check again, and Barcode… to match it by a barcode or a MusicBrainz link, the first 60 of
   each until Show all. Each block is drawn from its own answer as it comes and asked for again every five seconds. The
-  page's is keyed for the screens contract (`settings-scanner`). The contract's labels for the app, which had grown
-  past the 400-line watch in one file, are now written in parts (`Contract.kt`, then `ContractLabels2.kt` on).
+  page's is keyed for the screens contract (`settings-scanner`).
+- `88-native-settings-folders`: Settings → Music Folders natively in the Android app (plan T5), as the page's: the
+  server's folders as cards (icon, name, path, how many tracks, or that it isn't there or can't be read and what to do),
+  Remove where there is more than one (asked first); Add a folder, which browses the server's folders (Cancel, where it
+  is, the mounted drives and shares, Up, the folders in it, those in the library marked, Add it or that it is in the
+  library already); what is said of them (what a container must mount); then Music on this phone with its ⓘ: Choose a
+  folder, or the folder with its albums, tracks and when it was read, Read again, Change folder and Forget (asked
+  first). The page's is keyed for the screens contract (`settings-folders`). On the page, Add a folder opens the
+  folder browser at once, its folders filling in when the server answers, where it waited for the server first.
+  The contract's labels in core are written in parts of 300 at most (`ContractLabels1.kt` …, joined by `Contract.kt`):
+  one file had reached the length watch, and each screen made native adds to it.
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed

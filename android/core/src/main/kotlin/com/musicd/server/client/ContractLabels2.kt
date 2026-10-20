@@ -1,8 +1,8 @@
 // Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client
 
-/** The screens contract's labels, part 2 (Contract.labels joins them). */
-object ContractLabels2 {
+/** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
+internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
         "settings-away.back" to listOf("Back to settings"),
         "settings-away.enabled" to listOf("Built-in Tailscale"),
@@ -26,6 +26,18 @@ object ContractLabels2 {
         "settings-services.import" to listOf("Favourites and purchases in the library", "Favourites in the library"),
         "settings-services.update" to listOf("Update library now", "…"),
         "settings-services.signout" to listOf("Sign out"),
+        "settings-folders.back" to listOf("Back to settings"),
+        "settings-folders.remove" to listOf("Remove"),
+        "settings-folders.add" to listOf("Add a folder"),
+        "settings-folders.add-close" to listOf("Cancel"),
+        "settings-folders.place" to listOf("{path}"),
+        "settings-folders.up" to listOf("Up"),
+        "settings-folders.dir" to listOf("{folder}"),
+        "settings-folders.choose" to listOf("Add “{folder}”"),
+        "settings-folders.info" to listOf("About {setting}"),
+        "settings-folders.local-choose" to listOf("Choose a folder", "Change folder"),
+        "settings-folders.local-rescan" to listOf("Read again"),
+        "settings-folders.local-forget" to listOf("Forget"),
         "settings-scanner.back" to listOf("Back to settings"),
         "settings-scanner.info" to listOf("About {setting}"),
         "settings-scanner.schedule" to listOf("Scheduling"),
