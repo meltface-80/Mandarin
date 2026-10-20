@@ -6,7 +6,8 @@
  * page is the page's own item in its menu, tapped (Settings, Pitchfork, Restart
  * with its question); "reopen", the page's menu open again on the page the
  * Offline switch loads; anything else, nothing. And the menu's size goes to
- * the app with the UI Settings (device-power.js nativePrefsJson). Skipped
+ * the app with the UI Settings (device-power.js nativePrefsJson). The app's
+ * Pitchfork's Find on Qobuz is the page's Qobuz browser, seeded. Skipped
  * where no Chromium or Chrome is found.
  */
 const test = require("node:test");
@@ -36,6 +37,10 @@ const ASKED = `(async () => {
   out.reopen = window.__musicdNative("menu", "reopen") && Date.now() - Number(localStorage.getItem("rra-menu-reopen")) < 5000;
   localStorage.removeItem("rra-menu-reopen");
   out.menuSize = JSON.parse(nativePrefsJson()).menu;
+  // The app's own Pitchfork's Find on Qobuz (item 70): the page's Qobuz browser, its search seeded.
+  out.noQuery = window.__musicdNative("qobuz-search");
+  out.qobuz = window.__musicdNative("qobuz-search", "Artist A Album One") && await until(() => shown("#qobuz-overlay")) &&
+    document.getElementById("qobuz-search-input").value === "Artist A Album One";
   return out;
 })()`;
 
@@ -46,5 +51,5 @@ test("the app's native side menu: what the page does for it", { skip, timeout: 1
   const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true });
   const r = await page.eval(ASKED);
   assert.deepEqual(page.errors, [], "nothing thrown");
-  assert.deepEqual(r, { none: false, empty: false, later: false, settings: true, pitchfork: true, restart: true, menuShut: true, reopen: true, menuSize: "1" });
+  assert.deepEqual(r, { none: false, empty: false, later: false, settings: true, pitchfork: true, restart: true, menuShut: true, reopen: true, menuSize: "1", noQuery: false, qobuz: true });
 });

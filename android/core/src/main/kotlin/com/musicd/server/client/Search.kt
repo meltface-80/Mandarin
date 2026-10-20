@@ -22,6 +22,18 @@ data class PitchforkHit(val url: String, val album: String, val artist: String, 
     /** The score as the page writes it: one decimal ("8.4"). */
     val scoreText: String? get() = score?.let { String.format(java.util.Locale.US, "%.1f", it) }
 
+    /** What Find on Qobuz searches for: the artist, then the album (pitchfork.js makeFindBtn). */
+    val query: String get() = "$artist $album".trim()
+
+    companion object {
+        /** A Pitchfork listing (/api/pitchfork/reviews?type=latest|best, item 70): its reviews, newest first. */
+        fun list(j: JSONObject): List<PitchforkHit> = ExternalSearch.reviews(j.optJSONArray("items"))
+        /** The review as handed about ([json]); null when broken. */
+        fun parse(json: String?): PitchforkHit? = runCatching { ExternalSearch.reviews(org.json.JSONArray().put(JSONObject(json ?: return null))).firstOrNull() }.getOrNull()?.takeIf { it.url.isNotEmpty() }
+        /** The library's album a review is of (/api/pitchfork/review), by its offset: null when the library hasn't it. */
+        fun match(j: JSONObject): Long? = j.optJSONObject("match")?.takeIf { it.has("offset") }?.optLong("offset")
+    }
+
     /** The review as the page hands it to the magazine (__openPitchforkReview's item). */
     fun json(): String = JSONObject().put("url", url).put("album", album).put("artist", artist).put("cover", cover ?: JSONObject.NULL)
         .put("score", score ?: JSONObject.NULL).put("isBestNewMusic", bestNew).put("date", date).toString()
@@ -48,7 +60,7 @@ data class ExternalSearch(val query: String, val qobuz: List<ServiceAlbum>?, val
         }
         private fun artists(service: String, a: JSONArray?): List<ServiceArtist> =
             objs(a).map { ServiceArtist(service, it.optString("id"), it.optString("name"), it.text("image")) }
-        private fun reviews(a: JSONArray?): List<PitchforkHit> = objs(a).map {
+        internal fun reviews(a: JSONArray?): List<PitchforkHit> = objs(a).map {
             PitchforkHit(it.optString("url"), it.optString("album"), it.optString("artist"), it.text("cover"), if (it.isNull("score") || !it.has("score")) null else it.optDouble("score").takeIf { s -> !s.isNaN() },
                 it.optBoolean("isBestNewMusic", false), it.optString("date"))
         }

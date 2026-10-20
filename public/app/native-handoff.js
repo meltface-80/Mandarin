@@ -146,6 +146,15 @@ window.__musicdNative = function (what, arg) {
     sb.openArtist({ id: ar.id, name: ar.name || "" });
     return true;
   }
+  // The app's own Pitchfork's Find on Qobuz (item 70): the page's Qobuz browser, its search seeded, as pitchfork.js's own button does.
+  if (what === "qobuz-search") {
+    const b = document.getElementById("qobuz-toggle");
+    if (!b || !arg) return false;
+    b.click();
+    const input = document.getElementById("qobuz-search-input");
+    if (input) { input.value = arg; input.dispatchEvent(new Event("input", { bubbles: true })); }
+    return true;
+  }
   if (what === "review") {
     let it;
     try { it = JSON.parse(arg); } catch (e) { return false; }

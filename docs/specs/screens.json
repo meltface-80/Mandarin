@@ -490,6 +490,39 @@
         "done": { "kind": "action", "label": "Done" }
       }
     },
+    "pitchfork": {
+      "page": "Pitchfork (the side menu's Pitchfork): the magazine over the whole screen, its title and ✕ and the tabs Latest Reviews and Best New Music pinned at its head, the reviews as a woven mosaic of covers three across (every third a large one, left then right), each with its score (gold for Best New Music), BNM, and the album and artist over the foot of the cover",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PitchforkScreen.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "latest": { "kind": "action", "label": "Latest Reviews" },
+        "best": { "kind": "action", "label": "Best New Music" },
+        "status": { "kind": "shows", "when": "the reviews being read" },
+        "review": { "kind": "action", "label": "{review}", "each": true },
+        "score": { "kind": "shows", "each": true, "when": "a review with a score" },
+        "bnm": { "kind": "shows", "each": true, "when": "a Best New Music review" },
+        "empty": { "kind": "shows", "when": "no reviews, or Pitchfork not answering" }
+      }
+    },
+    "pitchfork-review": {
+      "page": "a Pitchfork review's page (a review tapped): ‹ Back, the cover with the album, the artist and the score (Best New Music in gold), the note that the review is read on pitchfork.com, then Read on Pitchfork, Open in your library (an album the library has) and Find on Qobuz",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PitchforkScreen.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "‹ Back" },
+        "art": { "kind": "shows" },
+        "album": { "kind": "shows" },
+        "artist": { "kind": "shows" },
+        "score": { "kind": "shows", "when": "a review with a score" },
+        "bnm": { "kind": "shows", "when": "a Best New Music review" },
+        "note": { "kind": "shows" },
+        "read": { "kind": "action", "label": "Read on Pitchfork ↗" },
+        "open": { "kind": "action", "label": "▶ Open in your library", "when": "an album the library has" },
+        "qobuz": { "kind": "action", "label": "Find on Qobuz" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
