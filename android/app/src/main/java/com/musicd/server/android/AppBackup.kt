@@ -181,6 +181,22 @@ object AppBackup {
         } finally { conn.disconnect() }
     }
 
+    /**
+     * One of the server's backups ([id]) saved into [uri] on this phone (the app's Settings → Backup & restore, item 92), and
+     * listed with this phone's files ([meta]: what it holds, as the server's list says it).
+     */
+    fun download(c: Context, id: String, uri: Uri, meta: JSONObject): JSONObject {
+        val conn = connect(c, "/api/backup/download/" + URLEncoder.encode(id, "UTF-8"))
+        try {
+            if (conn.responseCode != 200) return JSONObject().put("ok", false).put("error", errorOf(conn))
+            var bytes = 0L
+            val out = c.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Couldn't write the file")
+            out.use { o -> conn.inputStream.use { i -> bytes = i.copyTo(o, 64 * 1024) } }
+            remember(c, uri, JSONObject(meta.toString()).put("bytes", bytes))
+            return JSONObject().put("ok", true).put("bytes", bytes)
+        } finally { conn.disconnect() }
+    }
+
     /** The backup at [uri] sent to the server (with its [passphrase] when sealed); the app's part applied here. */
     fun restoreFrom(c: Context, uri: Uri, parts: String, passphrase: String? = null): JSONObject {
         val conn = connect(c, "/api/backup/restore?parts=" + URLEncoder.encode(parts, "UTF-8"))

@@ -180,13 +180,15 @@ internal sealed partial class LabelLookup(MusicBrainz? mb, string? discogsBaseUr
                 Note($"lookups: done, {Found} of {Total} found");
             }
             catch (Exception e) { Note("lookups: " + e.Message); }
-            lock (gate) Running = false;
+            // Running until the logo pass after it has started (OnDone): let go first, /api/labels-scan-status said nothing
+            // was running between the two, and whoever waited for the scan to end read the labels too soon (bug list item 97).
             try
             {
                 await Library.Tell(new JsonObject { ["lookups"] = true });
                 if (OnDone != null) await OnDone();
             }
             catch (Exception e) { log($"[labels] {e.GetType().Name}: {e.Message}"); }
+            finally { lock (gate) Running = false; }
         });
         return true;
     }

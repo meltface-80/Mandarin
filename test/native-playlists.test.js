@@ -70,16 +70,13 @@ const SMART = `(async () => { ${KIT}
   return out;
 })()`;
 
-/* Handed back: Import's sheet, and a playlist's share sheet. */
+/* Import's sheet and a playlist's share sheet are the app's own (item 94): the page is handed neither, and opens neither. */
 const HANDOFF = `(async () => { ${KIT}
   const r = await (await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Shared", tracks: [{ album_offset: 0, album_title: "X", album_subtitle: "Y", track_index: 0, title: "T", subtitle: "Y", image_key: null }] }) })).json();
-  const out = { none: window.__musicdNative("playlist-share") };
-  out.imported = window.__musicdNative("playlist-import");
-  out.importSheet = await until(() => [...document.querySelectorAll(".lib-sheet-title, .lib-sheet h2, .lib-sheet-head")].some(e => /Import a playlist/.test(e.textContent)));
-  document.querySelectorAll(".lib-sheet-backdrop").forEach(b => b.click()); await sleep(400);
-  out.shared = window.__musicdNative("playlist-share", r.id);
-  out.shareSheet = await until(() => [...document.querySelectorAll(".lib-sheet-title, .lib-sheet h2, .lib-sheet-head")].some(e => /Share Shared/.test(e.textContent)));
+  const out = { imported: window.__musicdNative("playlist-import"), shared: window.__musicdNative("playlist-share", r.id) };
+  await sleep(1500);
+  out.sheet = document.querySelectorAll(".lib-sheet").length > 0;
   return out;
 })()`;
 
@@ -123,8 +120,8 @@ test("the app's native Playlists: opened in place of the page's, and what they h
     assert.equal(off.pageOne, true);
   });
 
-  await t.test("handed back: Import's sheet, a playlist's share sheet", async () => {
+  await t.test("Import's sheet and a playlist's share sheet are the app's own: the page is handed neither", async () => {
     const r = await run(HANDOFF, BRIDGE);
-    assert.deepEqual(r, { none: false, imported: true, importSheet: true, shared: true, shareSheet: true });
+    assert.deepEqual(r, { imported: false, shared: false, sheet: false });
   });
 });

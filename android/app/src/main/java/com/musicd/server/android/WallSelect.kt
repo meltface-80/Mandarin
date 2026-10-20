@@ -36,8 +36,6 @@ import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import org.json.JSONArray
-import org.json.JSONObject
 
 /*
  * Albums selected on a wall (bug list item 52; the page's album-grid.js and
@@ -96,10 +94,6 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
         }
     }
 }
-
-/** The albums picked, as JSON for the page's Add to playlist sheet ([{offset, title, subtitle, image_key}]). */
-internal fun picksJson(picks: List<AlbumSummary>): String =
-    JSONArray().also { a -> picks.forEach { p -> a.put(JSONObject().put("offset", p.offset).put("title", p.title).put("subtitle", p.subtitle).put("image_key", p.imageKey ?: JSONObject.NULL)) } }.toString()
 
 /**
  * The picks to the room ([act]: play_now, play_next, queue) or onto Listen later: what came of it, said as the page

@@ -50,6 +50,27 @@ window.__musicdNative = function (what, arg) {
     window.__uiPrefs.set(p.name, p.value);
     return true;
   }
+  // The app's own Backup & restore (item 92): this screen's settings handed to it (they live here), and a restored set put back.
+  if (what === "backup-page") {
+    if (!window.MusicdApp || typeof window.MusicdApp.backupPageSettings !== "function" || !window.__backupPageSettings) return false;
+    window.MusicdApp.backupPageSettings(JSON.stringify(window.__backupPageSettings()));
+    return true;
+  }
+  if (what === "backup-page-restore") {
+    let p;
+    try { p = JSON.parse(arg); } catch (e) { return false; }
+    if (!p || typeof p !== "object" || !window.__backupApplyPage) return false;
+    window.__backupApplyPage(p);
+    return true;
+  }
+  // The app's own Check for updates found one (item 92): installed by the page's update banner, which owns the progress.
+  if (what === "apply-update") {
+    let w;
+    try { w = JSON.parse(arg); } catch (e) { return false; }
+    if (!w || typeof w !== "object" || typeof window.__applyUpdateNow !== "function") return false;
+    window.__applyUpdateNow({ server: !!w.server, app: !!w.app });
+    return true;
+  }
   // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
   if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
   // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.
@@ -131,16 +152,6 @@ window.__musicdNative = function (what, arg) {
       if (!p) return;
       if (what === "playlist") openUserPlaylist(p); else openSmartPlaylist(p);
     }).catch(() => { /* the playlist gone: nothing to open */ });
-    return true;
-  }
-  // The native Playlists' (item 65): Import, the page's sheet for a pasted playlist; a playlist of yours shared, by its id.
-  if (what === "playlist-import") { openImportSheet(); return true; }
-  if (what === "playlist-share") {
-    if (!arg) return false;
-    fetch("/api/user-playlist?id=" + encodeURIComponent(arg), { cache: "no-store" }).then(r => r.json()).then(j => {
-      if (!j || !Array.isArray(j.tracks)) return;
-      shareTracks(j.name || "Playlist", j.tracks.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null, {});
-    }).catch(() => { /* the playlist gone: nothing to share */ });
     return true;
   }
   // The native Dynamic Playlists' (item 66): New (the page's sheet, then its Focus); Edit (its Focus with the playlist as the

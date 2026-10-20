@@ -55,6 +55,7 @@ import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.Palette
 import com.musicd.server.client.PlaylistTrack
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.ShareFile
 import com.musicd.server.client.UserPlaylist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,8 +80,16 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
     var menu by remember { mutableStateOf(false) }
     var asking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf<ShareFile?>(null) }
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { if (menu) menu = false else onBack() }
+    // Share (the page's shareTracks): the tracks made into text by the server, then its sheet (PlaylistShareSheet.kt; item 94).
+    fun share() {
+        val p = playlist ?: return
+        val c = client() ?: return
+        if (p.tracks.isEmpty()) { toast("Nothing to share yet"); return }
+        scope.launch { encodeShare(c, p.name, p.tracks).onSuccess { sharing = it }.onFailure { toast(it.message ?: "Couldn't build the share file") } }
+    }
     LaunchedEffect(id) {
         val c = client() ?: return@LaunchedEffect
         withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.userPlaylist(id) } }
@@ -151,7 +160,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
                                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { menu = !menu }, contentAlignment = Alignment.Center) {
                                     Icon(painterResource(R.drawable.np_more), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                                 }
-                                if (menu) MoreMenu(p.name, onShare = { menu = false; onPage("playlist-share", id) }, onDelete = { menu = false; asking = true }, onClose = { menu = false })
+                                if (menu) MoreMenu(p.name, onShare = { menu = false; share() }, onDelete = { menu = false; asking = true }, onClose = { menu = false })
                             }
                         }
                         Spacer(Modifier.height(14.dp))
@@ -172,6 +181,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
             TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
         }
         if (asking) ConfirmDialog("Delete “${p?.name.orEmpty()}”? This can't be undone.") { yes -> asking = false; if (yes) delete() }
+        sharing?.let { f -> PlaylistShareSheet(p?.name.orEmpty(), f) { sharing = null } }
     }
 }
 

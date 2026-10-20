@@ -1313,19 +1313,19 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-audio.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Audio Devices</h2>
+          <h2 data-parity="settings-audio.heading">Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc">Output zone &amp; your devices</p>
+        <p class="settings-pane-desc" data-parity="settings-audio.desc">Output zone &amp; your devices</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Zone / output <button class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Zone / output <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="zone-select" class="settings-select" aria-label="Output zone"></select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <select id="zone-select" data-parity="settings-audio.zone" class="settings-select" aria-label="Output zone"></select>
+              <svg data-parity="settings-audio.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1339,13 +1339,13 @@
              in app.js from /api/audio-devices; a row opens the "device" pane. -->
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Devices <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
             <span class="dev-tools">
-              <button type="button" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
-              <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+              <button type="button" data-parity="settings-audio.hide" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
+              <button type="button" data-parity="settings-audio.rescan" class="settings-update-btn" id="devices-rescan">Look again</button>
             </span>
           </div>
-          <div id="devices-hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
+          <div id="devices-hide-note" data-parity="settings-audio.hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
           <div id="devices-list" class="dev-list"></div>
         </div>
 
@@ -1353,13 +1353,13 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Waveform <button class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-audio.name">Waveform <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
+            <label class="switch" data-parity="settings-audio.waveform">
               <input type="checkbox" id="waveform-enabled" aria-label="Waveform">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
+          <div class="settings-note" data-parity="settings-audio.note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
 
           <!-- Qobuz waveforms. Off until the user signs in, and the sign-in
                happens on qobuz.com — no password or key is typed in here. -->
@@ -1915,12 +1915,12 @@
            returns there (data-parent), not to the Settings home. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="device" data-parent="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices" data-parity="settings-device.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2 id="device-pane-title">Device</h2>
+          <h2 id="device-pane-title" data-parity="settings-device.heading">Device</h2>
         </div>
-        <p class="settings-pane-desc" id="device-pane-desc"></p>
+        <p class="settings-pane-desc" data-parity="settings-device.desc" id="device-pane-desc"></p>
         <div id="device-pane-body"></div>
       </div>
 
@@ -1938,56 +1938,56 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="identify">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-scanner.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Library Scanner</h2>
+          <h2 data-parity="settings-scanner.heading">Library Scanner</h2>
         </div>
-        <p class="settings-pane-desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
+        <p class="settings-pane-desc" data-parity="settings-scanner.desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
         <!-- Filled by initIdentifyPane() in app.js from /api/identify. -->
         <div id="identify-pane-body"></div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="system">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-system.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Updates</h2>
+          <h2 data-parity="settings-system.heading">Updates</h2>
         </div>
-        <p class="settings-pane-desc">Updates &amp; version</p>
+        <p class="settings-pane-desc" data-parity="settings-system.desc">Updates &amp; version</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Updates</span>
-            <button id="check-update-btn" class="settings-update-btn" type="button">Check for updates</button>
+            <span class="settings-label" data-parity="settings-system.name">Updates</span>
+            <button id="check-update-btn" data-parity="settings-system.check" class="settings-update-btn" type="button">Check for updates</button>
           </div>
-          <div id="settings-release-notes" class="settings-release-notes hidden"></div>
+          <div id="settings-release-notes" data-parity="settings-system.notes" class="settings-release-notes hidden"></div>
         </div>
       </div>
       <!-- Backup & restore (v0.6.14). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="backup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-backup.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Backup &amp; restore</h2>
+          <h2 data-parity="settings-backup.heading">Backup &amp; restore</h2>
         </div>
-        <p class="settings-pane-desc">Your settings, players, collection and database</p>
+        <p class="settings-pane-desc" data-parity="settings-backup.desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-backup.title">Back up <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
-          <label class="backup-pass"><span><b>Passphrase</b><small>Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
-            <input type="password" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
+          <label class="backup-pass"><span><b data-parity="settings-backup.pass-name">Passphrase</b><small data-parity="settings-backup.pass-hint">Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
+            <input type="password" data-parity="settings-backup.pass" aria-label="Passphrase" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
           <div class="backup-actions">
-            <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
-            <button class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
+            <button data-parity="settings-backup.to-file" class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
+            <button data-parity="settings-backup.to-server" class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
           </div>
-          <div class="settings-note" id="backup-note"></div>
+          <div class="settings-note" data-parity="settings-backup.note" id="backup-note"></div>
         </div>
         <div class="settings-block">
-          <div class="settings-block-title">Restore <button class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
-          <button class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
+          <div class="settings-block-title" data-parity="settings-backup.title">Restore <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
+          <button data-parity="settings-backup.from-file" class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
           <div class="backup-list" id="backup-list"></div>
         </div>
       </div>
@@ -2066,11 +2066,11 @@
   <div id="prompt-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-msg">
     <div class="confirm-backdrop"></div>
     <form class="confirm-box" id="prompt-form">
-      <p class="confirm-msg" id="prompt-msg"></p>
-      <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
+      <p class="confirm-msg" id="prompt-msg" data-parity="prompt.message"></p>
+      <input class="prompt-input" id="prompt-input" data-parity="prompt.field" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
       <div class="confirm-actions">
-        <button class="confirm-btn" id="prompt-cancel" type="button">Cancel</button>
-        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit">Save</button>
+        <button class="confirm-btn" id="prompt-cancel" data-parity="prompt.cancel" type="button">Cancel</button>
+        <button class="confirm-btn confirm-primary" id="prompt-ok" data-parity="prompt.save" type="submit">Save</button>
       </div>
     </form>
   </div>

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.musicd.server.client.AlbumSummary
+import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.LocalView
@@ -100,7 +101,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
         val chosen = picks
         when (what) {
             "clear" -> { selecting = false; picks = emptyList() }
-            "playlist" -> { selecting = false; picks = emptyList(); onPage("albums-playlist", picksJson(chosen)) }
+            "playlist" -> { selecting = false; picks = emptyList(); PlaylistAddAsk.ask(PlaylistAdd.albums(chosen)) }
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }

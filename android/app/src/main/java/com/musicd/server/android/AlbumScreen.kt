@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
+import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
@@ -285,7 +286,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     when (act) {
                         "clear" -> picks = null
                         "later" -> { later = true; mark { it.listenLater(offset, true) }; toast("Added to Listen later"); picks = null }
-                        "playlist" -> onPage("album-playlist-tracks", picksJson(a, p))
+                        "playlist" -> { PlaylistAddAsk.ask(PlaylistAdd.tracks(a, p)); picks = null }
                         else -> {
                             val c = client()
                             if (c == null || zone.isEmpty()) toast("Pick a zone first")
@@ -380,7 +381,7 @@ private fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (Str
             DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
                 onClick = { open = false; onLater() })
             DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
-                onClick = { open = false; onPage("album-playlist", offset) })
+                onClick = { open = false; PlaylistAddAsk.ask(PlaylistAdd.albums(listOf(a.album))) })
             if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.edit", Contract.label("album.edit")), onClick = { open = false; onPage("album-edit", offset) })
             if (download != null) DropdownMenuItem(text = { Text(download, fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
