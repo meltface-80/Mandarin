@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Home
+  Screen, Music Folders, Services, Audio Devices and the rest) left the app unresponsive until it was swiped away. The
+  page was put in front of the app's Settings to show it, but the rule that keeps the rest of the page out of sight
+  while one of its sheets is over an app screen hid the Settings sheet too: an empty, clear page took every tap. The
+  Settings sheet is now shown when it is the one asked for, and the page comes in front only once its sheet is seen,
+  so a sheet that stays out of sight can never cover the app's screen again.
 - `80-native-settings-share-away`: the last two of Setup's pages natively in the Android app (plan T2), as the page's:
   Share Card (the review on the card on or off, the services and the review sites to link to, each on or off, and the
   default service chosen from those on, the same default the card's held chip sets) and Away from home (the server's
