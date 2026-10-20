@@ -352,43 +352,7 @@
     <div class="note"><b>New in v1.1.0</b> (since v1.0.17). <b>The Android app is fully native</b>: every screen is
       drawn by the app itself (Kotlin and Jetpack Compose), and it no longer shows the server's web page. Its
       screens and their controls follow the page's, item by item, checked on every build. Shelf opens in the
-      phone's browser. <b>The app's mini player</b> runs the full width of the screen, on the row along its foot.
-      <b>Classical albums</b> are set out as works and movements, with the composers and performers in the
-      album's head, in the browser and the app. <b>The album page</b> leads with its cover, and beside it the
-      title, artist, date, format and length.</div>
-    <div class="note"><b>New in v1.0.4</b> (since v1.0.0). <b>Mandarin runs on Linux, in Docker</b> (v1.0.3): Mac
-      support is dropped &mdash; no Mac install line, no Mac build in the release, and Mandarin DAC Bridge is no longer
-      offered. v1.0.2 is the last version for a Mac; a Mac install keeps working as it is, but its update from
-      Settings finds no build for it. To carry on, make a backup (Settings &rarr; Backup &amp; restore), install
-      Mandarin on a Linux machine with Docker (<a href="#install">Install</a>) and restore it there. <b>The wall
-      display and Shelf switch off whole</b> (v1.0.2), each from its page in Settings &rarr; Setup; off, nothing of
-      it runs. Shelf is off on a new install, and stays on for one updated from before. <b>The playing track's
-      disc</b> (v1.0.1) turns between its number and its name on an album's page. <b>Shelf's order</b> (v1.0.1):
-      A &rarr; Z by artist or by album, numbers first; the carousel look is gone. <b>Downloads in Setup</b>
-      (v1.0.4): the Android app's Downloads page is in Settings &rarr; Setup, before Away from home.</div>
-    <div class="note"><b>New in v1.0.0</b> (since v0.9.0). <b>A layout for phones and tablets</b>, either way
-      round, in the browser, the iPhone home-screen app and the Android app: a row along the foot of the screen
-      (Menu, Home, Library, Search) under the mini player; no top bar on Home, with the date and the greeting at the
-      top; on the album grids the albums scroll up to the screen's edge, with the bar's buttons floating over them;
-      Search opens its field across the whole screen. A computer with a mouse looks as before. <b>The Android app
-      installed over itself</b> comes back to what it was playing, at the same track and place, paused (music only
-      on the phone, which the server doesn't know, doesn't come back). <b>The Android app's build</b> is named
-      <code>Mandarin-Android-&lt;version&gt;.apk</code>; the download link keeps its fixed name. <b>The audit before
-      v1.0.0</b>: more of the server tested, every request read and answered one way, the largest server files
-      split, the library's lists kept once made, and every route listed.</div>
-    <div class="note"><b>New in v0.9.0: one program, no Node.js.</b> Mandarin's server is now a single program
-      written in C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, and an update from Settings puts the new program and page in place and
-      starts again in the same container. It took over from the original Node.js server one part at a time through
-      the v0.8.x releases, each part held by the test suite to the Node server's own answers, so everything works as
-      before. <b>Forgot the password?</b> is now
-      <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>.</div>
-    <div class="note"><b>New in v0.7.4</b> (since v0.7.0). <b>Qobuz and Tidal favourites follow both ways, by
-      themselves</b>: remove an album from your favourites here and it is gone within the moment; add or remove one
-      in the service's own app and it follows here on the next look. <b>Music on device</b>, in the Android app:
-      Focus and Sort on its wall, the phone's albums on an artist's page beside the server's, and a selection of
-      albums from anywhere played as one queue on This phone. <b>One Update</b> does the server first and then the
-      app. <b>Hide / unhide</b> on Audio Devices, a fresh look at matching, the server's Tailscale identity in a
-      backup's keys, and the duck on the share card.</div>
+      phone's browser. <b>The app's mini player</b> runs the full width of the screen, on the row along its foot.</div>
   </div>
 </section>
 
@@ -418,28 +382,28 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new since v0.5.50.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.0.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
-      <div class="card is-new"><h3><span class="em">👆</span>Phones and tablets<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
+      <div class="card"><h3><span class="em">👆</span>Phones and tablets<button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
         <p>On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.</p>
         <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.</div></div>
-      <div class="card is-new"><h3><span class="em">🎲</span>Random Album<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
+      <div class="card"><h3><span class="em">🎲</span>Random Album<button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
         <p>The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.</p>
         <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is chosen; then tap <b>Play now</b>, <b>Play next</b> or <b>Queue</b>, or close it.</div></div>
-      <div class="card is-new"><h3><span class="em">📅</span>Album of the day<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-aotd" aria-label="How to set up and use Album of the day">i</button></h3>
+      <div class="card"><h3><span class="em">📅</span>Album of the day<button class="info" type="button" aria-expanded="false" aria-controls="how-aotd" aria-label="How to set up and use Album of the day">i</button></h3>
         <p>One album, the same on every device, chosen by the server at 00:01. Once played from any device, it's gone until the next 00:01.</p>
         <div class="how" id="how-aotd" hidden><b>How to set it up and use it.</b> Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone (<code>TZ</code> in the Docker command).</div></div>
-      <div class="card is-new"><h3><span class="em">⏳</span>Not played in 6 months<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-unplayed" aria-label="How to set up and use Not played in 6 months">i</button></h3>
+      <div class="card"><h3><span class="em">⏳</span>Not played in 6 months<button class="info" type="button" aria-expanded="false" aria-controls="how-unplayed" aria-label="How to set up and use Not played in 6 months">i</button></h3>
         <p>Albums you haven't played in six months. The row stays hidden until Mandarin has six months of your listening.</p>
         <div class="how" id="how-unplayed" hidden><b>How to set it up and use it.</b> A Home row; tap its title for all of them. Move or hide it in <b>Settings → Setup → Home Screen</b>.</div></div>
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home, or <b>Library</b> in a phone's or tablet's row. <b>Sort</b> and <b>Focus</b> are in the top bar (at the top right on a phone or tablet); Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
-      <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
+      <div class="card"><h3><span class="em">🗄️</span>Shelf<button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
         <p>A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.</p>
         <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
@@ -447,8 +411,8 @@
         <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.</div></div>
       <div class="card"><h3><span class="em">💿</span>Album pages<button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
         <p>Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.</p>
-        <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album. The track playing has a small disc turning beside its number.</div></div>
-      <div class="card is-new"><h3><span class="em">🧭</span>More by, and similar<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
+        <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head.</div></div>
+      <div class="card"><h3><span class="em">🧭</span>More by, and similar<button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
         <p>Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.</p>
         <div class="how" id="how-more" hidden><b>How to set it up and use it.</b> Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in <b>Settings → Setup → API Keys</b> (or set <code>LASTFM_KEY</code>). Read-only: nothing is scrobbled.</div></div>
       <div class="card"><h3><span class="em">✏️</span>Edit album<button class="info" type="button" aria-expanded="false" aria-controls="how-edit" aria-label="How to set up and use Edit album">i</button></h3>
@@ -457,25 +421,25 @@
       <div class="card"><h3><span class="em">🗂️</span>Music folders<button class="info" type="button" aria-expanded="false" aria-controls="how-folders" aria-label="How to set up and use Music folders">i</button></h3>
         <p>Any number of folders the server can see, added and removed in the app. Changes show by themselves where the file system reports them, otherwise at the next scan.</p>
         <div class="how" id="how-folders" hidden><b>How to set it up and use it.</b> Open <b>Settings → Music Folders</b> and add a folder from the list of drives and folders the server can see. A full scan runs every 6 hours (<code>SCAN_INTERVAL_HOURS</code>); <b>☰ → Rescan library</b> runs one now, then brings Qobuz and Tidal up to date, in that order, where you are signed in with the import on.</div></div>
-      <div class="card is-new"><h3><span class="em">💽</span>One album per folder<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-folder-albums" aria-label="How to set up and use One album per folder">i</button></h3>
+      <div class="card"><h3><span class="em">💽</span>One album per folder<button class="info" type="button" aria-expanded="false" aria-controls="how-folder-albums" aria-label="How to set up and use One album per folder">i</button></h3>
         <p>Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown disc by disc, with a two-disc symbol on its cover.</p>
         <div class="how" id="how-folder-albums" hidden><b>How to set it up and use it.</b> Nothing to set up.</div></div>
-      <div class="card is-new"><h3><span class="em">📝</span>Untagged files named from folders<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-untagged" aria-label="How to set up and use Untagged files named from folders">i</button></h3>
+      <div class="card"><h3><span class="em">📝</span>Untagged files named from folders<button class="info" type="button" aria-expanded="false" aria-controls="how-untagged" aria-label="How to set up and use Untagged files named from folders">i</button></h3>
         <p>A file with no tags takes its artist, album, year, title and track number from its folder and file names. Nothing is written to your files.</p>
         <div class="how" id="how-untagged" hidden><b>How to set it up and use it.</b> Nothing to set up. Those albums are then looked up by the Library Scanner like any other.</div></div>
-      <div class="card is-new"><h3><span class="em">🏷️</span>Every tag kept<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-tags" aria-label="How to set up and use Every tag kept">i</button></h3>
+      <div class="card"><h3><span class="em">🏷️</span>Every tag kept<button class="info" type="button" aria-expanded="false" aria-controls="how-tags" aria-label="How to set up and use Every tag kept">i</button></h3>
         <p>All of each file's tags are read into the server's database, including MusicBrainz IDs, barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.</p>
         <div class="how" id="how-tags" hidden><b>How to set it up and use it.</b> Nothing to set up: tags are read with every scan.</div></div>
-      <div class="card is-new"><h3><span class="em">🔎</span>Library Scanner<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-scanner" aria-label="How to set up and use Library Scanner">i</button></h3>
+      <div class="card"><h3><span class="em">🔎</span>Library Scanner<button class="info" type="button" aria-expanded="false" aria-controls="how-scanner" aria-label="How to set up and use Library Scanner">i</button></h3>
         <p>Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.</p>
         <div class="how" id="how-scanner" hidden><b>How to set it up and use it.</b> Open <b>Settings → Library Scanner</b>. <b>Clean up</b> there removes albums whose files are gone, after showing counts. Matches of 85% or better are applied (with Undo); the rest are left for you to match; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. <b>Ask iTunes too</b> and <b>Measure ReplayGain</b> are on the same page; <b>Scheduling</b> sets the hours both run, identification first, then ReplayGain album by album.</div></div>
-      <div class="card is-new"><h3><span class="em">📦</span>MusicBrainz pack<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-mbpack" aria-label="How to set up and use MusicBrainz pack">i</button></h3>
+      <div class="card"><h3><span class="em">📦</span>MusicBrainz pack<button class="info" type="button" aria-expanded="false" aria-controls="how-mbpack" aria-label="How to set up and use MusicBrainz pack">i</button></h3>
         <p>An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums with a barcode are matched from it, also while musicbrainz.org is down.</p>
         <div class="how" id="how-mbpack" hidden><b>How to set it up and use it.</b> Open <b>Settings → Library Scanner → MusicBrainz pack</b> and tap <b>Download</b>. <b>Folder</b> chooses where it's kept; in Docker that folder needs a writable mount (see Install).</div></div>
       <div class="card"><h3><span class="em">▶️</span>Now playing<button class="info" type="button" aria-expanded="false" aria-controls="how-nowplaying" aria-label="How to set up and use Now playing">i</button></h3>
         <p>Cover, track, transport, volume, the queue and history, and a badge saying what the device is being sent. An optional waveform seek bar is drawn from the audio.</p>
         <div class="how" id="how-nowplaying" hidden><b>How to set it up and use it.</b> Tap the bar at the bottom of the screen. The waveform is off until you switch on <b>Settings → Audio Devices → Waveform</b>. On a large screen, Now playing can shrink to a card you drag around. On the Queue tab, hold a track to select it and more; <b>⋯</b> plays the selection now or next, or removes it; <b>Clear all</b> empties the queue.</div></div>
-      <div class="card is-new"><h3><span class="em">↪️</span>Move to another device<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-move" aria-label="How to set up and use Move to another device">i</button></h3>
+      <div class="card"><h3><span class="em">↪️</span>Move to another device<button class="info" type="button" aria-expanded="false" aria-controls="how-move" aria-label="How to set up and use Move to another device">i</button></h3>
         <p>Pick another room, renderer or phone while music plays and it moves there: the queue goes with it, from the same track and second.</p>
         <div class="how" id="how-move" hidden><b>How to set it up and use it.</b> Tap the speaker button (on the bar or Now playing) and choose the device to move to.</div></div>
       <div class="card"><h3><span class="em">📻</span>Random Album Radio<button class="info" type="button" aria-expanded="false" aria-controls="how-radio" aria-label="How to set up and use Random Album Radio">i</button></h3>
@@ -487,22 +451,22 @@
       <div class="card"><h3><span class="em">📡</span>UPnP/DLNA renderers<button class="info" type="button" aria-expanded="false" aria-controls="how-upnp" aria-label="How to set up and use UPnP/DLNA renderers">i</button></h3>
         <p>WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.</p>
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
-      <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
+      <div class="card"><h3><span class="em">🖥️</span>Sound devices on the server<button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
         <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
         <p>Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.</p>
         <div class="how" id="how-devices" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b> and tap a device. The name you give it is what the speaker list and Now playing show. <b>Output</b> is on a renderer's page. <b>Hide / unhide</b> takes devices you don't use off the list; tap it again and tick one under Hidden to bring it back.</div></div>
-      <div class="card is-new"><h3><span class="em">💎</span>DSD<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-dsd" aria-label="How to set up and use DSD">i</button></h3>
+      <div class="card"><h3><span class="em">💎</span>DSD<button class="info" type="button" aria-expanded="false" aria-controls="how-dsd" aria-label="How to set up and use DSD">i</button></h3>
         <p>A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB DAC on the phone gets DSD natively or as DoP.</p>
         <div class="how" id="how-dsd" hidden><b>How to set it up and use it.</b> On a renderer's page in <b>Settings → Audio Devices</b>, switch the DSD rates it takes on or off.</div></div>
-      <div class="card is-new"><h3><span class="em">🔊</span>Volume Levelling<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-levelling" aria-label="How to set up and use Volume Levelling">i</button></h3>
+      <div class="card"><h3><span class="em">🔊</span>Volume Levelling<button class="info" type="button" aria-expanded="false" aria-controls="how-levelling" aria-label="How to set up and use Volume Levelling">i</button></h3>
         <p>ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level for tracks with no loudness information.</p>
         <div class="how" id="how-levelling" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b>, tap the device, and set <b>Volume levelling</b> (above DSP). Auto plays albums at album level and mixed tracks at track level.</div></div>
       <div class="card"><h3><span class="em">🎛️</span>DSP<button class="info" type="button" aria-expanded="false" aria-controls="how-dsp" aria-label="How to set up and use DSP">i</button></h3>
         <p>A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you edit, plus headphone profiles from AutoEq or a pasted ParametricEQ.txt.</p>
         <div class="how" id="how-dsp" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b>, tap a renderer or the phone, and switch on <b>DSP</b>. Sonos rooms have no DSP here.</div></div>
-      <div class="card is-new"><h3><span class="em">⚙️</span>Playback first<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-playfirst" aria-label="How to set up and use Playback first">i</button></h3>
+      <div class="card"><h3><span class="em">⚙️</span>Playback first<button class="info" type="button" aria-expanded="false" aria-controls="how-playfirst" aria-label="How to set up and use Playback first">i</button></h3>
         <p>Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and downloads run on the other cores, at the lowest priority.</p>
         <div class="how" id="how-playfirst" hidden><b>How to set it up and use it.</b> Nothing to set up on Linux. <b>Settings → Library Scanner → Processor</b> shows the split. In Docker, <code>--cap-add SYS_NICE</code> also raises playback's priority. <code>PLAYBACK_CORES</code> sets how many cores playback keeps; 0 shares them all.</div></div>
       <div class="card"><h3><span class="em">⭐</span>Smart Picks<button class="info" type="button" aria-expanded="false" aria-controls="how-picks" aria-label="How to set up and use Smart Picks">i</button></h3>
@@ -532,8 +496,8 @@
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its switch (on by default) and options are in <b>Settings → Setup → Wall Display</b>; off, it is off entirely. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
-      <div class="card"><h3><span class="em">📱</span>The Android app<button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
-        <p>The same interface, drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.</p>
+      <div class="card is-new"><h3><span class="em">📱</span>The Android app<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
+        <p>Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.</p>
         <div class="how" id="how-android" hidden><b>How to set it up and use it.</b> Download <a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">mandarin-android.apk</a> and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.</div></div>
       <div class="card"><h3><span class="em">🎧</span>This phone<button class="info" type="button" aria-expanded="false" aria-controls="how-phone" aria-label="How to set up and use This phone">i</button></h3>
         <p>The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and radio. At home, your other devices can play to it while the app runs.</p>
@@ -547,28 +511,28 @@
       <div class="card"><h3><span class="em">📂</span>Music on this phone<button class="info" type="button" aria-expanded="false" aria-controls="how-onphone" aria-label="How to set up and use Music on this phone">i</button></h3>
         <p>A folder of music already on the phone, watched for changes, on Home with Focus and Sort and on artists' pages, played like the library. The server never sees it.</p>
         <div class="how" id="how-onphone" hidden><b>How to set it up and use it.</b> In the app, <b>Settings → Music Folders → On this phone</b> and choose the folder. Selected with other albums and played on <b>This phone</b>, they go into the one queue.</div></div>
-      <div class="card is-new"><h3><span class="em">✈️</span>Offline mode<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
+      <div class="card"><h3><span class="em">✈️</span>Offline mode<button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
         <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small symbol sits in the row at the foot of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached).</div></div>
       <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
         <p>On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.</p>
         <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
-      <div class="card is-new"><h3><span class="em">🎨</span>UI Settings<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-ui" aria-label="How to set up and use UI Settings">i</button></h3>
+      <div class="card"><h3><span class="em">🎨</span>UI Settings<button class="info" type="button" aria-expanded="false" aria-controls="how-ui" aria-label="How to set up and use UI Settings">i</button></h3>
         <p>Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.</p>
         <div class="how" id="how-ui" hidden><b>How to set it up and use it.</b> Open <b>Settings → Setup → UI Settings</b> and pick from each list; it applies at once.</div></div>
       <div class="card"><h3><span class="em">👤</span>One account<button class="info" type="button" aria-expanded="false" aria-controls="how-account" aria-label="How to set up and use One account">i</button></h3>
         <p>One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.</p>
         <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
-      <div class="card is-new"><h3><span class="em">⏻</span>Restart and shut down<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
+      <div class="card"><h3><span class="em">⏻</span>Restart and shut down<button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
         <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
         <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
-      <div class="card is-new"><h3><span class="em">💾</span>Backup and restore<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
+      <div class="card"><h3><span class="em">💾</span>Backup and restore<button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
         <p>Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.</p>
         <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts. <b>What a backup holds.</b> The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a <b>passphrase</b> (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.</div></div>
-      <div class="card is-new"><h3><span class="em">🎼</span>Qobuz<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-qobuz" aria-label="How to set up and use Qobuz">i</button></h3>
+      <div class="card"><h3><span class="em">🎼</span>Qobuz<button class="info" type="button" aria-expanded="false" aria-controls="how-qobuz" aria-label="How to set up and use Qobuz">i</button></h3>
         <p>Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.</p>
         <div class="how" id="how-qobuz" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Qobuz</b>: sign in. Then <b>☰ → Qobuz</b> to search and play; <b>+</b> on a cover adds an album to your Qobuz favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Qobuz favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#qobuz">Qobuz</a>.</div></div>
-      <div class="card is-new"><h3><span class="em">🎵</span>Tidal<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-tidal" aria-label="How to set up and use Tidal">i</button></h3>
+      <div class="card"><h3><span class="em">🎵</span>Tidal<button class="info" type="button" aria-expanded="false" aria-controls="how-tidal" aria-label="How to set up and use Tidal">i</button></h3>
         <p>Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.</p>
         <div class="how" id="how-tidal" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Tidal → Sign in on tidal.com</b>: open the link, sign in there, come back. Then <b>☰ → Tidal</b> to search and play; <b>+</b> on a cover adds an album to your Tidal favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Tidal favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#tidal">Tidal</a>.</div></div>
       <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>

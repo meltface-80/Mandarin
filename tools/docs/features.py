@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new since v0.5.50, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.0, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,23 +22,23 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", True,
+    ("touch", "👆", "Phones and tablets", False,
      "On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, "
      "Search) under the mini player, and albums scrolling to the screen's top edge.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
      "Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to "
      "the top; Search opens its field across the screen."),
-    ("random-album", "🎲", "Random Album", True,
+    ("random-album", "🎲", "Random Album", False,
      "The first tile under the greeting chooses an album you haven't played in 12 months (until "
      "Mandarin has 12 months of history, any album) and offers it to play.",
      "Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while "
      "an album is chosen; then tap **Play now**, **Play next** or **Queue**, or close it."),
-    ("aotd", "📅", "Album of the day", True,
+    ("aotd", "📅", "Album of the day", False,
      "One album, the same on every device, chosen by the server at 00:01. Once played from any "
      "device, it's gone until the next 00:01.",
      "Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone "
      "(`TZ` in the Docker command)."),
-    ("unplayed", "⏳", "Not played in 6 months", True,
+    ("unplayed", "⏳", "Not played in 6 months", False,
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
      "A Home row; tap its title for all of them. Move or hide it in **Settings → Setup → Home Screen**."),
@@ -49,7 +49,7 @@ FEATURES = [
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
-    ("shelf", "🗄️", "Shelf", True,
+    ("shelf", "🗄️", "Shelf", False,
      "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
      "by genre, artist letter and decade, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
@@ -72,8 +72,9 @@ FEATURES = [
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
      "press ← → for the previous or next album. The track playing has a small disc turning beside "
-     "its number."),
-    ("more", "🧭", "More by, and similar", True,
+     "its number. A classical album is set out as its works and movements, its composers and "
+     "performers in its head."),
+    ("more", "🧭", "More by, and similar", False,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
      "Last.fm key, similar artists and albums. Ones in your library open here.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
@@ -90,25 +91,25 @@ FEATURES = [
      "server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
      "**☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, "
      "where you are signed in with the import on."),
-    ("folder-albums", "💽", "One album per folder", True,
+    ("folder-albums", "💽", "One album per folder", False,
      "Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown "
      "disc by disc, with a two-disc symbol on its cover.",
      "Nothing to set up."),
-    ("untagged", "📝", "Untagged files named from folders", True,
+    ("untagged", "📝", "Untagged files named from folders", False,
      "A file with no tags takes its artist, album, year, title and track number from its folder and "
      "file names. Nothing is written to your files.",
      "Nothing to set up. Those albums are then looked up by the Library Scanner like any other."),
-    ("tags", "🏷️", "Every tag kept", True,
+    ("tags", "🏷️", "Every tag kept", False,
      "All of each file's tags are read into the server's database, including MusicBrainz IDs, "
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
-    ("scanner", "🔎", "Library Scanner", True,
+    ("scanner", "🔎", "Library Scanner", False,
      "Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, "
      "with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.",
      "Open **Settings → Library Scanner**. **Clean up** there removes albums whose files are gone, after showing counts. Matches of 85% or better are applied (with Undo); the "
      "rest are left for you to match; a copy that is every track of a bigger pressing is taken as that record. Your files are not changed. **Ask iTunes too** and "
      "**Measure ReplayGain** are on the same page; **Scheduling** sets the hours both run, identification first, then ReplayGain album by album."),
-    ("mbpack", "📦", "MusicBrainz pack", True,
+    ("mbpack", "📦", "MusicBrainz pack", False,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "
      "with a barcode are matched from it, also while musicbrainz.org is down.",
      "Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** "
@@ -121,7 +122,7 @@ FEATURES = [
      "**Settings → Audio Devices → Waveform**. On a large screen, Now playing can shrink to a card "
      "you drag around. On the Queue tab, hold a track to select it and more; **⋯** plays the selection "
      "now or next, or removes it; **Clear all** empties the queue."),
-    ("move", "↪️", "Move to another device", True,
+    ("move", "↪️", "Move to another device", False,
      "Pick another room, renderer or phone while music plays and it moves there: the queue goes "
      "with it, from the same track and second.",
      "Tap the speaker button (on the bar or Now playing) and choose the device to move to."),
@@ -140,7 +141,7 @@ FEATURES = [
      "Tracks join gaplessly on a renderer that supports it.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
      "Then pick it with the speaker button. **Look again** searches the network now."),
-    ("localout", "🖥️", "Sound devices on the server", True,
+    ("localout", "🖥️", "Sound devices on the server", False,
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
      "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. "
@@ -151,11 +152,11 @@ FEATURES = [
      "Open **Settings → Audio Devices** and tap a device. The name you give it is what the speaker "
      "list and Now playing show. **Output** is on a renderer's page. **Hide / unhide** takes devices "
      "you don't use off the list; tap it again and tick one under Hidden to bring it back."),
-    ("dsd", "💎", "DSD", True,
+    ("dsd", "💎", "DSD", False,
      "A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB "
      "DAC on the phone gets DSD natively or as DoP.",
      "On a renderer's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off."),
-    ("levelling", "🔊", "Volume Levelling", True,
+    ("levelling", "🔊", "Volume Levelling", False,
      "ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level "
      "for tracks with no loudness information.",
      "Open **Settings → Audio Devices**, tap the device, and set **Volume levelling** (above DSP). "
@@ -165,7 +166,7 @@ FEATURES = [
      "headphone profiles from AutoEq or a pasted ParametricEQ.txt.",
      "Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos "
      "rooms have no DSP here."),
-    ("playfirst", "⚙️", "Playback first", True,
+    ("playfirst", "⚙️", "Playback first", False,
      "Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and "
      "downloads run on the other cores, at the lowest priority.",
      "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, "
@@ -216,9 +217,9 @@ FEATURES = [
      "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
      "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
-    ("android", "📱", "The Android app", False,
-     "The same interface, plus lock-screen and notification controls, volume keys, a widget, a "
-     "Quick Settings tile, a share sheet, Android Auto, and updates of its own.",
+    ("android", "📱", "The Android app", True,
+     "Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume "
+     "keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.",
      "Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) "
      "and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi."),
     ("phone", "🎧", "This phone", False,
@@ -240,7 +241,7 @@ FEATURES = [
      "and on artists' pages, played like the library. The server never sees it.",
      "In the app, **Settings → Music Folders → On this phone** and choose the folder. Selected with "
      "other albums and played on **This phone**, they go into the one queue."),
-    ("offline", "✈️", "Offline mode", True,
+    ("offline", "✈️", "Offline mode", False,
      "One switch: only the music on the phone shows, and the server isn't used. With no connection "
      "the app does the same by itself, and reconnects when it can.",
      "In the Android app, **☰ → Offline mode**. While offline, a small symbol sits in the row at the foot "
@@ -252,7 +253,7 @@ FEATURES = [
      "same page: **This phone**. Open the app once at home. Details under "
      "[Away from home](#away-from-home-tailscale)."),
     # ---- Setup
-    ("ui", "🎨", "UI Settings", True,
+    ("ui", "🎨", "UI Settings", False,
      "Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. "
      "On a desktop, text goes up to +100%.",
      "Open **Settings → Setup → UI Settings** and pick from each list; it applies at once."),
@@ -261,12 +262,12 @@ FEATURES = [
      "itself is never sent, and every signed-in device is listed.",
      "Create it on first visit from a device at home. **Settings → Account** lists devices, signs "
      "one out and changes the password. Forgotten: see [Your account](#your-account)."),
-    ("power", "⏻", "Restart and shut down", True,
+    ("power", "⏻", "Restart and shut down", False,
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
      "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
-    ("backup", "💾", "Backup and restore", True,
+    ("backup", "💾", "Backup and restore", False,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
      "database, at home or away: to the server, or from the app to a file.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
@@ -279,13 +280,13 @@ FEATURES = [
      "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
      "else in a sealed backup restores without it. A backup never holds your password or other devices' "
      "sign-ins."),
-    ("qobuz", "🎼", "Qobuz", True,
+    ("qobuz", "🎼", "Qobuz", False,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
      "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
      "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
      "**⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz)."),
-    ("tidal", "🎵", "Tidal", True,
+    ("tidal", "🎵", "Tidal", False,
      "Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, "
      "and the Tidal browser plays anything in the catalogue, streamed through the server.",
      "**Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. "
@@ -319,7 +320,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new since v0.5.50*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.0*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
