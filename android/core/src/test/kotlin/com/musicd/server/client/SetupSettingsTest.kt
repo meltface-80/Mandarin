@@ -66,4 +66,12 @@ class SetupSettingsTest {
         assertEquals(true, run.connectedInfo(true).contains("under This phone below"))
         assertEquals(false, AwayState.parse(JSONObject("""{"available":false}""")).available)
     }
+
+    @Test fun `a list shows the choice made, else the first, and nothing while the list is still empty`() {
+        val hours = SetupSettings.HOURS
+        assertEquals("21:00", Choice.words(hours, "21"))
+        assertEquals("00:00", Choice.words(hours, "nope"))
+        // Audio Devices' zones before they have come (item 100): the app crashed on the first of none.
+        assertEquals("", Choice.words(emptyList(), "kitchen"))
+    }
 }
