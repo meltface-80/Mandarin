@@ -83,22 +83,23 @@ import org.json.JSONObject
 internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
     val open by NativeShell.menuOpen
     val scope = rememberCoroutineScope()
-    if (open) MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it) })
+    val context = LocalContext.current
+    if (open) MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it, context) })
     PowerOver(client)
 }
 
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
  * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
- * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); the rest are the page's
- * (public/app/native-handoff.js, "menu"), Shelf with the page in front, since what it puts up is the page's whole screen,
- * a page of its own (a screen for a wall, not the app's: docs/specs/plan-android-native.md, "Not the app's").
+ * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf, a page of the
+ * server's own for a screen on a wall (docs/specs/plan-android-native.md, "Not the app's"), opens in the phone's browser
+ * (item 111).
  */
-internal fun menuTap(nav: NavHostController, what: String) {
+internal fun menuTap(nav: NavHostController, what: String, context: android.content.Context) {
     NativeShell.menuOpen.value = false
     // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
     if (what.startsWith("power-")) { PowerKept.asking.value = what; return }
-    if (what == "shelf") { NativeShell.toWeb(); NativeShell.toPage("menu", what); return }
+    if (what == "shelf") { openShelf(context); return }
     if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
     when (what) {
         "playlists" -> NativeShell.openPlaylists(NativeShell.zone)
@@ -108,7 +109,6 @@ internal fun menuTap(nav: NavHostController, what: String) {
         "labels" -> nav.navigate(ShellRoute.labels(NativeShell.zone))
         "qobuz", "tidal" -> nav.navigate(ShellRoute.serviceBrowser(what, NativeShell.zone))
         "settings" -> nav.navigate(ShellRoute.settings())
-        else -> NativeShell.toPage("menu", what)
     }
 }
 

@@ -135,7 +135,7 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
         }
     }
     // Grouped, the room is a new one (Roon mints a room for each set of speakers): the page told first, so its list has it, then followed here.
-    if (sheet == "group") GroupSheet(zoneId, client, scope, onClose = { sheet = "" }) { id -> NativeShell.zone = id; NativeShell.toPage("group-settled", id); onRoom(id) }
+    if (sheet == "group") GroupSheet(zoneId, client, scope, onClose = { sheet = "" }) { id -> NativeShell.keepZone(id); onRoom(id) }
     if (sheet == "power") PowerSheet(client) { sheet = "" }
 }
 

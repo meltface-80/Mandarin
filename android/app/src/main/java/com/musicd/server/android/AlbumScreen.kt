@@ -267,8 +267,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                                     if (err != null) { toast(err); return@launch }
                                     serviceFav = on
                                     toast(if (on) "Added to your $name favourites" else "Removed from your $name favourites")
-                                    // Removed, the album is no longer in the library: its page closes and the walls are redrawn without it; added, they take it in.
-                                    if (on) NativeShell.toPage("library-changed", null) else onPage("library-changed", offset.toString())
+                                    // Removed, the album is no longer in the library: its page closes (the walls read it afresh as they open).
+                                    if (!on) onPage("library-changed", offset.toString())
                                 }
                             })
                     }
@@ -326,7 +326,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.
             if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, zone, 144.dp, client) { sharing = false } }
-            if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++; NativeShell.toPage("library-changed", null) }) }
+            if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++ }) }
         }
     }
 }

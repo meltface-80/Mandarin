@@ -16,8 +16,6 @@ a new file over it would grow the allowance, docs/quality-plan.md), and served j
 - Only listed parts are joined. An update lays new files over old ones and deletes
   nothing, so a part since renamed or merged may still lie in the folder.
 - Without the list (a page from before v1.0.5), `public/app.js` is sent as it is.
-- The Android app's offline copy is joined the same way at build time
-  (`android/app/build.gradle.kts`, `bundleSite`); `OfflineSite.kt` serves it unchanged.
 - `index.html` is unchanged: still one `<script src="app.js">`.
 
 Joined, the parts are one script, run exactly as the one file ran: one scope, the

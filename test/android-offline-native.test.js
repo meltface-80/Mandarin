@@ -1,7 +1,7 @@
 "use strict";
 /*
- * Offline, the Android app's native screens are the app (bug list item 109, O1 in docs/specs/plan-android-native.md): the
- * page's copy in the APK is no longer loaded; the screens ask the phone the same questions they ask the server (a client
+ * Offline, the Android app's native screens are the app (bug list item 109, O1 in docs/specs/plan-android-native.md; the
+ * reachability ServerReach's since the web view went, item 111): the screens ask the phone the same questions they ask the server (a client
  * whose answers are the phone's, core PhoneAnswers through a LocalTransport); the row along the foot is the app's own; and
  * Home comes in front whether the app starts online or offline.
  */
@@ -14,13 +14,11 @@ const APP = path.join(__dirname, "..", "android/app/src/main/java/com/musicd/ser
 const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 const body = (src, from) => { const i = src.indexOf(from); assert.ok(i >= 0, from); const j = src.indexOf("\n    }\n", i); return src.slice(i, j); };
 
-test("offline, the page is parked and the native screens take over", () => {
-  const main = read("MainActivity.kt");
-  const go = body(main, "private fun goOffline()");
-  assert.doesNotMatch(go, /loadUrl\("\$\{loadedBase/, "the page's copy is not loaded");
-  assert.match(go, /OfflineNow\.goOffline\(/);
-  assert.match(body(main, "private fun loadOffline("), /goOffline\(\)/);
-  assert.match(main, /offline = false\s+OfflineNow\.goOnline\(/);
+test("offline, the native screens take over; back online, the server's again", () => {
+  const reach = read("ServerReach.kt");
+  assert.match(body(reach, "private fun goOffline()"), /OfflineNow\.goOffline\(/);
+  assert.match(body(reach, "fun go()"), /if \(Store\.offlineMode\(a\) \|\| !Away\.hasNetwork\(a\)\) return goOffline\(\)/);
+  assert.match(reach, /offline = false\s+reached = false\s+liveFailures = 0\s+OfflineNow\.goOnline\(/);
 });
 
 test("the native screens ask the phone offline, the services the server", () => {
@@ -35,9 +33,7 @@ test("the row along the foot and Home are the app's own offline", () => {
   assert.ok(calls.length >= 12, "every screen's row found");
   for (const [f, c] of calls) assert.match(c, /offline = OfflineNow\.on,/, f);
   assert.match(read("TouchNav.kt"), /\.clickable \{ NativeShell\.menuOpen\.value = true \}/);
-  const shell = read("NativeShell.kt");
-  assert.match(shell, /if \(OfflineNow\.on\) \{ OfflineNow\.toPage\(what, arg\); return \}/);
-  assert.match(shell, /val startHome = Store\.token\(activity\) != null/);
-  const nav = read("OfflineNow.kt");
-  for (const b of ["home", "library", "menu", "search"]) assert.match(nav, new RegExp(`"${b}" ->`), b);
+  assert.match(read("NativeShell.kt"), /startDestination = ShellRoute\.HOME/);
+  const nav = read("ShellRoutes.kt");
+  for (const b of ["home", "library", "menu", "search"]) assert.match(body(nav, "internal fun navTap("), new RegExp(`"${b}" ->`), b);
 });

@@ -7,9 +7,6 @@
     "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
       "lines": 442
     },
-    "android/app/src/main/java/com/musicd/server/android/MainActivity.kt": {
-      "lines": 941
-    },
     "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
       "lines": 437
     },

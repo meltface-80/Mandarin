@@ -4,9 +4,8 @@ import com.musicd.server.client.NavList
 
 /**
  * The lists albums were opened from (a Home row, the Library wall, a box
- * set's discs), held for the native album page's previous and next: the
- * page hands one over as it opens an album ([AppBridge.openAlbumIn]), the
- * route names it by a short id (a list of hundreds is no address), and the
+ * set's discs), held for the album page's previous and next: the screen
+ * that opens an album hands its list over ([put]), the route names it by a short id (a list of hundreds is no address), and the
  * page of each album stepped to carries the same id with its own place.
  */
 internal object AlbumLists {

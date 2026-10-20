@@ -77,23 +77,6 @@ object CrashLog {
     private const val FROZE = "Mandarin froze"
 
     /**
-     * The page stopped and the app put it up again by itself (v0.8.42, see
-     * [MainActivity]): kept the same way, for the next start to offer —
-     * unless a crash or a freeze is already waiting to be (that says more).
-     */
-    fun keepPageNote(c: Context, what: String) {
-        runCatching {
-            val f = file(c.applicationContext)
-            if (f.exists() && !f.readText().startsWith(PAGE)) return
-            f.writeText(
-                "$PAGE ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
-                    "${Build.MANUFACTURER} ${Build.MODEL}\n${java.util.Date()}\n\n$what"
-            )
-        }
-    }
-    private const val PAGE = "Mandarin's page stopped"
-
-    /**
      * Something the next start should say though nothing crashed: Android
      * ending the app, playback giving up away from home, the Tailscale engine
      * ending (bug list item 34). Added to what is already waiting, a crash or
@@ -112,6 +95,8 @@ object CrashLog {
         }
     }
     private const val NOTE = "Mandarin stopped in the background"
+    /** A note an app before item 111 kept when its page stopped: still offered once. */
+    private const val PAGE = "Mandarin's page stopped"
 
     /** After a crash (or a freeze): say so, once, and offer the details to share. */
     fun offer(activity: Activity) {

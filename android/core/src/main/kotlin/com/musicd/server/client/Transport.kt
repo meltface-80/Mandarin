@@ -116,3 +116,14 @@ class LocalTransport(private val answer: (method: String, path: String, query: M
         }
     }
 }
+
+/**
+ * [inner]'s answers, its gate shutting on this phone ([ServerClient.ServerException.gateShut]) told to [shut] as well
+ * as thrown: the app signs in again, as the page's /login once had it (bug list item 111).
+ */
+class GateWatch(private val inner: Transport, private val shut: () -> Unit) : Transport {
+    override fun json(method: String, path: String, body: JSONObject?, timeout: Int): JSONObject = watched { inner.json(method, path, body, timeout) }
+    override fun bytes(path: String, timeout: Int): ByteArray = watched { inner.bytes(path, timeout) }
+
+    private fun <T> watched(ask: () -> T): T = try { ask() } catch (e: ServerClient.ServerException) { if (e.gateShut) shut(); throw e }
+}

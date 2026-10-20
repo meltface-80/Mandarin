@@ -78,7 +78,7 @@ internal fun PowerOver(client: () -> ServerClient?) {
             delay(shown.everyMs)
             val c = client() ?: continue
             val ok = withContext(Dispatchers.IO) { runCatching { c.health() }.isSuccess }
-            if (watch.seen(ok)) { cover = null; NativeShell.toPage("reload", null); break }
+            if (watch.seen(ok)) { cover = null; HomeKept.reset(); break }
         }
     }
     // A window of its own over the whole screen, as the page's covers it: no tap reaches what is under it, Back leaves it be.

@@ -14,7 +14,7 @@ import com.musicd.server.client.WallPrefs
  * The native screens' routes past NativeShell.kt's own (it draws nothing; nor does
  * this): the search (item 61), your playlists and one of them (item 65), the Dynamic
  * Playlists and one of them (item 66), Settings (item 76), each over
- * the page or over the screen that opened it, Back returning there.
+ * the screen that opened it, Back returning there.
  */
 internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> ServerClient?, prefs: String?) {
     composable(ShellRoute.SEARCH, arguments = listOf(navArgument(ShellRoute.Q) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -31,7 +31,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
                     // A service's artist: their albums in the app's own browser (item 73).
                     what == "service-artist" && arg != null -> runCatching { org.json.JSONObject(arg) }.getOrNull()?.let { j ->
                         nav.navigate(ShellRoute.serviceBrowser(j.optString("service"), NativeShell.zone, j.optString("id"), j.optString("name"))) }
-                    else -> toPageOrNative(nav, what, arg)
+                    else -> handOver(nav, what, arg)
                 }
             }
         )
@@ -54,12 +54,11 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             WallPrefs.parse(prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
     }
     // The record labels (item 71); a label's albums a wall over them.
-    // Settings (item 76): its list, Setup's, Account and API Keys; a page it doesn't draw yet, the page's own over it.
+    // Settings (item 76): its list, Setup's, and every page of it.
     composable(ShellRoute.SETTINGS, arguments = listOf(navArgument(ShellRoute.PANE) { type = NavType.StringType; defaultValue = "home" })) { entry ->
         SettingsScreen(entry.arguments?.getString(ShellRoute.PANE).orEmpty(), client,
             onBack = { nav.popBackStack() },
-            onOpen = { pane -> nav.navigate(ShellRoute.settings(pane)) },
-            onPage = { pane -> NativeShell.overPage("settings-pane", pane) }
+            onOpen = { pane -> nav.navigate(ShellRoute.settings(pane)) }
         )
     }
     composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -70,7 +69,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            onPage = { what, arg -> handOver(nav, what, arg) }
         )
     }
     composable(ShellRoute.PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -81,7 +80,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            onPage = { what, arg -> handOver(nav, what, arg) }
         )
     }
     composable(ShellRoute.PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -93,7 +92,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            onPage = { what, arg -> handOver(nav, what, arg) }
         )
     }
     composable(ShellRoute.SMART_PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -122,7 +121,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     // One of the phone's own albums (item 108): the album page, read from the phone and played on it.
     composable(ShellRoute.PHONE_ALBUM, arguments = listOf(navArgument(ShellRoute.KEY) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         AlbumScreen(-1L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), "", client, list = null, onStepTo = { _, _, _ -> },
-            onBack = { nav.popBackStack() }, onPage = { what, arg -> toPageOrNative(nav, what, arg) }, onBooklet = { _, _ -> },
+            onBack = { nav.popBackStack() }, onPage = { what, arg -> handOver(nav, what, arg) }, onBooklet = { _, _ -> },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } }, onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) }, onAlbum = { id, z -> nav.navigate(ShellRoute.album(id, z, "")) },
             phone = entry.arguments?.getString(ShellRoute.KEY).orEmpty())
@@ -130,39 +129,41 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
 }
 
 /**
- * What a native screen hands to the page, unless the app draws it itself: an artist's page is native when the
- * Library wall is (item 52), opened over the screen that asked; the page's sheets ([NativeShell.OVERLAYS]) open over
- * the screen; everything else closes the screen and asks the page.
+ * What a screen hands on: an artist's page, a label's albums, the phone's own album, each over the screen that asked;
+ * Now playing's album ([findNowAlbum]) in Now playing's place; an album no longer in the library closed; the rest the
+ * app's own ([handOn]).
  */
-internal fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
-    if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
-    if (what == "label" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg)); return }   // a label's albums (item 71)
-    if (what == "phone-album" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.phoneAlbum(arg, NativeShell.zone)); return }   // the phone's own album (item 108)
-    // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
-    if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
-    nav.popBackStack()
-    NativeShell.toPage(what, arg)
+internal fun handOver(nav: NavHostController, what: String, arg: String?) {
+    when {
+        what == "artist" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.artist(arg, NativeShell.zone))
+        what == "label" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg))   // a label's albums (item 71)
+        what == "phone-album" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.phoneAlbum(arg, NativeShell.zone))   // the phone's own album (item 108)
+        what == "album" && arg != null && arg.toLongOrNull() != null -> { nav.popBackStack(); nav.navigate(ShellRoute.album(arg.toLong(), NativeShell.zone, "")) }
+        what == "library-changed" && arg != null -> nav.popBackStack()   // a streamed album taken out of the favourites: its page closes
+        else -> handOn(what, arg)
+    }
 }
 
 /**
- * The row along the foot on a native screen over the page, or over the native Home: every native screen over Home closes
- * (however deep: a wall, an album from it, an artist from that; item 63), else this one; Home, when it is the native one
- * underneath, is landed on ([NativeShell.landHome]), else the page's own button is tapped, once the page is in front.
+ * The row along the foot: every screen over Home closes (however deep: a wall, an album from it, an artist from that;
+ * item 63); then Home goes to its top, or the Library wall (in the view kept) or the search opens over it.
  */
 internal fun navTap(nav: NavHostController, what: String) {
-    if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
-    // Search: the app's own over whatever is left (item 61), as the page's opens over Home.
-    if (what == "search") NativeShell.openSearch("", NativeShell.zone)
-    else if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
+    nav.popBackStack(ShellRoute.HOME, false)
+    when (what) {
+        "home" -> NativeShell.landHome()
+        "library" -> nav.navigate(ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone)) { launchSingleTop = true }
+        "search" -> NativeShell.openSearch("", NativeShell.zone)
+        "menu" -> NativeShell.menuOpen.value = true
+    }
 }
 
 /**
  * A Dynamic Playlist's screens hand over: Show albums (or Clear all) from a playlist's Focus opens the Library wall in
- * that view, which the page's wall and Home's Library row follow (the page's applyLibView; item 95); the rest as anywhere.
+ * that view, which Home's Library row follows (the page's applyLibView; item 95); the rest as anywhere.
  */
 private fun smartPage(nav: NavHostController, prefs: String?, zone: String, what: String, arg: String?) {
-    if (what != "library-show" || arg == null) { toPageOrNative(nav, what, arg); return }
-    NativeShell.libraryView = arg
-    NativeShell.toPage("library-view", arg)
+    if (what != "library-show" || arg == null) { handOver(nav, what, arg); return }
+    NativeShell.keepLibraryView(arg)
     nav.navigate(ShellRoute.library(arg, prefs.orEmpty(), zone))
 }

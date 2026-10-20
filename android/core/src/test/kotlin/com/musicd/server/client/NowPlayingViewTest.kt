@@ -62,7 +62,6 @@ class NowPlayingViewTest {
             val r = ShellRoute.nowPlaying(z)
             assertTrue(r, r.startsWith("nowplaying/") && r.indexOf('/', "nowplaying/".length) < 0)
             assertEquals(z, ShellRoute.zoneOf(r.removePrefix("nowplaying/")))
-            assertFalse("the shell's, not the page's", ShellRoute.isWeb(r))
             assertFalse("no \"+\", which Navigation would leave as it is", r.contains('+'))
         }
     }

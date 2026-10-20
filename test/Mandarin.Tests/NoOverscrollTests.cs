@@ -5,8 +5,9 @@ namespace Mandarin.Tests;
 /// <summary>
 /// Home pulled past its top or its foot doesn't stretch or bounce (v1.0.7), in a browser or the app.
 /// In a browser the page's own scrolling stops dead there (style.css, overscroll-behavior on the page
-/// and on main, Home's scroller); in the Android app the WebView draws no effect of its own round it
-/// either (PageFrame.kt: Android's stretch, from Android 12 on, is drawn whatever the page says).
+/// and on main, Home's scroller); in the Android app, its own screens since its WebView went (bug list
+/// item 111), Android's stretch is off for every screen (Theme.kt: from Android 12 on it is drawn unless
+/// switched off).
 /// </summary>
 public sealed class NoOverscrollTests
 {
@@ -36,12 +37,11 @@ public sealed class NoOverscrollTests
     }
 
     [Test]
-    public void The_apps_WebView_draws_no_stretch_of_its_own()
+    public void The_apps_screens_draw_no_stretch_of_their_own()
     {
         var dir = Path.Combine(ServerProcess.Root, "android", "app", "src", "main", "java", "com", "musicd", "server", "android");
-        var frame = File.ReadAllText(Path.Combine(dir, "PageFrame.kt"));
-        Assert.Matches(@"web\.overScrollMode = View\.OVER_SCROLL_NEVER", frame);
-        Assert.True(Regex.IsMatch(File.ReadAllText(Path.Combine(dir, "MainActivity.kt")), @"WebView\(this\)\.apply \{\s*PageFrame\.frame\(this, BACKGROUND\)"),
-            "every WebView the page is put up in is framed so");
+        Assert.Matches(@"CompositionLocalProvider\(LocalOverscrollFactory provides null\) \{ MaterialTheme\(", File.ReadAllText(Path.Combine(dir, "Theme.kt")));
+        Assert.True(Regex.IsMatch(File.ReadAllText(Path.Combine(dir, "NativeShell.kt")), @"setContent \{ MandarinTheme \{ Shell\("),
+            "every screen is drawn in the theme");
     }
 }

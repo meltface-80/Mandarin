@@ -58,7 +58,6 @@ class SearchTest {
     @Test fun `the search's route, and the client's paths`() {
         assertEquals("search?q=Artist%20A&zone=z", ShellRoute.search("Artist A", "z"))
         assertEquals("search?q={q}&zone={zone}", ShellRoute.SEARCH)
-        assertFalse(ShellRoute.isWeb(ShellRoute.search("", "")))
         val asked = ArrayList<String>()
         val c = LibraryClient { asked += it; JSONObject("""{"query":"x","pitchfork":[]}""") }
         c.searchExternal("a b", "qobuz")
