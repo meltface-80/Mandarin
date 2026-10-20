@@ -165,7 +165,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What |
 |---|---|
-| O1 | Offline natively: the native screens read `DownloadStore` and `LocalMusic` themselves when the server is away; `OfflineApi` and `OfflineSite` (the page's copy in the APK) go; `DownloadsActivity` (a View screen, not Compose) is replaced by the native Downloads pane and Home's rows |
+| O1 | **Begun (item 105)**: the Offline dialog natively (`OfflineDialog.kt`, core `Offline.kt`). Offline natively: the native screens read `DownloadStore` and `LocalMusic` themselves when the server is away; `OfflineApi` and `OfflineSite` (the page's copy in the APK) go; `DownloadsActivity` (a View screen, not Compose) is replaced by the native Downloads pane and Home's rows |
 | O2 | The WebView's end: with every surface native, `MainActivity`'s page frame goes (`PageFrame`, `PageGuard`, `PageCurtain`, `PageRelay`, the JavaScript bridges, `native-handoff.js`), the preview switches go, and the app opens on native Home. The page stays on the server for browsers and the iPhone |
 
 ### Not the app's

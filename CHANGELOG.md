@@ -8,6 +8,11 @@
   (the one saved, or made for an old download), the phone's own music with its badge, downloads as the library has
   them, and the rows the phone keeps nothing for, empty. Today's offline mode answers from it already. Random Album
   offline now plays one of the phone's albums; it asked for `/api/pick-unheard`, which offline answered with nothing.
+- `105-offline-dialog-native`: the first step of O1 (offline natively, docs/specs/plan-android-native.md). The Offline
+  sign in the app's row along the foot opens the app's own Offline dialog, the page's (server-notice.js openOffline)
+  drawn natively: the heading, why only the music on this phone shows, and Switch offline mode off beside Close when
+  Offline mode is on. Its words live in core (`Offline.kt`), held to the page's by `test/offline-words.test.js`; the
+  dialog is a contract screen (`offline`) with the page's keys on `#offline-overlay`.
 - `104-one-prompt-one-share-sheet`: the Android app had grown three name boxes (`NamePrompt.kt`, one inside
   `SmartSheets.kt`, `PromptDialog.kt`) and two playlist share sheets (`PlaylistShareSheet.kt`, `ShareTracksSheet.kt`),
   each a copy of the page's one drawn a little differently. Now one of each: every name is asked in `NamePrompt.kt`, and

@@ -20,15 +20,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
+import com.musicd.server.client.OfflineKind
 
 /**
  * The touch layout's row along the foot of the screen, natively
@@ -37,10 +43,15 @@ import com.musicd.server.client.Contract
  * in brass, and the Offline sign between Home and Library when the app is
  * offline. Each tap is the page's own button's ([onTap], by name), so there
  * is one way to do each thing; but Menu, which opens the app's own side menu
- * over the screen (item 67), or offline, where the page's is the one.
+ * over the screen (item 67), or offline, where the page's is the one; and the
+ * Offline sign, which says why in the app's own dialog (item 105).
  */
 @Composable
 internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, modifier: Modifier = Modifier) {
+    var why by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    // Offline mode switched off as the page's dialog does it (MusicdDownloads.set), the page loaded again onto the server's library.
+    if (why) OfflineDialog(OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } }, onClose = { why = false })
     Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Box(Modifier.fillMaxWidth().height(58.dp)) {
@@ -52,7 +63,7 @@ internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, mo
             }
             // A box of its own, not a button: a button's background lies outside its 48 touch target, and drew the disc 48 wide.
             if (offline) Box(Modifier.parity("nav.offline", Contract.label("nav.offline")).align(Alignment.Center).size(30.dp)
-                .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { onTap("offline") }, contentAlignment = Alignment.Center) {
+                .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { why = true }, contentAlignment = Alignment.Center) {
                 Icon(painterResource(R.drawable.tn_offline), contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
             }
         }

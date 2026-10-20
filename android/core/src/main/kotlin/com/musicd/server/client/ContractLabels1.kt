@@ -46,6 +46,8 @@ internal object ContractLabels1 {
         "queue.history-clear" to listOf("Clear"),
         "confirm.no" to listOf("No"),
         "confirm.yes" to listOf("Yes"),
+        "offline.switch" to listOf("Switch offline mode off"),
+        "offline.close" to listOf("Close"),
         "mini-player.playpause" to listOf("Play", "Pause"),
         "mini-player.open" to listOf("Now playing"),
         "mini-player.device" to listOf("Choose device"),
@@ -298,11 +300,5 @@ internal object ContractLabels1 {
         "settings-shelf.back" to listOf("Back to settings"),
         "settings-shelf.info" to listOf("About {setting}"),
         "settings-shelf.enabled" to listOf("Shelf"),
-        "settings-sharecard.back" to listOf("Back to settings"),
-        "settings-sharecard.review" to listOf("Show the review on the share card"),
-        "settings-sharecard.service" to listOf("{service}"),
-        "settings-sharecard.site" to listOf("{site}"),
-        "settings-sharecard.info" to listOf("About {setting}"),
-        "settings-sharecard.default" to listOf("Default service"),
     )
 }
