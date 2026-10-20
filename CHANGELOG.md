@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `107-offline-phone-room`: step 3 of O1 (offline natively). The rest of the app's offline answers move into core:
+  `PhoneRoom` (this phone as the one room: its zone and output, what it plays, its queue, the plays and transport sent to
+  its player through a `Deck`), `PhoneFormat` (the format badge) and `PhoneAnswers` (the router: the server's own status,
+  the library, the room, a setting as the server last gave it, and "Not available offline" for anything else). The app's
+  `OfflineApi` becomes an adapter giving them the phone (its player as a `PhoneDeck`, its audio device in
+  `PhoneDevices.kt`, its covers). A selection of albums played offline was queued twice (the app sends a selection's
+  albums both as items and as offsets, and both were read); now once.
 - `106-offline-phone-shelf`: step 2 of O1 (offline natively). `ServerClient` asks through a `Transport`: over HTTP
   (`HttpTransport`, the code it had) or answered in the app (`LocalTransport`), so the native screens can be answered
   offline without a change of their own. The library on the phone moves into core as `PhoneShelf` (from the app's

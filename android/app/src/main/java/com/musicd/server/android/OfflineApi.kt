@@ -3,50 +3,62 @@ package com.musicd.server.android
 import android.content.Context
 import android.content.Intent
 import com.musicd.server.client.Answer
+import com.musicd.server.client.Deck
+import com.musicd.server.client.DeckItem
+import com.musicd.server.client.DeckState
 import com.musicd.server.client.Phone
-import com.musicd.server.client.PhoneShelf
-import com.musicd.server.client.ShelfAlbum
-import org.json.JSONArray
+import com.musicd.server.client.PhoneAnswers
+import com.musicd.server.client.PhoneInfo
+import com.musicd.server.client.PhoneRoom
 import org.json.JSONObject
 import java.io.File
 
 /**
- * The server's /api, answered by the app when the server can't be reached —
- * so MusicD's own interface works offline, on what's on the phone.
- *
- * The library is the downloaded albums; the one room is This phone, played
- * by the phone player; album pages are the ones saved when each album was
- * downloaded (OfflineSite). Settings answer as the server last did. Anything
- * that needs the server — Sonos rooms, editing, search beyond the phone —
- * says so instead of pretending.
+ * The server's /api, answered by the app when the server can't be reached — so MusicD's own interface works offline, on
+ * what's on the phone. The answers are core's ([PhoneAnswers], item 107); this gives them the phone: its downloads and
+ * its own music ([PhoneData]), its player ([PhoneDeck]), its audio device ([PhoneDevices]), its covers, and the settings
+ * as the server last gave them (OfflineSite).
  */
 object OfflineApi {
 
     class Response(val status: Int, val mime: String, val body: ByteArray)
 
-    private fun json(o: Any, status: Int = 200) = Response(status, "application/json", o.toString().toByteArray())
-    private fun error(msg: String, status: Int = 503) = json(JSONObject().put("error", msg), status)
-    private fun answer(a: Answer) = json(a.json ?: JSONObject(), a.status)
-    private val OFFLINE = "Not available offline — Mandarin can't be reached"
-
     fun handle(c: Context, method: String, path: String, query: Map<String, String>, body: String?): Response {
         val b = runCatching { if (body.isNullOrBlank()) JSONObject() else JSONObject(body) }.getOrDefault(JSONObject())
-        return try {
-            if (method == "GET") get(c, path, query) else post(c, path, b)
-        } catch (e: Exception) {
-            error(e.message ?: "offline error", 500)
-        }
+        val a = answers(c).answer(method, path, query, b)
+        return Response(a.status, a.mime, a.bytes ?: (a.json ?: JSONObject()).toString().toByteArray())
     }
 
-    // ------------------------------------------------------------ library
+    /** The phone's answers to the server's requests. */
+    fun answers(c: Context): PhoneAnswers = PhoneAnswers(
+        info = { PhoneInfo(BuildConfig.VERSION_NAME, Store.username(c) ?: "", Store.offlineMode(c)) },
+        shelf = { PhoneData.shelf(c) },
+        room = PhoneRoom(Store.phoneZone(c), PhoneDeck(c)) { PhoneData.shelf(c) },
+        everyDownload = { PhoneData.everyDownload(c) },
+        devices = { m, p, b -> PhoneDevices.answer(c, m, p, b) },
+        image = { cover(c, it) },
+        cached = { p -> OfflineSite.api(c, p)?.let { runCatching { JSONObject(it) }.getOrNull() } },
+    )
 
-    private fun library(c: Context): List<ShelfAlbum> = PhoneData.downloads(c)
+    /** A cover, by the key asked for: the phone's own album's art, or the downloaded album's cover.jpg. */
+    private fun cover(c: Context, key: String): Answer {
+        val none = Answer(404, bytes = ByteArray(0), mime = "text/plain")
+        if (key.startsWith("phone-")) {
+            LocalMusic.load(c)
+            val f = LocalMusic.art(c, key.removePrefix("phone-")) ?: return none
+            return Answer(200, bytes = f.readBytes(), mime = if (f.name.endsWith(".png")) "image/png" else "image/jpeg")
+        }
+        val all = DownloadStore.albums(c)
+        val hit = all.firstOrNull { it.first.imageKey == key }
+            ?: Regex("^al-(\\d+)").find(key)?.groupValues?.get(1)?.toIntOrNull()?.let { id -> all.firstOrNull { it.first.id == id } }
+        val f = hit?.let { File(it.second, "cover.jpg") }
+        return if (f != null && f.exists()) Answer(200, bytes = f.readBytes(), mime = "image/jpeg") else none
+    }
+}
 
-    private fun local(c: Context, id: Int): ShelfAlbum? = library(c).firstOrNull { it.id == id }
-
-    // ------------------------------------------------------------ the player
-
-    private fun player(c: Context): PhonePlayerService? {
+/** The phone's player as core's answers drive it, started when first needed. */
+internal class PhoneDeck(private val c: Context) : Deck {
+    private fun player(): PhonePlayerService? {
         PhonePlayerService.current?.let { return it }
         runCatching { c.startService(Intent(c, PhonePlayerService::class.java)) }
         val until = System.currentTimeMillis() + 3000
@@ -57,312 +69,14 @@ object OfflineApi {
         return null
     }
 
-    private fun zoneId(c: Context) = Store.phoneZone(c)
-
-    private fun output(c: Context, st: PhonePlayerService.OfflineState?): JSONObject {
-        val id = zoneId(c)
-        return JSONObject().put("output_id", id).put("zone_id", id).put("display_name", "This phone")
-            .put("model", "Phone").put("stereo_pair", false).put("is_muted", st?.muted ?: false)
-            .put("volume", JSONObject().put("type", "number").put("min", 0).put("max", 100).put("step", 1)
-                .put("value", st?.volume ?: 50).put("soft_limit", 100).put("is_muted", st?.muted ?: false))
-            .put("can_group_with_output_ids", JSONArray().put(id)).put("source_controls", JSONArray())
-    }
-
-    private fun settings(st: PhonePlayerService.OfflineState?) = JSONObject()
-        .put("shuffle", st?.shuffle ?: false).put("loop", st?.loop ?: "disabled").put("auto_radio", false)
-
-    /** The format badge, as the server shapes it (lib/server/api-playback.js formatOf). */
-    private fun formatJson(f: String?, dsp: Boolean = false, usb: String? = null): Any {
-        val base = formatBase(f, dsp)
-        // Through the USB driver (Stage 9.2): the depth and rate the DAC is fed, the tick with the DSP off.
-        if (usb != null && base is JSONObject) {
-            // Native DSD ("dsd64") or DoP ("dop64"), Stage 9.3.
-            Regex("^(dsd|dop)(\\d+)$").find(usb)?.let { m ->
-                return JSONObject().put("kind", base.getString("kind"))
-                    .put("text", base.getString("text") + (if (m.groupValues[1] == "dop") " · USB DoP DSD" else " · USB DSD") + m.groupValues[2] + " ✓")
-            }
-            val parts = usb.split("/")
-            if (parts.size == 2) return JSONObject().put("kind", base.getString("kind"))
-                .put("text", base.getString("text") + " · USB " + parts[1] + "/" + (parts[0].toDouble() / 1000).let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() } + (if (dsp) "" else " ✓"))
-        }
-        return base
-    }
-    private fun formatBase(f: String?, dsp: Boolean): Any {
-        val tag = if (dsp) " · DSP" else ""
-        return when (f) {
-            null, PhonePlayerService.FORMAT_ORIGINAL -> if (dsp) JSONObject().put("kind", "lossless").put("text", "DSP") else JSONObject.NULL
-            PhonePlayerService.FORMAT_OPUS -> JSONObject().put("kind", "opus").put("text", "256kbps$tag")
-            PhonePlayerService.FORMAT_OPUS24 -> JSONObject().put("kind", "opus").put("text", "256 · 24/48$tag")
-            PhonePlayerService.FORMAT_LOSSLESS -> JSONObject().put("kind", "lossless").put("text", "Lossless$tag")
-            else -> JSONObject().put("kind", "lossy").put("text", f + tag)
-        }
-    }
-
-    private fun zoneJson(c: Context, st: PhonePlayerService.OfflineState?): JSONObject {
-        val cur = if (st == null) null else st.items.getOrNull(st.index)
-        val np = if (st == null || cur == null) JSONObject.NULL else JSONObject()
-            .put("line1", cur.title).put("line2", cur.artist).put("line3", cur.album)
-            .put("artists", JSONArray().put(JSONObject().put("name", cur.artist).put("linkable", true)))
-            .put("image_key", cur.imageKey ?: (if (cur.albumId >= 0) "al-${cur.albumId}" else JSONObject.NULL))
-            .put("length", (if (st.duration > 0) st.duration else cur.duration).toInt())
-            .put("seek_position", st.position.toInt())
-            .put("track_id", cur.trackId ?: JSONObject.NULL)
-            .put("album_offset", if (cur.albumKey != null) "phone:${cur.albumKey}" else if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
-            .put("format", formatJson(st.format, st.dsp, st.usb))
-        val count = st?.items?.size ?: 0
-        val index = st?.index ?: -1
-        val state = st?.state ?: "stopped"
-        return JSONObject()
-            .put("zone_id", zoneId(c)).put("display_name", "This phone").put("state", state)
-            .put("is_play_allowed", state != "playing").put("is_pause_allowed", state == "playing" || state == "loading")
-            .put("is_next_allowed", index in 0 until count - 1 || (st?.loop ?: "disabled") != "disabled")
-            .put("is_previous_allowed", count > 0).put("is_seek_allowed", (st?.duration ?: 0.0) > 0)
-            .put("settings", settings(st)).put("outputs", JSONArray().put(output(c, st)))
-            .put("now_playing", np)
-    }
-
-    private fun command(c: Context, op: String, fill: (Phone.Command) -> Phone.Command = { it }): Response {
-        val p = player(c) ?: return error("The phone's player didn't start")
-        p.offlineCommand(fill(Phone.Command(seq = 0, op = op)))
-        return json(JSONObject().put("ok", true))
-    }
-
-    private fun normalise(kind: String?) = when (kind) {
-        "queue", "add_to_queue" -> "queue"
-        "play_next", "add_next", "next" -> "add_next"
-        else -> "play_now"
-    }
-
-    private fun play(c: Context, ids: List<Int>, kind: String?, start: Int = 0, only: Int? = null): Response {
-        val p = player(c) ?: return error("The phone's player didn't start")
-        if (!p.offlinePlay(ids, start, normalise(kind), only)) return error("That album isn't on this phone", 404)
-        if (kind == "shuffle") p.offlineCommand(Phone.Command(seq = 0, op = "mode", shuffle = true, loop = p.offlineState()?.loop ?: "disabled"))
-        return json(JSONObject().put("ok", true).put("action", kind ?: "play_now"))
-    }
-
-    // ------------------------------------------------------------ GET
-
-    private fun get(c: Context, path: String, q: Map<String, String>): Response {
-        // The library, from what is on the phone: core's PhoneShelf (item 106), as the app's native screens will ask it.
-        if (path in PhoneShelf.PATHS) PhoneData.shelf(c).get(path, q)?.let { return answer(it) }
-        when (path) {
-            "/api/health" -> return json(JSONObject().put("ok", true).put("version", BuildConfig.VERSION_NAME)
-                .put("albums", library(c).size).put("rooms", 0).put("offline", true))
-            "/api/status" -> {
-                val n = library(c).size
-                return json(JSONObject().put("offline", true).put("offline_mode", Store.offlineMode(c)).put("away", true).put("paired", true)
-                    .put("core_id", "musicd-server").put("core_name", "Mandarin").put("zone_count", 1)
-                    .put("library_importing", false).put("index_count", n)
-                    .put("sonos", JSONObject().put("rooms", 0).put("discovered", 0).put("searching", false))
-                    .put("music_dir_exists", true).put("data_persistent", true)
-                    .put("scan", JSONObject().put("running", false).put("progress", 0).put("files_seen", 0)
-                        .put("last", JSONObject().put("status", "ok")))
-                    .put("version", BuildConfig.VERSION_NAME))
-            }
-            "/api/auth/status" -> return json(JSONObject().put("setup_required", false).put("can_setup", false)
-                .put("away", true).put("signed_in", true).put("username", Store.username(c) ?: ""))
-            "/api/zones" -> {
-                val st = PhonePlayerService.current?.offlineState()
-                return json(JSONObject().put("away", true).put("zones", JSONArray().put(JSONObject()
-                    .put("zone_id", zoneId(c)).put("display_name", "This phone").put("state", st?.state ?: "stopped")
-                    .put("settings", settings(st)).put("outputs", JSONArray().put(output(c, st))).put("is_phone", true))))
-            }
-            "/api/shortcut/zones" -> {
-                val st = PhonePlayerService.current?.offlineState()
-                return json(JSONObject().put("zones", JSONArray().put(JSONObject().put("zone_id", zoneId(c))
-                    .put("display_name", "This phone").put("state", st?.state ?: "stopped").put("is_phone", true)))
-                    .put("last_zone", zoneId(c)))
-            }
-            "/api/outputs" -> return json(JSONObject().put("outputs", JSONArray()))
-            "/api/zone-state" -> {
-                val p = player(c)
-                val waitFor = q["wait_for"]?.toLongOrNull()
-                // Held briefly: the WebView answers requests from a few threads, and this one mustn't hog them.
-                if (p != null && waitFor != null) p.waitForChange(waitFor, (q["timeout"]?.toLongOrNull() ?: 1500L).coerceIn(0, 1500))
-                val st = p?.offlineState()
-                return json(JSONObject().put("revision", st?.revision ?: p?.revision ?: 1).put("zone", zoneJson(c, st)))
-            }
-            "/api/queue" -> {
-                val st = PhonePlayerService.current?.offlineState()
-                val items = JSONArray()
-                val history = JSONArray()
-                val at = st?.index ?: 0
-                st?.items?.forEachIndexed { i, it ->
-                    val key = it.imageKey ?: if (it.albumId >= 0) "al-${it.albumId}" else null
-                    if (i >= at) items.put(JSONObject().put("queue_item_id", i + 1).put("title", it.title)
-                        .put("subtitle", it.artist).put("album", it.album).put("image_key", key ?: JSONObject.NULL)
-                        .put("length", it.duration.toInt()))
-                    else history.put(JSONObject().put("track", it.title).put("artist", it.artist).put("album", it.album)
-                        .put("image_key", key ?: JSONObject.NULL).put("duration", it.duration.toInt())
-                        .put("elapsed", it.duration.toInt()).put("played", true).put("queue_item_id", i + 1))
-                }
-                val h = JSONArray(); for (i in history.length() - 1 downTo 0) h.put(history.get(i))
-                return json(JSONObject().put("items", items).put("history", h))
-            }
-            "/api/album/now-playing" -> {
-                val cur = PhonePlayerService.current?.offlineState()?.let { it.items.getOrNull(it.index) }
-                cur?.albumKey?.let { k -> LocalMusic.album(k)?.let { return json(JSONObject().put("album", LocalMusic.albumJson(it))) } }
-                val l = cur?.let { local(c, it.albumId) }
-                return json(JSONObject().put("album", l?.let { PhoneShelf.json(it) } ?: JSONObject.NULL))
-            }
-            "/api/shortcut/play-random" -> {
-                val l = library(c).randomOrNull() ?: return error("Nothing downloaded to play", 404)
-                val r = play(c, listOf(l.id), "play_now")
-                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", PhoneShelf.json(l))) else r
-            }
-        }
-        if (path == "/api/smart-playlists") {
-            val o = OfflineSite.api(c, path)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject()
-            return json(o.put("playlists", JSONArray()))
-        }
-        if (path == "/api/audio-devices") return devices(c)
-        if (path.startsWith("/api/audio-devices/")) return device(c, path.removePrefix("/api/audio-devices/"))
-        if (path.startsWith("/api/image/")) return image(c, path.removePrefix("/api/image/"))
-        OfflineSite.api(c, path)?.let { return Response(200, "application/json", it.toByteArray()) }
-        return json(JSONObject())
-    }
-
-    // ------------------------------------------------------------ audio devices
-
-    /*
-     * Settings → Audio Devices, offline: this phone, the one player there is,
-     * as the server shows it — its page, its DSP and (from the app itself)
-     * the USB DAC on its port. Before v0.5.55 the list was empty offline.
-     */
-
-    private val RATES = listOf(44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000)
-    private val BITS = listOf(16, 24, 32)
-    private val DSD = listOf(64, 128, 256)
-    private val NO_DSP get() = JSONObject().put("enabled", false).put("headphone", JSONObject.NULL).put("peq", JSONObject.NULL).put("headroom", "auto")
-
-    private fun dspOf(c: Context): JSONObject = Store.dsp(c)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: NO_DSP
-
-    private fun phoneDevice(c: Context, full: Boolean): JSONObject {
-        val st = PhonePlayerService.current?.offlineState()
-        val name = PhonePlayerService.phoneName()
-        val dsp = dspOf(c)
-        val bands = dsp.optJSONObject("peq")?.optJSONArray("bands")?.length() ?: 0
-        val o = JSONObject().put("id", zoneId(c)).put("kind", "phone").put("family", "")
-            .put("name", name).put("network_name", name).put("renamed", false)
-            .put("manufacturer", "").put("model", "Phone").put("model_number", "").put("firmware", "").put("ip", "")
-            .put("online", true).put("state", st?.state ?: "stopped").put("enabled", true).put("can_toggle", false)
-            .put("profile", JSONObject().put("id", "phone").put("label", "Phone")).put("editable", false).put("playable", true)
-            .put("rates", JSONArray(RATES.map { JSONObject().put("hz", it).put("on", it <= 192000).put("source", if (it <= 192000) "phone" else "off") }))
-            .put("bits", JSONArray(BITS.map { JSONObject().put("n", it).put("on", it <= 24).put("source", if (it <= 24) "phone" else "off") }))
-            .put("dsd", JSONArray(DSD.map { JSONObject().put("n", it).put("on", false).put("source", "off") }))
-            .put("containers", JSONArray(listOf("flac", "mp3", "alac", "aac", "ogg", "opus", "wav")))
-            .put("dsp", dsp)
-            .put("dsp_info", JSONObject().put("active", dsp.optBoolean("enabled") && (bands > 0 || !dsp.isNull("headphone"))).put("bands", bands))
-        if (full) o.put("found_by", "The Mandarin app").put("location", "").put("settings", JSONObject())
-            .put("last_error", JSONObject.NULL).put("openhome", false).put("events", JSONObject.NULL)
-            .put("volume_fixed", false).put("can_fix_volume", false).put("takes_flac", true)
-        return o
-    }
-
-    private fun devices(c: Context) =
-        json(JSONObject().put("away", true).put("offline", true).put("devices", JSONArray().put(phoneDevice(c, false))))
-
-    private fun device(c: Context, rawId: String): Response {
-        val id = java.net.URLDecoder.decode(rawId, "UTF-8")
-        return if (id == zoneId(c)) json(phoneDevice(c, true)) else error("That device is shown when Mandarin can be reached", 404)
-    }
-
-    /** This phone's page: its DSP changes here and now (and reaches the server later); the rest waits for the server. */
-    private fun changeDevice(c: Context, rawId: String, b: JSONObject): Response {
-        val id = java.net.URLDecoder.decode(rawId, "UTF-8")
-        if (id != zoneId(c)) return error("That device is shown when Mandarin can be reached", 404)
-        val patch = b.optJSONObject("dsp") ?: return error(OFFLINE)
-        val next = dspOf(c)
-        for (k in listOf("enabled", "headphone", "peq", "headroom")) if (patch.has(k)) next.put(k, patch.get(k))
-        if (next.isNull("headroom")) next.put("headroom", "auto")
-        val p = PhonePlayerService.current
-        if (p != null) p.setDspOffline(next) else { Store.setDsp(c, next.toString()); Store.setDspPending(c, true) }
-        return json(phoneDevice(c, true))
-    }
-
-    /** A cover, by the key the page asks for: the downloaded album's cover.jpg. */
-    private fun image(c: Context, rawKey: String): Response {
-        val key = java.net.URLDecoder.decode(rawKey, "UTF-8").substringBefore('?')
-        if (key.startsWith("phone-")) {
-            LocalMusic.load(c)
-            val f = LocalMusic.art(c, key.removePrefix("phone-"))
-            return if (f != null) Response(200, if (f.name.endsWith(".png")) "image/png" else "image/jpeg", f.readBytes()) else Response(404, "text/plain", ByteArray(0))
-        }
-        val all = DownloadStore.albums(c)
-        val hit = all.firstOrNull { it.first.imageKey == key }
-            ?: Regex("^al-(\\d+)").find(key)?.groupValues?.get(1)?.toIntOrNull()?.let { id -> all.firstOrNull { it.first.id == id } }
-        val f = hit?.let { File(it.second, "cover.jpg") }
-        return if (f != null && f.exists()) Response(200, "image/jpeg", f.readBytes()) else Response(404, "text/plain", ByteArray(0))
-    }
-
-    // ------------------------------------------------------------ POST
-
-    private fun post(c: Context, path: String, b: JSONObject): Response {
-        if (path == "/api/audio-devices/rescan") return devices(c)
-        if (path.startsWith("/api/audio-devices/")) return changeDevice(c, path.removePrefix("/api/audio-devices/"), b)
-        when (path) {
-            "/api/play" -> return play(c, listOf(b.optInt("offset", -1)), b.optString("kind", "play_now"))
-            "/api/play-track" -> {
-                val album = b.optInt("offset", -1)
-                val index = if (b.has("track")) b.optInt("track") else b.optInt("track_index")
-                val kind = normalise(b.optString("kind", "play_now"))
-                return if (kind == "play_now") play(c, listOf(album), "play_now", start = index)
-                else play(c, listOf(album), kind, only = index)
-            }
-            "/api/play-multi" -> {
-                val ids = ArrayList<Int>()
-                b.optJSONArray("items")?.let { a -> for (i in 0 until a.length()) ids += a.getJSONObject(i).optInt("offset") }
-                b.optJSONArray("offsets")?.let { a -> for (i in 0 until a.length()) ids += a.optInt(i) }
-                val on = ids.filter { id -> local(c, id) != null }
-                if (on.isEmpty()) return error("None of those albums are on this phone", 404)
-                val r = play(c, on, b.optString("kind", "play_now"))
-                return if (r.status == 200) json(JSONObject().put("ok", true).put("queued", on.size)
-                    .put("failed", ids.size - on.size).put("total", ids.size)) else r
-            }
-            "/api/play-unheard" -> {
-                val l = library(c).randomOrNull() ?: return error("Nothing downloaded to play", 404)
-                val r = play(c, listOf(l.id), "play_now")
-                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", PhoneShelf.json(l))) else r
-            }
-            "/api/control" -> {
-                val cmd = b.optString("command")
-                val op = when (cmd) {
-                    "playpause" -> if (PhonePlayerService.current?.offlineState()?.state == "playing") "pause" else "play"
-                    "play", "pause", "stop", "next", "previous" -> cmd
-                    else -> return error("invalid command", 400)
-                }
-                return command(c, op)
-            }
-            "/api/seek" -> {
-                val secs = b.optDouble("seconds", 0.0)
-                val now = PhonePlayerService.current?.offlineState()?.position ?: 0.0
-                val to = if (b.optString("how") == "relative") now + secs else secs
-                return command(c, "seek") { Phone.Command(seq = 0, op = "seek", seconds = maxOf(0.0, to)) }
-            }
-            "/api/volume" -> {
-                if (b.has("mute")) return command(c, "mute") { Phone.Command(seq = 0, op = "mute", muted = b.optBoolean("mute")) }
-                val v = b.optDouble("value", 0.0)
-                val now = PhonePlayerService.current?.offlineState()?.volume ?: 50
-                val to = if (b.optString("how") == "relative" || b.optString("how") == "relative_step") now + v else v
-                return command(c, "volume") { Phone.Command(seq = 0, op = "volume", value = to.toInt().coerceIn(0, 100)) }
-            }
-            "/api/zone-settings" -> {
-                val st = PhonePlayerService.current?.offlineState()
-                val shuffle = if (b.has("shuffle")) b.optBoolean("shuffle") else st?.shuffle ?: false
-                val loop = if (b.has("loop")) b.optString("loop") else st?.loop ?: "disabled"
-                command(c, "mode") { Phone.Command(seq = 0, op = "mode", shuffle = shuffle, loop = loop) }
-                return json(JSONObject().put("ok", true).put("random_album_radio_stands_down", false))
-            }
-            "/api/play-from-here" -> {
-                val n = b.optInt("queue_item_id", 0)
-                if (n < 1) return error("queue_item_id is required", 400)
-                return command(c, "jump") { Phone.Command(seq = 0, op = "jump", index = n - 1) }
-            }
-            "/api/download/albums" -> {
-                val ids = b.optJSONArray("ids") ?: JSONArray()
-                return answer(PhoneShelf(emptyList()).downloadAlbums((0 until ids.length()).map { ids.optInt(it) }, PhoneData.everyDownload(c)))
-            }
-        }
-        return error(OFFLINE)
+    override fun ready(): Boolean = player() != null
+    override fun revision(): Long = PhonePlayerService.current?.revision ?: 1
+    override fun waitForChange(since: Long, ms: Long) { PhonePlayerService.current?.waitForChange(since, ms) }
+    override fun play(albumIds: List<Int>, start: Int, kind: String, only: Int?): Boolean = PhonePlayerService.current?.offlinePlay(albumIds, start, kind, only) ?: false
+    override fun command(c: Phone.Command) { PhonePlayerService.current?.offlineCommand(c) }
+    override fun state(): DeckState? = PhonePlayerService.current?.offlineState()?.let { s ->
+        DeckState(s.state, s.index, s.position, s.duration, s.shuffle, s.loop, s.volume, s.muted,
+            s.items.map { DeckItem(it.trackId, it.albumId, it.title, it.artist, it.album, it.imageKey, it.duration, it.albumKey) },
+            s.revision, s.format, s.dsp, s.usb)
     }
 }
