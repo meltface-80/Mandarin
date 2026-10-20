@@ -15,6 +15,8 @@ class WallTest {
         assertEquals(WallPrefs(), WallPrefs.parse("not json"))
         assertEquals("a value the page's selects don't offer is the default", WallPrefs(), WallPrefs.parse("""{"layout":"7","tile":"3","text":"x"}"""))
         assertFalse(WallPrefs.parse("""{"layout":"3"}""").list)
+        assertEquals("the menu's size (item 67)", 1.75, WallPrefs.parse("""{"menu":"1.75"}""").menu, 0.0)
+        assertEquals(1.0, WallPrefs.parse("""{"menu":"3"}""").menu, 0.0)
     }
 
     @Test fun `Home's greeting and Random Album, each on unless the page says off`() {

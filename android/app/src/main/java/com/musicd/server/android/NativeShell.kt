@@ -85,6 +85,8 @@ internal object NativeShell {
     val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save", "playlist-import", "playlist-share", "smart-new", "smart-edit", "smart-share")
     /** How many of the page's sheets have closed over the native screens: a screen whose list a sheet can change reads it again (Import). */
     val sheetsClosed = mutableStateOf(0)
+    /** The side menu open over the native screen (item 67; MenuDrawer.kt): the row's Menu opens it, Back closes it. */
+    val menuOpen = mutableStateOf(false)
 
     /**
      * Something a native screen hands back to the page, by name
@@ -160,6 +162,7 @@ internal object NativeShell {
      * shell), or the page never having said where Home stands (a sign-in page instead of the app's, say).
      */
     fun toWeb() {
+        menuOpen.value = false
         val n = nav ?: return
         if (!ShellRoute.isWeb(n.currentDestination?.route)) n.popBackStack(ShellRoute.WEB, false)
     }
@@ -170,6 +173,7 @@ internal object NativeShell {
      */
     fun back(): Boolean {
         if (lifted) return false
+        if (menuOpen.value) { menuOpen.value = false; return true }
         val n = nav ?: return false
         val route = n.currentDestination?.route
         if (ShellRoute.isWeb(route) || route == ShellRoute.HOME) return false
@@ -390,4 +394,5 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                 entry.arguments?.getString(ShellRoute.NAME).orEmpty(), entry.arguments?.getInt(ShellRoute.PAGES) ?: 0, client, onBack = { nav.popBackStack() })
         }
     }
+    MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
 }
