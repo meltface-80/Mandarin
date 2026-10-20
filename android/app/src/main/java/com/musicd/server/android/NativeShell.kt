@@ -42,7 +42,7 @@ internal object NativeShell {
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
     /** Whether the page has said where Home stands since the app started ([homeShown]): until it does, the native Home is in front on trust. */
-    @Volatile private var told = false
+    @Volatile internal var told = false
     fun wasTold() = told
 
     /** Your playlists (item 65), or one of them, opened by the page (its side menu, a tile of its own). */
@@ -93,6 +93,7 @@ internal object NativeShell {
      * (public/app/native-handoff.js): its own sheets, its room.
      */
     fun toPage(what: String, arg: String? = null) {
+        if (OfflineNow.on) { OfflineNow.toPage(what, arg); return }   // offline the page is parked: the app's own (item 109)
         val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
         page?.invoke("window.__musicdNative && window.__musicdNative(${org.json.JSONObject.quote(what)}, $a)")
     }
@@ -104,6 +105,7 @@ internal object NativeShell {
      * ([AppBridge.overlayClosed]).
      */
     fun overPage(what: String, arg: String? = null) {
+        if (OfflineNow.on) return
         lifted = true
         val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
         page?.invoke("window.__musicdNativeOver && window.__musicdNativeOver(${org.json.JSONObject.quote(what)}, $a)")
@@ -183,9 +185,9 @@ internal object NativeShell {
     /** [root] (the page's frame) with the shell laid over it, for setContentView; [page] runs a script on the page. */
     fun attach(activity: ComponentActivity, root: FrameLayout, page: (String) -> Unit): FrameLayout {
         this.page = page
-        // Signed in and online, the native Home is in front from the first frame (item 64), drawn to the UI Settings and in the
-        // room it was last given, so the page's own Home is never seen; offline the page's Home is the one (its rows are the phone's).
-        val startHome = !Store.offlineMode(activity) && Store.token(activity) != null
+        // Signed in, the native Home is in front from the first frame (item 64), drawn to the UI Settings and in the room it was
+        // last given, so the page's own Home is never seen; offline too, its rows the phone's (item 109).
+        val startHome = Store.token(activity) != null
         told = false
         prefs = Store.homePrefs(activity); zone = Store.zone(activity).orEmpty()
         homeArgs.value = prefs.orEmpty() to zone
@@ -194,7 +196,7 @@ internal object NativeShell {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) }, startHome = startHome, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
+                    Shell(client = { Store.screenClient(activity) }, startHome = startHome, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
                 }
             }
         }
@@ -208,32 +210,6 @@ internal object NativeShell {
         }
         return root
     }
-}
-
-/**
- * What a native screen hands to the page, unless the app draws it itself: an artist's page is native when the
- * Library wall is (item 52), opened over the screen that asked; the page's sheets ([NativeShell.OVERLAYS]) open over
- * the screen; everything else closes the screen and asks the page.
- */
-internal fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
-    if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
-    if (what == "label" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg)); return }   // a label's albums (item 71)
-    // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
-    if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
-    nav.popBackStack()
-    NativeShell.toPage(what, arg)
-}
-
-/**
- * The row along the foot on a native screen over the page, or over the native Home: every native screen over Home closes
- * (however deep: a wall, an album from it, an artist from that; item 63), else this one; Home, when it is the native one
- * underneath, is landed on ([NativeShell.landHome]), else the page's own button is tapped, once the page is in front.
- */
-internal fun navTap(nav: NavHostController, what: String) {
-    if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
-    // Search: the app's own over whatever is left (item 61), as the page's opens over Home.
-    if (what == "search") NativeShell.openSearch("", NativeShell.zone)
-    else if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
 }
 
 /** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
@@ -254,7 +230,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
         if (!startHome) return@LaunchedEffect
         nav.navigate(ShellRoute.home(NativeShell.homeArgs.value.first, NativeShell.homeArgs.value.second)) { launchSingleTop = true }
         kotlinx.coroutines.delay(8_000)
-        if (!NativeShell.wasTold()) NativeShell.toWeb()
+        if (!NativeShell.wasTold() && !OfflineNow.on) NativeShell.toWeb()
     }
     NavHost(navController = nav, startDestination = ShellRoute.WEB, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // The page at a path: drawn by the WebView under the shell, so nothing here.
@@ -277,6 +253,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                         what == "playlists" -> nav.navigate(ShellRoute.playlists(args.second))
                         what == "playlist" && arg != null -> nav.navigate(ShellRoute.playlist(arg, args.second))
                         what == "smart-playlist" && arg != null -> nav.navigate(ShellRoute.smartPlaylist(arg, args.second))
+                        what == "phone-album" && arg != null -> nav.navigate(ShellRoute.phoneAlbum(arg, args.second))
                         what in NativeShell.OVERLAYS -> NativeShell.overPage(what, arg)
                         else -> NativeShell.toPage(what, arg)
                     }

@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,7 +54,6 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPlaylist: (String) -> Unit,
                              onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onPage: (String, String?) -> Unit) {
-    val context = LocalContext.current
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     val (cols, coverPx) = wallColumns(prefs)
@@ -99,7 +97,7 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
         WallBack(onBack)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
+            TouchNav("", offline = OfflineNow.on, onTap = onNav)
         }
         if (importing) PlaylistImportSheet(client, onSaved = { made++ }) { importing = false }
     }

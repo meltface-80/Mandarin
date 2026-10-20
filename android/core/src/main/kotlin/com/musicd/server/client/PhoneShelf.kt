@@ -171,6 +171,18 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
                 .put("library_moved", false).put("partial", false).put("declared_tracks", tracks.length()).put("on_phone", true)
         }
 
+        /**
+         * One of the phone's own albums as the app's album page reads one (item 108): its page, with no offset of the
+         * server's (-1) and each track numbered by its place (-1, -2, …) where the server would have its id.
+         */
+        fun phoneView(a: PhoneAlbum): Album {
+            val page = phonePage(a).put("offset", -1)
+            page.getJSONObject("album").put("offset", -1)
+            val tracks = page.getJSONArray("tracks")
+            for (i in 0 until tracks.length()) tracks.getJSONObject(i).put("track_id", -(i + 1))
+            return Album.parse(page)
+        }
+
         /** The tile's badge: "24/96" for a lossless file whose depth and rate are known, the format for a lossy one. */
         fun quality(a: PhoneAlbum): String? {
             val t = a.tracks.firstOrNull() ?: return null

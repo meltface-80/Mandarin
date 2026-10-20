@@ -8,6 +8,26 @@
   server again in the Offline dialog when the server can't be reached (`offline.retry`; `MusicdApp.lookForServer`, the
   server looked for now rather than at its next look). An album's ⋯ → Downloading… (`MusicdDownloads.open`) opens
   Settings → Downloads' albums (`ShellRoute.settings("downloads-albums")`).
+- `109-offline-native`: offline, the Android app stays native (O1's switch-over, docs/specs/plan-android-native.md).
+  With Offline mode on or the server out of reach, MainActivity no longer loads the page's copy kept in the APK: it
+  parks the page (stopped, blank) and the native screens stay in front (`OfflineNow`), asking the phone the same
+  questions they ask the server (`Store.screenClient`: core `PhoneAnswers` through a `LocalTransport`; the services keep
+  the server's client). The row along the foot is the app's own offline too (Home, the Library wall, the side menu, the
+  search, the Offline sign's dialog saying why); the page's sheets, which need the server, aren't offered. The menu's
+  Offline Mode switch no longer reloads the page under a picture of the screen. Home's rows are read afresh on each
+  switch (`HomeKept.reset`).
+- `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
+  page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
+  `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from
+  the server when it answers. Its other buttons are the page's for now; Download isn't offered, as on the page. `AlbumScreen.kt`
+  gives its head's lines and ⋯ menu to `AlbumHeadParts.kt`, and `NativeShell.kt` its hand-off helpers to `ShellRoutes.kt`.
+- `107-offline-phone-room`: step 3 of O1 (offline natively). The rest of the app's offline answers move into core:
+  `PhoneRoom` (this phone as the one room: its zone and output, what it plays, its queue, the plays and transport sent to
+  its player through a `Deck`), `PhoneFormat` (the format badge) and `PhoneAnswers` (the router: the server's own status,
+  the library, the room, a setting as the server last gave it, and "Not available offline" for anything else). The app's
+  `OfflineApi` becomes an adapter giving them the phone (its player as a `PhoneDeck`, its audio device in
+  `PhoneDevices.kt`, its covers). A selection of albums played offline was queued twice (the app sends a selection's
+  albums both as items and as offsets, and both were read); now once.
 - `106-offline-phone-shelf`: step 2 of O1 (offline natively). `ServerClient` asks through a `Transport`: over HTTP
   (`HttpTransport`, the code it had) or answered in the app (`LocalTransport`), so the native screens can be answered
   offline without a change of their own. The library on the phone moves into core as `PhoneShelf` (from the app's
