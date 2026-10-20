@@ -7,6 +7,10 @@
   if that screen closed first. The app's changes to what Home shows (Listen later, favourites, the rows' order) are now
   made one at a time, in the order asked, to the end whatever becomes of the screen, and Home reads its rows once those
   under way are made.
+- `84-listen-later-removed-crash`: the Android app crashed a moment after an album was taken out of Listen later (or out
+  of any of Home's rows, emptied or shortened under it). Each of Home's rows of tiles was told how many tiles it had when
+  Home was drawn, and looked each up in the row as it is now: an album taken out between two frames left it asking for a
+  tile the row no longer had. A row now draws its tiles from a copy of the row as it was when drawn.
 - `83-home-order-after-settings`: in the Android app, Home's rows put in a new order in Settings → Home Screen showed in
   that order only once the app was started again. Home reads its layout from the server the moment it is back on
   screen, and that read could be answered before the new order was saved; the save's own answer was dropped when the

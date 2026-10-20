@@ -132,8 +132,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                         Column {
                             SectionTitle(Modifier.parity("home.picks-title", Contract.label("home.picks-title")).clickable(onClick = onPicks), "Smart Picks", true)
                             // A pick the library has opens as any album; one it doesn't opens Smart Picks, where Add and the reason live.
-                            Carousel(HomeKept.picks.size, key = { HomeKept.picks[it].artist + "|" + HomeKept.picks[it].album }) { i ->
-                                val p = HomeKept.picks[i]
+                            Carousel(HomeKept.picks, key = { it.artist + "|" + it.album }) { _, p ->
                                 PickCardHome(p, prefs, client) { p.inLibrary?.let { open(listOf(it), 0) } ?: onPicks() }
                             }
                             Spacer(Modifier.height(50.dp))
@@ -142,8 +141,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                     "playlists" -> if (HomeKept.playlists.isNotEmpty()) item(row.id) {
                         Column {
                             SectionTitle(Modifier.parity("home.playlists-title", Contract.label("home.playlists-title")).clickable { onPage("playlists", null) }, "Playlists", true)
-                            Carousel(HomeKept.playlists.size, key = { (if (HomeKept.playlists[it].smart) "s" else "m") + HomeKept.playlists[it].id }) { i ->
-                                val p = HomeKept.playlists[i]
+                            Carousel(HomeKept.playlists, key = { (if (it.smart) "s" else "m") + it.id }) { _, p ->
                                 PlaylistTileView(p, prefs, coverPx, client) { onPage(if (p.smart) "smart-playlist" else "playlist", p.id) }
                             }
                             Spacer(Modifier.height(50.dp))
@@ -160,7 +158,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                     "lotw" -> HomeKept.lotwName?.let { name -> if (HomeKept.rows["lotw"]!!.albums.isNotEmpty()) item(row.id) {
                         Column {
                             SectionTitle(Modifier.parity("home.lotw-title", Contract.label("home.lotw-title", 0, name)).clickable { onWall("label", name) }, "Label of the week", true, name)
-                            AlbumRowItems(HomeKept.rows["lotw"]!!, prefs, coverPx, client) { i -> open(HomeKept.rows["lotw"]!!.albums, i) }
+                            AlbumRowItems(HomeKept.rows["lotw"]!!, prefs, coverPx, client, onOpen = { list, i -> open(list, i) })
                         }
                     } }
                     else -> {
@@ -178,7 +176,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                                     "downloads" -> SectionTitle(Modifier.parity("home.downloads-title", Contract.label("home.downloads-title")).clickable { onWall("downloads", "") }, "Downloaded albums", true)
                                     "phone" -> SectionTitle(Modifier.parity("home.phone-title", Contract.label("home.phone-title")).clickable { onWall("phone", "") }, "Music on device", true)
                                 }
-                                AlbumRowItems(kept, prefs, coverPx, client, badges = row.id == "downloads") { i -> open(kept.albums, i) }
+                                AlbumRowItems(kept, prefs, coverPx, client, badges = row.id == "downloads", onOpen = { list, i -> open(list, i) })
                             }
                         }
                     }
@@ -226,13 +224,16 @@ private fun SectionTitle(modifier: Modifier, text: String, link: Boolean, name: 
     }
 }
 
-/** A row's tiles (an album each, with a download's badge on the app's own row alone, [badges]), or its one line where it has none; the page's 18 under the row and 32 under the section. */
+/**
+ * A row's tiles (an album each, with a download's badge on the app's own row alone, [badges]), or its one line where it has
+ * none; the page's 18 under the row and 32 under the section. A tile tapped opens with the row as it was drawn ([onOpen]).
+ */
 @Composable
-private fun AlbumRowItems(row: RowKept, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, badges: Boolean = false, onOpen: (Int) -> Unit) {
-    if (row.albums.isEmpty()) row.note?.let { RowNote(it) }
-    else Carousel(row.albums.size, key = { row.albums[it].offset }) { i ->
-        val a = row.albums[i]
-        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = if (badges) HomeKept.downloads[a.offset]?.badge else null) { onOpen(i) } }
+private fun AlbumRowItems(row: RowKept, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, badges: Boolean = false, onOpen: (List<AlbumSummary>, Int) -> Unit) {
+    val albums = row.albums.toList()
+    if (albums.isEmpty()) row.note?.let { RowNote(it) }
+    else Carousel(albums, key = { it.offset }) { i, a ->
+        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = if (badges) HomeKept.downloads[a.offset]?.badge else null) { onOpen(albums, i) } }
     }
     Spacer(Modifier.height(50.dp))
 }

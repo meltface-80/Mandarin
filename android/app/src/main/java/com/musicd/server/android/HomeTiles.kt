@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -81,11 +82,16 @@ internal fun RowNote(text: String) {
     Text(text, Modifier.parity("home.row-empty").padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
 }
 
-/** A row's tiles side by side, scrolling sideways (the hifi .home-carousel): 16 apart, from the gutter, bleeding to the screen's edge. */
+/**
+ * A row's tiles side by side, scrolling sideways (the hifi .home-carousel): 16 apart, from the gutter, bleeding to the
+ * screen's edge. [tiles] drawn as they are now, a copy: a tile taken out of the row between two frames (an album off
+ * Listen later) is never asked for by a place it no longer has (bug list item 84). [content] has each tile and its place.
+ */
 @Composable
-internal fun Carousel(count: Int, key: (Int) -> Any, content: @Composable (Int) -> Unit) {
+internal fun <T> Carousel(tiles: List<T>, key: (T) -> Any, content: @Composable (Int, T) -> Unit) {
+    val shown = tiles.toList()
     LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(count, key = key) { content(it) }
+        itemsIndexed(shown, key = { _, t -> key(t) }) { i, t -> content(i, t) }
     }
 }
 
