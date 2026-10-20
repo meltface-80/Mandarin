@@ -114,7 +114,7 @@ internal fun ServiceArtistStrip(artists: List<ServiceArtist>, onTap: (ServiceArt
     LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(top = 4.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(artists.size) { i ->
             val ar = artists[i]
-            Column(Modifier.parity("search.service-artist", Contract.label("search.service-artist", 0, ar.name)).width(68.dp).clickable { onTap(ar) },
+            Column(Modifier.parity("search.service-artist service-browser.artist", Contract.label("search.service-artist", 0, ar.name)).width(68.dp).clickable { onTap(ar) },
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val img = rememberWebImage(ar.image)
                 Box(Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
@@ -133,14 +133,14 @@ internal fun ServiceArtistStrip(artists: List<ServiceArtist>, onTap: (ServiceArt
 @Composable
 internal fun ServiceAlbumTile(a: ServiceAlbum, fav: Boolean, prefs: WallPrefs, onFav: () -> Unit, onOpen: () -> Unit) {
     val name = if (a.service == "tidal") "Tidal" else "Qobuz"
-    Column(Modifier.parity("search.service-album", Contract.label("search.service-album", if (a.artist.isEmpty()) 1 else 0, a.title, a.artist)).fillMaxWidth().clickable(onClick = onOpen)) {
+    Column(Modifier.parity("search.service-album service-browser.album", Contract.label("search.service-album", if (a.artist.isEmpty()) 1 else 0, a.title, a.artist)).fillMaxWidth().clickable(onClick = onOpen)) {
         val cover = rememberWebImage(a.image)
         val corners = RoundedCornerShape(12.dp)
-        Box(Modifier.parity("search.service-album-art").fillMaxWidth().aspectRatio(1f).clip(corners).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, Color.White.copy(alpha = 0.06f), corners)) {
+        Box(Modifier.parity("search.service-album-art service-browser.album-art").fillMaxWidth().aspectRatio(1f).clip(corners).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, Color.White.copy(alpha = 0.06f), corners)) {
             if (cover != null) Image(cover, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             else Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
             // The favourite, top right: a dark disc with +, brass with ✓ once it is one (.qobuz-tile-fav).
-            Box(Modifier.parity("search.service-fav", Contract.label("search.service-fav", if (fav) 1 else 0, name)).align(Alignment.TopEnd).padding(6.dp).size(26.dp).clip(CircleShape)
+            Box(Modifier.parity("search.service-fav service-browser.fav", Contract.label("search.service-fav", if (fav) 1 else 0, name)).align(Alignment.TopEnd).padding(6.dp).size(26.dp).clip(CircleShape)
                 .background(if (fav) MaterialTheme.colorScheme.primary else Color(0x9E0A0E14)).clickable(onClick = onFav), contentAlignment = Alignment.Center) {
                 Text(if (fav) "✓" else "+", color = if (fav) Color(0xFF1A1A1A) else Color.White.copy(alpha = 0.92f), fontSize = if (fav) 14.sp else 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.W600)
             }
@@ -151,9 +151,9 @@ internal fun ServiceAlbumTile(a: ServiceAlbum, fav: Boolean, prefs: WallPrefs, o
             append(a.title)
             if (a.version.isNotEmpty()) withStyle(SpanStyle(fontWeight = FontWeight.W400, color = faint)) { append(" " + a.version) }
         }
-        Text(text, Modifier.parity("search.service-album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
+        Text(text, Modifier.parity("search.service-album-title service-browser.album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
             fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(a.artist, Modifier.parity("search.service-album-artist").padding(top = 1.dp).lineBox((10.5 * prefs.text).sp, (13.65 * prefs.text).sp), color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Text(a.artist, Modifier.parity("search.service-album-artist service-browser.album-artist").padding(top = 1.dp).lineBox((10.5 * prefs.text).sp, (13.65 * prefs.text).sp), color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = (10.5 * prefs.text).sp, lineHeight = (13.65 * prefs.text).sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

@@ -573,6 +573,39 @@
         "cancel": { "kind": "action", "label": "Cancel" }
       }
     },
+    "service-browser": {
+      "page": "the Qobuz or Tidal browser (the side menu's Qobuz or Tidal, signed in): over the whole screen, its title and ✕, the search field and the tabs (New Releases, then the service's own lists) pinned at its head, the line saying what is shown, the albums as the wall's tiles with the service's favourite (+ or ✓) on each cover; a search's artists as a strip of round pictures above its albums, and Load more",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ServiceBrowserScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "search": { "kind": "action", "label": "Search the {service} catalogue…" },
+        "search-clear": { "kind": "action", "label": "Clear search", "when": "words in the search" },
+        "tab": { "kind": "action", "label": "{tab}", "each": true },
+        "status": { "kind": "shows" },
+        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
+        "album-art": { "kind": "shows", "each": true },
+        "album-title": { "kind": "shows", "each": true },
+        "album-artist": { "kind": "shows", "each": true },
+        "fav": { "kind": "action", "label": ["{service} favourite", "In {service} favourites"], "each": true },
+        "artist": { "kind": "action", "label": "{artist}", "each": true, "when": "a search that found artists" },
+        "load-more": { "kind": "action", "label": "Load more", "when": "more albums to read" }
+      }
+    },
+    "service-artist": {
+      "page": "an artist in the Qobuz or Tidal browser (a search's artist tapped): ‹ Back, their round picture and name, their biography, then their albums as the browser's tiles with Load more",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ServiceBrowserScreen.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "‹ Back" },
+        "art": { "kind": "shows" },
+        "name": { "kind": "shows" },
+        "bio": { "kind": "shows", "when": "the service has a biography" },
+        "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "a long biography" },
+        "bio-source": { "kind": "shows", "when": "the service has a biography" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

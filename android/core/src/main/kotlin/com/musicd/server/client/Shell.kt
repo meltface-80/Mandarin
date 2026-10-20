@@ -93,6 +93,13 @@ object ShellRoute {
     const val SEARCH = "search?$Q={$Q}&$ZONE={$ZONE}"
     fun search(q: String, zoneId: String): String = "search?$Q=" + enc(q) + "&$ZONE=" + enc(zoneId)
 
+    const val SERVICE = "service"
+    const val ARTIST_ID = "artistId"
+    /** A service's browser (item 73): Qobuz or Tidal, opened on its first tab, or straight on one of its artists ([ARTIST_ID] and [NAME]), or a search ([Q]). */
+    const val SERVICE_BROWSER = "service/{$SERVICE}?$ARTIST_ID={$ARTIST_ID}&name={name}&q={q}&$ZONE={$ZONE}"
+    fun serviceBrowser(service: String, zoneId: String, artistId: String = "", artistName: String = "", q: String = ""): String =
+        "service/" + enc(service) + "?$ARTIST_ID=" + enc(artistId) + "&name=" + enc(artistName) + "&q=" + enc(q) + "&$ZONE=" + enc(zoneId)
+
     /** The record labels (item 71); a label's albums are a wall ([wall], kind "label", the label's name as its filter). */
     const val LABELS = "labels?$ZONE={$ZONE}"
     fun labels(zoneId: String): String = "labels?$ZONE=" + enc(zoneId)

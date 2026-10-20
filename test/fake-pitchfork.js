@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Pitchfork's two listings as FakeWeb pages (test/fake-web.js), for the screens
+ * Pitchfork's two listings as FakeWeb pages, and a stand-in Qobuz, (test/fake-web.js), for the screens
  * contract's Pitchfork screens (test/parity.test.js, tools/quality/page-metrics.js):
  * Latest Reviews with enough reviews for the mosaic's large and small tiles, one
  * of them Best New Music, and Best New Music with its own. The newest is of the
@@ -19,4 +19,14 @@ function pitchforkPages() {
   };
 }
 
-module.exports = { pitchforkPages };
+/** A stand-in Qobuz for the browser's screens (item 72): two of Q Artist's albums (no covers, nothing to stream: only browsed). */
+function fakeQobuz() {
+  const { FakeQobuz } = require("./fake-qobuz");
+  const track = (id) => ({ id, title: "Q Song " + id, file: "", duration: 3 });
+  return new FakeQobuz({ albums: [
+    { id: 1001, title: "Q Album", artist: "Q Artist", year: 2021, rate: 96000, bits: 24, tracks: [track(5001)] },
+    { id: 1002, title: "Q Second", artist: "Q Artist", year: 2023, rate: 44100, bits: 16, tracks: [track(5002)] }
+  ] });
+}
+
+module.exports = { pitchforkPages, fakeQobuz };

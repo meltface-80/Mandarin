@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `73-native-service-browsers`: the Qobuz and Tidal browsers natively in the Android app (plan B2), from the side menu,
+  the search's service artists and Pitchfork's Find on Qobuz. As the page's: over the whole screen, the title and ✕, the
+  search field (450 ms after the last key, or Enter) and the tabs (New Releases, then Qobuz's lists, or the ones Tidal
+  says) pinned at the head; the line saying what is shown; the albums as tiles with the service's favourite (+ or ✓) on
+  each cover, a tap on it adding or taking away the favourite; a search's artists as a strip of round pictures; an
+  artist's ‹ Back, picture, name and biography with Show more, and their albums with Load more. A tile opens the album's
+  native page (the server makes its library rows first), and its favourite is read again when the browser comes back.
+  Two contract screens (`service-browser`, `service-artist`), the page keyed and measured against a stand-in Qobuz.
 - `72-snappy-screen-changes`: one native screen now gives way to the next at once in the Android app. Navigation's own
   cross-fade (0.7 s) ran between every two screens, so the screen being left showed as a ghost over the one coming (Home
   over Now playing, tapping the mini player); there is no fade now, in either direction, as on the page.
