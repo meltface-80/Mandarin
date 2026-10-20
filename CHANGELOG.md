@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
+  screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
+  Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);
+  the name box (Save as… from the Library too), the save made on the app's lane of changes to what Home shows, what it
+  plays of the albums that match said, the playlist or the list read again; Share (its tracks read album by album, the
+  server's file shown with how many tracks went in and every reason it holds less, Copy to the clipboard, Download to
+  Downloads/Mandarin). Show albums or Clear all from a playlist's Focus open the Library in that view, as the page's
+  do. The page's sheets are keyed for the screens contract (`smart-new`, `prompt`, `share-tracks`); its hand-offs stay
+  for an app not yet updated.
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed

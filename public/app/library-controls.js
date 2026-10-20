@@ -278,7 +278,8 @@ function buildSortCtl(label, arrowText, aria, onClick) {
 // A name for something: the page's own dialog (the WebView has no prompt box).
 const askName = (message, initial) =>
   window.__promptDialog ? window.__promptDialog(message, initial) : Promise.resolve(window.prompt(message, initial));
-function openLibSheet(title, buildBody, footer, onClose) {
+// [keys]: the title's and the ✕'s screens-contract keys ({ title, close }), where its caller names them (item 95).
+function openLibSheet(title, buildBody, footer, onClose, keys) {
   const back = document.createElement("div");
   back.className = "lib-sheet-backdrop";
   const sheet = document.createElement("div");
@@ -294,6 +295,7 @@ function openLibSheet(title, buildBody, footer, onClose) {
   // Group zones and Device power too (group, device-power; item 68).
   else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
   else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
+  else if (keys) { h.dataset.parity = keys.title; x.dataset.parity = keys.close; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");
