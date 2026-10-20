@@ -92,7 +92,6 @@ internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit) 
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-downloads.back", Contract.label("settings-downloads.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Downloads", Modifier.parity("settings-downloads.heading"))
-            SettingsDesc(Downloads.settingsDesc(albums, s?.used ?: 0), Modifier.parity("settings-downloads.desc"))
             if (s == null) return@SettingsFrame
             Block { FolderRow(Downloads.folderSub(albums, s.used), Modifier.parity("settings-downloads.folder", Contract.label("settings-downloads.folder")).clickable { showAlbums = true }) }
             SettingsDivider(18, 18)

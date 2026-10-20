@@ -79,7 +79,6 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-system.back", Contract.label("settings-system.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Updates", Modifier.parity("settings-system.heading"))
-        SettingsDesc("Updates & version", Modifier.parity("settings-system.desc"))
         Block {
             SetupRow("Updates", Modifier.parity("settings-system.name"), null) {
                 val o = found

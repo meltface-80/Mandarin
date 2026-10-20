@@ -115,7 +115,6 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-folders.back", Contract.label("settings-folders.back")).clip(CircleShape).clickable(onClick = back), R.drawable.np_back,
                 "Music Folders", Modifier.parity("settings-folders.heading"))
-            SettingsDesc("Where your library is read from", Modifier.parity("settings-folders.desc"))
             Block {
                 val b = browsing
                 val f = folders

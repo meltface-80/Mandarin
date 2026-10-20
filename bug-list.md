@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 101 | The small line under each Settings page's heading (what the page holds, Account's "Signed in as …", Downloads' counts, a device's model) removed on every Settings page, on the page and in the app; the heading keeps 18 under it | `101-settings-no-subtitles` | Ready to test |
 | 100 | The app crashed opening Settings → Audio Devices (NoSuchElementException: List is empty): the zone list's words were read before the zones had come, and the first of an empty list threw. An empty list now shows nothing, for every list in Settings | `100-audio-devices-crash` | Ready to test |
 | 99 | Away from home (mobile data, a VPN) the Library grid stayed on its grey skeletons: the kept wall's "page on its way" flag stayed up when its first request was called off (the Library left or drawn again before a slow answer), so it never asked again. Now let go however the request ends, and a failed first page asked again on reopening | `99-library-wall-away` | Ready to test |
 | 98 | The side menu's Offline mode row on two lines ("Offline mode", then "On · only the music on this phone" or "Off" under it): now one line, "Offline Mode - On" or "Offline Mode - Off", in the app's menu and the page's | `98-offline-mode-one-line` | Ready to test |

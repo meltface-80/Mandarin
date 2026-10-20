@@ -3022,13 +3022,9 @@ input.vol-range::-moz-range-thumb {
 
 /* The description the tile used to carry, now under the title of the panel it
    belongs to. Indented past the back button so it starts under the <h2>. */
-.settings-pane-desc {
-  margin: 0 0 18px 38px;
-  font-size: 13.5px; line-height: 1.35; color: var(--text-faint);
-}
 
 /* Pane header: back chevron + title, mirroring a pushed page. */
-.settings-pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.settings-pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }   /* no line under it (item 101) */
 
 /* Settings fills the screen (as the Android app has always drawn it; the
    same everywhere since v0.5.19). The panes behind the list scroll as before. */

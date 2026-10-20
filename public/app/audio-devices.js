@@ -10,7 +10,6 @@ const navItem = document.querySelector('.settings-nav-item[data-pane="playback"]
 const detail = document.querySelector('.settings-pane[data-pane="device"]');
 const body = document.getElementById("device-pane-body");
 const title = document.getElementById("device-pane-title");
-const desc = document.getElementById("device-pane-desc");
 const rescan = document.getElementById("devices-rescan");
 const hideBtn = document.getElementById("devices-hide");
 const hideNote = document.getElementById("devices-hide-note");
@@ -181,8 +180,6 @@ function renderDetail(keepInput) {
   // mid-edit: the draft is kept and the block left as it is.
   if (keepInput && body.querySelector("[data-dsp-block]:focus-within")) return;
   title.textContent = d.name;
-  desc.textContent = [d.model || (d.profile && d.profile.label) || "", d.manufacturer].filter(Boolean).join(" · ") ||
-    (d.kind === "phone" ? "A phone running the Mandarin app" : "");
   const inp = keepInput && body.querySelector(".dev-name-input");
   const draft = inp && document.activeElement === inp ? inp.value : null;
   const ed = !!d.editable;
