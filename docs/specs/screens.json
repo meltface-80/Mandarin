@@ -928,6 +928,57 @@
         "local-forget": { "kind": "action", "label": "Forget", "when": "in the app, with a folder of music on the phone" }
       }
     },
+    "settings-downloads": {
+      "page": "Settings' Downloads (in Setup; the Android app's alone, its page drawn only where the app is): Back, its title and how much is on the phone; the Downloads row (how many albums, the space they take, how many are on the way) opening the albums; Offline mode on or off and what that means; Downloading (the quality and where to save, each with its ⓘ, the download folder chosen, changed or forgotten, the all-files access it needs and the albums saved elsewhere, the size limit, Wi-Fi only); Playing away from home (what to stream as, with its ⓘ); Cached ahead (with its ⓘ: on Wi-Fi, on mobile data, the cache's size, how much is ahead and Clear cache); Automatic downloads (with its ⓘ: Today's Smart Picks, Album of the day, Recently added); their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDownloads.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "folder": { "kind": "action", "label": "Downloads" },
+        "folder-title": { "kind": "shows" },
+        "folder-sub": { "kind": "shows" },
+        "subhead": { "kind": "shows", "each": true },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "toggle": { "kind": "action", "label": "{setting}", "each": true },
+        "choice": { "kind": "action", "label": "{setting}", "each": true },
+        "caret": { "kind": "shows", "each": true },
+        "note": { "kind": "shows", "each": true },
+        "folder-choose": { "kind": "action", "label": ["Choose", "Change"] },
+        "folder-forget": { "kind": "action", "label": "Forget", "when": "a download folder chosen" },
+        "allow": { "kind": "action", "label": "Allow", "when": "the download folder needs Android's all files access" },
+        "move": { "kind": "action", "label": "Move all here", "when": "albums saved elsewhere than the place chosen, and no move under way" },
+        "cache-status": { "kind": "shows" },
+        "clear-cache": { "kind": "action", "label": "Clear cache" }
+      }
+    },
+    "settings-downloads-albums": {
+      "page": "Settings' Downloads, its albums (the Downloads row tapped): Back to Downloads, its title and how many albums are on the phone; Select and Clear all; each album with its cover, title, artist and how far it has come (downloaded, on its way, waiting, failed, on a card that is out), Play on this phone once it is downloaded and Remove; selecting, each album ticked or not, Select all or none, Done, how many are selected and Remove them; with none, what to do to have some",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDownloadsList.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Downloads" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "select": { "kind": "action", "label": "Select", "when": "albums on the phone" },
+        "clear-all": { "kind": "action", "label": "Clear all", "when": "albums on the phone" },
+        "open": { "kind": "action", "label": "{album}", "each": true, "when": "albums on the phone" },
+        "art": { "kind": "shows", "each": true, "when": "the album's cover found on the server" },
+        "title": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "artist": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "state": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "play": { "kind": "action", "label": "Play on this phone", "each": true, "when": "the album downloaded" },
+        "remove": { "kind": "action", "label": "Remove from this phone", "each": true, "when": "albums on the phone (not on a card that is out)" },
+        "check": { "kind": "action", "label": "Select {album}", "each": true, "in": "select" },
+        "select-all": { "kind": "action", "label": ["Select all", "Select none"], "in": "select" },
+        "select-close": { "kind": "action", "label": "Done", "in": "select" },
+        "selected": { "kind": "shows", "in": "select" },
+        "remove-chosen": { "kind": "action", "label": ["Remove", "Remove {n}"], "in": "select" },
+        "note": { "kind": "shows", "when": "nothing on the phone" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
