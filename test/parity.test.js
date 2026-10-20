@@ -503,6 +503,7 @@ const SCREENS = {
   "settings-shelf": { open: OPEN_SETTINGS(["setup", "shelfset"]), root: '#settings-overlay .settings-view[data-pane="shelfset"]' },
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
+  "power-cover": { open: `(async () => { const t0 = Date.now(); while (!window.__serverAwayScreen) { if (Date.now() - t0 > 20000) return "no power"; await new Promise(r => setTimeout(r, 50)); } window.__serverAwayScreen("Restarting Mandarin…", "This page reloads when it's back.", 3600000); return "open"; })()`, root: "#power-cover" },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },

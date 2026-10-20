@@ -228,6 +228,8 @@ window.__musicdNative = function (what, arg) {
     loadZones().then(() => { if (typeof window.__refreshTransport === "function") window.__refreshTransport(); });
     return true;
   }
+  // The server back after the app's own Restart or Shut down (item 96): the page read afresh, as its own power screen does.
+  if (what === "reload") { location.reload(); return true; }
   return false;
 };
 
