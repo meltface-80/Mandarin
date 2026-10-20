@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
+  outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
+  question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
+  each button's question to the app with the notice, the app asks it as the page's yes-or-no sheet, and the page does
+  its work once told it was answered Yes. The side menu's Restart and Shut down are now the app's own too: the
+  question (Shut down saying how the server is started again), then the screen over everything while the server is
+  away, as the page's (`power-cover` in the screens contract), until it answers again, the page under the app read
+  afresh with it. Shelf stays the page's, a page of its own; the Offline dialog and the signed-out state go with the
+  offline work (O1); a Music on device album's page is still the page's.
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed
