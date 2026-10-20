@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `78-native-settings-setup`: five of Setup's pages natively in the Android app (plan T2), as the page's: Smart Picks
+  (on or off, the hour the day's picks are built, Rebuild today's picks now), Record labels (on or off with how many
+  labels, logos and tagged albums the server has, a label's albums in order or shuffled, the fewest albums a label
+  needs, Force rescan and what came of it, the label from a folder's depth), UI Settings (album and artist text, grid
+  screen title, menu and Home text, grid layout, tile size), Wall Display (on or off, how often it turns over) and
+  Shelf (on or off), each setting's ⓘ with its help. A list opens as the phone's own list of choices, as the page's
+  did in the app. What the server keeps is saved there at once; what the page keeps on this device (UI Settings, a
+  label's order and minimum) is handed to the page (`page-pref`) and kept by the app, whose screens follow it. Share
+  Card and Away from home follow.
 - `79-settings-freeze`: opening Settings from the Android app's side menu froze the app. The native Settings' icons
   were the page's SVG paths as written, an arc's flags run into the number after them, a form none of the app's other
   icons uses; every arc's numbers are now each set apart, and `test/android-vectors.test.js` holds every drawable to it.

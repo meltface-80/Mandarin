@@ -720,6 +720,90 @@
         "status": { "kind": "shows", "each": true }
       }
     },
+    "settings-picks": {
+      "page": "Settings' Smart Picks (in Setup): Back, its title and what it holds; Smart Picks on or off, the hour the day's picks are built, Rebuild today's picks now; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "enabled": { "kind": "action", "label": "Smart Picks" },
+        "note": { "kind": "shows", "each": true },
+        "hour": { "kind": "action", "label": "Smart Picks build hour" },
+        "rebuild": { "kind": "action", "label": ["Rebuild", "…"] }
+      }
+    },
+    "settings-labels": {
+      "page": "Settings' Record labels (in Setup): Back, its title and what it holds; Record labels on or off and what the server has of them; a label's albums in order or shuffled; the fewest albums a label needs; Force rescan and what came of it; the label from the folder at a depth, Save and what is used",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "enabled": { "kind": "action", "label": "Record labels" },
+        "note": { "kind": "shows", "each": true },
+        "order": { "kind": "action", "label": "Label album order" },
+        "min": { "kind": "action", "label": "Minimum albums per label" },
+        "rescan": { "kind": "action", "label": ["Force rescan", "Starting…", "Done", "Rescan started"] },
+        "rescan-status": { "kind": "shows", "when": "a rescan asked for" },
+        "depth": { "kind": "action", "label": "Label from folder depth" },
+        "depth-save": { "kind": "action", "label": "Save" },
+        "caret": { "kind": "shows", "each": true },
+        "depth-status": { "kind": "shows" }
+      }
+    },
+    "settings-ui": {
+      "page": "Settings' UI Settings (in Setup): Back, its title and what it holds; the album and artist text, the grid screen title, the menu and Home text, the grid's layout and the tile size, each chosen from a list; the note that they are this device's",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "text": { "kind": "action", "label": "Album & artist text" },
+        "title": { "kind": "action", "label": "Grid screen title" },
+        "menu": { "kind": "action", "label": "Menu & Home Screen text" },
+        "layout": { "kind": "action", "label": "Grid layout" },
+        "caret": { "kind": "shows", "each": true },
+        "tile": { "kind": "action", "label": "Tile size" },
+        "note": { "kind": "shows" }
+      }
+    },
+    "settings-display": {
+      "page": "Settings' Wall Display (in Setup): Back, its title and what it holds; the wall display on or off, and how often it turns over, with the seconds beside it",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "enabled": { "kind": "action", "label": "Wall display" },
+        "seconds": { "kind": "action", "label": "Display rotation interval in seconds" }
+      }
+    },
+    "settings-shelf": {
+      "page": "Settings' Shelf (in Setup): Back, its title and what it holds; Shelf on or off",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "enabled": { "kind": "action", "label": "Shelf" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
