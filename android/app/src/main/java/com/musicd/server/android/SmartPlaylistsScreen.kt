@@ -64,9 +64,11 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
     val (cols, coverPx) = wallColumns(prefs)
     var list by remember { mutableStateOf<List<SmartPlaylist>?>(null) }
     var failed by remember { mutableStateOf(false) }
-    val sheets by NativeShell.sheetsClosed
+    val closed by NativeShell.sheetsClosed
+    // New's sheets, the app's own (item 95): what it is made of, its Focus, its name.
+    val sheets = rememberSmartSheets()
     BackHandler { onBack() }
-    LaunchedEffect(sheets) {
+    LaunchedEffect(closed) {
         val c = client() ?: return@LaunchedEffect
         val got = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.smartPlaylists() }.getOrNull() }
         failed = got == null
@@ -81,7 +83,7 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
         LazyVerticalGrid(GridCells.Fixed(cols), Modifier.fillMaxSize(), state = rememberLazyGridState(), contentPadding = WALL_PADDING,
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item(span = { GridItemSpan(maxLineSpan) }) { WallHead("Dynamic Playlists", prefs.copy(layout = "auto"), banner) }
-            item("new") { NewTile(prefs) { onPage("smart-new", null) } }
+            item("new") { NewTile(prefs) { sheets.new() } }
             val shown = list.orEmpty()
             items(shown.size, key = { "s" + shown[it].id }) { i -> SmartTile(shown[i], prefs, coverPx, client) { onPlaylist(shown[i].id) } }
         }
@@ -90,6 +92,7 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
         }
+        SmartSheets(sheets, client, onShowAlbums = { v -> onPage("library-show", v.query()) })
     }
 }
 

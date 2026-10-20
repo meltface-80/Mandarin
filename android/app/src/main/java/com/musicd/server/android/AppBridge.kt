@@ -194,6 +194,10 @@ class AppBridge(private val activity: Activity) {
     @JavascriptInterface
     fun notices(json: String) { val n = com.musicd.server.client.PageNotices.parse(json); activity.runOnUiThread { Notices.now.value = n } }
 
+    /** This screen's settings, which the app's own Backup & restore asked the page for (item 92, BackupPage). */
+    @JavascriptInterface
+    fun backupPageSettings(json: String) { BackupPage.answered(json) }
+
     @JavascriptInterface
     fun checkUpdate() {
         activity.runOnUiThread { AppUpdate.check(activity, asked = true) }

@@ -388,6 +388,23 @@ const OPEN_MENU = `(async () => {
 })()`;
 
 /* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
+/* The Dynamic Playlist sheets (item 95): New, a playlist's name asked, and a playlist shared (the server builds its file). */
+const OPEN_SMART_NEW = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 400 && typeof createSmartPlaylist !== "function"; i++) await sleep(50);
+  createSmartPlaylist();
+  await sleep(400);
+  return document.querySelector('.lib-sheet-backdrop [data-parity~="smart-new.mode"]') ? "open" : "not open";
+})()`;
+const OPEN_SHARE_TRACKS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 400 && typeof shareTracks !== "function"; i++) await sleep(50);
+  shareTracks("Road trip", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, { incomplete: true });
+  for (let i = 0; i < 200 && !document.querySelector(".lib-sheet-backdrop .share-blob"); i++) await sleep(50);
+  await sleep(300);
+  return document.querySelector(".lib-sheet-backdrop .share-blob") ? "open" : "not open";
+})()`;
+
 /* Add to playlist (item 93): an album's, with one playlist made first so the sheet lists one. */
 const OPEN_ADD_TO_PLAYLIST = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -422,6 +439,33 @@ const OPEN_GROUP = `(async () => {
   await sleep(600);
   return "open";
 })()`;
+/* Import a playlist (item 94): the sheet, a shared playlist pasted (one track the library has, one it hasn't), Import. */
+const OPEN_IMPORT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  const r = await fetch("/api/share/encode", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }, { title: "Song 2", artist: "Artist A", album: "Elsewhere" }, { title: "Nowhere", artist: "Nobody", album: "Nothing" }] }) });
+  const j = await r.json();
+  openImportSheet();
+  if (!(await until(() => !!document.getElementById("import-blob")))) return "no sheet";
+  document.getElementById("import-blob").value = j.blob;
+  document.querySelector('[data-parity~="playlist-import.import"]').click();
+  if (!(await until(() => !!document.querySelector(".lib-sheet .import-save")))) return "no result";
+  await sleep(600);
+  return "open";
+})()`;
+/* Share a playlist (item 94): the sheet for two tracks. */
+const OPEN_SHARE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  shareTracks("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, {});
+  if (!(await until(() => !!document.getElementById("share-blob") && !!document.getElementById("share-blob").value))) return "no sheet";
+  await sleep(600);
+  return "open";
+})()`;
+/* The name box (item 94), as Save as a playlist asks it. */
 const OPEN_POWER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -547,10 +591,15 @@ const SCREENS = {
   "settings-shelf": { open: OPEN_SETTINGS(["setup", "shelfset"]), root: '#settings-overlay .settings-view[data-pane="shelfset"]' },
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
+  "power-cover": { open: `(async () => { const t0 = Date.now(); while (!window.__serverAwayScreen) { if (Date.now() - t0 > 20000) return "no power"; await new Promise(r => setTimeout(r, 50)); } window.__serverAwayScreen("Restarting Mandarin…", "This page reloads when it's back.", 3600000); return "open"; })()`, root: "#power-cover" },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
   "settings-downloads": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.getElementById("dl-cache-status")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
   "settings-downloads-albums": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.querySelector('[data-dl-folder]') && (document.querySelector('[data-dl-folder]').click(), true) && !!document.querySelector(".dl-row")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
   "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
+  "settings-audio": { open: OPEN_SETTINGS(["playback"], `document.querySelectorAll("#devices-list .dev-row").length > 0`), root: '#settings-overlay .settings-view[data-pane="playback"]' },
+  "settings-device": { open: OPEN_SETTINGS(["playback"], `(() => { const b = document.querySelector("#devices-list [data-dev]"); if (!b) return false; if (!window.__deviceOpened) { window.__deviceOpened = true; b.click(); return false; } return shown(document.querySelector('#settings-overlay .settings-view[data-pane="device"]')) && !!document.getElementById("device-pane-body").textContent; })()`), root: '#settings-overlay .settings-view[data-pane="device"]' },
+  "settings-system": { open: OPEN_SETTINGS(["system"]), root: '#settings-overlay .settings-view[data-pane="system"]' },
+  "settings-backup": { open: OPEN_SETTINGS(["backup"], `document.querySelectorAll("#backup-parts .backup-part").length > 0 && !!document.querySelector("#backup-list .settings-note, #backup-list .backup-item")`), root: '#settings-overlay .settings-view[data-pane="backup"]' },
   "settings-scanner": { open: OPEN_SETTINGS(["identify"], `!!document.querySelector("#identify-pane-body .id-progress") && !document.querySelector("#identify-pane-body .id-wait")`), root: '#settings-overlay .settings-view[data-pane="identify"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
@@ -562,10 +611,14 @@ const SCREENS = {
   "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
+  "smart-new": { open: OPEN_SMART_NEW, root: ".lib-sheet-backdrop" },
+  "share-tracks": { open: OPEN_SHARE_TRACKS, root: ".lib-sheet-backdrop" },
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
+  "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },
+  "playlist-share": { open: OPEN_SHARE, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
   "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
   "service-browser": { open: OPEN_SERVICE, root: "#qobuz-overlay" },

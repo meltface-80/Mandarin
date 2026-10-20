@@ -84,17 +84,21 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
     val open by NativeShell.menuOpen
     val scope = rememberCoroutineScope()
     if (open) MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it) })
+    PowerOver(client)
 }
 
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
- * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home; the rest are the page's
- * (public/app/native-handoff.js, "menu"), Restart, Shut down and Shelf with the page in front, since what they put up is
- * the page's whole screen (its question and its screen while the server is away; Shelf, a page of its own).
+ * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
+ * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); the rest are the page's
+ * (public/app/native-handoff.js, "menu"), Shelf with the page in front, since what it puts up is the page's whole screen,
+ * a page of its own (a screen for a wall, not the app's: docs/specs/plan-android-native.md, "Not the app's").
  */
 internal fun menuTap(nav: NavHostController, what: String) {
     NativeShell.menuOpen.value = false
-    if (what == "shelf" || what.startsWith("power-")) { NativeShell.toWeb(); NativeShell.toPage("menu", what); return }
+    // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
+    if (what.startsWith("power-")) { PowerKept.asking.value = what; return }
+    if (what == "shelf") { NativeShell.toWeb(); NativeShell.toPage("menu", what); return }
     if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
     when (what) {
         "playlists" -> NativeShell.openPlaylists(NativeShell.zone)
@@ -262,10 +266,8 @@ private fun OfflineRow(on: Boolean, onTap: () -> Unit) {
     Row(Modifier.parity("menu.offline", Contract.label("menu.offline")).fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onTap).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(painterResource(R.drawable.mn_offline), contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(Contract.label("menu.offline"), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
-            Text(Menu.offlineSub(on), Modifier.parity("menu.offline-sub"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 15.6.sp)
-        }
+        // One line: "Offline Mode - On" or "- Off" (item 98).
+        Text(Menu.offlineSub(on), Modifier.parity("menu.offline-sub").weight(1f), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
         val track = if (on) accent else paletteColor(Palette.BG_ELEV_2)
         Box(Modifier.width(46.dp).height(28.dp).clip(CircleShape).background(track).border(1.dp, if (on) Color.Transparent else MaterialTheme.colorScheme.outline, CircleShape).padding(horizontal = 3.dp),
             contentAlignment = Alignment.CenterStart) {

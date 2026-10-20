@@ -10,8 +10,11 @@ import org.json.JSONObject
  * time it is opened; as the page's smart-playlists.js and smart-playlist.js read them.
  */
 
-/** A Dynamic Playlist as the list has it: what it is made of ([mode]), its [order], its saved [view], and the first covers it resolves to. */
-data class SmartPlaylist(val id: String, val name: String, val view: JSONObject, val mode: String, val order: String, val artKeys: List<String>) {
+/**
+ * A Dynamic Playlist as the list has it: what it is made of ([mode]), its [order], its saved [view], the first covers it
+ * resolves to, and how many albums it plays at most ([limit], which its Edit keeps; item 95).
+ */
+data class SmartPlaylist(val id: String, val name: String, val view: JSONObject, val mode: String, val order: String, val artKeys: List<String>, val limit: Int = 100) {
     /** Tracks rather than whole albums. */
     val tracks: Boolean get() = mode == "tracks"
 
@@ -21,7 +24,8 @@ data class SmartPlaylist(val id: String, val name: String, val view: JSONObject,
     companion object {
         fun list(j: JSONObject): List<SmartPlaylist> = objs(j.optJSONArray("playlists")).map {
             SmartPlaylist(it.optString("id"), it.optString("name").ifEmpty { "Dynamic Playlist" }, it.optJSONObject("view") ?: JSONObject(),
-                it.optString("mode").ifEmpty { "albums" }, it.optString("order").ifEmpty { "album" }, strings(it.optJSONArray("art_keys")).filter { k -> k.isNotEmpty() })
+                it.optString("mode").ifEmpty { "albums" }, it.optString("order").ifEmpty { "album" }, strings(it.optJSONArray("art_keys")).filter { k -> k.isNotEmpty() },
+                it.optInt("limit").takeIf { n -> n > 0 } ?: 100)
         }
 
         /**

@@ -7,6 +7,59 @@
   flag stayed up, so every visit after asked for nothing. Seldom at home, where the first page comes at once. The flag
   is now let go however the request ends; and a first page that failed ("Couldn't load") is asked for again when the
   Library is opened again.
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
+- `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
+  outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
+  question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
+  each button's question to the app with the notice, the app asks it as the page's yes-or-no sheet, and the page does
+  its work once told it was answered Yes. The side menu's Restart and Shut down are now the app's own too: the
+  question (Shut down saying how the server is started again), then the screen over everything while the server is
+  away, as the page's (`power-cover` in the screens contract), until it answers again, the page under the app read
+  afresh with it. Shelf stays the page's, a page of its own; the Offline dialog and the signed-out state go with the
+  offline work (O1); a Music on device album's page is still the page's.
+- `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
+  Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
+  phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
+  match and those found on another album, each listed, and Save as a playlist, which asks its name in the app's own name
+  box (the page's, natively) and makes it, the Playlists screen and Home's row taking it at once. Share (a playlist's ⋯ →
+  Share): how many tracks and what was left out, what sharing means, the playlist as text; Copy, Download (the `.musicd`
+  file to the phone's Download/Mandarin folder, where Import's Choose a file… finds it) and Done. The page's sheets and
+  name box are keyed for the screens contract (`playlist-import`, `playlist-share`, `prompt`). On the page, Choose a
+  file…'s words sit in the middle of the button (they sat at its top), and the name box's field is in the page's face, not
+  the browser's.
+- `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
+  screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
+  Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);
+  the name box (Save as… from the Library too), the save made on the app's lane of changes to what Home shows, what it
+  plays of the albums that match said, the playlist or the list read again; Share (its tracks read album by album, the
+  server's file shown with how many tracks went in and every reason it holds less, Copy to the clipboard, Download to
+  Downloads/Mandarin). Show albums or Clear all from a playlist's Focus open the Library in that view, as the page's
+  do. The page's sheets are keyed for the screens contract (`smart-new`, `prompt`, `share-tracks`); its hand-offs stay
+  for an app not yet updated.
+- `89-native-settings-audio`: Settings → Audio Devices natively in the Android app (plan T6), as the page's: the zone the
+  controls play to; every player the server sees, a row each (its icon, name, what it is and whether it plays) with its
+  switch where it can be switched off; Hide / unhide (the rows ticked, OK, and what came of it said) and Look again;
+  Waveform. A row opens the device's own page: on or off, Random album radio, a phone's Other devices can play here, its
+  name (and Use the network name), About, its capabilities as chips (tapped on or off where they can be set), Output
+  (the mode, the depth, Fixed volume), Volume levelling with its level, the DSP (a headphone profile found on AutoEq by its
+  name or pasted, the bands' curve drawn from the same maths the server runs, each band's type, Hz, dB and Q, Add band,
+  the headroom Auto or set, Save), this phone's USB DAC (Allow, what it takes, USB direct, fixed volume, the limit, how
+  DSD goes, what it is being fed, Copy), and Forget this device. The page's are keyed for the screens contract
+  (`settings-audio`, `settings-device`).
+- `92-native-settings-backup-updates`: Settings → Backup & restore and Settings → Updates natively in the Android app
+  (plan T9), as the page's. Backup & restore: the parts to put in, each ticked or not with what it holds (the whole
+  database with its size), a passphrase, Back up to a file on this phone (Android's own "save as") or to the server, and
+  what came of it; Restore from a file on this phone (Android's own "open"), and every backup, the server's and this
+  phone's, newest first, each with where, when, what version, how big and what it holds, Restore… (its parts, a sealed
+  one's passphrase, Restore now, asked first), Download (one of the server's, saved to this phone and listed with its
+  files) and Delete (asked first). A restore is made on the app's lane of changes; this screen's own settings travel
+  with a backup and come back with a restore (handed to and from the page, where they live); once the server is back
+  from its restart the app starts again on what was restored. Updates: Check for updates looks for the server's update
+  and the app's at once, then offers to install what it found, in brass, with the server's release notes, or says how
+  things stand; installing is handed to the page's update banner on Home, where its progress shows. The pages are keyed
+  for the screens contract (`settings-backup`, `settings-system`).
 - `90-native-settings-scanner`: Settings → Library Scanner natively in the Android app (plan T7), as the page's: the
   schedule (on or off, its start and end chosen on the phone's own clock, what runs now); Identify albums and Ask
   iTunes too; the MusicBrainz pack (what is downloaded and from when, Download, Update or Remove, the download's progress

@@ -205,6 +205,8 @@ class ServerClient(
     }
     fun mergeLabels(items: List<MergedLabel>) { post("/api/labels/merge", JSONObject().put("items", org.json.JSONArray(items.map { JSONObject().put("key", it.key).put("display", it.display) }))) }
     fun unmergeLabel(key: String) { send("DELETE", "/api/labels/merge/" + enc(key)) }
+    /** One of the server's backups deleted (item 92). */
+    fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
     fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
     fun labelsScanLog(): String = String(bytes(address.baseUrl + "/api/labels-scan-log"), Charsets.UTF_8)
 
@@ -305,6 +307,25 @@ class ServerClient(
         val c = open(address.baseUrl + path, timeout)
         try {
             c.requestMethod = "POST"
+            c.doOutput = true
+            c.setRequestProperty("Content-Type", "application/json")
+            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            return readJson(c)
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    /**
+     * A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so):
+     * its answer. Android's connection takes the method; one that refuses it has it set underneath.
+     */
+    fun patch(path: String, body: JSONObject): JSONObject {
+        val c = open(address.baseUrl + path, timeoutMs)
+        try {
+            try { c.requestMethod = "PATCH" } catch (e: java.net.ProtocolException) {
+                HttpURLConnection::class.java.getDeclaredField("method").apply { isAccessible = true }.set(c, "PATCH")
+            }
             c.doOutput = true
             c.setRequestProperty("Content-Type", "application/json")
             c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }

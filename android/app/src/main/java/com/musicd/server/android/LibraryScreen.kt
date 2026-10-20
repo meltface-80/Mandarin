@@ -81,6 +81,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     var focusOpen by remember { mutableStateOf(false) }
+    val smartSheets = rememberSmartSheets()
     var sortOpen by remember { mutableStateOf(false) }
     var facets by remember { mutableStateOf<Facets?>(null) }
     var filtering by remember { mutableStateOf(false) }
@@ -148,7 +149,9 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
                 }
             })
         }
-        if (focusOpen) FocusSheet(view, facets, onChange = ::change, onSave = { focusOpen = false; onPage("smart-save", view.query()) }, onShow = { focusOpen = false }, onClose = { focusOpen = false })
+        if (focusOpen) FocusSheet(view, facets, onChange = ::change, onSave = { focusOpen = false; smartSheets.saveAs(view) }, onShow = { focusOpen = false }, onClose = { focusOpen = false })
+        // Save as…: the view named and saved by the app's own box (item 95), then the Dynamic Playlists, as the page goes there.
+        SmartSheets(smartSheets, client, onSaved = { onPage("smart-playlists", null) })
         // A sort chosen closes the sheet; the one on, tapped again, reverses in place (Random reshuffles and closes), as the page's.
         if (sortOpen) SortSheet(view, onChoose = { id -> val same = id == view.sort; val v = view.choose(id); change(v); if (!same || !v.sortOption.hasDir) sortOpen = false }, onClose = { sortOpen = false })
     }

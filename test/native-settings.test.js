@@ -76,3 +76,26 @@ test("a setting the page keeps on this device, changed in the app, is kept where
   assert.deepEqual(page.errors, [], "nothing thrown");
   assert.deepEqual(r, { asked: [true, true, true, true, false, false], layout: "list", text: "1.25", order: "random", min: "5", kept: "list" });
 });
+
+test("this screen's settings handed to the app's own backup, and put back from a restore (item 92)", { skip, timeout: 120000 }, async (t) => {
+  const { base, token } = await started(t);
+  const b = await Browser.launch({ width: 412, height: 915 });
+  t.after(() => b.close());
+  const init = BRIDGE + `window.MusicdApp.backupPageSettings = (j) => { window.__gotPage = j; };`;
+  const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true, init });
+  const r = await page.eval(`(async () => {
+    localStorage.setItem("rra-ui-text", "1.25"); localStorage.setItem("rra-zone", "kitchen"); localStorage.removeItem("rra-ui-tile");
+    const asked = window.__musicdNative("backup-page", null);
+    const got = JSON.parse(window.__gotPage || "{}");
+    const put = window.__musicdNative("backup-page-restore", JSON.stringify({ "rra-ui-tile": "1.5", "rra-zone": "hall" }));
+    // The app's own Check for updates found one: its install handed to the page's update banner, which owns the progress.
+    window.__applyUpdateNow = (w) => { window.__applied = w; };
+    const install = window.__musicdNative("apply-update", JSON.stringify({ server: true, app: false }));
+    return { asked, text: got["rra-ui-text"], zone: got["rra-zone"], put, tile: localStorage.getItem("rra-ui-tile"), zoneNow: localStorage.getItem("rra-zone"),
+      textNow: localStorage.getItem("rra-ui-text"), bad: window.__musicdNative("backup-page-restore", "{"), install, applied: window.__applied,
+      badInstall: window.__musicdNative("apply-update", "{") };
+  })()`);
+  assert.deepEqual(page.errors, [], "nothing thrown");
+  assert.deepEqual(r, { asked: true, text: "1.25", zone: "kitchen", put: true, tile: "1.5", zoneNow: "hall", textNow: null, bad: false,
+    install: true, applied: { server: true, app: false }, badInstall: false });
+});
