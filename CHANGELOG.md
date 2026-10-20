@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
+  else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
+  with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
 - `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
   good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
   cleared it only once the page came: the Library left or drawn again before then, the request was called off and the
