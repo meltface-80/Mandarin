@@ -294,6 +294,9 @@ function openLibSheet(title, buildBody, footer, onClose) {
   // Group zones and Device power too (group, device-power; item 68).
   else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
   else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
+  // A playlist imported and shared (playlist-import, playlist-share; item 94).
+  else if (title === "Import a playlist") { h.dataset.parity = "playlist-import.title"; x.dataset.parity = "playlist-import.close"; }
+  else if (title.startsWith("Share ")) { h.dataset.parity = "playlist-share.title"; x.dataset.parity = "playlist-share.close"; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");

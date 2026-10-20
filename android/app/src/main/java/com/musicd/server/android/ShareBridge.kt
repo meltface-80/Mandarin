@@ -199,6 +199,38 @@ class ShareBridge(private val activity: Activity) {
         }
     }
 
+    /**
+     * [bytes] saved to the phone's Download/Mandarin as [fileName] (a playlist shared, the native sheet's Download; item 94):
+     * where the phone's Files app and every other app's file picker find it, Import's Choose a file… among them.
+     */
+    fun saveDownload(bytes: ByteArray, fileName: String, mime: String): Boolean {
+        val name = safeName(fileName)
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/Mandarin")
+                    put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val r = activity.contentResolver
+                val uri = r.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+                try {
+                    r.openOutputStream(uri)?.use { it.write(bytes) } ?: throw java.io.IOException("no stream")
+                    r.update(uri, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+                } catch (e: Exception) { r.delete(uri, null, null); throw e }
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "Mandarin").apply { mkdirs() }
+                File(dir, name).writeBytes(bytes)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "save to downloads failed", e)
+            false
+        }
+    }
+
     @JavascriptInterface
     fun shareImage(base64: String, fileName: String, mime: String) { decode(base64)?.let { share(it, fileName, mime) } }
 

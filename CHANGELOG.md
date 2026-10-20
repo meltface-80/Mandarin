@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
+  Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
+  phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
+  match and those found on another album, each listed, and Save as a playlist, which asks its name in the app's own name
+  box (the page's, natively) and makes it, the Playlists screen and Home's row taking it at once. Share (a playlist's ⋯ →
+  Share): how many tracks and what was left out, what sharing means, the playlist as text; Copy, Download (the `.musicd`
+  file to the phone's Download/Mandarin folder, where Import's Choose a file… finds it) and Done. The page's sheets and
+  name box are keyed for the screens contract (`playlist-import`, `playlist-share`, `prompt`). On the page, Choose a
+  file…'s words sit in the middle of the button (they sat at its top), and the name box's field is in the page's face, not
+  the browser's. The contract's labels file is written a line a screen, so it no longer grows by a line a control.
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed

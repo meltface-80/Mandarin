@@ -378,6 +378,42 @@ const OPEN_GROUP = `(async () => {
   await sleep(600);
   return "open";
 })()`;
+/* Import a playlist (item 94): the sheet, a shared playlist pasted (one track the library has, one it hasn't), Import. */
+const OPEN_IMPORT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  const r = await fetch("/api/share/encode", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }, { title: "Song 2", artist: "Artist A", album: "Elsewhere" }, { title: "Nowhere", artist: "Nobody", album: "Nothing" }] }) });
+  const j = await r.json();
+  openImportSheet();
+  if (!(await until(() => !!document.getElementById("import-blob")))) return "no sheet";
+  document.getElementById("import-blob").value = j.blob;
+  document.querySelector('[data-parity~="playlist-import.import"]').click();
+  if (!(await until(() => !!document.querySelector(".lib-sheet .import-save")))) return "no result";
+  await sleep(600);
+  return "open";
+})()`;
+/* Share a playlist (item 94): the sheet for two tracks. */
+const OPEN_SHARE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  shareTracks("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, {});
+  if (!(await until(() => !!document.getElementById("share-blob") && !!document.getElementById("share-blob").value))) return "no sheet";
+  await sleep(600);
+  return "open";
+})()`;
+/* The name box (item 94), as Save as a playlist asks it. */
+const OPEN_PROMPT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  window.__promptDialog("Name this playlist", "Shared playlist");
+  if (!(await until(() => !document.getElementById("prompt-overlay").classList.contains("hidden")))) return "no box";
+  await sleep(400);
+  return "open";
+})()`;
 const OPEN_POWER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -516,6 +552,9 @@ const SCREENS = {
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
+  "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },
+  "playlist-share": { open: OPEN_SHARE, root: ".lib-sheet-backdrop" },
+  "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
   "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
   "service-browser": { open: OPEN_SERVICE, root: "#qobuz-overlay" },

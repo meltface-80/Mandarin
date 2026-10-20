@@ -2066,11 +2066,11 @@
   <div id="prompt-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-msg">
     <div class="confirm-backdrop"></div>
     <form class="confirm-box" id="prompt-form">
-      <p class="confirm-msg" id="prompt-msg"></p>
-      <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
+      <p class="confirm-msg" id="prompt-msg" data-parity="prompt.message"></p>
+      <input class="prompt-input" id="prompt-input" data-parity="prompt.input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
       <div class="confirm-actions">
-        <button class="confirm-btn" id="prompt-cancel" type="button">Cancel</button>
-        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit">Save</button>
+        <button class="confirm-btn" id="prompt-cancel" type="button" data-parity="prompt.cancel">Cancel</button>
+        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit" data-parity="prompt.ok">Save</button>
       </div>
     </form>
   </div>

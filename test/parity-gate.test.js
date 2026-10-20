@@ -100,7 +100,8 @@ test("the contract itself: kinds, labels, the page's alone with a reason, in a c
 
 test("Contract.kt is the contract's labels; the gate refuses one written by hand, the gaps list one that grows", () => {
   const k = contractKotlin(contract());
-  assert.match(k, /"play\.back" to listOf\("Back"\),\n {8}"play\.play" to listOf\("Play", "Pause"\),/);
+  // A screen's labels on its own line (item 94), so the file grows by a line a screen, not a line a control.
+  assert.match(k, /\n {8}"play\.back" to listOf\("Back"\), "play\.play" to listOf\("Play", "Pause"\),\n/);
   assert.ok(!/play\.title|play\.desk/.test(k), "no readouts, nothing the page's alone");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-parity-"));
   const git = (...a) => spawnSync("git", a, { cwd: root, stdio: "pipe" });

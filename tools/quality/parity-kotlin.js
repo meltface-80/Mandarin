@@ -158,13 +158,17 @@ function scan(src) {
  * @param {{ screens: Record<string, { items: Record<string, { kind: string, label?: string | string[], only?: string }> }> }} contract
  * @returns {string}
  */
+// One line a screen, its labels side by side (item 94): a line a label grew the file past the watch line as screens came,
+// and a generated file is laid out by its tool, never split by hand.
 function contractKotlin(contract) {
   const rows = [];
   for (const [s, screen] of Object.entries(contract.screens)) {
+    const entries = [];
     for (const [k, it] of Object.entries(screen.items)) {
       if (it.kind !== "action" || !it.label || it.only) continue;
-      rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
+      entries.push(`"${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
     }
+    if (entries.length) rows.push(`        ${entries.join(" ")}`);
   }
   return `// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client

@@ -887,6 +887,55 @@
         "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
       }
     },
+    "playlist-import": {
+      "page": "Import a playlist (the native Playlists' Import): the page's sheet up from the foot, what to paste and why, the box to paste a shared playlist into, Choose a file…, and what came of it: how many of its tracks the library has, those it couldn't match and those found on another album, Save as a playlist; Import and Close",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistImportSheet.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "note": { "kind": "shows" },
+        "blob": { "kind": "action", "label": "Shared playlist" },
+        "file": { "kind": "action", "label": "Choose a file…" },
+        "result": { "kind": "shows" },
+        "sum": { "kind": "shows", "when": "a playlist read" },
+        "warn": { "kind": "shows", "each": true, "when": "a playlist read that was cut short, or with tracks the library can't match" },
+        "missing": { "kind": "shows", "each": true, "when": "tracks the library can't match" },
+        "sub-note": { "kind": "shows", "when": "tracks found on another album than the playlist named" },
+        "substituted": { "kind": "shows", "when": "tracks found on another album than the playlist named" },
+        "searching": { "kind": "shows", "when": "the library's albums being searched for the rest" },
+        "save": { "kind": "action", "label": ["Save {tracks} as a playlist", "Searching your library…", "Saved"], "when": "a playlist read with tracks the library has" },
+        "import": { "kind": "action", "label": "Import" },
+        "done": { "kind": "action", "label": "Close" }
+      }
+    },
+    "playlist-share": {
+      "page": "Share a playlist (a playlist's ⋯ → Share, and a Dynamic Playlist's): the page's sheet up from the foot, how many tracks, what was left out and why, what sharing means, the shared playlist as text; Copy, Download and Done",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistShareSheet.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "sum": { "kind": "shows" },
+        "warn": { "kind": "shows", "each": true, "when": "tracks left out, or a file too big to paste" },
+        "note": { "kind": "shows" },
+        "blob": { "kind": "action", "label": "Shared playlist" },
+        "copy": { "kind": "action", "label": "Copy" },
+        "download": { "kind": "action", "label": "Download" },
+        "done": { "kind": "action", "label": "Done" }
+      }
+    },
+    "prompt": {
+      "page": "the page's name box (#prompt-overlay), as a playlist imported, a new playlist and a Dynamic Playlist saved ask it: the question, the name, Cancel and Save",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PromptDialog.kt"],
+      "preview": false,
+      "items": {
+        "message": { "kind": "shows" },
+        "input": { "kind": "action", "label": "Name" },
+        "cancel": { "kind": "action", "label": "Cancel" },
+        "ok": { "kind": "action", "label": "Save" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
