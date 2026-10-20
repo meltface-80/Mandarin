@@ -132,7 +132,7 @@ internal fun SettingsDownloadsList(albums: List<DlAlbum>, used: Long, client: ()
             }
             Block {
                 for ((i, a) in albums.withIndex()) AlbumRow(a, server[a.id]?.imageKey ?: a.imageKey, client, sel, a.id in ticked, i == albums.lastIndex,
-                    choose = { chosen = if (a.id in ticked) ticked - a.id else ticked + a.id }, open = { open(a) }, play = { bridge.play(a.id) }, remove = { remove(listOf(a)) })
+                    choose = { chosen = if (a.id in ticked) ticked - a.id else ticked + a.id }, open = { open(a) }, play = { bridge.play(a.id) }, retry = { bridge.retry(a.id) }, remove = { remove(listOf(a)) })
             }
         }
         if (sel) SelBar(ticked.size) { remove(albums.filter { it.id in ticked }) }
@@ -142,11 +142,12 @@ internal fun SettingsDownloadsList(albums: List<DlAlbum>, used: Long, client: ()
 /**
  * An album's row (.dl-row): 8 over and under, a rule under all but the last, washed in brass while ticked. Selecting, its
  * tick box first and the row a tick; else its cover (52, 8 round), title 15/600, artist 13 dim and how far it has come in
- * 12 faint, then Play once downloaded and Remove, 40 round, brass on the raised ground. One on a card that is out has none.
+ * 12 faint, then Play once downloaded (Try again once its download failed, item 110) and Remove, 40 round, brass on the
+ * raised ground. One on a card that is out has none.
  */
 @Composable
 private fun AlbumRow(a: DlAlbum, imageKey: String?, client: () -> ServerClient?, selecting: Boolean, on: Boolean, last: Boolean,
-                     choose: () -> Unit, open: () -> Unit, play: () -> Unit, remove: () -> Unit) {
+                     choose: () -> Unit, open: () -> Unit, play: () -> Unit, retry: () -> Unit, remove: () -> Unit) {
     val accent = paletteColor(Palette.ACCENT)
     Column(Modifier.fillMaxWidth().background(if (on) accent.copy(alpha = 0.08f) else Color.Transparent)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -167,6 +168,7 @@ private fun AlbumRow(a: DlAlbum, imageKey: String?, client: () -> ServerClient?,
             }
             if (!selecting && a.state != "away") {
                 if (a.state == "done") RoundButton(R.drawable.dl_play, Modifier.parity("settings-downloads-albums.play", Contract.label("settings-downloads-albums.play")).clickable(onClick = play))
+                if (a.state == "failed") RoundButton(R.drawable.dl_retry, Modifier.parity("settings-downloads-albums.retry", Contract.label("settings-downloads-albums.retry")).clickable(onClick = retry))
                 RoundButton(R.drawable.dl_bin, Modifier.parity("settings-downloads-albums.remove", Contract.label("settings-downloads-albums.remove")).clickable(onClick = remove))
             }
         }

@@ -87,13 +87,14 @@
       }
     },
     "offline": {
-      "page": "the page's Offline dialog (#offline-overlay), opened from the row's Offline sign: why only the music on this phone shows, and, when Offline mode is on, the switch to turn it off; Close",
+      "page": "the page's Offline dialog (#offline-overlay), opened from the row's Offline sign: why only the music on this phone shows, and, when Offline mode is on, the switch to turn it off, or, the server out of reach, Try the server again; Close",
       "native": ["android/app/src/main/java/com/musicd/server/android/OfflineDialog.kt"],
       "preview": false,
       "items": {
         "title": { "kind": "shows" },
         "text": { "kind": "shows" },
         "switch": { "kind": "action", "label": "Switch offline mode off", "when": "Offline mode is on (the app's own switch)" },
+        "retry": { "kind": "action", "label": "Try the server again", "when": "the app can't reach the server" },
         "close": { "kind": "action", "label": "Close" }
       }
     },
@@ -974,7 +975,7 @@
       }
     },
     "settings-downloads-albums": {
-      "page": "Settings' Downloads, its albums (the Downloads row tapped): Back to Downloads, its title and how many albums are on the phone; Select and Clear all; each album with its cover, title, artist and how far it has come (downloaded, on its way, waiting, failed, on a card that is out), Play on this phone once it is downloaded and Remove; selecting, each album ticked or not, Select all or none, Done, how many are selected and Remove them; with none, what to do to have some",
+      "page": "Settings' Downloads, its albums (the Downloads row tapped): Back to Downloads, its title and how many albums are on the phone; Select and Clear all; each album with its cover, title, artist and how far it has come (downloaded, on its way, waiting, failed, on a card that is out), Play on this phone once it is downloaded, Try again once its download failed, and Remove; selecting, each album ticked or not, Select all or none, Done, how many are selected and Remove them; with none, what to do to have some",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDownloadsList.kt"],
       "preview": false,
       "items": {
@@ -988,6 +989,7 @@
         "artist": { "kind": "shows", "each": true, "when": "albums on the phone" },
         "state": { "kind": "shows", "each": true, "when": "albums on the phone" },
         "play": { "kind": "action", "label": "Play on this phone", "each": true, "when": "the album downloaded" },
+        "retry": { "kind": "action", "label": "Try again", "each": true, "when": "the album's download failed" },
         "remove": { "kind": "action", "label": "Remove from this phone", "each": true, "when": "albums on the phone (not on a card that is out)" },
         "check": { "kind": "action", "label": "Select {album}", "each": true, "in": "select" },
         "select-all": { "kind": "action", "label": ["Select all", "Select none"], "in": "select" },

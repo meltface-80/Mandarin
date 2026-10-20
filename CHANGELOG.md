@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `110-downloads-retry-native`: the app's old Downloads screen (`DownloadsActivity`, a View screen) is deleted, with the
+  error panel's On this phone that opened it and the page-load error's automatic open of it (both dead since the page's
+  copy took over offline). Its two buttons move, as the owner asked: Try again on a download that failed, in Settings →
+  Downloads' albums (`settings-downloads-albums.retry`, the page's and the app's; `MusicdDownloads.retry`), and Try the
+  server again in the Offline dialog when the server can't be reached (`offline.retry`; `MusicdApp.lookForServer`, the
+  server looked for now rather than at its next look). An album's ⋯ → Downloading… (`MusicdDownloads.open`) opens
+  Settings → Downloads' albums (`ShellRoute.settings("downloads-albums")`).
 - `109-offline-native`: offline, the Android app stays native (O1's switch-over, docs/specs/plan-android-native.md).
   With Offline mode on or the server out of reach, MainActivity no longer loads the page's copy kept in the APK: it
   parks the page (stopped, blank) and the native screens stay in front (`OfflineNow`), asking the phone the same

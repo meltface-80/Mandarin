@@ -12,6 +12,7 @@ class OfflineTest {
         assertEquals(2, OfflineNote.lines(OfflineKind.MODE).size)
         assertTrue(OfflineNote.lines(OfflineKind.MODE)[1].startsWith("Switch it off"))
         assertTrue(OfflineNote.canSwitch(OfflineKind.MODE))
+        assertFalse(OfflineNote.canRetry(OfflineKind.MODE))
     }
 
     @Test fun `the server away, nothing to switch`() {
@@ -19,5 +20,6 @@ class OfflineTest {
         assertEquals(3, OfflineNote.lines(OfflineKind.APP).size)
         assertTrue(OfflineNote.lines(OfflineKind.APP)[0].startsWith("This phone can’t reach"))
         assertFalse(OfflineNote.canSwitch(OfflineKind.APP))
+        assertTrue(OfflineNote.canRetry(OfflineKind.APP))
     }
 }

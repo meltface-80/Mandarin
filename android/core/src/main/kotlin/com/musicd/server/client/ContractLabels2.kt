@@ -65,6 +65,7 @@ internal object ContractLabels2 {
         "settings-downloads-albums.clear-all" to listOf("Clear all"),
         "settings-downloads-albums.open" to listOf("{album}"),
         "settings-downloads-albums.play" to listOf("Play on this phone"),
+        "settings-downloads-albums.retry" to listOf("Try again"),
         "settings-downloads-albums.remove" to listOf("Remove from this phone"),
         "settings-downloads-albums.check" to listOf("Select {album}"),
         "settings-downloads-albums.select-all" to listOf("Select all", "Select none"),

@@ -47,6 +47,7 @@ internal object ContractLabels1 {
         "confirm.no" to listOf("No"),
         "confirm.yes" to listOf("Yes"),
         "offline.switch" to listOf("Switch offline mode off"),
+        "offline.retry" to listOf("Try the server again"),
         "offline.close" to listOf("Close"),
         "mini-player.playpause" to listOf("Play", "Pause"),
         "mini-player.open" to listOf("Now playing"),
