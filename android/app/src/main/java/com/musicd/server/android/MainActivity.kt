@@ -85,8 +85,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
     private var relayTriedFor: String? = null
     /** The last load failed (set by the WebView client, cleared by each load). */
     private var loadFailed = false
-    /** The offline screen has been opened for this outage — once, so Back returns here. */
-    private var offlineShown = false
     /** The app is answering the page itself (the server can't be reached). */
     @Volatile private var offline = false
     private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -121,6 +119,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
             }
         }
     }
+    /** Offline, the server looked for now (the Offline dialog's Try the server again, item 110), not at the next look. */
+    fun lookForServer() { if (offline && ::web.isInitialized) { web.removeCallbacks(serverWatch); web.post(serverWatch) } }
     /** Downloads changed: tell the page (gathered, so a burst of progress is one call). */
     private var downloadsPending = false
     private val onDownloads: () -> Unit = {
@@ -731,10 +731,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
                 setOnClickListener { load() }
             })
             addView(Button(this@MainActivity).apply {
-                text = "On this phone"
-                setOnClickListener { startActivity(Intent(this@MainActivity, DownloadsActivity::class.java)) }
-            })
-            addView(Button(this@MainActivity).apply {
                 text = "Change server"
                 setOnClickListener { openConnect() }
             })
@@ -843,7 +839,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
         override fun onPageFinished(view: WebView, url: String) {
             if (view === web) pageReady = true
-            if (!loadFailed) offlineShown = false
             if (!loadFailed && !offline) pageLoaded = true
             // From the server: keep the app's copy of the page up to date.
             if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
@@ -863,12 +858,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
             val where = Store.active(this@MainActivity)?.toString() ?: "the server"
             loadFailed = true
             showError("Can't reach Mandarin at $where.\n\n${error.description}\n")
-            // The app's own screen instead of an error: what's on the phone, and its player.
-            if (!offlineShown && DownloadStore.albums(this@MainActivity).any { it.first.state == "done" }) {
-                offlineShown = true
-                startActivity(Intent(this@MainActivity, DownloadsActivity::class.java)
-                    .putExtra(DownloadsActivity.EXTRA_OFFLINE, true))
-            }
         }
 
         /**

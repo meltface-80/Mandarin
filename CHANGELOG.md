@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `110-downloads-retry-native`: the app's old Downloads screen (`DownloadsActivity`, a View screen) is deleted, with the
+  error panel's On this phone that opened it and the page-load error's automatic open of it (both dead since the page's
+  copy took over offline). Its two buttons move, as the owner asked: Try again on a download that failed, in Settings →
+  Downloads' albums (`settings-downloads-albums.retry`, the page's and the app's; `MusicdDownloads.retry`), and Try the
+  server again in the Offline dialog when the server can't be reached (`offline.retry`; `MusicdApp.lookForServer`, the
+  server looked for now rather than at its next look). An album's ⋯ → Downloading… (`MusicdDownloads.open`) opens
+  Settings → Downloads' albums (`ShellRoute.settings("downloads-albums")`).
 - `106-offline-phone-shelf`: step 2 of O1 (offline natively). `ServerClient` asks through a `Transport`: over HTTP
   (`HttpTransport`, the code it had) or answered in the app (`LocalTransport`), so the native screens can be answered
   offline without a change of their own. The library on the phone moves into core as `PhoneShelf` (from the app's

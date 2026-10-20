@@ -51,7 +51,8 @@ internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, mo
     var why by remember { mutableStateOf(false) }
     val context = LocalContext.current
     // Offline mode switched off as the page's dialog does it (MusicdDownloads.set), the page loaded again onto the server's library.
-    if (why) OfflineDialog(OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } }, onClose = { why = false })
+    if (why) OfflineDialog(OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } },
+        onRetry = { why = false; (context.activity() as? MainActivity)?.lookForServer() }, onClose = { why = false })
     Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Box(Modifier.fillMaxWidth().height(58.dp)) {

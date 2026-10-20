@@ -111,6 +111,10 @@
     let canSwitch = false;
     try { canSwitch = offState.kind === "mode" && !!window.MusicdDownloads && typeof window.MusicdDownloads.set === "function"; } catch (e) { /* no app */ }
     sw.classList.toggle("hidden", !canSwitch);
+    // The app unable to reach the server: it looks for it now, rather than at its next look (item 110).
+    let canRetry = false;
+    try { canRetry = offState.kind === "app" && !!window.MusicdApp && typeof window.MusicdApp.lookForServer === "function"; } catch (e) { /* no app */ }
+    document.getElementById("offline-retry").classList.toggle("hidden", !canRetry);
     offOv.classList.remove("hidden");
     try { document.getElementById("offline-close").focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ }
   }
@@ -119,6 +123,10 @@
   if (offOv) {
     document.getElementById("offline-close").addEventListener("click", closeOffline);
     offOv.querySelector(".confirm-backdrop").addEventListener("click", closeOffline);
+    document.getElementById("offline-retry").addEventListener("click", () => {
+      try { window.MusicdApp.lookForServer(); } catch (e) { /* no app */ }
+      closeOffline();
+    });
     // The app reloads the page onto the server's library when it changes.
     document.getElementById("offline-switch").addEventListener("click", () => {
       try { window.MusicdDownloads.set("offlineMode", "false"); } catch (e) { /* no app */ }

@@ -59,16 +59,16 @@ import org.json.JSONObject
  * on is seen moving. The albums are SettingsDownloadsList.kt's.
  */
 
-/** Settings' Downloads ([client]: the server's, for the albums' covers; [onBack]: back to Setup). */
+/** Settings' Downloads ([client]: the server's, for the albums' covers; [onBack]: back to Setup); opened on its albums ([albums], item 110). */
 @Composable
-internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit, albums: Boolean = false) {
     val context = LocalContext.current
     val bridge = remember(context) { (context as? Activity)?.let { DownloadsBridge(it) } } ?: return
     var settings by remember { mutableStateOf<DlSettings?>(null) }
-    var albums by remember { mutableStateOf<List<DlAlbum>>(emptyList()) }
+    var list by remember { mutableStateOf<List<DlAlbum>>(emptyList()) }
     var cache by remember { mutableStateOf("…") }
     var reads by remember { mutableIntStateOf(0) }
-    var showAlbums by remember { mutableStateOf(false) }
+    var showAlbums by remember { mutableStateOf(albums) }
     var info by remember { mutableStateOf<String?>(null) }
     // Read now, after a change (reads), and every two seconds while open: a download moving on, the cache filling.
     LaunchedEffect(reads) {
@@ -76,15 +76,17 @@ internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit) 
             val got = withContext(Dispatchers.IO) {
                 runCatching { Triple(DlSettings.parse(JSONObject(bridge.settings())), DlAlbum.list(JSONArray(bridge.all())), Downloads.cacheLine(JSONObject(bridge.cacheStatus()))) }.getOrNull()
             }
-            if (got != null) { settings = got.first; albums = got.second; cache = got.third }
+            if (got != null) { settings = got.first; list = got.second; cache = got.third }
             delay(2_000)
         }
     }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
     fun set(key: String, value: String) { bridge.set(key, value); reads++ }
     if (showAlbums) {
-        BackHandler { showAlbums = false }
-        SettingsDownloadsList(albums, settings?.used ?: 0, client, bridge, onBack = { showAlbums = false }, changed = { reads++ })
+        // Opened on them (an album's ⋯ → Downloading…), Back closes Downloads; else it comes back to Downloads.
+        val back = { if (albums) onBack() else { showAlbums = false } }
+        BackHandler(onBack = back)
+        SettingsDownloadsList(list, settings?.used ?: 0, client, bridge, onBack = back, changed = { reads++ })
         return
     }
     val s = settings
@@ -93,7 +95,7 @@ internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit) 
             SettingsHead(Modifier.parity("settings-downloads.back", Contract.label("settings-downloads.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Downloads", Modifier.parity("settings-downloads.heading"))
             if (s == null) return@SettingsFrame
-            Block { FolderRow(Downloads.folderSub(albums, s.used), Modifier.parity("settings-downloads.folder", Contract.label("settings-downloads.folder")).clickable { showAlbums = true }) }
+            Block { FolderRow(Downloads.folderSub(list, s.used), Modifier.parity("settings-downloads.folder", Contract.label("settings-downloads.folder")).clickable { showAlbums = true }) }
             SettingsDivider(18, 18)
             s.offlineMode?.let { on ->
                 Block {

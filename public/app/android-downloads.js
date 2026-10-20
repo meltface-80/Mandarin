@@ -75,6 +75,7 @@
   let selecting = false;
   const chosen = new Set();
   const backSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  const retrySvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
   const binSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
   const ask = (text) => window.__confirmDialog ? window.__confirmDialog(text) : Promise.resolve(window.confirm(text));
 
@@ -103,6 +104,8 @@
         (selecting || d.state === "away" ? "" :
           (d.state === "done" ? '<button type="button" class="dl-btn" data-parity="settings-downloads-albums.play" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>' : "") +
+          // A download that failed: tried again (item 110; the app's old Downloads screen had it).
+          (d.state === "failed" ? '<button type="button" class="dl-btn" data-parity="settings-downloads-albums.retry" data-dl-retry="' + d.id + '" aria-label="Try again">' + retrySvg + "</button>" : "") +
           '<button type="button" class="dl-btn" data-parity="settings-downloads-albums.remove" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' + binSvg + "</button>") +
         "</div>";
     }).join("");
@@ -341,6 +344,8 @@
     }
     const play = e.target.closest("[data-dl-play]");
     if (play) { try { dl.play(Number(play.getAttribute("data-dl-play"))); } catch (err) { /* an app without this call (older than the page): nothing to do */ } return; }
+    const again = e.target.closest("[data-dl-retry]");
+    if (again) { try { dl.retry(Number(again.getAttribute("data-dl-retry"))); } catch (err) { /* an app without this call: nothing to do */ } return; }
     const rm = e.target.closest("[data-dl-remove]");
     if (rm) {
       const id = Number(rm.getAttribute("data-dl-remove"));
