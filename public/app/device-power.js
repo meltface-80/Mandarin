@@ -156,7 +156,7 @@ window.__openDevicePowerSheet = openDevicePowerSheet;
 // room; the page stays where it is for their Back. True when the app took it.
 function nativePrefsJson() {
   const p = window.__uiPrefs;
-  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), menu: p.get("menu") } : {});
+  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()) } : {});
 }
 function nativeWallOpened(kind) {
   const app = window.MusicdApp;

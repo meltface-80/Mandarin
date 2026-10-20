@@ -159,7 +159,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                     }
                     "lotw" -> HomeKept.lotwName?.let { name -> if (HomeKept.rows["lotw"]!!.albums.isNotEmpty()) item(row.id) {
                         Column {
-                            SectionTitle(Modifier.parity("home.lotw-title", Contract.label("home.lotw-title", 0, name)).clickable { onPage("label", name) }, "Label of the week", true, name)
+                            SectionTitle(Modifier.parity("home.lotw-title", Contract.label("home.lotw-title", 0, name)).clickable { onWall("label", name) }, "Label of the week", true, name)
                             AlbumRowItems(HomeKept.rows["lotw"]!!, prefs, coverPx, client) { i -> open(HomeKept.rows["lotw"]!!.albums, i) }
                         }
                     } }

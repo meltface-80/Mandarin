@@ -361,6 +361,48 @@ const OPEN_PITCHFORK_REVIEW = `(async () => {
   return "open";
 })()`;
 
+/* Labels: switched on (as Settings → Record labels does), then the side menu's Labels; a label's albums and its logo sheet; two labels merged and the merged ones' sheet. */
+const LABELS_KIT = `
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const post = (p, b) => fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no Home";
+  await post("/api/settings/labels", { enabled: true });
+  // The labels read from the server first (their index is made as they are switched on), then one tap.
+  const list = async (n = 2) => {
+    for (let i = 0; i < 40; i++) { const j = await (await fetch("/api/filters/labels", { cache: "no-store" })).json(); if ((j.labels || []).length >= n && !j.scanning) break; await sleep(500); }
+    // The page may come back on the labels as it was left (page-state.js): a tap then would leave them.
+    if (await until(() => document.querySelectorAll(".label-tile").length >= n, 1500)) return true;
+    document.getElementById("labels-toggle").click();
+    return until(() => document.querySelectorAll(".label-tile").length >= n, 10000);
+  };`;
+const OPEN_LABELS = `(async () => { ${LABELS_KIT}
+  if (!(await list())) return "no labels";
+  await sleep(600);
+  return "open";
+})()`;
+const OPEN_LABEL_LOGO = `(async () => { ${LABELS_KIT}
+  if (!(await list())) return "no labels";
+  document.querySelector(".label-tile").click();
+  if (!(await until(() => document.querySelectorAll("#album-grid .album:not(.label-tile)").length > 0 && !document.getElementById("labels-logo-btn").classList.contains("hidden")))) return "no albums";
+  document.getElementById("labels-logo-btn").click();
+  if (!(await until(() => !/Searching/.test(document.getElementById("logo-candidates").textContent)))) return "no answer";
+  await sleep(400);
+  return "open";
+})()`;
+const OPEN_LABEL_UNMERGE = `(async () => { ${LABELS_KIT}
+  const labels = (await (await fetch("/api/filters/labels")).json()).labels || [];
+  if (labels.length < 2) return "no labels";
+  await post("/api/labels/merge", { items: labels.slice(0, 2).map(l => ({ key: l.key, display: l.title })) });
+  if (!(await list(1))) return "no list";
+  const merged = await until(() => !!document.querySelector(".album-merged-info"));
+  if (!merged) return "not merged";
+  document.querySelector(".album-merged-info").click();
+  if (!(await until(() => !document.getElementById("label-unmerge-sheet").classList.contains("hidden")))) return "no sheet";
+  await sleep(400);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -386,7 +428,11 @@ const SCREENS = {
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
-  "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] }
+  "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
+  // Last, as they switch the labels on (Home's Label of the week with them) and merge two.
+  "labels": { open: OPEN_LABELS, root: "body", shared: ["mini-player", "nav"] },
+  "label-logo": { open: OPEN_LABEL_LOGO, root: "#logo-url-sheet" },
+  "label-unmerge": { open: OPEN_LABEL_UNMERGE, root: "#label-unmerge-sheet" }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

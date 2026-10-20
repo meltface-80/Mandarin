@@ -88,7 +88,7 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
 
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
- * screen over Home with it; Playlists, Dynamic Playlists, Listen later and Pitchfork open natively over Home; the rest are the page's
+ * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork and Labels open natively over Home; the rest are the page's
  * (public/app/native-handoff.js, "menu"), Restart, Shut down and Shelf with the page in front, since what they put up is
  * the page's whole screen (its question and its screen while the server is away; Shelf, a page of its own).
  */
@@ -101,6 +101,7 @@ internal fun menuTap(nav: NavHostController, what: String) {
         "smart-playlists" -> NativeShell.openSmartPlaylists(NativeShell.zone)
         "later" -> nav.navigate(ShellRoute.wall("later", NativeShell.zone, ""))
         "pitchfork" -> nav.navigate(ShellRoute.pitchfork("", NativeShell.zone))
+        "labels" -> nav.navigate(ShellRoute.labels(NativeShell.zone))
         else -> NativeShell.toPage("menu", what)
     }
 }

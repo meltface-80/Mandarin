@@ -56,7 +56,7 @@ async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
       // them against the wrong (filtered) list — the offset misses, and
       // the stale-offset defense correctly refuses with "library changed"
       // even though nothing did. (Same override Home rows use.)
-      frag.appendChild(buildAlbumTile(a, () => openAlbum(a, { filter: null })));
+      frag.appendChild(keyWallTile(buildAlbumTile(a, () => openAlbum(a, { filter: null }))));   // a wall of the screens contract's (`wall`)
     }
     grid.appendChild(frag);
   } catch (e) {

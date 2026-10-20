@@ -34,11 +34,11 @@ labelsTools.className = "labels-tools hidden";
 labelsTools.innerHTML =
   '<div class="search-box labels-search hidden">' +
     '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-    '<input id="labels-search-input" type="search" inputmode="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Find a label…" aria-label="Find a label">' +
-    '<button id="labels-search-clear" class="search-clear" type="button" aria-label="Clear">' +
+    '<input id="labels-search-input" type="search" inputmode="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Find a label…" aria-label="Find a label" data-parity="labels.find-field">' +
+    '<button id="labels-search-clear" class="search-clear" type="button" aria-label="Clear" data-parity="labels.find-clear">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
   '</div>' +
-  '<button id="labels-sort-btn" class="icon-btn labels-sort-btn" type="button"></button>' +
+  '<button id="labels-sort-btn" class="icon-btn labels-sort-btn" type="button" data-parity="labels.order"></button>' +
   '<button id="labels-search-btn" class="icon-btn" type="button" aria-label="Find a label" title="Find a label">' +
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>';
 {
@@ -88,7 +88,7 @@ function applyLabelFilter() {
   });
   let none = grid.querySelector(".labels-none");
   if (q && !shown) {
-    if (!none) { none = document.createElement("div"); none.className = "labels-none artist-view-empty"; grid.appendChild(none); }
+    if (!none) { none = document.createElement("div"); none.className = "labels-none artist-view-empty"; none.dataset.parity = "labels.none"; grid.appendChild(none); }
     none.textContent = "No label matches “" + labelsSearchInput.value.trim() + "”";
   } else if (none) none.remove();
 }
@@ -200,11 +200,11 @@ function showUnmergeSheet(targetDisplay, sources) {
     const row = document.createElement("div");
     row.className = "label-unmerge-row";
     const nameEl = document.createElement("span");
-    nameEl.className = "label-unmerge-source";
+    nameEl.className = "label-unmerge-source"; nameEl.dataset.parity = "label-unmerge.source";
     nameEl.textContent = src.display;
     const xBtn = document.createElement("button");
     xBtn.type = "button";
-    xBtn.className = "icon-btn label-unmerge-remove";
+    xBtn.className = "icon-btn label-unmerge-remove"; xBtn.dataset.parity = "label-unmerge.remove";
     xBtn.setAttribute("aria-label", "Remove " + src.display);
     xBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
     xBtn.addEventListener("click", async () => {

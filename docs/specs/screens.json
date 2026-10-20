@@ -178,13 +178,14 @@
       }
     },
     "wall": {
-      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
+      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too), or a record label's albums (a label tapped, with the logo button); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/WallScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
         "reshuffle": { "kind": "action", "label": "Shuffle new albums", "when": "the random wall, or a genre's" },
+        "logo": { "kind": "action", "label": "Set label logo", "when": "a record label's albums" },
         "banner": { "kind": "shows", "when": "the wall is empty, or the library can't be read yet" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
@@ -521,6 +522,55 @@
         "read": { "kind": "action", "label": "Read on Pitchfork ↗" },
         "open": { "kind": "action", "label": "▶ Open in your library", "when": "an album the library has" },
         "qobuz": { "kind": "action", "label": "Find on Qobuz" }
+      }
+    },
+    "labels": {
+      "page": "Labels (the side menu's Labels): the heading and the bar's Back, the order (# to Z, Z to #) at the top right (the row's Search finds a label), every record label as a tile (its logo, or its name in words), its name, how many albums and how many merged into it; while the scan runs its bar and what it says; a long press selects labels to merge, with the merge bar along the foot; with none, what the scan found and Rescan now, and the scan log",
+      "native": ["android/app/src/main/java/com/musicd/server/android/LabelsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Home" },
+        "title": { "kind": "shows" },
+        "find-field": { "kind": "action", "label": "Find a label", "when": "finding a label" },
+        "find-clear": { "kind": "action", "label": "Clear", "when": "finding a label" },
+        "order": { "kind": "action", "label": ["Order: # to Z — tap for Z to #", "Order: Z to # — tap for # to Z"] },
+        "banner": { "kind": "shows", "when": "no labels yet, the scan running, or the labels can't be read" },
+        "progress": { "kind": "shows", "when": "the label scan running" },
+        "label": { "kind": "action", "label": "{label}", "each": true },
+        "label-art": { "kind": "shows", "each": true },
+        "label-title": { "kind": "shows", "each": true },
+        "label-subtitle": { "kind": "shows", "each": true },
+        "label-merged": { "kind": "action", "label": "{n} merged", "each": true, "when": "labels merged into it" },
+        "none": { "kind": "shows", "when": "no label matches what is being found" },
+        "rescan": { "kind": "action", "label": "Rescan now", "when": "no labels, the lookups on" },
+        "log-download": { "kind": "action", "label": "Download scan log", "when": "the lookups on and the scan done" },
+        "log-copy": { "kind": "action", "label": "Copy log", "when": "the lookups on and the scan done" },
+        "merge-info": { "kind": "shows", "when": "selecting labels to merge" },
+        "merge": { "kind": "action", "label": "Merge", "when": "selecting labels to merge" },
+        "merge-cancel": { "kind": "action", "label": "Cancel selection", "when": "selecting labels to merge" }
+      }
+    },
+    "label-unmerge": {
+      "page": "the labels merged into one (its N merged tapped): the sheet with Merged into the label and ✕, each label merged into it with its ✕ to take it out again",
+      "native": ["android/app/src/main/java/com/musicd/server/android/LabelSheets.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "source": { "kind": "shows", "each": true },
+        "remove": { "kind": "action", "label": "Remove {label}", "each": true }
+      }
+    },
+    "label-logo": {
+      "page": "a label's logo (its albums' logo button): Discogs's logos for it to choose from, or an image's address pasted, Save, and ✕",
+      "native": ["android/app/src/main/java/com/musicd/server/android/LabelSheets.kt"],
+      "preview": false,
+      "items": {
+        "hint": { "kind": "shows", "when": "Discogs being asked, finding none, or not answering" },
+        "candidate": { "kind": "action", "label": "{logo}", "each": true, "when": "Discogs found logos" },
+        "url": { "kind": "action", "label": "Or paste any image URL…" },
+        "save": { "kind": "action", "label": "Save" },
+        "cancel": { "kind": "action", "label": "Cancel" }
       }
     },
     "album": {

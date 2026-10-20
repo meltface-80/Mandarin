@@ -93,6 +93,10 @@ object ShellRoute {
     const val SEARCH = "search?$Q={$Q}&$ZONE={$ZONE}"
     fun search(q: String, zoneId: String): String = "search?$Q=" + enc(q) + "&$ZONE=" + enc(zoneId)
 
+    /** The record labels (item 71); a label's albums are a wall ([wall], kind "label", the label's name as its filter). */
+    const val LABELS = "labels?$ZONE={$ZONE}"
+    fun labels(zoneId: String): String = "labels?$ZONE=" + enc(zoneId)
+
     const val REVIEW = "review"
     /** Pitchfork (item 70): the magazine, or one review's page in it ([REVIEW], the review as JSON; none for the list). */
     const val PITCHFORK = "pitchfork?$REVIEW={$REVIEW}&$ZONE={$ZONE}"

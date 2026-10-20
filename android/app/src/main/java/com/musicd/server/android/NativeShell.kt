@@ -217,6 +217,7 @@ internal object NativeShell {
  */
 internal fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
     if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
+    if (what == "label" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg)); return }   // a label's albums (item 71)
     // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
     if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
     nav.popBackStack()
