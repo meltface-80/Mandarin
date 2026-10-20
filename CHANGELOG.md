@@ -12,6 +12,10 @@
   and through one of the page's own screens in front of it. The page's own questions over Home (moving the music to another
   room, a name asked for) bring the page in front; offline, the page's Home stays in front, its rows the phone's. Home's
   rows are asked again when one of the page's screens over it closes (Settings → Home Screen, say).
+- `62-home-opener-aotd`: the page test of the screens contract failed on dev on the 20th: its Home check waited for today's
+  album, which leaves Home once it has been played that day, and on the 20th the album the day chose was the one an earlier
+  screen's check plays. The check takes Home without it on such a day; and Home, Smart Picks and the random pick are checked
+  first, before any check plays an album, so today's album and its badge are checked as well.
 - `57-native-home`: the Home group natively in the Android app (plan H1 to H5), in a new preview, Native Home in UI
   Settings, beside Native Library: Home itself (the greeting with the date over it; the strip under it with Random
   Album's turning disc and today's album wearing ★ Today; the rows in your order and visibility, each heading a tap to
