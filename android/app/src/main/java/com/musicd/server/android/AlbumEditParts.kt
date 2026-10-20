@@ -313,7 +313,7 @@ private fun AeRelease(r: ReleaseCandidate, badge: String?, picked: Boolean, busy
                 color = BADGE_INK, fontSize = 10.sp, lineHeight = 13.sp, fontWeight = FontWeight.W700) }
             Text(r.name, Modifier.weight(1f), color = paletteColor(Palette.TEXT), fontSize = 14.sp, lineHeight = 19.6.sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("${r.similarity} %", color = paletteColor(if (r.sure) Palette.ACCENT_TEXT else Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 16.sp,
-                fontWeight = if (r.sure) FontWeight.W700 else FontWeight.W400, fontFeatureSettings = "tnum")
+                fontWeight = if (r.sure) FontWeight.W700 else FontWeight.W400, style = TextStyle(fontFeatureSettings = "tnum"))
         }
         if (r.line.isNotEmpty()) Text(r.line, color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, lineHeight = 15.sp)
     }

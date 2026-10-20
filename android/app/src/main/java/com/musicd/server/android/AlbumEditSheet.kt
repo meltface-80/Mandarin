@@ -191,7 +191,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         matching = true; barcodeErr = null; err = null
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { c.matchRelease(offset, query, how) } }
-            if (r.isSuccess) withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) }.getOrNull() }?.let(::take)
+            if (r.isSuccess) withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) }.getOrNull() }?.let { take(it) }
             matching = false
             r.onSuccess {
                 matchSaid = AlbumEdit.matched(it, offset)
