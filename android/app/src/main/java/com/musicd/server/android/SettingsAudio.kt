@@ -143,7 +143,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         SettingsDesc("Output zone & your devices", Modifier.parity("settings-audio.desc"))
         Block {
             SetupRow("Zone / output", Modifier.parity("settings-audio.name"), Modifier.parity("settings-audio.info", Contract.label("settings-audio.info", 0, "Zone / output")).clickable { info(AudioDevices.ZONE_INFO) }) {
-                SelectBox(choiceWords(zones, zone).takeIf { zones.isNotEmpty() } ?: "", zones, Modifier.parity("settings-audio.caret"),
+                SelectBox(choiceWords(zones, zone), zones, Modifier.parity("settings-audio.caret"),
                     Modifier.parity("settings-audio.zone", Contract.label("settings-audio.zone")).clickable {
                         if (zones.isNotEmpty()) pickChoice(context, zones, zone) { id -> zone = id; NativeShell.roomChosen(id) }
                     })

@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 100 | The app crashed opening Settings → Audio Devices (NoSuchElementException: List is empty): the zone list's words were read before the zones had come, and the first of an empty list threw. An empty list now shows nothing, for every list in Settings | `100-audio-devices-crash` | Ready to test |
 | 1 | CI red on `v1.0.6-tests-csharp-5-suites` (PRs #255 → migration, #256 → main): `TagsFrontTests` compared files made by CI's ffmpeg against readings recorded from ffmpeg 6.1.1's files | `v1.0.6-tests-csharp-5-suites` | To be confirmed |
 | 2 | Android app occasionally becomes unresponsive (investigate): the page waited on the app re-reading every downloaded album's file after each track a download finished, and redrew Home's phone rows on every return to the app | `02-android-unresponsive` | To be confirmed |
 | 3 | Detecting new audio devices is slow: the network was searched once a minute and sound devices read every 30 s, and nothing listened when a renderer announced itself | `03-audio-device-detection` | To be confirmed |

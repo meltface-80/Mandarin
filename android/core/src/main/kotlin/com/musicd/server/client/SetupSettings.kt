@@ -11,7 +11,12 @@ import org.json.JSONObject
  */
 
 /** One of a list's choices: its value, and the words it shows. */
-data class Choice(val value: String, val words: String)
+data class Choice(val value: String, val words: String) {
+    companion object {
+        /** What a list shows: the words of the choice made, else of its first; nothing while the list is empty. */
+        fun words(choices: List<Choice>, value: String): String = choices.firstOrNull { it.value == value }?.words ?: choices.firstOrNull()?.words.orEmpty()
+    }
+}
 
 object SetupSettings {
     /** The text sizes a phone is offered (+75% and +100% are a desktop's). */

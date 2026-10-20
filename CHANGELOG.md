@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
+  else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
+  with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
 - `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
   screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
   Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);
