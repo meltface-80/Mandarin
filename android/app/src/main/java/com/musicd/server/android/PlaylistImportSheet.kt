@@ -140,11 +140,11 @@ internal fun PlaylistImportSheet(client: () -> ServerClient?, onSaved: () -> Uni
         }
     }
     val r = report
-    if (naming && r != null) PromptDialog("Name this playlist", r.name) { name ->
+    if (naming && r != null) NamePrompt("Name this playlist", r.name) { name ->
         naming = false
-        val trimmed = name?.trim() ?: return@PromptDialog
-        if (trimmed.isEmpty()) { toast("Give it a name"); return@PromptDialog }
-        val c = client() ?: return@PromptDialog
+        val trimmed = name?.trim() ?: return@NamePrompt
+        if (trimmed.isEmpty()) { toast("Give it a name"); return@NamePrompt }
+        val c = client() ?: return@NamePrompt
         // On the app's lane of changes (item 85): Home's Playlists row reads it after it is made.
         val made = ServerWrites.write { c.post("/api/user-playlists/add", JSONObject().put("name", trimmed).put("tracks", r.resolved)) }
         scope.launch {

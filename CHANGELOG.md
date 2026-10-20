@@ -6,6 +6,12 @@
   drawn natively: the heading, why only the music on this phone shows, and Switch offline mode off beside Close when
   Offline mode is on. Its words live in core (`Offline.kt`), held to the page's by `test/offline-words.test.js`; the
   dialog is a contract screen (`offline`) with the page's keys on `#offline-overlay`.
+- `104-one-prompt-one-share-sheet`: the Android app had grown three name boxes (`NamePrompt.kt`, one inside
+  `SmartSheets.kt`, `PromptDialog.kt`) and two playlist share sheets (`PlaylistShareSheet.kt`, `ShareTracksSheet.kt`),
+  each a copy of the page's one drawn a little differently. Now one of each: every name is asked in `NamePrompt.kt`, and
+  a Dynamic Playlist's Share opens the playlists' sheet, its file read into the same `ShareFile` with what reading found
+  as its `ShareCaveats`. The duplicate `share-tracks` screen leaves the screens contract (the page's sheet is keyed
+  `playlist-share` alone); `TrackShare` keeps only the reading of a Dynamic Playlist's tracks.
 - `103-scanner-pack-null`: Settings → Library Scanner's MusicBrainz pack read "null" after the folder's free space in
   the Android app. Android's JSON reader gives the word "null" for a field the server sends empty (the JVM's gives
   nothing, so the core tests never saw it); the pack's folder problem, the check's error and the job's error showed it
