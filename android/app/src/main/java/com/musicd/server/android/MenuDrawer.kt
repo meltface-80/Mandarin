@@ -285,7 +285,6 @@ private fun switchOffline(activity: MainActivity, on: Boolean) {
     NativeShell.menuOpen.value = false
     activity.offlineModeChanged()
 }
-}
 
 /** Rescan library, as the page's rescanLibrary: its toasts, and a scan still going waited for, then how it ended said. */
 private fun rescan(context: Context, client: () -> ServerClient?, scope: CoroutineScope) {
