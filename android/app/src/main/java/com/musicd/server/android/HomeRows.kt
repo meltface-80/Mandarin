@@ -11,6 +11,7 @@ import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.GenreCard
 import com.musicd.server.client.HomeRow
 import com.musicd.server.client.LibraryClient
+import com.musicd.server.client.LibraryView
 import com.musicd.server.client.Pick
 import com.musicd.server.client.PlaylistTile
 import com.musicd.server.client.ServerClient
@@ -22,8 +23,9 @@ import kotlinx.coroutines.withContext
 /*
  * Home's rows as last loaded, kept while the app runs (bug list item 57; the
  * page's home.js to home-picks.js): each row's tiles, or its one line of
- * words where it has none, loaded as the page loads them (the Not played and
- * Random rows kept five minutes, the rest asked for again on each visit) and
+ * words where it has none, loaded as the page loads them (the Not played row
+ * kept five minutes once it has answered, Random new on every visit, the rest
+ * asked for again on each visit; item 63) and
  * the place Home was scrolled to, so Back finds it as it was. The app's own
  * rows, Downloaded albums and Music on device, are read from the phone. The
  * screens contract's `home` (HomeScreen.kt draws them); nothing is drawn here.
@@ -45,7 +47,7 @@ internal class DownloadTile(val id: Int, val state: String, val done: Int, val t
 }
 
 internal object HomeKept {
-    /** The Not played and Random rows turn over on a clock: five minutes, as the page's. */
+    /** The Not played row is kept five minutes once it has answered, as the page's (rowsTtlFresh). */
     private const val TTL_MS = 5 * 60 * 1000L
     /** The rows in the page's own order (HOME_ROWS), the app's two first. */
     val ROW_IDS = listOf("phone", "downloads", "unplayed", "later", "playlists", "favourites", "history", "picks", "lotw", "random", "library", "genres")
@@ -60,13 +62,21 @@ internal object HomeKept {
     var genresNote by mutableStateOf<String?>(null)
     /** Today's album, under the greeting; none once it has been played today. */
     var aotd by mutableStateOf<AlbumSummary?>(null)
-    /** The phone's own albums by the offset their tiles carry here: Music on device's key, a download's tile. */
+    /**
+     * The phone's own albums by the offset their tiles carry here: Music on device's key; a download by its tile's offset
+     * (the server's own where it still has the album, which then opens as any album: only one it hasn't plays from the phone).
+     */
     val phoneKeys = HashMap<Long, String>()
     val downloads = HashMap<Long, DownloadTile>()
+
+    /** The download a tile tapped plays from the phone: one the library no longer has (or on a card that is out). */
+    fun phoneDownload(offset: Long): DownloadTile? = downloads[offset]?.takeIf { it.album == null }
     /** Where Home is scrolled to, kept for Back; [toTop] asks for its top (Home tapped on the row from another screen). */
     val list = LazyListState()
     var toTop by mutableStateOf(false)
     private var rowsAt = 0L
+    /** Whether Not played has answered since the clock was last started (an empty answer counts; a failure doesn't). */
+    private var unplayedLoaded = false
     private var genresLoaded = false
     private var lotwLoaded = false
     private val serverAlbums = HashMap<Int, AlbumSummary>()
@@ -83,18 +93,24 @@ internal object HomeKept {
         if (client == null) return
         val lib = LibraryClient { client.getJson(it) }
         val now = System.currentTimeMillis()
-        val ttlFresh = rowsAt > 0 && now - rowsAt < TTL_MS && rows["random"]!!.albums.isNotEmpty()
+        // The page's rowsTtlFresh: within five minutes, Not played answered, and Random holding tiles.
+        val ttlFresh = rowsAt > 0 && now - rowsAt < TTL_MS && unplayedLoaded && rows["random"]!!.albums.isNotEmpty()
         if (!ttlFresh) rowsAt = now
         scope.launch { layout(lib) }
         scope.launch { refreshAotd(client) }
-        if (!ttlFresh) {
-            scope.launch { hidingRow("unplayed", lib) { it.unplayed(6, 30).albums } }
-            scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
+        if (!ttlFresh) scope.launch {
+            unplayedLoaded = false
+            unplayedLoaded = hidingRow("unplayed", lib) { it.unplayed(6, 30).albums }
+            if (!unplayedLoaded) rowsAt = 0   // asked again on the next visit, as the page's
         }
+        // Random albums turns over on every visit (the page's isFresh: false): a new handful each time.
+        scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
         scope.launch { hidingRow("later", lib) { it.listenLater().albums } }
         scope.launch { hidingRow("favourites", lib) { it.favourites().albums } }
         scope.launch { hidingRow("history", lib) { it.history(30).albums } }
-        scope.launch { plainRow("library", lib) { it.albums(0, 30, libraryView).albums } }
+        // The Library row in the Library's order alone: its Focus and name filter narrow the wall, never the row (the page's libSortKey).
+        val order = LibraryView.parse(libraryView).sortQuery()
+        scope.launch { plainRow("library", lib) { it.albums(0, 30, order).albums } }
         scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.playlists() }.getOrNull() }; if (got != null) { playlists.clear(); playlists.addAll(got) } }
         scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
         if (!lotwLoaded) scope.launch { lotw(lib) }
@@ -116,11 +132,12 @@ internal object HomeKept {
         layout.clear(); layout.addAll(next)
     }
 
-    /** A row that hides itself when empty: its tiles, or none; what it had kept when the server can't say. */
-    private suspend fun hidingRow(id: String, lib: LibraryClient, load: (LibraryClient) -> List<AlbumSummary>) {
+    /** A row that hides itself when empty: its tiles, or none; what it had kept when the server can't say. True once answered. */
+    private suspend fun hidingRow(id: String, lib: LibraryClient, load: (LibraryClient) -> List<AlbumSummary>): Boolean {
         val row = rows[id]!!
-        val got = withContext(Dispatchers.IO) { runCatching { load(lib) }.getOrNull() } ?: return
+        val got = withContext(Dispatchers.IO) { runCatching { load(lib) }.getOrNull() } ?: return false
         row.albums.clear(); row.albums.addAll(got); row.at = System.currentTimeMillis()
+        return true
     }
 
     /** The Random and Library rows (the page's renderAlbumRow): "Loading…" until the first answer, "No albums." for none, the server's trouble said where there are no tiles to keep. */

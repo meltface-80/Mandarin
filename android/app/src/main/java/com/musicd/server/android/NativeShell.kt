@@ -116,11 +116,22 @@ internal object NativeShell {
      */
     fun homeShown(front: Boolean, prefs: String, zone: String) {
         this.prefs = prefs; this.zone = zone
+        // The Library's view comes with them (item 63: "view", the page's libViewQuery), for Home's Library row and heading.
+        runCatching { org.json.JSONObject(prefs).optString("view") }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { libraryView = it }
         homeArgs.value = prefs to zone
         pageFront.value = !front
         val n = nav ?: return
         if (front && ShellRoute.isWeb(n.currentDestination?.route)) n.navigate(ShellRoute.home(prefs, zone)) { launchSingleTop = true }
     }
+
+    /** A room chosen on a native screen over Home: Home's own room too, so Back finds it following that room (item 63). */
+    fun roomChosen(id: String) { zone = id; homeArgs.value = homeArgs.value.first to id; toPage("zone", id) }
+
+    /**
+     * Back on Home with the row's Home: its top; and with one of the page's own screens in front of it (Playlists, a label,
+     * the search), the page's Home tapped as well, so that screen goes and the native Home comes in front (item 63).
+     */
+    fun landHome() { HomeKept.toTop = true; if (pageFront.value) toPage("nav", "home") }
 
     /** The row's button on the native Home: Home itself goes to its top; the rest are the page's own buttons (the page comes in front as it opens what they open). */
     fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else toPage("nav", what) }
@@ -181,12 +192,13 @@ private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
 }
 
 /**
- * The row along the foot on a native screen over the page, or over the native Home: the screen closes; Home, when it is
- * the native one underneath, goes to its top (as the page's does), else the page's own button is tapped, once the page is in front.
+ * The row along the foot on a native screen over the page, or over the native Home: every native screen over Home closes
+ * (however deep: a wall, an album from it, an artist from that; item 63), else this one; Home, when it is the native one
+ * underneath, is landed on ([NativeShell.landHome]), else the page's own button is tapped, once the page is in front.
  */
 private fun navTap(nav: NavHostController, what: String) {
-    nav.popBackStack()
-    if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) HomeKept.toTop = true else NativeShell.toPage("nav", what)
+    if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
+    if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
 }
 
 /** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
@@ -215,7 +227,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onLibrary = { nav.navigate(ShellRoute.library(NativeShell.libraryView, args.first, args.second)) },
                 onPicks = { nav.navigate(ShellRoute.picks(args.second)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 onNav = NativeShell::homeNav,
                 // The page's sheets over this screen; its screens (a playlist, a label, the phone's own album) in front of it, Home staying.
                 onPage = { what, arg -> if (what in NativeShell.OVERLAYS) NativeShell.overPage(what, arg) else NativeShell.toPage(what, arg) }
@@ -227,7 +239,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z -> nav.navigate(ShellRoute.album(offset, z, "")) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
@@ -238,7 +250,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 // Another room from Play on: its Now playing in this one's place, and the page's room too.
                 onRoom = { id ->
                     nav.navigate(ShellRoute.nowPlaying(id)) { popUpTo(ShellRoute.NOW_PLAYING) { inclusive = true } }
-                    NativeShell.toPage("zone", id)
+                    NativeShell.roomChosen(id)
                 },
                 // The page's own sheets (Share card, Group zones, Device power) over this screen; its screens (the album, an artist) in its place.
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
@@ -256,9 +268,9 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "library", AlbumLists.put(list), list.index)) },
                 // The view changed here: the page's own wall and Home's Library row follow.
-                onView = { q -> NativeShell.toPage("library-view", q) },
+                onView = { q -> NativeShell.libraryView = q; NativeShell.toPage("library-view", q) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
@@ -271,7 +283,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
@@ -282,7 +294,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) }
             )
@@ -304,7 +316,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 onBack = { nav.popBackStack() },
                 // The row along the foot: back to the native wall it came from (Library), or to the native Home (at its top, as the page's); else the page's own button, tapped, once the page is back in front.
                 onNav = { what ->
-                    if (what == "home" && nav.popBackStack(ShellRoute.HOME, false)) HomeKept.toTop = true
+                    if (what == "home" && nav.popBackStack(ShellRoute.HOME, false)) NativeShell.landHome()
                     else if (!(what == "library" && nav.popBackStack(ShellRoute.LIBRARY, false))) { nav.popBackStack(); NativeShell.toPage("nav", what) }
                 },
                 onPage = { what, arg -> toPageOrNative(nav, what, arg) },
@@ -313,7 +325,7 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
                 // The mini player's tap: the native Now playing over the album.
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 // A room chosen on its Play on: the page's room too, so its own bar follows.
-                onRoom = { id -> NativeShell.toPage("zone", id) },
+                onRoom = NativeShell::roomChosen,
                 // Another album of the library's, from the rows under the tracks: its own page over this one; Back returns here.
                 onAlbum = { id, zone -> nav.navigate(ShellRoute.album(id, zone, lit)) }
             )

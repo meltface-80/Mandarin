@@ -29,7 +29,8 @@ const KIT = `
 
 // Before the page's scripts: the app's bridge, whether it draws Home itself ([on]), and what it is told written down.
 const bridge = (on) => `window.MusicdApp = { on: ${on ? "true" : "false"}, told: [],
-  nativeHome() { return this.on; }, setNativeHome() {}, homeShown(front, prefs, zone) { this.told.push([front, JSON.parse(prefs).layout, zone]); },
+  views: [], nativeHome() { return this.on; }, setNativeHome() {},
+  homeShown(front, prefs, zone) { this.told.push([front, JSON.parse(prefs).layout, zone]); this.views.push(JSON.parse(prefs).view); },
   nativeNowPlaying() { return false; }, setNativeNowPlaying() {}, openNowPlaying() {}, nativeAlbum() { return false; }, setNativeAlbum() {},
   nativeLibrary() { return false; }, setNativeLibrary() {} };`;
 
@@ -52,6 +53,17 @@ const TOLD = `(async () => { ${KIT}
   out.back = last();
   out.count = app.told.length;
   return out;
+})()`;
+
+/* The room chosen on the page with Home in front (no class changes): said again, with the Library's view as ever. */
+const ROOM = `(async () => { ${KIT}
+  const app = window.MusicdApp, before = app.told.length;
+  const sel = $("#zone-select"), o = document.createElement("option");
+  o.value = "Z1"; o.textContent = "Z1"; sel.appendChild(o);
+  sel.value = "Z1"; sel.dispatchEvent(new Event("change"));
+  await until(() => app.told.length > before, 5000);
+  await sleep(1500);
+  return { added: app.told.slice(before), view: app.views[app.views.length - 1] };
 })()`;
 
 /* What the native Home hands back: the Playlists screen, a playlist by its id. */
@@ -81,6 +93,17 @@ test("the app's native Home: told when it is in front, and what it hands back", 
     assert.deepEqual([r.search, r.searchClosed], [[false, "auto", ""], [true, "auto", ""]], "the search");
     assert.deepEqual([r.wall, r.back], [[false, "auto", ""], [true, "auto", ""]], "a wall in Home's place, and Back");
     assert.equal(r.count, 7, "said only as it changes");
+  });
+
+  await t.test("the room chosen on Home: said again at once, once, with the Library's view", async () => {
+    const r = await run(ROOM, bridge(true));
+    assert.deepEqual(r.added, [[true, "auto", "Z1"]]);
+    assert.match(r.view, /^sort=\w+&dir=(asc|desc)/, "the view the Library wall asks with");
+  });
+
+  await t.test("offline (the app's own copy of the page): the page's Home in front, never the app's", async () => {
+    const r = await run(`(async () => { ${KIT} return window.MusicdApp.told; })()`, "window.__musicdOffline = true;" + bridge(true));
+    assert.deepEqual(r, [[false, "auto", ""]]);
   });
 
   await t.test("the app's Home off, or a browser: nothing said", async () => {
