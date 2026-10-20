@@ -69,6 +69,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
         "system" -> SettingsUpdates(client, onBack)
         "streaming" -> SettingsServices(client, onBack)
         "downloads" -> SettingsDownloads(client, onBack)
+        "downloads-albums" -> SettingsDownloads(client, onBack, albums = true)   // its albums at once (item 110)
         "folders" -> SettingsFolders(client, onBack)
         "identify" -> SettingsScanner(client, onBack)
         in SETUP_PANES -> SettingsSetupPane(pane, client, onBack)

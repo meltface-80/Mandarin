@@ -27,6 +27,7 @@ import android.widget.TextView
 import androidx.webkit.ProxyConfig
 import androidx.webkit.ProxyController
 import androidx.webkit.WebViewFeature
+import com.musicd.server.client.OfflineKind
 import com.musicd.server.client.PageWatch
 
 /**
@@ -85,8 +86,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
     private var relayTriedFor: String? = null
     /** The last load failed (set by the WebView client, cleared by each load). */
     private var loadFailed = false
-    /** The offline screen has been opened for this outage — once, so Back returns here. */
-    private var offlineShown = false
     /** The app is answering the page itself (the server can't be reached). */
     @Volatile private var offline = false
     private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -121,6 +120,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
             }
         }
     }
+    /** Offline, the server looked for now (the Offline dialog's Try the server again, item 110), not at the next look. */
+    fun lookForServer() { if (offline && ::web.isInitialized) { web.removeCallbacks(serverWatch); web.post(serverWatch) } }
     /** Downloads changed: tell the page (gathered, so a burst of progress is one call). */
     private var downloadsPending = false
     private val onDownloads: () -> Unit = {
@@ -466,13 +467,19 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
-    /** The server can't be reached: the app answers the page from what's on the phone. */
+    /**
+     * The server can't be reached, or Offline mode is on: the native screens answered by the phone (item 109), the page
+     * stopped and blank under them, never asked; the server looked for now and then.
+     */
     private fun goOffline() {
         offline = true
         loadFailed = false
+        ++loadSeq                                 // a reachability check still running is moot
+        pageLoaded = false
         errorPanel.visibility = View.GONE
-        web.visibility = View.VISIBLE
-        web.loadUrl("${loadedBase ?: return}/")
+        web.stopLoading()
+        web.loadUrl("about:blank")
+        OfflineNow.goOffline(if (Store.offlineMode(this)) OfflineKind.MODE else OfflineKind.APP, Store.phoneZone(this))
         web.removeCallbacks(serverWatch)
         web.postDelayed(serverWatch, 10_000)
     }
@@ -565,6 +572,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         loadedBase = base
         loadFailed = false
         offline = false
+        OfflineNow.goOnline(Store.zone(this).orEmpty())
         web.removeCallbacks(serverWatch)
         // The page signs in with the same token the rest of the app uses.
         runCatching {
@@ -601,18 +609,10 @@ class MainActivity : androidx.activity.ComponentActivity() {
         load()
     }
 
-    /** The app's own copy of the page, answered by the app (see [Client.shouldInterceptRequest]); the server is looked for now and then. */
+    /** Offline from the start (Offline mode, or no network): the native screens on the phone's music ([goOffline]). */
     private fun loadOffline(base: String) {
         loadedBase = base
-        loadFailed = false
-        offline = true
-        ++loadSeq                                 // a reachability check still running is moot
-        errorPanel.visibility = View.GONE
-        web.visibility = View.VISIBLE
-        pageLoaded = false
-        web.loadUrl("$base/")
-        web.removeCallbacks(serverWatch)
-        web.postDelayed(serverWatch, 10_000)
+        goOffline()
     }
 
     /**
@@ -731,10 +731,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
                 setOnClickListener { load() }
             })
             addView(Button(this@MainActivity).apply {
-                text = "On this phone"
-                setOnClickListener { startActivity(Intent(this@MainActivity, DownloadsActivity::class.java)) }
-            })
-            addView(Button(this@MainActivity).apply {
                 text = "Change server"
                 setOnClickListener { openConnect() }
             })
@@ -843,7 +839,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
         override fun onPageFinished(view: WebView, url: String) {
             if (view === web) pageReady = true
-            if (!loadFailed) offlineShown = false
             if (!loadFailed && !offline) pageLoaded = true
             // From the server: keep the app's copy of the page up to date.
             if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
@@ -863,12 +858,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
             val where = Store.active(this@MainActivity)?.toString() ?: "the server"
             loadFailed = true
             showError("Can't reach Mandarin at $where.\n\n${error.description}\n")
-            // The app's own screen instead of an error: what's on the phone, and its player.
-            if (!offlineShown && DownloadStore.albums(this@MainActivity).any { it.first.state == "done" }) {
-                offlineShown = true
-                startActivity(Intent(this@MainActivity, DownloadsActivity::class.java)
-                    .putExtra(DownloadsActivity.EXTRA_OFFLINE, true))
-            }
         }
 
         /**

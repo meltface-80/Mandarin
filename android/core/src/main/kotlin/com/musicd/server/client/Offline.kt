@@ -20,6 +20,9 @@ object OfflineNote {
     /** Offline mode is the app's own switch, which it alone turns off: the dialog offers it only then. */
     fun canSwitch(kind: OfflineKind): Boolean = kind == OfflineKind.MODE
 
+    /** The server out of reach: the dialog offers to look for it now (item 110; the app's old Downloads screen had it). */
+    fun canRetry(kind: OfflineKind): Boolean = kind == OfflineKind.APP
+
     private val MODE = listOf(
         "You switched Offline mode on, so Mandarin is showing only the music on this phone: the albums you downloaded and the phone’s own music.",
         "Switch it off to see the server’s library again.")

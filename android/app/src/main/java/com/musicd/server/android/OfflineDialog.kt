@@ -36,11 +36,11 @@ import com.musicd.server.client.Palette
  * The page's Offline dialog, natively (docs/specs/screens.json, offline; server-notice.js openOffline; bug list item 105),
  * opened from the row's Offline sign and drawn as the page draws it (style.css .confirm-box, .offline-box): up to 380 wide
  * within the screen's 24 each side, the heading in Young Serif 20 in the middle, why in 14 dim a paragraph each, then, when
- * Offline mode is on, "Switch offline mode off" beside Close, Close in brass. [onSwitch] turns Offline mode off; Close, a tap
- * outside or Back is [onClose].
+ * Offline mode is on, "Switch offline mode off" beside Close, or, the server out of reach, "Try the server again" (item 110),
+ * Close in brass. [onSwitch] turns Offline mode off; [onRetry] looks for the server now; Close, a tap outside or Back is [onClose].
  */
 @Composable
-internal fun OfflineDialog(kind: OfflineKind, onSwitch: () -> Unit, onClose: () -> Unit) {
+internal fun OfflineDialog(kind: OfflineKind, onSwitch: () -> Unit, onRetry: () -> Unit, onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
         SideEffect { window?.setDimAmount(0.55f) }
@@ -60,6 +60,10 @@ internal fun OfflineDialog(kind: OfflineKind, onSwitch: () -> Unit, onClose: () 
                     if (OfflineNote.canSwitch(kind)) Box(Modifier.parity("offline.switch", Contract.label("offline.switch")).weight(1f).height(44.dp).clip(button)
                         .background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, MaterialTheme.colorScheme.outline, button).clickable(onClick = onSwitch), contentAlignment = Alignment.Center) {
                         Text(Contract.label("offline.switch"), color = paletteColor(Palette.TEXT), fontSize = 15.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, textAlign = TextAlign.Center, maxLines = 2)
+                    }
+                    if (OfflineNote.canRetry(kind)) Box(Modifier.parity("offline.retry", Contract.label("offline.retry")).weight(1f).height(44.dp).clip(button)
+                        .background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, MaterialTheme.colorScheme.outline, button).clickable(onClick = onRetry), contentAlignment = Alignment.Center) {
+                        Text(Contract.label("offline.retry"), color = paletteColor(Palette.TEXT), fontSize = 15.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, textAlign = TextAlign.Center, maxLines = 2)
                     }
                     Box(Modifier.parity("offline.close", Contract.label("offline.close")).weight(1f).height(44.dp).clip(button).background(MaterialTheme.colorScheme.primary)
                         .clickable(onClick = onClose), contentAlignment = Alignment.Center) {

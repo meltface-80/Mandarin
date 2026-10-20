@@ -64,6 +64,10 @@ class AppBridge(private val activity: Activity) {
     @JavascriptInterface
     fun pageHandlesUpdates() { pageOffersUpdates = true }
 
+    /** Offline, the server looked for now: the Offline dialog's Try the server again (item 110). */
+    @JavascriptInterface
+    fun lookForServer() { activity.runOnUiThread { (activity as? MainActivity)?.lookForServer() } }
+
     @JavascriptInterface
     fun lookForAppUpdate(force: Boolean) {
         AppUpdate.lookup(force) {

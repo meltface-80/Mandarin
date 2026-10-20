@@ -34,7 +34,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,7 +57,6 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onPlaylist: (String) -> Unit,
                                   onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onPage: (String, String?) -> Unit) {
-    val context = LocalContext.current
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     val (cols, coverPx) = wallColumns(prefs)
@@ -90,7 +88,7 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
         WallBack(onBack)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
+            TouchNav("", offline = OfflineNow.on, onTap = onNav)
         }
         SmartSheets(sheets, client, onShowAlbums = { v -> onPage("library-show", v.query()) })
     }

@@ -41,10 +41,17 @@ internal class RoomState {
     var now by mutableLongStateOf(System.currentTimeMillis())
 }
 
-/** The room [zoneId] followed while this is on screen; a new state for a new room. */
+/**
+ * Each room's state as last answered, kept while the app runs (bug list item 113): every screen draws its mini player,
+ * and a screen opened started from nothing, so the bar was drawn without its cover and room line for a moment, a little
+ * shorter, then grew back: moving between screens, it moved. Now a screen starts from what the last one knew.
+ */
+private val kept = HashMap<String, RoomState>()
+
+/** The room [zoneId] followed while this is on screen; its state the one kept for it, so a new screen starts as the last left it. */
 @Composable
 internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState {
-    val room = remember(zoneId) { RoomState() }
+    val room = remember(zoneId) { kept.getOrPut(zoneId) { RoomState() } }
     LaunchedEffect(zoneId) {
         if (zoneId.isEmpty()) return@LaunchedEffect
         var revision: Long? = null
@@ -72,16 +79,20 @@ internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState 
 internal fun rememberCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? =
     rememberImage(key?.let { k -> client()?.imageUrl(k, size) }, client)
 
-/** The picture at [url] on the server, once fetched; null until then, or with no address. */
+/**
+ * The picture at [url] on the server, once fetched; null until then, or with no address. Kept as the tiles' covers are
+ * (Covers), so a screen opened draws a picture already fetched at once, rather than a moment later (item 113).
+ */
 @Composable
 internal fun rememberImage(url: String?, client: () -> ServerClient?): ImageBitmap? {
-    var image by remember(url) { mutableStateOf<ImageBitmap?>(null) }
+    var image by remember(url) { mutableStateOf(url?.let { Covers.get(it) }) }
     LaunchedEffect(url) {
         val c = client() ?: return@LaunchedEffect
-        if (url == null) return@LaunchedEffect
-        image = withContext(Dispatchers.IO) {
+        if (url == null || image != null) return@LaunchedEffect
+        val got = withContext(Dispatchers.IO) {
             runCatching { c.bytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
         }
+        if (got != null) { Covers.put(url, got); image = got }
     }
     return image
 }
