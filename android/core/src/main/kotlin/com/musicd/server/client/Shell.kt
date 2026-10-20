@@ -174,6 +174,8 @@ object Palette {
     const val BG_VEIL = 0xE017191CL
     /** The volume sheet's edge (`--glass-edge`, the brass at .22). */
     const val GLASS_EDGE = 0x38C9A45CL
+    /** A row's rule on a panel (`--panel-hairline`, the cream at .08). */
+    const val PANEL_HAIRLINE = 0x14ECEBE6L
 
     /** Each colour by the page's own token name, for the test that holds the two together. */
     val tokens: Map<String, Long> = mapOf(
@@ -182,5 +184,5 @@ object Palette {
     )
 
     /** The translucent ones, by token name: the page writes these as rgba(r,g,b,a). */
-    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF, "accent-soft" to ACCENT_SOFT, "bg-veil" to BG_VEIL, "glass-edge" to GLASS_EDGE)
+    val rgbaTokens: Map<String, Long> = mapOf("mt-bg" to MT_BG, "meter-off" to METER_OFF, "accent-soft" to ACCENT_SOFT, "bg-veil" to BG_VEIL, "glass-edge" to GLASS_EDGE, "panel-hairline" to PANEL_HAIRLINE)
 }
