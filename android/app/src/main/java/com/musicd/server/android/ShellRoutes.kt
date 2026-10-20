@@ -134,6 +134,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
  * app's own ([handOn]).
  */
 internal fun handOver(nav: NavHostController, what: String, arg: String?) {
+    DevLog.line("HAND", "$what ${arg.orEmpty().take(80)}")
     when {
         what == "artist" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.artist(arg, NativeShell.zone))
         what == "label" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg))   // a label's albums (item 71)
@@ -160,6 +161,7 @@ internal fun toHome(nav: NavHostController) {
  * item 63); then Home goes to its top, or the Library wall (in the view kept) or the search opens over it.
  */
 internal fun navTap(nav: NavHostController, what: String) {
+    DevLog.line("ROW", "button $what")
     toHome(nav)
     when (what) {
         "home" -> NativeShell.landHome()

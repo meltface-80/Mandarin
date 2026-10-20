@@ -96,6 +96,7 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
  * (item 111).
  */
 internal fun menuTap(nav: NavHostController, what: String, context: android.content.Context) {
+    DevLog.line("MENU", "item $what")
     NativeShell.menuOpen.value = false
     // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
     if (what.startsWith("power-")) { PowerKept.asking.value = what; return }

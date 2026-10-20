@@ -1,6 +1,11 @@
 package com.musicd.server.android
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import android.widget.Toast
+import android.app.Activity
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -91,6 +96,34 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
             }
             SetupRow(UpdateCheck.appName(BuildConfig.VERSION_NAME), Modifier.parity("settings-system.name"), null) {
                 Text(UpdateCheck.APP_NOTE, Modifier.parity("settings-system.app-note").padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
+            }
+        }
+        LogBlock()
+    }
+}
+
+/**
+ * The log build's own (bug list item 116; the branch 116-android-log-build alone): how big the log is, Save log (to
+ * Downloads/Mandarin, for sending on) and Clear log.
+ */
+@Composable
+private fun LogBlock() {
+    val context = LocalContext.current
+    var about by remember { mutableStateOf(DevLog.about()) }
+    Block {
+        SetupRow("Log (this is a log build)", Modifier.parity("settings-system.name"), null) {
+            Text(about, Modifier.parity("settings-system.log").padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
+            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UpdateButton(Contract.label("settings-system.log-save"), ready = true, busy = false, Modifier.parity("settings-system.log-save", Contract.label("settings-system.log-save"))
+                    .clickable {
+                        val a = context as? Activity ?: return@clickable
+                        DevLog.save(a) { name ->
+                            Toast.makeText(a, if (name != null) "Log saved to Downloads/Mandarin/$name" else "Couldn't save the log", Toast.LENGTH_LONG).show()
+                            about = DevLog.about()
+                        }
+                    })
+                UpdateButton(Contract.label("settings-system.log-clear"), ready = false, busy = false, Modifier.parity("settings-system.log-clear", Contract.label("settings-system.log-clear"))
+                    .clickable { DevLog.clear(); about = "Cleared" })
             }
         }
     }

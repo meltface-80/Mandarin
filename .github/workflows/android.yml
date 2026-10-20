@@ -170,6 +170,24 @@ jobs:
           gh release edit test-android --notes "The Android app from the $branch branch at ${GITHUB_SHA::7} ($APK). For testing only; not a release."
           gh release upload test-android mandarin-android-test.apk "android/$APK" --clobber
 
+      # The log build (bug list item 116): this branch alone, never merged into dev or main. Its app goes to a
+      # pre-release of its own, "test-android-log", so dev's test-android stays dev's. Never "latest".
+      - name: Publish the log build's APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/116-android-log-build'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.name.outputs.apk }}
+        run: |
+          set -e
+          cp "android/$APK" mandarin-android-log.apk
+          if ! gh release view test-android-log >/dev/null 2>&1; then
+            gh release create test-android-log --prerelease --latest=false --title "Android app — log build" \
+              --notes "The Android app's log build. For testing only; not a release." --target "${GITHUB_SHA}"
+          fi
+          gh release edit test-android-log --notes "The Android app's log build (bug list item 116) at ${GITHUB_SHA::7}: Settings → Updates → Save log. For testing only; not a release."
+          gh release upload test-android-log mandarin-android-log.apk --clobber
+
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can
       # link straight at it. From main only. main takes changes only through a

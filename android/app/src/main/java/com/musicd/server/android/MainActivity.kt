@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.os.SystemClock
 import android.widget.FrameLayout
 import java.lang.ref.WeakReference
 
@@ -139,6 +140,12 @@ class MainActivity : androidx.activity.ComponentActivity() {
         root.addView(NativeShell.attach(this), FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         Insets.pad(root)
         setContentView(root)
+        DevLog.line("APP", "the app's screen made")
+        // Every frame drawn, timed by Android (the log build, item 116): a stall is found, slow ones counted.
+        window.addOnFrameMetricsAvailableListener({ _, m, _ ->
+            if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 0L)
+                DevLog.trace.frame(m.getMetric(android.view.FrameMetrics.TOTAL_DURATION) / 1_000_000, SystemClock.uptimeMillis())?.let { DevLog.found(listOf(it)) }
+        }, android.os.Handler(android.os.Looper.getMainLooper()))
 
         registerBack()
         CrashLog.offer(this)
@@ -164,6 +171,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
         super.onResume()
         if (!::reach.isInitialized) return
         shown = WeakReference(this)
+        DevLog.line("APP", "on screen")
+        DevLog.snapshots(this, true)
         UpdateNow.attach(this)
         reach.resumed()
         Away.recheck(this)
@@ -175,6 +184,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     override fun onPause() {
+        DevLog.line("APP", "off screen")
+        DevLog.snapshots(this, false)
         if (::reach.isInitialized) reach.paused()
         LocalMusic.foreground(this, false)
         super.onPause()
@@ -218,7 +229,15 @@ class MainActivity : androidx.activity.ComponentActivity() {
      * override covers the versions before.
      */
     private fun back() {
-        if (!NativeShell.back()) moveTaskToBack(true)
+        val on = DevLog.shownLast
+        val closed = NativeShell.back()
+        DevLog.line("BACK", "on $on: " + if (closed) "closed what was on top" else "the app goes to the back")
+        if (!closed) moveTaskToBack(true)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        DevLog.line("APP", "Android asks for memory back (level $level)", anomaly = level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)
     }
 
     private fun registerBack() {
@@ -243,6 +262,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     override fun onDestroy() {
+        DevLog.line("APP", "the app's screen gone" + if (isChangingConfigurations) " (made again: the phone turned, or its settings changed)" else "")
         if (shown.get() === this) shown = WeakReference(null)
         UsbDac.unlisten(onUsb)
         LocalMusic.unwatch(this)

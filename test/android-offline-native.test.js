@@ -17,7 +17,7 @@ const body = (src, from) => { const i = src.indexOf(from); assert.ok(i >= 0, fro
 test("offline, the native screens take over; back online, the server's again", () => {
   const reach = read("ServerReach.kt");
   assert.match(body(reach, "private fun goOffline()"), /OfflineNow\.goOffline\(/);
-  assert.match(body(reach, "fun go()"), /if \(Store\.offlineMode\(a\) \|\| !Away\.hasNetwork\(a\)\) return goOffline\(\)/);
+  assert.match(body(reach, "fun go()"), /if \(Store\.offlineMode\(a\) \|\| !Away\.hasNetwork\(a\)\) (return goOffline\(\)|\{ DevLog\.line\([^\n]*; return goOffline\(\) \})/);
   assert.match(reach, /offline = false\s+reached = false\s+liveFailures = 0\s+OfflineNow\.goOnline\(/);
 });
 

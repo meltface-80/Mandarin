@@ -99,6 +99,8 @@ internal object ContractLabels2 {
         "settings-scanner.more" to listOf("Show all {count}"),
         "settings-system.back" to listOf("Back to settings"),
         "settings-system.check" to listOf("Check for updates", "{state}"),
+        "settings-system.log-save" to listOf("Save log"),
+        "settings-system.log-clear" to listOf("Clear log"),
         "settings-backup.back" to listOf("Back to settings"),
         "settings-backup.info" to listOf("About {setting}"),
         "settings-backup.part" to listOf("{part}"),

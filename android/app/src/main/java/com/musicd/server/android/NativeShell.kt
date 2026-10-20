@@ -2,10 +2,13 @@ package com.musicd.server.android
 
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.navigation.NavHostController
@@ -126,6 +129,8 @@ private fun Shell(client: () -> ServerClient?) {
         NativeShell.nav = nav
         onDispose { if (NativeShell.nav === nav) NativeShell.nav = null }
     }
+    DevTrace(nav)   // the log build's watch (item 116)
+    Box(Modifier.fillMaxSize().devTaps()) {
     NavHost(navController = nav, startDestination = ShellRoute.HOME, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // Home (N5, item 57): its rows' walls, Smart Picks and an album's page open over it, and Back comes back to it as it was.
         composable(ShellRoute.HOME, arguments = listOf(navArgument(ShellRoute.PREFS) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) {
@@ -261,4 +266,5 @@ private fun Shell(client: () -> ServerClient?) {
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
     RoomAskOver(client); PlaylistAddOver(client)   // the question whether to move what's playing to the room chosen (item 68); Add to playlist (item 93)
+    }
 }

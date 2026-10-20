@@ -227,14 +227,14 @@ object Store {
         if (!OfflineNow.on) return client(context)
         val c = context.applicationContext
         return ServerClient(server(c) ?: ServerAddress("phone", 0), token = token(c),
-            transport = com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) })
+            transport = DevLog.net(com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) }, "phone"))
     }
 
     /** A client for the server, signed in — null until both are known. The server's gate shutting on this phone signs it in again (item 111). */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null
         val token = token(context) ?: return null
-        return ServerClient(address, token = token,
-            transport = com.musicd.server.client.GateWatch(com.musicd.server.client.HttpTransport(address.baseUrl, token)) { MainActivity.gateShut() })
+        // Every request logged (the log build, item 116).
+        return ServerClient(address, token = token, transport = DevLog.server(address.baseUrl, token) { MainActivity.gateShut() })
     }
 }

@@ -18,6 +18,7 @@ import java.io.StringWriter
 class MusicDApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        DevLog.start(this)   // the log build (item 116)
         CrashLog.install(this)
         CrashLog.watchMainThread(this)
         ExitNote.keep(this)
@@ -34,6 +35,7 @@ object CrashLog {
             runCatching {
                 val sw = StringWriter()
                 e.printStackTrace(PrintWriter(sw))
+                DevLog.crash("CRASH on ${thread.name}: $sw")
                 file(app).writeText(
                     "Mandarin ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
                         "${Build.MANUFACTURER} ${Build.MODEL}\nThread: ${thread.name}\n\n$sw"
@@ -61,6 +63,8 @@ object CrashLog {
                 try { Thread.sleep(2_000) } catch (e: InterruptedException) { return@Thread }
                 if (answered.get()) { stuckFor = 0; kept = false; continue }
                 stuckFor += 2
+                if (stuckFor == 4) DevLog.line("APP", "FREEZE: the screen hasn't answered for 4 s, at: " +
+                    android.os.Looper.getMainLooper().thread.stackTrace.take(12).joinToString(" < "), anomaly = true)
                 if (stuckFor >= 10 && !kept) {
                     kept = true
                     runCatching {
@@ -84,6 +88,7 @@ object CrashLog {
      */
     @Synchronized
     fun keepNote(c: Context, what: String) {
+        DevLog.line("APP", "note kept for the next start: $what", anomaly = true)
         runCatching {
             val f = file(c.applicationContext)
             val before = if (f.exists()) f.readText().take(6000) else ""

@@ -49,7 +49,8 @@ function validate(c) {
       const at = `${CONTRACT}: ${s}.${k}`;
       if (!KINDS.includes(it.kind)) out.push(`${at}: kind is "${it.kind}", not ${KINDS.join(" or ")}`);
       if (it.kind === "action" && !it.label) out.push(`${at}: a control with no label`);
-      if (it.only && (it.only !== "page" || !it.why)) out.push(`${at}: only "page", and why`);
+      // "page": the page's alone (a desktop's part); "app": the app's alone (the log build's own, item 116). Either says why.
+      if (it.only && (!["page", "app"].includes(it.only) || !it.why)) out.push(`${at}: only "page" or "app", and why`);
       if (it.in && !(screen.items[it.in] && screen.items[it.in].kind === "action")) out.push(`${at}: in "${it.in}", which is not a control of ${s}`);
     }
   }
@@ -66,7 +67,7 @@ function validate(c) {
 function onPage(c, page) {
   const out = [];
   for (const [s, screen] of Object.entries(c.screens)) for (const k of Object.keys(screen.items)) {
-    if (!page.includes(`${s}.${k}`)) out.push(`${s}.${k}: written nowhere in the page (public/): the page carries every key as data-parity`);
+    if (screen.items[k].only !== "app" && !page.includes(`${s}.${k}`)) out.push(`${s}.${k}: written nowhere in the page (public/): the page carries every key as data-parity`);
   }
   return out;
 }
@@ -108,18 +109,18 @@ function compare({ contract, gaps, sources, composables, refs }) {
           }
           const it = screen.items[k];
           if (!it) { findings.push(`${where}: ${key}, which ${s}'s contract hasn't: on the page and in the contract first, or not in the app`); continue; }
-          if (it.only) { findings.push(`${where}: ${key} is the page's alone (${it.why})`); continue; }
+          if (it.only === "page") { findings.push(`${where}: ${key} is the page's alone (${it.why})`); continue; }
           if (t.kind === "action" && it.kind !== "action") { findings.push(`${where}: ${key} is a control here; on the page it only shows`); continue; }
           if (!have.has(k)) have.set(k, new Set());
           have.get(k).add(t.kind);
         }
       }
     }
-    const lacks = Object.entries(screen.items).filter(([k, it]) => !it.only && !(have.get(k) || new Set()).has(it.kind)).map(([k]) => k);
+    const lacks = Object.entries(screen.items).filter(([k, it]) => it.only !== "page" && !(have.get(k) || new Set()).has(it.kind)).map(([k]) => k);
     const listed = gaps[s] || [];
     missing[s] = lacks;
     if (!screen.preview) {
-      for (const k of lacks) findings.push(`${s}.${k}: on the page, not in the app (${path.basename(screen.native[0])})`);
+      for (const k of lacks) findings.push(`${s}.${k}: ${screen.items[k].only === "app" ? "the app's alone, and not" : "on the page, not"} in the app (${path.basename(screen.native[0])})`);
       if (listed.length) findings.push(`${GAPS}: ${s} is out of preview, so it has no gaps`);
     } else {
       for (const k of lacks) if (!listed.includes(k)) findings.push(`${s}.${k}: on the page, not in the app (${path.basename(screen.native[0])}), nor on the gaps list, which only shrinks: build it`);

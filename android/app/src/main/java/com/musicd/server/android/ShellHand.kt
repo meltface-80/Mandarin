@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
  * ("library-changed", "reload", "page-pref") has nothing left to tell: each screen reads its own afresh.
  */
 internal fun handOn(what: String, arg: String?) {
+    DevLog.line("HAND", "$what ${arg.orEmpty().take(80)} (the app's own)")
     when (what) {
         "nav" -> NativeShell.nav?.let { navTap(it, arg.orEmpty()) }
         "library-view" -> NativeShell.keepLibraryView(arg.orEmpty())

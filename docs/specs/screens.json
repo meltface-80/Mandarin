@@ -4,7 +4,8 @@
     "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation; it draws nothing of its own (the page's screens are the WebView's)",
     "android/app/src/main/java/com/musicd/server/android/Theme.kt": "Mandarin's colours and type for the native screens, as Material's theme; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
-    "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own"
+    "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own",
+    "android/app/src/main/java/com/musicd/server/android/DevLogUi.kt": "the log build's watch on the screens (item 116): each move, what is shown, each tap; it draws nothing of its own"
   },
   "screens": {
     "now-playing": {
@@ -1051,7 +1052,10 @@
         "check": { "kind": "action", "label": ["Check for updates", "{state}"] },
         "notes": { "kind": "shows", "when": "a server update found, with its release notes" },
         "app-note": { "kind": "shows", "when": "in the Android app" },
-        "app-check": { "kind": "action", "label": "Check for app update", "only": "page", "why": "an Android app older than the page's own update offer: the app always offers its update with the server's" }
+        "app-check": { "kind": "action", "label": "Check for app update", "only": "page", "why": "an Android app older than the page's own update offer: the app always offers its update with the server's" },
+        "log": { "kind": "shows", "only": "app", "why": "the log build's (bug list item 116, the branch 116-android-log-build alone, never merged): the app's log, saved for sending on" },
+        "log-save": { "kind": "action", "label": "Save log", "only": "app", "why": "the log build's (bug list item 116, the branch 116-android-log-build alone, never merged): the app's log, saved for sending on" },
+        "log-clear": { "kind": "action", "label": "Clear log", "only": "app", "why": "the log build's (bug list item 116, the branch 116-android-log-build alone, never merged): the app's log, saved for sending on" }
       }
     },
     "settings-backup": {
