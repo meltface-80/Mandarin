@@ -210,32 +210,6 @@ internal object NativeShell {
     }
 }
 
-/**
- * What a native screen hands to the page, unless the app draws it itself: an artist's page is native when the
- * Library wall is (item 52), opened over the screen that asked; the page's sheets ([NativeShell.OVERLAYS]) open over
- * the screen; everything else closes the screen and asks the page.
- */
-internal fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
-    if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
-    if (what == "label" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg)); return }   // a label's albums (item 71)
-    // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
-    if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
-    nav.popBackStack()
-    NativeShell.toPage(what, arg)
-}
-
-/**
- * The row along the foot on a native screen over the page, or over the native Home: every native screen over Home closes
- * (however deep: a wall, an album from it, an artist from that; item 63), else this one; Home, when it is the native one
- * underneath, is landed on ([NativeShell.landHome]), else the page's own button is tapped, once the page is in front.
- */
-internal fun navTap(nav: NavHostController, what: String) {
-    if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
-    // Search: the app's own over whatever is left (item 61), as the page's opens over Home.
-    if (what == "search") NativeShell.openSearch("", NativeShell.zone)
-    else if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
-}
-
 /** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
 @Composable
 private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boolean) -> Unit) {
@@ -277,6 +251,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                         what == "playlists" -> nav.navigate(ShellRoute.playlists(args.second))
                         what == "playlist" && arg != null -> nav.navigate(ShellRoute.playlist(arg, args.second))
                         what == "smart-playlist" && arg != null -> nav.navigate(ShellRoute.smartPlaylist(arg, args.second))
+                        what == "phone-album" && arg != null -> nav.navigate(ShellRoute.phoneAlbum(arg, args.second))
                         what in NativeShell.OVERLAYS -> NativeShell.overPage(what, arg)
                         else -> NativeShell.toPage(what, arg)
                     }

@@ -47,6 +47,13 @@ object ShellRoute {
     fun album(offset: Long, zoneId: String, lit: String = "", nav: String = "", at: Int = -1): String =
         "album/$offset?$ZONE=" + enc(zoneId) + "&$LIT=" + enc(lit) + "&$NAV=" + enc(nav) + "&$AT=$at"
 
+    const val KEY = "key"
+    /** One of the phone's own albums (item 108), by its [KEY] (LocalMusic's): its page, played on this phone; [ZONE] the room the mini player follows. */
+    const val PHONE_ALBUM = "phone-album/{$KEY}?$ZONE={$ZONE}"
+
+    /** The route to the phone's own album [key]'s page. */
+    fun phoneAlbum(key: String, zoneId: String): String = "phone-album/" + enc(key) + "?$ZONE=" + enc(zoneId)
+
     const val VIEW = "view"
     const val PREFS = "prefs"
     /**
