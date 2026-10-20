@@ -45,6 +45,10 @@ internal object NativeShell {
     @Volatile private var told = false
     fun wasTold() = told
 
+    /** Your playlists (item 65), or one of them, opened by the page (its side menu, a tile of its own). */
+    fun openPlaylists(zoneId: String) { nav?.navigate(ShellRoute.playlists(zoneId)) { launchSingleTop = true } }
+    fun openPlaylist(id: String, zoneId: String) { nav?.navigate(ShellRoute.playlist(id, zoneId)) }
+
     /** The native search opened afresh with [q] (the page's glass, the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
     fun openSearch(q: String, zoneId: String) {
         SearchKept.reset(q)
@@ -72,7 +76,9 @@ internal object NativeShell {
      * The page's sheets that open over whatever screen is on (the Share card, Add to playlist, the album editor,
      * Group zones, Device power, a Dynamic Playlist's name): a native screen asks for one with [overPage], not [toPage].
      */
-    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save")
+    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save", "playlist-import", "playlist-share")
+    /** How many of the page's sheets have closed over the native screens: a screen whose list a sheet can change reads it again (Import). */
+    val sheetsClosed = mutableStateOf(0)
 
     /**
      * Something a native screen hands back to the page, by name
@@ -109,6 +115,7 @@ internal object NativeShell {
      */
     fun overlayClosed() {
         if (!lifted) return
+        sheetsClosed.value++
         lifted = false
         lift?.invoke(false)
         page?.invoke("document.documentElement.classList.remove(\"native-over\")")
@@ -198,7 +205,7 @@ internal object NativeShell {
  * Library wall is (item 52), opened over the screen that asked; the page's sheets ([NativeShell.OVERLAYS]) open over
  * the screen; everything else closes the screen and asks the page.
  */
-private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
+internal fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
     if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
     // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
     if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
@@ -211,7 +218,7 @@ private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
  * (however deep: a wall, an album from it, an artist from that; item 63), else this one; Home, when it is the native one
  * underneath, is landed on ([NativeShell.landHome]), else the page's own button is tapped, once the page is in front.
  */
-private fun navTap(nav: NavHostController, what: String) {
+internal fun navTap(nav: NavHostController, what: String) {
     if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
     // Search: the app's own over whatever is left (item 61), as the page's opens over Home.
     if (what == "search") NativeShell.openSearch("", NativeShell.zone)
@@ -254,7 +261,14 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                 onRoom = NativeShell::roomChosen,
                 onNav = NativeShell::homeNav,
                 // The page's sheets over this screen; its screens (a playlist, a label, the phone's own album) in front of it, Home staying.
-                onPage = { what, arg -> if (what in NativeShell.OVERLAYS) NativeShell.overPage(what, arg) else NativeShell.toPage(what, arg) }
+                onPage = { what, arg ->
+                    when {
+                        what == "playlists" -> nav.navigate(ShellRoute.playlists(args.second))
+                        what == "playlist" && arg != null -> nav.navigate(ShellRoute.playlist(arg, args.second))
+                        what in NativeShell.OVERLAYS -> NativeShell.overPage(what, arg)
+                        else -> NativeShell.toPage(what, arg)
+                    }
+                }
             )
         }
         composable(ShellRoute.PICKS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -269,16 +283,8 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
             )
         }
         // The search (item 61): over Home or the page; an album's page over it, and Back comes back to the same results.
-        composable(ShellRoute.SEARCH, arguments = listOf(navArgument(ShellRoute.Q) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-            SearchScreen(WallPrefs.parse(prefs), entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
-                onBack = { nav.popBackStack() },
-                onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
-                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-                onRoom = NativeShell::roomChosen,
-                onNav = { what -> navTap(nav, what) },
-                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
-            )
-        }
+        // The search (item 61) and the playlists (item 65): ShellRoutes.kt.
+        moreRoutes(nav, client, prefs)
         composable(ShellRoute.NOW_PLAYING, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType })) { entry ->
             NowPlayingScreen(
                 entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() },

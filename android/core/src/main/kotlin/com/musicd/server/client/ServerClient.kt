@@ -182,6 +182,9 @@ class ServerClient(
     /** Never this artist again in Smart Picks (the page's "Not for me"). */
     fun blockSmartPick(artist: String) { post("/api/smart-picks/block", JSONObject().put("artist", artist)) }
 
+    /** One of your playlists deleted (item 65), for good. */
+    fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
+
     /** A service's album made the library's (transient until it is a favourite), to open its page: its offset (item 61, the search's tiles). */
     fun serviceOpen(service: String, albumId: String): Long {
         val j = post("/api/$service/open", JSONObject().put("album_id", albumId))

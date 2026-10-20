@@ -335,7 +335,7 @@ async function showPlaylists() {
     if (pc) {
       pc.innerHTML = "";
       const b = document.createElement("button");
-      b.type = "button"; b.className = "playlists-import"; b.textContent = "Import";
+      b.type = "button"; b.className = "playlists-import"; b.textContent = "Import"; b.dataset.parity = "playlists.import";
       b.setAttribute("aria-label", "Import a playlist");
       b.addEventListener("click", () => { if (window.__openImportSheet) window.__openImportSheet(); });
       pc.appendChild(b);
@@ -376,13 +376,13 @@ async function showPlaylists() {
   const frag = document.createDocumentFragment();
   for (const p of myList) {
     const n = p.track_total;
-    frag.appendChild(buildAlbumTile({
+    frag.appendChild(keyPlaylistsTile(buildAlbumTile({
       title: p.name,
       subtitle: `${n} track${n === 1 ? "" : "s"}`,
       image_key: null,
       // Stored tracks carry their album's art, so the mosaic costs nothing.
       art_keys: p.art_keys || []
-    }, () => openUserPlaylist(p), { selectable: false }));
+    }, () => openUserPlaylist(p), { selectable: false })));
   }
 
   const tiles = new Map();

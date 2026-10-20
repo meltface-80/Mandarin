@@ -267,6 +267,15 @@ function keyArtistTile(tile) {
   return tile;
 }
 window.__keyArtistTile = keyArtistTile;
+// One of your playlists on the Playlists screen (walls.js), called by its name rather than "name by N tracks".
+function keyPlaylistsTile(tile) {
+  tile.dataset.parity = "playlists.playlist";
+  const parts = { ".album-art-wrap": "playlists.playlist-art", ".album-title": "playlists.playlist-title", ".album-artist": "playlists.playlist-subtitle" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  const name = tile.querySelector(".album-title");
+  if (name) tile.setAttribute("aria-label", name.textContent);
+  return tile;
+}
 // The same in the search's results (search.js).
 function keySearchTile(tile) {
   tile.dataset.parity = "search.album";

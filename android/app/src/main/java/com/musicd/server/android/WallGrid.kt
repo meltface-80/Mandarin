@@ -127,7 +127,7 @@ internal fun barDisc() = IconButtonDefaults.filledIconButtonColors(containerColo
  */
 @Composable
 internal fun BoxScope.WallBack(onBack: () -> Unit) {
-    FilledIconButton(onClick = onBack, colors = barDisc(), modifier = Modifier.parity("library.back wall.back artist.back picks.back", Contract.label("library.back")).align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp).size(40.dp)) {
+    FilledIconButton(onClick = onBack, colors = barDisc(), modifier = Modifier.parity("library.back wall.back artist.back picks.back playlists.back playlist.home", Contract.label("library.back")).align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp).size(40.dp)) {
         Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(20.dp))
     }
 }
@@ -148,7 +148,7 @@ internal fun WallHead(title: String, prefs: WallPrefs, banner: Pair<String, Bool
     Column(Modifier.fillMaxWidth().padding(bottom = if (prefs.list) 14.dp else 2.dp)) {
         // In the page's 1.2 line box (Type.kt), its figures tabular as the page's are (.album-count), so "1" is as wide as "3".
         val size = (24 * prefs.title).sp; val line = (28.8 * prefs.title).sp
-        Text(title, Modifier.parity("library.title wall.title artist.title picks.title").lineBox(size, line, Face.YOUNG_SERIF), color = MaterialTheme.colorScheme.onSurface, fontFamily = youngSerif, fontWeight = FontWeight.W400,
+        Text(title, Modifier.parity("library.title wall.title artist.title picks.title playlists.title").lineBox(size, line, Face.YOUNG_SERIF), color = MaterialTheme.colorScheme.onSurface, fontFamily = youngSerif, fontWeight = FontWeight.W400,
             fontSize = size, lineHeight = line, letterSpacing = 0.01.em, style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"))
         banner?.let { (said, error) -> Banner(said, error, Modifier.padding(top = 14.dp)) }
     }
@@ -159,7 +159,7 @@ internal fun WallHead(title: String, prefs: WallPrefs, banner: Pair<String, Bool
 internal fun Banner(said: String, error: Boolean, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().border(1.dp, if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
         .clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 16.dp, vertical = 14.dp)) {
-        Text(said, Modifier.parity("library.banner wall.banner artist.error picks.banner search.banner"), color = if (error) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 20.sp)
+        Text(said, Modifier.parity("library.banner wall.banner artist.error picks.banner search.banner playlists.banner playlist.banner"), color = if (error) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 20.sp)
     }
 }
 

@@ -59,6 +59,7 @@ app/app-update-bridge.js
 app/native-handoff.js
 app/native-home.js
 app/native-search.js
+app/native-playlists.js
 app/updater.js
 app/settings.js
 app/settings-services.js

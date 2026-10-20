@@ -49,13 +49,16 @@ class ShellTest {
      * every booklet tapped). Read from the source, as the app itself only compiles in CI.
      */
     @Test fun `every route of the shell's has a screen in the app's graph`() {
-        val src = listOf("../app/src/main/java/com/musicd/server/android/NativeShell.kt", "../../android/app/src/main/java/com/musicd/server/android/NativeShell.kt",
-            "android/app/src/main/java/com/musicd/server/android/NativeShell.kt").map { java.io.File(it) }.first { it.exists() }.readText()
+        // The graph is NativeShell.kt's, the later routes in ShellRoutes.kt (item 65).
+        val src = listOf("NativeShell.kt", "ShellRoutes.kt").joinToString("\n") { f ->
+            listOf("../app/src/main/java/com/musicd/server/android/$f", "../../android/app/src/main/java/com/musicd/server/android/$f",
+                "android/app/src/main/java/com/musicd/server/android/$f").map { java.io.File(it) }.first { it.exists() }.readText()
+        }
         val routes = ShellRoute::class.java.declaredFields.filter { it.type == String::class.java && java.lang.reflect.Modifier.isStatic(it.modifiers) }
             .map { it.name to (it.also { f -> f.isAccessible = true }.get(null) as String) }
             .filter { (_, v) -> v.contains("{") }   // a route pattern names its arguments; the rest are argument names
         assertTrue(routes.map { it.first }.containsAll(listOf("WEB", "NOW_PLAYING", "ALBUM", "LIBRARY", "WALL", "ARTIST", "BOOKLET")))
-        for ((name, _) in routes) assertTrue("ShellRoute.$name has no composable(ShellRoute.$name …) in NativeShell.kt", Regex("composable\\(\\s*ShellRoute\\.$name\\b").containsMatchIn(src))
+        for ((name, _) in routes) assertTrue("ShellRoute.$name has no composable(ShellRoute.$name …) in NativeShell.kt or ShellRoutes.kt", Regex("composable\\(\\s*ShellRoute\\.$name\\b").containsMatchIn(src))
     }
 
     @Test fun `the palette is the page's`() {

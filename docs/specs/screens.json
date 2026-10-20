@@ -346,6 +346,44 @@
         "review-score": { "kind": "shows", "each": true, "when": "the review has a score" }
       }
     },
+    "playlists": {
+      "page": "the Playlists screen (the side menu's Playlists, or Home's Playlists heading): the heading and the bar's Back, Import in the top-right corner, each of your playlists as a tile with its covers' mosaic, its name and how many tracks; the banner when there are none; the mini player and the row are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Home" },
+        "title": { "kind": "shows" },
+        "import": { "kind": "action", "label": "Import a playlist" },
+        "banner": { "kind": "shows", "when": "no playlists yet, or they couldn't be read" },
+        "playlist": { "kind": "action", "label": "{playlist}", "each": true, "when": "you have playlists" },
+        "playlist-art": { "kind": "shows", "each": true, "when": "you have playlists" },
+        "playlist-title": { "kind": "shows", "each": true, "when": "you have playlists" },
+        "playlist-subtitle": { "kind": "shows", "each": true, "when": "you have playlists" }
+      }
+    },
+    "playlist": {
+      "page": "one of your playlists (its tile on the Playlists screen or on Home): ← Playlists, its name over how many tracks, Play now, Queue and ⋯ (Share, Delete), then its tracks, each with its album's cover, a tap playing it; the mini player and the row are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": false,
+      "items": {
+        "home": { "kind": "action", "label": "Back to Home" },
+        "back": { "kind": "action", "label": "Back to Playlists" },
+        "title": { "kind": "shows" },
+        "subtitle": { "kind": "shows" },
+        "play-now": { "kind": "action", "label": "Play now" },
+        "queue": { "kind": "action", "label": "Queue" },
+        "more": { "kind": "action", "label": "More actions" },
+        "more-title": { "kind": "shows", "in": "more" },
+        "share": { "kind": "action", "label": "Share", "in": "more" },
+        "delete": { "kind": "action", "label": "Delete", "in": "more" },
+        "track": { "kind": "action", "label": "{track}", "each": true, "when": "the playlist has tracks" },
+        "track-art": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
+        "track-title": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
+        "track-artist": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
+        "empty": { "kind": "shows", "when": "nothing in it yet" },
+        "banner": { "kind": "shows", "when": "the playlist couldn't be read" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

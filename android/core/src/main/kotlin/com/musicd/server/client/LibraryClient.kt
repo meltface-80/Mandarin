@@ -75,6 +75,10 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun genreCards(): List<GenreCard> = GenreCard.build(genres(), genreGroups())
     fun labelOfTheWeek(): LabelOfTheWeek = LabelOfTheWeek.parse(get("/api/home/label-of-the-week"))
     fun playlists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists")) + PlaylistTile.smart(get("/api/smart-playlists"))
+    /** Your playlists, the last changed first (the Playlists screen, item 65), and one of them with its tracks. */
+    fun userPlaylists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists"))
+    fun userPlaylist(id: String): UserPlaylist = UserPlaylist.parse(get("/api/user-playlist?id=" + enc(id)))
+
     /** Random Album's choice, to be offered (Play now, Play next, Queue). */
     fun pickUnheard(): PickedAlbum = PickedAlbum.parse(get("/api/pick-unheard"))
     /** Random albums narrowed by [filter] (a genre's wall from Browse by genre), [count] of them; [total] in the answer is the pool's. */
