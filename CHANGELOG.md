@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
+  screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
+  Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);
+  the name box (Save as… from the Library too), the save made on the app's lane of changes to what Home shows, what it
+  plays of the albums that match said, the playlist or the list read again; Share (its tracks read album by album, the
+  server's file shown with how many tracks went in and every reason it holds less, Copy to the clipboard, Download to
+  Downloads/Mandarin). Show albums or Clear all from a playlist's Focus open the Library in that view, as the page's
+  do. The page's sheets are keyed for the screens contract (`smart-new`, `prompt`, `share-tracks`); its hand-offs stay
+  for an app not yet updated.
 - `89-native-settings-audio`: Settings → Audio Devices natively in the Android app (plan T6), as the page's: the zone the
   controls play to; every player the server sees, a row each (its icon, name, what it is and whether it plays) with its
   switch where it can be switched off; Hide / unhide (the rows ticked, OK, and what came of it said) and Look again;

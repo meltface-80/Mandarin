@@ -900,7 +900,7 @@
     },
     "prompt": {
       "page": "the page's name prompt (#prompt-overlay), as a new playlist asks it: what is being named, the name (a suggestion in it), Cancel and Save",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt", "android/app/src/main/java/com/musicd/server/android/SmartSheets.kt"],
       "preview": false,
       "items": {
         "message": { "kind": "shows" },
@@ -1171,6 +1171,34 @@
         "usb-dsd": { "kind": "action", "label": "DSD", "when": "USB direct on, a DAC that takes DSD" },
         "usb-copy": { "kind": "action", "label": "Copy", "when": "this phone, its DAC allowed" },
         "forget": { "kind": "action", "label": "Forget this device", "when": "not on the network" }
+      }
+    },
+    "smart-new": {
+      "page": "New Dynamic Playlist (the Dynamic Playlists wall's New): the page's sheet up from the foot, its title and ✕; what the playlist should be made of, Albums or Tracks, each with what it means; the note under them. A choice opens the Focus sheet with the playlist's own Order and Playlist size leading it",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SmartSheets.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "intro": { "kind": "shows" },
+        "mode": { "kind": "action", "label": ["Albums", "Tracks"], "each": true },
+        "note": { "kind": "shows" }
+      }
+    },
+    "share-tracks": {
+      "page": "a playlist shared (a Dynamic Playlist's Share): the page's sheet up from the foot, Share and its name, the ✕; how many tracks went in, each reason the file is less than the whole playlist, what the file is, the file's text; Copy, Download and Done",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ShareTracksSheet.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "sum": { "kind": "shows" },
+        "warn": { "kind": "shows", "each": true, "when": "reading stopped early, the albums or the tracks capped, entries without a title, or a file too big to paste" },
+        "note": { "kind": "shows" },
+        "blob": { "kind": "action", "label": "The share file's text" },
+        "copy": { "kind": "action", "label": "Copy" },
+        "download": { "kind": "action", "label": "Download" },
+        "done": { "kind": "action", "label": "Done" }
       }
     },
     "album": {

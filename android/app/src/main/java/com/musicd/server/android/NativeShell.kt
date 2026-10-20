@@ -82,7 +82,7 @@ internal object NativeShell {
      * The page's sheets that open over whatever screen is on (the Share card, Add to playlist, the album editor,
      * Group zones, Device power, a Dynamic Playlist's name): a native screen asks for one with [overPage], not [toPage].
      */
-    val OVERLAYS = setOf("group", "power", "smart-save", "playlist-import", "playlist-share", "smart-new", "smart-edit", "smart-share")   // Add to playlist the app's own (item 93)
+    val OVERLAYS = setOf("group", "power", "playlist-import", "playlist-share")   // Add to playlist (93), Dynamic Playlists' sheets (95) the app's own
     /** How many of the page's sheets have closed over the native screens: a screen whose list a sheet can change reads it again (Import). */
     val sheetsClosed = mutableStateOf(0)
     /** The side menu open over the native screen (item 67; MenuDrawer.kt): the row's Menu opens it, Back closes it. */
@@ -325,7 +325,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
-                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+                onPage = { what, arg -> if (what == "smart-playlists") nav.navigate(ShellRoute.smartPlaylists(NativeShell.zone)) else toPageOrNative(nav, what, arg) }
             )
         }
         // The walls Home links to (L5) and an artist's page (L4), item 52: each over the page, or over the screen that opened it.

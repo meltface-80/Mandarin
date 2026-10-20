@@ -95,6 +95,8 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
     var asking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     val sheets by NativeShell.sheetsClosed
+    // Edit's and Share's sheets, the app's own (item 95); a save is read back here through sheetsClosed.
+    val smartSheets = rememberSmartSheets()
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { if (menu) menu = false else onBack() }
     // A tracks playlist's next few albums' tracks (the page's loadPage).
@@ -187,7 +189,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
                                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { menu = !menu }, contentAlignment = Alignment.Center) {
                                     Icon(painterResource(R.drawable.np_more), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                                 }
-                                if (menu) SmartMenu(p.name, onShare = { menu = false; onPage("smart-share", id) }, onEdit = { menu = false; onPage("smart-edit", id) },
+                                if (menu) SmartMenu(p.name, onShare = { menu = false; shareSmart(scope, context, client, p, smartSheets) }, onEdit = { menu = false; smartSheets.edit(p) },
                                     onDelete = { menu = false; asking = true }, onClose = { menu = false })
                             }
                         }
@@ -220,6 +222,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
             TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
         }
         if (asking) ConfirmDialog("Delete the Dynamic Playlist “${p?.name.orEmpty()}”?") { yes -> asking = false; if (yes) delete() }
+        SmartSheets(smartSheets, client, onShowAlbums = { v -> onPage("library-show", v.query()) })
     }
 }
 
