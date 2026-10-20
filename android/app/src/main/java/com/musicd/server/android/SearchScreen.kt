@@ -225,7 +225,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
                 val dim = Modifier.alpha(if (stale) 0.45f else 1f)
                 if (part == "pitchfork") {
                     section("h-pf", "Pitchfork reviews")
-                    items(r.pitchfork.size, key = { "pf" + r.pitchfork[it].url }, span = { GridItemSpan(maxLineSpan) }) { i ->
+                    items(r.pitchfork.size, key = { "pf$it-" + r.pitchfork[it].url }, span = { GridItemSpan(maxLineSpan) }) { i ->
                         val rv = r.pitchfork[i]
                         Box(dim) { ReviewRow(rv) { onPage("review", rv.json()) } }
                     }
@@ -237,7 +237,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
                 if (artists.isNotEmpty()) item("ar-$part", span = { GridItemSpan(maxLineSpan) }) {
                     Box(dim) { ServiceArtistStrip(artists) { ar -> onPage("service-artist", JSONObject().put("service", part).put("id", ar.id).put("name", ar.name).toString()) } }
                 }
-                items(albums.size, key = { "$part-" + albums[it].id }) { i ->
+                items(albums.size, key = { "$part$it-" + albums[it].id }) { i ->
                     val a = albums[i]
                     val fav = SearchKept.favs[a.id] ?: a.favourited
                     Box(dim) { ServiceAlbumTile(a, fav, prefs, onFav = { toggleFav(part, a.id, fav) }, onOpen = { openService(part, a.id) }) }
