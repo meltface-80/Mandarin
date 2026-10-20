@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +57,6 @@ private const val FOLDER_INFO = "The pack can live on any drive the server can w
 /** The pack's block: as it is, or the folder browser while its place is being chosen. */
 @Composable
 internal fun PackBlock(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, info: (String) -> Unit) {
-    val context = LocalContext.current
     val pack = k.pack
     val browse = k.browse
     ScanDivider()
@@ -81,7 +79,7 @@ internal fun PackBlock(k: ScanKept, client: () -> ServerClient?, scope: Coroutin
             if (pack.optBoolean("dir_fixed")) Text("Set by MBPACK_DIR", Modifier.parity("settings-scanner.pack-fixed"), color = paletteColor(Palette.TEXT_DIM), fontSize = 14.sp, lineHeight = 19.sp, textAlign = TextAlign.End)
             else Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (pack.optString("dir") != pack.optString("data_dir")) IdButton("Data folder", false, !k.busy, Modifier.parity("settings-scanner.pack-folder-reset", Contract.label("settings-scanner.pack-folder-reset"))
-                    .clickable(enabled = !k.busy) { packFolder(k, client, scope, null) { setupToast(context, "The pack’s folder is set") } })
+                    .clickable(enabled = !k.busy) { packFolder(k, client, scope, null) })
                 IdButton("Change…", false, !k.busy, Modifier.parity("settings-scanner.pack-folder", Contract.label("settings-scanner.pack-folder")).clickable(enabled = !k.busy) {
                     k.err = ""; packGo(k, client, scope, pack.optString("dir").ifEmpty { "/" })
                 })
@@ -96,7 +94,6 @@ internal fun PackBlock(k: ScanKept, client: () -> ServerClient?, scope: Coroutin
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PackBrowser(k: ScanKept, b: JSONObject, client: () -> ServerClient?, scope: CoroutineScope) {
-    val context = LocalContext.current
     val path = b.optString("path", "/")
     ScanTitle("Where to keep the MusicBrainz pack", null)
     Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -140,7 +137,7 @@ private fun PackBrowser(k: ScanKept, b: JSONObject, client: () -> ServerClient?,
     Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.End) {
         val words = "Keep the pack in “$last”"
         SetupButton(words, k.busy || path == "/", Modifier.parity("settings-scanner.browse-choose", Contract.label("settings-scanner.browse-choose", 0, last))
-            .clickable(enabled = !k.busy && path != "/") { packFolder(k, client, scope, path) { setupToast(context, "The pack’s folder is set") } })
+            .clickable(enabled = !k.busy && path != "/") { packFolder(k, client, scope, path) })
     }
     if (k.err.isNotEmpty()) ScanNote("", k.err)
 }
@@ -199,14 +196,14 @@ private fun packGo(k: ScanKept, client: () -> ServerClient?, scope: CoroutineSco
 }
 
 /** The pack's folder set to [dir] (none: the data folder); a pack already there is moved, which can take a minute. */
-private fun packFolder(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, dir: String?, done: () -> Unit) {
+private fun packFolder(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, dir: String?) {
     if (k.busy) return
     val c = client() ?: return
     k.busy = true
     if (k.pack?.optJSONObject("installed") != null) k.pack = JSONObject(k.pack.toString()).put("job", JSONObject().put("phase", "moving"))
     scope.launch {
         withContext(Dispatchers.IO) { runCatching { c.post("/api/identify/pack/folder", JSONObject().put("dir", dir ?: JSONObject.NULL), 600_000) } }
-            .onSuccess { k.pack = it; k.browse = null; k.err = ""; done() }
+            .onSuccess { k.pack = it; k.browse = null; k.err = "" }
             .onFailure { e -> k.err = e.message ?: ""; withContext(Dispatchers.IO) { runCatching { c.getJson("/api/identify/pack") }.getOrNull() }?.let { k.pack = it } }
         k.busy = false
     }

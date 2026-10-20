@@ -63,6 +63,20 @@ class ScannerTest {
         assertFalse(offline.enabled)
         assertEquals("/data (the data folder) · 1 MB free" to null, Scanner.packFolder(j("""{"dir":"/data","data_dir":"/data","free":1048576}"""), us))
         assertEquals("/x" to "Can't write here", Scanner.packFolder(j("""{"dir":"/x","data_dir":"/data","dir_problem":"Can't write here"}"""), us))
+        // What the server says as null is nothing to say, never the word "null" (item 103: "/packs · 237,242 MB free null").
+        // Read as the phone reads it: Android's org.json gives "null" for a JSON null where this one gives "".
+        assertEquals("/packs · 1 MB free" to null, Scanner.packFolder(AndroidJson("""{"dir":"/packs","data_dir":"/data","free":1048576,"dir_problem":null,"job":{"error":null}}"""), us))
+        assertEquals("/packs · 1 MB free" to null, Scanner.packFolder(AndroidJson("""{"dir":"/packs","data_dir":"/data","free":1048576,"dir_problem":null}"""), us))
+        assertEquals("Not downloaded.", Scanner.pack(AndroidJson("""{"check_error":null}"""), false, day, us).state)
+        val quiet = Scanner.pack(AndroidJson("""{"installed":{"releases":1,"built":"2026-10-15","size":1048576},"job":{"phase":null,"error":null}}"""), false, day, us)
+        assertEquals(null, quiet.error)
+    }
+
+    /** A JSON object as Android's org.json answers it: a JSON null read as text is the word "null", in it and in the objects in it. */
+    private class AndroidJson(text: String) : JSONObject(text) {
+        override fun optString(key: String): String = optString(key, "")
+        override fun optString(key: String, fallback: String): String = if (has(key) && isNull(key)) "null" else super.optString(key, fallback)
+        override fun optJSONObject(key: String): JSONObject? = super.optJSONObject(key)?.let { AndroidJson(it.toString()) }
     }
 
     @Test fun `an album's line on each list`() {

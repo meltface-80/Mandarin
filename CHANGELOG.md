@@ -7,6 +7,17 @@
   a Dynamic Playlist's Share opens the playlists' sheet, its file read into the same `ShareFile` with what reading found
   as its `ShareCaveats`. The duplicate `share-tracks` screen leaves the screens contract (the page's sheet is keyed
   `playlist-share` alone); `TrackShare` keeps only the reading of a Dynamic Playlist's tracks.
+- `103-scanner-pack-null`: Settings → Library Scanner's MusicBrainz pack read "null" after the folder's free space in
+  the Android app. Android's JSON reader gives the word "null" for a field the server sends empty (the JVM's gives
+  nothing, so the core tests never saw it); the pack's folder problem, the check's error and the job's error showed it
+  whenever there was none. The scanner's every text read from the server now takes an empty field as nothing, held by
+  tests that read the JSON as Android does. Choosing the pack's folder no longer shows the toast "The pack’s folder is
+  set", in the app or on the page.
+- `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
+  the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
+  rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
+  what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
+  keeps the floating bar.
 - `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
   what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
   "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the

@@ -113,7 +113,7 @@ async function packFolder(dir) {
   scanBusy = true;
   // A pack already here is moved: it can take a minute between drives.
   if (pack && pack.installed) { pack = Object.assign({}, pack, { job: { phase: "moving" } }); render(); }
-  try { pack = await scanApi("/api/identify/pack/folder", { dir }); packBrowse = null; scanErr = ""; scanToast("The pack’s folder is set"); }
+  try { pack = await scanApi("/api/identify/pack/folder", { dir }); packBrowse = null; scanErr = ""; }
   catch (e) { scanErr = e.message; try { pack = await scanApi("/api/identify/pack"); } catch (x) { /* the pack's state stays as it was */ } }
   scanBusy = false;
   render();
