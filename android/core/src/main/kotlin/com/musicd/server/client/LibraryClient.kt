@@ -91,6 +91,11 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun randomAlbums(count: Int, filter: WallFilter): AlbumRow = AlbumRow.parse(get("/api/random-albums?count=$count" + filter.query()))
 
     // A space as %20, as a browser's address has it ("+" means a space only in a form's body).
+    /** The record labels (item 71), one label's albums in its order ("alpha" or "random"), and the logos Discogs has for it. */
+    fun labels(): LabelList = LabelList.parse(get("/api/filters/labels"))
+    fun labelAlbums(name: String, order: String): LabelAlbums = LabelAlbums.parse(get("/api/label-albums?label=" + enc(name) + "&order=" + enc(order)))
+    fun labelLogoCandidates(name: String): List<LogoCandidate> = LogoCandidate.list(get("/api/labels/logo-candidates?label=" + enc(name)))
+
     /** Pitchfork's Latest Reviews or Best New Music (item 70), and the library's album a review is of. */
     fun pitchforkReviews(type: String): List<PitchforkHit> = PitchforkHit.list(get("/api/pitchfork/reviews?type=" + enc(type)))
     fun pitchforkMatch(r: PitchforkHit): Long? = PitchforkHit.match(get("/api/pitchfork/review?url=" + enc(r.url) + "&album=" + enc(r.album) + "&artist=" + enc(r.artist)))

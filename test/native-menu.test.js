@@ -37,6 +37,9 @@ const ASKED = `(async () => {
   out.reopen = window.__musicdNative("menu", "reopen") && Date.now() - Number(localStorage.getItem("rra-menu-reopen")) < 5000;
   localStorage.removeItem("rra-menu-reopen");
   out.menuSize = JSON.parse(nativePrefsJson()).menu;
+  // A label's albums' order and the fewest albums a label needs (Settings → Record labels), for the app's Labels (item 71).
+  localStorage.setItem("rra-label-order", "random"); localStorage.setItem("rra-label-min", "3");
+  const lp = JSON.parse(nativePrefsJson()); out.labelPrefs = [lp.labelOrder, lp.labelMin];
   // The app's own Pitchfork's Find on Qobuz (item 70): the page's Qobuz browser, its search seeded.
   out.noQuery = window.__musicdNative("qobuz-search");
   out.qobuz = window.__musicdNative("qobuz-search", "Artist A Album One") && await until(() => shown("#qobuz-overlay")) &&
@@ -51,5 +54,5 @@ test("the app's native side menu: what the page does for it", { skip, timeout: 1
   const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true });
   const r = await page.eval(ASKED);
   assert.deepEqual(page.errors, [], "nothing thrown");
-  assert.deepEqual(r, { none: false, empty: false, later: false, settings: true, pitchfork: true, restart: true, menuShut: true, reopen: true, menuSize: "1", noQuery: false, qobuz: true });
+  assert.deepEqual(r, { none: false, empty: false, later: false, settings: true, pitchfork: true, restart: true, menuShut: true, reopen: true, menuSize: "1", labelPrefs: ["random", "3"], noQuery: false, qobuz: true });
 });

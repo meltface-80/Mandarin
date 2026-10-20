@@ -64,7 +64,7 @@ async function saveLogo(url) {
 
 async function loadLogoCandidates(labelName) {
   if (!logoCandidatesEl) return;
-  logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint">Searching Discogs…</span>';
+  logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint" data-parity="label-logo.hint">Searching Discogs…</span>';
   try {
     const r = await fetch("/api/labels/logo-candidates?label=" + encodeURIComponent(labelName));
     const j = await r.json();
@@ -72,13 +72,13 @@ async function loadLogoCandidates(labelName) {
     const candidates = (j && j.candidates) || [];
     logoCandidatesEl.innerHTML = "";
     if (!candidates.length) {
-      logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint">No logos found on Discogs</span>';
+      logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint" data-parity="label-logo.hint">No logos found on Discogs</span>';
       return;
     }
     for (const c of candidates) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "logo-candidate-btn";
+      btn.className = "logo-candidate-btn"; btn.dataset.parity = "label-logo.candidate"; btn.setAttribute("aria-label", c.title || "Logo");
       btn.title = c.title || "";
       const img = document.createElement("img");
       img.src = c.img;
@@ -90,7 +90,7 @@ async function loadLogoCandidates(labelName) {
       logoCandidatesEl.appendChild(btn);
     }
   } catch (e) {
-    logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint">' + (e.message || "Discogs search failed") + '</span>';
+    logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint" data-parity="label-logo.hint">' + (e.message || "Discogs search failed") + '</span>';
   }
 }
 
@@ -131,10 +131,10 @@ function makeScanLogLink() {
   const a = document.createElement("a");
   a.href = "/api/labels-scan-log";
   a.download = "labels-scan.log";
-  a.textContent = "Download scan log";
+  a.textContent = "Download scan log"; a.dataset.parity = "labels.log-download";
   a.style.cssText = "color:inherit;text-decoration:underline;cursor:pointer;margin-right:12px;";
   const copyBtn = document.createElement("button");
-  copyBtn.textContent = "Copy log";
+  copyBtn.textContent = "Copy log"; copyBtn.dataset.parity = "labels.log-copy";
   copyBtn.style.cssText = "background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;";
   copyBtn.addEventListener("click", async () => {
     try {
@@ -197,7 +197,7 @@ async function showLabelsList(isRepoll = false) {
         const rescanBtn = document.createElement("button");
         rescanBtn.className = "action-btn primary";
         rescanBtn.style.cssText = "margin:16px auto;";
-        rescanBtn.textContent = "Rescan now";
+        rescanBtn.textContent = "Rescan now"; rescanBtn.dataset.parity = "labels.rescan";
         rescanBtn.addEventListener("click", async () => {
           rescanBtn.disabled = true;
           rescanBtn.textContent = "Starting…";
@@ -254,7 +254,7 @@ async function showLabelsList(isRepoll = false) {
 }
 
 function setLabelTextArt(artEl, title) {
-  artEl.className = "album-art-wrap is-label-text";
+  artEl.className = "album-art-wrap is-label-text"; artEl.dataset.parity = "labels.label-art";
   artEl.innerHTML = "";
   artEl.style.fontSize = "";
   const words = (title || "").trim().split(/\s+/).filter(Boolean);
@@ -275,13 +275,13 @@ function renderLabelTiles(labels) {
   // The server sends them # to Z; Z to # is the same list turned round.
   for (const lb of (labelsReversed ? labels.slice().reverse() : labels)) {
     const btn = document.createElement("button");
-    btn.className = "album label-tile";
+    btn.className = "album label-tile"; btn.dataset.parity = "labels.label";
     btn.type = "button";
     btn.setAttribute("aria-label", lb.title || "Label");
     btn.dataset.labelKey = lb.key || "";
     const art = document.createElement("div");
     if (lb.logo_url) {
-      art.className = "album-art-wrap is-label-logo";
+      art.className = "album-art-wrap is-label-logo"; art.dataset.parity = "labels.label-art";
       const img = document.createElement("img");
       img.loading = "lazy"; img.alt = "";
       img.src = lb.logo_url;
@@ -292,13 +292,13 @@ function renderLabelTiles(labels) {
     }
     const meta = document.createElement("div");
     meta.className = "album-meta";
-    const titleEl  = document.createElement("div"); titleEl.className  = "album-title";  titleEl.textContent  = lb.title || "";
-    const artistEl = document.createElement("div"); artistEl.className = "album-artist"; artistEl.textContent = lb.subtitle || "";
+    const titleEl  = document.createElement("div"); titleEl.className  = "album-title";  titleEl.textContent  = lb.title || ""; titleEl.dataset.parity = "labels.label-title";
+    const artistEl = document.createElement("div"); artistEl.className = "album-artist"; artistEl.textContent = lb.subtitle || ""; artistEl.dataset.parity = "labels.label-subtitle";
     meta.appendChild(titleEl);
     meta.appendChild(artistEl);
     if (lb.mergedFrom && lb.mergedFrom.length > 0) {
       const mergedEl = document.createElement("div");
-      mergedEl.className = "album-merged-info";
+      mergedEl.className = "album-merged-info"; mergedEl.dataset.parity = "labels.label-merged";
       mergedEl.textContent = lb.mergedFrom.length + " merged";
       mergedEl.title = "Tap to manage merged labels";
       mergedEl.addEventListener("click", (e) => {

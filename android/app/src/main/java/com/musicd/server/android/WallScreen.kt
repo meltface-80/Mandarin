@@ -45,7 +45,8 @@ import kotlinx.coroutines.withContext
  * The walls Home links to, natively (plan L5, bug list item 52; the page's walls.js and loadRandom): Listen
  * later, Favourites, Recently played, Not played in 6 months, and Random albums with its reshuffle; a genre's
  * albums from Browse by genre (item 57: the random wall narrowed by [filterQuery], a WallFilter, with the
- * reshuffle too); and the app's own, Downloaded albums and Music on device (the latter with the Library wall's
+ * reshuffle too); a record label's albums (item 71: the label's name as [filterQuery], its logo button opening the logo
+ * panel under the heading); and the app's own, Downloaded albums and Music on device (the latter with the Library wall's
  * Focus and Sort over the phone's own facets), each the heading at the top and the albums under it, the banner
  * where there is nothing or the library can't be read, the mini player and the row along the foot; a tile
  * opens the album's page over it with the wall as its list (one of the phone's own, the page's own page of it),
@@ -57,7 +58,9 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val filter = remember(filterQuery) { WallFilter.parse(filterQuery) }
-    val wall = remember(kind, filterQuery) { Walls.state(if (kind == "genre") "genre:$filterQuery" else kind, kind) }
+    val wall = remember(kind, filterQuery) { Walls.state(if (kind == "genre" || kind == "label") "$kind:$filterQuery" else kind, kind) }
+    // A label's albums (item 71): [filterQuery] is the label's name; its logo button opens the logo panel under the heading.
+    var logoOpen by remember { mutableStateOf(false) }
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     var selecting by remember { mutableStateOf(false) }
@@ -71,8 +74,8 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     val (cols, coverPx) = wallColumns(prefs)
     val randomCount = randomWallCount(prefs)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-    BackHandler { when { focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
-    fun load() { scope.launch { wall.load(context, client(), randomCount, filter) } }
+    BackHandler { when { logoOpen -> logoOpen = false; focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
+    fun load() { scope.launch { wall.load(context, client(), randomCount, filter, label = filterQuery, labelOrder = prefs.labelOrder) } }
     LaunchedEffect(wall) { if (!wall.loaded) load() }
     fun changeLocal(v: LocalView) { local = v; Store.setLocalView(context, v.toJson()) }
     // The phone's albums as its view has them; every other wall as the server gave it.
@@ -108,6 +111,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     // The heading: the genre's name, Music on device with its count (as the page's renderLocalWall), or the wall's own.
     val title = when (kind) {
         "genre" -> filter?.title ?: "Random albums"
+        "label" -> filterQuery
         "phone" -> if (!wall.loaded) "Music on device" else "Music on device · " + java.text.NumberFormat.getIntegerInstance().format(shown.size) + (if (local.focusCount > 0) " matching" else "") + (if (shown.size == 1) " album" else " albums")
         else -> Walls.title(kind)
     }
@@ -119,10 +123,19 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(listOf(GridBlock(null, shown)), prefs, cols, coverPx, client, wall.loaded, picks.map { it.offset }.toSet(), grid, list,
-            onOpen = ::open, onLongPress = { i -> if (!own && !selecting) { selecting = true; pick(i) } }, dl = { a -> if (kind == "downloads") HomeKept.downloads[a.offset]?.badge else null }) { WallHead(title, prefs, banner) }
+            onOpen = ::open, onLongPress = { i -> if (!own && !selecting) { selecting = true; pick(i) } }, dl = { a -> if (kind == "downloads") HomeKept.downloads[a.offset]?.badge else null }) {
+            Column {
+                WallHead(title, prefs, banner)
+                if (logoOpen) LabelLogoPanel(filterQuery, wall.logo, client, onClose = { logoOpen = false }, onSaved = { wall.logo = it; logoOpen = false })
+            }
+        }
         WallBack(onBack)
         // Top right: the ⋯ while albums are picked; Focus and Sort on the phone's wall; the random wall's (and a genre's) reshuffle otherwise (the bar's button).
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        else if (kind == "label") FilledIconButton(onClick = { logoOpen = !logoOpen }, colors = barDisc(),
+            modifier = Modifier.parity("wall.logo", Contract.label("wall.logo")).align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).size(40.dp)) {
+            Icon(painterResource(R.drawable.lb_logo), contentDescription = null, modifier = Modifier.size(20.dp))
+        }
         else if (kind == "phone") LibraryPills(local.focusCount, onFocus = { focusOpen = true }, onSort = { sortOpen = true })
         else if (kind == "random" || kind == "genre") FilledIconButton(onClick = { wall.loaded = false; load() }, enabled = wall.loaded, colors = barDisc(),
             modifier = Modifier.parity("wall.reshuffle", Contract.label("wall.reshuffle")).align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).size(40.dp)) {
@@ -144,9 +157,11 @@ internal class WallKept(val kind: String) {
     val albums = androidx.compose.runtime.mutableStateListOf<AlbumSummary>()
     var loaded by mutableStateOf(false)
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
+    /** A label's logo, as its albums came with it (a label's wall). */
+    var logo by mutableStateOf<String?>(null)
 
     /** The wall's albums: the phone's own from the phone, the rest from [client] ([randomCount] of them for the random wall, narrowed by [filter] for a genre's), and the banner as the page says it. */
-    suspend fun load(context: Context, client: ServerClient?, randomCount: Int, filter: WallFilter?) {
+    suspend fun load(context: Context, client: ServerClient?, randomCount: Int, filter: WallFilter?, label: String = "", labelOrder: String = "alpha") {
         if (kind == "phone") { HomeKept.loadPhone(context); albums.clear(); albums.addAll(HomeKept.rows["phone"]!!.albums); banner = null; loaded = true; return }
         val c = client ?: return
         if (kind == "downloads") {
@@ -166,6 +181,7 @@ internal class WallKept(val kind: String) {
                     val from = u.readyAt?.let { " — from " + DateFormat.getDateInstance(DateFormat.LONG).format(Date(it)) } ?: ""
                     u.albums to (if (u.noHistory) "Albums show here once Mandarin has six months of listening behind it$from." else "Nothing here yet — play some music and check back.")
                 }
+                "label" -> lib.labelAlbums(label, labelOrder).let { la -> logo = la.logoUrl; la.albums to "No albums found for this label." }
                 "genre" -> (if (filter != null) lib.randomAlbums(randomCount, filter) else lib.randomAlbums(randomCount)).albums to "No albums were returned. Is your library indexed?"
                 else -> lib.randomAlbums(randomCount).albums to "No albums were returned. Is your library indexed?"
             }

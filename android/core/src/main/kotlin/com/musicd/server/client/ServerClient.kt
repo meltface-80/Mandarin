@@ -197,6 +197,17 @@ class ServerClient(
     fun playingAlbum(zoneId: String): Boolean = RoomMove.playing(getJson("/api/album/now-playing?zone=" + enc(zoneId)))
     fun transferZone(from: String, to: String) { post("/api/transfer-zone", JSONObject().put("from", from).put("to", to)) }
 
+    /** Labels (item 71): a logo saved for one (the address the server kept), labels merged into the first, one taken out again, the scan run again, its log. */
+    fun saveLabelLogo(label: String, url: String): String {
+        val j = post("/api/labels/logo", JSONObject().put("label", label).put("url", url))
+        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save logo" })
+        return j.optString("storedUrl").ifEmpty { url }
+    }
+    fun mergeLabels(items: List<MergedLabel>) { post("/api/labels/merge", JSONObject().put("items", org.json.JSONArray(items.map { JSONObject().put("key", it.key).put("display", it.display) }))) }
+    fun unmergeLabel(key: String) { send("DELETE", "/api/labels/merge/" + enc(key)) }
+    fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
+    fun labelsScanLog(): String = String(bytes(address.baseUrl + "/api/labels-scan-log"), Charsets.UTF_8)
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 
@@ -254,6 +265,17 @@ class ServerClient(
             c.doOutput = true
             c.setRequestProperty("Content-Type", "application/json")
             c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            return readJson(c)
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    /** A request with no body ([method]: DELETE), its answer. */
+    private fun send(method: String, path: String): JSONObject {
+        val c = open(address.baseUrl + path, timeoutMs)
+        try {
+            c.requestMethod = method
             return readJson(c)
         } finally {
             c.disconnect()
