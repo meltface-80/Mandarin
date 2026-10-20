@@ -260,10 +260,9 @@ internal fun DeviceNote(text: String, modifier: Modifier, danger: Boolean = fals
 @Composable
 private fun NameNote(d: DevicePage, modifier: Modifier, reset: Modifier) {
     FlowRow(modifier.padding(top = 6.dp)) {
-        val note = { t: String -> Text(t, color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp) }
-        note(d.nameNote + if (d.renamed) " · " else "")
+        Text(d.nameNote + if (d.renamed) " · " else "", color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
         if (d.renamed) Text("Use the network name", reset, color = paletteColor(Palette.ACCENT_TEXT), fontSize = 12.sp, lineHeight = 17.4.sp, textDecoration = TextDecoration.Underline)
-        if (d.sonosNameNote.isNotEmpty()) note(d.sonosNameNote)
+        if (d.sonosNameNote.isNotEmpty()) Text(d.sonosNameNote, color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
     }
 }
 
