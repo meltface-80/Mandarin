@@ -3,7 +3,6 @@ package com.musicd.server.android
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,9 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +49,10 @@ import kotlinx.coroutines.launch
  * page's bar along the foot of an album's page: a brass play/pause disc, the
  * cover and the track (a tap: Now playing), the room and the format above
  * it, Play on and the volume (Now playing's own menus), and the track's
- * progress as a level meter along the bottom. It shows [room], the page's
+ * progress as a level meter along the top. Docked (bug list item 102, as the
+ * owner chose it; android.css): the full width, straight on the row along the
+ * foot, solid in that row's colour with a hairline above it, not rounded, the
+ * meter the full width above the cover and the words. It shows [room], the page's
  * room [zoneId] as its screen follows it ([followRoom]); with no room it
  * says so, as the page's bar does.
  */
@@ -64,14 +66,15 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
         scope.launch(Dispatchers.IO) { runCatching { block(c) } }
     }
     val cover = rememberCover(v?.imageKey, 120, client)
-    val shape = RoundedCornerShape(22.dp)
     val brass = MaterialTheme.colorScheme.primary
-    Box(modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp)) {
+    Box(modifier.fillMaxWidth()) {
         // The volume sheet just above the bar, as the page's is.
         VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, room.volume, ::act, above = true, inset = (-14).dp)
-        Column(Modifier.fillMaxWidth().shadow(20.dp, shape).clip(shape).background(paletteColor(Palette.MT_BG)).border(1.dp, paletteColor(Palette.MT_EDGE), shape)) {
-            // The page's padding of 12 and 14 lies inside its 1px edge; the edge here is drawn inside the box, so each is one more.
-            Row(Modifier.fillMaxWidth().padding(start = 15.dp, top = 13.dp, end = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().background(paletteColor(Palette.BG))) {
+            // The hairline above (border-top 1, --border); the meter 9 under it and 14 in; the row 20 under the line, 12 above the foot.
+            Box(Modifier.fillMaxWidth().height(1.dp).background(paletteColor(Palette.BORDER)))
+            Meter(v?.fraction(room.now) ?: 0f, brass, Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 14.dp, top = 9.dp, end = 14.dp).height(4.dp))
+            Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 7.dp, end = 14.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, enabled = v != null, shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary,
                         disabledContainerColor = brass, disabledContentColor = MaterialTheme.colorScheme.onPrimary),
@@ -108,21 +111,24 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                     VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
                 }
             }
-            // The track's progress as the page's level meter: brass segments over faint ones, along the bottom.
-            val lit = brass
-            val unlit = paletteColor(Palette.METER_OFF)
-            Canvas(Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 17.dp, top = 7.dp, end = 17.dp, bottom = 8.dp).height(4.dp)) {
-                val on = 7.dp.toPx(); val pitch = 10.dp.toPx()
-                val head = (v?.fraction(room.now) ?: 0f) * size.width
-                var x = 0f
-                while (x < size.width) {
-                    val w = minOf(on, size.width - x)
-                    drawRect(unlit, Offset(x, 0f), Size(w, size.height))
-                    val done = minOf(w, head - x)
-                    if (done > 0f) drawRect(lit, Offset(x, 0f), Size(done, size.height))
-                    x += pitch
-                }
-            }
+        }
+    }
+}
+
+/** The track's progress as the page's level meter: brass segments over faint ones, [fraction] of the way lit. */
+@Composable
+private fun Meter(fraction: Float, lit: Color, modifier: Modifier) {
+    val unlit = paletteColor(Palette.METER_OFF)
+    Canvas(modifier) {
+        val on = 7.dp.toPx(); val pitch = 10.dp.toPx()
+        val head = fraction * size.width
+        var x = 0f
+        while (x < size.width) {
+            val w = minOf(on, size.width - x)
+            drawRect(unlit, Offset(x, 0f), Size(w, size.height))
+            val done = minOf(w, head - x)
+            if (done > 0f) drawRect(lit, Offset(x, 0f), Size(done, size.height))
+            x += pitch
         }
     }
 }

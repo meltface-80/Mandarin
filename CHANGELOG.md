@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
+  the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
+  rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
+  what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
+  keeps the floating bar.
 - `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
   what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
   "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the

@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 102 | The mini player docked in the app, as chosen from the renders: full width, straight on the row along the foot, solid in that row's colour with a hairline above, not rounded; the progress the full width along its top, above the cover and the words. Same behaviour and screens; a browser keeps the floating bar | `102-mini-player-docked` | Ready to test |
 | 101 | The small line under each Settings page's heading (what the page holds, Account's "Signed in as …", Downloads' counts, a device's model) removed on every Settings page, on the page and in the app; the heading keeps 18 under it | `101-settings-no-subtitles` | Ready to test |
 | 100 | The app crashed opening Settings → Audio Devices (NoSuchElementException: List is empty): the zone list's words were read before the zones had come, and the first of an empty list threw. An empty list now shows nothing, for every list in Settings | `100-audio-devices-crash` | Ready to test |
 | 99 | Away from home (mobile data, a VPN) the Library grid stayed on its grey skeletons: the kept wall's "page on its way" flag stayed up when its first request was called off (the Library left or drawn again before a slow answer), so it never asked again. Now let go however the request ends, and a failed first page asked again on reopening | `99-library-wall-away` | Ready to test |
