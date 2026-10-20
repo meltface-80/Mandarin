@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -83,7 +84,8 @@ internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client:
                 .navigationBarsPadding().padding(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 24.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp, bottom = 14.dp).size(40.dp, 4.dp).clip(CircleShape).background(paletteColor(Palette.BORDER)))
                 Row(Modifier.fillMaxWidth().padding(bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(AlbumEdit.HEADING, Modifier.parity("album-edit.heading").weight(1f), color = paletteColor(Palette.TEXT), fontSize = 22.sp, lineHeight = 31.sp)
+                    Text(AlbumEdit.HEADING, Modifier.parity("album-edit.heading").weight(1f), color = paletteColor(Palette.TEXT), fontFamily = youngSerif, fontSize = 22.sp, lineHeight = 31.sp,
+                        letterSpacing = 0.01.em)
                     Box(Modifier.parity("album-edit.close", Contract.label("album-edit.close")).size(40.dp).clip(CircleShape).background(paletteColor(Palette.BG_ELEV))
                         .border(1.dp, paletteColor(Palette.BORDER), CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
                         Icon(painterResource(R.drawable.np_close), contentDescription = null, tint = paletteColor(Palette.TEXT_DIM), modifier = Modifier.size(20.dp))
