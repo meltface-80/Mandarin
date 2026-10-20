@@ -59,8 +59,9 @@ class MenuTest {
     }
 
     @Test fun `offline's line, and Shut down only where the server can`() {
-        assertEquals("On · only the music on this phone", Menu.offlineSub(true))
-        assertEquals("Off", Menu.offlineSub(false))
+        // One line, as the owner asked (item 98): the row's name with On or Off after it.
+        assertEquals("Offline Mode - On", Menu.offlineSub(true))
+        assertEquals("Offline Mode - Off", Menu.offlineSub(false))
         assertTrue(Menu.canShutDown(null))
         assertFalse(Menu.canShutDown(JSONObject("""{"shutdown":false}""")))
         assertEquals("In Docker: docker stop musicd-server, then docker start musicd-server.", Menu.powerNote(JSONObject("""{"shutdown":false}""")))

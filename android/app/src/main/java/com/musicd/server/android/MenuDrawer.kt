@@ -266,10 +266,8 @@ private fun OfflineRow(on: Boolean, onTap: () -> Unit) {
     Row(Modifier.parity("menu.offline", Contract.label("menu.offline")).fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onTap).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(painterResource(R.drawable.mn_offline), contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(Contract.label("menu.offline"), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
-            Text(Menu.offlineSub(on), Modifier.parity("menu.offline-sub"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 15.6.sp)
-        }
+        // One line: "Offline Mode - On" or "- Off" (item 98).
+        Text(Menu.offlineSub(on), Modifier.parity("menu.offline-sub").weight(1f), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
         val track = if (on) accent else paletteColor(Palette.BG_ELEV_2)
         Box(Modifier.width(46.dp).height(28.dp).clip(CircleShape).background(track).border(1.dp, if (on) Color.Transparent else MaterialTheme.colorScheme.outline, CircleShape).padding(horizontal = 3.dp),
             contentAlignment = Alignment.CenterStart) {

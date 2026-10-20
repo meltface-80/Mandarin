@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
 - `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
   outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
   question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
