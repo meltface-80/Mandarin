@@ -861,6 +861,32 @@
         "row-on": { "kind": "action", "label": "{row} row", "each": true }
       }
     },
+    "settings-services": {
+      "page": "Settings' Services: Back, its title and what it holds; Qobuz and Tidal, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "title": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "status": { "kind": "shows", "each": true },
+        "email": { "kind": "action", "label": "Qobuz email", "when": "not signed in to Qobuz" },
+        "password": { "kind": "action", "label": "Qobuz password", "when": "not signed in to Qobuz" },
+        "signin": { "kind": "action", "label": ["Sign in", "Sign in on tidal.com", "…"], "each": true, "when": "not signed in to the service" },
+        "tidal-note": { "kind": "shows", "when": "a Tidal sign-in under way" },
+        "tidal-link": { "kind": "action", "label": "{link}", "when": "a Tidal sign-in under way" },
+        "tidal-code": { "kind": "shows", "when": "a Tidal sign-in under way" },
+        "tidal-cancel": { "kind": "action", "label": "Cancel", "when": "a Tidal sign-in under way" },
+        "name": { "kind": "shows", "each": true, "when": "signed in to the service" },
+        "quality": { "kind": "action", "label": "{service} stream quality", "each": true, "when": "signed in to the service" },
+        "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library"], "each": true, "when": "signed in to the service" },
+        "update": { "kind": "action", "label": ["Update library now", "…"], "each": true, "when": "signed in to the service, with its favourites in the library" },
+        "signout": { "kind": "action", "label": "Sign out", "each": true, "when": "signed in to the service" },
+        "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

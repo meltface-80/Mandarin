@@ -3878,6 +3878,9 @@ input.vol-range::-moz-range-thumb {
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--bg-elev-2);
 }
+/* Shown only while a sign-in is under way: `display: flex` above would otherwise outrank the hidden attribute, and the
+   empty box (its note and Cancel, no link or code) stood under Sign in on tidal.com for good (bug list item 87). */
+.tidal-auth-pending[hidden] { display: none; }
 .tidal-auth-link {
   color: var(--accent-text); font-size: 14px; font-weight: 600;
   text-decoration: underline; word-break: break-all; text-align: center;
