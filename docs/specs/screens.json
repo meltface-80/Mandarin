@@ -888,7 +888,7 @@
     },
     "prompt": {
       "page": "the page's name prompt (#prompt-overlay), as a new playlist asks it: what is being named, the name (a suggestion in it), Cancel and Save",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt", "android/app/src/main/java/com/musicd/server/android/SmartSheets.kt", "android/app/src/main/java/com/musicd/server/android/PromptDialog.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt"],
       "preview": false,
       "items": {
         "message": { "kind": "shows" },
@@ -1165,22 +1165,6 @@
         "note": { "kind": "shows" }
       }
     },
-    "share-tracks": {
-      "page": "a playlist shared (a Dynamic Playlist's Share): the page's sheet up from the foot, Share and its name, the ✕; how many tracks went in, each reason the file is less than the whole playlist, what the file is, the file's text; Copy, Download and Done",
-      "native": ["android/app/src/main/java/com/musicd/server/android/ShareTracksSheet.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "sum": { "kind": "shows" },
-        "warn": { "kind": "shows", "each": true, "when": "reading stopped early, the albums or the tracks capped, entries without a title, or a file too big to paste" },
-        "note": { "kind": "shows" },
-        "blob": { "kind": "action", "label": "The share file's text" },
-        "copy": { "kind": "action", "label": "Copy" },
-        "download": { "kind": "action", "label": "Download" },
-        "done": { "kind": "action", "label": "Done" }
-      }
-    },
     "playlist-import": {
       "page": "Import a playlist (the native Playlists' Import): the page's sheet up from the foot, what to paste and why, the box to paste a shared playlist into, Choose a file…, and what came of it: how many of its tracks the library has, those it couldn't match and those found on another album, Save as a playlist; Import and Close",
       "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistImportSheet.kt"],
@@ -1211,7 +1195,7 @@
         "title": { "kind": "shows" },
         "close": { "kind": "action", "label": "Close" },
         "sum": { "kind": "shows" },
-        "warn": { "kind": "shows", "each": true, "when": "tracks left out, or a file too big to paste" },
+        "warn": { "kind": "shows", "each": true, "when": "reading stopped early, the albums or the tracks capped, entries without a title, or a file too big to paste" },
         "note": { "kind": "shows" },
         "blob": { "kind": "action", "label": "The share file's text" },
         "copy": { "kind": "action", "label": "Copy" },
