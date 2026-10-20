@@ -7,8 +7,6 @@
 
 </div>
 
-note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
-
 # Mandarin — v1.1.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
@@ -34,62 +32,6 @@ Wikipedia, Deezer and others); your music files stay on your machine.
   page's, item by item, checked on every build ([docs/specs/screens.json](docs/specs/screens.json)).
   Shelf opens in the phone's browser.
 * **The app's mini player** runs the full width of the screen, on the row along its foot.
-* **Classical albums** are set out as works and movements, with the composers and performers in the
-  album's head, in the browser and the app.
-* **The album page** leads with its cover, and beside it the title, artist, date, format and length.
-
-**New in v1.0.4** (since v1.0.0)
-* **Mandarin runs on Linux, in Docker (v1.0.3).** Mac support is dropped: no Mac install line, no
-  Mac build in the release, and Mandarin DAC Bridge is no longer offered. v1.0.2 is the last version
-  for a Mac. A Mac install keeps working as it is, but its update from Settings finds no build for
-  it and changes nothing. To carry on, make a backup (Settings → Backup & restore), install Mandarin
-  on a Linux machine with Docker ([Install](#install-docker)) and restore it there.
-* **The wall display and Shelf switch off whole (v1.0.2)**, each from its own page in
-  **Settings → Setup**. Off, its page says so and nothing of it runs or is asked for. Shelf is off
-  on a new install; one updated from before v1.0.2 keeps it on.
-* **The playing track's disc (v1.0.1):** on an album's page a small disc turns between the track's
-  number and its name while it plays.
-* **Shelf's order (v1.0.1):** tap the order's name above the shelf to switch between **A → Z by
-  artist** and **A → Z by album** (by title), numbers before letters either way. The carousel look
-  is gone.
-* **Downloads in Setup (v1.0.4):** the Android app's Downloads page is in **Settings → Setup**,
-  before Away from home; it had fallen to the foot of the Settings list, under Updates.
-
-**New in v1.0.0** (since v0.9.0)
-* **A layout for phones and tablets**, either way round, in the browser, the iPhone home-screen
-  app and the Android app. A row along the foot of the screen (Menu, Home, Library, Search) sits
-  under the mini player. Home has no top bar: the date and the greeting are at the top. On the
-  album grids the albums scroll up to the screen's edge, with the bar's buttons floating over
-  them; the Library's Focus and Sort sit at the top right. Search opens its field across the whole
-  screen. A computer with a mouse looks as before.
-* **The Android app installed over itself** comes back to what it was playing, at the same track
-  and place, paused, a downloaded album included. Music only on the phone, which the server
-  doesn't know, doesn't come back.
-* **The Android app's build is named `Mandarin-Android-<version>.apk`.** The download link below
-  keeps its fixed name, `mandarin-android.apk`, so it always points at the newest.
-* **The audit before v1.0.0:** more of the server tested; every request read and answered one way;
-  the largest server files split and the build checking the code's rules; the library's lists
-  kept once made instead of made on every request; every route listed in
-  [docs/specs/api.md](docs/specs/api.md).
-
-**New in v0.9.0: one program, no Node.js.** Mandarin's server is now a single program written in
-C#, built to one self-contained file: the Docker image carries no Node.js and no npm packages, and an update from Settings puts the new program and
-page in place and starts again in the same container. It took over from the original Node.js
-server one part at a time through the v0.8.x releases, each part held by the test suite to the
-Node server's own answers, so everything works as before: the library, playback to Sonos, UPnP
-renderers, the phone and sound devices, Qobuz and Tidal, identification, backups, updates.
-*Forgot the password?* is now `docker exec musicd-server /app/server/bin/mandarin-server reset-password`.
-
-**New in v0.7.4** (since v0.7.0)
-* **Qobuz and Tidal favourites follow both ways, by themselves**: remove an album from your
-  favourites here and it is gone within the moment; add or remove one in the service's own app and
-  it follows here on the next look. An album's page says why it is in the library.
-* **Music on device, in the Android app**: Focus and Sort on its wall, the phone's albums on an
-  artist's page beside the server's, and a selection of albums from anywhere played as one queue
-  on This phone. A Qobuz or Tidal album queued after the phone's own music plays when reached.
-* **One Update** does the server first and then the app. **Hide / unhide** on Audio Devices. A fresh
-  look at matching. The server's Tailscale identity travels with a backup's keys. The share card
-  carries the duck.
 
 ---
 
@@ -111,7 +53,7 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets** — *new since v0.5.50*
+👆 **Phones and tablets**
 
 On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.
 
@@ -123,7 +65,7 @@ Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-scr
 
 ⸻
 
-🎲 **Random Album** — *new since v0.5.50*
+🎲 **Random Album**
 
 The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.
 
@@ -135,7 +77,7 @@ Choose where to play with the speaker button, then tap **Random Album**. Its dis
 
 ⸻
 
-📅 **Album of the day** — *new since v0.5.50*
+📅 **Album of the day**
 
 One album, the same on every device, chosen by the server at 00:01. Once played from any device, it's gone until the next 00:01.
 
@@ -147,7 +89,7 @@ Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's
 
 ⸻
 
-⏳ **Not played in 6 months** — *new since v0.5.50*
+⏳ **Not played in 6 months**
 
 Albums you haven't played in six months. The row stays hidden until Mandarin has six months of your listening.
 
@@ -171,7 +113,7 @@ Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's
 
 ⸻
 
-🗄️ **Shelf** — *new since v0.5.50*
+🗄️ **Shelf**
 
 A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.
 
@@ -201,13 +143,13 @@ Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's scor
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album. The track playing has a small disc turning beside its number.
+Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head.
 
 </details>
 
 ⸻
 
-🧭 **More by, and similar** — *new since v0.5.50*
+🧭 **More by, and similar**
 
 Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.
 
@@ -243,7 +185,7 @@ Open **Settings → Music Folders** and add a folder from the list of drives and
 
 ⸻
 
-💽 **One album per folder** — *new since v0.5.50*
+💽 **One album per folder**
 
 Each folder is one album. Disc folders inside it, such as Disc 1 or CD2, make one album shown disc by disc, with a two-disc symbol on its cover.
 
@@ -255,7 +197,7 @@ Nothing to set up.
 
 ⸻
 
-📝 **Untagged files named from folders** — *new since v0.5.50*
+📝 **Untagged files named from folders**
 
 A file with no tags takes its artist, album, year, title and track number from its folder and file names. Nothing is written to your files.
 
@@ -267,7 +209,7 @@ Nothing to set up. Those albums are then looked up by the Library Scanner like a
 
 ⸻
 
-🏷️ **Every tag kept** — *new since v0.5.50*
+🏷️ **Every tag kept**
 
 All of each file's tags are read into the server's database, including MusicBrainz IDs, barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.
 
@@ -279,7 +221,7 @@ Nothing to set up: tags are read with every scan.
 
 ⸻
 
-🔎 **Library Scanner** — *new since v0.5.50*
+🔎 **Library Scanner**
 
 Names albums from their files' identifiers first, then from MusicBrainz by tracks and lengths, with Apple's iTunes catalogue as a second source. Measures ReplayGain for files without it.
 
@@ -291,7 +233,7 @@ Open **Settings → Library Scanner**. **Clean up** there removes albums whose f
 
 ⸻
 
-📦 **MusicBrainz pack** — *new since v0.5.50*
+📦 **MusicBrainz pack**
 
 An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums with a barcode are matched from it, also while musicbrainz.org is down.
 
@@ -315,7 +257,7 @@ Tap the bar at the bottom of the screen. The waveform is off until you switch on
 
 ⸻
 
-↪️ **Move to another device** — *new since v0.5.50*
+↪️ **Move to another device**
 
 Pick another room, renderer or phone while music plays and it moves there: the queue goes with it, from the same track and second.
 
@@ -363,7 +305,7 @@ A renderer found on the network is off until you switch it on in **Settings → 
 
 ⸻
 
-🖥️ **Sound devices on the server** — *new since v0.5.50*
+🖥️ **Sound devices on the server**
 
 A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.
 
@@ -387,7 +329,7 @@ Open **Settings → Audio Devices** and tap a device. The name you give it is wh
 
 ⸻
 
-💎 **DSD** — *new since v0.5.50*
+💎 **DSD**
 
 A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB DAC on the phone gets DSD natively or as DoP.
 
@@ -399,7 +341,7 @@ On a renderer's page in **Settings → Audio Devices**, switch the DSD rates it 
 
 ⸻
 
-🔊 **Volume Levelling** — *new since v0.5.50*
+🔊 **Volume Levelling**
 
 ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level for tracks with no loudness information.
 
@@ -423,7 +365,7 @@ Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on 
 
 ⸻
 
-⚙️ **Playback first** — *new since v0.5.50*
+⚙️ **Playback first**
 
 Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and downloads run on the other cores, at the lowest priority.
 
@@ -543,9 +485,9 @@ Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default)
 
 ⸻
 
-📱 **The Android app**
+📱 **The Android app** — *new in v1.1.0*
 
-The same interface, drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.
+Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -603,7 +545,7 @@ In the app, **Settings → Music Folders → On this phone** and choose the fold
 
 ⸻
 
-✈️ **Offline mode** — *new since v0.5.50*
+✈️ **Offline mode**
 
 One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.
 
@@ -627,7 +569,7 @@ On mobile data the app reaches the server through its own Tailscale, with no por
 
 ⸻
 
-🎨 **UI Settings** — *new since v0.5.50*
+🎨 **UI Settings**
 
 Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.
 
@@ -651,7 +593,7 @@ Create it on first visit from a device at home. **Settings → Account** lists d
 
 ⸻
 
-⏻ **Restart and shut down** — *new since v0.5.50*
+⏻ **Restart and shut down**
 
 Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.
 
@@ -663,7 +605,7 @@ Open the side menu (☰) and tap the **power button** in its top-right corner, t
 
 ⸻
 
-💾 **Backup and restore** — *new since v0.5.50*
+💾 **Backup and restore**
 
 Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.
 
@@ -677,7 +619,7 @@ Open **Settings → Backup & restore**, tick what to include, then **Back up to 
 
 ⸻
 
-🎼 **Qobuz** — *new since v0.5.50*
+🎼 **Qobuz**
 
 Sign in with your Qobuz subscription: your favourites and purchases become albums here, and the Qobuz browser plays anything in the catalogue, streamed through the server.
 
@@ -689,7 +631,7 @@ Sign in with your Qobuz subscription: your favourites and purchases become album
 
 ⸻
 
-🎵 **Tidal** — *new since v0.5.50*
+🎵 **Tidal**
 
 Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.
 
