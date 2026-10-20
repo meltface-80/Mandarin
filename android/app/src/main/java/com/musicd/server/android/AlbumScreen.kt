@@ -152,9 +152,11 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             if (err != null) toast(err) else if (said.isNotEmpty()) toast(said)
         }
     }
+    // Made on the app's lane of changes to what Home shows (item 85): to the end if this page closes, and before Home reads.
     fun mark(block: (ServerClient) -> Unit) {
         val c = client() ?: return
-        scope.launch { withContext(Dispatchers.IO) { runCatching { block(c) } }.exceptionOrNull()?.let { toast(it.message ?: "Couldn't reach the server") } }
+        val made = ServerWrites.write { block(c) }
+        scope.launch { ServerWrites.await(made).exceptionOrNull()?.let { toast(it.message ?: "Couldn't reach the server") } }
     }
 
     val bg = MaterialTheme.colorScheme.background

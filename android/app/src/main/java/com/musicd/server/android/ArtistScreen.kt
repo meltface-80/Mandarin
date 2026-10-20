@@ -92,7 +92,8 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
-                scope.launch { toast(withContext(Dispatchers.IO) { runCatching { selectAct(c, chosen, zone, room.zoneName, what) }.getOrElse { it.message ?: "Couldn't reach the server" } }); selecting = false; picks = emptyList() }
+                val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
+                scope.launch { toast(ServerWrites.await(made).getOrElse { it.message ?: "Couldn't reach the server" }); selecting = false; picks = emptyList() }
             }
         }
     }

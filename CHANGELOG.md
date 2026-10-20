@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `85-home-rows-after-marks`: in the Android app, an album put on Listen later (from its page, or picked on a wall)
+  showed in Home's Listen later row only once the app was started again, sometimes; a favourite likewise. The change was
+  made beside Home's read of its rows, which could be answered first, and from the screen that asked, which dropped it
+  if that screen closed first. The app's changes to what Home shows (Listen later, favourites, the rows' order) are now
+  made one at a time, in the order asked, to the end whatever becomes of the screen, and Home reads its rows once those
+  under way are made.
 - `84-listen-later-removed-crash`: the Android app crashed a moment after an album was taken out of Listen later (or out
   of any of Home's rows, emptied or shortened under it). Each of Home's rows of tiles was told how many tiles it had when
   Home was drawn, and looked each up in the row as it is now: an album taken out between two frames left it asking for a

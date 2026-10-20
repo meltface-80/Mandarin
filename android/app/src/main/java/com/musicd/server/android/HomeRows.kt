@@ -99,26 +99,30 @@ internal object HomeKept {
         // The page's rowsTtlFresh: within five minutes, Not played answered, and Random holding tiles.
         val ttlFresh = rowsAt > 0 && now - rowsAt < TTL_MS && unplayedLoaded && rows["random"]!!.albums.isNotEmpty()
         if (!ttlFresh) rowsAt = now
-        scope.launch { layout(lib) }
-        scope.launch { refreshAotd(client) }
-        if (!ttlFresh) scope.launch {
-            unplayedLoaded = false
-            unplayedLoaded = hidingRow("unplayed", lib) { it.unplayed(6, 30).albums }
-            if (!unplayedLoaded) rowsAt = 0   // asked again on the next visit, as the page's
+        // Read once the app's changes under way are made (an album just put on Listen later; item 85).
+        scope.launch {
+            ServerWrites.drained()
+            scope.launch { layout(lib) }
+            scope.launch { refreshAotd(client) }
+            if (!ttlFresh) scope.launch {
+                unplayedLoaded = false
+                unplayedLoaded = hidingRow("unplayed", lib) { it.unplayed(6, 30).albums }
+                if (!unplayedLoaded) rowsAt = 0   // asked again on the next visit, as the page's
+            }
+            // Random albums turns over on every visit (the page's isFresh: false): a new handful each time.
+            scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
+            scope.launch { hidingRow("later", lib) { it.listenLater().albums } }
+            scope.launch { hidingRow("favourites", lib) { it.favourites().albums } }
+            scope.launch { hidingRow("history", lib) { it.history(30).albums } }
+            // The Library row in the Library's order alone: its Focus and name filter narrow the wall, never the row (the page's libSortKey).
+            val order = LibraryView.parse(libraryView).sortQuery()
+            scope.launch { plainRow("library", lib) { it.albums(0, 30, order).albums } }
+            scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.playlists() }.getOrNull() }; if (got != null) { playlists.clear(); playlists.addAll(got) } }
+            scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
+            if (!lotwLoaded) scope.launch { lotw(lib) }
+            if (!genresLoaded) scope.launch { genres(lib) }
+            scope.launch { loadDownloads(context, client) }
         }
-        // Random albums turns over on every visit (the page's isFresh: false): a new handful each time.
-        scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
-        scope.launch { hidingRow("later", lib) { it.listenLater().albums } }
-        scope.launch { hidingRow("favourites", lib) { it.favourites().albums } }
-        scope.launch { hidingRow("history", lib) { it.history(30).albums } }
-        // The Library row in the Library's order alone: its Focus and name filter narrow the wall, never the row (the page's libSortKey).
-        val order = LibraryView.parse(libraryView).sortQuery()
-        scope.launch { plainRow("library", lib) { it.albums(0, 30, order).albums } }
-        scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.playlists() }.getOrNull() }; if (got != null) { playlists.clear(); playlists.addAll(got) } }
-        scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
-        if (!lotwLoaded) scope.launch { lotw(lib) }
-        if (!genresLoaded) scope.launch { genres(lib) }
-        scope.launch { loadDownloads(context, client) }
     }
 
     /** Today's album, as the server says now: gone once played today (a real answer), kept as it was when the server can't say. */
@@ -127,7 +131,7 @@ internal object HomeKept {
     }
 
     /** The layout's reads and saves, one at a time in the order asked (item 83): Home's read waits for a save under way. */
-    private val layoutSync = HomeLayoutSync()
+    private val layoutSync = HomeLayoutSync(ServerWrites.lane)
     /** Saves outlive the screen that asked (Settings → Home Screen left before the server answered). */
     private val saving = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
