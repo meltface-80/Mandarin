@@ -100,7 +100,7 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     var on by remember { mutableStateOf(false) }
     var hour by remember { mutableStateOf(4) }
     var rebuilding by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { read(client, "smart-picks")?.let { on = it.optBoolean("enabled"); hour = it.optInt("hour", hour) } }
+    LaunchedEffect(Unit) { readSetting(client, "smart-picks")?.let { on = it.optBoolean("enabled"); hour = it.optInt("hour", hour) } }
     fun save(patch: JSONObject, said: String, undo: () -> Unit) = saveSetting(scope, context, client, "smart-picks", patch, said, undo)
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-picks.back", Contract.label("settings-picks.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
@@ -115,7 +115,7 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
         Block {
             SetupRow("Build the day's picks at", Modifier.parity("settings-picks.name"), Modifier.parity("settings-picks.info", Contract.label("settings-picks.info", 0, "Build the day's picks at")).clickable { info(HOUR_INFO) }) {
                 SelectBox(SetupSettings.HOURS[hour.coerceIn(0, 23)].words, SetupSettings.HOURS, null, Modifier.parity("settings-picks.hour", Contract.label("settings-picks.hour")).clickable {
-                    pick(context, SetupSettings.HOURS, hour.toString()) { v -> val was = hour; hour = v.toInt(); save(JSONObject().put("hour", hour), SetupSettings.hourSaid(hour)) { hour = was } }
+                    pickChoice(context, SetupSettings.HOURS, hour.toString()) { v -> val was = hour; hour = v.toInt(); save(JSONObject().put("hour", hour), SetupSettings.hourSaid(hour)) { hour = was } }
                 })
             }
             SetupNote("Reads your library and play history on this server; only the related-artist lookups leave your network.", Modifier.parity("settings-picks.note"))
@@ -128,7 +128,7 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { c.rebuildPicks() } }
                         rebuilding = false
-                        toast(context, r.fold({ "Rebuilding today's picks — check back in a minute" }, { "Couldn't rebuild: " + (it.message ?: "no answer") }))
+                        setupToast(context, r.fold({ "Rebuilding today's picks — check back in a minute" }, { "Couldn't rebuild: " + (it.message ?: "no answer") }))
                     }
                 })
             }
@@ -150,8 +150,8 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
     var depthStatus by remember { mutableStateOf("") }
     var savingDepth by remember { mutableStateOf(false) }
     suspend fun reload() {
-        read(client, "labels")?.let { on = it.optBoolean("enabled"); note = SetupSettings.labelsNote(it) }
-        read(client, "label-folder-depth")?.let { val d = it.optInt("depth"); depth = d.toString(); depthStatus = SetupSettings.depthStatus(d) }
+        readSetting(client, "labels")?.let { on = it.optBoolean("enabled"); note = SetupSettings.labelsNote(it) }
+        readSetting(client, "label-folder-depth")?.let { val d = it.optInt("depth"); depth = d.toString(); depthStatus = SetupSettings.depthStatus(d) }
     }
     LaunchedEffect(Unit) { reload() }
     SettingsFrame {
@@ -171,7 +171,7 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
             SetupRow("Label album order", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Label album order")).clickable { info(LABELS_INFO[1]) }) {
                 SelectBox(choiceWords(SetupSettings.LABEL_ORDER, prefs.labelOrder), SetupSettings.LABEL_ORDER, Modifier.parity("settings-labels.caret"),
                     Modifier.parity("settings-labels.order", Contract.label("settings-labels.order")).clickable {
-                        pick(context, SetupSettings.LABEL_ORDER, prefs.labelOrder) { v -> prefs = setPagePref(context, "labelOrder", v) }
+                        pickChoice(context, SetupSettings.LABEL_ORDER, prefs.labelOrder) { v -> prefs = setPagePref(context, "labelOrder", v) }
                     })
             }
         }
@@ -179,7 +179,7 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
             SetupRow("Minimum albums per label", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Minimum albums per label")).clickable { info(LABELS_INFO[2]) }) {
                 SelectBox(choiceWords(SetupSettings.LABEL_MIN, prefs.labelMin.toString()), SetupSettings.LABEL_MIN, Modifier.parity("settings-labels.caret"),
                     Modifier.parity("settings-labels.min", Contract.label("settings-labels.min")).clickable {
-                        pick(context, SetupSettings.LABEL_MIN, prefs.labelMin.toString()) { v -> prefs = setPagePref(context, "labelMin", v) }
+                        pickChoice(context, SetupSettings.LABEL_MIN, prefs.labelMin.toString()) { v -> prefs = setPagePref(context, "labelMin", v) }
                     })
             }
         }
@@ -217,8 +217,8 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { c.saveSetting("label-folder-depth", JSONObject().put("depth", depth.toIntOrNull() ?: 0)) } }
                         savingDepth = false
-                        r.onSuccess { j -> toast(context, if (!j.optBoolean("ok")) j.optString("error").ifEmpty { "Failed to save" } else if (j.optBoolean("rescanning")) "Saved — re-scanning labels…" else "Saved"); reload() }
-                            .onFailure { toast(context, "Failed: " + (it.message ?: "no answer")) }
+                        r.onSuccess { j -> setupToast(context, if (!j.optBoolean("ok")) j.optString("error").ifEmpty { "Failed to save" } else if (j.optBoolean("rescanning")) "Saved — re-scanning labels…" else "Saved"); reload() }
+                            .onFailure { setupToast(context, "Failed: " + (it.message ?: "no answer")) }
                     }
                 })
             }
@@ -242,7 +242,7 @@ private fun UiPane(onBack: () -> Unit, info: (String) -> Unit) {
                 SetupRow(UI_NAMES[i], Modifier.parity("settings-ui.name"), Modifier.parity("settings-ui.info", Contract.label("settings-ui.info", 0, UI_NAMES[i])).clickable { info(UI_INFO[i]) }) {
                     SelectBox(choiceWords(choices, value), choices, Modifier.parity("settings-ui.caret"),
                         Modifier.parity("settings-ui.text settings-ui.title settings-ui.menu settings-ui.layout settings-ui.tile", Contract.label("settings-ui.text")).clickable {
-                            pick(context, choices, value) { v -> prefs = setPagePref(context, key, v) }
+                            pickChoice(context, choices, value) { v -> prefs = setPagePref(context, key, v) }
                         }, width = 142.5.dp)
                 }
             }
@@ -257,9 +257,9 @@ private fun DisplayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (
     val scope = rememberCoroutineScope()
     var on by remember { mutableStateOf(false) }
     var seconds by remember { mutableStateOf(10) }
-    LaunchedEffect(Unit) { read(client, "display")?.let { on = it.optBoolean("enabled"); seconds = it.optInt("seconds", seconds) } }
+    LaunchedEffect(Unit) { readSetting(client, "display")?.let { on = it.optBoolean("enabled"); seconds = it.optInt("seconds", seconds) } }
     fun save() = saveSetting(scope, context, client, "display", JSONObject().put("enabled", on).put("seconds", seconds), null, undo = {}) { j ->
-        if (!j.optBoolean("ok")) toast(context, "Display settings didn't persist — check the data volume")
+        if (!j.optBoolean("ok")) setupToast(context, "Display settings didn't persist — check the data volume")
     }
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-display.back", Contract.label("settings-display.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
@@ -289,7 +289,7 @@ private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var on by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { read(client, "shelf")?.let { on = it.optBoolean("enabled") } }
+    LaunchedEffect(Unit) { readSetting(client, "shelf")?.let { on = it.optBoolean("enabled") } }
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-shelf.back", Contract.label("settings-shelf.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Shelf", Modifier.parity("settings-shelf.heading"))

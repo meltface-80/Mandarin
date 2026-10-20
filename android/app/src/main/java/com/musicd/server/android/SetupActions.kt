@@ -21,17 +21,17 @@ import org.json.JSONObject
 
 internal fun choiceWords(choices: List<Choice>, value: String): String = choices.firstOrNull { it.value == value }?.words ?: choices.first().words
 
-internal fun toast(context: Context, text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+internal fun setupToast(context: Context, text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
 
 /** The phone's own list of [choices], as the WebView put up for a page's list: [current] ticked, [onPick] with the one tapped. */
-internal fun pick(context: Context, choices: List<Choice>, current: String, onPick: (String) -> Unit) {
+internal fun pickChoice(context: Context, choices: List<Choice>, current: String, onPick: (String) -> Unit) {
     AlertDialog.Builder(context).setSingleChoiceItems(choices.map { it.words }.toTypedArray(), choices.indexOfFirst { it.value == current }) { d, i ->
         d.dismiss(); if (choices[i].value != current) onPick(choices[i].value)
     }.show()
 }
 
 /** One of the server's settings as it has it ([name]); none when it can't be reached. */
-internal suspend fun read(client: () -> ServerClient?, name: String): JSONObject? {
+internal suspend fun readSetting(client: () -> ServerClient?, name: String): JSONObject? {
     val c = client() ?: return null
     return withContext(Dispatchers.IO) { runCatching { c.setting(name) }.getOrNull() }
 }
@@ -42,7 +42,7 @@ internal fun saveSetting(scope: CoroutineScope, context: Context, client: () -> 
     val c = client() ?: return
     scope.launch {
         val r = withContext(Dispatchers.IO) { runCatching { c.saveSetting(name, body).also { if (it.optString("error").isNotEmpty()) throw IllegalStateException(it.optString("error")) } } }
-        r.onSuccess { said?.let { s -> toast(context, s) }; then(it) }.onFailure { undo(); toast(context, failed + (it.message ?: "no answer")) }
+        r.onSuccess { said?.let { s -> setupToast(context, s) }; then(it) }.onFailure { undo(); setupToast(context, failed + (it.message ?: "no answer")) }
     }
 }
 
