@@ -16,4 +16,13 @@ class PageNoticesTest {
         assertEquals(PageNotices(), PageNotices.parse("not json"))
         assertEquals(PageNotices(), PageNotices.parse(null))
     }
+
+    @Test fun `each button's question, by its place, asked by the app (item 96)`() {
+        val n = PageNotices.parse("""{"notice":{"lines":["Two folders gone"],"error":true,"buttons":["Something else","Forget “A”"],
+            "asks":["","Forget “A”? Its 3 tracks and their albums leave the library."]}}""").notice!!
+        assertNull("none asked", n.ask(0))
+        assertEquals("by its place", "Forget “A”? Its 3 tracks and their albums leave the library.", n.ask(1))
+        assertNull("no such button", n.ask(2))
+        assertNull("an older page tells none", PageNotices.parse("""{"notice":{"lines":["x"],"buttons":["Forget “A”"]}}""").notice!!.ask(0))
+    }
 }

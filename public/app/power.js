@@ -53,7 +53,7 @@
       el.id = "power-cover";
       el.className = "power-cover";
       el.setAttribute("role", "alertdialog");
-      el.innerHTML = '<div class="power-card"><div class="power-title"></div><p class="power-text"></p></div>';
+      el.innerHTML = '<div class="power-card"><div class="power-title" data-parity="power-cover.title"></div><p class="power-text" data-parity="power-cover.text"></p></div>';
       document.body.appendChild(el);
     }
     el.querySelector(".power-title").textContent = title;

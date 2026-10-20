@@ -1239,6 +1239,15 @@
         "done": { "kind": "action", "label": "Done" }
       }
     },
+    "power-cover": {
+      "page": "the screen over everything while the server is away after Restart or Shut down from the side menu's power button (#power-cover, power.js): what is happening, and how it comes back",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PowerOver.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "text": { "kind": "shows" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

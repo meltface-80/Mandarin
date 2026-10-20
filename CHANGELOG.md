@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
+  outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
+  question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
+  each button's question to the app with the notice, the app asks it as the page's yes-or-no sheet, and the page does
+  its work once told it was answered Yes. The side menu's Restart and Shut down are now the app's own too: the
+  question (Shut down saying how the server is started again), then the screen over everything while the server is
+  away, as the page's (`power-cover` in the screens contract), until it answers again, the page under the app read
+  afresh with it. Shelf stays the page's, a page of its own; the Offline dialog and the signed-out state go with the
+  offline work (O1); a Music on device album's page is still the page's.
 - `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
   Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
   phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
