@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
 - `97-label-logos-status-gap`: the server's label scan said, for a moment, that nothing was running between two passes:
   between a logo pass and the one asked for while it ran (a second API key saved during the first pass), and between
   the label lookups and the logo pass that follows them. Whoever waited for the scan to end (the page's and the app's
