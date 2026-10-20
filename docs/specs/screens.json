@@ -887,6 +887,52 @@
         "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
       }
     },
+    "settings-system": {
+      "page": "Settings' Updates: Back, its title and what it holds; Updates and Check for updates, which looks for the server's update and the app's at once and then offers to install what it found (or says all is up to date), the server's release notes under it once one is found; in the app, the app's own version, updated with the server",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "check": { "kind": "action", "label": ["Check for updates", "{state}"] },
+        "notes": { "kind": "shows", "when": "a server update found, with its release notes" },
+        "app-note": { "kind": "shows", "when": "in the Android app" },
+        "app-check": { "kind": "action", "label": "Check for app update", "only": "page", "why": "an Android app older than the page's own update offer: the app always offers its update with the server's" }
+      }
+    },
+    "settings-backup": {
+      "page": "Settings' Backup & restore: Back, its title and what it holds; Back up (its ⓘ): the parts to put in, each ticked or not with what it holds, a passphrase and what it seals, Back up to a file on this phone (in the app) and to the server, and what came of it; Restore (its ⓘ): from a file on this phone (in the app), and every backup, on the server and on this phone, newest first, each with where it is, when, what version, how big and what it holds, and Restore… (its parts ticked, a sealed one's passphrase, Restore now, asked first), Download (one on the server) and Delete (asked first)",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsBackup.kt", "android/app/src/main/java/com/musicd/server/android/BackupParts.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "title": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "part": { "kind": "action", "label": "{part}", "each": true, "when": "the server's backup state read" },
+        "part-name": { "kind": "shows", "each": true, "when": "the server's backup state read" },
+        "part-hint": { "kind": "shows", "each": true, "when": "the server's backup state read" },
+        "pass-name": { "kind": "shows" },
+        "pass-hint": { "kind": "shows" },
+        "pass": { "kind": "action", "label": "Passphrase" },
+        "to-file": { "kind": "action", "label": "Back up to a file on this phone", "when": "in the Android app" },
+        "to-server": { "kind": "action", "label": "Back up to the server" },
+        "note": { "kind": "shows", "when": "a backup made, or being made" },
+        "from-file": { "kind": "action", "label": "Restore from a file on this phone…", "when": "in the Android app" },
+        "empty": { "kind": "shows", "when": "no backups yet" },
+        "item-title": { "kind": "shows", "each": true, "when": "a backup kept" },
+        "item-meta": { "kind": "shows", "each": true, "when": "a backup kept" },
+        "item-parts": { "kind": "shows", "each": true, "when": "a backup kept" },
+        "restore": { "kind": "action", "label": "Restore…", "each": true, "when": "a backup kept" },
+        "download": { "kind": "action", "label": "Download", "each": true, "when": "a backup kept on the server" },
+        "delete": { "kind": "action", "label": "Delete", "each": true, "when": "a backup kept" },
+        "restore-pass": { "kind": "action", "label": "Passphrase", "when": "a sealed backup's Restore… tapped, or a file's" },
+        "go": { "kind": "action", "label": ["Restore now", "Choose the file…"], "when": "Restore… tapped" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

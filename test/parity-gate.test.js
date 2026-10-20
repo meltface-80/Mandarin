@@ -98,8 +98,19 @@ test("the contract itself: kinds, labels, the page's alone with a reason, in a c
     'odd: kind is "button", not action or shows', "mute: a control with no label", 'mine: only "page", and why', 'deep: in "title", which is not a control of play']);
 });
 
+test("the contract's labels written in files of a few hundred, Contract.kt joining them, so none outgrows the length gate (item 92)", () => {
+  const c = contract();
+  for (let i = 0; i < 700; i++) c.screens.play.items["b" + i] = { kind: "action", label: "B" + i };
+  const files = contractKotlin(c);
+  const names = Object.keys(files).map(f => path.basename(f));
+  assert.deepEqual(names, ["Contract.kt", "ContractLabels1.kt", "ContractLabels2.kt", "ContractLabels3.kt"]);
+  for (const [f, text] of Object.entries(files)) assert.ok(text.split("\n").length < 400, f + ": " + text.split("\n").length + " lines");
+  assert.match(files[Object.keys(files)[0]], /mapOf\(\*contractLabels1, \*contractLabels2, \*contractLabels3\)/);
+  assert.match(Object.values(files).join("\n"), /"play\.b699" to listOf\("B699"\),/);
+});
+
 test("Contract.kt is the contract's labels; the gate refuses one written by hand, the gaps list one that grows", () => {
-  const k = contractKotlin(contract());
+  const k = Object.values(contractKotlin(contract())).join("\n");
   assert.match(k, /"play\.back" to listOf\("Back"\),\n {8}"play\.play" to listOf\("Play", "Pause"\),/);
   assert.ok(!/play\.title|play\.desk/.test(k), "no readouts, nothing the page's alone");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-parity-"));
@@ -117,6 +128,11 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   put("android/core/src/main/kotlin/com/musicd/server/client/Contract.kt", "object Contract {}");
   assert.match(gate()[1].join("\n"), /Contract\.kt: not the contract's labels/);
   gate("write");
+  // A file of labels the contract no longer needs: refused by the gate, and gone once written.
+  put("android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt", "// old");
+  assert.match(gate()[1].join("\n"), /ContractLabels9\.kt: not the contract's labels/);
+  gate("write");
+  assert.ok(!fs.existsSync(path.join(root, "android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt")));
   // Back taken out of the app: accept doesn't add it to the gaps, and the gate says so.
   put(F, SCREEN.replace(/FilledIconButton[^\n]*\n/, "\n").replace(/IconButton[^\n]*\n/, "\n"));
   const [code, out] = gate("accept");

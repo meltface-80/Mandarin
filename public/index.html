@@ -1950,44 +1950,44 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="system">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-system.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Updates</h2>
+          <h2 data-parity="settings-system.heading">Updates</h2>
         </div>
-        <p class="settings-pane-desc">Updates &amp; version</p>
+        <p class="settings-pane-desc" data-parity="settings-system.desc">Updates &amp; version</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Updates</span>
-            <button id="check-update-btn" class="settings-update-btn" type="button">Check for updates</button>
+            <span class="settings-label" data-parity="settings-system.name">Updates</span>
+            <button id="check-update-btn" data-parity="settings-system.check" class="settings-update-btn" type="button">Check for updates</button>
           </div>
-          <div id="settings-release-notes" class="settings-release-notes hidden"></div>
+          <div id="settings-release-notes" data-parity="settings-system.notes" class="settings-release-notes hidden"></div>
         </div>
       </div>
       <!-- Backup & restore (v0.6.14). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="backup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-backup.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Backup &amp; restore</h2>
+          <h2 data-parity="settings-backup.heading">Backup &amp; restore</h2>
         </div>
-        <p class="settings-pane-desc">Your settings, players, collection and database</p>
+        <p class="settings-pane-desc" data-parity="settings-backup.desc">Your settings, players, collection and database</p>
         <div class="settings-block">
-          <div class="settings-block-title">Back up <button class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-backup.title">Back up <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>
-          <label class="backup-pass"><span><b>Passphrase</b><small>Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
-            <input type="password" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
+          <label class="backup-pass"><span><b data-parity="settings-backup.pass-name">Passphrase</b><small data-parity="settings-backup.pass-hint">Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe.</small></span>
+            <input type="password" data-parity="settings-backup.pass" aria-label="Passphrase" class="settings-token-input" id="backup-pass" placeholder="8 characters or more" autocomplete="new-password" minlength="8"></label>
           <div class="backup-actions">
-            <button class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
-            <button class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
+            <button data-parity="settings-backup.to-file" class="settings-update-btn" type="button" id="backup-to-file" hidden>Back up to a file on this phone</button>
+            <button data-parity="settings-backup.to-server" class="settings-update-btn" type="button" id="backup-to-server">Back up to the server</button>
           </div>
-          <div class="settings-note" id="backup-note"></div>
+          <div class="settings-note" data-parity="settings-backup.note" id="backup-note"></div>
         </div>
         <div class="settings-block">
-          <div class="settings-block-title">Restore <button class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
-          <button class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
+          <div class="settings-block-title" data-parity="settings-backup.title">Restore <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
+          <button data-parity="settings-backup.from-file" class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
           <div class="backup-list" id="backup-list"></div>
         </div>
       </div>

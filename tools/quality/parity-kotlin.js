@@ -152,11 +152,16 @@ function scan(src) {
   return { tags, findings };
 }
 
+/** Where core's Contract.kt and its files of labels are written. */
+const KOTLIN_DIR = "android/core/src/main/kotlin/com/musicd/server/client/";
+/** Labels a file: a few hundred, so no file of them outgrows the length gate as the contract grows (item 92). */
+const LABELS_A_FILE = 300;
+
 /**
- * The contract's labels as Kotlin (core's Contract.kt): what each native
- * control is called, aloud too, so the app never spells one itself.
+ * The contract's labels as Kotlin (core's Contract.kt and its ContractLabels1.kt …): what each native control is
+ * called, aloud too, so the app never spells one itself. Each file by its path from the repository's root.
  * @param {{ screens: Record<string, { items: Record<string, { kind: string, label?: string | string[], only?: string }> }> }} contract
- * @returns {string}
+ * @returns {Record<string, string>}
  */
 function contractKotlin(contract) {
   const rows = [];
@@ -166,17 +171,27 @@ function contractKotlin(contract) {
       rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
     }
   }
-  return `// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
-package com.musicd.server.client
-
+  const HEAD = "// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.\npackage com.musicd.server.client\n";
+  /** @type {Record<string, string>} */
+  const files = {};
+  const parts = [];
+  for (let i = 0; i * LABELS_A_FILE < Math.max(rows.length, 1); i++) {
+    const n = i + 1;
+    parts.push(`*contractLabels${n}`);
+    files[`${KOTLIN_DIR}ContractLabels${n}.kt`] = `${HEAD}
+/** The screens contract's labels, ${n} of the files of them (Contract.kt joins them). */
+internal val contractLabels${n}: Array<Pair<String, List<String>>> = arrayOf(
+${rows.slice(i * LABELS_A_FILE, (i + 1) * LABELS_A_FILE).join("\n")}
+)
+`;
+  }
+  return Object.assign({ [`${KOTLIN_DIR}Contract.kt`]: `${HEAD}
 /**
  * The screens contract's labels (docs/specs/native-parity.md): what each
  * native control is called, aloud too, one per state, as the page calls it.
  */
 object Contract {
-    val labels: Map<String, List<String>> = mapOf(
-${rows.join("\n")}
-    )
+    val labels: Map<String, List<String>> = mapOf(${parts.join(", ")})
 
     /** [key]'s label in [state], each {…} in it filled from [fill] in turn. */
     fun label(key: String, state: Int = 0, vararg fill: String): String {
@@ -185,7 +200,7 @@ ${rows.join("\n")}
         return Regex("\\\\{[^}]+\\\\}").replace(all[state.coerceIn(0, all.size - 1)]) { fill.getOrElse(i++) { "" } }
     }
 }
-`;
+` }, files);
 }
 
-module.exports = { mask, scan, contractKotlin, CONTROLS, GESTURES, READOUTS };
+module.exports = { mask, scan, contractKotlin, KOTLIN_DIR, CONTROLS, GESTURES, READOUTS };

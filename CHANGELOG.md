@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- `92-native-settings-backup-updates`: Settings → Backup & restore and Settings → Updates natively in the Android app
+  (plan T9), as the page's. Backup & restore: the parts to put in, each ticked or not with what it holds (the whole
+  database with its size), a passphrase, Back up to a file on this phone (Android's own "save as") or to the server, and
+  what came of it; Restore from a file on this phone (Android's own "open"), and every backup, the server's and this
+  phone's, newest first, each with where, when, what version, how big and what it holds, Restore… (its parts, a sealed
+  one's passphrase, Restore now, asked first), Download (one of the server's, saved to this phone and listed with its
+  files) and Delete (asked first). A restore is made on the app's lane of changes; this screen's own settings travel
+  with a backup and come back with a restore (handed to and from the page, where they live); once the server is back
+  from its restart the app starts again on what was restored. Updates: Check for updates looks for the server's update
+  and the app's at once, then offers to install what it found, in brass, with the server's release notes, or says how
+  things stand; installing is handed to the page's update banner on Home, where its progress shows. The pages are keyed
+  for the screens contract (`settings-backup`, `settings-system`).
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed
