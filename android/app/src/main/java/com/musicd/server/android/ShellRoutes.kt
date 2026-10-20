@@ -145,11 +145,22 @@ internal fun handOver(nav: NavHostController, what: String, arg: String?) {
 }
 
 /**
+ * Every screen over Home closed, Home itself kept: it is the first route, every other screen opens over it, and Back
+ * on the next screen comes back to it (bug list item 115: the menu's items popped Home itself when opened from Home,
+ * so Settings, Playlists and the rest had nothing under them, and their ✕ and ‹ did nothing). A stack without Home
+ * gets it back.
+ */
+internal fun toHome(nav: NavHostController) {
+    if (nav.popBackStack(ShellRoute.HOME, false) || nav.currentDestination?.route == ShellRoute.HOME) return
+    nav.navigate(ShellRoute.home(NativeShell.homeArgs.value.first, NativeShell.homeArgs.value.second)) { popUpTo(nav.graph.id) { inclusive = true } }
+}
+
+/**
  * The row along the foot: every screen over Home closes (however deep: a wall, an album from it, an artist from that;
  * item 63); then Home goes to its top, or the Library wall (in the view kept) or the search opens over it.
  */
 internal fun navTap(nav: NavHostController, what: String) {
-    nav.popBackStack(ShellRoute.HOME, false)
+    toHome(nav)
     when (what) {
         "home" -> NativeShell.landHome()
         "library" -> nav.navigate(ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone)) { launchSingleTop = true }

@@ -11,11 +11,14 @@
 # first, and the first's publish then changed dist/ under the second's, whose
 # pull request could never merge, re-run or not. The branch already carrying
 # this version, or a newer one (the later merge's run ended first), is left as
-# it is.
+# it is. The same version built again with a higher versionCode (a fix folded
+# into a version already out, bug list item 115) replaces it: latest.json says
+# the code it carries.
 set -euo pipefail
 src=${1:?usage: .github/publish-apk.sh <apk>}
 base=${GITHUB_REF_NAME:?}
 version=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
+code=$(grep -oP 'versionCode = \K[0-9]+' android/app/build.gradle.kts || true)
 apk=$(basename "$src")
 OUT=mandarin-android.apk
 
@@ -30,7 +33,8 @@ fi
 keep=$(mktemp -d)
 cp "$src" "$keep/$apk"
 git checkout -q -B publish-apk "origin/$base"
-if [ -f "dist/$OUT" ] && grep -q "\"version\": \"$version\"" dist/latest.json && grep -q "\"file\": \"$apk\"" dist/latest.json; then
+if [ -f "dist/$OUT" ] && grep -q "\"version\": \"$version\"" dist/latest.json && grep -q "\"file\": \"$apk\"" dist/latest.json \
+  && [ "$(grep -oP '"code": \K[0-9]+' dist/latest.json || true)" = "$code" ]; then
   echo "$version already published"
   exit 0
 fi
@@ -38,8 +42,8 @@ git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' 'dist/Mandarin-And
 mkdir -p dist
 cp "$keep/$apk" "dist/$OUT"
 sha=$(sha256sum "dist/$OUT" | cut -d' ' -f1)
-printf '{\n  "version": "%s",\n  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s"\n}\n' \
-  "$version" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$apk" > dist/latest.json
+printf '{\n  "version": "%s",\n%b  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s"\n}\n' \
+  "$version" "${code:+  \"code\": $code,\n}" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$apk" > dist/latest.json
 git add "dist/$OUT" dist/latest.json
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
