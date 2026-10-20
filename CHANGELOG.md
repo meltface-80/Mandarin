@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `112-server-notices-native`: the server's notice at the head of the app's Home is worked out by the app (O2-5 in
+  docs/specs/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
+  data not kept, no music folder, a first scan, no audio found, starting up, a music folder gone with Forget or Remove
+  the missing ones and its question, no Sonos rooms; none offline, nor a folder or the rooms away), asked again as the
+  page asks; `Notices.watch` keeps it while Home is up, and Forget asks its question and forgets the folder itself
+  (`/api/library/forget-folder`). `test/server-notices-words.test.js` holds every phrase to the page's. The page now tells
+  the app the update offer alone.
 - `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
   page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
   `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from

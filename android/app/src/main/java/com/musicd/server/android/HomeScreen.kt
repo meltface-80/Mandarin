@@ -112,7 +112,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(Modifier.fillMaxSize(), state = HomeKept.list, contentPadding = PaddingValues(top = 14.dp, bottom = 164.dp)) {
             // The page's notices (the server's, the update offer; item 69), at Home's head as on the page's.
-            item("notices") { NoticeBanners(prefs.menu) { what, arg -> NativeShell.toPage(what, arg) } }
+            item("notices") { NoticeBanners(prefs.menu, client) { what, arg -> NativeShell.toPage(what, arg) } }
             if (prefs.greeting) item("greeting") { Greeting() }
             // The strip under the greeting: Random Album, then today's album; gone with both.
             val aotd = HomeKept.aotd

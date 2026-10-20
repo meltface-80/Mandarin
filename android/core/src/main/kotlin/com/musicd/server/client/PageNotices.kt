@@ -14,7 +14,9 @@ import org.json.JSONObject
  * The server's notice: its paragraphs, red-edged when it is a fault, and its buttons (Forget a folder), by their words;
  * [asks], each button's question, asked by the app before the page is told it was answered Yes (bug list item 96).
  */
-data class ServerNotice(val lines: List<String>, val error: Boolean, val buttons: List<String>, val asks: List<String> = emptyList()) {
+data class ServerNotice(val lines: List<String>, val error: Boolean, val buttons: List<String>, val asks: List<String> = emptyList(),
+                        /** The folder each button forgets, and its name (the app's own notices, item 112); the page's told none. */
+                        val dirs: List<String> = emptyList(), val names: List<String> = emptyList()) {
     /** The question the button at [i] asks first; none when it asks none. */
     fun ask(i: Int): String? = asks.getOrNull(i)?.takeIf { it.isNotBlank() }
 }
