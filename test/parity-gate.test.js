@@ -99,7 +99,7 @@ test("the contract itself: kinds, labels, the page's alone with a reason, in a c
 });
 
 test("Contract.kt is the contract's labels; the gate refuses one written by hand, the gaps list one that grows", () => {
-  const k = contractKotlin(contract());
+  const k = Object.values(contractKotlin(contract())).join("\n");
   assert.match(k, /"play\.back" to listOf\("Back"\),\n {8}"play\.play" to listOf\("Play", "Pause"\),/);
   assert.ok(!/play\.title|play\.desk/.test(k), "no readouts, nothing the page's alone");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-parity-"));
@@ -124,6 +124,17 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   assert.match(out.join("\n"), /play\.back: on the page, not in the app \(PlayScreen\.kt\), nor on the gaps list/);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "tools/quality/parity-gaps.json"), "utf8")), { play: ["play"] });
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("the contract's labels in parts of 300 a file, Contract.kt joining them, so none outgrows the watch line (item 91)", () => {
+  const c = contract();
+  for (let i = 0; i < 301; i++) c.screens.play.items["b" + i] = { kind: "action", label: "B" + i };
+  const files = contractKotlin(c);
+  const dir = "android/core/src/main/kotlin/com/musicd/server/client/";
+  assert.deepEqual(Object.keys(files).sort(), [dir + "Contract.kt", dir + "ContractLabels1.kt", dir + "ContractLabels2.kt"]);
+  assert.match(files[dir + "Contract.kt"], /val labels: Map<String, List<String>> = ContractLabels1\.labels \+ ContractLabels2\.labels\n/);
+  for (const [f, text] of Object.entries(files)) assert.ok(text.split("\n").length < 400, f + ": " + text.split("\n").length + " lines");
+  assert.match(files[dir + "ContractLabels2.kt"], /internal object ContractLabels2 \{[\s\S]*"play\.b300" to listOf\("B300"\),/);
 });
 
 test("one element two screens': keys space-separated, each held by its own screen, a file both screens draw", () => {
