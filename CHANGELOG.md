@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `97-label-logos-status-gap`: the server's label scan said, for a moment, that nothing was running between two passes:
+  between a logo pass and the one asked for while it ran (a second API key saved during the first pass), and between
+  the label lookups and the logo pass that follows them. Whoever waited for the scan to end (the page's and the app's
+  Record labels, and the label-logos test, which failed on dev for it) could read the logos before the next pass had
+  looked. The running pass now hands over to the next without letting go.
 - `93-native-add-to-playlist`: Add to playlist natively in the Android app, as the page's sheet, from an album's ⋯, from
   tracks picked on an album's page, and from albums picked on a wall or an artist's page: how many are being added and
   ✕, then ＋ New playlist… (named in the app's own name prompt, My playlist suggested) and each of your playlists with
