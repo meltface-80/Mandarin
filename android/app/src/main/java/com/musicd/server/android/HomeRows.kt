@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.GenreCard
+import com.musicd.server.client.HomeLayoutSync
 import com.musicd.server.client.HomeRow
 import com.musicd.server.client.HomeRowsSettings
 import com.musicd.server.client.LibraryClient
@@ -18,6 +19,7 @@ import com.musicd.server.client.PlaylistTile
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -124,10 +126,35 @@ internal object HomeKept {
         withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albumOfTheDay().album } }.onSuccess { aotd = it }
     }
 
+    /** The layout's reads and saves, one at a time in the order asked (item 83): Home's read waits for a save under way. */
+    private val layoutSync = HomeLayoutSync()
+    /** Saves outlive the screen that asked (Settings → Home Screen left before the server answered). */
+    private val saving = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /** The layout as the server keeps it, read after any save under way; none when it can't say. */
+    suspend fun readLayout(lib: LibraryClient): List<HomeRow>? {
+        val read = layoutSync.load { lib.homeRows() }
+        return withContext(Dispatchers.IO) { runCatching { read.get() }.getOrNull() }
+    }
+
     private suspend fun layout(lib: LibraryClient) {
-        val got = withContext(Dispatchers.IO) { runCatching { lib.homeRows() }.getOrNull() }
+        val got = readLayout(lib)
         // A row this phone has that the saved layout doesn't know (an older server): at the top, on, as the page does.
         setLayout(got ?: layout.toList())
+    }
+
+    /**
+     * [rows] saved from Settings → Home Screen: Home laid out from them at once, the server's answer taken when it comes
+     * (unless a later save has been asked for since), and [answered] told it, or what went wrong. Ask on the main thread.
+     */
+    fun saveLayout(client: ServerClient, rows: List<HomeRow>, answered: (Result<List<HomeRow>?>) -> Unit) {
+        setLayout(rows)
+        val save = layoutSync.save(rows) { client.saveSetting("home-rows", it) }
+        saving.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { try { save.get() } catch (e: java.util.concurrent.ExecutionException) { throw e.cause ?: e } } }
+            r.getOrNull()?.let(::setLayout)
+            answered(r)
+        }
     }
 
     /** The layout as the server keeps it ([saved]: Settings → Home Screen's answer too), made whole for this phone. */

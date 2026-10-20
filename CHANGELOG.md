@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `83-home-order-after-settings`: in the Android app, Home's rows put in a new order in Settings → Home Screen showed in
+  that order only once the app was started again. Home reads its layout from the server the moment it is back on
+  screen, and that read could be answered before the new order was saved; the save's own answer was dropped when the
+  page closed. Home's layout is now read and saved one call at a time, in the order asked, so Home's read waits for a
+  save under way, and a save finishes and lays Home out from the server's answer whether the page is still open or not.
 - `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Music
   Folders, Services, Audio Devices and the rest; Home Screen too, before item 81) left the app unresponsive until it was swiped away. The
   page was put in front of the app's Settings to show it, but the rule that keeps the rest of the page out of sight

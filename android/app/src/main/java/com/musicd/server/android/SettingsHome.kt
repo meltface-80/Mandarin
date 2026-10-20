@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.musicd.server.client.Contract
 import com.musicd.server.client.HomeRow
-import com.musicd.server.client.HomeRows
 import com.musicd.server.client.HomeRowsSettings
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.ListedRow
@@ -74,24 +73,20 @@ internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
     fun show(next: List<HomeRow>) { rows.clear(); rows.addAll(HomeRowsSettings.complete(next, HomeKept.ROW_IDS)) }
     suspend fun reload() {
         val c = client() ?: return
-        withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.homeRows() }.getOrNull() }?.let(::show)
+        HomeKept.readLayout(LibraryClient { c.getJson(it) })?.let(::show)
     }
     LaunchedEffect(Unit) {
         downloaded = withContext(Dispatchers.IO) { runCatching { DownloadTiles.list(context).size }.getOrDefault(0) }
         reload()
     }
     // Saved at once (the page's saveHomeRows), and Home laid out from it before the answer comes; the server's answer drawn
-    // when it does, or what it keeps read again when it refuses, rather than keep a lie.
+    // when it does, or what it keeps read again when it refuses, rather than keep a lie. Saved by Home's own keeper, so a
+    // save outlives this page and Home's next read waits for it (item 83).
     fun save() {
         val c = client() ?: return
-        val sent = rows.toList()
-        HomeKept.setLayout(sent)
-        scope.launch {
-            val r = withContext(Dispatchers.IO) {
-                runCatching { c.saveSetting("home-rows", HomeRowsSettings.body(sent)).also { if (it.optString("error").isNotEmpty()) throw IllegalStateException(it.optString("error")) } }
-            }
-            r.onSuccess { j -> if (j.optJSONArray("rows") != null) { show(HomeRows.parse(j)); HomeKept.setLayout(rows.toList()) } }
-                .onFailure { setupToast(context, it.message ?: "Couldn't save"); reload() }
+        HomeKept.saveLayout(c, rows.toList()) { r ->
+            r.onSuccess { got -> if (got != null) show(got) }
+                .onFailure { setupToast(context, it.message ?: "Couldn't save"); scope.launch { reload() } }
         }
     }
     // The row held moved by [by] down the screen: past each neighbour once the finger is beyond its middle (the page's drag).
