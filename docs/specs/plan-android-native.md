@@ -115,8 +115,8 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| S1 | The library's search: the field in the bar, artists and labels as chips, the albums grid, the index building shown | `search` · ~200 |
-| S2 | The services' search: Qobuz, Tidal and Pitchfork sections as each answers, the last query's kept dim until replaced | `search-external` · ~220 |
+| S1 | **Built (item 61), in preview** (`SearchScreen.kt`, `SearchRows.kt`; Native Search in UI Settings). The library's search: the field in the bar, artists and labels as chips, the albums grid, the index building shown | `search` · ~200 |
+| S2 | **Built (item 61), in preview** (a service's artist and a Pitchfork review are handed to the page's browser and magazine until B makes them native). The services' search: Qobuz, Tidal and Pitchfork sections as each answers, the last query's kept dim until replaced | `search-external` · ~220 |
 
 ### P. Playlists
 

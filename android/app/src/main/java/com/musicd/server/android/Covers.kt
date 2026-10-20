@@ -49,3 +49,24 @@ internal fun rememberTileCover(key: String?, size: Int, client: () -> ServerClie
     }
     return image
 }
+
+/**
+ * A picture at a web address of a service's or Pitchfork's own (the search's covers and artists' portraits, item 61), kept
+ * as a tile's cover is; null until fetched, or with none. Asked without the server's token: the address isn't the server's.
+ */
+@Composable
+internal fun rememberWebImage(url: String?): ImageBitmap? {
+    var image by remember(url) { mutableStateOf(url?.let { Covers.get(it) }) }
+    LaunchedEffect(url) {
+        if (url == null || image != null || !(url.startsWith("https://") || url.startsWith("http://"))) return@LaunchedEffect
+        val got = withContext(Dispatchers.IO) {
+            runCatching {
+                val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 5000; c.readTimeout = 15000
+                try { if (c.responseCode == 200) c.inputStream.use { BitmapFactory.decodeStream(it)?.asImageBitmap() } else null } finally { c.disconnect() }
+            }.getOrNull()
+        }
+        if (got != null) { Covers.put(url, got); image = got }
+    }
+    return image
+}

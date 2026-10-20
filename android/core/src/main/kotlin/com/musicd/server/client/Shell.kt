@@ -75,6 +75,11 @@ object ShellRoute {
     const val PICKS = "picks?$ZONE={$ZONE}"
     fun picks(zoneId: String): String = "picks?$ZONE=" + enc(zoneId)
 
+    const val Q = "q"
+    /** The search (item 61): the words it opens with ([Q], none for an empty field), its albums playing in [ZONE]. */
+    const val SEARCH = "search?$Q={$Q}&$ZONE={$ZONE}"
+    fun search(q: String, zoneId: String): String = "search?$Q=" + enc(q) + "&$ZONE=" + enc(zoneId)
+
     /** An artist's page (L4, item 52): their albums and their biography. */
     const val ARTIST = "artist?name={name}&$ZONE={$ZONE}"
     fun artist(name: String, zoneId: String): String = "artist?name=" + enc(name) + "&$ZONE=" + enc(zoneId)

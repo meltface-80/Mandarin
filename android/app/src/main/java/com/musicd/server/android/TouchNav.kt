@@ -33,7 +33,7 @@ import com.musicd.server.client.Contract
 /**
  * The touch layout's row along the foot of the screen, natively
  * (docs/specs/screens.json, nav; style.css, `.touch-nav`): Menu, Home,
- * Library and Search, the one the page is on ([lit]: "home", "library")
+ * Library and Search, the one the page is on ([lit]: "home", "library", "search")
  * in brass, and the Offline sign between Home and Library when the app is
  * offline. Each tap is the page's own button's ([onTap], by name), so there
  * is one way to do each thing.
@@ -47,7 +47,7 @@ internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, mo
                 NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.parity("nav.menu", Contract.label("nav.menu")).clickable { onTap("menu") })
                 NavButton(R.drawable.tn_home, Contract.label("nav.home"), lit == "home", Modifier.parity("nav.home", Contract.label("nav.home")).clickable { onTap("home") })
                 NavButton(R.drawable.tn_library, Contract.label("nav.library"), lit == "library", Modifier.parity("nav.library", Contract.label("nav.library")).clickable { onTap("library") })
-                NavButton(R.drawable.tn_search, Contract.label("nav.search"), false, Modifier.parity("nav.search", Contract.label("nav.search")).clickable { onTap("search") })
+                NavButton(R.drawable.tn_search, Contract.label("nav.search"), lit == "search", Modifier.parity("nav.search", Contract.label("nav.search")).clickable { onTap("search") })
             }
             // A box of its own, not a button: a button's background lies outside its 48 touch target, and drew the disc 48 wide.
             if (offline) Box(Modifier.parity("nav.offline", Contract.label("nav.offline")).align(Alignment.Center).size(30.dp)

@@ -312,6 +312,40 @@
         "queue": { "kind": "action", "label": "Queue — add to the end" }
       }
     },
+    "search": {
+      "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕ and the count beside it; in Home's rows' place, the library's artists and labels as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SearchScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": true,
+      "items": {
+        "greeting-date": { "kind": "shows", "when": "Home's greeting is on (Settings → Home Screen): the search is Home's, under it" },
+        "greeting": { "kind": "shows", "when": "Home's greeting is on" },
+        "field": { "kind": "action", "label": "Search your whole library" },
+        "clear": { "kind": "action", "label": "Clear search" },
+        "status": { "kind": "shows", "when": "the library has answered: what it found, or how far the index is built" },
+        "banner": { "kind": "shows", "when": "nothing matches anywhere, or the library is still being read" },
+        "section": { "kind": "shows", "each": true, "when": "a kind of result found (Artists, Labels, Albums, Qobuz, Tidal, Pitchfork reviews)" },
+        "artist": { "kind": "action", "label": "{artist}", "each": true, "when": "an artist's name holds the words" },
+        "label": { "kind": "action", "label": "{label}", "each": true, "when": "record labels are on and a label's name holds the words" },
+        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "the library has albums the words find" },
+        "album-art": { "kind": "shows", "each": true, "when": "the library has albums the words find" },
+        "album-title": { "kind": "shows", "each": true, "when": "the library has albums the words find" },
+        "album-artist": { "kind": "shows", "each": true, "when": "the album names an artist" },
+        "album-quality": { "kind": "shows", "each": true, "when": "the server knows the files' rate" },
+        "album-source": { "kind": "shows", "each": true, "when": "a Qobuz or Tidal album" },
+        "album-discs": { "kind": "shows", "each": true, "when": "more than one disc" },
+        "service-artist": { "kind": "action", "label": "{artist}", "each": true, "when": "signed in to Qobuz or Tidal, and its catalogue has artists the words find" },
+        "service-album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "signed in to Qobuz or Tidal, and its catalogue has albums the words find" },
+        "service-album-art": { "kind": "shows", "each": true, "when": "a service's album" },
+        "service-album-title": { "kind": "shows", "each": true, "when": "a service's album" },
+        "service-album-artist": { "kind": "shows", "each": true, "when": "a service's album" },
+        "service-fav": { "kind": "action", "label": ["{service} favourite", "In {service} favourites"], "each": true, "when": "a service's album" },
+        "review": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "Pitchfork has reviewed an album the words find" },
+        "review-art": { "kind": "shows", "each": true, "when": "a review" },
+        "review-title": { "kind": "shows", "each": true, "when": "a review" },
+        "review-artist": { "kind": "shows", "each": true, "when": "a review" },
+        "review-score": { "kind": "shows", "each": true, "when": "the review has a score" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

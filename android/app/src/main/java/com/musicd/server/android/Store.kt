@@ -93,6 +93,10 @@ object Store {
     fun nativeHome(context: Context): Boolean = prefs(context).getBoolean("native_home", false)
     fun setNativeHome(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_home", on).apply() }
     /** Music on device's view (its Sort and Focus, item 57), as JSON (LocalView), kept as the page keeps its own. */
+    /** The native search (bug list item 61, a preview): Settings → Setup → UI Settings, on this phone. */
+    fun nativeSearch(context: Context): Boolean = prefs(context).getBoolean("native_search", false)
+    fun setNativeSearch(context: Context, on: Boolean) { prefs(context).edit().putBoolean("native_search", on).apply() }
+
     fun localView(context: Context): String? = prefs(context).getString("local_view", null)
     fun setLocalView(context: Context, json: String) { prefs(context).edit().putString("local_view", json).apply() }
 

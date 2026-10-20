@@ -267,6 +267,14 @@ function keyArtistTile(tile) {
   return tile;
 }
 window.__keyArtistTile = keyArtistTile;
+// The same in the search's results (search.js).
+function keySearchTile(tile) {
+  tile.dataset.parity = "search.album";
+  const parts = { ".album-art-wrap": "search.album-art", ".album-quality": "search.album-quality", ".album-source": "search.album-source",
+                  ".album-discs": "search.album-discs", ".album-title": "search.album-title", ".album-artist": "search.album-artist" };
+  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+  return tile;
+}
 // The same on Home's rows (home-render.js, homeTile), and for a playlist's tile there (its mosaic, its name, its count).
 function keyHomeTile(tile) {
   tile.dataset.parity = "home.album";

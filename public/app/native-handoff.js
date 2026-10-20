@@ -113,6 +113,22 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the playlist gone: nothing to open */ });
     return true;
   }
+  // The native Search's (item 61): a service's artist, their albums in that service's browser; a Pitchfork review, its page in the magazine.
+  if (what === "service-artist") {
+    let ar;
+    try { ar = JSON.parse(arg); } catch (e) { return false; }
+    const sb = ar && window.__serviceBrowsers && window.__serviceBrowsers[ar.service];
+    if (!sb || !ar.id) return false;
+    sb.openArtist({ id: ar.id, name: ar.name || "" });
+    return true;
+  }
+  if (what === "review") {
+    let it;
+    try { it = JSON.parse(arg); } catch (e) { return false; }
+    if (!it || !it.url || typeof window.__openPitchforkReview !== "function") return false;
+    window.__openPitchforkReview(it);
+    return true;
+  }
   if (what === "zone") {
     if (!zoneSel || !arg || ![...zoneSel.options].some(o => o.value === arg)) return false;
     if (zoneSel.value !== arg) { zoneSel.value = arg; zoneSel.dispatchEvent(new Event("change")); }
