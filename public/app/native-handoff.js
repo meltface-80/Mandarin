@@ -177,6 +177,20 @@ window.__musicdNative = function (what, arg) {
     }
     return true;
   }
+  // The page's notices drawn by the app (item 69, native-notices.js): a button of the server's notice, by its place
+  // (Forget a folder: the page's question, then its work); the update offer's Update or Later.
+  if (what === "notice-button") {
+    const b = document.querySelectorAll("#server-notice .server-notice-btn")[Number(arg)];
+    if (!b || b.disabled) return false;
+    b.click();
+    return true;
+  }
+  if (what === "update") {
+    const b = arg === "now" || arg === "later" ? document.getElementById("update-" + arg) : null;
+    if (!b || b.disabled) return false;
+    b.click();
+    return true;
+  }
   if (what === "group-settled") {
     if (!arg) return false;
     try { localStorage.setItem("rra-zone", arg); } catch (e) { /* private mode: the list still picks a room */ }

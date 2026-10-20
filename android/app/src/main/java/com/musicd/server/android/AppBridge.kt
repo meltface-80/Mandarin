@@ -44,6 +44,7 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.homeShown(front, prefs, zoneId)   the page is on Home with nothing of its own over it (front), or something
  *                                               of its own has come over it (the menu, the search, a wall): the app's Home
  *                                               in front, or the page (public/app/native-home.js); with the UI Settings and the room
+ *   MusicdApp.notices(json)   the page's notices (the server's, the update offer) as they now stand, for the native Home (item 69)
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -188,6 +189,10 @@ class AppBridge(private val activity: Activity) {
     /** That sheet has closed: the screen is in front again. */
     @JavascriptInterface
     fun overlayClosed() { activity.runOnUiThread { NativeShell.overlayClosed() } }
+
+    /** The page's notices as they now stand (public/app/native-notices.js, item 69): the native Home draws them at its head. */
+    @JavascriptInterface
+    fun notices(json: String) { val n = com.musicd.server.client.PageNotices.parse(json); activity.runOnUiThread { Notices.now.value = n } }
 
     @JavascriptInterface
     fun checkUpdate() {

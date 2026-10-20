@@ -9,7 +9,7 @@
   if (!main) return;
   const el = document.createElement("div");
   el.className = "status-banner server-notice hidden";
-  el.id = "server-notice";
+  el.id = "server-notice"; el.dataset.parity = "home.notice";
   el.setAttribute("role", "status");
   main.insertBefore(el, main.firstChild);
 
@@ -47,7 +47,7 @@
       if (!button) continue;
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "settings-update-btn server-notice-btn";
+      b.className = "settings-update-btn server-notice-btn"; b.dataset.parity = "home.notice-button";
       b.textContent = button;
       b.addEventListener("click", async () => {
         const q = d.reason === "vanished"
