@@ -115,6 +115,25 @@ const OPEN_SHARE_CARD = `(async () => {
 })()`;
 
 /* Settings, as the side menu's Settings opens it; a section's page by its row ([path]: the rows tapped, in turn). */
+// The Android app's bridge for its own Downloads page (item 91), there before the page's scripts as the app's WebView has it:
+// two albums (one downloaded, one on its way), two places to save to, a download folder that needs all files access, and
+// albums saved elsewhere, so every row the page can show is shown.
+const DL_APP = `window.MusicdDownloads = (() => {
+  const s = { quality: "original", location: "internal", wifiOnly: true, limitGb: 0, autoPicks: false, autoAotd: true, autoRecent: 5, awayQuality: "opus",
+    places: [{ id: "internal", label: "Phone storage", free: 21474836480 }, { id: "sd", label: "SD card", free: 64424509440 }], offlineMode: false,
+    folder: { access: "needed", name: "Music", path: "/storage/emulated/0/Music", chosen: true }, elsewhere: 2, moving: null, used: 1288490188,
+    cacheWifi: 20, cacheMobile: 10, cacheGb: 2, cacheChoices: { wifi: [5, 10, 20, 50], mobile: [0, 5, 10, 20], gb: [1, 2, 4, 8] } };
+  const albums = [{ id: 1, state: "done", done: 9, total: 9, title: "Album One", artist: "Artist A", quality: "original", bytes: 412000000, auto: false, error: "", image_key: "" },
+    { id: 2, state: "downloading", done: 3, total: 8, title: "Hi Res", artist: "Artist B", quality: "opus", bytes: 0, auto: true, error: "", image_key: "" }];
+  return { settings: () => JSON.stringify(s), all: () => JSON.stringify(albums), ids: () => "[1]", status: () => JSON.stringify({ state: "none" }),
+    set: (k, v) => { s[k] = v; }, cacheStatus: () => JSON.stringify({ used: 52428800, ahead: 4, wanted: 20, metered: false }),
+    localFolder: () => "null", localAlbums: () => "[]", clearCache() {}, chooseDownloadFolder() {}, forgetDownloadFolder() {}, allowAllFiles() {}, moveDownloads() {},
+    removeMany() {}, remove() {}, play() {}, playLocal() {}, download() {}, open() {}, chooseLocalFolder() {}, forgetLocalFolder() {}, rescanLocal() {} };
+})();`;
+
+// The Android app's WebView, by its name to the server: the page as the app has it, android.css and all (Pages.cs IsApp).
+const APP_UA = "Mozilla/5.0 (Linux; Android 16) MusicDAndroid/1.0.17";
+
 const OPEN_SETTINGS = (path, ready) => `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -369,6 +388,31 @@ const OPEN_MENU = `(async () => {
 })()`;
 
 /* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
+/* Add to playlist (item 93): an album's, with one playlist made first so the sheet lists one. */
+const OPEN_ADD_TO_PLAYLIST = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  const first = ((await (await fetch("/api/library/albums?count=1")).json()).albums || [])[0];
+  if (!first) return "no albums";
+  const j = await (await fetch("/api/album?offset=" + first.offset)).json();
+  const a = j.album, t = (j.tracks || [])[0];
+  if (!a || !t) return "no album";
+  await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Road trip", tracks: [{ album_offset: a.offset, album_title: a.title, album_subtitle: a.subtitle, track_index: 0, title: t.title, subtitle: a.subtitle, image_key: a.image_key || null }] }) });
+  openAddToPlaylistSheet(null, [{ offset: a.offset, title: a.title, subtitle: a.subtitle, image_key: a.image_key || null }]);
+  if (!(await until(() => document.querySelectorAll(".lib-sheet .sheet-row").length > 1))) return "no rows";
+  await sleep(600);
+  return "open";
+})()`;
+/* The page's name prompt (item 93), as a new playlist asks it. */
+const OPEN_PROMPT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 400 && !window.__promptDialog; i++) await sleep(50);
+  window.__promptDialog("Name this playlist", "My playlist");
+  await sleep(300);
+  return document.getElementById("prompt-overlay").classList.contains("hidden") ? "not open" : "open";
+})()`;
 const OPEN_GROUP = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -504,9 +548,12 @@ const SCREENS = {
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
+  "settings-downloads": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.getElementById("dl-cache-status")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
+  "settings-downloads-albums": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.querySelector('[data-dl-folder]') && (document.querySelector('[data-dl-folder]').click(), true) && !!document.querySelector(".dl-row")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
   "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
   "settings-system": { open: OPEN_SETTINGS(["system"]), root: '#settings-overlay .settings-view[data-pane="system"]' },
   "settings-backup": { open: OPEN_SETTINGS(["backup"], `document.querySelectorAll("#backup-parts .backup-part").length > 0 && !!document.querySelector("#backup-list .settings-note, #backup-list .backup-item")`), root: '#settings-overlay .settings-view[data-pane="backup"]' },
+  "settings-scanner": { open: OPEN_SETTINGS(["identify"], `!!document.querySelector("#identify-pane-body .id-progress") && !document.querySelector("#identify-pane-body .id-wait")`), root: '#settings-overlay .settings-view[data-pane="identify"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
@@ -517,6 +564,8 @@ const SCREENS = {
   "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
+  "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
+  "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
@@ -552,7 +601,7 @@ test("the page keeps the screens contract: each native screen's controls and rea
     await t.test(name, async () => {
       const page = await b.page(base + "/", {
         cookies: [{ name: "musicd_session", value: token, url: base }], touch: true,
-        init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});`
+        init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});` + (how.init || ""), userAgent: how.app ? APP_UA : null
       });
       assert.equal(await page.eval(how.open), "open", name + " opened");
       const wrong = await page.eval(CHECK(name, contract.screens[name].items, how.root, how.shared || []));

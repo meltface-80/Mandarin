@@ -317,27 +317,26 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
      * Find logos for the labels that have none: one at a time, Discogs then
      * FanArt.tv, a pause between calls. A miss is remembered for a week (for
      * the keys it was asked with); [force] forgets the misses. Asked for
-     * while a pass runs: it runs straight after.
+     * while a pass runs: it runs straight after, the ended pass handing it
+     * Running ([handOver]) so the scan never reads idle between (item 97).
      */
-    public bool FetchMissing(List<(string Key, string Title)> labels, bool force)
+    public bool FetchMissing(List<(string Key, string Title)> labels, bool force) => Fetch(labels, force, false);
+
+    private bool Fetch(List<(string Key, string Title)> labels, bool force, bool handOver)
     {
         List<(string Key, string Title)> todo;
         lock (gate)
         {
-            if (Running)
-            {
-                again = (labels, force || (again?.Force ?? false));
-                return true;
-            }
+            if (Running && !handOver) { again = (labels, force || (again?.Force ?? false)); return true; }
             var have = Urls();
             var sig = KeysSig();
             var misses = MissesFor(sig);
             todo = labels.Where(l => !have.ContainsKey(l.Key) && (force || !misses.Contains(l.Key))).ToList();
-            if (todo.Count == 0) return false;
+            if (todo.Count == 0) return Running = false;
             if (DiscogsToken().Length == 0 && FanartKey().Length == 0)
             {
                 Note($"{todo.Count} label(s) without a logo; no Discogs token or FanArt.tv key to look with (Settings → Setup → API Keys)");
-                return false;
+                return Running = false;
             }
             Running = true;
             Done = 0; Total = todo.Count;
@@ -384,8 +383,8 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
             }
             catch (Exception e) { Note("logos: " + e.Message); }
             (List<(string Key, string Title)> Labels, bool Force)? next;
-            lock (gate) { Running = false; next = again; again = null; }
-            if (next is { } a && Ready()) FetchMissing(a.Labels, a.Force);
+            lock (gate) { next = again; again = null; if (next == null || !Ready()) Running = false; }
+            if (next is { } a && Running) Fetch(a.Labels, a.Force, true);
         });
         return true;
     }

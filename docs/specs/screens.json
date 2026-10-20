@@ -887,6 +887,28 @@
         "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
       }
     },
+    "add-to-playlist": {
+      "page": "Add to playlist (an album's ⋯, tracks picked on its page, or albums picked on a wall or an artist's page): the page's sheet up from the foot, how many tracks or albums are being added, ✕, a new playlist named first, then each of your playlists with how many tracks it holds",
+      "native": ["android/app/src/main/java/com/musicd/server/android/AddToPlaylist.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "new": { "kind": "action", "label": "＋ New playlist…" },
+        "playlist": { "kind": "action", "label": "{playlist} · {tracks}", "each": true, "when": "playlists made here" }
+      }
+    },
+    "prompt": {
+      "page": "the page's name prompt (#prompt-overlay), as a new playlist asks it: what is being named, the name (a suggestion in it), Cancel and Save",
+      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt"],
+      "preview": false,
+      "items": {
+        "message": { "kind": "shows" },
+        "field": { "kind": "action", "label": "Name" },
+        "cancel": { "kind": "action", "label": "Cancel" },
+        "save": { "kind": "action", "label": ["Save", "{word}"] }
+      }
+    },
     "settings-folders": {
       "page": "Settings' Music Folders: Back, its title and what it holds; the server's folders, each with its icon, name, path and how many tracks it has (or that it isn't there or can't be read, and what to do), Remove where there is more than one; Add a folder, which browses the server's folders (Cancel, where it is, the mounted drives and shares, Up, the folders in it, Add it, or that it is in the library already); what is said of the folders; in the app, Music on this phone with its ⓘ: no folder and Choose a folder, or the folder, how many albums and tracks it has and when it was read, Read again, Change folder and Forget",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsFolders.kt"],
@@ -926,6 +948,99 @@
         "local-error": { "kind": "shows", "when": "in the app, the folder on the phone couldn't be read" },
         "local-rescan": { "kind": "action", "label": "Read again", "when": "in the app, with a folder of music on the phone" },
         "local-forget": { "kind": "action", "label": "Forget", "when": "in the app, with a folder of music on the phone" }
+      }
+    },
+    "settings-downloads": {
+      "page": "Settings' Downloads (in Setup; the Android app's alone, its page drawn only where the app is): Back, its title and how much is on the phone; the Downloads row (how many albums, the space they take, how many are on the way) opening the albums; Offline mode on or off and what that means; Downloading (the quality and where to save, each with its ⓘ, the download folder chosen, changed or forgotten, the all-files access it needs and the albums saved elsewhere, the size limit, Wi-Fi only); Playing away from home (what to stream as, with its ⓘ); Cached ahead (with its ⓘ: on Wi-Fi, on mobile data, the cache's size, how much is ahead and Clear cache); Automatic downloads (with its ⓘ: Today's Smart Picks, Album of the day, Recently added); their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDownloads.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "folder": { "kind": "action", "label": "Downloads" },
+        "folder-title": { "kind": "shows" },
+        "folder-sub": { "kind": "shows" },
+        "subhead": { "kind": "shows", "each": true },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "toggle": { "kind": "action", "label": "{setting}", "each": true },
+        "choice": { "kind": "action", "label": "{setting}", "each": true },
+        "caret": { "kind": "shows", "each": true },
+        "note": { "kind": "shows", "each": true },
+        "folder-choose": { "kind": "action", "label": ["Choose", "Change"] },
+        "folder-forget": { "kind": "action", "label": "Forget", "when": "a download folder chosen" },
+        "allow": { "kind": "action", "label": "Allow", "when": "the download folder needs Android's all files access" },
+        "move": { "kind": "action", "label": "Move all here", "when": "albums saved elsewhere than the place chosen, and no move under way" },
+        "cache-status": { "kind": "shows" },
+        "clear-cache": { "kind": "action", "label": "Clear cache" }
+      }
+    },
+    "settings-downloads-albums": {
+      "page": "Settings' Downloads, its albums (the Downloads row tapped): Back to Downloads, its title and how many albums are on the phone; Select and Clear all; each album with its cover, title, artist and how far it has come (downloaded, on its way, waiting, failed, on a card that is out), Play on this phone once it is downloaded and Remove; selecting, each album ticked or not, Select all or none, Done, how many are selected and Remove them; with none, what to do to have some",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDownloadsList.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Downloads" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "select": { "kind": "action", "label": "Select", "when": "albums on the phone" },
+        "clear-all": { "kind": "action", "label": "Clear all", "when": "albums on the phone" },
+        "open": { "kind": "action", "label": "{album}", "each": true, "when": "albums on the phone" },
+        "art": { "kind": "shows", "each": true, "when": "the album's cover found on the server" },
+        "title": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "artist": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "state": { "kind": "shows", "each": true, "when": "albums on the phone" },
+        "play": { "kind": "action", "label": "Play on this phone", "each": true, "when": "the album downloaded" },
+        "remove": { "kind": "action", "label": "Remove from this phone", "each": true, "when": "albums on the phone (not on a card that is out)" },
+        "check": { "kind": "action", "label": "Select {album}", "each": true, "in": "select" },
+        "select-all": { "kind": "action", "label": ["Select all", "Select none"], "in": "select" },
+        "select-close": { "kind": "action", "label": "Done", "in": "select" },
+        "selected": { "kind": "shows", "in": "select" },
+        "remove-chosen": { "kind": "action", "label": ["Remove", "Remove {n}"], "in": "select" },
+        "note": { "kind": "shows", "when": "nothing on the phone" }
+      }
+    },
+    "settings-scanner": {
+      "page": "Settings' Library Scanner: Back, its title and what it holds; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor; the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "title": { "kind": "shows", "each": true },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "note": { "kind": "shows", "each": true },
+        "progress": { "kind": "shows", "each": true },
+        "schedule": { "kind": "action", "label": "Scheduling" },
+        "start": { "kind": "action", "label": "Start", "when": "scheduling on" },
+        "end": { "kind": "action", "label": "End", "when": "scheduling on" },
+        "identify": { "kind": "action", "label": "Identify albums" },
+        "itunes": { "kind": "action", "label": "Ask iTunes too" },
+        "measure": { "kind": "action", "label": "Measure ReplayGain" },
+        "recheck-all": { "kind": "action", "label": "Check the proposed and unidentified again", "when": "albums proposed or unidentified" },
+        "pack": { "kind": "action", "label": ["Download", "Update", "Remove"], "each": true, "when": "the pack's state read" },
+        "pack-fixed": { "kind": "shows", "when": "the pack's folder set by MBPACK_DIR" },
+        "pack-folder": { "kind": "action", "label": "Change…", "when": "the pack's state read, its folder not set by MBPACK_DIR" },
+        "pack-folder-reset": { "kind": "action", "label": "Data folder", "when": "the pack kept outside the data folder" },
+        "browse-cancel": { "kind": "action", "label": "Cancel", "when": "choosing the pack's folder" },
+        "browse-path": { "kind": "shows", "when": "choosing the pack's folder" },
+        "browse-places": { "kind": "shows", "when": "choosing the pack's folder, with drives mounted" },
+        "place": { "kind": "action", "label": "{path}", "each": true, "when": "choosing the pack's folder, with drives mounted" },
+        "dir": { "kind": "action", "label": "{folder}", "each": true, "when": "choosing the pack's folder" },
+        "browse-choose": { "kind": "action", "label": "Keep the pack in “{folder}”", "when": "choosing the pack's folder" },
+        "cleanup": { "kind": "action", "label": "Remove {albums}", "each": true, "when": "albums that could go" },
+        "album": { "kind": "action", "label": "{album}", "each": true, "when": "albums proposed, unidentified, applied or declined" },
+        "accept": { "kind": "action", "label": "Accept", "each": true, "when": "albums proposed" },
+        "reject": { "kind": "action", "label": "Reject", "each": true, "when": "albums proposed" },
+        "undo": { "kind": "action", "label": "Undo", "each": true, "when": "albums applied" },
+        "recheck": { "kind": "action", "label": "Check again", "each": true, "when": "albums unidentified or declined" },
+        "barcode": { "kind": "action", "label": "Barcode…", "each": true, "when": "albums proposed, unidentified or declined" },
+        "match-input": { "kind": "action", "label": "Barcode or MusicBrainz link", "when": "an album's Barcode… tapped" },
+        "match": { "kind": "action", "label": "Match", "when": "an album's Barcode… tapped" },
+        "more": { "kind": "action", "label": "Show all {count}", "each": true, "when": "more albums in a list than shown" }
       }
     },
     "settings-system": {

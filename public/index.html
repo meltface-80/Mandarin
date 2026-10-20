@@ -1938,12 +1938,12 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="identify">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-scanner.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Library Scanner</h2>
+          <h2 data-parity="settings-scanner.heading">Library Scanner</h2>
         </div>
-        <p class="settings-pane-desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
+        <p class="settings-pane-desc" data-parity="settings-scanner.desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
         <!-- Filled by initIdentifyPane() in app.js from /api/identify. -->
         <div id="identify-pane-body"></div>
       </div>
@@ -2066,11 +2066,11 @@
   <div id="prompt-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-msg">
     <div class="confirm-backdrop"></div>
     <form class="confirm-box" id="prompt-form">
-      <p class="confirm-msg" id="prompt-msg"></p>
-      <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
+      <p class="confirm-msg" id="prompt-msg" data-parity="prompt.message"></p>
+      <input class="prompt-input" id="prompt-input" data-parity="prompt.field" type="text" autocomplete="off" autocapitalize="sentences" maxlength="200" aria-label="Name">
       <div class="confirm-actions">
-        <button class="confirm-btn" id="prompt-cancel" type="button">Cancel</button>
-        <button class="confirm-btn confirm-primary" id="prompt-ok" type="submit">Save</button>
+        <button class="confirm-btn" id="prompt-cancel" data-parity="prompt.cancel" type="button">Cancel</button>
+        <button class="confirm-btn confirm-primary" id="prompt-ok" data-parity="prompt.save" type="submit">Save</button>
       </div>
     </form>
   </div>
