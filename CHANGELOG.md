@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `71-native-labels`: the record labels natively in the Android app (plan B1), from the side menu, Home's Label of the
+  week, an album's label and the search's label chips. The list as the page's: the heading and Back, the order (# to Z,
+  Z to #) at the top right, the row's Search finding a label, every label as a tile (its logo, or its name in words) with
+  its name, how many albums and how many merged into it; while the scan runs its bar and what it says (read again every
+  few seconds); with none, Rescan now and the scan log (shared or copied). A long press picks labels to merge into the
+  first, with the merge bar along the foot; "N merged" opens the labels merged into one, each with its ✕. A label's albums
+  are a native wall (its order and fewest albums from Settings → Record labels), with its logo button opening Discogs's
+  logos or an address pasted, Save and ✕. Three contract screens (`labels`, `label-logo`, `label-unmerge`) and the wall's
+  logo, the page keyed and measured.
 - `70-native-pitchfork`: Pitchfork natively in the Android app (plan B3), from the side menu and the search's reviews:
   the magazine over the whole screen with its title, ✕ and the tabs Latest Reviews and Best New Music pinned at its head,
   the reviews as the page's woven mosaic three across (every third large, left then right) with their scores (gold for

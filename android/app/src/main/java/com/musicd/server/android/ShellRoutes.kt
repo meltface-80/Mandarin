@@ -36,6 +36,18 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onAlbum = { offset -> nav.popBackStack(); nav.navigate(ShellRoute.album(offset, zone, "")) },
             onQobuz = { q -> if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack(); NativeShell.toPage("qobuz-search", q) })
     }
+    // The record labels (item 71); a label's albums a wall over them.
+    composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
+        LabelsScreen(WallPrefs.parse(prefs), zone, client,
+            onBack = { nav.popBackStack() },
+            onLabel = { name -> nav.navigate(ShellRoute.wall("label", zone, name)) },
+            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+            onRoom = NativeShell::roomChosen,
+            onNav = { what -> navTap(nav, what) },
+            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+        )
+    }
     composable(ShellRoute.PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         PlaylistsScreen(WallPrefs.parse(prefs), zone, client,

@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -128,7 +128,7 @@
           <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -243,7 +243,7 @@
       </button>
     </div>
 
-    <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true">
+    <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true" data-parity="labels.progress">
       <div id="scan-progress-fill" class="scan-progress-fill"></div>
     </div>
   </header>
@@ -276,7 +276,7 @@
         <span>All labels</span>
       </button>
       <span id="labels-title" class="labels-title"></span>
-      <button id="labels-logo-btn" class="icon-btn" type="button" aria-label="Set label logo" title="Set logo">
+      <button id="labels-logo-btn" class="icon-btn" type="button" aria-label="Set label logo" title="Set logo" data-parity="wall.logo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -287,12 +287,12 @@
     </div>
     <div id="logo-url-sheet" class="logo-url-sheet hidden">
       <div id="logo-candidates" class="logo-candidates">
-        <span class="logo-candidates-hint">Searching Discogs…</span>
+        <span class="logo-candidates-hint" data-parity="label-logo.hint">Searching Discogs…</span>
       </div>
       <div class="logo-manual-row">
-        <input id="logo-url-input" type="url" class="logo-url-input" placeholder="Or paste any image URL…" autocomplete="off">
-        <button id="logo-url-save" class="action-btn primary" type="button">Save</button>
-        <button id="logo-url-cancel" class="icon-btn" type="button" aria-label="Cancel">
+        <input id="logo-url-input" type="url" class="logo-url-input" placeholder="Or paste any image URL…" autocomplete="off" aria-label="Or paste any image URL…" data-parity="label-logo.url">
+        <button id="logo-url-save" class="action-btn primary" type="button" data-parity="label-logo.save">Save</button>
+        <button id="logo-url-cancel" class="icon-btn" type="button" aria-label="Cancel" data-parity="label-logo.cancel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 6 6 18M6 6l12 12"/>
@@ -301,7 +301,7 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
@@ -384,10 +384,10 @@
 
   <!-- Label merge action bar: appears in select mode -->
   <div id="label-merge-bar" class="label-merge-bar hidden" role="toolbar" aria-label="Label merge">
-    <span id="label-merge-info" class="label-merge-info"></span>
+    <span id="label-merge-info" class="label-merge-info" data-parity="labels.merge-info"></span>
     <div class="label-merge-actions">
-      <button id="label-merge-btn" class="action-btn primary" type="button" disabled>Merge</button>
-      <button id="label-merge-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection">
+      <button id="label-merge-btn" class="action-btn primary" type="button" disabled data-parity="labels.merge">Merge</button>
+      <button id="label-merge-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection" data-parity="labels.merge-cancel">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
@@ -412,8 +412,8 @@
   <!-- Label unmerge sheet: slide up to manage merged labels one by one -->
   <div id="label-unmerge-sheet" class="label-unmerge-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="label-unmerge-heading">
     <div class="label-unmerge-header">
-      <span id="label-unmerge-heading">Merged into <strong id="label-unmerge-name"></strong></span>
-      <button id="label-unmerge-close" class="icon-btn" type="button" aria-label="Close">
+      <span id="label-unmerge-heading" data-parity="label-unmerge.title">Merged into <strong id="label-unmerge-name"></strong></span>
+      <button id="label-unmerge-close" class="icon-btn" type="button" aria-label="Close" data-parity="label-unmerge.close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
