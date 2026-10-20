@@ -206,10 +206,13 @@ window.__musicdNative = function (what, arg) {
     return true;
   }
   // The page's notices drawn by the app (item 69, native-notices.js): a button of the server's notice, by its place
-  // (Forget a folder: the page's question, then its work); the update offer's Update or Later.
+  // (Forget a folder: its work); the update offer's Update or Later. "<place>:yes": the button's question answered Yes in
+  // the app, which asks it itself (item 96), so the page doesn't ask it again unseen.
   if (what === "notice-button") {
-    const b = document.querySelectorAll("#server-notice .server-notice-btn")[Number(arg)];
+    const m = /^(\d+)(:yes)?$/.exec(arg || "");
+    const b = m ? document.querySelectorAll("#server-notice .server-notice-btn")[Number(m[1])] : null;
     if (!b || b.disabled) return false;
+    if (m[2]) b.dataset.confirmed = "1";
     b.click();
     return true;
   }

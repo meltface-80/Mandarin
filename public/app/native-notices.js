@@ -18,7 +18,9 @@
     if (notice.classList.contains("hidden")) return null;
     const paras = [...notice.children].filter(e => e.tagName === "DIV");
     return { lines: paras.length ? paras.map(text) : [text(notice)], error: notice.classList.contains("error"),
-      buttons: [...notice.querySelectorAll(".server-notice-btn")].map(text) };
+      buttons: [...notice.querySelectorAll(".server-notice-btn")].map(text),
+      // Each button's question, asked by the app (item 96); "" where it has none.
+      asks: [...notice.querySelectorAll(".server-notice-btn")].map(b => b.dataset.ask || "") };
   };
   const updateNow = () => {
     if (!toast.classList.contains("open")) return null;
