@@ -540,6 +540,7 @@ const SCREENS = {
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
+  "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },

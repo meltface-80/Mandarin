@@ -26,6 +26,8 @@
     render();
   }
   async function browse(p) {
+    // Open at once, the folders filling in when the server answers: Add a folder answers the tap, not the server.
+    if (!browsing) { browsing = { path: p || "/", parent: null, dirs: [], loading: true }; render(); }
     try { browsing = await api("/api/library/browse?path=" + encodeURIComponent(p || "/")); err = ""; }
     catch (e) { err = e.message; if (!browsing) browsing = { path: "/", parent: null, dirs: [] }; }
     render();
@@ -35,28 +37,28 @@
 
   function render() {
     if (browsing) return renderBrowser();
-    if (!st) { body.innerHTML = '<div class="settings-note">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
+    if (!st) { body.innerHTML = '<div class="settings-note away-error" data-parity="settings-folders.error">' + esc(err || "Couldn’t ask the server.") + "</div>"; return; }
     let html = '<div class="mf-list">';
     for (const f of st.folders) {
       const state = !f.exists ? "Not there — its albums are kept" : !f.readable ? "Can’t be read — its albums are kept" : (f.tracks || 0).toLocaleString() + " tracks";
-      html += '<div class="mf-row">' +
-        '<span class="mf-ico">' + folderSvg + "</span>" +
-        '<span class="mf-txt"><span class="mf-name">' + esc(f.name) + '</span><span class="mf-path">' + esc(f.path) + '</span>' +
-        '<span class="mf-state' + (f.exists && f.readable ? "" : " is-bad") + '">' + esc(state) + "</span>" +
-        (f.hint ? '<span class="mf-state is-bad">' + esc(f.hint) + "</span>" : "") + "</span>" +
-        (st.folders.length > 1 ? '<button type="button" class="settings-update-btn mf-remove" data-mf-remove="' + esc(f.path) + '"' + (busy ? " disabled" : "") + ">Remove</button>" : "") +
+      html += '<div class="mf-row" data-parity="settings-folders.folder">' +
+        '<span class="mf-ico" data-parity="settings-folders.icon">' + folderSvg + "</span>" +
+        '<span class="mf-txt"><span class="mf-name" data-parity="settings-folders.name">' + esc(f.name) + '</span><span class="mf-path" data-parity="settings-folders.path">' + esc(f.path) + '</span>' +
+        '<span class="mf-state' + (f.exists && f.readable ? "" : " is-bad") + '" data-parity="settings-folders.state">' + esc(state) + "</span>" +
+        (f.hint ? '<span class="mf-state is-bad" data-parity="settings-folders.hint">' + esc(f.hint) + "</span>" : "") + "</span>" +
+        (st.folders.length > 1 ? '<button type="button" class="settings-update-btn mf-remove" data-parity="settings-folders.remove" data-mf-remove="' + esc(f.path) + '"' + (busy ? " disabled" : "") + ">Remove</button>" : "") +
         "</div>";
     }
     html += "</div>";
-    html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-mf-add' + (busy ? " disabled" : "") + ">Add a folder</button></div>";
-    if (st.scanning) html += '<div class="settings-note">Reading your music… new albums appear as they’re found.</div>';
-    html += '<div class="settings-note">' + (st.docker
+    html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-parity="settings-folders.add" data-mf-add' + (busy ? " disabled" : "") + ">Add a folder</button></div>";
+    if (st.scanning) html += '<div class="settings-note" data-parity="settings-folders.note">Reading your music… new albums appear as they’re found.</div>';
+    html += '<div class="settings-note" data-parity="settings-folders.note">' + (st.docker
       ? "The server sees only what its container has mounted. Mount your drives and shares once — e.g. <b>-v /mnt:/mnt:ro,rslave</b> (on DietPi, everything in Drive Manager is under /mnt; <b>rslave</b> lets shares the machine mounts later show up) — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
       : "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums.") + "</div>";
-    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+    if (err) html += '<div class="settings-note away-error" data-parity="settings-folders.error">' + esc(err) + "</div>";
     // Music on this phone (the app): its folder is a watched folder too, so it lives here (v0.5.41).
     if (window.MusicdDownloads && typeof window.MusicdDownloads.localFolder === "function" && window.__localFolderBlock) {
-      html += '<div class="settings-divider"></div>' + window.__localFolderBlock();
+      html += '<div class="settings-divider" data-parity="settings-folders.divider"></div>' + window.__localFolderBlock();
     }
     body.innerHTML = html;
   }
@@ -66,28 +68,28 @@
     const b = browsing;
     const watched = new Set((st && st.folders || []).map(f => f.path));
     const inside = [...watched].find(w => b.path === w || b.path.startsWith(w + "/"));
-    let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-mf-cancel>Cancel</button>' +
-      '<span class="mf-browse-path">' + esc(b.path) + "</span></div>";
+    let html = '<div class="mf-browse-head"><button type="button" class="settings-update-btn" data-parity="settings-folders.add-close" data-mf-cancel>Cancel</button>' +
+      '<span class="mf-browse-path" data-parity="settings-folders.browse-path">' + esc(b.path) + "</span></div>";
     // The drives and shares the server can see, one tap away.
     const places = (st && st.mounts) || [];
     if (places.length) {
-      html += '<div class="mf-places"><span class="mf-places-label">Mounted drives and shares</span>' +
-        places.map(m => '<button type="button" class="mf-place' + (m.waiting ? " is-bad" : "") + (m.path === b.path ? " is-on" : "") +
+      html += '<div class="mf-places"><span class="mf-places-label" data-parity="settings-folders.places-label">Mounted drives and shares</span>' +
+        places.map(m => '<button type="button" data-parity="settings-folders.place" class="mf-place' + (m.waiting ? " is-bad" : "") + (m.path === b.path ? " is-on" : "") +
           '" data-mf-go="' + esc(m.path) + '">' + esc(m.path) + "</button>").join("") + "</div>";
     }
-    if (b.hint) html += '<div class="settings-note away-error mf-hint">' + esc(b.hint) + "</div>";
+    if (b.hint) html += '<div class="settings-note away-error mf-hint" data-parity="settings-folders.browse-hint">' + esc(b.hint) + "</div>";
     html += '<div class="mf-browse-list">';
-    if (b.parent) html += '<button type="button" class="mf-dir mf-up" data-mf-go="' + esc(b.parent) + '"><span class="mf-ico">↰</span><span class="mf-name">Up</span></button>';
+    if (b.parent) html += '<button type="button" data-parity="settings-folders.up" aria-label="Up" class="mf-dir mf-up" data-mf-go="' + esc(b.parent) + '"><span class="mf-ico" data-parity="settings-folders.icon">↰</span><span class="mf-name">Up</span></button>';
     for (const d of b.dirs) {
-      html += '<button type="button" class="mf-dir" data-mf-go="' + esc(d.path) + '"><span class="mf-ico">' + folderSvg + '</span><span class="mf-name">' + esc(d.name) + "</span>" +
+      html += '<button type="button" data-parity="settings-folders.dir" class="mf-dir" data-mf-go="' + esc(d.path) + '"><span class="mf-ico" data-parity="settings-folders.icon">' + folderSvg + '</span><span class="mf-name">' + esc(d.name) + "</span>" +
         (watched.has(d.path) ? '<span class="mf-tag">In the library</span>' : "") + "</button>";
     }
-    if (!b.dirs.length) html += '<div class="settings-note">No folders in here.</div>';
+    if (!b.dirs.length && !b.loading) html += '<div class="settings-note" data-parity="settings-folders.browse-note">No folders in here.</div>';
     html += "</div>";
     html += '<div class="mf-browse-foot">' + (inside
-      ? '<span class="settings-note">Already in the library (' + esc(inside) + ")</span>"
-      : '<button type="button" class="settings-update-btn mf-choose" data-mf-choose' + (busy || b.path === "/" ? " disabled" : "") + ">Add “" + esc(b.path.split("/").pop() || b.path) + "”</button>") + "</div>";
-    if (err) html += '<div class="settings-note away-error">' + esc(err) + "</div>";
+      ? '<span class="settings-note" data-parity="settings-folders.browse-note">Already in the library (' + esc(inside) + ")</span>"
+      : '<button type="button" class="settings-update-btn mf-choose" data-parity="settings-folders.choose" data-mf-choose' + (busy || b.loading || b.path === "/" ? " disabled" : "") + ">Add “" + esc(b.path.split("/").pop() || b.path) + "”</button>") + "</div>";
+    if (err) html += '<div class="settings-note away-error" data-parity="settings-folders.error">' + esc(err) + "</div>";
     body.innerHTML = html;
   }
 

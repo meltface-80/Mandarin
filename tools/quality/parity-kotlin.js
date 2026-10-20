@@ -152,35 +152,51 @@ function scan(src) {
   return { tags, findings };
 }
 
+/** Where the labels are written: Contract.kt, and the parts it joins (ContractLabels1.kt …). */
+const KOTLIN_DIR = "android/core/src/main/kotlin/com/musicd/server/client/";
+/** The most label rows a part holds, so no part nears the files' length watch however many screens there are. */
+const PART_ROWS = 300;
+const HEAD = "// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.\npackage com.musicd.server.client\n";
+
 /**
- * The contract's labels as Kotlin (core's Contract.kt): what each native
- * control is called, aloud too, so the app never spells one itself.
+ * The contract's labels as Kotlin (core's Contract.kt and its parts): what
+ * each native control is called, aloud too, so the app never spells one
+ * itself. A screen's labels are kept in one part; a part takes the next
+ * screen while it stays within PART_ROWS rows.
  * @param {{ screens: Record<string, { items: Record<string, { kind: string, label?: string | string[], only?: string }> }> }} contract
- * @returns {string}
+ * @returns {Record<string, string>} each file's text by its path from the repository's root
  */
-// One line a screen, its labels side by side (item 94): a line a label grew the file past the watch line as screens came,
-// and a generated file is laid out by its tool, never split by hand.
 function contractKotlin(contract) {
-  const rows = [];
+  /** @type {string[][]} */
+  const parts = [[]];
   for (const [s, screen] of Object.entries(contract.screens)) {
-    const entries = [];
+    const rows = [];
     for (const [k, it] of Object.entries(screen.items)) {
       if (it.kind !== "action" || !it.label || it.only) continue;
-      entries.push(`"${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
+      rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
     }
-    if (entries.length) rows.push(`        ${entries.join(" ")}`);
+    const last = parts[parts.length - 1];
+    if (last.length && last.length + rows.length > PART_ROWS) parts.push(rows); else last.push(...rows);
   }
-  return `// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
-package com.musicd.server.client
-
+  /** @type {Record<string, string>} */
+  const files = {};
+  parts.forEach((rows, i) => {
+    files[`${KOTLIN_DIR}ContractLabels${i + 1}.kt`] = `${HEAD}
+/** The screens contract's labels, part ${i + 1} of ${parts.length} (Contract.kt joins them). */
+internal object ContractLabels${i + 1} {
+    val labels: Map<String, List<String>> = mapOf(
+${rows.join("\n")}
+    )
+}
+`;
+  });
+  files[`${KOTLIN_DIR}Contract.kt`] = `${HEAD}
 /**
  * The screens contract's labels (docs/specs/native-parity.md): what each
  * native control is called, aloud too, one per state, as the page calls it.
  */
 object Contract {
-    val labels: Map<String, List<String>> = mapOf(
-${rows.join("\n")}
-    )
+    val labels: Map<String, List<String>> = ${parts.map((_, i) => `ContractLabels${i + 1}.labels`).join(" + ")}
 
     /** [key]'s label in [state], each {…} in it filled from [fill] in turn. */
     fun label(key: String, state: Int = 0, vararg fill: String): String {
@@ -190,6 +206,7 @@ ${rows.join("\n")}
     }
 }
 `;
+  return files;
 }
 
-module.exports = { mask, scan, contractKotlin, CONTROLS, GESTURES, READOUTS };
+module.exports = { mask, scan, contractKotlin, KOTLIN_DIR, CONTROLS, GESTURES, READOUTS };
