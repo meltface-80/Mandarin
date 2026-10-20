@@ -62,8 +62,11 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
     var list by remember { mutableStateOf<List<PlaylistTile>?>(null) }
     var failed by remember { mutableStateOf(false) }
     val sheets by NativeShell.sheetsClosed
+    // Import's sheet (PlaylistImportSheet.kt; item 94), and how many playlists it has made: the list read again after each.
+    var importing by remember { mutableStateOf(false) }
+    var made by remember { mutableStateOf(0) }
     BackHandler { onBack() }
-    LaunchedEffect(sheets) {
+    LaunchedEffect(sheets, made) {
         val c = client() ?: return@LaunchedEffect
         val got = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.userPlaylists() }.getOrNull() }
         failed = got == null
@@ -83,7 +86,7 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
                     // Import, at the right under the heading (.playlists-import, in the count's place): a brass pill 32 tall.
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, end = 16.dp), horizontalArrangement = Arrangement.End) {
                         Box(Modifier.parity("playlists.import", Contract.label("playlists.import")).height(32.dp).clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.primary).clickable { onPage("playlist-import", null) }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                            .background(MaterialTheme.colorScheme.primary).clickable { importing = true }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                             Text("Import", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600)
                         }
                     }
@@ -98,6 +101,7 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
         }
+        if (importing) PlaylistImportSheet(client, onSaved = { made++ }) { importing = false }
     }
 }
 

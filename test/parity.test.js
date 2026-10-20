@@ -439,6 +439,33 @@ const OPEN_GROUP = `(async () => {
   await sleep(600);
   return "open";
 })()`;
+/* Import a playlist (item 94): the sheet, a shared playlist pasted (one track the library has, one it hasn't), Import. */
+const OPEN_IMPORT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  const r = await fetch("/api/share/encode", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }, { title: "Song 2", artist: "Artist A", album: "Elsewhere" }, { title: "Nowhere", artist: "Nobody", album: "Nothing" }] }) });
+  const j = await r.json();
+  openImportSheet();
+  if (!(await until(() => !!document.getElementById("import-blob")))) return "no sheet";
+  document.getElementById("import-blob").value = j.blob;
+  document.querySelector('[data-parity~="playlist-import.import"]').click();
+  if (!(await until(() => !!document.querySelector(".lib-sheet .import-save")))) return "no result";
+  await sleep(600);
+  return "open";
+})()`;
+/* Share a playlist (item 94): the sheet for two tracks. */
+const OPEN_SHARE = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  shareTracks("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, {});
+  if (!(await until(() => !!document.getElementById("share-blob") && !!document.getElementById("share-blob").value))) return "no sheet";
+  await sleep(600);
+  return "open";
+})()`;
+/* The name box (item 94), as Save as a playlist asks it. */
 const OPEN_POWER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -564,6 +591,7 @@ const SCREENS = {
   "settings-shelf": { open: OPEN_SETTINGS(["setup", "shelfset"]), root: '#settings-overlay .settings-view[data-pane="shelfset"]' },
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
+  "power-cover": { open: `(async () => { const t0 = Date.now(); while (!window.__serverAwayScreen) { if (Date.now() - t0 > 20000) return "no power"; await new Promise(r => setTimeout(r, 50)); } window.__serverAwayScreen("Restarting Mandarin…", "This page reloads when it's back.", 3600000); return "open"; })()`, root: "#power-cover" },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
   "settings-downloads": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.getElementById("dl-cache-status")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
   "settings-downloads-albums": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.querySelector('[data-dl-folder]') && (document.querySelector('[data-dl-folder]').click(), true) && !!document.querySelector(".dl-row")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
@@ -589,6 +617,8 @@ const SCREENS = {
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
+  "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },
+  "playlist-share": { open: OPEN_SHARE, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
   "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
   "service-browser": { open: OPEN_SERVICE, root: "#qobuz-overlay" },

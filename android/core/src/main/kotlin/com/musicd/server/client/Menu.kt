@@ -24,8 +24,8 @@ object Menu {
             tidal?.optBoolean("connected") ?: d.tidal, shelf?.optBoolean("enabled") ?: d.shelf)
     }
 
-    /** Under Offline mode: on, the phone's music alone; else Off. */
-    fun offlineSub(on: Boolean): String = if (on) "On · only the music on this phone" else "Off"
+    /** Offline mode's row, on one line, with On or Off after its name (the owner's wording, item 98). */
+    fun offlineSub(on: Boolean): String = "Offline Mode - " + if (on) "On" else "Off"
 
     /** Under Shut down when the server can't shut itself down (`/api/system/power`'s `shutdown` false); else none. */
     fun powerNote(power: JSONObject?): String = if (power != null && !power.optBoolean("shutdown")) "In Docker: docker stop musicd-server, then docker start musicd-server." else ""

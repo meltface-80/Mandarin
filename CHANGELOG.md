@@ -4,6 +4,34 @@
 - `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
   else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
   with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
+- `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
+  good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
+  cleared it only once the page came: the Library left or drawn again before then, the request was called off and the
+  flag stayed up, so every visit after asked for nothing. Seldom at home, where the first page comes at once. The flag
+  is now let go however the request ends; and a first page that failed ("Couldn't load") is asked for again when the
+  Library is opened again.
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
+- `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
+  outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
+  question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
+  each button's question to the app with the notice, the app asks it as the page's yes-or-no sheet, and the page does
+  its work once told it was answered Yes. The side menu's Restart and Shut down are now the app's own too: the
+  question (Shut down saying how the server is started again), then the screen over everything while the server is
+  away, as the page's (`power-cover` in the screens contract), until it answers again, the page under the app read
+  afresh with it. Shelf stays the page's, a page of its own; the Offline dialog and the signed-out state go with the
+  offline work (O1); a Music on device album's page is still the page's.
+- `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
+  Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
+  phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
+  match and those found on another album, each listed, and Save as a playlist, which asks its name in the app's own name
+  box (the page's, natively) and makes it, the Playlists screen and Home's row taking it at once. Share (a playlist's ⋯ →
+  Share): how many tracks and what was left out, what sharing means, the playlist as text; Copy, Download (the `.musicd`
+  file to the phone's Download/Mandarin folder, where Import's Choose a file… finds it) and Done. The page's sheets and
+  name box are keyed for the screens contract (`playlist-import`, `playlist-share`, `prompt`). On the page, Choose a
+  file…'s words sit in the middle of the button (they sat at its top), and the name box's field is in the page's face, not
+  the browser's.
 - `95-native-smart-playlist-sheets`: a Dynamic Playlist's sheets natively in the Android app, as the page's, over the
   screen that asked: New (Albums or Tracks, each with what it means), then the Focus sheet led by the playlist's own
   Order and Playlist size, open from the start; Edit (that sheet over the playlist's own view, its size and order kept);

@@ -6,7 +6,7 @@
 function openImportSheet() {
   openLibSheet("Import a playlist", (body) => {
     const note = document.createElement("div");
-    note.className = "share-note";
+    note.className = "share-note"; note.dataset.parity = "playlist-import.note";
     note.textContent =
       "Paste a playlist someone shared with you. It describes the music, so " +
       "you'll get the tracks your own library can match — the rest are listed " +
@@ -15,7 +15,8 @@ function openImportSheet() {
 
     const ta = document.createElement("textarea");
     ta.className = "share-blob";
-    ta.id = "import-blob";
+    ta.id = "import-blob"; ta.dataset.parity = "playlist-import.blob";
+    ta.setAttribute("aria-label", "Shared playlist");
     ta.rows = 4;
     ta.placeholder = "MDRP1:…";
     // iOS autocorrect treats MDRP1 as a word it doesn't know and lowercases
@@ -32,7 +33,7 @@ function openImportSheet() {
     // on a phone it is far more reliable than a clipboard: the blob is long
     // enough that a hand-selection can silently come back short.
     const pick = document.createElement("label");
-    pick.className = "action-btn import-file";
+    pick.className = "action-btn import-file"; pick.dataset.parity = "playlist-import.file";
     pick.textContent = "Choose a file…";
     const file = document.createElement("input");
     file.type = "file";
@@ -42,6 +43,7 @@ function openImportSheet() {
     file.accept = ".musicd,text/plain";
     file.className = "visually-hidden";
     file.id = "import-file";
+    file.setAttribute("aria-label", "Choose a file…");
     file.addEventListener("change", () => {
       const f = file.files && file.files[0];
       if (!f) return;
@@ -62,17 +64,17 @@ function openImportSheet() {
 
     const out = document.createElement("div");
     out.className = "import-result";
-    out.id = "import-result";
+    out.id = "import-result"; out.dataset.parity = "playlist-import.result";
     body.appendChild(out);
   }, (foot, close) => {
     const go = document.createElement("button");
-    go.type = "button"; go.className = "action-btn primary";
+    go.type = "button"; go.className = "action-btn primary"; go.dataset.parity = "playlist-import.import";
     go.textContent = "Import";
     go.addEventListener("click", () => runImport(go));
     foot.appendChild(go);
 
     const done = document.createElement("button");
-    done.type = "button"; done.className = "action-btn";
+    done.type = "button"; done.className = "action-btn"; done.dataset.parity = "playlist-import.done";
     done.textContent = "Close";
     done.addEventListener("click", close);
     foot.appendChild(done);
@@ -108,7 +110,7 @@ async function runImport(btn) {
       const save = out.querySelector(".import-save");
       if (save) { save.disabled = true; save.textContent = "Searching your library…"; }
       const note = document.createElement("div");
-      note.className = "share-sum share-sub-note";
+      note.className = "share-sum share-sub-note"; note.dataset.parity = "playlist-import.searching";
       note.textContent = `Looking inside your albums for the other ${j.missing.length}…`;
       out.appendChild(note);
       const deep = await postImport(blob, true);
@@ -149,24 +151,24 @@ function renderImportResult(out, j, btn) {
   const miss = j.missing || [];
 
   const head = document.createElement("div");
-  head.className = "share-sum";
+  head.className = "share-sum"; head.dataset.parity = "playlist-import.sum";
   head.textContent = `${n} of ${j.total} track${j.total === 1 ? "" : "s"} found in your library`;
   out.appendChild(head);
 
   if (j.truncated) {
     const w = document.createElement("div");
-    w.className = "share-warn";
+    w.className = "share-warn"; w.dataset.parity = "playlist-import.warn";
     w.textContent = "That playlist is longer than one import can take — the end of it was left out.";
     out.appendChild(w);
   }
 
   if (miss.length) {
     const w = document.createElement("div");
-    w.className = "share-warn";
+    w.className = "share-warn"; w.dataset.parity = "playlist-import.warn";
     w.textContent = `${miss.length} couldn't be matched:`;
     out.appendChild(w);
     const ul = document.createElement("ul");
-    ul.className = "import-missing";
+    ul.className = "import-missing"; ul.dataset.parity = "playlist-import.missing";
     // Bounded: a 500-track import that matched nothing would otherwise
     // render 500 rows into a bottom sheet.
     for (const m of miss.slice(0, 25)) {
@@ -190,11 +192,11 @@ function renderImportResult(out, j, btn) {
   const sub = j.substituted || [];
   if (sub.length) {
     const w = document.createElement("div");
-    w.className = "share-sum share-sub-note";
+    w.className = "share-sum share-sub-note"; w.dataset.parity = "playlist-import.sub-note";
     w.textContent = `${sub.length} found on a different album than the playlist named:`;
     out.appendChild(w);
     const ul = document.createElement("ul");
-    ul.className = "import-missing import-substituted";
+    ul.className = "import-missing import-substituted"; ul.dataset.parity = "playlist-import.substituted";
     for (const m of sub.slice(0, 25)) {
       const li = document.createElement("li");
       li.textContent = [m.title, m.artist].filter(Boolean).join(" · ") +
@@ -211,14 +213,14 @@ function renderImportResult(out, j, btn) {
 
   if (!n) {
     const w = document.createElement("div");
-    w.className = "share-warn";
+    w.className = "share-warn"; w.dataset.parity = "playlist-import.warn";
     w.textContent = "Nothing here matched, so there's nothing to save.";
     out.appendChild(w);
     return;
   }
 
   const save = document.createElement("button");
-  save.type = "button"; save.className = "action-btn primary import-save";
+  save.type = "button"; save.className = "action-btn primary import-save"; save.dataset.parity = "playlist-import.save";
   save.textContent = `Save ${n} track${n === 1 ? "" : "s"} as a playlist`;
   save.addEventListener("click", async () => {
     const name = await askName("Name this playlist", j.name || "Shared playlist");

@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,10 +52,14 @@ internal object Notices {
 /**
  * Both notices, the server's over the update offer, as the page's (style.css: .status-banner, .update-toast), at the UI
  * Settings' menu size (their zoom); each button is the page's own, tapped ([onPage]: "notice-button" by its place, "update").
+ * A button that asks first (Forget a folder) asks here, as the page's yes-or-no sheet, and the page is told it was answered
+ * Yes ("<place>:yes"): asked by the page behind the native Home, it was asked unseen and nothing happened (bug list item 96).
  */
 @Composable
 internal fun NoticeBanners(zoom: Double, onPage: (String, String?) -> Unit) {
     val now by Notices.now
+    var asking by remember { mutableStateOf<Pair<Int, String>?>(null) }
+    asking?.let { (i, q) -> ConfirmDialog(q) { yes -> asking = null; if (yes) onPage("notice-button", "$i:yes") } }
     if (now.notice == null && now.update == null) return
     val density = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(density.density * zoom.toFloat(), density.fontScale)) {
@@ -69,7 +75,7 @@ internal fun NoticeBanners(zoom: Double, onPage: (String, String?) -> Unit) {
                             val pill = RoundedCornerShape(8.dp)
                             Box(Modifier.parity("home.notice-button", Contract.label("home.notice-button", if (word.startsWith("Forget")) 0 else 1, word.removePrefix("Forget ")))
                                 .padding(top = 10.dp, end = 8.dp).height(36.dp).clip(pill).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, MaterialTheme.colorScheme.outline, pill)
-                                .clickable { onPage("notice-button", i.toString()) }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                                .clickable { n.ask(i)?.let { q -> asking = i to q } ?: onPage("notice-button", i.toString()) }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                                 Text(word, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 1)
                             }
                         }
