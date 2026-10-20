@@ -12,7 +12,8 @@
   updater.js's words and steps; `UpdateNow.kt` looks for it while Home is up and installs the server's update, then
   the app's; Settings → Updates hands its find to it; `AppUpdate`'s own dialog is gone); the server's gate shutting on
   the phone (core `GateWatch`: a 401 saying "Sign in to Mandarin", not a wrong password) opens the sign-in screen; the
-  side menu's Shelf opens `/shelf` in the phone's browser. Deleted: `PageFrame`, `PageGuard`, `PageCurtain`,
+  side menu's Shelf opens `/shelf` in the phone's browser; Android's stretch past a list's ends is off for every screen
+  (`MandarinTheme`), as it was for the WebView (v1.0.7). Deleted: `PageFrame`, `PageGuard`, `PageCurtain`,
   `PageRelay`, core `PageWatch`, `AppBridge`, `BackupBridge`, `OfflineSite`'s page copy and the APK's `bundleSite`
   step, the `androidx.webkit` library, `test/offline-bundle.test.js` and its C# twin. The page's Android glue stays on
   the server until the next release, for older apps.

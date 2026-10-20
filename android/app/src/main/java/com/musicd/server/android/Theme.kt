@@ -1,9 +1,11 @@
 package com.musicd.server.android
 
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -58,11 +60,15 @@ private fun typography(): Typography {
     )
 }
 
-/** Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest), and its type. */
+/**
+ * Material 3 in the page's graphite and brass (Palette, held to style.css by ShellTest), and its type. A list pulled past
+ * its top or its foot doesn't stretch (v1.0.7, the page's overscroll-behavior: none): Android's own stretch is off for
+ * every screen, as it was for the WebView (bug list item 111).
+ */
 @Composable
 internal fun MandarinTheme(content: @Composable () -> Unit) {
     val c = ::paletteColor
-    MaterialTheme(
+    CompositionLocalProvider(LocalOverscrollFactory provides null) { MaterialTheme(
         typography = typography(),
         colorScheme = darkColorScheme(
             primary = c(Palette.ACCENT), onPrimary = c(Palette.ON_ACCENT),
@@ -74,5 +80,5 @@ internal fun MandarinTheme(content: @Composable () -> Unit) {
             error = c(Palette.DANGER)
         ),
         content = content
-    )
+    ) }
 }
