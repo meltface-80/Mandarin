@@ -82,6 +82,17 @@ class PhoneShelfTest {
         assertEquals("16/44.1", PhoneShelf.quality(PhoneAlbum("x", "", "", null, false, listOf(PhoneTrack("", "", 1.0, "flac", 44100, 16)))))
     }
 
+    @Test fun `the phone's own album as the album page reads it`() {
+        val v = PhoneShelf.phoneView(PhoneAlbum("ab12", "Home Tapes", "Me", 2020, true, listOf(PhoneTrack("One", "Me", 61.0, "flac", 96000, 24), PhoneTrack("Two", "Me", 70.0, "flac", 96000, 24))))
+        assertEquals("Home Tapes", v.album.title)
+        assertEquals(-1L, v.album.offset)
+        assertEquals("phone-ab12", v.album.imageKey)
+        assertEquals("24/96", v.album.quality)
+        assertEquals(listOf(-1L, -2L), v.tracks.map { it.id })
+        assertEquals(listOf("play_now", "queue", "play_next", "shuffle"), v.actions.map { it.kind })
+        assertEquals(listOf("Me"), v.artists)
+    }
+
     @Test fun `every path it answers is listed, and only those`() {
         for (p in PhoneShelf.PATHS) assertTrue(p, shelf.get(p, mapOf("offset" to "7", "q" to "x", "artist" to "x")) != null)
         assertEquals(null, shelf.get("/api/zone-state", emptyMap()))
