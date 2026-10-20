@@ -75,6 +75,7 @@ app/play-unheard.js
 app/artist-view.js
 app/menu-drawer.js
 app/server-notice.js
+app/native-notices.js
 app/settings-account.js
 app/android-downloads.js
 app/android-app-update.js

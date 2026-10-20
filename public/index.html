@@ -251,7 +251,7 @@
   <!-- Side menu (hamburger). Items with data-target trigger the hidden top-bar
        button of that id; data-action items switch the main view. -->
   <main>
-  <div id="update-toast" class="update-toast" role="status" aria-live="polite">
+  <div id="update-toast" class="update-toast" role="status" aria-live="polite" data-parity="home.update">
     <div class="update-toast-top">
       <svg class="update-ico" width="18" height="18" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -261,11 +261,11 @@
       </svg>
       <span class="update-text" id="update-text"></span>
       <div class="update-actions" id="update-actions">
-        <button id="update-now" class="primary-btn" type="button"><span>Update</span></button>
-        <button id="update-later" class="icon-btn update-later" type="button" aria-label="Dismiss">Later</button>
+        <button id="update-now" class="primary-btn" type="button" data-parity="home.update-now"><span>Update</span></button>
+        <button id="update-later" class="icon-btn update-later" type="button" aria-label="Dismiss" data-parity="home.update-later">Later</button>
       </div>
     </div>
-    <div id="update-notes" class="update-notes hidden"></div>
+    <div id="update-notes" class="update-notes hidden" data-parity="home.update-notes"></div>
   </div>
     <div id="labels-bar" class="labels-bar hidden">
       <button id="labels-back" class="labels-back" type="button" aria-label="Back to all labels">

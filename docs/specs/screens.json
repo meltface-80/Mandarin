@@ -240,9 +240,15 @@
     },
     "home": {
       "page": "Home (#home-view; the top bar is hidden in the touch layout, the row along the foot has its Menu and Search): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/NoticeBanners.kt"],
       "preview": false,
       "items": {
+        "notice": { "kind": "shows", "when": "the server has something to say: an empty library, no rooms, a music folder gone, the data not kept" },
+        "notice-button": { "kind": "action", "label": ["Forget {folder}", "Remove the missing ones"], "each": true, "when": "a music folder gone" },
+        "update": { "kind": "shows", "when": "an update for the server or the app is offered, or one is under way" },
+        "update-now": { "kind": "action", "label": ["Update", "Roll back"], "when": "an update offered" },
+        "update-later": { "kind": "action", "label": "Dismiss", "when": "an update offered" },
+        "update-notes": { "kind": "shows", "when": "the offered update's notes" },
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
         "greeting": { "kind": "shows", "when": "the greeting is on" },
         "random-album": { "kind": "action", "label": "Random Album", "when": "Random Album is on (Settings → Home Screen)" },

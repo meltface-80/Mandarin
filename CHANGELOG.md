@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `69-native-notices`: the page's notices at the head of the native Home in the Android app (plan R3, in part). Since the
+  native Home came in front from launch (item 64) the page's notices were hidden behind it: the update offer (the
+  server's and the app's, with its notes, Update or Later, its progress and a failure) and the server's notice (an empty
+  library, no rooms, a music folder gone with its Forget, the data not kept). The page now tells the app of them as they
+  change, and the native Home draws them as the page does, at the UI Settings' menu size; their buttons are the page's
+  own, tapped. The home contract screen gains them, the page keyed.
 - `68-native-room-sheets`: Play on's Group zones and Device power natively in the Android app (plan R1), from Now playing
   and the mini player: the sheets up from the foot as the page's, Group zones with a row for each speaker the room's first
   may play with (ticked in brass, the first kept and said to keep playing, another room's said, the ones Sonos won't sync
