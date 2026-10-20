@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `89-native-settings-audio`: Settings → Audio Devices natively in the Android app (plan T6), as the page's: the zone the
+  controls play to; every player the server sees, a row each (its icon, name, what it is and whether it plays) with its
+  switch where it can be switched off; Hide / unhide (the rows ticked, OK, and what came of it said) and Look again;
+  Waveform. A row opens the device's own page: on or off, Random album radio, a phone's Other devices can play here, its
+  name (and Use the network name), About, its capabilities as chips (tapped on or off where they can be set), Output
+  (the mode, the depth, Fixed volume), Volume levelling with its level, the DSP (a headphone profile found on AutoEq by its
+  name or pasted, the bands' curve drawn from the same maths the server runs, each band's type, Hz, dB and Q, Add band,
+  the headroom Auto or set, Save), this phone's USB DAC (Allow, what it takes, USB direct, fixed volume, the limit, how
+  DSD goes, what it is being fed, Copy), and Forget this device. The page's are keyed for the screens contract
+  (`settings-audio`, `settings-device`).
 - `92-native-settings-backup-updates`: Settings → Backup & restore and Settings → Updates natively in the Android app
   (plan T9), as the page's. Backup & restore: the parts to put in, each ticked or not with what it holds (the whole
   database with its size), a passphrase, Back up to a file on this phone (Android's own "save as") or to the server, and

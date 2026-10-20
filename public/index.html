@@ -1313,19 +1313,19 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-audio.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Audio Devices</h2>
+          <h2 data-parity="settings-audio.heading">Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc">Output zone &amp; your devices</p>
+        <p class="settings-pane-desc" data-parity="settings-audio.desc">Output zone &amp; your devices</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Zone / output <button class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Zone / output <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Choose which room, renderer or phone the Play, Queue and transport controls target." aria-label="Info">ⓘ</button></span>
             <div class="settings-select-wrap">
-              <select id="zone-select" class="settings-select" aria-label="Output zone"></select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <select id="zone-select" data-parity="settings-audio.zone" class="settings-select" aria-label="Output zone"></select>
+              <svg data-parity="settings-audio.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -1339,13 +1339,13 @@
              in app.js from /api/audio-devices; a row opens the "device" pane. -->
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Devices <button class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-audio.name">Devices <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Every player Mandarin can see: Sonos rooms, phones running the app, and UPnP/DLNA renderers found on the network. Tap one for its name and what it can play. The network is searched every minute; Look again searches now. Hide / unhide takes devices you don't use off this list (ticked, then OK); hidden ones are listed again, under Hidden, when you tap it next, and a tick brings one back." aria-label="Info">ⓘ</button></span>
             <span class="dev-tools">
-              <button type="button" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
-              <button type="button" class="settings-update-btn" id="devices-rescan">Look again</button>
+              <button type="button" data-parity="settings-audio.hide" class="settings-update-btn" id="devices-hide">Hide / unhide</button>
+              <button type="button" data-parity="settings-audio.rescan" class="settings-update-btn" id="devices-rescan">Look again</button>
             </span>
           </div>
-          <div id="devices-hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
+          <div id="devices-hide-note" data-parity="settings-audio.hide-note" class="settings-note hidden">Tick the devices to hide. Hidden ones are listed below; tick one to bring it back.</div>
           <div id="devices-list" class="dev-list"></div>
         </div>
 
@@ -1353,13 +1353,13 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Waveform <button class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-audio.name">Waveform <button data-parity="settings-audio.info" class="settings-info-btn" data-info="Off by default. Draws the shape of the track on the Now playing progress bar and the wall display, read from the audio itself. The first play of a track decodes it (a second or two); every result is stored, so it is instant afterwards." aria-label="Info">&#9432;</button></span>
+            <label class="switch" data-parity="settings-audio.waveform">
               <input type="checkbox" id="waveform-enabled" aria-label="Waveform">
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
+          <div class="settings-note" data-parity="settings-audio.note" id="waveform-enabled-note">Off. The progress bar stays a plain line.</div>
 
           <!-- Qobuz waveforms. Off until the user signs in, and the sign-in
                happens on qobuz.com — no password or key is typed in here. -->
@@ -1915,12 +1915,12 @@
            returns there (data-parent), not to the Settings home. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="device" data-parent="playback">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Audio Devices" data-parity="settings-device.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2 id="device-pane-title">Device</h2>
+          <h2 id="device-pane-title" data-parity="settings-device.heading">Device</h2>
         </div>
-        <p class="settings-pane-desc" id="device-pane-desc"></p>
+        <p class="settings-pane-desc" data-parity="settings-device.desc" id="device-pane-desc"></p>
         <div id="device-pane-body"></div>
       </div>
 
