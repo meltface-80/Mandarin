@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `89-native-settings-audio`: Settings → Audio Devices natively in the Android app (plan T6), as the page's: the zone the
+  controls play to; every player the server sees, a row each (its icon, name, what it is and whether it plays) with its
+  switch where it can be switched off; Hide / unhide (the rows ticked, OK, and what came of it said) and Look again;
+  Waveform. A row opens the device's own page: on or off, Random album radio, a phone's Other devices can play here, its
+  name (and Use the network name), About, its capabilities as chips (tapped on or off where they can be set), Output
+  (the mode, the depth, Fixed volume), Volume levelling with its level, the DSP (a headphone profile found on AutoEq by its
+  name or pasted, the bands' curve drawn from the same maths the server runs, each band's type, Hz, dB and Q, Add band,
+  the headroom Auto or set, Save), this phone's USB DAC (Allow, what it takes, USB direct, fixed volume, the limit, how
+  DSD goes, what it is being fed, Copy), and Forget this device. The page's are keyed for the screens contract
+  (`settings-audio`, `settings-device`).
 - `88-native-settings-folders`: Settings → Music Folders natively in the Android app (plan T5), as the page's: the
   server's folders as cards (icon, name, path, how many tracks, or that it isn't there or can't be read and what to do),
   Remove where there is more than one (asked first); Add a folder, which browses the server's folders (Cancel, where it

@@ -64,6 +64,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
     when (pane) {
         "account" -> SettingsAccount(client, onBack)
         "metadata" -> SettingsKeys(client, onBack)
+        "playback" -> SettingsAudio(client, onBack)
         "streaming" -> SettingsServices(client, onBack)
         "folders" -> SettingsFolders(client, onBack)
         in SETUP_PANES -> SettingsSetupPane(pane, client, onBack)
@@ -80,7 +81,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
 }
 
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
-private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders") + SETUP_PANES
+private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders", "playback") + SETUP_PANES
 
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {

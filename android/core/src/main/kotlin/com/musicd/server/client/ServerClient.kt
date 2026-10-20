@@ -314,6 +314,25 @@ class ServerClient(
         }
     }
 
+    /**
+     * A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so):
+     * its answer. Android's connection takes the method; one that refuses it has it set underneath.
+     */
+    fun patch(path: String, body: JSONObject): JSONObject {
+        val c = open(address.baseUrl + path, timeoutMs)
+        try {
+            try { c.requestMethod = "PATCH" } catch (e: java.net.ProtocolException) {
+                HttpURLConnection::class.java.getDeclaredField("method").apply { isAccessible = true }.set(c, "PATCH")
+            }
+            c.doOutput = true
+            c.setRequestProperty("Content-Type", "application/json")
+            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            return readJson(c)
+        } finally {
+            c.disconnect()
+        }
+    }
+
     /** A request with no body ([method]: DELETE), its answer. */
     private fun send(method: String, path: String): JSONObject {
         val c = open(address.baseUrl + path, timeoutMs)

@@ -505,6 +505,8 @@ const SCREENS = {
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
   "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
+  "settings-audio": { open: OPEN_SETTINGS(["playback"], `document.querySelectorAll("#devices-list .dev-row").length > 0`), root: '#settings-overlay .settings-view[data-pane="playback"]' },
+  "settings-device": { open: OPEN_SETTINGS(["playback"], `(() => { const b = document.querySelector("#devices-list [data-dev]"); if (!b) return false; if (!window.__deviceOpened) { window.__deviceOpened = true; b.click(); return false; } return shown(document.querySelector('#settings-overlay .settings-view[data-pane="device"]')) && !!document.getElementById("device-pane-body").textContent; })()`), root: '#settings-overlay .settings-view[data-pane="device"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
