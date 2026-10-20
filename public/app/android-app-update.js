@@ -9,7 +9,7 @@
   const row = document.createElement("div");
   row.className = "settings-row";
   const label = document.createElement("span");
-  label.className = "settings-label";
+  label.className = "settings-label"; label.setAttribute("data-parity", "settings-system.name");
   let v = "";
   try { v = app.version(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   label.textContent = "Android app" + (v ? " v" + v : "");
@@ -18,14 +18,14 @@
     // only says which app this is.
     row.appendChild(label);
     const note = document.createElement("span");
-    note.className = "settings-note";
+    note.className = "settings-note"; note.setAttribute("data-parity", "settings-system.app-note");
     note.textContent = "Updated with the server";
     row.appendChild(note);
     pane.appendChild(row);
   } else {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "settings-update-btn";
+  btn.className = "settings-update-btn"; btn.setAttribute("data-parity", "settings-system.app-check");
   btn.textContent = "Check for app update";
   btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
   row.appendChild(label); row.appendChild(btn);

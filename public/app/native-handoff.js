@@ -50,6 +50,27 @@ window.__musicdNative = function (what, arg) {
     window.__uiPrefs.set(p.name, p.value);
     return true;
   }
+  // The app's own Backup & restore (item 92): this screen's settings handed to it (they live here), and a restored set put back.
+  if (what === "backup-page") {
+    if (!window.MusicdApp || typeof window.MusicdApp.backupPageSettings !== "function" || !window.__backupPageSettings) return false;
+    window.MusicdApp.backupPageSettings(JSON.stringify(window.__backupPageSettings()));
+    return true;
+  }
+  if (what === "backup-page-restore") {
+    let p;
+    try { p = JSON.parse(arg); } catch (e) { return false; }
+    if (!p || typeof p !== "object" || !window.__backupApplyPage) return false;
+    window.__backupApplyPage(p);
+    return true;
+  }
+  // The app's own Check for updates found one (item 92): installed by the page's update banner, which owns the progress.
+  if (what === "apply-update") {
+    let w;
+    try { w = JSON.parse(arg); } catch (e) { return false; }
+    if (!w || typeof w !== "object" || typeof window.__applyUpdateNow !== "function") return false;
+    window.__applyUpdateNow({ server: !!w.server, app: !!w.app });
+    return true;
+  }
   // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
   if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
   // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.
@@ -133,16 +154,6 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the playlist gone: nothing to open */ });
     return true;
   }
-  // The native Playlists' (item 65): Import, the page's sheet for a pasted playlist; a playlist of yours shared, by its id.
-  if (what === "playlist-import") { openImportSheet(); return true; }
-  if (what === "playlist-share") {
-    if (!arg) return false;
-    fetch("/api/user-playlist?id=" + encodeURIComponent(arg), { cache: "no-store" }).then(r => r.json()).then(j => {
-      if (!j || !Array.isArray(j.tracks)) return;
-      shareTracks(j.name || "Playlist", j.tracks.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null, {});
-    }).catch(() => { /* the playlist gone: nothing to share */ });
-    return true;
-  }
   // The native Dynamic Playlists' (item 66): New (the page's sheet, then its Focus); Edit (its Focus with the playlist as the
   // save target); Share (every album read first, as the page's own Share does, then its sheet with the file).
   if (what === "smart-new") { createSmartPlaylist(); return true; }
@@ -206,10 +217,13 @@ window.__musicdNative = function (what, arg) {
     return true;
   }
   // The page's notices drawn by the app (item 69, native-notices.js): a button of the server's notice, by its place
-  // (Forget a folder: the page's question, then its work); the update offer's Update or Later.
+  // (Forget a folder: its work); the update offer's Update or Later. "<place>:yes": the button's question answered Yes in
+  // the app, which asks it itself (item 96), so the page doesn't ask it again unseen.
   if (what === "notice-button") {
-    const b = document.querySelectorAll("#server-notice .server-notice-btn")[Number(arg)];
+    const m = /^(\d+)(:yes)?$/.exec(arg || "");
+    const b = m ? document.querySelectorAll("#server-notice .server-notice-btn")[Number(m[1])] : null;
     if (!b || b.disabled) return false;
+    if (m[2]) b.dataset.confirmed = "1";
     b.click();
     return true;
   }
@@ -225,6 +239,8 @@ window.__musicdNative = function (what, arg) {
     loadZones().then(() => { if (typeof window.__refreshTransport === "function") window.__refreshTransport(); });
     return true;
   }
+  // The server back after the app's own Restart or Shut down (item 96): the page read afresh, as its own power screen does.
+  if (what === "reload") { location.reload(); return true; }
   return false;
 };
 

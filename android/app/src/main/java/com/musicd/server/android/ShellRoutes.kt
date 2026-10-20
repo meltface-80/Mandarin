@@ -104,7 +104,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            onPage = { what, arg -> smartPage(nav, prefs, zone, what, arg) }
         )
     }
     composable(ShellRoute.SMART_PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -116,7 +116,18 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            onPage = { what, arg -> smartPage(nav, prefs, zone, what, arg) }
         )
     }
+}
+
+/**
+ * A Dynamic Playlist's screens hand over: Show albums (or Clear all) from a playlist's Focus opens the Library wall in
+ * that view, which the page's wall and Home's Library row follow (the page's applyLibView; item 95); the rest as anywhere.
+ */
+private fun smartPage(nav: NavHostController, prefs: String?, zone: String, what: String, arg: String?) {
+    if (what != "library-show" || arg == null) { toPageOrNative(nav, what, arg); return }
+    NativeShell.libraryView = arg
+    NativeShell.toPage("library-view", arg)
+    nav.navigate(ShellRoute.library(arg, prefs.orEmpty(), zone))
 }

@@ -28,12 +28,17 @@ const TOLD = `(async () => {
   const n = document.getElementById("server-notice");
   n.innerHTML = "<div>The music folder “Music” isn't there.</div>";
   const b = document.createElement("button"); b.className = "settings-update-btn server-notice-btn"; b.textContent = "Forget “Music”";
-  let forgot = 0; b.addEventListener("click", () => forgot++);
+  b.dataset.ask = "Forget “Music”? Its 3 tracks and their albums leave the library.";
+  let forgot = 0; const answered = []; b.addEventListener("click", () => { forgot++; answered.push(b.dataset.confirmed || ""); });
   n.appendChild(b); n.classList.add("error"); n.classList.remove("hidden");
   await until(() => last().notice);
   out.notice = last().notice;
   out.tapped = window.__musicdNative("notice-button", "0") && forgot === 1;
+  // Its question answered Yes in the app: the page told so, to do its work without asking it again (item 96).
+  out.yes = window.__musicdNative("notice-button", "0:yes") && forgot === 2;
+  out.answered = answered;
   out.noButton = window.__musicdNative("notice-button", "3");
+  out.badArg = window.__musicdNative("notice-button", "0:maybe");
   // An update offered, as updater.js shows it, with its notes.
   document.getElementById("update-text").textContent = "Mandarin v9.9.9 is ready";
   const notes = document.getElementById("update-notes"); notes.textContent = "- faster"; notes.classList.remove("hidden");
@@ -57,8 +62,10 @@ test("the page's notices told to the app, and their buttons tapped for it", { sk
   const r = await page.eval(TOLD);
   assert.deepEqual(page.errors, [], "nothing thrown");
   assert.equal(r.first.update, null, "no update offered at the start");
-  assert.deepEqual(r.notice, { lines: ["The music folder “Music” isn't there."], error: true, buttons: ["Forget “Music”"] });
-  assert.deepEqual([r.tapped, r.noButton], [true, false]);
+  assert.deepEqual(r.notice, { lines: ["The music folder “Music” isn't there."], error: true, buttons: ["Forget “Music”"],
+    asks: ["Forget “Music”? Its 3 tracks and their albums leave the library."] });
+  assert.deepEqual([r.tapped, r.yes, r.noButton, r.badArg], [true, true, false, false]);
+  assert.deepEqual(r.answered, ["", "1"], "answered in the app only when it says so");
   assert.deepEqual(r.update, { text: "Mandarin v9.9.9 is ready", notes: "- faster", now: "Update", later: true, error: false });
   assert.deepEqual([r.later, r.closed, r.badUpdate], [true, true, false], "Later, the page's own, closes it");
   assert.deepEqual(r.gone, { notice: null, update: null });

@@ -52,11 +52,15 @@
     }
   }
 
+  // The app's own Backup & restore (item 92) asks for this screen's settings, and hands back a restored set.
+  window.__backupPageSettings = pageSettings;
+  window.__backupApplyPage = applyPage;
+
   function tickBoxes(container, parts, prefix) {
     container.innerHTML = parts.map(p =>
-      '<label class="backup-part"><input type="checkbox" data-part="' + p + '" checked>' +
-      '<span><b>' + esc(NAMES[p]) + (p === "database" && info ? " (" + fmtBytes(info.db_bytes) + ")" : "") + '</b>' +
-      '<small>' + esc(HINT[p] || "") + '</small></span></label>').join("");
+      '<label class="backup-part" data-parity="settings-backup.part"><input type="checkbox" data-part="' + p + '" aria-label="' + esc(NAMES[p]) + '" checked>' +
+      '<span><b data-parity="settings-backup.part-name">' + esc(NAMES[p]) + (p === "database" && info ? " (" + fmtBytes(info.db_bytes) + ")" : "") + '</b>' +
+      '<small data-parity="settings-backup.part-hint">' + esc(HINT[p] || "") + '</small></span></label>').join("");
   }
   const ticked = container => [...container.querySelectorAll("input[data-part]:checked")].map(i => i.dataset.part);
 
@@ -88,19 +92,19 @@
   function renderList() {
     const items = ((info && info.backups) || []).map(b => Object.assign({ where: "server" }, b)).concat(phoneFiles())
       .sort((a, b) => (b.created || 0) - (a.created || 0));
-    if (!items.length) { listEl.innerHTML = '<div class="settings-note">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
+    if (!items.length) { listEl.innerHTML = '<div class="settings-note" data-parity="settings-backup.empty">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
     listEl.innerHTML = items.map(b => {
       const title = b.where === "phone" ? "On this phone" : b.kind === "auto" ? "Before restore · on the server" : "On the server";
       const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)].concat(b.sealed ? ["sealed"] : []);
       if (b.where === "phone") meta.push(b.name || ""); else if (b.label) meta.push("from " + b.label);
       const ref = b.where === "phone" ? ' data-uri="' + esc(b.uri) + '"' : ' data-id="' + esc(b.id) + '"';
       return '<div class="backup-item" data-where="' + b.where + '"' + ref + '>' +
-        '<div class="backup-item-head"><b>' + esc(title) + '</b><span>' + esc(meta.filter(Boolean).join(" · ")) + '</span>' +
-        '<small>' + esc((b.parts || []).map(p => NAMES[p] || p).join(", ")) + '</small></div>' +
+        '<div class="backup-item-head"><b data-parity="settings-backup.item-title">' + esc(title) + '</b><span data-parity="settings-backup.item-meta">' + esc(meta.filter(Boolean).join(" · ")) + '</span>' +
+        '<small data-parity="settings-backup.item-parts">' + esc((b.parts || []).map(p => NAMES[p] || p).join(", ")) + '</small></div>' +
         '<div class="backup-item-actions">' +
-          '<button class="settings-update-btn" type="button" data-act="restore">Restore…</button>' +
-          (b.where === "server" ? '<a class="settings-update-btn" href="/api/backup/download/' + encodeURIComponent(b.id) + '" download>Download</a>' : "") +
-          '<button class="settings-update-btn" type="button" data-act="delete">Delete</button>' +
+          '<button data-parity="settings-backup.restore" class="settings-update-btn" type="button" data-act="restore">Restore…</button>' +
+          (b.where === "server" ? '<a data-parity="settings-backup.download" class="settings-update-btn" href="/api/backup/download/' + encodeURIComponent(b.id) + '" download>Download</a>' : "") +
+          '<button data-parity="settings-backup.delete" class="settings-update-btn" type="button" data-act="delete">Delete</button>' +
         '</div>' +
         '<div class="backup-restore hidden"></div>' +
       '</div>';
@@ -110,8 +114,8 @@
   // A restore panel: the ticks for what's in it (on the phone, everything), a sealed one's passphrase (askPass, its placeholder), and Restore.
   function openRestorePanel(panel, parts, onGo, label, askPass) {
     panel.classList.remove("hidden");
-    const pass = askPass ? '<input type="password" class="settings-token-input backup-pass-in" autocomplete="off" placeholder="' + esc(askPass) + '">' : "";
-    panel.innerHTML = '<div class="backup-parts"></div>' + pass + '<button class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
+    const pass = askPass ? '<input type="password" data-parity="settings-backup.restore-pass" aria-label="Passphrase" class="settings-token-input backup-pass-in" autocomplete="off" placeholder="' + esc(askPass) + '">' : "";
+    panel.innerHTML = '<div class="backup-parts"></div>' + pass + '<button data-parity="settings-backup.go" class="settings-update-btn" type="button" data-act="go">' + esc(label) + '</button>';
     tickBoxes(panel.querySelector(".backup-parts"), parts);
     panel.querySelector('[data-act="go"]').addEventListener("click", async () => {
       const want = ticked(panel);

@@ -10,8 +10,14 @@ import org.json.JSONObject
  * say and doing what their buttons do; the native Home draws them, which it hid behind itself until now.
  */
 
-/** The server's notice: its paragraphs, red-edged when it is a fault, and its buttons (Forget a folder), by their words. */
-data class ServerNotice(val lines: List<String>, val error: Boolean, val buttons: List<String>)
+/**
+ * The server's notice: its paragraphs, red-edged when it is a fault, and its buttons (Forget a folder), by their words;
+ * [asks], each button's question, asked by the app before the page is told it was answered Yes (bug list item 96).
+ */
+data class ServerNotice(val lines: List<String>, val error: Boolean, val buttons: List<String>, val asks: List<String> = emptyList()) {
+    /** The question the button at [i] asks first; none when it asks none. */
+    fun ask(i: Int): String? = asks.getOrNull(i)?.takeIf { it.isNotBlank() }
+}
 
 /** The update offer: what it says, its notes when open, Update's word (null while it is busy), whether Later is offered, and a failure. */
 data class UpdateOffer(val text: String, val notes: String, val now: String?, val later: Boolean, val error: Boolean)
@@ -23,7 +29,9 @@ data class PageNotices(val notice: ServerNotice? = null, val update: UpdateOffer
         fun parse(json: String?): PageNotices {
             val j = runCatching { JSONObject(json ?: return PageNotices()) }.getOrNull() ?: return PageNotices()
             fun strings(o: JSONObject, k: String) = o.optJSONArray(k)?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() } }.orEmpty()
-            val n = j.optJSONObject("notice")?.let { ServerNotice(strings(it, "lines"), it.optBoolean("error"), strings(it, "buttons")) }?.takeIf { it.lines.isNotEmpty() }
+            // The questions by the buttons' places: kept as they are, a button without one an empty one.
+            fun asks(o: JSONObject) = o.optJSONArray("asks")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
+            val n = j.optJSONObject("notice")?.let { ServerNotice(strings(it, "lines"), it.optBoolean("error"), strings(it, "buttons"), asks(it)) }?.takeIf { it.lines.isNotEmpty() }
             val u = j.optJSONObject("update")?.let {
                 UpdateOffer(it.optString("text"), it.optString("notes"), if (it.isNull("now")) null else it.optString("now").ifEmpty { null }, it.optBoolean("later"), it.optBoolean("error"))
             }?.takeIf { it.text.isNotBlank() }

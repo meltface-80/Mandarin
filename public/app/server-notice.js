@@ -49,11 +49,16 @@
       b.type = "button";
       b.className = "settings-update-btn server-notice-btn"; b.dataset.parity = "home.notice-button";
       b.textContent = button;
+      const q = d.reason === "vanished"
+        ? "Remove the tracks in " + name + " whose files are gone? Only those leave the library; anything still there stays."
+        : "Forget " + name + "? Its " + n(d) + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
+      // The question goes with the button, so the Android app can ask it itself over its own Home (bug list item 96):
+      // asked by the page there, it was asked unseen, and the folder never forgotten. Answered there, it isn't asked twice.
+      b.dataset.ask = q;
       b.addEventListener("click", async () => {
-        const q = d.reason === "vanished"
-          ? "Remove the tracks in " + name + " whose files are gone? Only those leave the library; anything still there stays."
-          : "Forget " + name + "? Its " + n(d) + " tracks and their albums leave the library (they come back with a rescan if the folder does).";
-        if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
+        const answered = b.dataset.confirmed === "1";
+        delete b.dataset.confirmed;
+        if (!answered && !(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
         b.disabled = true;
         try {
           const r = await fetch("/api/library/forget-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: d.dir }) });
