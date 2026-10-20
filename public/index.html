@@ -1234,7 +1234,6 @@
           </button>
           <h2 data-parity="settings-setup.heading">Setup</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-setup.desc">Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
           <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
@@ -1318,7 +1317,6 @@
           </button>
           <h2 data-parity="settings-audio.heading">Audio Devices</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-audio.desc">Output zone &amp; your devices</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1381,7 +1379,6 @@
           </button>
           <h2 data-parity="settings-labels.heading">Record labels</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-labels.desc">From your files' tags: on or off, ordering, folders</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1461,7 +1458,6 @@
           </button>
           <h2 data-parity="settings-account.heading">Account</h2>
         </div>
-        <p class="settings-pane-desc" id="acct-who" data-parity="settings-account.who">Signed in</p>
 
         <div class="settings-block">
           <h3 class="settings-block-title" data-parity="settings-account.title">Signed-in devices</h3>
@@ -1491,7 +1487,6 @@
           </button>
           <h2 data-parity="settings-keys.heading">API Keys</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-keys.desc">Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional.</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1539,7 +1534,6 @@
           </button>
           <h2 data-parity="settings-services.heading">Services</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-services.desc">Qobuz and Tidal</p>
 
         <div class="settings-block">
           <div class="settings-block-title" data-parity="settings-services.title">Qobuz <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
@@ -1607,7 +1601,6 @@
           </button>
           <h2 data-parity="settings-sharecard.heading">Share Card</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-sharecard.desc">What the card shows, and the links under it</p>
 
         <div class="settings-block">
           <h3 class="settings-block-title" data-parity="settings-sharecard.title">On the card</h3>
@@ -1662,7 +1655,6 @@
           </button>
           <h2 data-parity="settings-display.heading">Wall Display</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-display.desc">Always-on screen &amp; video</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1688,7 +1680,6 @@
           </button>
           <h2 data-parity="settings-shelf.heading">Shelf</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-shelf.desc">Flicking through your collection</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1711,7 +1702,6 @@
           </button>
           <h2 data-parity="settings-ui.heading">UI Settings</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-ui.desc">Text size, layout &amp; tile size</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1820,7 +1810,6 @@
           </button>
           <h2 data-parity="settings-homescreen.heading">Home Screen</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-homescreen.desc">Which rows show, and in what order</p>
 
         <!-- The top of Home (v1.0.7): each can go, on this device, and what's under it moves up. -->
         <div class="settings-block">
@@ -1855,7 +1844,6 @@
           </button>
           <h2 data-parity="settings-picks.heading">Smart Picks</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-picks.desc">Daily discoveries &amp; schedule</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1906,7 +1894,6 @@
           </button>
           <h2 data-parity="settings-folders.heading">Music Folders</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-folders.desc">Where your library is read from</p>
         <!-- Filled by initFoldersPane() in app.js from /api/library/folders. -->
         <div class="settings-block" id="folders-pane-body"></div>
       </div>
@@ -1920,7 +1907,6 @@
           </button>
           <h2 id="device-pane-title" data-parity="settings-device.heading">Device</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-device.desc" id="device-pane-desc"></p>
         <div id="device-pane-body"></div>
       </div>
 
@@ -1931,7 +1917,6 @@
           </button>
           <h2 data-parity="settings-away.heading">Away from home</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-away.desc">Tailscale, built into the server</p>
         <!-- Filled by initAwayPane() in app.js from /api/tailscale. -->
         <div class="settings-block" id="away-pane-body"></div>
       </div>
@@ -1943,7 +1928,6 @@
           </button>
           <h2 data-parity="settings-scanner.heading">Library Scanner</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-scanner.desc">Albums named from their files and MusicBrainz, and ReplayGain measured</p>
         <!-- Filled by initIdentifyPane() in app.js from /api/identify. -->
         <div id="identify-pane-body"></div>
       </div>
@@ -1955,7 +1939,6 @@
           </button>
           <h2 data-parity="settings-system.heading">Updates</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-system.desc">Updates &amp; version</p>
 
         <div class="settings-block">
           <div class="settings-row">
@@ -1973,7 +1956,6 @@
           </button>
           <h2 data-parity="settings-backup.heading">Backup &amp; restore</h2>
         </div>
-        <p class="settings-pane-desc" data-parity="settings-backup.desc">Your settings, players, collection and database</p>
         <div class="settings-block">
           <div class="settings-block-title" data-parity="settings-backup.title">Back up <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data." aria-label="Info">&#9432;</button></div>
           <div class="backup-parts" id="backup-parts"></div>

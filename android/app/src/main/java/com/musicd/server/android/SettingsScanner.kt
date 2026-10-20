@@ -106,7 +106,6 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-scanner.back", Contract.label("settings-scanner.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Library Scanner", Modifier.parity("settings-scanner.heading"))
-            SettingsDesc("Albums named from their files and MusicBrainz, and ReplayGain measured", Modifier.parity("settings-scanner.desc"))
             // The schedule: when identification and ReplayGain run, and what runs now.
             Block {
                 ScanTitle("Schedule", null)

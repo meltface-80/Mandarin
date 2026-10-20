@@ -78,7 +78,6 @@ internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Services", Modifier.parity("settings-services.heading"))
-            SettingsDesc("Qobuz and Tidal", Modifier.parity("settings-services.desc"))
             for (s in SERVICES) Block { ServiceBlock(s, client) { info = it } }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-services.info")) }

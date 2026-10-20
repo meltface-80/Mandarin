@@ -4,7 +4,8 @@
 (function initAccount() {
   const listEl = document.getElementById("acct-devices");
   if (!listEl) return;
-  const who = document.getElementById("acct-who");
+  // Who is signed in: asked for again by Change password (the line that said it is gone, item 101).
+  let username = "";
   const toast = (m, k) => { if (window.__showToast) window.__showToast(m, k); };
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function ago(ms) {
@@ -25,7 +26,7 @@
   async function load() {
     try {
       const j = await (await fetch("/api/auth/devices", { cache: "no-store" })).json();
-      who.textContent = "Signed in as " + (j.username || "?");
+      username = j.username || "";
       listEl.innerHTML = "";
       for (const d of j.devices || []) {
         const row = document.createElement("div");
@@ -45,7 +46,7 @@
         }
         listEl.appendChild(row);
       }
-    } catch (e) { who.textContent = "Couldn't load the account"; }
+    } catch (e) { /* the devices stay as they were */ }
   }
 
   document.querySelectorAll('[data-pane="account"].settings-nav-item').forEach(b => b.addEventListener("click", load));
@@ -65,7 +66,6 @@
     btn.disabled = true; st.textContent = "Checking…";
     await new Promise(r => setTimeout(r, 30));
     try {
-      const username = (who.textContent || "").replace(/^Signed in as /, "");
       const ch = await post("/api/auth/challenge", { username });
       const start = MusicdSrp.clientStart();
       const proof = MusicdSrp.clientProof(username, cur, ch.salt, ch.iterations, start, ch.B);

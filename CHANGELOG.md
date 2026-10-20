@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
+  what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
+  "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the
+  heading keeps the room the line used to end with (18). The page's Change password keeps the name signed in itself
+  rather than reading it back from the line.
 - `94-native-playlist-import-share`: a playlist's Import and Share sheets natively in the Android app, as the page's.
   Import (Playlists → Import): what to paste and why, the box to paste a shared playlist into, Choose a file… (the
   phone's own file picker, for a `.musicd` file), then Import: how many of its tracks the library has, those it couldn't
