@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `65-native-playlists`: your playlists natively in the Android app (plan P1, and P2's page), opened wherever the page
+  opened its own (the side menu's Playlists, Home's Playlists heading and its tiles). The Playlists screen: the heading with
+  the bar's Back, Import in the top-right corner, each playlist as a tile of the wall with its covers' mosaic, its name and
+  how many tracks, the last changed first, and the banner while there are none. A playlist's page: the bar's Back to Home,
+  ← Playlists, its name over its hairline and how many tracks, Play now and Queue (each track in turn, the first as asked),
+  ⋯ with Share (the page's sheet with the file) and Delete (asked first), then its tracks numbered, each with its album's
+  cover, a tap playing it. Import is the page's sheet over the screen, and the list is read again when it closes. Two
+  contract screens (`playlists`, `playlist`), the page keyed and measured; a playlist's tile on the page is called by its
+  name. Offline the page's own stay. Dynamic Playlists follow (P3).
 - `64-native-always-on`: the Android app's native Library (its walls and an artist's page with it), Home (with Smart Picks and
   Random Album's pick) and search are permanently on, as Now playing and the album page have been since item 47: the three
   preview switches in UI Settings are gone and the page's own versions are no longer reached in the app. The native Home is

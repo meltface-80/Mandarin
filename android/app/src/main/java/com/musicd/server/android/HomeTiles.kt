@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -163,17 +164,7 @@ internal fun PlaylistTileView(p: PlaylistTile, prefs: WallPrefs, coverPx: Int, c
     val corners = RoundedCornerShape(12.dp)
     Column(Modifier.parity("home.playlist", Contract.label("home.playlist", 0, p.name, p.subtitle)).width((144 * prefs.tile).dp).clickable(onClick = onTap)) {
         Box(Modifier.parity("home.playlist-art").fillMaxWidth().aspectRatio(1f).clip(corners).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, Color.White.copy(alpha = 0.06f), corners)) {
-            if (keys.isEmpty()) Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
-            else if (keys.size == 1) MosaicCover(keys[0], coverPx, client, Modifier.fillMaxSize())
-            else {
-                // The page's grid: a 1px gap between the cells, two covers as halves.
-                val rows = if (keys.size == 2) 1 else 2
-                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    for (r in 0 until rows) Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                        for (col in 0 until 2) { val k = keys.getOrNull(r * 2 + col); Box(Modifier.weight(1f).fillMaxSize()) { if (k != null) MosaicCover(k, coverPx / 2, client, Modifier.fillMaxSize()) } }
-                    }
-                }
-            }
+            PlaylistMosaic(keys, coverPx, client)
         }
         Text(p.name.ifEmpty { "Untitled" }, Modifier.parity("home.playlist-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
             fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -182,10 +173,27 @@ internal fun PlaylistTileView(p: PlaylistTile, prefs: WallPrefs, coverPx: Int, c
     }
 }
 
-/** One cover of a mosaic, once fetched. */
+/**
+ * A playlist's covers as the page draws them on its tile ([keys], four at most): "♪" with none, one filling the
+ * square, two as halves, more as a grid of four, a 1px gap between the cells (Home's row, the Playlists screen).
+ */
 @Composable
-private fun MosaicCover(key: String, px: Int, client: () -> ServerClient?, modifier: Modifier) {
-    rememberTileCover(key, px, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier) }
+internal fun BoxScope.PlaylistMosaic(keys: List<String>, coverPx: Int, client: () -> ServerClient?) {
+    if (keys.isEmpty()) Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
+    else if (keys.size == 1) rememberTileCover(keys[0], coverPx, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+    else {
+        val rows = if (keys.size == 2) 1 else 2
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            for (r in 0 until rows) Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                for (col in 0 until 2) {
+                    val k = keys.getOrNull(r * 2 + col)
+                    Box(Modifier.weight(1f).fillMaxSize()) {
+                        if (k != null) rememberTileCover(k, coverPx / 2, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** A Smart Pick on Home (the page's smartPickCard, not full): the cover with the artist over the album under it; a tap opens the album, or Smart Picks. */

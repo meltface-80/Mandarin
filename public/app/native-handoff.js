@@ -113,6 +113,16 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the playlist gone: nothing to open */ });
     return true;
   }
+  // The native Playlists' (item 65): Import, the page's sheet for a pasted playlist; a playlist of yours shared, by its id.
+  if (what === "playlist-import") { openImportSheet(); return true; }
+  if (what === "playlist-share") {
+    if (!arg) return false;
+    fetch("/api/user-playlist?id=" + encodeURIComponent(arg), { cache: "no-store" }).then(r => r.json()).then(j => {
+      if (!j || !Array.isArray(j.tracks)) return;
+      shareTracks(j.name || "Playlist", j.tracks.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null, {});
+    }).catch(() => { /* the playlist gone: nothing to share */ });
+    return true;
+  }
   // The native Search's (item 61): a service's artist, their albums in that service's browser; a Pitchfork review, its page in the magazine.
   if (what === "service-artist") {
     let ar;

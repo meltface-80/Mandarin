@@ -223,6 +223,47 @@ const OPEN_SEARCH = `(async () => {
   return "open";
 })()`;
 
+/* A playlist of Album One's first two tracks, made through the page's own API (once: a second opener finds it), its id. */
+const MAKE_PLAYLIST = `const makePlaylist = async () => {
+  const mine = ((await (await fetch("/api/user-playlists")).json()).playlists || []).find(p => p.name === "Road trip");
+  if (mine) return mine.id;
+  const one = ((await (await fetch("/api/library/albums?count=60")).json()).albums || []).find(a => a.title === "Album One");
+  const al = await (await fetch("/api/album?offset=" + one.offset)).json();
+  const tracks = al.tracks.slice(0, 2).map((t, i) => ({ album_offset: one.offset, album_title: one.title, album_subtitle: one.subtitle, track_index: i, title: t.title, subtitle: one.subtitle, image_key: one.image_key }));
+  const r = await (await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Road trip", tracks }) })).json();
+  return r.id;
+};`;
+
+/* The Playlists screen, as the side menu opens it, one playlist on it. */
+const OPEN_PLAYLISTS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  ${MAKE_PLAYLIST}
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await makePlaylist();
+  await sleep(400);
+  showPlaylists();
+  if (!(await until(() => /Playlists/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album").length > 0))) return "no screen";
+  await sleep(800);
+  return "open";
+})()`;
+
+/* One of your playlists: its tile on the Playlists screen tapped, its two tracks up. */
+const OPEN_PLAYLIST = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  ${MAKE_PLAYLIST}
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await makePlaylist();
+  await sleep(400);
+  showPlaylists();
+  if (!(await until(() => document.querySelector("#album-grid .album")))) return "no list";
+  document.querySelector("#album-grid .album").click();
+  if (!(await until(() => document.querySelectorAll("#album-grid .playlist-tracks .track-row").length === 2))) return "no playlist";
+  await sleep(800);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -239,7 +280,9 @@ const SCREENS = {
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
-  "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] }
+  "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] },
+  "playlists": { open: OPEN_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
+  "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {
